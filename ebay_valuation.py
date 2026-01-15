@@ -304,6 +304,8 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) 
     
     prompt = f"""Search for the current market value of this comic book: {title} #{issue}
 
+IMPORTANT: First, correct any spelling errors in the title (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man", "Batmam" → "Batman"). Search using the corrected title.
+
 Look for recent sale prices, price guide values, and market data from sources like:
 - eBay sold listings
 - GoCollect
@@ -318,6 +320,7 @@ Return a JSON object with this exact structure:
         {{"price": 450.00, "date": "2026-01-10", "grade": "raw", "source": "eBay"}},
         {{"price": 520.00, "date": "2025-12-15", "grade": "9.4", "source": "GoCollect"}}
     ],
+    "corrected_title": "Captain America",
     "notes": "Brief notes about the search results"
 }}
 
@@ -327,7 +330,8 @@ Rules:
 - Note the grade if specified (use "raw" if ungraded)
 - If no prices found, return empty sales array
 - Maximum 10 prices
-- Prices in USD"""
+- Prices in USD
+- Include "corrected_title" if you fixed any spelling"""
 
     try:
         response = client.messages.create(
@@ -352,8 +356,10 @@ Rules:
         if json_match:
             data = json.loads(json_match.group())
             sales = data.get('sales', [])
+            corrected_title = data.get('corrected_title', None)
         else:
             sales = []
+            corrected_title = None
             # Return diagnostic info
             return EbayValuationResult(
                 estimated_value=0,
@@ -463,6 +469,10 @@ Rules:
         f"Price range: ${price_min:.2f} - ${price_max:.2f}",
         f"Recency-weighted average: ${recency_weighted_avg:.2f}"
     ]
+    
+    # Add spelling correction note if title was corrected
+    if corrected_title and corrected_title.lower() != title.lower():
+        reasoning_parts.insert(0, f"Corrected spelling: '{title}' → '{corrected_title}'")
     
     if cv < 0.1:
         reasoning_parts.append("Prices very consistent")
