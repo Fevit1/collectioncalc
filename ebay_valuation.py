@@ -135,28 +135,35 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) 
     search_query = f"{title} #{issue}"
     if publisher:
         search_query += f" {publisher}"
-    search_query += f" {grade} sold eBay"
+    search_query += f" {grade} price value"
     
-    prompt = f"""Search eBay sold listings for: {search_query}
+    prompt = f"""Search for the current market value of this comic book: {search_query}
 
-Find recent SOLD prices (not current listings) for this comic book.
+Look for recent sale prices, price guide values, and market data from sources like:
+- eBay sold listings
+- GoCollect
+- CovrPrice  
+- ComicsPriceGuide
+- Heritage Auctions
+- Any other comic pricing sources
 
 Return a JSON object with this exact structure:
 {{
     "sales": [
-        {{"price": 45.00, "date": "2026-01-10", "grade": "VF", "is_cgc": false}},
-        {{"price": 52.00, "date": "2025-12-15", "grade": "VF", "is_cgc": true}}
+        {{"price": 45.00, "date": "2026-01-10", "grade": "VF", "source": "eBay"}},
+        {{"price": 52.00, "date": "2025-12-15", "grade": "VF", "source": "GoCollect"}}
     ],
     "notes": "Brief notes about the search results"
 }}
 
 Rules:
-- Only include SOLD listings, not active listings
-- Include date sold if available (estimate if only "sold in last month" etc)
-- Note if the listing was CGC graded
-- If no sold listings found, return empty sales array
-- Maximum 10 most recent sales
-- Prices in USD"""
+- Include the source for each price (eBay, GoCollect, etc.)
+- Include date if available (estimate month/year if exact date unknown)
+- Note the grade if specified
+- If no prices found, return empty sales array
+- Maximum 10 prices
+- Prices in USD
+- Focus on {grade} grade specifically"""
 
     try:
         response = client.messages.create(
@@ -216,7 +223,7 @@ Rules:
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning="No sold listings found on eBay"
+            reasoning="No market prices found from web search"
         )
     
     # Process sales data
@@ -246,7 +253,7 @@ Rules:
                 'date': sale_date.strftime('%Y-%m-%d'),
                 'weight': weight,
                 'grade': sale.get('grade'),
-                'is_cgc': sale.get('is_cgc', False)
+                'source': sale.get('source', 'unknown')
             })
         except:
             continue
