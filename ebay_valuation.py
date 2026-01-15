@@ -131,13 +131,13 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) 
     
     client = anthropic.Anthropic(api_key=api_key)
     
-    # Build search query
-    search_query = f"{title} #{issue}"
+    # Build search query - don't include grade (most listings don't specify)
+    search_query = f"{title} #{issue} comic"
     if publisher:
         search_query += f" {publisher}"
-    search_query += f" {grade} price value"
+    search_query += " price sold value"
     
-    prompt = f"""Search for the current market value of this comic book: {search_query}
+    prompt = f"""Search for the current market value of this comic book: {title} #{issue}
 
 Look for recent sale prices, price guide values, and market data from sources like:
 - eBay sold listings
@@ -150,8 +150,8 @@ Look for recent sale prices, price guide values, and market data from sources li
 Return a JSON object with this exact structure:
 {{
     "sales": [
-        {{"price": 45.00, "date": "2026-01-10", "grade": "VF", "source": "eBay"}},
-        {{"price": 52.00, "date": "2025-12-15", "grade": "VF", "source": "GoCollect"}}
+        {{"price": 450.00, "date": "2026-01-10", "grade": "raw", "source": "eBay"}},
+        {{"price": 520.00, "date": "2025-12-15", "grade": "9.4", "source": "GoCollect"}}
     ],
     "notes": "Brief notes about the search results"
 }}
@@ -159,11 +159,10 @@ Return a JSON object with this exact structure:
 Rules:
 - Include the source for each price (eBay, GoCollect, etc.)
 - Include date if available (estimate month/year if exact date unknown)
-- Note the grade if specified
+- Note the grade if specified (use "raw" if ungraded)
 - If no prices found, return empty sales array
 - Maximum 10 prices
-- Prices in USD
-- Focus on {grade} grade specifically"""
+- Prices in USD"""
 
     try:
         response = client.messages.create(
