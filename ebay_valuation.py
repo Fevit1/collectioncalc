@@ -135,7 +135,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) 
     search_query = f"{title} #{issue}"
     if publisher:
         search_query += f" {publisher}"
-    search_query += f" {grade} sold"
+    search_query += f" {grade} sold eBay"
     
     prompt = f"""Search eBay sold listings for: {search_query}
 
@@ -162,6 +162,7 @@ Rules:
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=1024,
+            timeout=60.0,  # 60 second timeout
             tools=[{
                 "type": "web_search_20250305",
                 "name": "web_search"
@@ -182,6 +183,17 @@ Rules:
             sales = data.get('sales', [])
         else:
             sales = []
+            # Return diagnostic info
+            return EbayValuationResult(
+                estimated_value=0,
+                confidence="VERY LOW",
+                confidence_score=0,
+                num_sales=0,
+                price_range=(0, 0),
+                recency_weighted_avg=0,
+                sales_data=[],
+                reasoning=f"Could not parse JSON from response. Raw: {result_text[:500]}"
+            )
             
     except Exception as e:
         return EbayValuationResult(
@@ -345,8 +357,13 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
             'db_found': True,
             'ebay_sales': ebay_result.num_sales,
             'ebay_price_range': ebay_result.price_range,
-            'reasoning': ebay_result.reasoning if ebay_result.num_sales > 0 else 'Based on database value',
-            'sales_data': ebay_result.sales_data
+            'reasoning': ebay_result.reasoning if ebay_result.reasoning else 'Based on database value',
+            'sales_data': ebay_result.sales_data,
+            'debug': {
+                'ebay_attempted': True,
+                'ebay_reasoning': ebay_result.reasoning,
+                'db_base_value': base_value
+            }
         }
     
     else:

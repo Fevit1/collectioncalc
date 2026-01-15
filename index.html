@@ -365,6 +365,19 @@
                     `;
                 }
                 
+                // Build debug info if available
+                let debugInfo = '';
+                if (json.debug) {
+                    debugInfo = `
+                        <div class="steps" style="margin-top: 10px; font-size: 0.8rem;">
+                            <h4 style="color: #888;">Debug Info</h4>
+                            <p style="color: #666;">eBay attempted: ${json.debug.ebay_attempted}</p>
+                            <p style="color: #666;">eBay result: ${json.debug.ebay_reasoning || 'None'}</p>
+                            <p style="color: #666;">DB base value: $${json.debug.db_base_value || 'N/A'}</p>
+                        </div>
+                    `;
+                }
+                
                 resultContent.innerHTML = `
                     <p>Estimated Value</p>
                     <div class="price">$${json.final_value.toFixed(2)}</div>
@@ -379,6 +392,7 @@
                         <h4>Analysis</h4>
                         <p style="color: #aaa; font-size: 0.9rem;">${json.reasoning || 'No additional details'}</p>
                     </div>
+                    ${debugInfo}
                 `;
                 
             } catch (error) {
