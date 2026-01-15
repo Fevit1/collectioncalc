@@ -68,6 +68,7 @@ def valuate():
         from ebay_valuation import get_valuation_with_ebay
         
         data = request.get_json()
+        force_refresh = data.get('force_refresh', False)
         
         # Try database lookup first
         db_result = lookup_comic(
@@ -83,7 +84,8 @@ def valuate():
             grade=data.get('grade', 'NM'),
             publisher=data.get('publisher'),
             year=data.get('year'),
-            db_result=db_result
+            db_result=db_result,
+            force_refresh=force_refresh
         )
         
         return jsonify(result)

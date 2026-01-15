@@ -244,6 +244,21 @@
             transform: none;
             box-shadow: none;
         }
+        .item-refresh {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1rem;
+            width: auto;
+            margin-left: 10px;
+        }
+        .item-refresh:hover {
+            color: var(--brand-cyan);
+            transform: none;
+            box-shadow: none;
+        }
         .item-fields {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -898,7 +913,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             showResults();
         }
         
-        async function getValuation(item) {
+        async function getValuation(item, forceRefresh = false) {
             const response = await fetch(`${API_URL}/api/valuate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -907,7 +922,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     issue: item.issue,
                     year: parseInt(item.year) || null,
                     publisher: item.publisher || null,
-                    grade: item.grade || 'VF'
+                    grade: item.grade || 'VF',
+                    force_refresh: forceRefresh  // Backend needs to support this to bypass cache
                 })
             });
             
@@ -941,10 +957,12 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <span class="item-number">${idx + 1}</span>
                         <span class="item-title">${item.title} #${item.issue}</span>
                         <span class="item-value">$${(item.value || 0).toFixed(2)}</span>
+                        <button class="item-refresh" onclick="refreshItem(${idx})" title="Refresh with 3 samples">🔄</button>
                     </div>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
                         ${item.confidence || ''} confidence · ${item.source || 'estimate'}
                         ${item.ebay_sales ? ` · ${item.ebay_sales} eBay sale(s)` : ''}
+                        ${item.samples ? ` · Samples: $${item.samples.join(', $')}` : ''}
                     </div>
                 </div>
             `).join('');
@@ -959,13 +977,93 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 Grade: item.grade,
                 Value: item.value || 0,
                 Confidence: item.confidence || '',
-                Source: item.source || ''
+                Source: item.source || '',
+                Samples: item.samples ? item.samples.join(', ') : ''
             }));
             
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Collection');
             XLSX.writeFile(wb, 'CollectionCalc_Valuations.xlsx');
+        }
+        
+        async function refreshItem(idx) {
+            const item = extractedItems[idx];
+            const samples = [];
+            
+            showThinking(`Refreshing: ${item.title} #${item.issue}`, [
+                'Sample 1: Searching...',
+                'Sample 2: Waiting...',
+                'Sample 3: Waiting...',
+                'Calculating average...',
+                'Updating value...'
+            ]);
+            
+            // Run 3 valuations
+            for (let s = 0; s < 3; s++) {
+                // Update step text
+                document.getElementById('step' + (s + 1) + 'Text').textContent = `Sample ${s + 1}: Searching...`;
+                document.getElementById('step' + (s + 1)).classList.remove('pending');
+                document.getElementById('step' + (s + 1)).classList.add('active');
+                
+                try {
+                    const result = await getValuation(item, true);  // Force refresh to bypass cache
+                    samples.push(result.value);
+                    
+                    // Mark step done with value
+                    document.getElementById('step' + (s + 1) + 'Text').textContent = `Sample ${s + 1}: $${result.value.toFixed(2)}`;
+                    document.getElementById('step' + (s + 1)).classList.remove('active');
+                    document.getElementById('step' + (s + 1)).classList.add('done');
+                    
+                } catch (error) {
+                    document.getElementById('step' + (s + 1) + 'Text').textContent = `Sample ${s + 1}: Error`;
+                    document.getElementById('step' + (s + 1)).classList.remove('active');
+                    document.getElementById('step' + (s + 1)).classList.add('done');
+                }
+                
+                // 60 second delay between samples (except after last)
+                if (s < 2) {
+                    for (let sec = 60; sec > 0; sec--) {
+                        document.getElementById('step' + (s + 2) + 'Text').textContent = `Sample ${s + 2}: Waiting ${sec}s...`;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+            }
+            
+            // Calculate average
+            document.getElementById('step4').classList.remove('pending');
+            document.getElementById('step4').classList.add('active');
+            document.getElementById('step4Text').textContent = 'Calculating average...';
+            
+            if (samples.length > 0) {
+                const avgValue = samples.reduce((a, b) => a + b, 0) / samples.length;
+                
+                document.getElementById('step4').classList.remove('active');
+                document.getElementById('step4').classList.add('done');
+                document.getElementById('step4Text').textContent = `Average: $${avgValue.toFixed(2)}`;
+                
+                // Update item
+                document.getElementById('step5').classList.remove('pending');
+                document.getElementById('step5').classList.add('active');
+                document.getElementById('step5Text').textContent = 'Updating value...';
+                
+                extractedItems[idx].value = avgValue;
+                extractedItems[idx].samples = samples;
+                extractedItems[idx].source = 'refreshed (3 samples)';
+                extractedItems[idx].confidence = 'HIGH';
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                document.getElementById('step5').classList.remove('active');
+                document.getElementById('step5').classList.add('done');
+                document.getElementById('step5Text').textContent = `Updated: $${avgValue.toFixed(2)}`;
+            }
+            
+            // Update displays
+            setTimeout(() => {
+                hideThinking();
+                showResults();
+            }, 1500);
         }
         
         function showThinking(title, steps) {
