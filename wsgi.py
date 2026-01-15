@@ -145,5 +145,86 @@ def lookup():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/cache/update', methods=['POST', 'OPTIONS'])
+def update_cache():
+    """Update the price cache with a new value (admin function for refresh)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_valuation import update_cached_value
+        
+        data = request.get_json()
+        title = data.get('title', '')
+        issue = data.get('issue', '')
+        new_value = data.get('value')
+        samples = data.get('samples', [])
+        
+        if not title or not issue or new_value is None:
+            return jsonify({'error': 'Missing required fields: title, issue, value'}), 400
+        
+        success = update_cached_value(title, issue, new_value, samples)
+        
+        return jsonify({
+            'success': success,
+            'title': title,
+            'issue': issue,
+            'new_value': new_value
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cache/check', methods=['GET'])
+def check_cache():
+    """Debug endpoint to check if a comic is in the cache."""
+    try:
+        from ebay_valuation import get_cached_result, expand_title_alias, get_cache_db_path
+        import sqlite3
+        import os
+        
+        title = request.args.get('title', '')
+        issue = request.args.get('issue', '')
+        
+        # Expand alias
+        expanded_title = expand_title_alias(title)
+        search_key = f"{expanded_title.lower().strip()}|{issue.strip()}"
+        
+        # Check if cache file exists
+        cache_path = get_cache_db_path()
+        cache_exists = os.path.exists(cache_path)
+        
+        # Try to get cached result
+        cached = get_cached_result(expanded_title, issue)
+        
+        # Get all cache entries count
+        cache_count = 0
+        all_keys = []
+        if cache_exists:
+            try:
+                conn = sqlite3.connect(cache_path)
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(*) FROM search_cache')
+                cache_count = cursor.fetchone()[0]
+                cursor.execute('SELECT search_key, estimated_value, cached_at FROM search_cache ORDER BY cached_at DESC LIMIT 10')
+                all_keys = [{'key': row[0], 'value': row[1], 'cached_at': row[2]} for row in cursor.fetchall()]
+                conn.close()
+            except Exception as e:
+                all_keys = [{'error': str(e)}]
+        
+        return jsonify({
+            'input_title': title,
+            'expanded_title': expanded_title,
+            'issue': issue,
+            'search_key': search_key,
+            'cache_file_exists': cache_exists,
+            'cache_file_path': cache_path,
+            'total_cached_entries': cache_count,
+            'recent_entries': all_keys,
+            'found_in_cache': cached is not None,
+            'cached_value': cached.estimated_value if cached else None,
+            'cached_confidence': cached.confidence if cached else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)

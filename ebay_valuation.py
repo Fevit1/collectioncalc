@@ -194,6 +194,59 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
     except Exception as e:
         print(f"Cache write error: {e}")
 
+def update_cached_value(title: str, issue: str, new_value: float, samples: list = None) -> bool:
+    """Update cache with a new averaged value from admin refresh."""
+    try:
+        # Expand aliases
+        title = expand_title_alias(title)
+        
+        init_cache_db()
+        conn = sqlite3.connect(get_cache_db_path())
+        cursor = conn.cursor()
+        
+        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        
+        # Build reasoning
+        if samples:
+            samples_str = ', '.join([f'${s:.2f}' for s in samples])
+            reasoning = f"[REFRESHED] Average of {len(samples)} samples: {samples_str}"
+        else:
+            reasoning = "[REFRESHED] Admin override"
+        
+        # Build sales data from samples
+        sales_data = []
+        if samples:
+            for i, price in enumerate(samples):
+                sales_data.append({
+                    'price': price,
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'weight': 1.0,
+                    'source': f'Refresh sample {i+1}'
+                })
+        
+        price_min = min(samples) if samples else new_value
+        price_max = max(samples) if samples else new_value
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO search_cache 
+            (title, issue, search_key, estimated_value, confidence, confidence_score,
+             num_sales, price_min, price_max, sales_data, reasoning, cached_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            title, issue, search_key, new_value, 'HIGH', 85,
+            len(samples) if samples else 1, price_min, price_max,
+            json.dumps(sales_data), reasoning,
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ))
+        
+        conn.commit()
+        conn.close()
+        print(f"Cache updated: {title} #{issue} = ${new_value:.2f}")
+        return True
+    except Exception as e:
+        print(f"Cache update error: {e}")
+        return False
+
 def get_recency_weight(sale_date: datetime) -> float:
     """Calculate recency weight based on sale date."""
     now = datetime.now()

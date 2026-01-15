@@ -1176,11 +1176,27 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 extractedItems[idx].source = 'refreshed (3 samples)';
                 extractedItems[idx].confidence = 'HIGH';
                 
+                // Save to database cache
+                try {
+                    await fetch(`${API_URL}/api/cache/update`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: item.title,
+                            issue: item.issue,
+                            value: avgValue,
+                            samples: samples
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to update cache:', e);
+                }
+                
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 document.getElementById('step5').classList.remove('active');
                 document.getElementById('step5').classList.add('done');
-                document.getElementById('step5Text').textContent = `Updated: $${avgValue.toFixed(2)}`;
+                document.getElementById('step5Text').textContent = `Updated: $${avgValue.toFixed(2)} (saved to database)`;
             }
             
             // Update displays
