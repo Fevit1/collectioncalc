@@ -1,564 +1,1169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CollectionCalc - AI-Powered Collectible Valuation</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0f0f1a;
-            --bg-secondary: #1a1a2e;
-            --brand-indigo: #4f46e5;
-            --brand-purple: #7c3aed;
-            --brand-cyan: #06b6d4;
-            --brand-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
-            --value-gradient: linear-gradient(135deg, #06b6d4, #7c3aed);
-            --text-primary: #ffffff;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --status-success: #10b981;
-            --status-warning: #f59e0b;
-            --status-error: #ef4444;
-            --border-default: #334155;
-            --border-accent: #4f46e5;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            min-height: 100vh;
-            color: var(--text-primary);
-            padding: 20px;
-        }
-        .container { max-width: 600px; margin: 0 auto; }
-        header { text-align: center; margin-bottom: 40px; }
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background: var(--brand-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
-        .card {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 30px;
-            border: 1px solid var(--border-accent);
-        }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-secondary); }
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--border-default);
-            border-radius: 8px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-family: inherit;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--brand-indigo);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-        }
-        input::placeholder { color: var(--text-muted); }
-        select option { background: var(--bg-primary); color: var(--text-primary); }
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        button {
-            width: 100%;
-            padding: 14px;
-            background: var(--brand-gradient);
-            border: none;
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
-        }
-        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .result { margin-top: 30px; display: none; }
-        .result.show { display: block; }
-        .result-card {
-            background: var(--bg-primary);
-            border: 1px solid var(--brand-indigo);
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-        }
-        .result-card.error { border-color: var(--status-error); }
-        .result-label { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 5px; }
-        .price {
-            font-size: 3rem;
-            font-weight: 700;
-            background: var(--value-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 10px 0;
-        }
-        .result-card.error .price {
-            background: none;
-            -webkit-text-fill-color: var(--status-error);
-            color: var(--status-error);
-            font-size: 1.2rem;
-        }
-        .confidence { margin-bottom: 15px; font-weight: 500; }
-        .confidence.high { color: var(--status-success); }
-        .confidence.medium-high { color: var(--brand-cyan); }
-        .confidence.medium { color: var(--status-warning); }
-        .confidence.low { color: #f97316; }
-        .confidence.very-low { color: var(--status-error); }
-        .source-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            background: var(--brand-gradient);
-            color: var(--text-primary);
-            margin-top: 10px;
-        }
-        .steps {
-            text-align: left;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        .steps h4 { color: var(--brand-cyan); margin-bottom: 10px; font-size: 0.9rem; font-weight: 600; }
-        .steps p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
-        .ebay-info {
-            background: rgba(6, 182, 212, 0.1);
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            text-align: left;
-        }
-        .ebay-info h4 { color: var(--brand-cyan); margin-bottom: 8px; font-size: 0.9rem; }
-        .ebay-info p { color: var(--text-secondary); font-size: 0.85rem; margin: 4px 0; }
-        .debug-info {
-            margin-top: 10px;
-            padding: 12px;
-            background: rgba(79, 70, 229, 0.1);
-            border-radius: 8px;
-            text-align: left;
-        }
-        .debug-info h4 {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .debug-info p { color: var(--text-muted); font-size: 0.8rem; margin: 4px 0; }
-        .debug-info .expanded { color: var(--brand-cyan); }
-        .debug-info .cached { color: var(--brand-purple); }
-        footer { text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9rem; }
-        footer a { color: var(--brand-purple); text-decoration: none; transition: color 0.2s; }
-        footer a:hover { color: var(--brand-cyan); }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        button:disabled { animation: pulse 1.5s ease-in-out infinite; }
-        .thinking {
-            margin-top: 20px;
-            padding: 20px;
-            background: var(--bg-primary);
-            border: 1px solid var(--brand-indigo);
-            border-radius: 12px;
-            display: none;
-        }
-        .thinking.show { display: block; }
-        .thinking-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        .thinking-calc {
-            width: 32px;
-            height: 32px;
-            position: relative;
-        }
-        .thinking-calc svg {
-            width: 100%;
-            height: 100%;
-        }
-        .calc-display {
-            font-family: 'Courier New', monospace;
-            font-size: 6px;
-            font-weight: bold;
-            fill: var(--brand-cyan);
-            animation: calcNumbers 0.5s steps(1) infinite;
-        }
-        @keyframes calcNumbers {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        .calc-num1 { animation: num1 2s steps(1) infinite; }
-        .calc-num2 { animation: num2 2s steps(1) infinite; }
-        .calc-num3 { animation: num3 2s steps(1) infinite; }
-        .calc-num4 { animation: num4 2s steps(1) infinite; }
-        @keyframes num1 {
-            0% { transform: translateY(0); }
-            25% { transform: translateY(-6px); }
-            50% { transform: translateY(-12px); }
-            75% { transform: translateY(-6px); }
-        }
-        @keyframes num2 {
-            0% { transform: translateY(-6px); }
-            25% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-            75% { transform: translateY(-12px); }
-        }
-        @keyframes num3 {
-            0% { transform: translateY(-12px); }
-            25% { transform: translateY(-6px); }
-            50% { transform: translateY(0); }
-            75% { transform: translateY(-6px); }
-        }
-        @keyframes num4 {
-            0% { transform: translateY(-6px); }
-            25% { transform: translateY(-12px); }
-            50% { transform: translateY(-6px); }
-            75% { transform: translateY(0); }
-        }
-        .calc-btn { transition: all 0.1s; }
-        .calc-btn-1 { animation: btnPress1 2s ease-in-out infinite; }
-        .calc-btn-2 { animation: btnPress2 2s ease-in-out infinite; }
-        .calc-btn-3 { animation: btnPress3 2s ease-in-out infinite; }
-        .calc-btn-4 { animation: btnPress4 2s ease-in-out infinite; }
-        .calc-btn-5 { animation: btnPress5 2s ease-in-out infinite; }
-        .calc-btn-6 { animation: btnPress6 2s ease-in-out infinite; }
-        @keyframes btnPress1 {
-            0%, 15%, 100% { opacity: 1; transform: scale(1); }
-            5%, 10% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress2 {
-            0%, 30%, 100% { opacity: 1; transform: scale(1); }
-            20%, 25% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress3 {
-            0%, 45%, 100% { opacity: 1; transform: scale(1); }
-            35%, 40% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress4 {
-            0%, 60%, 100% { opacity: 1; transform: scale(1); }
-            50%, 55% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress5 {
-            0%, 75%, 100% { opacity: 1; transform: scale(1); }
-            65%, 70% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress6 {
-            0%, 90%, 100% { opacity: 1; transform: scale(1); }
-            80%, 85% { opacity: 0.6; transform: scale(0.9); }
-        }
-        .thinking-title {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .thinking-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .thinking-step {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            transition: color 0.3s;
-        }
-        .thinking-step.active {
-            color: var(--brand-cyan);
-        }
-        .thinking-step.done {
-            color: var(--status-success);
-        }
-        .thinking-step .icon {
-            width: 18px;
-            text-align: center;
-        }
-        .thinking-step.active .icon::before { content: '⟳'; }
-        .thinking-step.done .icon::before { content: '✓'; }
-        .thinking-step.pending .icon::before { content: '○'; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CollectionCalc - AI-Powered Collectibles Valuation</title>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #0a0e27;
+    }
+    #root {
+      width: 100%;
+      height: 100%;
+    }
+    .edit-form {
+      background: #1a1f3a;
+      border: 2px solid #2d3548;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .edit-form input, .edit-form select, .edit-form textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #2d3548;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: #0f1425;
+      color: #e0e6ed;
+    }
+    .edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .edit-form label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #e0e6ed;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 5px;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      font-weight: normal;
+      margin: 0;
+      color: #b8c5d0;
+    }
+    .radio-group input[type="radio"] {
+      width: auto;
+      margin-right: 5px;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-top: 5px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin-right: 10px;
+    }
+    .checkbox-group label {
+      margin: 0;
+      font-weight: normal;
+      color: #b8c5d0;
+    }
+    .signature-section {
+      border-top: 1px solid #2d3548;
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+    .info-tooltip {
+      display: inline-block;
+      margin-left: 5px;
+      color: #8b9dc3;
+      cursor: help;
+      font-weight: normal;
+    }
+    .grade-option {
+      padding: 8px;
+      background: #0f1425;
+      color: #e0e6ed;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>CollectionCalc</h1>
-            <p class="subtitle">AI-Powered Collectible Valuation</p>
-        </header>
-        <div class="card">
-            <form id="valuationForm">
-                <div class="form-group">
-                    <label for="title">Comic Title</label>
-                    <input type="text" id="title" placeholder="e.g. Amazing Spider-Man (or ASM)" required>
-                </div>
-                <div class="row">
-                    <div class="form-group">
-                        <label for="issue">Issue #</label>
-                        <input type="text" id="issue" placeholder="e.g. 300" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="grade">Grade</label>
-                        <select id="grade">
-                            <option value="NM">Near Mint (NM)</option>
-                            <option value="VF" selected>Very Fine (VF)</option>
-                            <option value="FN">Fine (FN)</option>
-                            <option value="VG">Very Good (VG)</option>
-                            <option value="G">Good (G)</option>
-                            <option value="FR">Fair (FR)</option>
-                            <option value="PR">Poor (PR)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-group">
-                        <label for="publisher">Publisher <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
-                        <select id="publisher">
-                            <option value="">-- Auto-detect --</option>
-                            <option value="Marvel Comics">Marvel</option>
-                            <option value="DC Comics">DC</option>
-                            <option value="Image Comics">Image</option>
-                            <option value="Dark Horse">Dark Horse</option>
-                            <option value="IDW">IDW</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="year">Year <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
-                        <input type="number" id="year" placeholder="Auto-detect" min="1900" max="2030">
-                    </div>
-                </div>
-                <button type="submit" id="submitBtn">Get Valuation</button>
-            </form>
-            <div class="thinking" id="thinking">
-                <div class="thinking-header">
-                    <div class="thinking-calc">
-                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Calculator body -->
-                            <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="none"/>
-                            <!-- Display screen -->
-                            <rect x="7" y="5" width="18" height="7" rx="1" fill="#0f0f1a" stroke="var(--brand-indigo)" stroke-width="1"/>
-                            <!-- Animated numbers in display -->
-                            <g clip-path="url(#displayClip)">
-                                <text x="9" y="10.5" class="calc-display calc-num1">$1,247</text>
-                                <text x="9" y="16.5" class="calc-display calc-num2">$892</text>
-                                <text x="9" y="22.5" class="calc-display calc-num3">$3,105</text>
-                                <text x="9" y="28.5" class="calc-display calc-num4">$456</text>
-                            </g>
-                            <!-- Calculator buttons -->
-                            <rect x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-1"/>
-                            <rect x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-2"/>
-                            <rect x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)" class="calc-btn calc-btn-3"/>
-                            <rect x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-4"/>
-                            <rect x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-5"/>
-                            <rect x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-6"/>
-                            <rect x="7" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-2"/>
-                            <rect x="14" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-4"/>
-                            <rect x="21" y="25" width="4" height="3" rx="0.5" fill="var(--brand-cyan)" class="calc-btn calc-btn-6"/>
-                            <defs>
-                                <linearGradient id="calcGrad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-                                    <stop stop-color="#4f46e5"/>
-                                    <stop offset="1" stop-color="#7c3aed"/>
-                                </linearGradient>
-                                <clipPath id="displayClip">
-                                    <rect x="7" y="5" width="18" height="7"/>
-                                </clipPath>
-                            </defs>
-                        </svg>
-                    </div>
-                    <span class="thinking-title">Analyzing your comic...</span>
-                </div>
-                <div class="thinking-steps">
-                    <div class="thinking-step pending" id="step1"><span class="icon"></span>Checking database for matches</div>
-                    <div class="thinking-step pending" id="step2"><span class="icon"></span>Searching market data</div>
-                    <div class="thinking-step pending" id="step3"><span class="icon"></span>Analyzing recent sales</div>
-                    <div class="thinking-step pending" id="step4"><span class="icon"></span>Calculating confidence score</div>
-                    <div class="thinking-step pending" id="step5"><span class="icon"></span>Generating valuation</div>
-                </div>
-            </div>
-            <div class="result" id="result">
-                <div class="result-card" id="resultCard">
-                    <div id="resultContent"></div>
-                </div>
-            </div>
-        </div>
-        <footer>
-            Built with ☕ by <a href="https://github.com/Fevit1/collectioncalc" target="_blank">CollectionCalc</a>
-        </footer>
-    </div>
-    <script>
-        const API_URL = 'https://collectioncalc.onrender.com';
-        
-        function resetThinking() {
-            for (let i = 1; i <= 5; i++) {
-                const step = document.getElementById('step' + i);
-                step.classList.remove('active', 'done');
-                step.classList.add('pending');
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const COLLECTIBLE_TYPES = {
+      comics: {
+        name: 'Comic Books',
+        icon: '📚',
+        requiredFields: ['title', 'issue', 'publisher', 'year', 'grade'],
+        optionalFields: ['cgc_certified', 'cgc_grade', 'edition', 'variant', 'signed', 'signer', 'signature_auth', 'notes'],
+        fieldDefinitions: {
+          title: { label: 'Title', description: 'Comic book title' },
+          issue: { label: 'Issue', description: 'Issue number' },
+          publisher: { label: 'Publisher', description: 'Publisher name' },
+          year: { label: 'Year', description: 'Publication year' },
+          grade: { label: 'Grade', description: 'Condition grade' },
+          cgc_certified: { label: 'CGC Certified', description: 'Is it CGC graded?' },
+          cgc_grade: { label: 'CGC Grade', description: 'CGC numeric grade' },
+          edition: { label: 'Edition', description: 'Newsstand or Direct' },
+          variant: { label: 'Variant', description: 'Variant cover description' },
+          signed: { label: 'Signed', description: 'Is it signed?' },
+          signer: { label: 'Signed By', description: 'Who signed it?' },
+          signature_auth: { label: 'Signature Auth', description: 'Authentication type' },
+          notes: { label: 'Notes', description: 'Additional notes' }
+        },
+        gradeOptions: [
+          { value: 'GM', label: 'GM (Good Minus)', description: 'Poor condition, significant damage' },
+          { value: 'GD', label: 'GD (Good)', description: 'Below average, worn' },
+          { value: 'VG', label: 'VG (Very Good)', description: 'Average, shows wear' },
+          { value: 'FN', label: 'FN (Fine)', description: 'Above average' },
+          { value: 'VF', label: 'VF (Very Fine)', description: 'Near excellent condition' },
+          { value: 'NM', label: 'NM (Near Mint)', description: 'Almost perfect' },
+          { value: 'MT', label: 'MT (Mint)', description: 'Perfect condition' }
+        ],
+        editionOptions: [
+          { value: 'direct', label: 'Direct Edition (most common)' },
+          { value: 'newsstand', label: 'Newsstand Edition' },
+          { value: 'unknown', label: 'Unknown' }
+        ],
+        signatureAuthOptions: [
+          { value: 'cgc_ss', label: 'CGC Signature Series (Yellow Label)' },
+          { value: 'cgc_verified', label: 'CGC Verified Signature (Green Label)' },
+          { value: 'witnessed', label: 'Witnessed by reliable party' },
+          { value: 'unverified', label: 'Unverified/Unknown' }
+        ],
+        valuationPrompt: (item) => {
+          let prompt = `Based on current market data, estimate the value of this comic book. Return ONLY a JSON object with these exact fields: {"estimated_value": number, "confidence": "high/medium/low", "notes": "brief explanation"}
+
+Comic details:
+- Title: ${item.title}
+- Issue: #${item.issue}
+- Publisher: ${item.publisher}
+- Year: ${item.year}
+- Grade: ${item.grade}`;
+
+          if (item.cgc_certified === 'yes') {
+            prompt += `\n- CGC Certified: YES, Grade ${item.cgc_grade || 'Not specified'}`;
+          }
+
+          if (item.edition && item.edition !== 'unknown') {
+            prompt += `\n- Edition: ${item.edition === 'newsstand' ? 'NEWSSTAND (typically worth more)' : 'Direct Edition'}`;
+          }
+
+          if (item.variant) {
+            prompt += `\n- Variant: ${item.variant}`;
+          }
+
+          if (item.signed === 'yes') {
+            prompt += `\n- SIGNED by: ${item.signer || 'Unknown'}`;
+            if (item.signature_auth === 'cgc_ss') {
+              prompt += `\n- Authentication: CGC Signature Series (ADD 100-300% premium)`;
+            } else if (item.signature_auth === 'cgc_verified') {
+              prompt += `\n- Authentication: CGC Verified Signature (ADD 50-150% premium)`;
+            } else if (item.signature_auth === 'witnessed') {
+              prompt += `\n- Authentication: Witnessed (ADD 20-50% premium)`;
+            } else {
+              prompt += `\n- Authentication: Unverified (may REDUCE value vs unsigned)`;
             }
+          }
+
+          prompt += `\n\nSearch the web for current market prices. Consider recent sales on eBay, MyComicShop, ComicLink, CGC census data, newsstand premium if applicable, variant rarity, and signature authentication. Provide a realistic current market estimate.`;
+          
+          return prompt;
         }
-        
-        function animateThinking() {
-            const steps = [
-                { id: 'step1', delay: 0 },
-                { id: 'step2', delay: 1500 },
-                { id: 'step3', delay: 3000 },
-                { id: 'step4', delay: 5000 },
-                { id: 'step5', delay: 7000 }
-            ];
-            
-            steps.forEach((step, index) => {
-                setTimeout(() => {
-                    // Mark previous as done
-                    if (index > 0) {
-                        document.getElementById(steps[index - 1].id).classList.remove('active');
-                        document.getElementById(steps[index - 1].id).classList.add('done');
-                    }
-                    // Mark current as active
-                    const el = document.getElementById(step.id);
-                    el.classList.remove('pending');
-                    el.classList.add('active');
-                }, step.delay);
-            });
+      }
+    };
+
+    const CollectionCalc = () => {
+      const [apiKey, setApiKey] = useState(localStorage.getItem('anthropic_api_key') || '');
+      const [showApiKeyInput, setShowApiKeyInput] = useState(!localStorage.getItem('anthropic_api_key'));
+      const [collectibleType, setCollectibleType] = useState('comics');
+      const [inputMode, setInputMode] = useState('choose');
+      const [extractedItems, setExtractedItems] = useState([]);
+      const [processing, setProcessing] = useState(false);
+      const [results, setResults] = useState(null);
+      const [error, setError] = useState(null);
+      const [progress, setProgress] = useState({ current: 0, total: 0, status: '' });
+
+      const currentConfig = COLLECTIBLE_TYPES[collectibleType];
+
+      const saveApiKey = () => {
+        if (apiKey.startsWith('sk-ant-')) {
+          localStorage.setItem('anthropic_api_key', apiKey);
+          setShowApiKeyInput(false);
+          setError(null);
+        } else {
+          setError('Invalid API key format. Should start with sk-ant-');
         }
-        
-        document.getElementById('valuationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const btn = document.getElementById('submitBtn');
-            const result = document.getElementById('result');
-            const resultCard = document.getElementById('resultCard');
-            const resultContent = document.getElementById('resultContent');
-            const thinking = document.getElementById('thinking');
-            
-            btn.disabled = true;
-            btn.textContent = 'Analyzing...';
-            result.classList.remove('show');
-            
-            // Show and animate thinking
-            resetThinking();
-            thinking.classList.add('show');
-            animateThinking();
-            
-            const data = {
-                title: document.getElementById('title').value,
-                issue: document.getElementById('issue').value,
-                year: parseInt(document.getElementById('year').value) || null,
-                publisher: document.getElementById('publisher').value || null,
-                grade: document.getElementById('grade').value
+      };
+
+      const extractDataFromPhoto = async (photoFile, config) => {
+        try {
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(photoFile);
+          });
+
+          const extension = photoFile.name.split('.').pop().toLowerCase();
+          const mediaTypeMap = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic'
+          };
+          const mediaType = mediaTypeMap[extension] || 'image/jpeg';
+
+          const prompt = `Analyze this ${config.name.toLowerCase()} image and extract information. Return ONLY a JSON object with these fields:
+- title: Comic book title
+- issue: Issue number (just the number, no #)
+- publisher: Publisher name (Marvel, DC, Image, etc.)
+- year: Publication year
+- grade: Estimated condition grade (GM, GD, VG, FN, VF, NM, MT) - be conservative
+- edition: Look at the BOTTOM-LEFT CORNER of the front cover. If you see a UPC BARCODE (black and white vertical bars with numbers underneath like a grocery store barcode), return "newsstand". If you see ARTWORK, LOGO, or CHARACTER IMAGE in that box instead, return "direct". If the bottom-left corner is not clearly visible or you cannot determine, return "unknown".
+- variant: Variant description if applicable, otherwise leave empty
+
+Be accurate. If unsure about any field, use "unknown" for edition or leave variant empty.`;
+
+          const response = await fetch('https://collectioncalc.onrender.com/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 1000,
+              messages: [{
+                role: 'user',
+                content: [
+                  { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data }},
+                  { type: 'text', text: prompt }
+                ]
+              }]
+            })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message || 'API Error');
+
+          const textContent = data.content.filter(item => item.type === 'text').map(item => item.text).join('');
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          
+          if (jsonMatch) {
+            const extracted = JSON.parse(jsonMatch[0]);
+            return { 
+              success: true, 
+              data: {
+                ...extracted,
+                cgc_certified: 'no',
+                cgc_grade: '',
+                edition: extracted.edition || 'unknown',
+                variant: extracted.variant || '',
+                signed: 'no',
+                signer: '',
+                signature_auth: '',
+                notes: ''
+              },
+              photoName: photoFile.name 
             };
+          }
+
+          return { success: false, error: 'Could not extract data from image', photoName: photoFile.name };
+        } catch (error) {
+          console.error('Photo extraction error:', error);
+          return { success: false, error: error.message, photoName: photoFile.name };
+        }
+      };
+
+      const handlePhotoUpload = async (files, mode) => {
+        setProcessing(true);
+        setError(null);
+        const fileArray = Array.from(files);
+
+        if (mode === 'photo-quick') {
+          setProgress({ current: 1, total: 1, status: 'Extracting data from photo...' });
+          const result = await extractDataFromPhoto(fileArray[0], currentConfig);
+          
+          if (result.success) {
+            setExtractedItems([result.data]);
+            setProgress({ current: 0, total: 0, status: '' });
+          } else {
+            setError(result.error);
+          }
+        } else {
+          console.log('[CollectionCalc] Starting bulk extraction of', fileArray.length, 'photos');
+          const extractedResults = [];
+          for (let i = 0; i < fileArray.length; i++) {
+            const startTime = new Date();
+            console.log(`[CollectionCalc] Photo ${i+1}/${fileArray.length}: Starting extraction at`, startTime.toLocaleTimeString());
             
-            try {
-                const response = await fetch(`${API_URL}/api/valuate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const json = await response.json();
-                
-                if (json.error) throw new Error(json.error);
-                
-                resultCard.classList.remove('error');
-                
-                let confClass = 'medium';
-                if (json.confidence === 'HIGH') confClass = 'high';
-                else if (json.confidence === 'MEDIUM-HIGH') confClass = 'medium-high';
-                else if (json.confidence === 'MEDIUM') confClass = 'medium';
-                else if (json.confidence === 'LOW') confClass = 'low';
-                else if (json.confidence === 'VERY LOW') confClass = 'very-low';
-                
-                let sourceText = json.source || 'unknown';
-                if (sourceText === 'ebay') sourceText = '📊 Market Data';
-                else if (sourceText === 'ebay_verified') sourceText = '✓ Verified';
-                else if (sourceText === 'database+ebay_blend') sourceText = '🔀 Blended';
-                else if (sourceText === 'database') sourceText = '📁 Database';
-                else if (sourceText === 'estimate') sourceText = '⚡ Estimate';
-                
-                let ebayInfo = '';
-                if (json.ebay_sales > 0) {
-                    const minPrice = json.ebay_price_range[0].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    const maxPrice = json.ebay_price_range[1].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    ebayInfo = `
-                        <div class="ebay-info">
-                            <h4>📊 Market Data</h4>
-                            <p><strong>${json.ebay_sales}</strong> recent sale(s) found</p>
-                            <p>Price range: <strong>$${minPrice} - $${maxPrice}</strong></p>
-                        </div>
-                    `;
-                }
-                
-                let debugInfo = '';
-                if (json.debug) {
-                    let expandedNote = json.debug.title_expanded ? 
-                        `<p class="expanded">📖 Expanded: "${json.debug.title_expanded}"</p>` : '';
-                    let cachedNote = json.reasoning && json.reasoning.includes('[CACHED]') ?
-                        `<p class="cached">⚡ Cached result</p>` : '';
-                    const dbVal = json.debug.db_base_value ? 
-                        json.debug.db_base_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
-                    
-                    debugInfo = `
-                        <div class="debug-info">
-                            <h4>Debug</h4>
-                            ${expandedNote}
-                            ${cachedNote}
-                            <p>Search: ${json.debug.ebay_attempted ? 'Yes' : 'No'}</p>
-                            <p>DB value: $${dbVal}</p>
-                        </div>
-                    `;
-                }
-                
-                const finalValue = json.final_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                
-                resultContent.innerHTML = `
-                    <p class="result-label">Estimated Value</p>
-                    <div class="price">$${finalValue}</div>
-                    <p class="confidence ${confClass}">
-                        ${json.confidence} Confidence (${json.confidence_score}%)
-                    </p>
-                    <span class="source-badge">${sourceText}</span>
-                    ${ebayInfo}
-                    <div class="steps">
-                        <h4>Analysis</h4>
-                        <p>${json.reasoning || 'No additional details'}</p>
-                    </div>
-                    ${debugInfo}
-                `;
-                
-            } catch (error) {
-                resultCard.classList.add('error');
-                resultContent.innerHTML = `
-                    <p class="result-label">Error</p>
-                    <div class="price">${error.message}</div>
-                `;
+            setProgress({ current: i + 1, total: fileArray.length, status: `Processing photo ${i + 1} of ${fileArray.length}...` });
+            const result = await extractDataFromPhoto(fileArray[i], currentConfig);
+            if (result.success) extractedResults.push(result.data);
+            
+            const endTime = new Date();
+            console.log(`[CollectionCalc] Photo ${i+1}/${fileArray.length}: Completed in ${(endTime - startTime) / 1000}s`);
+            
+            // 60 second delay between photos to avoid rate limits
+            if (i < fileArray.length - 1) {
+              console.log(`[CollectionCalc] Waiting 60 seconds before photo ${i+2}...`);
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              console.log(`[CollectionCalc] Wait complete, proceeding to photo ${i+2}`);
             }
+          }
+          setExtractedItems(extractedResults);
+          setProgress({ current: 0, total: 0, status: '' });
+        }
+        
+        setProcessing(false);
+      };
+
+      const handleQuickAddPhoto = (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handlePhotoUpload(e.target.files, 'photo-quick');
+        }
+      };
+
+      const handleBulkPhotoUpload = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handlePhotoUpload(e.target.files, 'photo-bulk');
+        }
+      };
+
+      const updateExtractedItem = (index, field, value) => {
+        const updated = [...extractedItems];
+        updated[index] = { ...updated[index], [field]: value };
+        setExtractedItems(updated);
+      };
+
+      const estimateValue = async (item, index, total, config) => {
+        const displayName = item.title || 'Item';
+        setProgress({ current: index + 1, total, status: `Valuing: ${displayName}` });
+        
+        try {
+          const response = await fetch('https://collectioncalc.onrender.com/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 1000,
+              messages: [{ role: 'user', content: config.valuationPrompt(item) }],
+              tools: [{ type: "web_search_20250305", name: "web_search" }]
+            })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message || 'API Error');
+
+          let result = { estimated_value: 0, confidence: 'low', notes: 'Unable to estimate' };
+          try {
+            const textContent = data.content.filter(item => item.type === 'text').map(item => item.text).join('');
+            const jsonMatch = textContent.match(/\{[\s\S]*?\}/);
+            if (jsonMatch) result = JSON.parse(jsonMatch[0]);
+          } catch (parseError) {
+            console.error('Error parsing valuation:', parseError);
+          }
+
+          return { ...item, ...result };
+        } catch (error) {
+          console.error('Valuation error:', error);
+          return { ...item, estimated_value: 0, confidence: 'error', notes: `Error: ${error.message}` };
+        }
+      };
+
+      const handleValuateExtracted = async () => {
+        if (extractedItems.length === 0) return;
+        
+        setProcessing(true);
+        setError(null);
+        
+        try {
+          console.log('[CollectionCalc] Starting valuation batch of', extractedItems.length, 'items');
+          const valuedItems = [];
+          for (let i = 0; i < extractedItems.length; i++) {
+            const startTime = new Date();
+            console.log(`[CollectionCalc] Item ${i+1}/${extractedItems.length}: Starting valuation at`, startTime.toLocaleTimeString());
             
-            result.classList.add('show');
-            thinking.classList.remove('show');
-            btn.disabled = false;
-            btn.textContent = 'Get Valuation';
-        });
-    </script>
+            const valued = await estimateValue(extractedItems[i], i, extractedItems.length, currentConfig);
+            valuedItems.push(valued);
+            
+            const endTime = new Date();
+            console.log(`[CollectionCalc] Item ${i+1}/${extractedItems.length}: Completed in ${(endTime - startTime) / 1000}s`);
+            
+            // 60 second delay for valuations to avoid rate limits
+            if (i < extractedItems.length - 1) {
+              console.log(`[CollectionCalc] Waiting 60 seconds before item ${i+2}...`);
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              console.log(`[CollectionCalc] Wait complete, proceeding to item ${i+2}`);
+            }
+          }
+          
+          setResults(valuedItems);
+          setProgress({ current: 0, total: 0, status: 'Complete!' });
+        } catch (err) {
+          setError(err.message || 'An error occurred during valuation');
+        } finally {
+          setProcessing(false);
+        }
+      };
+
+      const handleTypeChange = (newType) => {
+        setCollectibleType(newType);
+        setExtractedItems([]);
+        setResults(null);
+        setError(null);
+        setInputMode('choose');
+      };
+
+      const downloadResults = () => {
+        if (!results) return;
+        const worksheet = XLSX.utils.json_to_sheet(results);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Valuations');
+        XLSX.writeFile(workbook, `${collectibleType}_valuations.xlsx`);
+      };
+
+      const totalValue = results ? results.reduce((sum, item) => sum + (item.estimated_value || 0), 0) : 0;
+
+      if (showApiKeyInput) {
+        return (
+          <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #1a1d3a 0%, #2d1b4e 50%, #4a1942 100%)',
+            padding: '40px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              maxWidth: '600px',
+              background: '#1a1f3a',
+              padding: '40px',
+              borderRadius: '20px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              border: '1px solid #2d3548'
+            }}>
+              <h1 style={{
+                fontSize: '32px',
+                marginBottom: '10px',
+                background: 'linear-gradient(135deg, #8b9dc3 0%, #b8a4d4 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: '800'
+              }}>
+                CollectionCalc Setup
+              </h1>
+              <p style={{ color: '#b8c5d0', marginBottom: '20px' }}>
+                Enter your Anthropic API key to get started.
+              </p>
+              
+              <div style={{ background: '#0f1425', padding: '20px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', lineHeight: '1.6', border: '1px solid #2d3548' }}>
+                <strong style={{ color: '#e0e6ed' }}>How to get an API key:</strong>
+                <ol style={{ marginLeft: '20px', marginTop: '10px', color: '#b8c5d0' }}>
+                  <li>Go to <a href="https://console.anthropic.com" target="_blank" style={{ color: '#8b9dc3' }}>console.anthropic.com</a></li>
+                  <li>Sign up or log in</li>
+                  <li>Go to API Keys section</li>
+                  <li>Create a new key</li>
+                  <li>Copy and paste it below</li>
+                </ol>
+              </div>
+
+              <input
+                type="password"
+                placeholder="sk-ant-..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '1px solid #2d3548',
+                  borderRadius: '8px',
+                  fontFamily: "'Courier New', monospace",
+                  boxSizing: 'border-box',
+                  background: '#0f1425',
+                  color: '#e0e6ed'
+                }}
+              />
+              
+              {error && (
+                <div style={{ color: '#ff6b6b', marginTop: '10px', fontSize: '14px' }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={saveApiKey}
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 24px',
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px'
+                }}
+              >
+                Save & Continue
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0a0e27 0%, #1a1d3a 50%, #2d1b4e 100%)',
+          padding: '40px 20px',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+        }}>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{
+              background: 'rgba(26, 31, 58, 0.95)',
+              padding: '40px',
+              borderRadius: '20px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              marginBottom: '30px',
+              position: 'relative',
+              border: '1px solid #2d3548'
+            }}>
+              <button
+                onClick={() => {
+                  if (confirm('Clear your API key and reset?')) {
+                    localStorage.removeItem('anthropic_api_key');
+                    window.location.reload();
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  background: '#2d3548',
+                  color: '#b8c5d0',
+                  border: '1px solid #3d4558',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                🔑 Change API Key
+              </button>
+
+              <div style={{ textAlign: 'center' }}>
+                <h1 style={{
+                  fontSize: '48px',
+                  margin: '0 0 10px 0',
+                  background: 'linear-gradient(135deg, #8b9dc3 0%, #b8a4d4 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: '800'
+                }}>
+                  CollectionCalc
+                </h1>
+                <p style={{ fontSize: '18px', margin: '0 0 30px 0', color: '#b8c5d0', fontWeight: '500' }}>
+                  AI-Powered Collectibles Valuation Platform
+                </p>
+                
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {Object.entries(COLLECTIBLE_TYPES).map(([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleTypeChange(key)}
+                      style={{
+                        padding: '12px 24px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        background: collectibleType === key 
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : '#2d3548',
+                        color: collectibleType === key ? '#fff' : '#b8c5d0',
+                        border: 'none',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        boxShadow: collectibleType === key ? '0 4px 15px rgba(102, 126, 234, 0.4)' : 'none'
+                      }}
+                    >
+                      {config.icon} {config.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Mode Selection */}
+            {inputMode === 'choose' && !extractedItems.length && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '40px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                border: '1px solid #2d3548'
+              }}>
+                <h2 style={{ fontSize: '28px', margin: '0 0 30px 0', color: '#e0e6ed', fontWeight: '700', textAlign: 'center' }}>
+                  How would you like to add your {currentConfig.name.toLowerCase()}?
+                </h2>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                  <button
+                    onClick={() => setInputMode('photo-quick')}
+                    style={{
+                      background: '#1a1f3a',
+                      border: '2px solid #2d3548',
+                      borderRadius: '12px',
+                      padding: '30px',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#667eea';
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#2d3548';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>📸</div>
+                    <h3 style={{ fontSize: '20px', margin: '0 0 10px 0', fontWeight: '700', color: '#e0e6ed' }}>Quick Add</h3>
+                    <p style={{ fontSize: '14px', color: '#b8c5d0', margin: 0 }}>
+                      Take a photo and we'll extract the details instantly.
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => setInputMode('photo-bulk')}
+                    style={{
+                      background: '#1a1f3a',
+                      border: '2px solid #2d3548',
+                      borderRadius: '12px',
+                      padding: '30px',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#667eea';
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#2d3548';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>📁</div>
+                    <h3 style={{ fontSize: '20px', margin: '0 0 10px 0', fontWeight: '700', color: '#e0e6ed' }}>Bulk Import</h3>
+                    <p style={{ fontSize: '14px', color: '#b8c5d0', margin: 0 }}>
+                      Upload multiple photos at once for batch processing.
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Add Photo Mode */}
+            {inputMode === 'photo-quick' && !extractedItems.length && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '50px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                textAlign: 'center',
+                border: '1px solid #2d3548'
+              }}>
+                <input
+                  type="file"
+                  id="photoQuickInput"
+                  accept=".jpg,.jpeg,.png,.webp,.heic"
+                  onChange={handleQuickAddPhoto}
+                  style={{ display: 'none' }}
+                  disabled={processing}
+                />
+                
+                <label htmlFor="photoQuickInput" style={{ cursor: processing ? 'not-allowed' : 'pointer' }}>
+                  <div style={{ fontSize: '64px', marginBottom: '20px' }}>📸</div>
+                  <p style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 10px 0', color: '#e0e6ed' }}>
+                    Take or upload a photo of your {currentConfig.name.toLowerCase()}
+                  </p>
+                  <p style={{ fontSize: '15px', color: '#b8c5d0', margin: '0 0 20px 0' }}>
+                    We'll extract the details automatically
+                  </p>
+                </label>
+                
+                <button
+                  onClick={() => setInputMode('choose')}
+                  style={{
+                    marginTop: '20px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    background: '#2d3548',
+                    color: '#b8c5d0',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* Bulk Import Photo Mode */}
+            {inputMode === 'photo-bulk' && !extractedItems.length && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '50px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                textAlign: 'center',
+                border: '1px solid #2d3548'
+              }}>
+                <input
+                  type="file"
+                  id="photoBulkInput"
+                  accept=".jpg,.jpeg,.png,.webp,.heic"
+                  multiple
+                  onChange={handleBulkPhotoUpload}
+                  style={{ display: 'none' }}
+                  disabled={processing}
+                />
+                
+                <label htmlFor="photoBulkInput" style={{ cursor: processing ? 'not-allowed' : 'pointer' }}>
+                  <div style={{ fontSize: '64px', marginBottom: '20px' }}>📁</div>
+                  <p style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 10px 0', color: '#e0e6ed' }}>
+                    Upload multiple photos of your {currentConfig.name.toLowerCase()}
+                  </p>
+                  <p style={{ fontSize: '15px', color: '#b8c5d0', margin: '0 0 20px 0' }}>
+                    We'll process them all and create a spreadsheet
+                  </p>
+                </label>
+                
+                <button
+                  onClick={() => setInputMode('choose')}
+                  style={{
+                    marginTop: '20px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    background: '#2d3548',
+                    color: '#b8c5d0',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* Extracted Items - Always Editable */}
+            {extractedItems.length > 0 && !results && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                border: '1px solid #2d3548'
+              }}>
+                <h2 style={{ fontSize: '24px', margin: '0 0 20px 0', color: '#e0e6ed', fontWeight: '700' }}>
+                  ✅ Extracted {extractedItems.length} Item{extractedItems.length !== 1 ? 's' : ''}
+                </h2>
+                <p style={{ fontSize: '15px', color: '#b8c5d0', marginBottom: '20px' }}>
+                  Review and edit the data below. Changes save automatically.
+                </p>
+
+                {extractedItems.map((item, idx) => (
+                  <div key={idx} className="edit-form">
+                    <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#e0e6ed' }}>
+                      Item {idx + 1}: {item.title} #{item.issue}
+                    </h3>
+
+                    <div className="form-group">
+                      <label>Title *</label>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => updateExtractedItem(idx, 'title', e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                      <div className="form-group">
+                        <label>Issue # *</label>
+                        <input
+                          type="text"
+                          value={item.issue}
+                          onChange={(e) => updateExtractedItem(idx, 'issue', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Publisher *</label>
+                        <input
+                          type="text"
+                          value={item.publisher}
+                          onChange={(e) => updateExtractedItem(idx, 'publisher', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Year *</label>
+                        <input
+                          type="text"
+                          value={item.year}
+                          onChange={(e) => updateExtractedItem(idx, 'year', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Grade * <span className="info-tooltip" title="Choose the condition that best matches your comic">ℹ️</span></label>
+                      <select
+                        value={item.grade}
+                        onChange={(e) => updateExtractedItem(idx, 'grade', e.target.value)}
+                      >
+                        {currentConfig.gradeOptions.map(opt => (
+                          <option key={opt.value} value={opt.value} className="grade-option">
+                            {opt.label} - {opt.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Edition</label>
+                      <div className="radio-group">
+                        {currentConfig.editionOptions.map(opt => (
+                          <label key={opt.value}>
+                            <input
+                              type="radio"
+                              name={`edition-${idx}`}
+                              value={opt.value}
+                              checked={item.edition === opt.value}
+                              onChange={(e) => updateExtractedItem(idx, 'edition', e.target.value)}
+                            />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <div className="checkbox-group">
+                        <input
+                          type="checkbox"
+                          id={`cgc-${idx}`}
+                          checked={item.cgc_certified === 'yes'}
+                          onChange={(e) => updateExtractedItem(idx, 'cgc_certified', e.target.checked ? 'yes' : 'no')}
+                        />
+                        <label htmlFor={`cgc-${idx}`}>CGC Certified</label>
+                      </div>
+                      {item.cgc_certified === 'yes' && (
+                        <input
+                          type="text"
+                          placeholder="CGC Grade (e.g., 9.8)"
+                          value={item.cgc_grade || ''}
+                          onChange={(e) => updateExtractedItem(idx, 'cgc_grade', e.target.value)}
+                          style={{ marginTop: '10px' }}
+                        />
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label>Variant Cover (if applicable)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., McFarlane variant, 1:25 retailer incentive"
+                        value={item.variant || ''}
+                        onChange={(e) => updateExtractedItem(idx, 'variant', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="signature-section">
+                      <div className="checkbox-group" style={{ marginBottom: '15px' }}>
+                        <input
+                          type="checkbox"
+                          id={`signed-${idx}`}
+                          checked={item.signed === 'yes'}
+                          onChange={(e) => updateExtractedItem(idx, 'signed', e.target.checked ? 'yes' : 'no')}
+                        />
+                        <label htmlFor={`signed-${idx}`} style={{ fontWeight: '600' }}>Signed</label>
+                      </div>
+
+                      {item.signed === 'yes' && (
+                        <>
+                          <div className="form-group">
+                            <label>Signed By</label>
+                            <input
+                              type="text"
+                              placeholder="e.g., Stan Lee, Todd McFarlane"
+                              value={item.signer || ''}
+                              onChange={(e) => updateExtractedItem(idx, 'signer', e.target.value)}
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label>
+                              Signature Authentication <span className="info-tooltip" title="Unverified signatures often reduce value vs unsigned">⚠️</span>
+                            </label>
+                            <select
+                              value={item.signature_auth || 'unverified'}
+                              onChange={(e) => updateExtractedItem(idx, 'signature_auth', e.target.value)}
+                            >
+                              <option value="">Select authentication type...</option>
+                              {currentConfig.signatureAuthOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {item.signature_auth === 'unverified' && (
+                            <div style={{ 
+                              background: '#3d2f1a', 
+                              border: '1px solid #5a4420', 
+                              padding: '10px', 
+                              borderRadius: '6px', 
+                              fontSize: '13px', 
+                              marginTop: '10px',
+                              color: '#e0c097'
+                            }}>
+                              ⚠️ <strong>Note:</strong> Unverified signatures often reduce value vs unsigned. Consider CGC authentication if the signature is valuable.
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label>Additional Notes</label>
+                      <textarea
+                        rows="3"
+                        placeholder="Any other details..."
+                        value={item.notes || ''}
+                        onChange={(e) => updateExtractedItem(idx, 'notes', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px' }}>
+                  <button
+                    onClick={handleValuateExtracted}
+                    disabled={processing}
+                    style={{
+                      padding: '16px 40px',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      background: processing ? '#3d4558' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: processing ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                      opacity: processing ? 0.6 : 1
+                    }}
+                  >
+                    💰 Get Valuations
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setExtractedItems([]);
+                      setInputMode('choose');
+                    }}
+                    style={{
+                      padding: '16px 40px',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      background: '#2d3548',
+                      color: '#b8c5d0',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ← Start Over
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div style={{
+                background: 'rgba(120, 40, 40, 0.95)',
+                color: '#ffb3b3',
+                padding: '20px 30px',
+                borderRadius: '12px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                fontSize: '16px',
+                fontWeight: '600',
+                border: '1px solid #8b4545'
+              }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Processing Progress */}
+            {processing && progress.status && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                textAlign: 'center',
+                border: '1px solid #2d3548'
+              }}>
+                <div style={{ fontSize: '40px', marginBottom: '20px' }}>⏳</div>
+                <p style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 10px 0', color: '#e0e6ed' }}>
+                  {progress.status}
+                </p>
+                {progress.total > 0 && (
+                  <p style={{ fontSize: '14px', color: '#b8c5d0' }}>
+                    Processing {progress.current} of {progress.total}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Results */}
+            {results && (
+              <div style={{
+                background: 'rgba(26, 31, 58, 0.95)',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                marginBottom: '30px',
+                border: '1px solid #2d3548'
+              }}>
+                <h2 style={{ fontSize: '24px', margin: '0 0 10px 0', color: '#e0e6ed', fontWeight: '700' }}>
+                  💎 Valuation Results
+                </h2>
+                <p style={{ fontSize: '32px', margin: '0 0 20px 0', color: '#8b9dc3', fontWeight: '800' }}>
+                  Total Value: ${totalValue.toLocaleString()}
+                </p>
+
+                <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ background: '#1a1f3a' }}>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Title</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Issue</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Grade</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Edition</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Value</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Confidence</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #2d3548', color: '#e0e6ed' }}>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.map((item, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #2d3548' }}>
+                          <td style={{ padding: '12px', color: '#e0e6ed' }}>{item.title}</td>
+                          <td style={{ padding: '12px', color: '#e0e6ed' }}>#{item.issue}</td>
+                          <td style={{ padding: '12px', color: '#e0e6ed' }}>{item.grade}</td>
+                          <td style={{ padding: '12px', color: '#e0e6ed' }}>{item.edition || '-'}</td>
+                          <td style={{ padding: '12px', fontWeight: '600', color: '#8b9dc3' }}>
+                            ${item.estimated_value?.toLocaleString() || '0'}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: item.confidence === 'high' ? '#1e4620' : item.confidence === 'medium' ? '#4a3a1a' : '#4a1e1e',
+                              color: item.confidence === 'high' ? '#7bc67e' : item.confidence === 'medium' ? '#e0c097' : '#ff9999'
+                            }}>
+                              {item.confidence}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '13px', color: '#b8c5d0' }}>
+                            {item.notes}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                  <button
+                    onClick={downloadResults}
+                    style={{
+                      padding: '16px 40px',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                    }}
+                  >
+                    📥 Download Excel
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setResults(null);
+                      setExtractedItems([]);
+                      setInputMode('choose');
+                    }}
+                    style={{
+                      padding: '16px 40px',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      background: '#2d3548',
+                      color: '#b8c5d0',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ← Value More Items
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<CollectionCalc />, document.getElementById('root'));
+  </script>
 </body>
 </html>
