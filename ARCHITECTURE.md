@@ -1,204 +1,237 @@
 # CollectionCalc Architecture
 
-## System Architecture
+## System Overview
 
-```mermaid
-flowchart TB
-    subgraph Frontend["Frontend (React)"]
-        UI[Dark Mode UI]
-        Upload[Photo Upload]
-        Edit[Edit Interface]
-        Export[Excel Export]
-    end
-
-    subgraph API["API Server (Python)"]
-        Router[Request Router]
-        ValuationAPI[Valuation Endpoints]
-        UserAPI[User Management]
-        FeedbackAPI[Feedback Endpoints]
-        ReportsAPI[Reports & Analytics]
-        AdminAPI[Admin Endpoints]
-    end
-
-    subgraph Core["Core Modules"]
-        Vision[Claude Vision<br/>Photo Extraction]
-        ValModel[Valuation Model<br/>Deterministic Pricing]
-        Lookup[Comic Lookup<br/>Fuzzy Matching]
-        WebSearch[Web Search<br/>Fallback]
-    end
-
-    subgraph Data["Data Layer"]
-        ComicsDB[(Comics DB<br/>SQLite)]
-        FeedbackDB[(Feedback DB<br/>SQLite)]
-        UserDB[(User DB<br/>SQLite)]
-        WeightsFile[/Weights JSON/]
-    end
-
-    subgraph External["External Services"]
-        Anthropic[Anthropic API<br/>Vision + Search]
-    end
-
-    %% Frontend to API
-    UI --> Router
-    Upload --> Router
-    
-    %% API to Core
-    Router --> ValuationAPI
-    Router --> UserAPI
-    Router --> FeedbackAPI
-    Router --> ReportsAPI
-    
-    ValuationAPI --> ValModel
-    ValuationAPI --> Lookup
-    ValuationAPI --> WebSearch
-    
-    %% Core to Data
-    Lookup --> ComicsDB
-    ValModel --> WeightsFile
-    FeedbackAPI --> FeedbackDB
-    UserAPI --> UserDB
-    
-    %% External
-    Vision --> Anthropic
-    WebSearch --> Anthropic
-    
-    %% Styling
-    classDef frontend fill:#4a5568,stroke:#2d3748,color:#fff
-    classDef api fill:#3182ce,stroke:#2b6cb0,color:#fff
-    classDef core fill:#38a169,stroke:#276749,color:#fff
-    classDef data fill:#d69e2e,stroke:#b7791f,color:#fff
-    classDef external fill:#9f7aea,stroke:#805ad5,color:#fff
-    
-    class UI,Upload,Edit,Export frontend
-    class Router,ValuationAPI,UserAPI,FeedbackAPI,ReportsAPI,AdminAPI api
-    class Vision,ValModel,Lookup,WebSearch core
-    class ComicsDB,FeedbackDB,UserDB,WeightsFile data
-    class Anthropic external
 ```
-
-## Three-Tier Model Architecture
-
-```mermaid
-flowchart TB
-    subgraph Tier1["Tier 1: Global Model (Protected)"]
-        GlobalWeights[Global Weights<br/>valuation_weights.json]
-        AdminCurated[Admin Curated<br/>Manual Updates Only]
-    end
-
-    subgraph Tier2["Tier 2: User Adjustments (Personal)"]
-        UserOverrides[(User Overrides<br/>user_adjustments.db)]
-        PersonalPrefs[Personal Preferences<br/>Per-User Multipliers]
-    end
-
-    subgraph Tier3["Tier 3: Feedback Analytics (Insight)"]
-        FeedbackLog[(Feedback Log<br/>valuation_feedback.db)]
-        Suggestions[Suggestions Engine<br/>Never Auto-Applied]
-    end
-
-    subgraph Output["Effective Weights"]
-        Merge[Merge Logic]
-        EffectiveWeights[User's Effective Weights]
-    end
-
-    GlobalWeights --> Merge
-    UserOverrides --> Merge
-    Merge --> EffectiveWeights
-    
-    FeedbackLog --> Suggestions
-    Suggestions -.->|Admin Review| AdminCurated
-    
-    classDef tier1 fill:#38a169,stroke:#276749,color:#fff
-    classDef tier2 fill:#3182ce,stroke:#2b6cb0,color:#fff
-    classDef tier3 fill:#d69e2e,stroke:#b7791f,color:#fff
-    classDef output fill:#9f7aea,stroke:#805ad5,color:#fff
-    
-    class GlobalWeights,AdminCurated tier1
-    class UserOverrides,PersonalPrefs tier2
-    class FeedbackLog,Suggestions tier3
-    class Merge,EffectiveWeights output
-```
-
-## Valuation Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Lookup
-    participant ValModel
-    participant WebSearch
-    participant DB
-
-    User->>API: POST /api/valuate
-    API->>Lookup: Find base value
-    Lookup->>DB: Query comics_pricing.db
-    
-    alt Found in DB
-        DB-->>Lookup: Base NM value
-        Lookup-->>API: $1200 (ASM #300)
-    else Not Found
-        Lookup-->>API: Not found
-        API->>WebSearch: Fallback search
-        WebSearch-->>API: $1200 (from GoCollect)
-    end
-    
-    API->>ValModel: Calculate with multipliers
-    Note over ValModel: Grade: VF → ×0.75<br/>Edition: Newsstand → ×1.25<br/>Era: Copper → ×0.98
-    ValModel-->>API: $1103.25
-    
-    API-->>User: Value + Full Breakdown
-```
-
-## Feedback Loop
-
-```mermaid
-flowchart LR
-    subgraph Input
-        Valuation[Model Valuation<br/>$36.75]
-        UserCorrection[User Correction<br/>$45.00]
-    end
-
-    subgraph Process
-        Log[Log Feedback<br/>+22.4% delta]
-        Analyze[Analyze Patterns<br/>VF grades trending up]
-        Suggest[Generate Suggestions<br/>VF: 0.75 → 0.81]
-    end
-
-    subgraph Review
-        AdminReview[Admin Reviews<br/>Excludes bad actors]
-        Apply[Apply Adjustments<br/>Manual approval]
-    end
-
-    subgraph Output
-        BetterModel[Improved Model<br/>More accurate]
-    end
-
-    Valuation --> Log
-    UserCorrection --> Log
-    Log --> Analyze
-    Analyze --> Suggest
-    Suggest --> AdminReview
-    AdminReview --> Apply
-    Apply --> BetterModel
-    BetterModel -.->|Future valuations| Valuation
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER                                     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   CLOUDFLARE PAGES                               │
+│                collectioncalc.pages.dev                          │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    index.html                            │    │
+│  │  - Brand UI (Indigo/Purple/Cyan gradient)               │    │
+│  │  - Form inputs (title, issue, grade, publisher, year)   │    │
+│  │  - Animated calculator loading                          │    │
+│  │  - Thinking steps display                               │    │
+│  │  - Results with confidence indicators                   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTPS POST /api/valuate
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        RENDER                                    │
+│              collectioncalc.onrender.com                         │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    Flask API (wsgi.py)                   │    │
+│  │  - /api/valuate (POST) - Full valuation with market data│    │
+│  │  - /api/valuate/simple (POST) - Database only           │    │
+│  │  - /api/lookup (GET) - Raw database lookup              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                   │
+│              ┌───────────────┼───────────────┐                  │
+│              ▼               ▼               ▼                  │
+│  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐    │
+│  │  comic_lookup.py │ │ebay_valuation│ │valuation_model.py│    │
+│  │                  │ │    .py       │ │                  │    │
+│  │ - Title search   │ │ - Web search │ │ - Grade adjust   │    │
+│  │ - Issue lookup   │ │ - Caching    │ │ - Era factors    │    │
+│  │ - Fuzzy match    │ │ - Aliases    │ │ - Publisher adj  │    │
+│  └────────┬─────────┘ │ - Spelling   │ └──────────────────┘    │
+│           │           └──────┬───────┘                          │
+│           ▼                  │                                   │
+│  ┌──────────────────┐        │                                   │
+│  │comics_pricing.db │        │                                   │
+│  │   (144 comics)   │        │                                   │
+│  └──────────────────┘        │                                   │
+│                              │                                   │
+│  ┌──────────────────┐        │                                   │
+│  │ price_cache.db   │◄───────┘                                   │
+│  │ (48hr TTL)       │                                            │
+│  └──────────────────┘                                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Web Search API
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      ANTHROPIC API                               │
+│                                                                  │
+│  - Claude with web_search tool                                   │
+│  - Searches: eBay, GoCollect, CovrPrice, Heritage, etc.         │
+│  - Returns JSON with prices, dates, grades, sources             │
+│  - Corrects spelling errors                                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow
 
-```mermaid
-flowchart LR
-    Photo[📷 Photo] --> Vision[Claude Vision]
-    Vision --> Extract[Extract:<br/>Title, Issue, Grade]
-    Extract --> Lookup[DB Lookup]
-    
-    Lookup --> |Found| Model[Valuation Model]
-    Lookup --> |Not Found| WebSearch[Web Search]
-    WebSearch --> Model
-    
-    Model --> Breakdown[Calculation Breakdown]
-    Breakdown --> Display[Display to User]
-    
-    Display --> |User Edits| Feedback[Log Feedback]
-    Feedback --> Analytics[Analytics Engine]
-    Analytics --> Reports[Reports Dashboard]
+### Valuation Request Flow
+
 ```
+1. User enters: "ASM #300 VF"
+                    │
+                    ▼
+2. Alias expansion: "Amazing Spider-Man #300 VF"
+                    │
+                    ▼
+3. Check price_cache.db (48hr TTL)
+         │                    │
+         │ HIT               │ MISS
+         ▼                    ▼
+4a. Return cached       4b. Check comics_pricing.db
+    result                        │
+                         ┌───────┴───────┐
+                         │ FOUND         │ NOT FOUND
+                         ▼               ▼
+                   5a. Search web    5b. Search web
+                       for market        for prices
+                       validation        │
+                         │               │
+                         ▼               ▼
+                   6a. Blend DB +   6b. Use web
+                       web prices       prices only
+                         │               │
+                         └───────┬───────┘
+                                 ▼
+                   7. Calculate confidence score
+                      - Volume factor
+                      - Recency factor  
+                      - Variance factor
+                                 │
+                                 ▼
+                   8. Cache result (48hr)
+                                 │
+                                 ▼
+                   9. Return to user
+```
+
+## Databases
+
+### comics_pricing.db (Static Reference)
+
+```sql
+CREATE TABLE comics (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    issue TEXT NOT NULL,
+    year INTEGER,
+    publisher TEXT,
+    base_value REAL,
+    notes TEXT
+);
+```
+
+**144 comics** covering key issues from major publishers.
+
+### price_cache.db (Dynamic Cache)
+
+```sql
+CREATE TABLE search_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    issue TEXT NOT NULL,
+    search_key TEXT UNIQUE NOT NULL,
+    estimated_value REAL,
+    confidence TEXT,
+    confidence_score INTEGER,
+    num_sales INTEGER,
+    price_min REAL,
+    price_max REAL,
+    sales_data TEXT,  -- JSON
+    reasoning TEXT,
+    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**48-hour TTL** - Results expire after 2 days for fresh data.
+
+## Key Algorithms
+
+### Recency Weighting
+
+| Sale Age | Weight |
+|----------|--------|
+| This week | 100% |
+| This month | 90% |
+| Last 3 months | 70% |
+| Last year | 50% |
+| Older | 25% |
+
+### Confidence Scoring
+
+```
+Base: 50 points
+
+Volume Factor (+/- 25):
+  10+ sales: +25
+  5-9 sales: +15
+  2-4 sales: +5
+  1 sale: -15
+  0 sales: -25
+
+Recency Factor (+/- 15):
+  < 30 days: +15
+  < 90 days: +10
+  < 365 days: 0
+  > 365 days: -10
+
+Variance Factor (+/- 10):
+  CV < 0.1: +10
+  CV < 0.25: +5
+  CV < 0.5: -5
+  CV > 0.5: -10
+
+Labels:
+  90+: HIGH
+  70-89: MEDIUM-HIGH
+  50-69: MEDIUM
+  30-49: LOW
+  <30: VERY LOW
+```
+
+### Blending Strategy
+
+| Scenario | Action |
+|----------|--------|
+| DB + High confidence web (70%+) | Use web price |
+| DB + Low confidence web | 50/50 blend |
+| DB only | Grade-adjusted DB value |
+| Web only | Direct web price |
+| Neither | Default estimate, VERY LOW confidence |
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `wsgi.py` | Flask API server, routes |
+| `ebay_valuation.py` | Web search, caching, aliases, spelling |
+| `valuation_model.py` | Grade adjustments, era factors |
+| `comic_lookup.py` | Database search |
+| `database_schema.py` | Schema definitions |
+| `comics_pricing.db` | Reference database |
+| `price_cache.db` | Search result cache |
+| `index.html` | Frontend UI |
+
+## Hosting
+
+| Component | Host | URL | Cost |
+|-----------|------|-----|------|
+| Frontend | Cloudflare Pages | collectioncalc.pages.dev | Free |
+| Backend | Render | collectioncalc.onrender.com | Free |
+| AI | Anthropic API | api.anthropic.com | ~$0.03/search |
+
+## Environment Variables
+
+| Variable | Location | Purpose |
+|----------|----------|---------|
+| `ANTHROPIC_API_KEY` | Render | Web search API access |
+
+---
+
+*Last updated: January 2026*
