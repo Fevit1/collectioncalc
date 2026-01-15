@@ -265,6 +265,60 @@
             transform: none;
             box-shadow: none;
         }
+        .item-details-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 0.85rem;
+            width: auto;
+            margin-left: 5px;
+        }
+        .item-details-btn:hover {
+            color: var(--brand-cyan);
+            transform: none;
+            box-shadow: none;
+        }
+        .sales-details {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-default);
+        }
+        .sales-details.show {
+            display: block;
+        }
+        .sales-details h5 {
+            color: var(--brand-cyan);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+        .sale-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        .sale-price {
+            font-weight: 600;
+            color: var(--brand-cyan);
+        }
+        .sale-meta {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        .sale-weight {
+            background: var(--brand-indigo);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
         .item-fields {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -788,7 +842,9 @@
 - year: Publication year
 - grade: Estimated condition grade (GM, GD, VG, FN, VF, NM, MT) - be conservative
 - edition: Look at the BOTTOM-LEFT CORNER. If you see a UPC BARCODE, return "newsstand". If you see ARTWORK or LOGO, return "direct". If unclear, return "unknown".
-- variant: Variant description if applicable, otherwise empty string
+- printing: Look for "2nd Printing", "3rd Print", "Second Printing", etc. anywhere on cover. Return "1st" if no printing indicator found, otherwise "2nd", "3rd", etc.
+- cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
+- variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
 
 Be accurate. If unsure about any field, use reasonable estimates.`;
             
@@ -854,6 +910,33 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                                 <option value="FN" ${item.grade === 'FN' ? 'selected' : ''}>FN</option>
                                 <option value="VG" ${item.grade === 'VG' ? 'selected' : ''}>VG</option>
                                 <option value="G" ${item.grade === 'G' || item.grade === 'GD' ? 'selected' : ''}>G</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="item-fields" style="margin-top: 10px;">
+                        <div class="form-group">
+                            <label>Printing</label>
+                            <select onchange="updateItem(${idx}, 'printing', this.value)">
+                                <option value="1st" ${item.printing === '1st' || !item.printing ? 'selected' : ''}>1st</option>
+                                <option value="2nd" ${item.printing === '2nd' ? 'selected' : ''}>2nd</option>
+                                <option value="3rd" ${item.printing === '3rd' ? 'selected' : ''}>3rd</option>
+                                <option value="4th" ${item.printing === '4th' ? 'selected' : ''}>4th+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cover</label>
+                            <input type="text" value="${item.cover || ''}" placeholder="A, B, 1:25..." onchange="updateItem(${idx}, 'cover', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Variant</label>
+                            <input type="text" value="${item.variant || ''}" placeholder="Artist name..." onchange="updateItem(${idx}, 'variant', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Edition</label>
+                            <select onchange="updateItem(${idx}, 'edition', this.value)">
+                                <option value="direct" ${item.edition === 'direct' ? 'selected' : ''}>Direct</option>
+                                <option value="newsstand" ${item.edition === 'newsstand' ? 'selected' : ''}>Newsstand</option>
+                                <option value="unknown" ${item.edition === 'unknown' || !item.edition ? 'selected' : ''}>Unknown</option>
                             </select>
                         </div>
                     </div>
@@ -929,7 +1012,11 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     year: parseInt(item.year) || null,
                     publisher: item.publisher || null,
                     grade: item.grade || 'VF',
-                    force_refresh: forceRefresh  // Backend needs to support this to bypass cache
+                    printing: item.printing || '1st',
+                    cover: item.cover || '',
+                    variant: item.variant || '',
+                    edition: item.edition || '',
+                    force_refresh: forceRefresh
                 })
             });
             
@@ -943,7 +1030,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 source: json.source,
                 reasoning: json.reasoning,
                 ebay_sales: json.ebay_sales,
-                ebay_price_range: json.ebay_price_range
+                ebay_price_range: json.ebay_price_range,
+                sales_data: json.sales_data || []
             };
         }
         
@@ -961,17 +1049,43 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 <div class="item-card has-value">
                     <div class="item-header">
                         <span class="item-number">${idx + 1}</span>
-                        <span class="item-title">${item.title} #${item.issue}</span>
+                        <span class="item-title">${item.title} #${item.issue}${item.printing && item.printing !== '1st' ? ` (${item.printing} Print)` : ''}${item.cover ? ` Cover ${item.cover}` : ''}</span>
                         <span class="item-value">$${(item.value || 0).toFixed(2)}</span>
                         <button class="item-refresh" onclick="refreshItem(${idx})" title="Refresh with 3 samples">🔄</button>
+                        ${item.sales_data && item.sales_data.length > 0 ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View sales data">📊</button>` : ''}
                     </div>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
                         ${item.confidence || ''} confidence · ${item.source || 'estimate'}
                         ${item.ebay_sales ? ` · ${item.ebay_sales} eBay sale(s)` : ''}
                         ${item.samples ? ` · Samples: $${item.samples.join(', $')}` : ''}
                     </div>
+                    ${item.sales_data && item.sales_data.length > 0 ? `
+                    <div class="sales-details" id="details-${idx}">
+                        <h5>📊 Sales Data Used for Valuation</h5>
+                        ${item.sales_data.map(sale => `
+                            <div class="sale-item">
+                                <div>
+                                    <span class="sale-price">$${sale.price.toFixed(2)}</span>
+                                    <span class="sale-meta"> · ${sale.source || 'Unknown source'}</span>
+                                    ${sale.grade ? `<span class="sale-meta"> · Grade: ${sale.grade}</span>` : ''}
+                                </div>
+                                <div>
+                                    <span class="sale-meta">${sale.date || 'Unknown date'}</span>
+                                    ${sale.weight ? `<span class="sale-weight">${(sale.weight * 100).toFixed(0)}% weight</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
                 </div>
             `).join('');
+        }
+        
+        function toggleDetails(idx) {
+            const details = document.getElementById('details-' + idx);
+            if (details) {
+                details.classList.toggle('show');
+            }
         }
         
         function downloadExcel() {
@@ -981,6 +1095,10 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 Publisher: item.publisher,
                 Year: item.year,
                 Grade: item.grade,
+                Printing: item.printing || '1st',
+                Cover: item.cover || '',
+                Variant: item.variant || '',
+                Edition: item.edition || '',
                 Value: item.value || 0,
                 Confidence: item.confidence || '',
                 Source: item.source || '',
