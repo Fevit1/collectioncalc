@@ -874,19 +874,21 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     const result = await getValuation(item);
                     extractedItems[i] = { ...item, ...result };
                     renderItemsList();
+                    
+                    // Only wait if we hit the API (not a pure database result)
+                    const needsDelay = result.source !== 'database';
+                    
+                    if (needsDelay && i < extractedItems.length - 1) {
+                        // Show waiting state in thinking box
+                        showWaiting(`${item.title} #${item.issue} complete!`, extractedItems[i].value);
+                        for (let s = 60; s > 0; s--) {
+                            updateProgress(((i + 1) / extractedItems.length) * 100, `Next valuation in ${s}s...`);
+                            updateWaitingCountdown(s, extractedItems[i + 1]);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
                 } catch (error) {
                     extractedItems[i].error = error.message;
-                }
-                
-                // 60 second delay between valuations
-                if (i < extractedItems.length - 1) {
-                    // Show waiting state in thinking box
-                    showWaiting(`${item.title} #${item.issue} complete!`, extractedItems[i].value);
-                    for (let s = 60; s > 0; s--) {
-                        updateProgress(((i + 1) / extractedItems.length) * 100, `Next valuation in ${s}s...`);
-                        updateWaitingCountdown(s, extractedItems[i + 1]);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
                 }
             }
             
