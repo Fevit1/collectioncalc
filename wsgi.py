@@ -2,13 +2,23 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+# CORS headers for frontend
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    return response
+
 # Simple health check
 @app.route('/')
 def home():
     return jsonify({"status": "CollectionCalc API is running", "version": "1.0"})
 
-@app.route('/api/valuate', methods=['POST'])
+@app.route('/api/valuate', methods=['POST', 'OPTIONS'])
 def valuate():
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         from valuation_model import ValuationModel
         from comic_lookup import lookup_comic
