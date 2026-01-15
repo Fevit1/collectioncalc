@@ -377,6 +377,7 @@
             border: 1px solid var(--brand-indigo);
             border-radius: 12px;
             display: none;
+            min-height: 200px;
         }
         .thinking.show { display: block; }
         .thinking-header {
@@ -401,6 +402,25 @@
             75% { transform: translateY(-6px); }
         }
         .thinking-title { color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; }
+        .thinking-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .thinking-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            transition: color 0.3s;
+        }
+        .thinking-step.active { color: var(--brand-cyan); }
+        .thinking-step.done { color: var(--status-success); }
+        .thinking-step .icon { width: 18px; text-align: center; }
+        .thinking-step.active .icon::before { content: '⟳'; }
+        .thinking-step.done .icon::before { content: '✓'; }
+        .thinking-step.pending .icon::before { content: '○'; }
         
         .action-buttons {
             display: flex;
@@ -592,6 +612,13 @@
                         </div>
                         <span class="thinking-title" id="thinkingTitle">Processing...</span>
                     </div>
+                    <div class="thinking-steps">
+                        <div class="thinking-step pending" id="step1"><span class="icon"></span><span id="step1Text">Checking database for matches</span></div>
+                        <div class="thinking-step pending" id="step2"><span class="icon"></span><span id="step2Text">Searching market data</span></div>
+                        <div class="thinking-step pending" id="step3"><span class="icon"></span><span id="step3Text">Analyzing recent sales</span></div>
+                        <div class="thinking-step pending" id="step4"><span class="icon"></span><span id="step4Text">Calculating confidence score</span></div>
+                        <div class="thinking-step pending" id="step5"><span class="icon"></span><span id="step5Text">Generating valuation</span></div>
+                    </div>
                 </div>
             </div>
             
@@ -684,6 +711,7 @@
             document.getElementById('photoMode').style.display = 'none';
             document.getElementById('bulkMode').style.display = 'block';
             document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('valuateAllBtn').disabled = true;
             
             for (let i = 0; i < fileArray.length; i++) {
                 const file = fileArray[i];
@@ -716,6 +744,7 @@
             updateProgress(100, 'Extraction complete!');
             setTimeout(() => {
                 document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('valuateAllBtn').disabled = false;
             }, 1000);
         }
         
@@ -830,7 +859,16 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             
             for (let i = 0; i < extractedItems.length; i++) {
                 const item = extractedItems[i];
-                updateProgress((i / extractedItems.length) * 100, `Valuating ${i + 1} of ${extractedItems.length}: ${item.title} #${item.issue}`);
+                updateProgress((i / extractedItems.length) * 100, `Valuating ${i + 1} of ${extractedItems.length}`);
+                
+                // Show thinking animation for this comic
+                showThinking(`Valuating: ${item.title} #${item.issue}`, [
+                    'Checking database for matches',
+                    'Searching market data',
+                    'Analyzing recent sales',
+                    'Calculating confidence score',
+                    'Generating valuation'
+                ]);
                 
                 try {
                     const result = await getValuation(item);
@@ -842,13 +880,17 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 
                 // 60 second delay between valuations
                 if (i < extractedItems.length - 1) {
+                    // Show waiting state in thinking box
+                    showWaiting(`${item.title} #${item.issue} complete!`, extractedItems[i].value);
                     for (let s = 60; s > 0; s--) {
-                        updateProgress(((i + 1) / extractedItems.length) * 100, `Waiting ${s}s before next valuation...`);
+                        updateProgress(((i + 1) / extractedItems.length) * 100, `Next valuation in ${s}s...`);
+                        updateWaitingCountdown(s, extractedItems[i + 1]);
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 }
             }
             
+            hideThinking();
             btn.disabled = false;
             document.getElementById('progressContainer').style.display = 'none';
             showResults();
@@ -924,13 +966,73 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             XLSX.writeFile(wb, 'CollectionCalc_Valuations.xlsx');
         }
         
-        function showThinking(title) {
+        function showThinking(title, steps) {
             document.getElementById('thinkingTitle').textContent = title;
+            // Make all steps visible and reset them
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById('step' + i);
+                step.style.display = 'flex';
+                step.classList.remove('active', 'done');
+                step.classList.add('pending');
+                if (steps && steps[i-1]) {
+                    document.getElementById('step' + i + 'Text').textContent = steps[i-1];
+                }
+            }
             document.getElementById('thinking').classList.add('show');
+            animateThinking();
         }
         
         function hideThinking() {
             document.getElementById('thinking').classList.remove('show');
+        }
+        
+        function animateThinking() {
+            const delays = [0, 1500, 3000, 5000, 7000];
+            delays.forEach((delay, index) => {
+                setTimeout(() => {
+                    if (index > 0) {
+                        const prev = document.getElementById('step' + index);
+                        prev.classList.remove('active');
+                        prev.classList.add('done');
+                    }
+                    const el = document.getElementById('step' + (index + 1));
+                    el.classList.remove('pending');
+                    el.classList.add('active');
+                }, delay);
+            });
+        }
+        
+        function showWaiting(completedTitle, value) {
+            document.getElementById('thinkingTitle').textContent = '✓ ' + completedTitle;
+            // Mark all steps as done
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'pending');
+                step.classList.add('done');
+            }
+            // Update step text to show result and countdown
+            document.getElementById('step1Text').textContent = value ? `Valued at $${value.toFixed(2)}` : 'Valuation complete';
+            document.getElementById('step2Text').textContent = '';
+            document.getElementById('step3Text').textContent = 'Waiting for rate limit...';
+            document.getElementById('step4Text').textContent = '';
+            document.getElementById('step5Text').textContent = '';
+            // Hide steps 2, 4, 5
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step4').style.display = 'none';
+            document.getElementById('step5').style.display = 'none';
+        }
+        
+        function updateWaitingCountdown(seconds, nextItem) {
+            document.getElementById('step3Text').textContent = `Next: ${nextItem.title} #${nextItem.issue} in ${seconds}s`;
+            document.getElementById('step3').classList.remove('done');
+            document.getElementById('step3').classList.add('active');
+        }
+        
+        function resetThinkingSteps() {
+            // Make all steps visible again
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('step' + i).style.display = 'flex';
+            }
         }
         
         // Manual form submission
@@ -948,7 +1050,13 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.textContent = 'Analyzing...';
-            showThinking('Analyzing your comic...');
+            showThinking('Analyzing your comic...', [
+                'Checking database for matches',
+                'Searching market data',
+                'Analyzing recent sales',
+                'Calculating confidence score',
+                'Generating valuation'
+            ]);
             
             try {
                 const response = await fetch(`${API_URL}/api/valuate`, {
