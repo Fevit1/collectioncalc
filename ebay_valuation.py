@@ -267,35 +267,10 @@ def calculate_confidence(num_sales: int, days_span: int, price_variance: float) 
     
     return label, score
 
-def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) -> EbayValuationResult:
+def _single_search(client, title: str, issue: str, grade: str, publisher: str = None) -> tuple:
     """
-    Search for market prices using Claude AI with web search.
-    Checks cache first, saves successful results to cache.
+    Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
     """
-    # Expand aliases (ASM → Amazing Spider-Man)
-    title = expand_title_alias(title)
-    
-    # Check cache first
-    cached = get_cached_result(title, issue)
-    if cached:
-        return cached
-    
-    api_key = os.environ.get('ANTHROPIC_API_KEY')
-    
-    if not api_key:
-        return EbayValuationResult(
-            estimated_value=0,
-            confidence="VERY LOW",
-            confidence_score=0,
-            num_sales=0,
-            price_range=(0, 0),
-            recency_weighted_avg=0,
-            sales_data=[],
-            reasoning="No API key configured for web search"
-        )
-    
-    client = anthropic.Anthropic(api_key=api_key)
-    
     # Build search query - don't include grade (most listings don't specify)
     search_query = f"{title} #{issue} comic"
     if publisher:
@@ -337,7 +312,7 @@ Rules:
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=1024,
-            timeout=60.0,  # 60 second timeout
+            timeout=60.0,
             tools=[{
                 "type": "web_search_20250305",
                 "name": "web_search"
@@ -357,22 +332,31 @@ Rules:
             data = json.loads(json_match.group())
             sales = data.get('sales', [])
             corrected_title = data.get('corrected_title', None)
-        else:
-            sales = []
-            corrected_title = None
-            # Return diagnostic info
-            return EbayValuationResult(
-                estimated_value=0,
-                confidence="VERY LOW",
-                confidence_score=0,
-                num_sales=0,
-                price_range=(0, 0),
-                recency_weighted_avg=0,
-                sales_data=[],
-                reasoning=f"Could not parse JSON from response. Raw: {result_text[:500]}"
-            )
-            
+            return (sales, corrected_title)
+        
     except Exception as e:
+        print(f"Search error: {e}")
+    
+    return ([], None)
+
+
+def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, num_samples: int = 3) -> EbayValuationResult:
+    """
+    Search for market prices using Claude AI with web search.
+    Runs multiple samples and takes median for accuracy.
+    Checks cache first, saves successful results to cache.
+    """
+    # Expand aliases (ASM → Amazing Spider-Man)
+    title = expand_title_alias(title)
+    
+    # Check cache first
+    cached = get_cached_result(title, issue)
+    if cached:
+        return cached
+    
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    
+    if not api_key:
         return EbayValuationResult(
             estimated_value=0,
             confidence="VERY LOW",
@@ -381,8 +365,29 @@ Rules:
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning=f"Search error: {str(e)}"
+            reasoning="No API key configured for web search"
         )
+    
+    client = anthropic.Anthropic(api_key=api_key)
+    
+    # Run multiple searches for better accuracy
+    all_sales = []
+    corrected_title = None
+    
+    for i in range(num_samples):
+        sales, title_fix = _single_search(client, title, issue, grade, publisher)
+        all_sales.extend(sales)
+        if title_fix and not corrected_title:
+            corrected_title = title_fix
+    
+    # Deduplicate by price+date+source
+    seen = set()
+    sales = []
+    for sale in all_sales:
+        key = f"{sale.get('price')}-{sale.get('date')}-{sale.get('source')}"
+        if key not in seen:
+            seen.add(key)
+            sales.append(sale)
     
     if not sales:
         return EbayValuationResult(
@@ -465,7 +470,7 @@ Rules:
     
     # Build reasoning
     reasoning_parts = [
-        f"Found {len(prices)} sold listing(s) on eBay",
+        f"Found {len(prices)} price(s) from 3-sample search",
         f"Price range: ${price_min:.2f} - ${price_max:.2f}",
         f"Recency-weighted average: ${recency_weighted_avg:.2f}"
     ]
