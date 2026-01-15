@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import requests
+import os
 
 app = Flask(__name__)
 
@@ -6,7 +8,7 @@ app = Flask(__name__)
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, X-API-Key')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     return response
 
@@ -15,9 +17,46 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "2.0",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting"]
+        "version": "3.0",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction"]
     })
+
+@app.route('/api/messages', methods=['POST', 'OPTIONS'])
+def proxy_messages():
+    """Proxy requests to Anthropic API for photo extraction and valuations."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        # Get API key from header
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            return jsonify({'error': {'message': 'Missing X-API-Key header'}}), 401
+        
+        # Get request body
+        data = request.get_json()
+        
+        # Forward to Anthropic API
+        response = requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01'
+            },
+            json=data,
+            timeout=120  # 2 minute timeout for vision requests
+        )
+        
+        # Return Anthropic's response
+        return jsonify(response.json()), response.status_code
+        
+    except requests.exceptions.Timeout:
+        return jsonify({'error': {'message': 'Request timed out'}}), 504
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': {'message': f'Request failed: {str(e)}'}}), 502
+    except Exception as e:
+        return jsonify({'error': {'message': str(e)}}), 500
 
 @app.route('/api/valuate', methods=['POST', 'OPTIONS'])
 def valuate():
