@@ -13,10 +13,48 @@ def after_request(response):
 # Simple health check
 @app.route('/')
 def home():
-    return jsonify({"status": "CollectionCalc API is running", "version": "1.0"})
+    return jsonify({
+        "status": "CollectionCalc API is running",
+        "version": "2.0",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting"]
+    })
 
 @app.route('/api/valuate', methods=['POST', 'OPTIONS'])
 def valuate():
+    """Enhanced valuation with eBay data."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from comic_lookup import lookup_comic
+        from ebay_valuation import get_valuation_with_ebay
+        
+        data = request.get_json()
+        
+        # Try database lookup first
+        db_result = lookup_comic(
+            title=data.get('title', ''),
+            issue=data.get('issue', ''),
+            publisher=data.get('publisher')
+        )
+        
+        # Get valuation with eBay data
+        result = get_valuation_with_ebay(
+            title=data.get('title', ''),
+            issue=data.get('issue', ''),
+            grade=data.get('grade', 'NM'),
+            publisher=data.get('publisher'),
+            year=data.get('year'),
+            db_result=db_result
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/valuate/simple', methods=['POST', 'OPTIONS'])
+def valuate_simple():
+    """Original simple valuation (database only, no eBay)."""
     if request.method == 'OPTIONS':
         return '', 204
     try:
