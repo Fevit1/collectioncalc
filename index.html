@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-primary: #0f0f1a;
@@ -33,7 +34,7 @@
             color: var(--text-primary);
             padding: 20px;
         }
-        .container { max-width: 650px; margin: 0 auto; }
+        .container { max-width: 750px; margin: 0 auto; }
         header { text-align: center; margin-bottom: 30px; }
         h1 {
             font-size: 2.5rem;
@@ -46,7 +47,6 @@
         }
         .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
         
-        /* Mode Toggle */
         .mode-toggle {
             display: flex;
             gap: 10px;
@@ -112,6 +112,7 @@
         select option { background: var(--bg-primary); color: var(--text-primary); }
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
         
         button {
             width: 100%;
@@ -141,8 +142,12 @@
             border-color: var(--brand-indigo);
             box-shadow: none;
         }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            width: auto;
+        }
         
-        /* Photo Upload Area */
         .upload-area {
             border: 2px dashed var(--border-default);
             border-radius: 12px;
@@ -164,7 +169,6 @@
         .upload-subtitle { font-size: 0.9rem; color: var(--text-muted); }
         .upload-input { display: none; }
         
-        /* Checkbox styling */
         .checkbox-row {
             display: flex;
             align-items: center;
@@ -180,6 +184,100 @@
             margin: 0;
             font-weight: 500;
             cursor: pointer;
+        }
+        
+        /* Item cards for bulk */
+        .item-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .item-card.has-value {
+            border-color: var(--status-success);
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-default);
+        }
+        .item-number {
+            background: var(--brand-gradient);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .item-title {
+            flex: 1;
+            margin-left: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .item-value {
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: var(--value-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .item-delete {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2rem;
+            width: auto;
+        }
+        .item-delete:hover {
+            color: var(--status-error);
+            transform: none;
+            box-shadow: none;
+        }
+        .item-fields {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .item-fields input, .item-fields select {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        .item-fields label {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+        
+        /* Progress bar */
+        .progress-container {
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--brand-gradient);
+            transition: width 0.3s;
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
         
         /* Results */
@@ -244,31 +342,34 @@
         }
         .ebay-info h4 { color: var(--brand-cyan); margin-bottom: 8px; font-size: 0.9rem; }
         .ebay-info p { color: var(--text-secondary); font-size: 0.85rem; margin: 4px 0; }
-        .debug-info {
-            margin-top: 10px;
-            padding: 12px;
-            background: rgba(79, 70, 229, 0.1);
-            border-radius: 8px;
-            text-align: left;
+        
+        /* Summary card */
+        .summary-card {
+            background: var(--bg-primary);
+            border: 2px solid var(--brand-indigo);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
         }
-        .debug-info h4 {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .summary-total {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--value-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .debug-info p { color: var(--text-muted); font-size: 0.8rem; margin: 4px 0; }
-        .debug-info .expanded { color: var(--brand-cyan); }
-        .debug-info .cached { color: var(--brand-purple); }
+        .summary-count {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
         footer { text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9rem; }
         footer a { color: var(--brand-purple); text-decoration: none; transition: color 0.2s; }
         footer a:hover { color: var(--brand-cyan); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         button:disabled { animation: pulse 1.5s ease-in-out infinite; }
         
-        /* Thinking Animation */
         .thinking {
             margin-top: 20px;
             padding: 20px;
@@ -284,152 +385,32 @@
             gap: 12px;
             margin-bottom: 15px;
         }
-        .thinking-calc {
-            width: 32px;
-            height: 32px;
-            position: relative;
-        }
-        .thinking-calc svg {
-            width: 100%;
-            height: 100%;
-        }
+        .thinking-calc { width: 32px; height: 32px; }
+        .thinking-calc svg { width: 100%; height: 100%; }
         .calc-display {
             font-family: 'Courier New', monospace;
             font-size: 6px;
             font-weight: bold;
             fill: var(--brand-cyan);
-            animation: calcNumbers 0.5s steps(1) infinite;
-        }
-        @keyframes calcNumbers {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
         }
         .calc-num1 { animation: num1 2s steps(1) infinite; }
-        .calc-num2 { animation: num2 2s steps(1) infinite; }
-        .calc-num3 { animation: num3 2s steps(1) infinite; }
-        .calc-num4 { animation: num4 2s steps(1) infinite; }
         @keyframes num1 {
             0% { transform: translateY(0); }
             25% { transform: translateY(-6px); }
             50% { transform: translateY(-12px); }
             75% { transform: translateY(-6px); }
         }
-        @keyframes num2 {
-            0% { transform: translateY(-6px); }
-            25% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-            75% { transform: translateY(-12px); }
-        }
-        @keyframes num3 {
-            0% { transform: translateY(-12px); }
-            25% { transform: translateY(-6px); }
-            50% { transform: translateY(0); }
-            75% { transform: translateY(-6px); }
-        }
-        @keyframes num4 {
-            0% { transform: translateY(-6px); }
-            25% { transform: translateY(-12px); }
-            50% { transform: translateY(-6px); }
-            75% { transform: translateY(0); }
-        }
-        .calc-btn { transition: all 0.1s; }
-        .calc-btn-1 { animation: btnPress1 2s ease-in-out infinite; }
-        .calc-btn-2 { animation: btnPress2 2s ease-in-out infinite; }
-        .calc-btn-3 { animation: btnPress3 2s ease-in-out infinite; }
-        .calc-btn-4 { animation: btnPress4 2s ease-in-out infinite; }
-        .calc-btn-5 { animation: btnPress5 2s ease-in-out infinite; }
-        .calc-btn-6 { animation: btnPress6 2s ease-in-out infinite; }
-        @keyframes btnPress1 {
-            0%, 15%, 100% { opacity: 1; transform: scale(1); }
-            5%, 10% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress2 {
-            0%, 30%, 100% { opacity: 1; transform: scale(1); }
-            20%, 25% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress3 {
-            0%, 45%, 100% { opacity: 1; transform: scale(1); }
-            35%, 40% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress4 {
-            0%, 60%, 100% { opacity: 1; transform: scale(1); }
-            50%, 55% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress5 {
-            0%, 75%, 100% { opacity: 1; transform: scale(1); }
-            65%, 70% { opacity: 0.6; transform: scale(0.9); }
-        }
-        @keyframes btnPress6 {
-            0%, 90%, 100% { opacity: 1; transform: scale(1); }
-            80%, 85% { opacity: 0.6; transform: scale(0.9); }
-        }
-        .thinking-title {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .thinking-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .thinking-step {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            transition: color 0.3s;
-        }
-        .thinking-step.active {
-            color: var(--brand-cyan);
-        }
-        .thinking-step.done {
-            color: var(--status-success);
-        }
-        .thinking-step .icon {
-            width: 18px;
-            text-align: center;
-        }
-        .thinking-step.active .icon::before { content: '⟳'; }
-        .thinking-step.done .icon::before { content: '✓'; }
-        .thinking-step.pending .icon::before { content: '○'; }
+        .thinking-title { color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; }
         
-        /* Extracted data review */
-        .extracted-header {
+        .action-buttons {
             display: flex;
-            align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-default);
+            margin-top: 20px;
         }
-        .extracted-badge {
-            background: var(--status-success);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .extracted-title {
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
+        .action-buttons button { flex: 1; }
         
-        /* API Key setup */
-        .api-setup {
-            text-align: center;
-            padding: 20px 0;
-        }
-        .api-setup-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 15px;
-        }
+        .api-setup { text-align: center; padding: 20px 0; }
+        .api-setup-title { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin-bottom: 15px; }
         .api-setup-info {
             background: var(--bg-primary);
             border-radius: 8px;
@@ -437,17 +418,9 @@
             margin-bottom: 20px;
             text-align: left;
         }
-        .api-setup-info ol {
-            margin-left: 20px;
-            color: var(--text-secondary);
-        }
-        .api-setup-info li {
-            margin: 8px 0;
-        }
-        .api-setup-info a {
-            color: var(--brand-cyan);
-        }
-        
+        .api-setup-info ol { margin-left: 20px; color: var(--text-secondary); }
+        .api-setup-info li { margin: 8px 0; }
+        .api-setup-info a { color: var(--brand-cyan); }
         .error-msg {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid var(--status-error);
@@ -456,15 +429,6 @@
             border-radius: 8px;
             margin-bottom: 15px;
             font-size: 0.9rem;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .action-buttons button {
-            flex: 1;
         }
     </style>
 </head>
@@ -475,7 +439,6 @@
             <p class="subtitle">AI-Powered Collectible Valuation</p>
         </header>
         
-        <!-- API Key Setup (shown if no key) -->
         <div class="card" id="apiSetup" style="display: none;">
             <div class="api-setup">
                 <div class="api-setup-title">🔑 Enter Your Anthropic API Key</div>
@@ -496,16 +459,10 @@
             </div>
         </div>
         
-        <!-- Main App -->
         <div id="mainApp" style="display: none;">
-            <!-- Mode Toggle -->
             <div class="mode-toggle">
-                <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">
-                    ✏️ Manual Entry
-                </button>
-                <button class="mode-btn" id="modePhoto" onclick="setMode('photo')">
-                    📸 Photo Upload
-                </button>
+                <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">✏️ Manual Entry</button>
+                <button class="mode-btn" id="modePhoto" onclick="setMode('photo')">📸 Photo Upload</button>
             </div>
             
             <div class="card">
@@ -559,143 +516,47 @@
                 <!-- Photo Upload Mode -->
                 <div id="photoMode" style="display: none;">
                     <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click();">
-                        <input type="file" id="photoInput" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handlePhotoUpload(this.files)">
+                        <input type="file" id="photoInput" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" multiple onchange="handlePhotoUpload(this.files)">
                         <div class="upload-icon">📸</div>
                         <div class="upload-title">Click to upload or drag & drop</div>
-                        <div class="upload-subtitle">Take a photo of your comic cover</div>
+                        <div class="upload-subtitle">Select one or multiple comic photos</div>
                     </div>
                 </div>
                 
-                <!-- Extracted Data Review (after photo upload) -->
-                <div id="extractedMode" style="display: none;">
-                    <div class="extracted-header">
-                        <span class="extracted-badge">✓ Extracted</span>
-                        <span class="extracted-title" id="extractedTitle">Amazing Spider-Man #300</span>
+                <!-- Bulk Extracted Items -->
+                <div id="bulkMode" style="display: none;">
+                    <div class="progress-container" id="progressContainer" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Processing...</div>
                     </div>
-                    <form id="extractedForm">
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" id="exTitle" required>
-                        </div>
-                        <div class="row-3">
-                            <div class="form-group">
-                                <label>Issue #</label>
-                                <input type="text" id="exIssue" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Publisher</label>
-                                <input type="text" id="exPublisher">
-                            </div>
-                            <div class="form-group">
-                                <label>Year</label>
-                                <input type="text" id="exYear">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group">
-                                <label>Grade</label>
-                                <select id="exGrade">
-                                    <option value="MT">Mint (MT)</option>
-                                    <option value="NM">Near Mint (NM)</option>
-                                    <option value="VF" selected>Very Fine (VF)</option>
-                                    <option value="FN">Fine (FN)</option>
-                                    <option value="VG">Very Good (VG)</option>
-                                    <option value="GD">Good (GD)</option>
-                                    <option value="GM">Good Minus (GM)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Edition</label>
-                                <select id="exEdition">
-                                    <option value="direct">Direct Edition</option>
-                                    <option value="newsstand">Newsstand</option>
-                                    <option value="unknown">Unknown</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Variant (if applicable)</label>
-                            <input type="text" id="exVariant" placeholder="e.g. McFarlane variant, 1:25 incentive">
-                        </div>
-                        <div class="checkbox-row">
-                            <input type="checkbox" id="exCgc" onchange="toggleCgcGrade()">
-                            <label for="exCgc">CGC Certified</label>
-                        </div>
-                        <div class="form-group" id="cgcGradeGroup" style="display: none;">
-                            <label>CGC Grade</label>
-                            <input type="text" id="exCgcGrade" placeholder="e.g. 9.8">
-                        </div>
-                        <div class="checkbox-row">
-                            <input type="checkbox" id="exSigned" onchange="toggleSignature()">
-                            <label for="exSigned">Signed</label>
-                        </div>
-                        <div id="signatureGroup" style="display: none;">
-                            <div class="form-group">
-                                <label>Signed By</label>
-                                <input type="text" id="exSigner" placeholder="e.g. Stan Lee, Todd McFarlane">
-                            </div>
-                            <div class="form-group">
-                                <label>Signature Authentication</label>
-                                <select id="exSigAuth">
-                                    <option value="unverified">Unverified</option>
-                                    <option value="witnessed">Witnessed</option>
-                                    <option value="cgc_verified">CGC Verified (Green Label)</option>
-                                    <option value="cgc_ss">CGC Signature Series (Yellow Label)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="action-buttons">
-                            <button type="button" class="btn-secondary" onclick="resetToPhoto()">← Different Photo</button>
-                            <button type="submit" id="valuateExtractedBtn">Get Valuation</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Thinking Animation -->
-                <div class="thinking" id="thinking">
-                    <div class="thinking-header">
-                        <div class="thinking-calc">
-                            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="none"/>
-                                <rect x="7" y="5" width="18" height="7" rx="1" fill="#0f0f1a" stroke="var(--brand-indigo)" stroke-width="1"/>
-                                <g clip-path="url(#displayClip)">
-                                    <text x="9" y="10.5" class="calc-display calc-num1">$1,247</text>
-                                    <text x="9" y="16.5" class="calc-display calc-num2">$892</text>
-                                    <text x="9" y="22.5" class="calc-display calc-num3">$3,105</text>
-                                    <text x="9" y="28.5" class="calc-display calc-num4">$456</text>
-                                </g>
-                                <rect x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-1"/>
-                                <rect x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-2"/>
-                                <rect x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)" class="calc-btn calc-btn-3"/>
-                                <rect x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-4"/>
-                                <rect x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-5"/>
-                                <rect x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-6"/>
-                                <rect x="7" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-2"/>
-                                <rect x="14" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)" class="calc-btn calc-btn-4"/>
-                                <rect x="21" y="25" width="4" height="3" rx="0.5" fill="var(--brand-cyan)" class="calc-btn calc-btn-6"/>
-                                <defs>
-                                    <linearGradient id="calcGrad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-                                        <stop stop-color="#4f46e5"/>
-                                        <stop offset="1" stop-color="#7c3aed"/>
-                                    </linearGradient>
-                                    <clipPath id="displayClip">
-                                        <rect x="7" y="5" width="18" height="7"/>
-                                    </clipPath>
-                                </defs>
-                            </svg>
-                        </div>
-                        <span class="thinking-title" id="thinkingTitle">Analyzing your comic...</span>
-                    </div>
-                    <div class="thinking-steps">
-                        <div class="thinking-step pending" id="step1"><span class="icon"></span><span id="step1Text">Checking database for matches</span></div>
-                        <div class="thinking-step pending" id="step2"><span class="icon"></span><span id="step2Text">Searching market data</span></div>
-                        <div class="thinking-step pending" id="step3"><span class="icon"></span><span id="step3Text">Analyzing recent sales</span></div>
-                        <div class="thinking-step pending" id="step4"><span class="icon"></span><span id="step4Text">Calculating confidence score</span></div>
-                        <div class="thinking-step pending" id="step5"><span class="icon"></span><span id="step5Text">Generating valuation</span></div>
+                    
+                    <div id="itemsList"></div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="btn-secondary" onclick="resetToPhoto()">← Add More Photos</button>
+                        <button type="button" id="valuateAllBtn" onclick="valuateAll()">Get All Valuations</button>
                     </div>
                 </div>
                 
-                <!-- Results -->
+                <!-- Results Summary (for bulk) -->
+                <div id="resultsMode" style="display: none;">
+                    <div class="summary-card">
+                        <div class="result-label">Total Collection Value</div>
+                        <div class="summary-total" id="totalValue">$0.00</div>
+                        <div class="summary-count" id="itemCount">0 items valued</div>
+                    </div>
+                    
+                    <div id="resultsList"></div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="btn-secondary" onclick="resetApp()">← Start Over</button>
+                        <button type="button" onclick="downloadExcel()">📥 Download Excel</button>
+                    </div>
+                </div>
+                
+                <!-- Single Result (for manual entry) -->
                 <div class="result" id="result">
                     <div class="result-card" id="resultCard">
                         <div id="resultContent"></div>
@@ -704,13 +565,38 @@
                         <button type="button" class="btn-secondary" onclick="resetApp()">← Value Another</button>
                     </div>
                 </div>
+                
+                <!-- Thinking Animation -->
+                <div class="thinking" id="thinking">
+                    <div class="thinking-header">
+                        <div class="thinking-calc">
+                            <svg viewBox="0 0 32 32" fill="none">
+                                <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="none"/>
+                                <rect x="7" y="5" width="18" height="7" rx="1" fill="#0f0f1a" stroke="var(--brand-indigo)" stroke-width="1"/>
+                                <g clip-path="url(#displayClip)">
+                                    <text x="9" y="10.5" class="calc-display calc-num1">$1,247</text>
+                                </g>
+                                <rect x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                                <rect x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                                <rect x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)"/>
+                                <rect x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                                <rect x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                                <rect x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-cyan)"/>
+                                <defs>
+                                    <linearGradient id="calcGrad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/>
+                                    </linearGradient>
+                                    <clipPath id="displayClip"><rect x="7" y="5" width="18" height="7"/></clipPath>
+                                </defs>
+                            </svg>
+                        </div>
+                        <span class="thinking-title" id="thinkingTitle">Processing...</span>
+                    </div>
+                </div>
             </div>
             
-            <!-- Change API Key -->
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;" onclick="changeApiKey()">
-                    🔑 Change API Key
-                </button>
+                <button class="btn-secondary btn-small" onclick="changeApiKey()">🔑 Change API Key</button>
             </div>
         </div>
         
@@ -723,8 +609,8 @@
         const API_URL = 'https://collectioncalc.onrender.com';
         let apiKey = localStorage.getItem('anthropic_api_key') || '';
         let currentMode = 'manual';
+        let extractedItems = [];
         
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             if (apiKey && apiKey.startsWith('sk-ant-')) {
                 document.getElementById('apiSetup').style.display = 'none';
@@ -734,21 +620,13 @@
                 document.getElementById('mainApp').style.display = 'none';
             }
             
-            // Drag and drop for photo upload
             const uploadArea = document.getElementById('uploadArea');
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+            uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) {
-                    handlePhotoUpload(e.dataTransfer.files);
-                }
+                if (e.dataTransfer.files.length > 0) handlePhotoUpload(e.dataTransfer.files);
             });
         });
         
@@ -778,30 +656,22 @@
             document.getElementById('modePhoto').classList.toggle('active', mode === 'photo');
             document.getElementById('manualMode').style.display = mode === 'manual' ? 'block' : 'none';
             document.getElementById('photoMode').style.display = mode === 'photo' ? 'block' : 'none';
-            document.getElementById('extractedMode').style.display = 'none';
+            document.getElementById('bulkMode').style.display = 'none';
+            document.getElementById('resultsMode').style.display = 'none';
             document.getElementById('result').classList.remove('show');
-        }
-        
-        function toggleCgcGrade() {
-            document.getElementById('cgcGradeGroup').style.display = 
-                document.getElementById('exCgc').checked ? 'block' : 'none';
-        }
-        
-        function toggleSignature() {
-            document.getElementById('signatureGroup').style.display = 
-                document.getElementById('exSigned').checked ? 'block' : 'none';
         }
         
         function resetToPhoto() {
-            document.getElementById('extractedMode').style.display = 'none';
+            document.getElementById('bulkMode').style.display = 'none';
             document.getElementById('photoMode').style.display = 'block';
-            document.getElementById('result').classList.remove('show');
         }
         
         function resetApp() {
+            extractedItems = [];
             document.getElementById('result').classList.remove('show');
+            document.getElementById('resultsMode').style.display = 'none';
+            document.getElementById('bulkMode').style.display = 'none';
             if (currentMode === 'photo') {
-                document.getElementById('extractedMode').style.display = 'none';
                 document.getElementById('photoMode').style.display = 'block';
             }
         }
@@ -810,32 +680,58 @@
         async function handlePhotoUpload(files) {
             if (!files || files.length === 0) return;
             
-            const file = files[0];
-            showThinking('Extracting comic details...', [
-                'Reading image...',
-                'Identifying comic...',
-                'Extracting title & issue...',
-                'Detecting edition...',
-                'Estimating condition...'
-            ]);
+            const fileArray = Array.from(files);
+            document.getElementById('photoMode').style.display = 'none';
+            document.getElementById('bulkMode').style.display = 'block';
+            document.getElementById('progressContainer').style.display = 'block';
             
-            try {
-                // Convert to base64
-                const base64Data = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
+            for (let i = 0; i < fileArray.length; i++) {
+                const file = fileArray[i];
+                updateProgress((i / fileArray.length) * 100, `Extracting ${i + 1} of ${fileArray.length}: ${file.name}`);
                 
-                const extension = file.name.split('.').pop().toLowerCase();
-                const mediaTypeMap = {
-                    'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
-                    'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic'
-                };
-                const mediaType = mediaTypeMap[extension] || 'image/jpeg';
+                try {
+                    const extracted = await extractFromPhoto(file);
+                    extractedItems.push(extracted);
+                    renderItemsList();
+                } catch (error) {
+                    console.error('Error extracting:', error);
+                    extractedItems.push({
+                        title: file.name.replace(/\.[^/.]+$/, ''),
+                        issue: '',
+                        publisher: '',
+                        year: '',
+                        grade: 'VF',
+                        edition: 'unknown',
+                        error: error.message
+                    });
+                    renderItemsList();
+                }
                 
-                const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
+                // 3 second delay between photos
+                if (i < fileArray.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+            }
+            
+            updateProgress(100, 'Extraction complete!');
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+            }, 1000);
+        }
+        
+        async function extractFromPhoto(file) {
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
+            const extension = file.name.split('.').pop().toLowerCase();
+            const mediaTypeMap = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic' };
+            const mediaType = mediaTypeMap[extension] || 'image/jpeg';
+            
+            const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
 - title: Comic book title
 - issue: Issue number (just the number, no #)
 - publisher: Publisher name (Marvel, DC, Image, etc.)
@@ -845,101 +741,196 @@
 - variant: Variant description if applicable, otherwise empty string
 
 Be accurate. If unsure about any field, use reasonable estimates.`;
+            
+            const response = await fetch(`${API_URL}/api/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 1000,
+                    messages: [{ role: 'user', content: [
+                        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data }},
+                        { type: 'text', text: prompt }
+                    ]}]
+                })
+            });
+            
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message || 'API Error');
+            
+            const textContent = data.content.filter(item => item.type === 'text').map(item => item.text).join('');
+            const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+            
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Could not extract data');
+            }
+        }
+        
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        function renderItemsList() {
+            const container = document.getElementById('itemsList');
+            container.innerHTML = extractedItems.map((item, idx) => `
+                <div class="item-card ${item.value ? 'has-value' : ''}" id="item-${idx}">
+                    <div class="item-header">
+                        <span class="item-number">${idx + 1}</span>
+                        <span class="item-title">${item.title || 'Unknown'} #${item.issue || '?'}</span>
+                        ${item.value ? `<span class="item-value">$${item.value.toFixed(2)}</span>` : ''}
+                        <button class="item-delete" onclick="deleteItem(${idx})">×</button>
+                    </div>
+                    <div class="item-fields">
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" value="${item.title || ''}" onchange="updateItem(${idx}, 'title', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Issue</label>
+                            <input type="text" value="${item.issue || ''}" onchange="updateItem(${idx}, 'issue', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="text" value="${item.year || ''}" onchange="updateItem(${idx}, 'year', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Grade</label>
+                            <select onchange="updateItem(${idx}, 'grade', this.value)">
+                                <option value="NM" ${item.grade === 'NM' ? 'selected' : ''}>NM</option>
+                                <option value="VF" ${item.grade === 'VF' || !item.grade ? 'selected' : ''}>VF</option>
+                                <option value="FN" ${item.grade === 'FN' ? 'selected' : ''}>FN</option>
+                                <option value="VG" ${item.grade === 'VG' ? 'selected' : ''}>VG</option>
+                                <option value="G" ${item.grade === 'G' || item.grade === 'GD' ? 'selected' : ''}>G</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateItem(idx, field, value) {
+            extractedItems[idx][field] = value;
+        }
+        
+        function deleteItem(idx) {
+            extractedItems.splice(idx, 1);
+            renderItemsList();
+            if (extractedItems.length === 0) {
+                resetToPhoto();
+            }
+        }
+        
+        async function valuateAll() {
+            const btn = document.getElementById('valuateAllBtn');
+            btn.disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            for (let i = 0; i < extractedItems.length; i++) {
+                const item = extractedItems[i];
+                updateProgress((i / extractedItems.length) * 100, `Valuating ${i + 1} of ${extractedItems.length}: ${item.title} #${item.issue}`);
                 
-                const response = await fetch(`${API_URL}/api/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1000,
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data }},
-                                { type: 'text', text: prompt }
-                            ]
-                        }]
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message || 'API Error');
-                
-                const textContent = data.content.filter(item => item.type === 'text').map(item => item.text).join('');
-                const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-                
-                if (jsonMatch) {
-                    const extracted = JSON.parse(jsonMatch[0]);
-                    populateExtractedForm(extracted);
-                    hideThinking();
-                    document.getElementById('photoMode').style.display = 'none';
-                    document.getElementById('extractedMode').style.display = 'block';
-                } else {
-                    throw new Error('Could not extract data from image');
+                try {
+                    const result = await getValuation(item);
+                    extractedItems[i] = { ...item, ...result };
+                    renderItemsList();
+                } catch (error) {
+                    extractedItems[i].error = error.message;
                 }
                 
-            } catch (error) {
-                hideThinking();
-                alert('Error: ' + error.message);
+                // 60 second delay between valuations
+                if (i < extractedItems.length - 1) {
+                    for (let s = 60; s > 0; s--) {
+                        updateProgress(((i + 1) / extractedItems.length) * 100, `Waiting ${s}s before next valuation...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
             }
+            
+            btn.disabled = false;
+            document.getElementById('progressContainer').style.display = 'none';
+            showResults();
         }
         
-        function populateExtractedForm(data) {
-            document.getElementById('exTitle').value = data.title || '';
-            document.getElementById('exIssue').value = data.issue || '';
-            document.getElementById('exPublisher').value = data.publisher || '';
-            document.getElementById('exYear').value = data.year || '';
-            document.getElementById('exGrade').value = data.grade || 'VF';
-            document.getElementById('exEdition').value = data.edition || 'unknown';
-            document.getElementById('exVariant').value = data.variant || '';
-            document.getElementById('extractedTitle').textContent = `${data.title || 'Comic'} #${data.issue || '?'}`;
+        async function getValuation(item) {
+            const response = await fetch(`${API_URL}/api/valuate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: item.title,
+                    issue: item.issue,
+                    year: parseInt(item.year) || null,
+                    publisher: item.publisher || null,
+                    grade: item.grade || 'VF'
+                })
+            });
+            
+            const json = await response.json();
+            if (json.error) throw new Error(json.error);
+            
+            return {
+                value: json.final_value,
+                confidence: json.confidence,
+                confidence_score: json.confidence_score,
+                source: json.source,
+                reasoning: json.reasoning,
+                ebay_sales: json.ebay_sales,
+                ebay_price_range: json.ebay_price_range
+            };
         }
         
-        // Thinking animation
-        function showThinking(title, steps) {
+        function showResults() {
+            document.getElementById('bulkMode').style.display = 'none';
+            document.getElementById('resultsMode').style.display = 'block';
+            
+            const total = extractedItems.reduce((sum, item) => sum + (item.value || 0), 0);
+            const valued = extractedItems.filter(item => item.value).length;
+            
+            document.getElementById('totalValue').textContent = '$' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('itemCount').textContent = `${valued} item${valued !== 1 ? 's' : ''} valued`;
+            
+            document.getElementById('resultsList').innerHTML = extractedItems.map((item, idx) => `
+                <div class="item-card has-value">
+                    <div class="item-header">
+                        <span class="item-number">${idx + 1}</span>
+                        <span class="item-title">${item.title} #${item.issue}</span>
+                        <span class="item-value">$${(item.value || 0).toFixed(2)}</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        ${item.confidence || ''} confidence · ${item.source || 'estimate'}
+                        ${item.ebay_sales ? ` · ${item.ebay_sales} eBay sale(s)` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function downloadExcel() {
+            const data = extractedItems.map(item => ({
+                Title: item.title,
+                Issue: item.issue,
+                Publisher: item.publisher,
+                Year: item.year,
+                Grade: item.grade,
+                Value: item.value || 0,
+                Confidence: item.confidence || '',
+                Source: item.source || ''
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Collection');
+            XLSX.writeFile(wb, 'CollectionCalc_Valuations.xlsx');
+        }
+        
+        function showThinking(title) {
             document.getElementById('thinkingTitle').textContent = title;
-            for (let i = 1; i <= 5; i++) {
-                const step = document.getElementById('step' + i);
-                step.classList.remove('active', 'done');
-                step.classList.add('pending');
-                document.getElementById('step' + i + 'Text').textContent = steps[i-1] || '';
-            }
             document.getElementById('thinking').classList.add('show');
-            animateThinking();
         }
         
         function hideThinking() {
             document.getElementById('thinking').classList.remove('show');
-        }
-        
-        function resetThinking() {
-            for (let i = 1; i <= 5; i++) {
-                const step = document.getElementById('step' + i);
-                step.classList.remove('active', 'done');
-                step.classList.add('pending');
-            }
-        }
-        
-        function animateThinking() {
-            const steps = [
-                { id: 'step1', delay: 0 },
-                { id: 'step2', delay: 1500 },
-                { id: 'step3', delay: 3000 },
-                { id: 'step4', delay: 5000 },
-                { id: 'step5', delay: 7000 }
-            ];
-            
-            steps.forEach((step, index) => {
-                setTimeout(() => {
-                    if (index > 0) {
-                        document.getElementById(steps[index - 1].id).classList.remove('active');
-                        document.getElementById(steps[index - 1].id).classList.add('done');
-                    }
-                    const el = document.getElementById(step.id);
-                    el.classList.remove('pending');
-                    el.classList.add('active');
-                }, step.delay);
-            });
         }
         
         // Manual form submission
@@ -954,48 +945,10 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 grade: document.getElementById('grade').value
             };
             
-            await runValuation(data, 'submitBtn');
-        });
-        
-        // Extracted form submission
-        document.getElementById('extractedForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                title: document.getElementById('exTitle').value,
-                issue: document.getElementById('exIssue').value,
-                year: parseInt(document.getElementById('exYear').value) || null,
-                publisher: document.getElementById('exPublisher').value || null,
-                grade: document.getElementById('exGrade').value,
-                edition: document.getElementById('exEdition').value,
-                variant: document.getElementById('exVariant').value,
-                cgc_certified: document.getElementById('exCgc').checked ? 'yes' : 'no',
-                cgc_grade: document.getElementById('exCgcGrade').value,
-                signed: document.getElementById('exSigned').checked ? 'yes' : 'no',
-                signer: document.getElementById('exSigner').value,
-                signature_auth: document.getElementById('exSigAuth').value
-            };
-            
-            await runValuation(data, 'valuateExtractedBtn');
-        });
-        
-        async function runValuation(data, btnId) {
-            const btn = document.getElementById(btnId);
-            const result = document.getElementById('result');
-            const resultCard = document.getElementById('resultCard');
-            const resultContent = document.getElementById('resultContent');
-            
+            const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.textContent = 'Analyzing...';
-            result.classList.remove('show');
-            
-            showThinking('Analyzing your comic...', [
-                'Checking database for matches',
-                'Searching market data',
-                'Analyzing recent sales',
-                'Calculating confidence score',
-                'Generating valuation'
-            ]);
+            showThinking('Analyzing your comic...');
             
             try {
                 const response = await fetch(`${API_URL}/api/valuate`, {
@@ -1005,88 +958,49 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 });
                 
                 const json = await response.json();
-                
                 if (json.error) throw new Error(json.error);
                 
+                const resultCard = document.getElementById('resultCard');
+                const resultContent = document.getElementById('resultContent');
                 resultCard.classList.remove('error');
                 
                 let confClass = 'medium';
                 if (json.confidence === 'HIGH') confClass = 'high';
                 else if (json.confidence === 'MEDIUM-HIGH') confClass = 'medium-high';
-                else if (json.confidence === 'MEDIUM') confClass = 'medium';
                 else if (json.confidence === 'LOW') confClass = 'low';
-                else if (json.confidence === 'VERY LOW') confClass = 'very-low';
                 
-                let sourceText = json.source || 'unknown';
+                let sourceText = json.source || 'estimate';
                 if (sourceText === 'ebay') sourceText = '📊 Market Data';
-                else if (sourceText === 'ebay_verified') sourceText = '✓ Verified';
-                else if (sourceText === 'database+ebay_blend') sourceText = '🔀 Blended';
                 else if (sourceText === 'database') sourceText = '📁 Database';
-                else if (sourceText === 'estimate') sourceText = '⚡ Estimate';
                 
                 let ebayInfo = '';
                 if (json.ebay_sales > 0) {
-                    const minPrice = json.ebay_price_range[0].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    const maxPrice = json.ebay_price_range[1].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    ebayInfo = `
-                        <div class="ebay-info">
-                            <h4>📊 Market Data</h4>
-                            <p><strong>${json.ebay_sales}</strong> recent sale(s) found</p>
-                            <p>Price range: <strong>$${minPrice} - $${maxPrice}</strong></p>
-                        </div>
-                    `;
+                    ebayInfo = `<div class="ebay-info"><h4>📊 Market Data</h4><p><strong>${json.ebay_sales}</strong> recent sale(s)</p></div>`;
                 }
                 
-                let debugInfo = '';
-                if (json.debug) {
-                    let expandedNote = json.debug.title_expanded ? 
-                        `<p class="expanded">📖 Expanded: "${json.debug.title_expanded}"</p>` : '';
-                    let cachedNote = json.reasoning && json.reasoning.includes('[CACHED]') ?
-                        `<p class="cached">⚡ Cached result</p>` : '';
-                    const dbVal = json.debug.db_base_value ? 
-                        json.debug.db_base_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
-                    
-                    debugInfo = `
-                        <div class="debug-info">
-                            <h4>Debug</h4>
-                            ${expandedNote}
-                            ${cachedNote}
-                            <p>Search: ${json.debug.ebay_attempted ? 'Yes' : 'No'}</p>
-                            <p>DB value: $${dbVal}</p>
-                        </div>
-                    `;
-                }
-                
-                const finalValue = json.final_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const finalValue = json.final_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 
                 resultContent.innerHTML = `
                     <p class="result-label">Estimated Value</p>
                     <div class="price">$${finalValue}</div>
-                    <p class="confidence ${confClass}">
-                        ${json.confidence} Confidence (${json.confidence_score}%)
-                    </p>
+                    <p class="confidence ${confClass}">${json.confidence} Confidence (${json.confidence_score}%)</p>
                     <span class="source-badge">${sourceText}</span>
                     ${ebayInfo}
-                    <div class="steps">
-                        <h4>Analysis</h4>
-                        <p>${json.reasoning || 'No additional details'}</p>
-                    </div>
-                    ${debugInfo}
+                    <div class="steps"><h4>Analysis</h4><p>${json.reasoning || 'No additional details'}</p></div>
                 `;
                 
+                document.getElementById('result').classList.add('show');
+                
             } catch (error) {
-                resultCard.classList.add('error');
-                resultContent.innerHTML = `
-                    <p class="result-label">Error</p>
-                    <div class="price">${error.message}</div>
-                `;
+                document.getElementById('resultCard').classList.add('error');
+                document.getElementById('resultContent').innerHTML = `<p class="result-label">Error</p><div class="price">${error.message}</div>`;
+                document.getElementById('result').classList.add('show');
             }
             
-            result.classList.add('show');
             hideThinking();
             btn.disabled = false;
             btn.textContent = 'Get Valuation';
-        }
+        });
     </script>
 </body>
 </html>
