@@ -9,38 +9,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Backgrounds */
             --bg-primary: #0f0f1a;
             --bg-secondary: #1a1a2e;
-            
-            /* Brand */
             --brand-indigo: #4f46e5;
             --brand-purple: #7c3aed;
             --brand-cyan: #06b6d4;
             --brand-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
             --value-gradient: linear-gradient(135deg, #06b6d4, #7c3aed);
-            
-            /* Text */
             --text-primary: #ffffff;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
-            
-            /* Status */
             --status-success: #10b981;
             --status-warning: #f59e0b;
             --status-error: #ef4444;
-            
-            /* Borders */
             --border-default: #334155;
             --border-accent: #4f46e5;
         }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-primary);
@@ -48,17 +33,8 @@
             color: var(--text-primary);
             padding: 20px;
         }
-        
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
+        .container { max-width: 600px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 40px; }
         h1 {
             font-size: 2.5rem;
             font-weight: 700;
@@ -68,30 +44,15 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-        
+        .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
         .card {
             background: var(--bg-secondary);
             border-radius: 16px;
             padding: 30px;
             border: 1px solid var(--border-accent);
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-secondary); }
         input, select {
             width: 100%;
             padding: 12px 16px;
@@ -103,28 +64,14 @@
             font-family: inherit;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-        
         input:focus, select:focus {
             outline: none;
             border-color: var(--brand-indigo);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
-        
-        input::placeholder {
-            color: var(--text-muted);
-        }
-        
-        select option {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-        }
-        
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
+        input::placeholder { color: var(--text-muted); }
+        select option { background: var(--bg-primary); color: var(--text-primary); }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         button {
             width: 100%;
             padding: 14px;
@@ -138,27 +85,13 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
         }
-        
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .result {
-            margin-top: 30px;
-            display: none;
-        }
-        
-        .result.show {
-            display: block;
-        }
-        
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .result { margin-top: 30px; display: none; }
+        .result.show { display: block; }
         .result-card {
             background: var(--bg-primary);
             border: 1px solid var(--brand-indigo);
@@ -166,17 +99,8 @@
             padding: 25px;
             text-align: center;
         }
-        
-        .result-card.error {
-            border-color: var(--status-error);
-        }
-        
-        .result-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-        
+        .result-card.error { border-color: var(--status-error); }
+        .result-label { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 5px; }
         .price {
             font-size: 3rem;
             font-weight: 700;
@@ -186,25 +110,18 @@
             background-clip: text;
             margin: 10px 0;
         }
-        
         .result-card.error .price {
             background: none;
             -webkit-text-fill-color: var(--status-error);
             color: var(--status-error);
             font-size: 1.2rem;
         }
-        
-        .confidence {
-            margin-bottom: 15px;
-            font-weight: 500;
-        }
-        
+        .confidence { margin-bottom: 15px; font-weight: 500; }
         .confidence.high { color: var(--status-success); }
         .confidence.medium-high { color: var(--brand-cyan); }
         .confidence.medium { color: var(--status-warning); }
         .confidence.low { color: #f97316; }
         .confidence.very-low { color: var(--status-error); }
-        
         .source-badge {
             display: inline-block;
             padding: 6px 14px;
@@ -215,7 +132,6 @@
             color: var(--text-primary);
             margin-top: 10px;
         }
-        
         .steps {
             text-align: left;
             background: var(--bg-secondary);
@@ -223,20 +139,8 @@
             padding: 15px;
             margin-top: 15px;
         }
-        
-        .steps h4 {
-            color: var(--brand-cyan);
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        
-        .steps p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        
+        .steps h4 { color: var(--brand-cyan); margin-bottom: 10px; font-size: 0.9rem; font-weight: 600; }
+        .steps p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; }
         .ebay-info {
             background: rgba(6, 182, 212, 0.1);
             border: 1px solid rgba(6, 182, 212, 0.3);
@@ -245,19 +149,8 @@
             margin-top: 15px;
             text-align: left;
         }
-        
-        .ebay-info h4 {
-            color: var(--brand-cyan);
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        
-        .ebay-info p {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin: 4px 0;
-        }
-        
+        .ebay-info h4 { color: var(--brand-cyan); margin-bottom: 8px; font-size: 0.9rem; }
+        .ebay-info p { color: var(--text-secondary); font-size: 0.85rem; margin: 4px 0; }
         .debug-info {
             margin-top: 10px;
             padding: 12px;
@@ -265,7 +158,6 @@
             border-radius: 8px;
             text-align: left;
         }
-        
         .debug-info h4 {
             color: var(--text-muted);
             font-size: 0.75rem;
@@ -274,47 +166,109 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
-        .debug-info p {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin: 4px 0;
+        .debug-info p { color: var(--text-muted); font-size: 0.8rem; margin: 4px 0; }
+        .debug-info .expanded { color: var(--brand-cyan); }
+        .debug-info .cached { color: var(--brand-purple); }
+        footer { text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9rem; }
+        footer a { color: var(--brand-purple); text-decoration: none; transition: color 0.2s; }
+        footer a:hover { color: var(--brand-cyan); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        button:disabled { animation: pulse 1.5s ease-in-out infinite; }
+        .thinking {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--brand-indigo);
+            border-radius: 12px;
+            display: none;
         }
-        
-        .debug-info .expanded {
-            color: var(--brand-cyan);
+        .thinking.show { display: block; }
+        .thinking-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
         }
-        
-        .debug-info .cached {
-            color: var(--brand-purple);
+        .thinking-calc {
+            width: 32px;
+            height: 32px;
+            position: relative;
         }
-        
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
+        .thinking-calc svg {
+            width: 100%;
+            height: 100%;
         }
-        
-        footer a {
-            color: var(--brand-purple);
-            text-decoration: none;
-            transition: color 0.2s;
+        .calc-display {
+            font-family: 'Courier New', monospace;
+            font-size: 6px;
+            font-weight: bold;
+            fill: var(--brand-cyan);
+            animation: calcNumbers 0.5s steps(1) infinite;
         }
-        
-        footer a:hover {
-            color: var(--brand-cyan);
-        }
-        
-        /* Loading animation */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
+        @keyframes calcNumbers {
+            0% { opacity: 1; }
             50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
-        
-        button:disabled {
-            animation: pulse 1.5s ease-in-out infinite;
+        .calc-num1 { animation: num1 2s steps(1) infinite; }
+        .calc-num2 { animation: num2 2s steps(1) infinite; }
+        .calc-num3 { animation: num3 2s steps(1) infinite; }
+        .calc-num4 { animation: num4 2s steps(1) infinite; }
+        @keyframes num1 {
+            0% { transform: translateY(0); }
+            25% { transform: translateY(-6px); }
+            50% { transform: translateY(-12px); }
+            75% { transform: translateY(-6px); }
         }
+        @keyframes num2 {
+            0% { transform: translateY(-6px); }
+            25% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+            75% { transform: translateY(-12px); }
+        }
+        @keyframes num3 {
+            0% { transform: translateY(-12px); }
+            25% { transform: translateY(-6px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(-6px); }
+        }
+        @keyframes num4 {
+            0% { transform: translateY(-6px); }
+            25% { transform: translateY(-12px); }
+            50% { transform: translateY(-6px); }
+            75% { transform: translateY(0); }
+        }
+        .thinking-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .thinking-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .thinking-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            transition: color 0.3s;
+        }
+        .thinking-step.active {
+            color: var(--brand-cyan);
+        }
+        .thinking-step.done {
+            color: var(--status-success);
+        }
+        .thinking-step .icon {
+            width: 18px;
+            text-align: center;
+        }
+        .thinking-step.active .icon::before { content: '⟳'; }
+        .thinking-step.done .icon::before { content: '✓'; }
+        .thinking-step.pending .icon::before { content: '○'; }
     </style>
 </head>
 <body>
@@ -323,14 +277,12 @@
             <h1>CollectionCalc</h1>
             <p class="subtitle">AI-Powered Collectible Valuation</p>
         </header>
-        
         <div class="card">
             <form id="valuationForm">
                 <div class="form-group">
                     <label for="title">Comic Title</label>
                     <input type="text" id="title" placeholder="e.g. Amazing Spider-Man (or ASM)" required>
                 </div>
-                
                 <div class="row">
                     <div class="form-group">
                         <label for="issue">Issue #</label>
@@ -349,7 +301,6 @@
                         </select>
                     </div>
                 </div>
-                
                 <div class="row">
                     <div class="form-group">
                         <label for="publisher">Publisher <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
@@ -368,24 +319,98 @@
                         <input type="number" id="year" placeholder="Auto-detect" min="1900" max="2030">
                     </div>
                 </div>
-                
                 <button type="submit" id="submitBtn">Get Valuation</button>
             </form>
-            
+            <div class="thinking" id="thinking">
+                <div class="thinking-header">
+                    <div class="thinking-calc">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Calculator body -->
+                            <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="none"/>
+                            <!-- Display screen -->
+                            <rect x="7" y="5" width="18" height="7" rx="1" fill="#0f0f1a" stroke="var(--brand-indigo)" stroke-width="1"/>
+                            <!-- Animated numbers in display -->
+                            <g clip-path="url(#displayClip)">
+                                <text x="9" y="10.5" class="calc-display calc-num1">$1,247</text>
+                                <text x="9" y="16.5" class="calc-display calc-num2">$892</text>
+                                <text x="9" y="22.5" class="calc-display calc-num3">$3,105</text>
+                                <text x="9" y="28.5" class="calc-display calc-num4">$456</text>
+                            </g>
+                            <!-- Calculator buttons -->
+                            <rect x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)"/>
+                            <rect x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="7" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="14" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="21" y="25" width="4" height="3" rx="0.5" fill="var(--brand-cyan)"/>
+                            <defs>
+                                <linearGradient id="calcGrad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#4f46e5"/>
+                                    <stop offset="1" stop-color="#7c3aed"/>
+                                </linearGradient>
+                                <clipPath id="displayClip">
+                                    <rect x="7" y="5" width="18" height="7"/>
+                                </clipPath>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="thinking-title">Analyzing your comic...</span>
+                </div>
+                <div class="thinking-steps">
+                    <div class="thinking-step pending" id="step1"><span class="icon"></span>Checking database for matches</div>
+                    <div class="thinking-step pending" id="step2"><span class="icon"></span>Searching market data</div>
+                    <div class="thinking-step pending" id="step3"><span class="icon"></span>Analyzing recent sales</div>
+                    <div class="thinking-step pending" id="step4"><span class="icon"></span>Calculating confidence score</div>
+                    <div class="thinking-step pending" id="step5"><span class="icon"></span>Generating valuation</div>
+                </div>
+            </div>
             <div class="result" id="result">
                 <div class="result-card" id="resultCard">
                     <div id="resultContent"></div>
                 </div>
             </div>
         </div>
-        
         <footer>
             Built with ☕ by <a href="https://github.com/Fevit1/collectioncalc" target="_blank">CollectionCalc</a>
         </footer>
     </div>
-    
     <script>
         const API_URL = 'https://collectioncalc.onrender.com';
+        
+        function resetThinking() {
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('active', 'done');
+                step.classList.add('pending');
+            }
+        }
+        
+        function animateThinking() {
+            const steps = [
+                { id: 'step1', delay: 0 },
+                { id: 'step2', delay: 1500 },
+                { id: 'step3', delay: 3000 },
+                { id: 'step4', delay: 5000 },
+                { id: 'step5', delay: 7000 }
+            ];
+            
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    // Mark previous as done
+                    if (index > 0) {
+                        document.getElementById(steps[index - 1].id).classList.remove('active');
+                        document.getElementById(steps[index - 1].id).classList.add('done');
+                    }
+                    // Mark current as active
+                    const el = document.getElementById(step.id);
+                    el.classList.remove('pending');
+                    el.classList.add('active');
+                }, step.delay);
+            });
+        }
         
         document.getElementById('valuationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -394,10 +419,16 @@
             const result = document.getElementById('result');
             const resultCard = document.getElementById('resultCard');
             const resultContent = document.getElementById('resultContent');
+            const thinking = document.getElementById('thinking');
             
             btn.disabled = true;
             btn.textContent = 'Analyzing...';
             result.classList.remove('show');
+            
+            // Show and animate thinking
+            resetThinking();
+            thinking.classList.add('show');
+            animateThinking();
             
             const data = {
                 title: document.getElementById('title').value,
@@ -408,23 +439,18 @@
             };
             
             try {
-                const response = await fetch(\`\${API_URL}/api/valuate\`, {
+                const response = await fetch(`${API_URL}/api/valuate`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 
                 const json = await response.json();
                 
-                if (json.error) {
-                    throw new Error(json.error);
-                }
+                if (json.error) throw new Error(json.error);
                 
                 resultCard.classList.remove('error');
                 
-                // Build confidence class
                 let confClass = 'medium';
                 if (json.confidence === 'HIGH') confClass = 'high';
                 else if (json.confidence === 'MEDIUM-HIGH') confClass = 'medium-high';
@@ -432,7 +458,6 @@
                 else if (json.confidence === 'LOW') confClass = 'low';
                 else if (json.confidence === 'VERY LOW') confClass = 'very-low';
                 
-                // Build source text
                 let sourceText = json.source || 'unknown';
                 if (sourceText === 'ebay') sourceText = '📊 Market Data';
                 else if (sourceText === 'ebay_verified') sourceText = '✓ Verified';
@@ -440,61 +465,66 @@
                 else if (sourceText === 'database') sourceText = '📁 Database';
                 else if (sourceText === 'estimate') sourceText = '⚡ Estimate';
                 
-                // Build eBay info section
                 let ebayInfo = '';
                 if (json.ebay_sales > 0) {
-                    ebayInfo = \`
+                    const minPrice = json.ebay_price_range[0].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    const maxPrice = json.ebay_price_range[1].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    ebayInfo = `
                         <div class="ebay-info">
                             <h4>📊 Market Data</h4>
-                            <p><strong>\${json.ebay_sales}</strong> recent sale(s) found</p>
-                            <p>Price range: <strong>\$\${json.ebay_price_range[0].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - \$\${json.ebay_price_range[1].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
+                            <p><strong>${json.ebay_sales}</strong> recent sale(s) found</p>
+                            <p>Price range: <strong>$${minPrice} - $${maxPrice}</strong></p>
                         </div>
-                    \`;
+                    `;
                 }
                 
-                // Build debug info if available
                 let debugInfo = '';
                 if (json.debug) {
                     let expandedNote = json.debug.title_expanded ? 
-                        \`<p class="expanded">📖 Expanded: "\${json.debug.title_expanded}"</p>\` : '';
+                        `<p class="expanded">📖 Expanded: "${json.debug.title_expanded}"</p>` : '';
                     let cachedNote = json.reasoning && json.reasoning.includes('[CACHED]') ?
-                        \`<p class="cached">⚡ Cached result</p>\` : '';
+                        `<p class="cached">⚡ Cached result</p>` : '';
+                    const dbVal = json.debug.db_base_value ? 
+                        json.debug.db_base_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A';
                     
-                    debugInfo = \`
+                    debugInfo = `
                         <div class="debug-info">
                             <h4>Debug</h4>
-                            \${expandedNote}
-                            \${cachedNote}
-                            <p>Search: \${json.debug.ebay_attempted ? 'Yes' : 'No'}</p>
-                            <p>DB value: \$\${json.debug.db_base_value ? json.debug.db_base_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</p>
+                            ${expandedNote}
+                            ${cachedNote}
+                            <p>Search: ${json.debug.ebay_attempted ? 'Yes' : 'No'}</p>
+                            <p>DB value: $${dbVal}</p>
                         </div>
-                    \`;
+                    `;
                 }
                 
-                resultContent.innerHTML = \`
+                const finalValue = json.final_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                
+                resultContent.innerHTML = `
                     <p class="result-label">Estimated Value</p>
-                    <div class="price">\$\${json.final_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                    <p class="confidence \${confClass}">
-                        \${json.confidence} Confidence (\${json.confidence_score}%)
+                    <div class="price">$${finalValue}</div>
+                    <p class="confidence ${confClass}">
+                        ${json.confidence} Confidence (${json.confidence_score}%)
                     </p>
-                    <span class="source-badge">\${sourceText}</span>
-                    \${ebayInfo}
+                    <span class="source-badge">${sourceText}</span>
+                    ${ebayInfo}
                     <div class="steps">
                         <h4>Analysis</h4>
-                        <p>\${json.reasoning || 'No additional details'}</p>
+                        <p>${json.reasoning || 'No additional details'}</p>
                     </div>
-                    \${debugInfo}
-                \`;
+                    ${debugInfo}
+                `;
                 
             } catch (error) {
                 resultCard.classList.add('error');
-                resultContent.innerHTML = \`
+                resultContent.innerHTML = `
                     <p class="result-label">Error</p>
-                    <div class="price">\${error.message}</div>
-                \`;
+                    <div class="price">${error.message}</div>
+                `;
             }
             
             result.classList.add('show');
+            thinking.classList.remove('show');
             btn.disabled = false;
             btn.textContent = 'Get Valuation';
         });
