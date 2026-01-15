@@ -340,7 +340,7 @@ Rules:
     return ([], None)
 
 
-def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, num_samples: int = 3) -> EbayValuationResult:
+def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, num_samples: int = 3, force_refresh: bool = False) -> EbayValuationResult:
     """
     Search for market prices using Claude AI with web search.
     Runs multiple samples and takes median for accuracy.
@@ -349,10 +349,11 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     # Expand aliases (ASM → Amazing Spider-Man)
     title = expand_title_alias(title)
     
-    # Check cache first
-    cached = get_cached_result(title, issue)
-    if cached:
-        return cached
+    # Check cache first (unless force_refresh)
+    if not force_refresh:
+        cached = get_cached_result(title, issue)
+        if cached:
+            return cached
     
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     
@@ -503,9 +504,10 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
 
 def get_valuation_with_ebay(title: str, issue: str, grade: str, 
                             publisher: str = None, year: int = None,
-                            db_result: dict = None) -> dict:
+                            db_result: dict = None, force_refresh: bool = False) -> dict:
     """
     Main valuation function that combines database and eBay data.
+    Set force_refresh=True to bypass cache and get fresh eBay data.
     """
     from valuation_model import ValuationModel
     
@@ -521,7 +523,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
         source = 'database'
         
         # Still search eBay to validate/adjust
-        ebay_result = search_ebay_sold(title, issue, grade, publisher)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, force_refresh=force_refresh)
         
         if ebay_result.num_sales > 0:
             # Blend database and eBay (favor eBay if high confidence)
@@ -564,7 +566,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
     
     else:
         # Not in database - rely on eBay
-        ebay_result = search_ebay_sold(title, issue, grade, publisher)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, force_refresh=force_refresh)
         
         if ebay_result.num_sales > 0:
             return {
