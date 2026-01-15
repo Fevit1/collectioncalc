@@ -1,11 +1,13 @@
 """
 eBay-Powered Valuation Module
 Searches eBay sold listings and applies recency/volume weighting.
+Includes caching to reduce API costs and improve consistency.
 """
 
 import os
 import json
 import re
+import sqlite3
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import List, Optional
@@ -37,6 +39,160 @@ RECENCY_WEIGHTS = {
     'last_year': 0.5,
     'older': 0.25
 }
+
+# Cache duration in hours
+CACHE_DURATION_HOURS = 48
+
+# Common comic abbreviations
+TITLE_ALIASES = {
+    'asm': 'Amazing Spider-Man',
+    'tasm': 'The Amazing Spider-Man',
+    'uxm': 'Uncanny X-Men',
+    'xmen': 'X-Men',
+    'ff': 'Fantastic Four',
+    'tmnt': 'Teenage Mutant Ninja Turtles',
+    'swb': 'Star Wars Bounty Hunters',
+    'dkr': 'Batman The Dark Knight Returns',
+    'twd': 'The Walking Dead',
+    'tos': 'Tales of Suspense',
+    'tot': 'Tales to Astonish',
+    'jla': 'Justice League of America',
+    'jli': 'Justice League International',
+    'avx': 'Avengers vs X-Men',
+    'gg': 'Green Goblin',
+    'gl': 'Green Lantern',
+    'ga': 'Green Arrow',
+    'bp': 'Black Panther',
+    'bm': 'Batman',
+    'sm': 'Superman',
+    'ww': 'Wonder Woman',
+    'ss': 'Silver Surfer',
+    'dp': 'Deadpool',
+    'dd': 'Daredevil',
+    'pp': 'Peter Parker',
+    'mtu': 'Marvel Team-Up',
+    'mtio': 'Marvel Two-In-One',
+    'gsxm': 'Giant-Size X-Men',
+    'nyx': 'NYX',
+    'nm': 'New Mutants',
+    'hulk': 'Incredible Hulk',
+    'ih': 'Incredible Hulk',
+    'im': 'Iron Man',
+    'thor': 'Thor',
+    'cap': 'Captain America',
+    'ca': 'Captain America',
+    'af': 'Amazing Fantasy',
+    'sw': 'Secret Wars',
+    'coie': 'Crisis on Infinite Earths',
+    'hq': 'Harley Quinn',
+    'sg': 'Supergirl',
+    'aquaman': 'Aquaman',
+    'flash': 'The Flash',
+    'spawn': 'Spawn',
+    'saga': 'Saga',
+    'wm': 'War Machine',
+    'ms': 'Ms Marvel',
+    'cm': 'Captain Marvel',
+}
+
+def expand_title_alias(title: str) -> str:
+    """Expand common comic abbreviations to full titles."""
+    title_lower = title.lower().strip()
+    return TITLE_ALIASES.get(title_lower, title)
+
+def get_cache_db_path():
+    """Get path to cache database."""
+    return os.path.join(os.path.dirname(__file__), 'price_cache.db')
+
+def init_cache_db():
+    """Initialize the cache database."""
+    conn = sqlite3.connect(get_cache_db_path())
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS search_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            issue TEXT NOT NULL,
+            search_key TEXT UNIQUE NOT NULL,
+            estimated_value REAL,
+            confidence TEXT,
+            confidence_score INTEGER,
+            num_sales INTEGER,
+            price_min REAL,
+            price_max REAL,
+            sales_data TEXT,
+            reasoning TEXT,
+            cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
+    """Check cache for existing search result."""
+    try:
+        init_cache_db()
+        conn = sqlite3.connect(get_cache_db_path())
+        cursor = conn.cursor()
+        
+        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        
+        cursor.execute('''
+            SELECT estimated_value, confidence, confidence_score, num_sales, 
+                   price_min, price_max, sales_data, reasoning, cached_at
+            FROM search_cache 
+            WHERE search_key = ?
+        ''', (search_key,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            cached_at = datetime.strptime(row[8], '%Y-%m-%d %H:%M:%S')
+            age_hours = (datetime.now() - cached_at).total_seconds() / 3600
+            
+            # Check if cache is still valid
+            if age_hours < CACHE_DURATION_HOURS:
+                return EbayValuationResult(
+                    estimated_value=row[0],
+                    confidence=row[1],
+                    confidence_score=row[2],
+                    num_sales=row[3],
+                    price_range=(row[4], row[5]),
+                    recency_weighted_avg=row[0],
+                    sales_data=json.loads(row[6]) if row[6] else [],
+                    reasoning=f"[CACHED] {row[7]}"
+                )
+        return None
+    except Exception as e:
+        print(f"Cache read error: {e}")
+        return None
+
+def save_to_cache(title: str, issue: str, result: EbayValuationResult):
+    """Save search result to cache."""
+    try:
+        init_cache_db()
+        conn = sqlite3.connect(get_cache_db_path())
+        cursor = conn.cursor()
+        
+        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO search_cache 
+            (title, issue, search_key, estimated_value, confidence, confidence_score,
+             num_sales, price_min, price_max, sales_data, reasoning, cached_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            title, issue, search_key, result.estimated_value, result.confidence,
+            result.confidence_score, result.num_sales, result.price_range[0],
+            result.price_range[1], json.dumps(result.sales_data), result.reasoning,
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Cache write error: {e}")
 
 def get_recency_weight(sale_date: datetime) -> float:
     """Calculate recency weight based on sale date."""
@@ -113,8 +269,17 @@ def calculate_confidence(num_sales: int, days_span: int, price_variance: float) 
 
 def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) -> EbayValuationResult:
     """
-    Search eBay sold listings using Claude AI with web search.
+    Search for market prices using Claude AI with web search.
+    Checks cache first, saves successful results to cache.
     """
+    # Expand aliases (ASM → Amazing Spider-Man)
+    title = expand_title_alias(title)
+    
+    # Check cache first
+    cached = get_cached_result(title, issue)
+    if cached:
+        return cached
+    
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     
     if not api_key:
@@ -126,7 +291,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None) 
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning="No API key configured for eBay search"
+            reasoning="No API key configured for web search"
         )
     
     client = anthropic.Anthropic(api_key=api_key)
@@ -304,7 +469,7 @@ Rules:
     elif cv > 0.5:
         reasoning_parts.append("Prices vary significantly")
     
-    return EbayValuationResult(
+    result = EbayValuationResult(
         estimated_value=round(recency_weighted_avg, 2),
         confidence=confidence_label,
         confidence_score=confidence_score,
@@ -314,6 +479,11 @@ Rules:
         sales_data=processed_sales,
         reasoning=". ".join(reasoning_parts)
     )
+    
+    # Save to cache for future requests
+    save_to_cache(title, issue, result)
+    
+    return result
 
 
 def get_valuation_with_ebay(title: str, issue: str, grade: str, 
@@ -323,6 +493,10 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
     Main valuation function that combines database and eBay data.
     """
     from valuation_model import ValuationModel
+    
+    # Expand aliases (ASM → Amazing Spider-Man)
+    original_title = title
+    title = expand_title_alias(title)
     
     model = ValuationModel()
     
@@ -368,7 +542,8 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
             'debug': {
                 'ebay_attempted': True,
                 'ebay_reasoning': ebay_result.reasoning,
-                'db_base_value': base_value
+                'db_base_value': base_value,
+                'title_expanded': title if title != original_title else None
             }
         }
     
@@ -386,7 +561,13 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'ebay_sales': ebay_result.num_sales,
                 'ebay_price_range': ebay_result.price_range,
                 'reasoning': ebay_result.reasoning,
-                'sales_data': ebay_result.sales_data
+                'sales_data': ebay_result.sales_data,
+                'debug': {
+                    'ebay_attempted': True,
+                    'ebay_reasoning': ebay_result.reasoning,
+                    'db_base_value': None,
+                    'title_expanded': title if title != original_title else None
+                }
             }
         else:
             # No data anywhere - return estimate with very low confidence
@@ -406,5 +587,11 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'ebay_sales': 0,
                 'ebay_price_range': (0, 0),
                 'reasoning': 'No market data found. Using default estimate.',
-                'sales_data': []
+                'sales_data': [],
+                'debug': {
+                    'ebay_attempted': True,
+                    'ebay_reasoning': 'No results found',
+                    'db_base_value': None,
+                    'title_expanded': title if title != original_title else None
+                }
             }

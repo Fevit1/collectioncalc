@@ -368,11 +368,17 @@
                 // Build debug info if available
                 let debugInfo = '';
                 if (json.debug) {
+                    let expandedNote = json.debug.title_expanded ? 
+                        `<p style="color: #2ecc71;">📖 Expanded: "${json.debug.title_expanded}"</p>` : '';
+                    let cachedNote = json.reasoning && json.reasoning.includes('[CACHED]') ?
+                        `<p style="color: #3498db;">⚡ Cached result (faster, no API cost)</p>` : '';
+                    
                     debugInfo = `
                         <div class="steps" style="margin-top: 10px; font-size: 0.8rem;">
                             <h4 style="color: #888;">Debug Info</h4>
+                            ${expandedNote}
+                            ${cachedNote}
                             <p style="color: #666;">eBay attempted: ${json.debug.ebay_attempted}</p>
-                            <p style="color: #666;">eBay result: ${json.debug.ebay_reasoning || 'None'}</p>
                             <p style="color: #666;">DB base value: $${json.debug.db_base_value || 'N/A'}</p>
                         </div>
                     `;
