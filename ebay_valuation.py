@@ -41,6 +41,11 @@ class EbayValuationResult:
     recency_weighted_avg: float
     sales_data: List[dict]
     reasoning: str
+    # Tiered pricing
+    quick_sale: float = 0.0      # Lowest BIN or lowest sold - for fast sale
+    fair_value: float = 0.0      # Median sold price - fair market value
+    high_end: float = 0.0        # Highest recent sold - premium price
+    lowest_bin: Optional[float] = None  # Current lowest Buy It Now price
 
 # Recency weights
 RECENCY_WEIGHTS = {
@@ -479,7 +484,9 @@ STEP 1 - CORRECT SPELLING: Fix any errors (e.g., "Captian America" → "Captain 
 
 STEP 2 - SEARCH PRICECHARTING FIRST: Search "site:pricecharting.com {title} #{issue}" to find the exact issue page. PriceCharting has the most reliable ungraded/raw comic prices.
 
-STEP 3 - VERIFY WITH OTHER SOURCES: Also check eBay sold listings and GoCollect for recent sales.
+STEP 3 - CHECK EBAY SOLD LISTINGS: Search eBay sold/completed listings for recent actual sales.
+
+STEP 4 - CHECK CURRENT BUY IT NOW: Also search eBay for current Buy It Now listings to see what's available now. This helps establish a price ceiling.
 
 CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - Title must match EXACTLY (e.g., "Captain America Annual #8" is NOT "Captain America #8")
@@ -488,9 +495,8 @@ CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - REJECT lot sales (multiple comics sold together)
 - REJECT prices for CGC/CBCS graded copies when looking for raw value (graded copies sell for 2-10x more)
 - REJECT signed copies, variant covers, or special editions unless specifically requested
-- REJECT asking prices - only use SOLD prices
 
-GRADE ESTIMATION - For each sale, estimate the condition:
+GRADE ESTIMATION - For each sale/listing, estimate the condition:
 - If listing says "NM", "Near Mint", "9.4" → grade: "NM"
 - If listing says "VF", "Very Fine", "8.0" → grade: "VF"  
 - If listing says "FN", "Fine", "6.0" → grade: "FN"
@@ -501,17 +507,23 @@ GRADE ESTIMATION - For each sale, estimate the condition:
 Return JSON:
 {{
     "sales": [
-        {{"price": 25.00, "date": "2026-01-10", "grade": "VF", "source": "PriceCharting"}},
-        {{"price": 30.00, "date": "2025-12-15", "grade": "FN", "source": "eBay"}}
+        {{"price": 25.00, "date": "2026-01-10", "grade": "VF", "source": "eBay sold"}},
+        {{"price": 30.00, "date": "2025-12-15", "grade": "FN", "source": "PriceCharting"}}
+    ],
+    "buy_it_now": [
+        {{"price": 22.00, "grade": "VF", "source": "eBay BIN"}},
+        {{"price": 35.00, "grade": "NM", "source": "eBay BIN"}}
     ],
     "corrected_title": "Captain America Annual",
     "notes": "Brief notes"
 }}
 
 IMPORTANT:
+- "sales" = SOLD/COMPLETED listings only (actual transactions)
+- "buy_it_now" = CURRENT active listings (asking prices)
 - For UNGRADED/RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
 - If you only find CGC prices ($500+), note that raw copies are typically worth 20-50% of CGC 9.4 value
-- Maximum 10 prices, USD only
+- Maximum 10 items per array, USD only
 - Use standard grade abbreviations: MT, NM, VF, FN, VG, G, FR, PR (or "raw" if unknown)"""
 
     try:
@@ -537,13 +549,14 @@ IMPORTANT:
         if json_match:
             data = json.loads(json_match.group())
             sales = data.get('sales', [])
+            buy_it_now = data.get('buy_it_now', [])
             corrected_title = data.get('corrected_title', None)
-            return (sales, corrected_title)
+            return (sales, buy_it_now, corrected_title)
         
     except Exception as e:
         print(f"Search error: {e}")
     
-    return ([], None)
+    return ([], [], None)
 
 
 def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, num_samples: int = 3, force_refresh: bool = False) -> EbayValuationResult:
@@ -579,15 +592,17 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     
     # Run multiple searches for better accuracy
     all_sales = []
+    all_bin_listings = []
     corrected_title = None
     
     for i in range(num_samples):
-        sales, title_fix = _single_search(client, title, issue, grade, publisher)
+        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher)
         all_sales.extend(sales)
+        all_bin_listings.extend(bin_listings)
         if title_fix and not corrected_title:
             corrected_title = title_fix
     
-    # Deduplicate by price+date+source
+    # Deduplicate sales by price+date+source
     seen = set()
     sales = []
     for sale in all_sales:
@@ -595,6 +610,15 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         if key not in seen:
             seen.add(key)
             sales.append(sale)
+    
+    # Deduplicate BIN by price+grade+source
+    seen_bin = set()
+    bin_listings = []
+    for item in all_bin_listings:
+        key = f"{item.get('price')}-{item.get('grade')}-{item.get('source')}"
+        if key not in seen_bin:
+            seen_bin.add(key)
+            bin_listings.append(item)
     
     # Filter by grade compatibility (±1 grade level from requested grade)
     total_before_grade_filter = len(sales)
@@ -618,6 +642,26 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
                 grade_filter_note += f" and {len(grade_rejected)-3} more."
     else:
         grade_filter_note = f"Using all {len(sales)} sales (not enough {grade}-specific matches)."
+    
+    # Filter BIN listings by grade too
+    grade_filtered_bin = []
+    for item in bin_listings:
+        item_grade = item.get('grade', 'raw')
+        if is_grade_compatible(item_grade, grade, tolerance=1.0):
+            grade_filtered_bin.append(item)
+    
+    # Calculate lowest BIN price (grade-filtered if available, else all)
+    lowest_bin = None
+    bin_prices = []
+    for item in (grade_filtered_bin if grade_filtered_bin else bin_listings):
+        try:
+            price = float(item.get('price', 0))
+            if price > 0:
+                bin_prices.append(price)
+        except:
+            continue
+    if bin_prices:
+        lowest_bin = min(bin_prices)
     
     if not sales:
         return EbayValuationResult(
@@ -715,6 +759,25 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     price_max = max(prices)
     price_mean = sum(prices) / len(prices)
     
+    # Calculate median for fair value
+    sorted_prices = sorted(prices)
+    if len(sorted_prices) % 2 == 0:
+        median_price = (sorted_prices[len(sorted_prices)//2 - 1] + sorted_prices[len(sorted_prices)//2]) / 2
+    else:
+        median_price = sorted_prices[len(sorted_prices)//2]
+    
+    # Calculate tiered pricing
+    # Quick Sale: lowest BIN if available, otherwise lowest sold price
+    quick_sale = lowest_bin if lowest_bin else price_min
+    # Fair Value: median of sold prices (more stable than mean)
+    fair_value = median_price
+    # High End: highest recent sold price
+    high_end = price_max
+    
+    # Sanity check: quick_sale shouldn't be higher than fair_value
+    if quick_sale > fair_value:
+        quick_sale = price_min  # Fall back to lowest sold
+    
     # Calculate variance (coefficient of variation)
     if len(prices) > 1 and price_mean > 0:
         variance = (sum((p - price_mean) ** 2 for p in prices) / len(prices)) ** 0.5
@@ -766,7 +829,11 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         price_range=(price_min, price_max),
         recency_weighted_avg=round(recency_weighted_avg, 2),
         sales_data=processed_sales,
-        reasoning=". ".join(reasoning_parts)
+        reasoning=". ".join(reasoning_parts),
+        quick_sale=round(quick_sale, 2),
+        fair_value=round(fair_value, 2),
+        high_end=round(high_end, 2),
+        lowest_bin=round(lowest_bin, 2) if lowest_bin else None
     )
     
     # Save to cache for future requests
@@ -829,6 +896,10 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
             'ebay_price_range': ebay_result.price_range,
             'reasoning': ebay_result.reasoning if ebay_result.reasoning else 'Based on database value',
             'sales_data': ebay_result.sales_data,
+            'quick_sale': ebay_result.quick_sale if ebay_result.num_sales > 0 else round(final_value * 0.7, 2),
+            'fair_value': ebay_result.fair_value if ebay_result.num_sales > 0 else round(final_value, 2),
+            'high_end': ebay_result.high_end if ebay_result.num_sales > 0 else round(final_value * 1.3, 2),
+            'lowest_bin': ebay_result.lowest_bin,
             'debug': {
                 'ebay_attempted': True,
                 'ebay_reasoning': ebay_result.reasoning,
@@ -852,6 +923,10 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'ebay_price_range': ebay_result.price_range,
                 'reasoning': ebay_result.reasoning,
                 'sales_data': ebay_result.sales_data,
+                'quick_sale': ebay_result.quick_sale,
+                'fair_value': ebay_result.fair_value,
+                'high_end': ebay_result.high_end,
+                'lowest_bin': ebay_result.lowest_bin,
                 'debug': {
                     'ebay_attempted': True,
                     'ebay_reasoning': ebay_result.reasoning,
@@ -878,6 +953,10 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'ebay_price_range': (0, 0),
                 'reasoning': 'No market data found. Using default estimate.',
                 'sales_data': [],
+                'quick_sale': round(result.final_value * 0.7, 2),
+                'fair_value': round(result.final_value, 2),
+                'high_end': round(result.final_value * 1.3, 2),
+                'lowest_bin': None,
                 'debug': {
                     'ebay_attempted': True,
                     'ebay_reasoning': 'No results found',

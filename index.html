@@ -236,6 +236,23 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .item-value-range {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .value-fair {
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: var(--value-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .value-range-small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
         .item-delete {
             background: none;
             border: none;
@@ -375,6 +392,62 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin: 10px 0;
+        }
+        /* Three-tier pricing display */
+        .price-tiers {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .tier {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 20px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            min-width: 110px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .tier:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .tier-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .tier-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+        .tier-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .tier.quick-sale .tier-price { color: #22c55e; }
+        .tier.fair-value .tier-price { 
+            background: var(--value-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tier.fair-value {
+            border-color: var(--brand-cyan);
+            background: rgba(6, 182, 212, 0.1);
+        }
+        .tier.high-end .tier-price { color: #f59e0b; }
+        .bin-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 10px 0 15px;
         }
         .result-card.error .price {
             background: none;
@@ -1062,7 +1135,11 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 reasoning: json.reasoning,
                 ebay_sales: json.ebay_sales,
                 ebay_price_range: json.ebay_price_range,
-                sales_data: json.sales_data || []
+                sales_data: json.sales_data || [],
+                quick_sale: json.quick_sale,
+                fair_value: json.fair_value,
+                high_end: json.high_end,
+                lowest_bin: json.lowest_bin
             };
         }
         
@@ -1081,7 +1158,10 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     <div class="item-header">
                         <span class="item-number">${idx + 1}</span>
                         <span class="item-title">${item.title} #${item.issue}${item.printing && item.printing !== '1st' ? ` (${item.printing} Print)` : ''}${item.cover ? ` Cover ${item.cover}` : ''}</span>
-                        <span class="item-value">$${(item.value || 0).toFixed(2)}</span>
+                        <span class="item-value-range">
+                            <span class="value-fair">$${(item.fair_value || item.value || 0).toFixed(2)}</span>
+                            ${item.quick_sale && item.high_end ? `<span class="value-range-small">($${item.quick_sale.toFixed(0)} - $${item.high_end.toFixed(0)})</span>` : ''}
+                        </span>
                         <button class="item-refresh" onclick="refreshItem(${idx})" title="Refresh with 3 samples">🔄</button>
                         ${item.sales_data && item.sales_data.length > 0 ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View sales data">📊</button>` : ''}
                     </div>
@@ -1089,6 +1169,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         ${item.confidence || ''} confidence · ${item.source || 'estimate'}
                         ${item.ebay_sales ? ` · ${item.ebay_sales} eBay sale(s)` : ''}
                         ${item.samples ? ` · Samples: $${item.samples.join(', $')}` : ''}
+                        ${item.lowest_bin ? ` · BIN: $${item.lowest_bin.toFixed(2)}` : ''}
                     </div>
                     ${item.sales_data && item.sales_data.length > 0 ? `
                     <div class="sales-details" id="details-${idx}">
@@ -1357,11 +1438,38 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     ebayInfo = `<div class="ebay-info"><h4>📊 Market Data</h4><p><strong>${json.ebay_sales}</strong> recent sale(s)</p></div>`;
                 }
                 
-                const finalValue = json.final_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const formatPrice = (val) => val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+                
+                const quickSale = json.quick_sale || (json.final_value * 0.7);
+                const fairValue = json.fair_value || json.final_value;
+                const highEnd = json.high_end || (json.final_value * 1.3);
+                const lowestBin = json.lowest_bin;
+                
+                let binNote = '';
+                if (lowestBin) {
+                    binNote = `<p class="bin-note">💡 Current Buy It Now: $${formatPrice(lowestBin)}</p>`;
+                }
                 
                 resultContent.innerHTML = `
-                    <p class="result-label">Estimated Value</p>
-                    <div class="price">$${finalValue}</div>
+                    <p class="result-label">Value Range</p>
+                    <div class="price-tiers">
+                        <div class="tier quick-sale">
+                            <span class="tier-label">Quick Sale</span>
+                            <span class="tier-price">$${formatPrice(quickSale)}</span>
+                            <span class="tier-desc">Sell fast</span>
+                        </div>
+                        <div class="tier fair-value">
+                            <span class="tier-label">Fair Value</span>
+                            <span class="tier-price">$${formatPrice(fairValue)}</span>
+                            <span class="tier-desc">Market median</span>
+                        </div>
+                        <div class="tier high-end">
+                            <span class="tier-label">High End</span>
+                            <span class="tier-price">$${formatPrice(highEnd)}</span>
+                            <span class="tier-desc">Premium price</span>
+                        </div>
+                    </div>
+                    ${binNote}
                     <p class="confidence ${confClass}">${json.confidence} Confidence (${json.confidence_score}%)</p>
                     <span class="source-badge">${sourceText}</span>
                     ${ebayInfo}
