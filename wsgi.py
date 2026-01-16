@@ -176,7 +176,19 @@ def update_cache():
 @app.route('/api/cache/check', methods=['GET'])
 def check_cache():
     """Debug endpoint to check if a comic is in the cache."""
+    debug_info = {}
+    
     try:
+        import os
+        debug_info['DATABASE_URL_set'] = 'DATABASE_URL' in os.environ
+        debug_info['DATABASE_URL_preview'] = os.environ.get('DATABASE_URL', '')[:50] + '...' if os.environ.get('DATABASE_URL') else None
+        
+        try:
+            import psycopg2
+            debug_info['psycopg2_installed'] = True
+        except ImportError:
+            debug_info['psycopg2_installed'] = False
+            
         from ebay_valuation import get_cached_result, expand_title_alias, get_db_connection
         
         title = request.args.get('title', '')
@@ -189,6 +201,7 @@ def check_cache():
         # Check if database connection works
         conn = get_db_connection()
         db_connected = conn is not None
+        debug_info['connection_result'] = 'success' if conn else 'failed'
         
         # Try to get cached result
         cached = get_cached_result(expanded_title, issue)
@@ -207,6 +220,7 @@ def check_cache():
                 conn.close()
             except Exception as e:
                 all_keys = [{'error': str(e)}]
+                debug_info['query_error'] = str(e)
         
         return jsonify({
             'input_title': title,
@@ -218,10 +232,12 @@ def check_cache():
             'recent_entries': all_keys,
             'found_in_cache': cached is not None,
             'cached_value': cached.estimated_value if cached else None,
-            'cached_confidence': cached.confidence if cached else None
+            'cached_confidence': cached.confidence if cached else None,
+            'debug': debug_info
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        debug_info['exception'] = str(e)
+        return jsonify({'error': str(e), 'debug': debug_info}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

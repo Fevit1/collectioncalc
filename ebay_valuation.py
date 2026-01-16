@@ -112,6 +112,7 @@ def expand_title_alias(title: str) -> str:
 def get_db_connection():
     """Get PostgreSQL connection from DATABASE_URL environment variable."""
     if not HAS_POSTGRES:
+        print("psycopg2 not available")
         return None
     
     database_url = os.environ.get('DATABASE_URL')
@@ -120,11 +121,18 @@ def get_db_connection():
         return None
     
     try:
-        conn = psycopg2.connect(database_url)
+        # Try with SSL first (required by Render)
+        conn = psycopg2.connect(database_url, sslmode='require')
         return conn
     except Exception as e:
-        print(f"PostgreSQL connection error: {e}")
-        return None
+        print(f"PostgreSQL connection error (with SSL): {e}")
+        # Try without SSL as fallback
+        try:
+            conn = psycopg2.connect(database_url)
+            return conn
+        except Exception as e2:
+            print(f"PostgreSQL connection error (without SSL): {e2}")
+            return None
 
 def init_cache_db():
     """Initialize the cache table in PostgreSQL."""
