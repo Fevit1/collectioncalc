@@ -2,16 +2,25 @@
 eBay-Powered Valuation Module
 Searches eBay sold listings and applies recency/volume weighting.
 Includes caching to reduce API costs and improve consistency.
+Uses PostgreSQL for persistent cache storage.
 """
 
 import os
 import json
 import re
-import sqlite3
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import List, Optional
 import anthropic
+
+# Try to import psycopg2 for PostgreSQL
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
+    print("psycopg2 not installed - cache will not persist")
 
 @dataclass
 class EbaySale:
@@ -100,39 +109,65 @@ def expand_title_alias(title: str) -> str:
     title_lower = title.lower().strip()
     return TITLE_ALIASES.get(title_lower, title)
 
-def get_cache_db_path():
-    """Get path to cache database."""
-    return os.path.join(os.path.dirname(__file__), 'price_cache.db')
+def get_db_connection():
+    """Get PostgreSQL connection from DATABASE_URL environment variable."""
+    if not HAS_POSTGRES:
+        return None
+    
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        print("DATABASE_URL not set")
+        return None
+    
+    try:
+        conn = psycopg2.connect(database_url)
+        return conn
+    except Exception as e:
+        print(f"PostgreSQL connection error: {e}")
+        return None
 
 def init_cache_db():
-    """Initialize the cache database."""
-    conn = sqlite3.connect(get_cache_db_path())
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS search_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            issue TEXT NOT NULL,
-            search_key TEXT UNIQUE NOT NULL,
-            estimated_value REAL,
-            confidence TEXT,
-            confidence_score INTEGER,
-            num_sales INTEGER,
-            price_min REAL,
-            price_max REAL,
-            sales_data TEXT,
-            reasoning TEXT,
-            cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    """Initialize the cache table in PostgreSQL."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS search_cache (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                issue TEXT NOT NULL,
+                search_key TEXT UNIQUE NOT NULL,
+                estimated_value REAL,
+                confidence TEXT,
+                confidence_score INTEGER,
+                num_sales INTEGER,
+                price_min REAL,
+                price_max REAL,
+                sales_data TEXT,
+                reasoning TEXT,
+                cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Cache init error: {e}")
+        conn.close()
+        return False
 
 def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
-    """Check cache for existing search result."""
+    """Check PostgreSQL cache for existing search result."""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
     try:
         init_cache_db()
-        conn = sqlite3.connect(get_cache_db_path())
         cursor = conn.cursor()
         
         search_key = f"{title.lower().strip()}|{issue.strip()}"
@@ -141,14 +176,17 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
             SELECT estimated_value, confidence, confidence_score, num_sales, 
                    price_min, price_max, sales_data, reasoning, cached_at
             FROM search_cache 
-            WHERE search_key = ?
+            WHERE search_key = %s
         ''', (search_key,))
         
         row = cursor.fetchone()
+        cursor.close()
         conn.close()
         
         if row:
-            cached_at = datetime.strptime(row[8], '%Y-%m-%d %H:%M:%S')
+            cached_at = row[8]
+            if isinstance(cached_at, str):
+                cached_at = datetime.strptime(cached_at, '%Y-%m-%d %H:%M:%S')
             age_hours = (datetime.now() - cached_at).total_seconds() / 3600
             
             # Check if cache is still valid
@@ -166,22 +204,41 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
         return None
     except Exception as e:
         print(f"Cache read error: {e}")
+        try:
+            conn.close()
+        except:
+            pass
         return None
 
 def save_to_cache(title: str, issue: str, result: EbayValuationResult):
-    """Save search result to cache."""
+    """Save search result to PostgreSQL cache."""
+    conn = get_db_connection()
+    if not conn:
+        return
+    
     try:
         init_cache_db()
-        conn = sqlite3.connect(get_cache_db_path())
         cursor = conn.cursor()
         
         search_key = f"{title.lower().strip()}|{issue.strip()}"
         
+        # Use INSERT ... ON CONFLICT for upsert
         cursor.execute('''
-            INSERT OR REPLACE INTO search_cache 
+            INSERT INTO search_cache 
             (title, issue, search_key, estimated_value, confidence, confidence_score,
              num_sales, price_min, price_max, sales_data, reasoning, cached_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (search_key) 
+            DO UPDATE SET
+                estimated_value = EXCLUDED.estimated_value,
+                confidence = EXCLUDED.confidence,
+                confidence_score = EXCLUDED.confidence_score,
+                num_sales = EXCLUDED.num_sales,
+                price_min = EXCLUDED.price_min,
+                price_max = EXCLUDED.price_max,
+                sales_data = EXCLUDED.sales_data,
+                reasoning = EXCLUDED.reasoning,
+                cached_at = EXCLUDED.cached_at
         ''', (
             title, issue, search_key, result.estimated_value, result.confidence,
             result.confidence_score, result.num_sales, result.price_range[0],
@@ -190,18 +247,28 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
         ))
         
         conn.commit()
+        cursor.close()
         conn.close()
+        print(f"Cached: {title} #{issue} = ${result.estimated_value}")
     except Exception as e:
         print(f"Cache write error: {e}")
+        try:
+            conn.close()
+        except:
+            pass
 
 def update_cached_value(title: str, issue: str, new_value: float, samples: list = None) -> bool:
-    """Update cache with a new averaged value from admin refresh."""
+    """Update PostgreSQL cache with a new averaged value from admin refresh."""
+    # Expand aliases
+    title = expand_title_alias(title)
+    
+    conn = get_db_connection()
+    if not conn:
+        print("No database connection for cache update")
+        return False
+    
     try:
-        # Expand aliases
-        title = expand_title_alias(title)
-        
         init_cache_db()
-        conn = sqlite3.connect(get_cache_db_path())
         cursor = conn.cursor()
         
         search_key = f"{title.lower().strip()}|{issue.strip()}"
@@ -227,11 +294,23 @@ def update_cached_value(title: str, issue: str, new_value: float, samples: list 
         price_min = min(samples) if samples else new_value
         price_max = max(samples) if samples else new_value
         
+        # Use INSERT ... ON CONFLICT for upsert
         cursor.execute('''
-            INSERT OR REPLACE INTO search_cache 
+            INSERT INTO search_cache 
             (title, issue, search_key, estimated_value, confidence, confidence_score,
              num_sales, price_min, price_max, sales_data, reasoning, cached_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (search_key) 
+            DO UPDATE SET
+                estimated_value = EXCLUDED.estimated_value,
+                confidence = EXCLUDED.confidence,
+                confidence_score = EXCLUDED.confidence_score,
+                num_sales = EXCLUDED.num_sales,
+                price_min = EXCLUDED.price_min,
+                price_max = EXCLUDED.price_max,
+                sales_data = EXCLUDED.sales_data,
+                reasoning = EXCLUDED.reasoning,
+                cached_at = EXCLUDED.cached_at
         ''', (
             title, issue, search_key, new_value, 'HIGH', 85,
             len(samples) if samples else 1, price_min, price_max,
@@ -240,12 +319,21 @@ def update_cached_value(title: str, issue: str, new_value: float, samples: list 
         ))
         
         conn.commit()
+        cursor.close()
         conn.close()
         print(f"Cache updated: {title} #{issue} = ${new_value:.2f}")
         return True
     except Exception as e:
         print(f"Cache update error: {e}")
+        try:
+            conn.close()
+        except:
+            pass
         return False
+
+def get_cache_db_path():
+    """Legacy function for compatibility - returns None for PostgreSQL."""
+    return None
 
 def get_recency_weight(sale_date: datetime) -> float:
     """Calculate recency weight based on sale date."""

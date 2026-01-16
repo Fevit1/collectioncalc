@@ -177,9 +177,7 @@ def update_cache():
 def check_cache():
     """Debug endpoint to check if a comic is in the cache."""
     try:
-        from ebay_valuation import get_cached_result, expand_title_alias, get_cache_db_path
-        import sqlite3
-        import os
+        from ebay_valuation import get_cached_result, expand_title_alias, get_db_connection
         
         title = request.args.get('title', '')
         issue = request.args.get('issue', '')
@@ -188,9 +186,9 @@ def check_cache():
         expanded_title = expand_title_alias(title)
         search_key = f"{expanded_title.lower().strip()}|{issue.strip()}"
         
-        # Check if cache file exists
-        cache_path = get_cache_db_path()
-        cache_exists = os.path.exists(cache_path)
+        # Check if database connection works
+        conn = get_db_connection()
+        db_connected = conn is not None
         
         # Try to get cached result
         cached = get_cached_result(expanded_title, issue)
@@ -198,14 +196,14 @@ def check_cache():
         # Get all cache entries count
         cache_count = 0
         all_keys = []
-        if cache_exists:
+        if conn:
             try:
-                conn = sqlite3.connect(cache_path)
                 cursor = conn.cursor()
                 cursor.execute('SELECT COUNT(*) FROM search_cache')
                 cache_count = cursor.fetchone()[0]
                 cursor.execute('SELECT search_key, estimated_value, cached_at FROM search_cache ORDER BY cached_at DESC LIMIT 10')
-                all_keys = [{'key': row[0], 'value': row[1], 'cached_at': row[2]} for row in cursor.fetchall()]
+                all_keys = [{'key': row[0], 'value': row[1], 'cached_at': str(row[2])} for row in cursor.fetchall()]
+                cursor.close()
                 conn.close()
             except Exception as e:
                 all_keys = [{'error': str(e)}]
@@ -215,8 +213,7 @@ def check_cache():
             'expanded_title': expanded_title,
             'issue': issue,
             'search_key': search_key,
-            'cache_file_exists': cache_exists,
-            'cache_file_path': cache_path,
+            'database_connected': db_connected,
             'total_cached_entries': cache_count,
             'recent_entries': all_keys,
             'found_in_cache': cached is not None,
