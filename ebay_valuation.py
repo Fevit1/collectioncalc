@@ -422,6 +422,10 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
     """
     Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
     """
+    # Ensure title and issue are strings (not None)
+    title = str(title) if title else "Unknown"
+    issue = str(issue) if issue else "1"
+    
     # Build search query - don't include grade (most listings don't specify)
     search_query = f"{title} #{issue} comic"
     if publisher:
