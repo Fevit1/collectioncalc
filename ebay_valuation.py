@@ -106,6 +106,47 @@ TITLE_ALIASES = {
     'cm': 'Captain Marvel',
 }
 
+# Comic grade scale (numeric values for comparison)
+GRADE_SCALE = {
+    'MT': 10.0,   # Mint
+    'GM': 10.0,   # Gem Mint (alias)
+    'NM+': 9.6,
+    'NM': 9.4,    # Near Mint
+    'NM-': 9.2,
+    'VF+': 8.5,
+    'VF': 8.0,    # Very Fine
+    'VF-': 7.5,
+    'FN+': 6.5,
+    'FN': 6.0,    # Fine
+    'FN-': 5.5,
+    'VG+': 4.5,
+    'VG': 4.0,    # Very Good
+    'VG-': 3.5,
+    'G+': 2.5,
+    'G': 2.0,     # Good
+    'GD': 2.0,    # Good (alias)
+    'G-': 1.8,
+    'FR': 1.5,    # Fair
+    'PR': 1.0,    # Poor
+    'raw': 6.0,   # Default for unspecified raw = assume FN
+}
+
+def get_grade_value(grade: str) -> float:
+    """Convert grade string to numeric value."""
+    if not grade:
+        return 6.0  # Default to FN
+    grade_upper = grade.upper().strip()
+    return GRADE_SCALE.get(grade_upper, 6.0)
+
+def is_grade_compatible(sale_grade: str, requested_grade: str, tolerance: float = 1.0) -> bool:
+    """
+    Check if a sale's grade is within tolerance of the requested grade.
+    Default tolerance of 1.0 means ±0.5 grade level (e.g., VF accepts VF-, VF, VF+ only)
+    """
+    sale_value = get_grade_value(sale_grade)
+    requested_value = get_grade_value(requested_grade)
+    return abs(sale_value - requested_value) <= tolerance
+
 def expand_title_alias(title: str) -> str:
     """Expand common comic abbreviations to full titles."""
     title_lower = title.lower().strip()
@@ -432,7 +473,7 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         search_query += f" {publisher}"
     search_query += " price sold value"
     
-    prompt = f"""Find the market value for: {title} #{issue}
+    prompt = f"""Find the market value for: {title} #{issue} in {grade} condition
 
 STEP 1 - CORRECT SPELLING: Fix any errors (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man")
 
@@ -449,11 +490,19 @@ CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - REJECT signed copies, variant covers, or special editions unless specifically requested
 - REJECT asking prices - only use SOLD prices
 
+GRADE ESTIMATION - For each sale, estimate the condition:
+- If listing says "NM", "Near Mint", "9.4" → grade: "NM"
+- If listing says "VF", "Very Fine", "8.0" → grade: "VF"  
+- If listing says "FN", "Fine", "6.0" → grade: "FN"
+- If listing says "VG", "Very Good", "4.0" → grade: "VG"
+- If listing says "G", "Good", "2.0" → grade: "G"
+- If no condition specified, estimate from photos/description or use "raw" (assumes FN)
+
 Return JSON:
 {{
     "sales": [
-        {{"price": 25.00, "date": "2026-01-10", "grade": "raw", "source": "PriceCharting"}},
-        {{"price": 30.00, "date": "2025-12-15", "grade": "raw", "source": "eBay"}}
+        {{"price": 25.00, "date": "2026-01-10", "grade": "VF", "source": "PriceCharting"}},
+        {{"price": 30.00, "date": "2025-12-15", "grade": "FN", "source": "eBay"}}
     ],
     "corrected_title": "Captain America Annual",
     "notes": "Brief notes"
@@ -463,7 +512,7 @@ IMPORTANT:
 - For UNGRADED/RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
 - If you only find CGC prices ($500+), note that raw copies are typically worth 20-50% of CGC 9.4 value
 - Maximum 10 prices, USD only
-- Use "raw" for ungraded comics"""
+- Use standard grade abbreviations: MT, NM, VF, FN, VG, G, FR, PR (or "raw" if unknown)"""
 
     try:
         response = client.messages.create(
@@ -546,6 +595,29 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         if key not in seen:
             seen.add(key)
             sales.append(sale)
+    
+    # Filter by grade compatibility (±1 grade level from requested grade)
+    total_before_grade_filter = len(sales)
+    grade_filtered_sales = []
+    grade_rejected = []
+    
+    for sale in sales:
+        sale_grade = sale.get('grade', 'raw')
+        if is_grade_compatible(sale_grade, grade, tolerance=1.0):
+            grade_filtered_sales.append(sale)
+        else:
+            grade_rejected.append(f"${sale.get('price')} ({sale_grade})")
+    
+    # Use grade-filtered sales if we have enough, otherwise fall back to all sales
+    if len(grade_filtered_sales) >= 2:
+        sales = grade_filtered_sales
+        grade_filter_note = f"Filtered to {len(sales)}/{total_before_grade_filter} sales matching {grade} (±0.5 grade)."
+        if grade_rejected:
+            grade_filter_note += f" Excluded: {', '.join(grade_rejected[:3])}"
+            if len(grade_rejected) > 3:
+                grade_filter_note += f" and {len(grade_rejected)-3} more."
+    else:
+        grade_filter_note = f"Using all {len(sales)} sales (not enough {grade}-specific matches)."
     
     if not sales:
         return EbayValuationResult(
@@ -670,6 +742,9 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     # Add spelling correction note if title was corrected
     if corrected_title and corrected_title.lower() != title.lower():
         reasoning_parts.insert(0, f"Corrected spelling: '{title}' → '{corrected_title}'")
+    
+    # Add grade filtering note
+    reasoning_parts.append(grade_filter_note)
     
     if cv < 0.1:
         reasoning_parts.append("Prices very consistent")
