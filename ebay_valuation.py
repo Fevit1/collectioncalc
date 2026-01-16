@@ -480,7 +480,7 @@ IMPORTANT:
         # Extract text response
         result_text = ""
         for block in response.content:
-            if hasattr(block, 'text'):
+            if hasattr(block, 'text') and block.text:
                 result_text += block.text
         
         # Parse JSON from response
