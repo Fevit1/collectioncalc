@@ -186,10 +186,13 @@ def check_cache():
         try:
             import psycopg2
             debug_info['psycopg2_installed'] = True
-        except ImportError:
+        except ImportError as e:
             debug_info['psycopg2_installed'] = False
+            debug_info['psycopg2_error'] = str(e)
             
-        from ebay_valuation import get_cached_result, expand_title_alias, get_db_connection
+        from ebay_valuation import get_cached_result, expand_title_alias, get_db_connection, HAS_POSTGRES, POSTGRES_IMPORT_ERROR
+        debug_info['ebay_valuation_has_postgres'] = HAS_POSTGRES
+        debug_info['ebay_valuation_import_error'] = POSTGRES_IMPORT_ERROR
         
         title = request.args.get('title', '')
         issue = request.args.get('issue', '')

@@ -18,9 +18,11 @@ try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
     HAS_POSTGRES = True
-except ImportError:
+    POSTGRES_IMPORT_ERROR = None
+except ImportError as e:
     HAS_POSTGRES = False
-    print("psycopg2 not installed - cache will not persist")
+    POSTGRES_IMPORT_ERROR = str(e)
+    print(f"psycopg2 import error: {e}")
 
 @dataclass
 class EbaySale:
