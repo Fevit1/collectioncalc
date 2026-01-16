@@ -428,36 +428,38 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         search_query += f" {publisher}"
     search_query += " price sold value"
     
-    prompt = f"""Search for the current market value of this comic book: {title} #{issue}
+    prompt = f"""Find the market value for: {title} #{issue}
 
-IMPORTANT: First, correct any spelling errors in the title (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man", "Batmam" → "Batman"). Search using the corrected title.
+STEP 1 - CORRECT SPELLING: Fix any errors (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man")
 
-Look for recent sale prices, price guide values, and market data from sources like:
-- eBay sold listings
-- GoCollect
-- CovrPrice  
-- ComicsPriceGuide
-- Heritage Auctions
-- Any other comic pricing sources
+STEP 2 - SEARCH PRICECHARTING FIRST: Search "site:pricecharting.com {title} #{issue}" to find the exact issue page. PriceCharting has the most reliable ungraded/raw comic prices.
 
-Return a JSON object with this exact structure:
+STEP 3 - VERIFY WITH OTHER SOURCES: Also check eBay sold listings and GoCollect for recent sales.
+
+CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
+- Title must match EXACTLY (e.g., "Captain America Annual #8" is NOT "Captain America #8")
+- "Annual", "Giant-Size", "Special" are DIFFERENT series - don't mix them
+- Issue number must match EXACTLY
+- REJECT lot sales (multiple comics sold together)
+- REJECT prices for CGC/CBCS graded copies when looking for raw value (graded copies sell for 2-10x more)
+- REJECT signed copies, variant covers, or special editions unless specifically requested
+- REJECT asking prices - only use SOLD prices
+
+Return JSON:
 {{
     "sales": [
-        {{"price": 450.00, "date": "2026-01-10", "grade": "raw", "source": "eBay"}},
-        {{"price": 520.00, "date": "2025-12-15", "grade": "9.4", "source": "GoCollect"}}
+        {{"price": 25.00, "date": "2026-01-10", "grade": "raw", "source": "PriceCharting"}},
+        {{"price": 30.00, "date": "2025-12-15", "grade": "raw", "source": "eBay"}}
     ],
-    "corrected_title": "Captain America",
-    "notes": "Brief notes about the search results"
+    "corrected_title": "Captain America Annual",
+    "notes": "Brief notes"
 }}
 
-Rules:
-- Include the source for each price (eBay, GoCollect, etc.)
-- Include date if available (estimate month/year if exact date unknown)
-- Note the grade if specified (use "raw" if ungraded)
-- If no prices found, return empty sales array
-- Maximum 10 prices
-- Prices in USD
-- Include "corrected_title" if you fixed any spelling"""
+IMPORTANT:
+- For UNGRADED/RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
+- If you only find CGC prices ($500+), note that raw copies are typically worth 20-50% of CGC 9.4 value
+- Maximum 10 prices, USD only
+- Use "raw" for ungraded comics"""
 
     try:
         response = client.messages.create(
@@ -559,9 +561,43 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     weighted_sum = 0
     weight_total = 0
     
+    # First pass: extract all prices for outlier detection
+    raw_prices = []
     for sale in sales:
         try:
             price = float(sale.get('price', 0))
+            if price > 0:
+                raw_prices.append(price)
+        except:
+            continue
+    
+    # Outlier filtering using IQR method (if we have enough data)
+    outlier_threshold_low = 0
+    outlier_threshold_high = float('inf')
+    
+    if len(raw_prices) >= 4:
+        sorted_prices = sorted(raw_prices)
+        q1_idx = len(sorted_prices) // 4
+        q3_idx = (3 * len(sorted_prices)) // 4
+        q1 = sorted_prices[q1_idx]
+        q3 = sorted_prices[q3_idx]
+        iqr = q3 - q1
+        outlier_threshold_low = max(0, q1 - 1.5 * iqr)
+        outlier_threshold_high = q3 + 1.5 * iqr
+    elif len(raw_prices) >= 2:
+        # For small samples, reject if price is >5x the minimum (likely CGC or wrong issue)
+        min_price = min(raw_prices)
+        outlier_threshold_high = min_price * 5
+    
+    for sale in sales:
+        try:
+            price = float(sale.get('price', 0))
+            
+            # Skip outliers
+            if price < outlier_threshold_low or price > outlier_threshold_high:
+                print(f"Outlier filtered: ${price} (thresholds: ${outlier_threshold_low:.2f}-${outlier_threshold_high:.2f})")
+                continue
+            
             date_str = sale.get('date', '')
             
             # Parse date
@@ -634,7 +670,14 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     if cv < 0.1:
         reasoning_parts.append("Prices very consistent")
     elif cv > 0.5:
-        reasoning_parts.append("Prices vary significantly")
+        reasoning_parts.append("⚠️ Prices vary significantly - value may be unreliable")
+    elif cv > 0.3:
+        reasoning_parts.append("Prices show moderate variation")
+    
+    # Warn if we filtered outliers
+    if outlier_threshold_high < float('inf') and len(raw_prices) > len(prices):
+        filtered_count = len(raw_prices) - len(prices)
+        reasoning_parts.append(f"Filtered {filtered_count} outlier(s)")
     
     result = EbayValuationResult(
         estimated_value=round(recency_weighted_avg, 2),
