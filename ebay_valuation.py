@@ -204,16 +204,32 @@ def init_cache_db():
                 price_max REAL,
                 sales_data TEXT,
                 reasoning TEXT,
-                cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                quick_sale REAL,
+                fair_value REAL,
+                high_end REAL,
+                lowest_bin REAL
             )
         ''')
+        
+        # Add new columns to existing tables (PostgreSQL supports IF NOT EXISTS)
+        for col in ['quick_sale', 'fair_value', 'high_end', 'lowest_bin']:
+            try:
+                cursor.execute(f'ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS {col} REAL')
+            except Exception as col_err:
+                print(f"Column {col} add note: {col_err}")
+                pass  # Column might already exist or other issue
+        
         conn.commit()
         cursor.close()
         conn.close()
         return True
     except Exception as e:
         print(f"Cache init error: {e}")
-        conn.close()
+        try:
+            conn.close()
+        except:
+            pass
         return False
 
 def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
@@ -230,7 +246,8 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
         
         cursor.execute('''
             SELECT estimated_value, confidence, confidence_score, num_sales, 
-                   price_min, price_max, sales_data, reasoning, cached_at
+                   price_min, price_max, sales_data, reasoning, cached_at,
+                   quick_sale, fair_value, high_end, lowest_bin
             FROM search_cache 
             WHERE search_key = %s
         ''', (search_key,))
@@ -247,6 +264,12 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
             
             # Check if cache is still valid
             if age_hours < CACHE_DURATION_HOURS:
+                # Get tiered pricing (may be None for old cache entries)
+                quick_sale = row[9] if len(row) > 9 and row[9] else row[4]  # fallback to price_min
+                fair_value = row[10] if len(row) > 10 and row[10] else row[0]  # fallback to estimated_value
+                high_end = row[11] if len(row) > 11 and row[11] else row[5]  # fallback to price_max
+                lowest_bin = row[12] if len(row) > 12 else None
+                
                 return EbayValuationResult(
                     estimated_value=row[0],
                     confidence=row[1],
@@ -255,7 +278,11 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
                     price_range=(row[4], row[5]),
                     recency_weighted_avg=row[0],
                     sales_data=json.loads(row[6]) if row[6] else [],
-                    reasoning=f"[CACHED] {row[7]}"
+                    reasoning=f"[CACHED] {row[7]}",
+                    quick_sale=quick_sale,
+                    fair_value=fair_value,
+                    high_end=high_end,
+                    lowest_bin=lowest_bin
                 )
         return None
     except Exception as e:
@@ -282,8 +309,9 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
         cursor.execute('''
             INSERT INTO search_cache 
             (title, issue, search_key, estimated_value, confidence, confidence_score,
-             num_sales, price_min, price_max, sales_data, reasoning, cached_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             num_sales, price_min, price_max, sales_data, reasoning, cached_at,
+             quick_sale, fair_value, high_end, lowest_bin)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (search_key) 
             DO UPDATE SET
                 estimated_value = EXCLUDED.estimated_value,
@@ -294,18 +322,23 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
                 price_max = EXCLUDED.price_max,
                 sales_data = EXCLUDED.sales_data,
                 reasoning = EXCLUDED.reasoning,
-                cached_at = EXCLUDED.cached_at
+                cached_at = EXCLUDED.cached_at,
+                quick_sale = EXCLUDED.quick_sale,
+                fair_value = EXCLUDED.fair_value,
+                high_end = EXCLUDED.high_end,
+                lowest_bin = EXCLUDED.lowest_bin
         ''', (
             title, issue, search_key, result.estimated_value, result.confidence,
             result.confidence_score, result.num_sales, result.price_range[0],
             result.price_range[1], json.dumps(result.sales_data), result.reasoning,
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            result.quick_sale, result.fair_value, result.high_end, result.lowest_bin
         ))
         
         conn.commit()
         cursor.close()
         conn.close()
-        print(f"Cached: {title} #{issue} = ${result.estimated_value}")
+        print(f"Cached: {title} #{issue} = ${result.estimated_value} (Quick: ${result.quick_sale}, Fair: ${result.fair_value}, High: ${result.high_end})")
     except Exception as e:
         print(f"Cache write error: {e}")
         try:
