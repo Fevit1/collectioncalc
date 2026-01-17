@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.0",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction"]
+        "version": "3.1",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -241,6 +241,132 @@ def check_cache():
     except Exception as e:
         debug_info['exception'] = str(e)
         return jsonify({'error': str(e), 'debug': debug_info}), 500
+
+# ============================================
+# eBay OAuth Integration Routes
+# ============================================
+
+@app.route('/api/ebay/auth', methods=['GET'])
+def ebay_auth():
+    """Start eBay OAuth flow - redirects user to eBay login."""
+    try:
+        from ebay_oauth import get_auth_url
+        
+        # Get user_id from query param (frontend generates and stores this)
+        user_id = request.args.get('user_id', 'default')
+        
+        # Generate auth URL with state parameter for security
+        auth_url = get_auth_url(state=user_id)
+        
+        return jsonify({
+            'auth_url': auth_url,
+            'message': 'Redirect user to auth_url to connect their eBay account'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ebay/callback', methods=['GET'])
+def ebay_callback():
+    """Handle eBay OAuth callback after user authorizes."""
+    try:
+        from ebay_oauth import exchange_code_for_token, save_user_token
+        
+        # Get authorization code from eBay
+        auth_code = request.args.get('code')
+        state = request.args.get('state', 'default')  # This is the user_id we passed
+        
+        if not auth_code:
+            # User declined or error occurred
+            error = request.args.get('error_description', 'Authorization failed')
+            return f"""
+            <html>
+            <head><title>eBay Connection Failed</title></head>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1>❌ Connection Failed</h1>
+                <p>{error}</p>
+                <p><a href="https://collectioncalc.com">Return to CollectionCalc</a></p>
+                <script>
+                    // Notify opener window if this was a popup
+                    if (window.opener) {{
+                        window.opener.postMessage({{ type: 'ebay_auth', success: false, error: '{error}' }}, '*');
+                        window.close();
+                    }}
+                </script>
+            </body>
+            </html>
+            """
+        
+        # Exchange code for tokens
+        token_data = exchange_code_for_token(auth_code)
+        
+        # Save tokens for this user
+        save_user_token(state, token_data)
+        
+        return f"""
+        <html>
+        <head><title>eBay Connected!</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h1>✅ eBay Connected!</h1>
+            <p>Your eBay account is now linked to CollectionCalc.</p>
+            <p>You can now list items directly from your valuations.</p>
+            <p><a href="https://collectioncalc.com">Return to CollectionCalc</a></p>
+            <script>
+                // Notify opener window if this was a popup
+                if (window.opener) {{
+                    window.opener.postMessage({{ type: 'ebay_auth', success: true, user_id: '{state}' }}, '*');
+                    window.close();
+                }}
+            </script>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"""
+        <html>
+        <head><title>eBay Connection Error</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h1>❌ Connection Error</h1>
+            <p>{str(e)}</p>
+            <p><a href="https://collectioncalc.com">Return to CollectionCalc</a></p>
+        </body>
+        </html>
+        """, 500
+
+@app.route('/api/ebay/status', methods=['GET'])
+def ebay_status():
+    """Check if user has connected their eBay account."""
+    try:
+        from ebay_oauth import is_user_connected
+        
+        user_id = request.args.get('user_id', 'default')
+        connected = is_user_connected(user_id)
+        
+        return jsonify({
+            'connected': connected,
+            'user_id': user_id
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'connected': False}), 500
+
+@app.route('/api/ebay/disconnect', methods=['POST', 'OPTIONS'])
+def ebay_disconnect():
+    """Disconnect user's eBay account."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_oauth import disconnect_user
+        
+        data = request.get_json()
+        user_id = data.get('user_id', 'default')
+        
+        success = disconnect_user(user_id)
+        
+        return jsonify({
+            'success': success,
+            'message': 'eBay account disconnected' if success else 'Failed to disconnect'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
