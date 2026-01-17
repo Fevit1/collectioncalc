@@ -46,6 +46,10 @@ class EbayValuationResult:
     fair_value: float = 0.0      # Median sold price - fair market value
     high_end: float = 0.0        # Highest recent sold - premium price
     lowest_bin: Optional[float] = None  # Current lowest Buy It Now price
+    # Per-tier confidence (0-100)
+    quick_sale_confidence: int = 50
+    fair_value_confidence: int = 50
+    high_end_confidence: int = 50
 
 # Recency weights
 RECENCY_WEIGHTS = {
@@ -208,14 +212,22 @@ def init_cache_db():
                 quick_sale REAL,
                 fair_value REAL,
                 high_end REAL,
-                lowest_bin REAL
+                lowest_bin REAL,
+                quick_sale_confidence INTEGER,
+                fair_value_confidence INTEGER,
+                high_end_confidence INTEGER
             )
         ''')
         
         # Add new columns to existing tables (PostgreSQL supports IF NOT EXISTS)
-        for col in ['quick_sale', 'fair_value', 'high_end', 'lowest_bin']:
+        new_columns = [
+            'quick_sale', 'fair_value', 'high_end', 'lowest_bin',
+            'quick_sale_confidence', 'fair_value_confidence', 'high_end_confidence'
+        ]
+        for col in new_columns:
             try:
-                cursor.execute(f'ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS {col} REAL')
+                col_type = 'INTEGER' if 'confidence' in col else 'REAL'
+                cursor.execute(f'ALTER TABLE search_cache ADD COLUMN IF NOT EXISTS {col} {col_type}')
             except Exception as col_err:
                 print(f"Column {col} add note: {col_err}")
                 pass  # Column might already exist or other issue
@@ -247,7 +259,8 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
         cursor.execute('''
             SELECT estimated_value, confidence, confidence_score, num_sales, 
                    price_min, price_max, sales_data, reasoning, cached_at,
-                   quick_sale, fair_value, high_end, lowest_bin
+                   quick_sale, fair_value, high_end, lowest_bin,
+                   quick_sale_confidence, fair_value_confidence, high_end_confidence
             FROM search_cache 
             WHERE search_key = %s
         ''', (search_key,))
@@ -270,6 +283,12 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
                 high_end = row[11] if len(row) > 11 and row[11] else row[5]  # fallback to price_max
                 lowest_bin = row[12] if len(row) > 12 else None
                 
+                # Get tier confidences (fallback to overall confidence for old entries)
+                base_conf = row[2] or 50
+                quick_sale_conf = row[13] if len(row) > 13 and row[13] else base_conf
+                fair_value_conf = row[14] if len(row) > 14 and row[14] else base_conf
+                high_end_conf = row[15] if len(row) > 15 and row[15] else base_conf
+                
                 return EbayValuationResult(
                     estimated_value=row[0],
                     confidence=row[1],
@@ -282,7 +301,10 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
                     quick_sale=quick_sale,
                     fair_value=fair_value,
                     high_end=high_end,
-                    lowest_bin=lowest_bin
+                    lowest_bin=lowest_bin,
+                    quick_sale_confidence=quick_sale_conf,
+                    fair_value_confidence=fair_value_conf,
+                    high_end_confidence=high_end_conf
                 )
         return None
     except Exception as e:
@@ -310,8 +332,9 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
             INSERT INTO search_cache 
             (title, issue, search_key, estimated_value, confidence, confidence_score,
              num_sales, price_min, price_max, sales_data, reasoning, cached_at,
-             quick_sale, fair_value, high_end, lowest_bin)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             quick_sale, fair_value, high_end, lowest_bin,
+             quick_sale_confidence, fair_value_confidence, high_end_confidence)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (search_key) 
             DO UPDATE SET
                 estimated_value = EXCLUDED.estimated_value,
@@ -326,13 +349,17 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
                 quick_sale = EXCLUDED.quick_sale,
                 fair_value = EXCLUDED.fair_value,
                 high_end = EXCLUDED.high_end,
-                lowest_bin = EXCLUDED.lowest_bin
+                lowest_bin = EXCLUDED.lowest_bin,
+                quick_sale_confidence = EXCLUDED.quick_sale_confidence,
+                fair_value_confidence = EXCLUDED.fair_value_confidence,
+                high_end_confidence = EXCLUDED.high_end_confidence
         ''', (
             title, issue, search_key, result.estimated_value, result.confidence,
             result.confidence_score, result.num_sales, result.price_range[0],
             result.price_range[1], json.dumps(result.sales_data), result.reasoning,
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            result.quick_sale, result.fair_value, result.high_end, result.lowest_bin
+            result.quick_sale, result.fair_value, result.high_end, result.lowest_bin,
+            result.quick_sale_confidence, result.fair_value_confidence, result.high_end_confidence
         ))
         
         conn.commit()
@@ -497,6 +524,69 @@ def calculate_confidence(num_sales: int, days_span: int, price_variance: float) 
     
     return label, score
 
+def calculate_tier_confidence(
+    base_confidence: int,
+    prices: List[float],
+    median_price: float,
+    has_bin: bool,
+    lowest_bin: Optional[float],
+    quick_sale: float,
+    high_end: float
+) -> tuple:
+    """
+    Calculate separate confidence scores for each pricing tier.
+    Returns (quick_sale_confidence, fair_value_confidence, high_end_confidence)
+    """
+    if not prices or median_price == 0:
+        return (25, 25, 25)  # Very low confidence for all if no data
+    
+    # Fair Value confidence = base confidence (median is most stable)
+    fair_value_conf = base_confidence
+    
+    # Quick Sale confidence
+    quick_sale_conf = base_confidence
+    if has_bin and lowest_bin:
+        # We have current BIN data - high confidence in quick sale price
+        quick_sale_conf += 15
+    else:
+        # Relying on min sold price only
+        quick_sale_conf -= 5
+        # Check if multiple sales near the min
+        min_price = min(prices)
+        near_min_count = sum(1 for p in prices if p <= min_price * 1.2)
+        if near_min_count >= 2:
+            quick_sale_conf += 10  # Multiple sales near floor = more confidence
+        elif len(prices) == 1:
+            quick_sale_conf -= 10  # Only 1 sale total = less confidence
+    
+    # High End confidence
+    high_end_conf = base_confidence
+    max_price = max(prices)
+    
+    # Check if max is an outlier compared to median
+    if median_price > 0:
+        ratio = max_price / median_price
+        if ratio > 2.0:
+            high_end_conf -= 25  # Max is >2x median - likely outlier
+        elif ratio > 1.5:
+            high_end_conf -= 15  # Max is >1.5x median - possible outlier
+        elif ratio <= 1.2:
+            high_end_conf += 5   # Max is close to median - consistent data
+    
+    # Check if multiple sales near the max
+    near_max_count = sum(1 for p in prices if p >= max_price * 0.8)
+    if near_max_count >= 2:
+        high_end_conf += 10  # Multiple high sales = more confidence
+    elif near_max_count == 1 and len(prices) > 1:
+        high_end_conf -= 10  # Single high sale among others = less confidence
+    
+    # Clamp all scores
+    quick_sale_conf = max(0, min(100, quick_sale_conf))
+    fair_value_conf = max(0, min(100, fair_value_conf))
+    high_end_conf = max(0, min(100, high_end_conf))
+    
+    return (quick_sale_conf, fair_value_conf, high_end_conf)
+
 def _single_search(client, title: str, issue: str, grade: str, publisher: str = None) -> tuple:
     """
     Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
@@ -618,7 +708,10 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning="No API key configured for web search"
+            reasoning="No API key configured for web search",
+            quick_sale_confidence=0,
+            fair_value_confidence=0,
+            high_end_confidence=0
         )
     
     client = anthropic.Anthropic(api_key=api_key)
@@ -705,7 +798,10 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning="No market prices found from web search"
+            reasoning="No market prices found from web search",
+            quick_sale_confidence=0,
+            fair_value_confidence=0,
+            high_end_confidence=0
         )
     
     # Process sales data
@@ -783,7 +879,10 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
             price_range=(0, 0),
             recency_weighted_avg=0,
             sales_data=[],
-            reasoning="Could not parse sales data"
+            reasoning="Could not parse sales data",
+            quick_sale_confidence=0,
+            fair_value_confidence=0,
+            high_end_confidence=0
         )
     
     # Calculate statistics
@@ -828,6 +927,17 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     # Calculate confidence
     confidence_label, confidence_score = calculate_confidence(len(prices), days_span, cv)
     
+    # Calculate per-tier confidence
+    quick_sale_conf, fair_value_conf, high_end_conf = calculate_tier_confidence(
+        base_confidence=confidence_score,
+        prices=prices,
+        median_price=median_price,
+        has_bin=lowest_bin is not None,
+        lowest_bin=lowest_bin,
+        quick_sale=quick_sale,
+        high_end=high_end
+    )
+    
     # Build reasoning
     reasoning_parts = [
         f"Found {len(prices)} price(s) from 3-sample search",
@@ -866,7 +976,10 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         quick_sale=round(quick_sale, 2),
         fair_value=round(fair_value, 2),
         high_end=round(high_end, 2),
-        lowest_bin=round(lowest_bin, 2) if lowest_bin else None
+        lowest_bin=round(lowest_bin, 2) if lowest_bin else None,
+        quick_sale_confidence=quick_sale_conf,
+        fair_value_confidence=fair_value_conf,
+        high_end_confidence=high_end_conf
     )
     
     # Save to cache for future requests
@@ -933,6 +1046,9 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
             'fair_value': ebay_result.fair_value if ebay_result.num_sales > 0 else round(final_value, 2),
             'high_end': ebay_result.high_end if ebay_result.num_sales > 0 else round(final_value * 1.3, 2),
             'lowest_bin': ebay_result.lowest_bin,
+            'quick_sale_confidence': ebay_result.quick_sale_confidence if ebay_result.num_sales > 0 else 30,
+            'fair_value_confidence': ebay_result.fair_value_confidence if ebay_result.num_sales > 0 else 50,
+            'high_end_confidence': ebay_result.high_end_confidence if ebay_result.num_sales > 0 else 30,
             'debug': {
                 'ebay_attempted': True,
                 'ebay_reasoning': ebay_result.reasoning,
@@ -960,6 +1076,9 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'fair_value': ebay_result.fair_value,
                 'high_end': ebay_result.high_end,
                 'lowest_bin': ebay_result.lowest_bin,
+                'quick_sale_confidence': ebay_result.quick_sale_confidence,
+                'fair_value_confidence': ebay_result.fair_value_confidence,
+                'high_end_confidence': ebay_result.high_end_confidence,
                 'debug': {
                     'ebay_attempted': True,
                     'ebay_reasoning': ebay_result.reasoning,
@@ -990,6 +1109,9 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
                 'fair_value': round(result.final_value, 2),
                 'high_end': round(result.final_value * 1.3, 2),
                 'lowest_bin': None,
+                'quick_sale_confidence': 15,
+                'fair_value_confidence': 20,
+                'high_end_confidence': 15,
                 'debug': {
                     'ebay_attempted': True,
                     'ebay_reasoning': 'No results found',
