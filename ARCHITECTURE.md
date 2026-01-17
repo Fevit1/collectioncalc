@@ -15,10 +15,11 @@
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │                    index.html                            │    │
 │  │  - Brand UI (Indigo/Purple/Cyan gradient)               │    │
-│  │  - Form inputs (title, issue, grade, publisher, year)   │    │
+│  │  - Simplified form (title, issue, grade only)           │    │
 │  │  - Animated calculator loading                          │    │
 │  │  - Thinking steps display                               │    │
-│  │  - Results with confidence indicators                   │    │
+│  │  - Three-tier pricing (Quick Sale/Fair Value/High End)  │    │
+│  │  - Details toggle (sales count, confidence, analysis)   │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -43,30 +44,22 @@
 │  │ - Title search   │ │ - Web search │ │ - Grade adjust   │    │
 │  │ - Issue lookup   │ │ - Caching    │ │ - Era factors    │    │
 │  │ - Fuzzy match    │ │ - Aliases    │ │ - Publisher adj  │    │
-│  └────────┬─────────┘ │ - Spelling   │ └──────────────────┘    │
-│           │           └──────┬───────┘                          │
-│           ▼                  │                                   │
-│  ┌──────────────────┐        │                                   │
-│  │comics_pricing.db │        │                                   │
-│  │   (144 comics)   │        │                                   │
-│  └──────────────────┘        │                                   │
-│                              │                                   │
-│  ┌──────────────────┐        │                                   │
-│  │ price_cache.db   │◄───────┘                                   │
-│  │ (48hr TTL)       │                                            │
-│  └──────────────────┘                                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Web Search API
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      ANTHROPIC API                               │
-│                                                                  │
-│  - Claude with web_search tool                                   │
-│  - Searches: eBay, GoCollect, CovrPrice, Heritage, etc.         │
-│  - Returns JSON with prices, dates, grades, sources             │
-│  - Corrects spelling errors                                      │
-└─────────────────────────────────────────────────────────────────┘
+│  └──────────────────┘ │ - Spelling   │ └──────────────────┘    │
+│                       │ - Grade filter│                         │
+│                       │ - BIN prices │                          │
+│                       └──────┬───────┘                          │
+└──────────────────────────────┼──────────────────────────────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                                 ▼
+┌─────────────────────────┐      ┌─────────────────────────────────┐
+│   RENDER PostgreSQL     │      │         ANTHROPIC API           │
+│                         │      │                                 │
+│  search_cache table     │      │  - Claude with web_search tool  │
+│  - Tiered pricing       │      │  - eBay sold listings           │
+│  - 48hr TTL             │      │  - Buy It Now prices            │
+│  - Grade-filtered data  │      │  - Returns structured JSON      │
+└─────────────────────────┘      └─────────────────────────────────┘
 ```
 
 ## Data Flow
@@ -80,60 +73,64 @@
 2. Alias expansion: "Amazing Spider-Man #300 VF"
                     │
                     ▼
-3. Check price_cache.db (48hr TTL)
+3. Check PostgreSQL cache (48hr TTL)
          │                    │
          │ HIT               │ MISS
          ▼                    ▼
-4a. Return cached       4b. Check comics_pricing.db
-    result                        │
-                         ┌───────┴───────┐
-                         │ FOUND         │ NOT FOUND
-                         ▼               ▼
-                   5a. Search web    5b. Search web
-                       for market        for prices
-                       validation        │
-                         │               │
-                         ▼               ▼
-                   6a. Blend DB +   6b. Use web
-                       web prices       prices only
-                         │               │
-                         └───────┬───────┘
-                                 ▼
-                   7. Calculate confidence score
-                      - Volume factor
-                      - Recency factor  
-                      - Variance factor
+4a. Return cached       4b. AI web search
+    result (with            │
+    3 price tiers)          ▼
+                       5. Parse results:
+                          - Sold listings (with grades)
+                          - Buy It Now prices
                                  │
                                  ▼
-                   8. Cache result (48hr)
+                       6. Filter by grade (±0.5 tolerance)
+                          VF request → only VF-, VF, VF+ sales
                                  │
                                  ▼
-                   9. Return to user
+                       7. Calculate three tiers:
+                          - Quick Sale = lowest BIN or min sold
+                          - Fair Value = median sold
+                          - High End = max sold
+                                 │
+                                 ▼
+                       8. Calculate confidence score
+                          - Volume factor
+                          - Recency factor  
+                          - Variance factor
+                                 │
+                                 ▼
+                       9. Cache result (48hr)
+                          with all three tiers
+                                 │
+                                 ▼
+                      10. Return to user:
+                          {
+                            quick_sale: $X,
+                            fair_value: $Y,
+                            high_end: $Z,
+                            lowest_bin: $B,
+                            confidence: "MEDIUM-HIGH"
+                          }
 ```
 
-## Databases
+## Database
 
-### comics_pricing.db (Static Reference)
+### Render PostgreSQL (Managed Service)
 
-```sql
-CREATE TABLE comics (
-    id INTEGER PRIMARY KEY,
-    title TEXT NOT NULL,
-    issue TEXT NOT NULL,
-    year INTEGER,
-    publisher TEXT,
-    base_value REAL,
-    notes TEXT
-);
-```
+CollectionCalc uses Render's managed PostgreSQL for persistent storage. This replaced the original SQLite files in January 2026.
 
-**144 comics** covering key issues from major publishers.
+**Why PostgreSQL?**
+- Render's free tier SQLite files don't persist across deploys
+- Managed service = automatic backups, no file management
+- Scales better for future growth
 
-### price_cache.db (Dynamic Cache)
+### search_cache Table
 
 ```sql
 CREATE TABLE search_cache (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     issue TEXT NOT NULL,
     search_key TEXT UNIQUE NOT NULL,
@@ -143,15 +140,44 @@ CREATE TABLE search_cache (
     num_sales INTEGER,
     price_min REAL,
     price_max REAL,
-    sales_data TEXT,  -- JSON
+    sales_data TEXT,  -- JSON array of sales
     reasoning TEXT,
-    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Three-tier pricing (added Jan 2026)
+    quick_sale REAL,      -- Lowest BIN or floor price
+    fair_value REAL,      -- Median sold price
+    high_end REAL,        -- Maximum recent sold
+    lowest_bin REAL       -- Current Buy It Now price
 );
 ```
 
-**48-hour TTL** - Results expire after 2 days for fresh data.
+**48-hour TTL** - Results expire after 2 days for fresh market data.
 
 ## Key Algorithms
+
+### Grade Filtering
+
+Sales are filtered to match the requested grade within ±0.5 on the grade scale:
+
+| Grade | Value | Accepts |
+|-------|-------|---------|
+| MT | 10.0 | MT only |
+| NM | 9.4 | NM-, NM, NM+ |
+| VF | 8.0 | VF-, VF, VF+ |
+| FN | 6.0 | FN-, FN, FN+ |
+| VG | 4.0 | VG-, VG, VG+ |
+| G | 2.0 | G-, G, G+ |
+| Raw | 6.0 | ~FN equivalent |
+
+This prevents a VF request from being skewed by NM or FN sales.
+
+### Three-Tier Pricing
+
+| Tier | Calculation | Use Case |
+|------|-------------|----------|
+| Quick Sale | Lowest BIN, or min sold if no BIN | Sell fast |
+| Fair Value | Median of grade-filtered sales | Market value |
+| High End | Max of grade-filtered sales | Patient seller |
 
 ### Recency Weighting
 
@@ -195,28 +221,37 @@ Labels:
   <30: VERY LOW
 ```
 
-### Blending Strategy
+### Per-Tier Confidence Adjustments
+
+Each pricing tier gets its own confidence score based on data quality:
+
+| Tier | Adjustments |
+|------|-------------|
+| **Quick Sale** | +15 if BIN data exists; -5 if no BIN; +10 if multiple sales near floor |
+| **Fair Value** | Uses base confidence (median is most stable metric) |
+| **High End** | -25 if max >2x median (outlier); -15 if max >1.5x median; +10 if multiple high sales |
+
+### Data Source Strategy
 
 | Scenario | Action |
 |----------|--------|
-| DB + High confidence web (70%+) | Use web price |
-| DB + Low confidence web | 50/50 blend |
-| DB only | Grade-adjusted DB value |
-| Web only | Direct web price |
-| Neither | Default estimate, VERY LOW confidence |
+| Cache hit (< 48hr) | Return cached tiered pricing |
+| Cache miss | AI web search → calculate tiers → cache |
+| No sales found | Return error, VERY LOW confidence |
+
+*Note: The original local database (comics_pricing.db) is no longer used. All pricing comes from real-time market data via AI web search.*
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `wsgi.py` | Flask API server, routes |
-| `ebay_valuation.py` | Web search, caching, aliases, spelling |
+| `ebay_valuation.py` | Web search, caching, aliases, spelling, grade filtering, tiered pricing |
 | `valuation_model.py` | Grade adjustments, era factors |
-| `comic_lookup.py` | Database search |
-| `database_schema.py` | Schema definitions |
-| `comics_pricing.db` | Reference database |
-| `price_cache.db` | Search result cache |
+| `comic_lookup.py` | Database search (legacy) |
+| `database_schema.py` | Schema definitions (legacy) |
 | `index.html` | Frontend UI |
+| `requirements.txt` | Python dependencies (includes psycopg2) |
 
 ## Hosting
 
@@ -224,6 +259,7 @@ Labels:
 |-----------|------|-----|------|
 | Frontend | Cloudflare Pages | collectioncalc.pages.dev | Free |
 | Backend | Render | collectioncalc.onrender.com | Free |
+| Database | Render PostgreSQL | (internal) | Free |
 | AI | Anthropic API | api.anthropic.com | ~$0.03/search |
 
 ## Environment Variables
@@ -231,7 +267,8 @@ Labels:
 | Variable | Location | Purpose |
 |----------|----------|---------|
 | `ANTHROPIC_API_KEY` | Render | Web search API access |
+| `DATABASE_URL` | Render | PostgreSQL connection string (auto-set by Render) |
 
 ---
 
-*Last updated: January 2026*
+*Last updated: January 17, 2026*

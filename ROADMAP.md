@@ -56,9 +56,76 @@ Real market data with intelligent weighting.
 - [x] Thinking steps display
 - [x] Price formatting with commas
 
+### Phase 2.7: Three-Tier Pricing ✅
+Actionable pricing for different selling scenarios.
+
+- [x] Three-tier valuation display:
+  - **Quick Sale** - Lowest BIN or floor price (sell fast)
+  - **Fair Value** - Median sold price (market value)
+  - **High End** - Maximum recent sold (premium/patient seller)
+- [x] Buy It Now price integration (current market ceiling)
+- [x] Tighter grade filtering (±0.5 grade tolerance)
+- [x] Cache now stores all pricing tiers
+- [x] PostgreSQL database migration (from SQLite)
+- [x] Per-tier confidence scoring:
+  - Quick Sale: boosted if BIN data exists
+  - Fair Value: base confidence (most stable)
+  - High End: lowered if max is outlier vs median
+- [x] UI simplification:
+  - Removed Publisher and Year fields (AI auto-detects)
+  - Collapsed Market Data into "Details" toggle
+  - Confidence scores moved to Details section
+  - Clean 3-box display for prices
+
+---
+
+## In Progress 🔨
+
+### Phase 2.8: eBay Listing Integration
+One-click listing from valuation results.
+
+- [x] eBay Developer account registered
+- [ ] OAuth flow for user eBay accounts
+- [ ] "List on eBay" buttons (3 price tiers)
+- [ ] Photo upload for listings
+- [ ] Create eBay listing via Inventory API
+- [ ] Listing confirmation & tracking
+
+**Status:** Awaiting eBay Developer API approval (~1-2 business days)
+
 ---
 
 ## Planned 📋
+
+### Phase 2.9: Cache Refresh Strategy
+Keep valuations fresh without breaking the bank.
+
+| Phase | Trigger | Cost Impact |
+|-------|---------|-------------|
+| **Now** | 48-hour expiration, refresh on next search | $0 extra |
+| **Beta** | Hybrid: serve stale, background refresh if >7 days | $0 extra |
+| **Production** | Weekly background refresh for active comics | ~$80-165/week |
+| **Scale** | Use Haiku for bulk refreshes | ~$40/week |
+
+- [ ] Implement hybrid stale-while-revalidate
+- [ ] Track "active" comics (searched in last 30 days)
+- [ ] Background job infrastructure (when revenue supports)
+- [ ] Model selection for refresh (Sonnet vs Haiku)
+
+---
+
+### Phase 2.95: UI Improvements
+Better experience for different use cases.
+
+- [ ] Bulk results table view (for multi-comic valuations)
+- [ ] Advanced Options toggle:
+  - CGC/CBCS certified checkbox + grade (e.g., 9.8)
+  - Autographed checkbox + signer name
+  - Newsstand vs Direct edition
+  - Variant cover description
+- [ ] Mobile-responsive refinements
+
+---
 
 ### Phase 3: Admin Tuning Dashboard
 Owner controls for model refinement.
@@ -200,4 +267,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 15, 2026*
+*Last updated: January 17, 2026*
