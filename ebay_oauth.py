@@ -81,17 +81,24 @@ def init_ebay_tokens_table():
             pass
         return False
 
-def get_auth_url(state: str = None, use_sandbox: bool = False) -> str:
+def is_sandbox_mode() -> bool:
+    """Check if we're using eBay sandbox environment."""
+    return os.environ.get('EBAY_SANDBOX', '').lower() in ('true', '1', 'yes')
+
+def get_auth_url(state: str = None, use_sandbox: bool = None) -> str:
     """
     Generate the eBay OAuth authorization URL.
     
     Args:
         state: Optional state parameter for CSRF protection
-        use_sandbox: If True, use sandbox environment
+        use_sandbox: If True, use sandbox environment. If None, check EBAY_SANDBOX env var.
     
     Returns:
         URL to redirect user to for eBay authorization
     """
+    if use_sandbox is None:
+        use_sandbox = is_sandbox_mode()
+    
     client_id = os.environ.get('EBAY_CLIENT_ID')
     runame = os.environ.get('EBAY_RUNAME')
     
@@ -112,17 +119,20 @@ def get_auth_url(state: str = None, use_sandbox: bool = False) -> str:
     
     return f"{base_url}?{urlencode(params)}"
 
-def exchange_code_for_token(auth_code: str, use_sandbox: bool = False) -> dict:
+def exchange_code_for_token(auth_code: str, use_sandbox: bool = None) -> dict:
     """
     Exchange authorization code for access token.
     
     Args:
         auth_code: The authorization code from eBay callback
-        use_sandbox: If True, use sandbox environment
+        use_sandbox: If True, use sandbox environment. If None, check EBAY_SANDBOX env var.
     
     Returns:
         Dict with access_token, refresh_token, expires_in
     """
+    if use_sandbox is None:
+        use_sandbox = is_sandbox_mode()
+    
     client_id = os.environ.get('EBAY_CLIENT_ID')
     client_secret = os.environ.get('EBAY_CLIENT_SECRET')
     runame = os.environ.get('EBAY_RUNAME')
@@ -155,17 +165,20 @@ def exchange_code_for_token(auth_code: str, use_sandbox: bool = False) -> dict:
     
     return response.json()
 
-def refresh_access_token(refresh_token: str, use_sandbox: bool = False) -> dict:
+def refresh_access_token(refresh_token: str, use_sandbox: bool = None) -> dict:
     """
     Refresh an expired access token.
     
     Args:
         refresh_token: The refresh token
-        use_sandbox: If True, use sandbox environment
+        use_sandbox: If True, use sandbox environment. If None, check EBAY_SANDBOX env var.
     
     Returns:
         Dict with new access_token, expires_in
     """
+    if use_sandbox is None:
+        use_sandbox = is_sandbox_mode()
+    
     client_id = os.environ.get('EBAY_CLIENT_ID')
     client_secret = os.environ.get('EBAY_CLIENT_SECRET')
     
