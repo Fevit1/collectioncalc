@@ -408,13 +408,56 @@
             padding: 15px 20px;
             border-radius: 12px;
             background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.1);
             min-width: 110px;
-            transition: transform 0.2s, border-color 0.2s;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            cursor: help;
         }
         .tier:hover {
             transform: translateY(-2px);
-            border-color: rgba(255,255,255,0.2);
+        }
+        /* Confidence-based border colors */
+        .tier.conf-high {
+            border-color: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+        }
+        .tier.conf-medium-high {
+            border-color: #a855f7;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+        }
+        .tier.conf-medium {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+        }
+        .tier.conf-low {
+            border-color: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+        .tier.conf-very-low {
+            border-color: #6b7280;
+            box-shadow: none;
+        }
+        /* Tooltip for confidence */
+        .tier::after {
+            content: attr(data-confidence);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .tier:hover::after {
+            opacity: 1;
         }
         .tier-label {
             font-size: 0.75rem;
@@ -433,10 +476,6 @@
             color: var(--text-muted);
         }
         .tier.quick-sale .tier-price { color: #22c55e; }
-        .tier.fair-value {
-            border-color: var(--brand-cyan);
-            background: rgba(6, 182, 212, 0.1);
-        }
         .tier.fair-value .tier-price { 
             background: var(--value-gradient);
             -webkit-background-clip: text;
@@ -444,6 +483,11 @@
             background-clip: text;
         }
         .tier.high-end .tier-price { color: #f59e0b; }
+        .bin-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 10px 0 15px;
+        }
         .result-card.error .price {
             background: none;
             -webkit-text-fill-color: var(--status-error);
@@ -740,6 +784,24 @@
                                     <option value="FR">Fair (FR)</option>
                                     <option value="PR">Poor (PR)</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="publisher">Publisher <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
+                                <select id="publisher">
+                                    <option value="">-- Auto-detect --</option>
+                                    <option value="Marvel Comics">Marvel</option>
+                                    <option value="DC Comics">DC</option>
+                                    <option value="Image Comics">Image</option>
+                                    <option value="Dark Horse">Dark Horse</option>
+                                    <option value="IDW">IDW</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="year">Year <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
+                                <input type="number" id="year" placeholder="Auto-detect" min="1900" max="2030">
                             </div>
                         </div>
                         <button type="submit" id="submitBtn">Get Valuation</button>
@@ -1428,8 +1490,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             const data = {
                 title: document.getElementById('title').value,
                 issue: document.getElementById('issue').value,
-                year: null,
-                publisher: null,
+                year: parseInt(document.getElementById('year').value) || null,
+                publisher: document.getElementById('publisher').value || null,
                 grade: document.getElementById('grade').value
             };
             
@@ -1472,19 +1534,33 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 const quickSale = json.quick_sale || (json.final_value * 0.7);
                 const fairValue = json.fair_value || json.final_value;
                 const highEnd = json.high_end || (json.final_value * 1.3);
+                const lowestBin = json.lowest_bin;
                 
                 // Get tier confidences (fallback to overall confidence)
                 const quickSaleConf = json.quick_sale_confidence || json.confidence_score || 50;
                 const fairValueConf = json.fair_value_confidence || json.confidence_score || 50;
                 const highEndConf = json.high_end_confidence || json.confidence_score || 50;
                 
+                // Helper to get confidence class
+                const getConfClass = (score) => {
+                    if (score >= 70) return 'conf-high';
+                    if (score >= 50) return 'conf-medium';
+                    if (score >= 30) return 'conf-low';
+                    return 'conf-very-low';
+                };
+                
                 // Helper to get confidence label
                 const getConfLabel = (score) => {
-                    if (score >= 70) return 'High';
-                    if (score >= 50) return 'Medium';
-                    if (score >= 30) return 'Low';
-                    return 'Very Low';
+                    if (score >= 70) return `High confidence (${score}%)`;
+                    if (score >= 50) return `Medium confidence (${score}%)`;
+                    if (score >= 30) return `Low confidence (${score}%)`;
+                    return `Very low confidence (${score}%)`;
                 };
+                
+                let binNote = '';
+                if (lowestBin) {
+                    binNote = `<p class="bin-note">💡 Current Buy It Now: $${formatPrice(lowestBin)}</p>`;
+                }
                 
                 // Build details section content
                 const salesCount = json.ebay_sales || 0;
@@ -1493,22 +1569,23 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 resultContent.innerHTML = `
                     <p class="result-label">Value Range</p>
                     <div class="price-tiers">
-                        <div class="tier quick-sale">
+                        <div class="tier quick-sale ${getConfClass(quickSaleConf)}" data-confidence="${getConfLabel(quickSaleConf)}">
                             <span class="tier-label">Quick Sale</span>
                             <span class="tier-price">$${formatPrice(quickSale)}</span>
                             <span class="tier-desc">Sell fast</span>
                         </div>
-                        <div class="tier fair-value">
+                        <div class="tier fair-value ${getConfClass(fairValueConf)}" data-confidence="${getConfLabel(fairValueConf)}">
                             <span class="tier-label">Fair Value</span>
                             <span class="tier-price">$${formatPrice(fairValue)}</span>
                             <span class="tier-desc">Market median</span>
                         </div>
-                        <div class="tier high-end">
+                        <div class="tier high-end ${getConfClass(highEndConf)}" data-confidence="${getConfLabel(highEndConf)}">
                             <span class="tier-label">High End</span>
                             <span class="tier-price">$${formatPrice(highEnd)}</span>
                             <span class="tier-desc">Premium price</span>
                         </div>
                     </div>
+                    ${binNote}
                     <button class="details-toggle" onclick="this.classList.toggle('active'); this.nextElementSibling.classList.toggle('show');">
                         Details
                     </button>
@@ -1524,19 +1601,6 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <div class="stat-row">
                             <span class="stat-label">Data Source</span>
                             <span class="stat-value">${sourceText}</span>
-                        </div>
-                        <h4 style="margin-top: 15px;">Confidence</h4>
-                        <div class="stat-row">
-                            <span class="stat-label">Quick Sale</span>
-                            <span class="stat-value">${getConfLabel(quickSaleConf)} (${quickSaleConf}%)</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Fair Value</span>
-                            <span class="stat-value">${getConfLabel(fairValueConf)} (${fairValueConf}%)</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">High End</span>
-                            <span class="stat-value">${getConfLabel(highEndConf)} (${highEndConf}%)</span>
                         </div>
                         <h4 style="margin-top: 15px;">Analysis</h4>
                         <p>${json.reasoning || 'No additional details'}</p>
