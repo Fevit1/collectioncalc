@@ -348,6 +348,26 @@ def ebay_status():
     except Exception as e:
         return jsonify({'error': str(e), 'connected': False}), 500
 
+@app.route('/api/ebay/debug', methods=['GET'])
+def ebay_debug():
+    """Debug endpoint to check eBay configuration."""
+    import os
+    from ebay_oauth import is_sandbox_mode, EBAY_TOKEN_URL, EBAY_SANDBOX_TOKEN_URL
+    
+    sandbox_mode = is_sandbox_mode()
+    token_url = EBAY_SANDBOX_TOKEN_URL if sandbox_mode else EBAY_TOKEN_URL
+    
+    return jsonify({
+        'sandbox_mode': sandbox_mode,
+        'EBAY_SANDBOX_env': os.environ.get('EBAY_SANDBOX', 'NOT SET'),
+        'token_url_being_used': token_url,
+        'client_id_set': bool(os.environ.get('EBAY_CLIENT_ID')),
+        'client_id_preview': os.environ.get('EBAY_CLIENT_ID', '')[:20] + '...' if os.environ.get('EBAY_CLIENT_ID') else None,
+        'client_secret_set': bool(os.environ.get('EBAY_CLIENT_SECRET')),
+        'runame_set': bool(os.environ.get('EBAY_RUNAME')),
+        'runame': os.environ.get('EBAY_RUNAME', 'NOT SET')
+    })
+
 @app.route('/api/ebay/disconnect', methods=['POST', 'OPTIONS'])
 def ebay_disconnect():
     """Disconnect user's eBay account."""
