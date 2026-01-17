@@ -1,0 +1,249 @@
+﻿# CollectionCalc Roadmap
+
+## Vision
+
+**CollectionCalc is a multi-collectible valuation platform.** 
+
+Comics are the first vertical. Future expansion includes:
+- Sports cards (baseball, basketball, football, hockey)
+- Trading card games (Pokémon, Magic: The Gathering, Yu-Gi-Oh!)
+- Coins & numismatics
+- Stamps
+- Vinyl records
+- Video games
+- Sneakers
+- Watches
+
+Our goal: Build the most accurate, user-informed valuation tool by combining real market data with community feedback - across ALL collectibles.
+
+---
+
+## Completed ✅
+
+### Phase 0: Core MVP
+- [x] Database schema (SQLite)
+- [x] Basic valuation model with grade adjustments
+- [x] Comic lookup system
+- [x] API server (Flask)
+- [x] Deployed to Render (free tier)
+- [x] Basic frontend UI
+
+### Phase 1: Infrastructure
+- [x] GitHub repo setup
+- [x] CORS support for frontend
+- [x] Health check endpoints
+- [x] Error handling
+- [x] Frontend hosted on Cloudflare Pages
+- [x] Backend hosted on Render
+
+### Phase 2: eBay-Powered Valuation Model ✅
+Real market data with intelligent weighting.
+
+- [x] AI web search for market prices (eBay, GoCollect, etc.)
+- [x] Parse recent sale prices with dates and grades
+- [x] Recency weighting (this week 100% → older 25%)
+- [x] Volume-based confidence scoring
+- [x] Price variance analysis
+- [x] Database + market data blending
+- [x] 48-hour result caching for consistency
+- [x] Title alias table (ASM → Amazing Spider-Man)
+- [x] AI spelling correction ("Captian" → "Captain")
+
+### Phase 2.5: Brand & UX ✅
+- [x] Brand guidelines document (Option 3: Dark + Gradient)
+- [x] New color scheme (Indigo/Purple/Cyan)
+- [x] Animated calculator loading icon
+- [x] Thinking steps display
+- [x] Price formatting with commas
+
+### Phase 2.7: Three-Tier Pricing ✅
+Actionable pricing for different selling scenarios.
+
+- [x] Three-tier valuation display:
+  - **Quick Sale** - Lowest BIN or floor price (sell fast)
+  - **Fair Value** - Median sold price (market value)
+  - **High End** - Maximum recent sold (premium/patient seller)
+- [x] Buy It Now price integration (current market ceiling)
+- [x] Tighter grade filtering (±0.5 grade tolerance)
+- [x] Cache now stores all pricing tiers
+- [x] PostgreSQL database migration (from SQLite)
+
+---
+
+## In Progress 🔨
+
+### Phase 2.8: eBay Listing Integration
+One-click listing from valuation results.
+
+- [x] eBay Developer account registered
+- [ ] OAuth flow for user eBay accounts
+- [ ] "List on eBay" buttons (3 price tiers)
+- [ ] Photo upload for listings
+- [ ] Create eBay listing via Inventory API
+- [ ] Listing confirmation & tracking
+
+**Status:** Awaiting eBay Developer API approval (~1-2 business days)
+
+---
+
+## Planned 📋
+
+### Phase 2.9: Cache Refresh Strategy
+Keep valuations fresh without breaking the bank.
+
+| Phase | Trigger | Cost Impact |
+|-------|---------|-------------|
+| **Now** | 48-hour expiration, refresh on next search | $0 extra |
+| **Beta** | Hybrid: serve stale, background refresh if >7 days | $0 extra |
+| **Production** | Weekly background refresh for active comics | ~$80-165/week |
+| **Scale** | Use Haiku for bulk refreshes | ~$40/week |
+
+- [ ] Implement hybrid stale-while-revalidate
+- [ ] Track "active" comics (searched in last 30 days)
+- [ ] Background job infrastructure (when revenue supports)
+- [ ] Model selection for refresh (Sonnet vs Haiku)
+
+---
+
+### Phase 3: Admin Tuning Dashboard
+Owner controls for model refinement.
+
+- [ ] Web dashboard for adjusting weights
+  - Recency decay curve
+  - Volume thresholds
+  - Variance tolerance
+- [ ] Preview changes across sample comics
+- [ ] A/B testing framework
+- [ ] Rollback capability
+
+### Phase 4: User Adjustments
+Let users provide feedback and personalize.
+
+- [ ] "This seems high/low" feedback buttons
+- [ ] User adjustment history
+- [ ] Optional: Personal weight preferences
+- [ ] Track all adjustments as training data
+
+### Phase 5: Model Learning
+Use community data to improve base model.
+
+- [ ] Analyze adjustment patterns
+  - "Users consistently lower VG prices by 15%"
+  - "Golden Age books undervalued by 20%"
+- [ ] Generate proposed model changes
+- [ ] Admin approval workflow
+- [ ] Version history for model changes
+
+### Phase 6: Price Prediction & Trends
+Forecast future values based on market momentum.
+
+#### 6.1 - Trend Analysis
+- [ ] Track price history over time per comic
+- [ ] Calculate momentum (rate of change)
+- [ ] Identify acceleration (is growth speeding up or slowing?)
+
+#### 6.2 - Prediction Model
+| Trend Signal | Prediction |
+|--------------|------------|
+| Strong upward + accelerating | "Expected +X% in 30 days" |
+| Upward but slowing | "Growth may stabilize" |
+| Flat | "Stable pricing expected" |
+| Downward | "Expected -X% in 30 days" |
+
+#### 6.3 - Prediction Confidence
+- More historical data = higher confidence
+- Recent volatility = lower confidence
+- External factors (movie announcements, etc.) = flag as "catalyst detected"
+
+#### 6.4 - Dashboards
+- [ ] Individual comic price chart with forecast line
+- [ ] **Top 10 Hottest** - Fastest predicted increases
+- [ ] **Top 10 Cooling** - Biggest predicted decreases
+- [ ] **Trending Now** - Comics with sudden momentum shifts
+
+#### 6.5 - Alerts (Future)
+- [ ] "Absolute Batman #1 jumped 15% this week"
+- [ ] User watchlists with price alerts
+- [ ] Weekly "market movers" email digest
+
+### Phase 7: Photo Upload
+AI-powered comic identification.
+
+- [ ] Upload photo of comic cover
+- [ ] Claude extracts: title, issue, publisher, year
+- [ ] Condition estimation from cover quality
+- [ ] Auto-fill form fields
+- [ ] Batch upload for collections
+
+### Phase 8: Advanced Features
+- [ ] Price history charts
+- [ ] Collection portfolio tracking
+- [ ] Price alerts ("notify me if X drops below $50")
+- [ ] Export to CSV/PDF
+- [ ] Public API for third-party integrations
+
+### Phase 9: Multi-Collectible Expansion
+Extend platform to additional verticals.
+
+| Phase | Vertical | Complexity | Key Features |
+|-------|----------|------------|--------------|
+| 9.1 | Sports Cards | Medium | PSA/BGS grades, rookie flags, auto/jersey |
+| 9.2 | Pokémon/TCGs | Medium | Set info, rarity, 1st edition, holo types |
+| 9.3 | Coins | High | Mint marks, die varieties, strike quality |
+| 9.4 | Vinyl Records | Medium | Pressing info, matrix numbers, Discogs data |
+| 9.5 | Sneakers | Medium | Colorway, collabs, deadstock status |
+| 9.6 | Watches | High | Complex market, authentication needs |
+
+#### Shared Core Engine (reusable across verticals)
+- [ ] eBay search abstraction
+- [ ] Recency weighting (universal)
+- [ ] Confidence scoring (universal)
+- [ ] Price prediction (universal)
+- [ ] User adjustments (universal)
+- [ ] Photo upload/recognition (per-vertical training)
+
+---
+
+## Budget Phases 💰
+
+| Phase | Monthly Cost | Stack |
+|-------|--------------|-------|
+| MVP (Current) | ~$0-3 | Render free + SQLite |
+| Beta | ~$7-15 | Render paid + SQLite |
+| Production | ~$25-50 | When revenue justifies |
+
+---
+
+## Success Metrics
+
+### Accuracy Metrics
+- **User adjustments trending toward zero** - Model matches expectations
+- **Confidence calibration** - High confidence = accurate predictions
+
+### Coverage Metrics
+- **DB hit rate** - % of lookups found in database vs requiring AI search
+- **Collectible verticals** - Number of active verticals (target: 5+ by 2027)
+
+### Engagement Metrics
+- **Return users** - Users coming back to value more items
+- **Collections tracked** - Total items in user portfolios
+- **Feedback submissions** - Community corrections submitted
+
+### Business Metrics
+- **Cost per valuation** - Target: <$0.01 average (with DB caching)
+- **API revenue** - Third-party integrations (future)
+
+---
+
+## Related Documents
+
+- [Architecture](ARCHITECTURE.md) - System diagrams
+- [Brand Guidelines](BRAND_GUIDELINES.md) - Colors, typography, UI components
+- [Competitive Analysis](COMPETITIVE_ANALYSIS.md) - Market research & academic findings
+- [Database](DATABASE.md) - Schema documentation
+- [Budget](BUDGET.md) - Hosting strategy
+
+---
+
+*Last updated: January 16, 2026*
+
