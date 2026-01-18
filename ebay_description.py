@@ -8,7 +8,8 @@ import anthropic
 
 # eBay description constraints
 MAX_DESCRIPTION_LENGTH = 4000
-BANNED_WORDS = ['fuck', 'shit', 'damn', 'ass', 'bitch', 'crap']  # Simplified list
+# Only match standalone bad words, not parts of names like "Cassidy" or "classic"
+BANNED_WORDS_PATTERN = r'\b(fuck|shit|damn|bitch|crap)\b'
 
 def generate_description(title: str, issue: str, grade: str, price: float, 
                          publisher: str = None, year: int = None) -> dict:
@@ -59,23 +60,29 @@ def generate_description(title: str, issue: str, grade: str, price: float,
         
         grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
         
-        prompt = f"""Generate a VERY SHORT eBay listing description for this comic book.
+        prompt = f"""Generate a 300 character eBay listing description for this comic book.
 
 Comic: {comic_info}
-Grade: {grade} - {grade_desc}
 
-MAXIMUM 300 CHARACTERS TOTAL. This is critical for mobile display.
+TARGET: Exactly 250-300 characters. This is critical for eBay mobile display.
 
-Example (283 characters):
-"This is Firestorm #1 from DC Comics (1978), a Bronze Age key introducing Ronnie Raymond and Prof. Martin Stein. Art by Al Milgrom, story by Gerry Conway. Grade: VF - sharp copy with minor wear. Please review all photos carefully. Feel free to message with any questions."
+Example (267 characters):
+"DC Comics (1984), Bronze Age. KEY ISSUE: First appearance of Blue Devil (Dan Cassidy). Created by Dan Mishkin, Gary Cohn, and Paris Cullins. A must-have for Bronze Age DC collectors and fans of supernatural superhero comics."
 
-Write in this exact style:
-- Sentence 1: What it is (title, publisher, year/era, key characters or significance)
-- Sentence 2: Creators if notable
-- Sentence 3: Grade and what it means
-- Sentence 4: "Please review all photos carefully. Feel free to message with any questions."
+Include ONLY:
+- Publisher and year
+- Era (Golden/Silver/Bronze/Copper/Modern Age)
+- KEY ISSUE status if applicable (first appearance, origin, death, major event) - call this out explicitly
+- Key characters introduced or featured
+- Creators (writer/artist) if notable
+- Why it's collectible (1 short phrase)
 
-Do NOT mention shipping, CollectionCalc, or AI. Use plain text, no HTML tags.
+Do NOT include:
+- Grade or condition (shown separately on eBay)
+- "Please review photos" or similar (seller policies cover this)
+- Shipping or packaging info
+- CollectionCalc or AI mentions
+- HTML tags - plain text only
 
 Generate only the description, nothing else."""
 
@@ -117,30 +124,19 @@ def _generate_template_description(title: str, issue: str, grade: str, price: fl
                                    publisher: str = None, year: int = None) -> str:
     """Generate a basic template-based description as fallback. Target: under 300 chars."""
     
-    grade_descriptions = {
-        'MT': 'Mint - perfect condition',
-        'NM': 'Near Mint - excellent with minimal wear',
-        'VF': 'Very Fine - sharp with minor wear',
-        'FN': 'Fine - above-average with moderate wear',
-        'VG': 'Very Good - moderate wear, fully intact',
-        'G': 'Good - noticeable wear, great for reading',
-        'FR': 'Fair - heavy wear but complete',
-        'PR': 'Poor - significant wear'
-    }
+    # Build concise description - no grade, no "review photos" (those appear elsewhere)
+    parts = [f"{title} #{issue}"]
     
-    grade_text = grade_descriptions.get(grade.upper(), f'{grade} condition')
-    
-    # Build concise description - target under 300 chars
-    comic_desc = f"This is {title} #{issue}"
     if publisher and year:
-        comic_desc += f" from {publisher} ({year})"
+        parts.append(f"from {publisher} ({year})")
     elif publisher:
-        comic_desc += f" from {publisher}"
+        parts.append(f"from {publisher}")
     elif year:
-        comic_desc += f" ({year})"
-    comic_desc += f". Grade: {grade} - {grade_text}. Please review all photos carefully. Feel free to message with any questions."
+        parts.append(f"({year})")
     
-    return comic_desc
+    parts.append("- A collectible comic for any collection.")
+    
+    return " ".join(parts)
 
 
 def _sanitize_description(description: str) -> str:
@@ -155,13 +151,9 @@ def _sanitize_description(description: str) -> str:
             lines = lines[:-1]
         description = '\n'.join(lines)
     
-    # Remove banned words (case insensitive)
-    desc_lower = description.lower()
-    for word in BANNED_WORDS:
-        if word in desc_lower:
-            # Replace with asterisks
-            import re
-            description = re.sub(re.escape(word), '*' * len(word), description, flags=re.IGNORECASE)
+    # Remove banned words using word boundaries (won't catch "Cassidy" or "classic")
+    import re
+    description = re.sub(BANNED_WORDS_PATTERN, lambda m: '*' * len(m.group()), description, flags=re.IGNORECASE)
     
     # Remove potentially problematic HTML tags
     import re
@@ -201,11 +193,10 @@ def validate_description(description: str) -> dict:
     if len(description) < 50:
         issues.append("Description too short (minimum 50 characters recommended)")
     
-    desc_lower = description.lower()
-    for word in BANNED_WORDS:
-        if word in desc_lower:
-            issues.append(f"Contains inappropriate language")
-            break
+    # Check for banned words using word boundaries
+    import re
+    if re.search(BANNED_WORDS_PATTERN, description, re.IGNORECASE):
+        issues.append("Contains inappropriate language")
     
     # Check for external links
     if 'http://' in description or 'https://' in description or 'www.' in description:
