@@ -59,31 +59,29 @@ def generate_description(title: str, issue: str, grade: str, price: float,
         
         grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
         
-        prompt = f"""Generate a SHORT eBay listing description for this comic book.
+        prompt = f"""Generate a VERY SHORT eBay listing description for this comic book.
 
 Comic: {comic_info}
 Grade: {grade} - {grade_desc}
 
-Write 2-3 sentences MAXIMUM, similar to this example:
-"The product is Firestorm #1, a comic book published by DC Comics in March 1978 during the Bronze Age era. The storyline introduces Ronnie Raymond and Prof. Martin Stein in a superhero genre setting. With artwork by Al Milgrom and writing by Gerry Conway, this collectible comic is a key addition to any collection."
+MAXIMUM 300 CHARACTERS TOTAL. This is critical for mobile display.
 
-Then add the grade in one short sentence.
-Then end with: "Please review all photos carefully before purchasing. Feel free to message with any questions."
+Example (283 characters):
+"This is Firestorm #1 from DC Comics (1978), a Bronze Age key introducing Ronnie Raymond and Prof. Martin Stein. Art by Al Milgrom, story by Gerry Conway. Grade: VF - sharp copy with minor wear. Please review all photos carefully. Feel free to message with any questions."
 
-Requirements:
-- Keep it SHORT - 4-5 sentences total max
-- Include publisher and era if known
-- Mention 1-2 key characters or why it's significant
-- Do NOT mention shipping or packaging
-- Do NOT mention CollectionCalc or AI
-- Use simple HTML (<p> tags only)
-- Do NOT include title or price (eBay shows those)
+Write in this exact style:
+- Sentence 1: What it is (title, publisher, year/era, key characters or significance)
+- Sentence 2: Creators if notable
+- Sentence 3: Grade and what it means
+- Sentence 4: "Please review all photos carefully. Feel free to message with any questions."
 
-Generate only the HTML, nothing else."""
+Do NOT mention shipping, CollectionCalc, or AI. Use plain text, no HTML tags.
+
+Generate only the description, nothing else."""
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=1000,
+            max_tokens=200,
             messages=[{"role": "user", "content": prompt}]
         )
         
@@ -95,6 +93,8 @@ Generate only the HTML, nothing else."""
         # Validate length
         if len(description) > MAX_DESCRIPTION_LENGTH:
             description = description[:MAX_DESCRIPTION_LENGTH-3] + "..."
+        
+        print(f"AI description generated successfully for {title} #{issue}")
         
         return {
             'success': True,
@@ -115,12 +115,12 @@ Generate only the HTML, nothing else."""
 
 def _generate_template_description(title: str, issue: str, grade: str, price: float,
                                    publisher: str = None, year: int = None) -> str:
-    """Generate a basic template-based description as fallback."""
+    """Generate a basic template-based description as fallback. Target: under 300 chars."""
     
     grade_descriptions = {
-        'MT': 'Mint - perfect, as-new condition',
-        'NM': 'Near Mint - excellent condition with minimal wear',
-        'VF': 'Very Fine - sharp copy with minor wear',
+        'MT': 'Mint - perfect condition',
+        'NM': 'Near Mint - excellent with minimal wear',
+        'VF': 'Very Fine - sharp with minor wear',
         'FN': 'Fine - above-average with moderate wear',
         'VG': 'Very Good - moderate wear, fully intact',
         'G': 'Good - noticeable wear, great for reading',
@@ -130,19 +130,17 @@ def _generate_template_description(title: str, issue: str, grade: str, price: fl
     
     grade_text = grade_descriptions.get(grade.upper(), f'{grade} condition')
     
-    # Build concise description
+    # Build concise description - target under 300 chars
     comic_desc = f"This is {title} #{issue}"
-    if publisher:
+    if publisher and year:
+        comic_desc += f" from {publisher} ({year})"
+    elif publisher:
         comic_desc += f" from {publisher}"
-    if year:
+    elif year:
         comic_desc += f" ({year})"
-    comic_desc += "."
+    comic_desc += f". Grade: {grade} - {grade_text}. Please review all photos carefully. Feel free to message with any questions."
     
-    return f"""<p>{comic_desc} A collectible comic for any collection.</p>
-
-<p><b>Grade:</b> {grade} - {grade_text}.</p>
-
-<p>Please review all photos carefully before purchasing. Feel free to message with any questions.</p>"""
+    return comic_desc
 
 
 def _sanitize_description(description: str) -> str:

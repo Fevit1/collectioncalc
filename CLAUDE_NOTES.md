@@ -1,5 +1,8 @@
 # Claude Working Notes - CollectionCalc Project
 
+## IMPORTANT RULE
+**Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
+
 ## About Mike
 - **Name:** Mike (not "this user"!)
 - **Role:** Product Manager in high tech, manages people (not hands-on dev)
@@ -110,6 +113,7 @@
 - [ ] Bulk listing with batch review
 - [ ] User tone preference setting for descriptions
 - [ ] Mobile timeout fix for fresh valuations
+- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
 
 ---
 *Last updated: January 17, 2026*
