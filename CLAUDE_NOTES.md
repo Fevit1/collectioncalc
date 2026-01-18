@@ -58,6 +58,12 @@
 - eBay Developer account approval (waiting ~1-2 business days)
 - Cloudflare Access setup for authentication (weekend task)
 
+### Tomorrow's Agenda (Weekend)
+1. **Analytics setup** - Track usage (Mike has Wordle site with 90 users/day, wants better insights)
+2. **Mobile testing** - Make sure it works on phone before friends try it
+3. **Cloudflare custom domain** - Point collectioncalc.com to Pages
+4. **Cloudflare Access** - Email-based auth for friends beta
+
 ### Next Up
 - Cloudflare custom domain setup (collectioncalc.com)
 - Cloudflare Access (email-based auth for friends beta)
@@ -78,6 +84,32 @@
 - **No confidence colors on boxes:** Too confusing without context
 - **48-hour cache:** Balance between freshness and API costs
 - **Future pricing:** ~$400/week for 25k comics if doing weekly refresh (defer until revenue)
+- **eBay description tone:** Professional (sets us apart, looks reliable)
+- **eBay returns:** Let eBay handle via seller's existing policies
+
+## Future Considerations
+- **Bulk processing costs:** Need to understand how processing 5, 10, 100 comics at once affects Anthropic API costs and response time. Consider batching strategies, Haiku for bulk operations, or parallel vs sequential processing. (Cross this bridge when we build bulk features)
+
+## Friends Beta Checklist
+- [ ] Analytics (know who's using it)
+- [ ] Mobile works
+- [ ] Cloudflare Access (auth)
+- [ ] Custom domain live
+- [ ] Feedback mechanism (Report Issue link?)
+- [ ] Landing copy explains what it does
+- [ ] Error states handled gracefully
+- [ ] Anthropic billing alerts set
+
+## Future Investigation
+- [ ] **Bulk processing costs** - Understand how processing multiple comics (10, 50, 100) affects Anthropic API costs and response time. Important for pricing decisions.
+
+## Roadmap Items (from conversations)
+- [ ] Bulk photo/video upload + extraction
+- [ ] Table view for multi-comic results  
+- [ ] Batch description generation
+- [ ] Bulk listing with batch review
+- [ ] User tone preference setting for descriptions
+- [ ] Mobile timeout fix for fresh valuations
 
 ---
 *Last updated: January 17, 2026*

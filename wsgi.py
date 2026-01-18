@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.1",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth"]
+        "version": "3.3",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -387,6 +387,83 @@ def ebay_disconnect():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ebay/list', methods=['POST', 'OPTIONS'])
+def ebay_list():
+    """Create an eBay listing for a comic."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_listing import create_listing
+        
+        data = request.get_json()
+        user_id = data.get('user_id', 'default')
+        title = data.get('title')
+        issue = data.get('issue')
+        price = data.get('price')
+        grade = data.get('grade', 'VF')
+        description = data.get('description')  # User-approved description
+        
+        if not all([title, issue, price]):
+            return jsonify({'success': False, 'error': 'Missing required fields: title, issue, price'}), 400
+        
+        result = create_listing(user_id, title, issue, float(price), grade, description)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ebay/generate-description', methods=['POST', 'OPTIONS'])
+def generate_ebay_description():
+    """Generate an AI-powered description for an eBay listing."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_description import generate_description, validate_description
+        
+        data = request.get_json()
+        title = data.get('title')
+        issue = data.get('issue')
+        grade = data.get('grade', 'VF')
+        price = data.get('price', 0)
+        publisher = data.get('publisher')
+        year = data.get('year')
+        
+        if not all([title, issue]):
+            return jsonify({'success': False, 'error': 'Missing required fields: title, issue'}), 400
+        
+        result = generate_description(title, issue, grade, float(price), publisher, year)
+        
+        # Also validate the generated description
+        if result.get('success'):
+            validation = validate_description(result['description'])
+            result['validation'] = validation
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ebay/validate-description', methods=['POST', 'OPTIONS'])
+def validate_ebay_description():
+    """Validate a user-edited description before submission."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_description import validate_description
+        
+        data = request.get_json()
+        description = data.get('description', '')
+        
+        result = validate_description(description)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'valid': False, 'issues': [str(e)]}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

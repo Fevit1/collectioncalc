@@ -606,6 +606,170 @@
             height: 16px;
         }
         
+        /* Listing Preview Modal */
+        .listing-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .listing-modal-overlay.show {
+            display: flex;
+        }
+        .listing-modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-default);
+        }
+        .listing-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .listing-modal-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+        }
+        .listing-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .listing-modal-close:hover {
+            color: var(--text-primary);
+        }
+        .listing-modal-body {
+            padding: 20px;
+        }
+        .listing-preview-row {
+            margin-bottom: 15px;
+        }
+        .listing-preview-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .listing-preview-value {
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .listing-preview-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #22c55e;
+        }
+        .listing-preview-image {
+            width: 100%;
+            max-width: 200px;
+            border-radius: 8px;
+            border: 1px solid var(--border-default);
+            margin: 10px 0;
+        }
+        .listing-description-edit {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        .listing-description-edit:focus {
+            outline: none;
+            border-color: var(--brand-purple);
+        }
+        .listing-validation {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .listing-validation.valid {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--status-success);
+        }
+        .listing-validation.invalid {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--status-error);
+        }
+        .listing-modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .listing-btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .listing-btn-cancel:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+        .listing-btn-confirm {
+            background: linear-gradient(135deg, #e53238, #f5af02);
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .listing-btn-confirm:hover {
+            opacity: 0.9;
+        }
+        .listing-btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .listing-generating {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .listing-generating .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-default);
+            border-top-color: var(--brand-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         /* Summary card */
         .summary-card {
             background: var(--bg-primary);
@@ -908,6 +1072,25 @@
         </footer>
     </div>
     
+    <!-- eBay Listing Preview Modal -->
+    <div class="listing-modal-overlay" id="listingModal">
+        <div class="listing-modal">
+            <div class="listing-modal-header">
+                <h3>📦 Preview eBay Listing</h3>
+                <button class="listing-modal-close" onclick="closeListingModal()">&times;</button>
+            </div>
+            <div class="listing-modal-body" id="listingModalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="listing-modal-footer">
+                <button class="listing-btn-cancel" onclick="closeListingModal()">Cancel</button>
+                <button class="listing-btn-confirm" id="confirmListingBtn" onclick="confirmListing()">
+                    Confirm & List on eBay
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         const API_URL = 'https://collectioncalc.onrender.com';
         let apiKey = localStorage.getItem('anthropic_api_key') || '';
@@ -979,15 +1162,193 @@
             }
         }
         
+        // Pending listing data
+        let pendingListing = null;
+        
+        // Placeholder image (base64 encoded simple SVG)
+        const PLACEHOLDER_IMAGE = `data:image/svg+xml;base64,${btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+                <rect width="300" height="300" fill="#1a1a2e"/>
+                <rect x="50" y="60" width="200" height="140" rx="10" fill="#2a2a4e" stroke="#4f46e5" stroke-width="2"/>
+                <text x="150" y="190" text-anchor="middle" fill="#7c3aed" font-family="Arial" font-size="14" font-weight="bold">CollectionCalc</text>
+                <circle cx="150" cy="120" r="35" fill="none" stroke="#06b6d4" stroke-width="3"/>
+                <text x="150" y="128" text-anchor="middle" fill="#06b6d4" font-family="Arial" font-size="24" font-weight="bold">$</text>
+                <text x="150" y="240" text-anchor="middle" fill="#94a3b8" font-family="Arial" font-size="12">Photo Coming Soon</text>
+                <text x="150" y="260" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="10">Add your photo on eBay</text>
+            </svg>
+        `)}`;
+        
         async function listOnEbay(title, issue, price, tier) {
             if (!ebayConnected) {
                 alert('Please connect your eBay account first');
                 return;
             }
             
-            // For now, just show what would be listed
-            // TODO: Implement actual listing creation
-            alert(`Coming soon!\n\nWould list:\n${title} #${issue}\nPrice: $${price.toFixed(2)}\nTier: ${tier}`);
+            // Get the grade from the form
+            const grade = document.getElementById('grade')?.value || 'VF';
+            
+            // Store pending listing data
+            pendingListing = { title, issue, price, tier, grade, description: '' };
+            
+            // Show modal with loading state
+            const modal = document.getElementById('listingModal');
+            const modalBody = document.getElementById('listingModalBody');
+            
+            modalBody.innerHTML = `
+                <div class="listing-generating">
+                    <div class="spinner"></div>
+                    <p>Generating professional description...</p>
+                </div>
+            `;
+            
+            modal.classList.add('show');
+            document.getElementById('confirmListingBtn').disabled = true;
+            
+            try {
+                // Generate description via API
+                const response = await fetch(`${API_URL}/api/ebay/generate-description`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        issue: issue,
+                        grade: grade,
+                        price: price
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    pendingListing.description = result.description;
+                    showListingPreview();
+                } else {
+                    throw new Error(result.error || 'Failed to generate description');
+                }
+            } catch (e) {
+                console.error('Description generation error:', e);
+                // Use a basic fallback description
+                pendingListing.description = `<p><b>Condition:</b> ${grade}</p><p>Please review photos carefully. Feel free to ask any questions!</p>`;
+                showListingPreview();
+            }
+        }
+        
+        function showListingPreview() {
+            const modalBody = document.getElementById('listingModalBody');
+            const { title, issue, price, tier, grade, description } = pendingListing;
+            
+            modalBody.innerHTML = `
+                <div class="listing-preview-row">
+                    <div class="listing-preview-label">Title</div>
+                    <div class="listing-preview-value">${title} #${issue} - ${grade} Condition</div>
+                </div>
+                
+                <div class="listing-preview-row">
+                    <div class="listing-preview-label">Price (${tier})</div>
+                    <div class="listing-preview-price">$${price.toFixed(2)}</div>
+                </div>
+                
+                <div class="listing-preview-row">
+                    <div class="listing-preview-label">Placeholder Image</div>
+                    <img src="${PLACEHOLDER_IMAGE}" alt="Photo Coming Soon" class="listing-preview-image">
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+                        You can add your actual photos after listing on eBay
+                    </p>
+                </div>
+                
+                <div class="listing-preview-row">
+                    <div class="listing-preview-label">Description (editable)</div>
+                    <textarea class="listing-description-edit" id="listingDescription" 
+                        oninput="validateListingDescription()">${escapeHtml(description)}</textarea>
+                    <div class="listing-validation" id="descriptionValidation"></div>
+                </div>
+            `;
+            
+            document.getElementById('confirmListingBtn').disabled = false;
+            validateListingDescription();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function validateListingDescription() {
+            const description = document.getElementById('listingDescription').value;
+            const validationDiv = document.getElementById('descriptionValidation');
+            const confirmBtn = document.getElementById('confirmListingBtn');
+            
+            // Basic client-side validation
+            const issues = [];
+            if (description.length > 4000) {
+                issues.push(`Too long (${description.length}/4000 chars)`);
+            }
+            if (description.length < 50) {
+                issues.push('Too short (minimum 50 characters)');
+            }
+            if (/https?:\/\/|www\./i.test(description)) {
+                issues.push('External links not allowed');
+            }
+            
+            if (issues.length > 0) {
+                validationDiv.className = 'listing-validation invalid';
+                validationDiv.textContent = '⚠️ ' + issues.join(', ');
+                confirmBtn.disabled = true;
+            } else {
+                validationDiv.className = 'listing-validation valid';
+                validationDiv.textContent = '✓ Description looks good (' + description.length + '/4000 chars)';
+                confirmBtn.disabled = false;
+            }
+            
+            // Update pending listing
+            pendingListing.description = description;
+        }
+        
+        function closeListingModal() {
+            document.getElementById('listingModal').classList.remove('show');
+            pendingListing = null;
+        }
+        
+        async function confirmListing() {
+            if (!pendingListing) return;
+            
+            const confirmBtn = document.getElementById('confirmListingBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Creating listing...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/ebay/list`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: ebayUserId,
+                        title: pendingListing.title,
+                        issue: pendingListing.issue,
+                        price: pendingListing.price,
+                        grade: pendingListing.grade,
+                        description: pendingListing.description
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeListingModal();
+                    alert(`✅ Listed successfully!\n\nView your listing:\n${result.listing_url}`);
+                    window.open(result.listing_url, '_blank');
+                } else if (result.needs_setup) {
+                    alert(`⚠️ Setup Required\n\n${result.error}\n\nPlease set up your seller account on eBay first.`);
+                } else {
+                    alert(`❌ Listing failed\n\n${result.error}`);
+                }
+            } catch (e) {
+                console.error('Listing error:', e);
+                alert(`❌ Error creating listing: ${e.message}`);
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm & List on eBay';
+            }
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
