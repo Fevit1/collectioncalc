@@ -65,16 +65,22 @@ Comic: {comic_info}
 Grade: {grade} - {grade_desc}
 Price: ${price:.2f}
 
+Write a description similar to this eBay style example:
+"The product is Firestorm #1, a comic book published by DC Comics in March 1978 during the Bronze Age era of US Comics. The storyline introduces characters such as Ronnie Raymond, Mr. Taubman, Firestorm, Prof. Martin Stein, and Doreen Day in a superhero genre setting. With artwork by Joe Rubinstein, Gerry Conway, Adrienne Roy, and Klaus Janson, this collectible comic is a key addition to any comics and graphic novels collection."
+
 Requirements:
-1. Professional, trustworthy tone (like a reputable comic shop)
-2. Maximum 500 words
-3. Include the grade and what it means for buyers
-4. Mention careful packaging and shipping
-5. Use clean HTML formatting (only <p>, <br>, <b>, <ul>, <li> tags)
-6. Do NOT include the title or price in the description (eBay shows those separately)
-7. Do NOT include any contact information, external links, or store policies
-8. Do NOT use any profanity or inappropriate language
-9. End with a friendly note encouraging questions
+1. Professional, collector-focused tone
+2. Include publisher and publication era (Golden Age, Silver Age, Bronze Age, Modern Age) if you know it
+3. Mention key characters that appear in this issue
+4. Mention creators (writer, artist) if you know them
+5. Explain why this issue is collectible or significant
+6. Include the grade and briefly what it means
+7. Do NOT mention shipping, packaging, or handling
+8. Do NOT mention CollectionCalc or that this was AI-generated
+9. Use clean HTML formatting (only <p>, <br>, <b> tags - no lists)
+10. Do NOT include the title or price (eBay shows those separately)
+11. Do NOT include any contact information, external links, or policies
+12. End with exactly: "Please review all photos carefully before purchasing. Feel free to message with any questions."
 
 Generate only the description HTML, nothing else."""
 
@@ -115,35 +121,34 @@ def _generate_template_description(title: str, issue: str, grade: str, price: fl
     """Generate a basic template-based description as fallback."""
     
     grade_descriptions = {
-        'MT': 'Mint condition - This comic is in perfect, as-new condition.',
-        'NM': 'Near Mint condition - Excellent copy with only minimal wear visible upon close inspection.',
-        'VF': 'Very Fine condition - A sharp, attractive copy with minor wear.',
-        'FN': 'Fine condition - An above-average copy with moderate wear.',
-        'VG': 'Very Good condition - Shows moderate wear but is fully intact and complete.',
-        'G': 'Good condition - A well-read copy with noticeable wear. Great reading copy.',
-        'FR': 'Fair condition - Heavy wear present but the comic is complete.',
-        'PR': 'Poor condition - Significant wear and possible damage. For collectors who need any copy.'
+        'MT': 'Mint - perfect, as-new condition with no visible wear',
+        'NM': 'Near Mint - excellent condition with only minimal wear visible upon close inspection',
+        'VF': 'Very Fine - a sharp, attractive copy with minor wear',
+        'FN': 'Fine - an above-average copy showing moderate wear',
+        'VG': 'Very Good - shows moderate wear but is fully intact and complete',
+        'G': 'Good - a well-read copy with noticeable wear, ideal for reading',
+        'FR': 'Fair - heavy wear present but the comic is complete',
+        'PR': 'Poor - significant wear and possible damage, for collectors who need any copy'
     }
     
-    grade_text = grade_descriptions.get(grade.upper(), f'{grade} condition.')
+    grade_text = grade_descriptions.get(grade.upper(), f'{grade} condition')
     
-    description = f"""<p><b>Condition:</b> {grade} - {grade_text}</p>
-
-<p>This comic has been carefully evaluated and graded. What you see is what you get.</p>
-
-<p><b>What to expect:</b></p>
-<ul>
-<li>Carefully packaged with comic boards and protective sleeve</li>
-<li>Shipped securely to prevent damage</li>
-<li>Fast handling - usually ships within 1-2 business days</li>
-</ul>
-
-<p><b>About this listing:</b></p>
-<p>This listing was created using CollectionCalc, an AI-powered comic valuation tool. The price reflects current market conditions based on recent sales data.</p>
-
-<p>Please review all photos carefully before purchasing. Feel free to message with any questions - I'm happy to provide additional photos or information!</p>"""
+    # Build basic description
+    desc_parts = []
     
-    return description
+    comic_desc = f"This is {title} #{issue}"
+    if publisher:
+        comic_desc += f", published by {publisher}"
+    if year:
+        comic_desc += f" in {year}"
+    comic_desc += "."
+    desc_parts.append(f"<p>{comic_desc}</p>")
+    
+    desc_parts.append(f"<p><b>Condition:</b> {grade} - {grade_text}.</p>")
+    desc_parts.append("<p>This comic has been carefully evaluated and graded. A great addition to any collection.</p>")
+    desc_parts.append("<p>Please review all photos carefully before purchasing. Feel free to message with any questions.</p>")
+    
+    return "\n\n".join(desc_parts)
 
 
 def _sanitize_description(description: str) -> str:
