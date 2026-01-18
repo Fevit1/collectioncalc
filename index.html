@@ -543,6 +543,69 @@
             font-weight: 500;
         }
         
+        /* eBay integration styles */
+        .ebay-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .ebay-connect-btn {
+            background: linear-gradient(135deg, #e53238, #f5af02);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ebay-connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(229, 50, 56, 0.3);
+        }
+        .ebay-connected {
+            color: var(--status-success);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+        .list-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .list-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .list-btn:hover {
+            border-color: #e53238;
+            color: #e53238;
+            background: rgba(229, 50, 56, 0.1);
+        }
+        .list-btn.listing {
+            opacity: 0.7;
+            cursor: wait;
+        }
+        .ebay-logo {
+            width: 16px;
+            height: 16px;
+        }
+        
         /* Summary card */
         .summary-card {
             background: var(--bg-primary);
@@ -851,7 +914,83 @@
         let currentMode = 'manual';
         let extractedItems = [];
         
-        document.addEventListener('DOMContentLoaded', () => {
+        // eBay integration state
+        let ebayUserId = localStorage.getItem('ebay_user_id') || generateUserId();
+        let ebayConnected = false;
+        
+        function generateUserId() {
+            const id = 'user_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('ebay_user_id', id);
+            return id;
+        }
+        
+        async function checkEbayConnection() {
+            try {
+                const response = await fetch(`${API_URL}/api/ebay/status?user_id=${ebayUserId}`);
+                const data = await response.json();
+                ebayConnected = data.connected;
+                return ebayConnected;
+            } catch (e) {
+                console.log('eBay status check failed:', e);
+                return false;
+            }
+        }
+        
+        async function connectEbay() {
+            try {
+                const response = await fetch(`${API_URL}/api/ebay/auth?user_id=${ebayUserId}`);
+                const data = await response.json();
+                
+                // Open eBay auth in popup
+                const popup = window.open(data.auth_url, 'ebay_auth', 'width=600,height=700');
+                
+                // Listen for completion
+                window.addEventListener('message', async (event) => {
+                    if (event.data.type === 'ebay_auth') {
+                        if (event.data.success) {
+                            ebayConnected = true;
+                            updateEbayUI();
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('eBay connect failed:', e);
+                alert('Failed to connect to eBay. Please try again.');
+            }
+        }
+        
+        function updateEbayUI() {
+            const ebaySection = document.getElementById('ebaySection');
+            if (ebaySection) {
+                if (ebayConnected) {
+                    ebaySection.innerHTML = `
+                        <p class="ebay-connected">✓ eBay Connected</p>
+                        <div class="list-buttons" id="listButtons"></div>
+                    `;
+                } else {
+                    ebaySection.innerHTML = `
+                        <button class="ebay-connect-btn" onclick="connectEbay()">
+                            <svg class="ebay-logo" viewBox="0 0 24 24" fill="currentColor"><path d="M7.95 5.63c-3.16 0-5.7 2.31-5.7 5.16 0 2.13 1.39 3.94 3.34 4.65v.01c.3.11.59.25.86.41.97.57 1.62 1.57 1.62 2.73 0 1.78-1.5 3.22-3.36 3.22-.93 0-1.77-.37-2.38-.96l-.01-.01c-.15-.15-.38-.15-.53 0-.15.15-.15.38 0 .53.76.74 1.8 1.19 2.92 1.19 2.31 0 4.11-1.79 4.11-3.97 0-1.51-.85-2.82-2.1-3.55-.32-.19-.67-.35-1.03-.48v-.01c-1.55-.57-2.62-2.01-2.62-3.71 0-2.22 1.89-4.01 4.23-4.01 1.4 0 2.64.66 3.41 1.67.12.16.35.19.51.07.16-.12.19-.35.07-.51-.92-1.21-2.41-2-4.09-2h.75zM16.05 5.63c-3.16 0-5.7 2.31-5.7 5.16s2.54 5.16 5.7 5.16 5.7-2.31 5.7-5.16-2.54-5.16-5.7-5.16zm0 9.17c-2.34 0-4.23-1.79-4.23-4.01s1.89-4.01 4.23-4.01 4.23 1.79 4.23 4.01-1.89 4.01-4.23 4.01z"/></svg>
+                            Connect eBay Account
+                        </button>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">List items directly from your valuations</p>
+                    `;
+                }
+            }
+        }
+        
+        async function listOnEbay(title, issue, price, tier) {
+            if (!ebayConnected) {
+                alert('Please connect your eBay account first');
+                return;
+            }
+            
+            // For now, just show what would be listed
+            // TODO: Implement actual listing creation
+            alert(`Coming soon!\n\nWould list:\n${title} #${issue}\nPrice: $${price.toFixed(2)}\nTier: ${tier}`);
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
             if (apiKey && apiKey.startsWith('sk-ant-')) {
                 document.getElementById('apiSetup').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
@@ -859,6 +998,9 @@
                 document.getElementById('apiSetup').style.display = 'block';
                 document.getElementById('mainApp').style.display = 'none';
             }
+            
+            // Check eBay connection status
+            await checkEbayConnection();
             
             const uploadArea = document.getElementById('uploadArea');
             uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
@@ -1541,7 +1683,37 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <h4 style="margin-top: 15px;">Analysis</h4>
                         <p>${json.reasoning || 'No additional details'}</p>
                     </div>
+                    <div class="ebay-section" id="ebaySection"></div>
                 `;
+                
+                // Update eBay section based on connection status
+                updateEbayUI();
+                
+                // Store current comic info for listing
+                window.currentComic = {
+                    title: data.title,
+                    issue: data.issue,
+                    quickSale: quickSale,
+                    fairValue: fairValue,
+                    highEnd: highEnd
+                };
+                
+                // If connected, show list buttons
+                if (ebayConnected) {
+                    const escTitle = data.title.replace(/'/g, "\\'");
+                    const escIssue = data.issue.replace(/'/g, "\\'");
+                    document.getElementById('listButtons').innerHTML = `
+                        <button class="list-btn" onclick="listOnEbay('${escTitle}', '${escIssue}', ${quickSale}, 'Quick Sale')">
+                            List at $${formatPrice(quickSale)}
+                        </button>
+                        <button class="list-btn" onclick="listOnEbay('${escTitle}', '${escIssue}', ${fairValue}, 'Fair Value')">
+                            List at $${formatPrice(fairValue)}
+                        </button>
+                        <button class="list-btn" onclick="listOnEbay('${escTitle}', '${escIssue}', ${highEnd}, 'High End')">
+                            List at $${formatPrice(highEnd)}
+                        </button>
+                    `;
+                }
                 
                 document.getElementById('result').classList.add('show');
                 
