@@ -20,6 +20,9 @@
 │  │  - Thinking steps display                               │    │
 │  │  - Three-tier pricing (Quick Sale/Fair Value/High End)  │    │
 │  │  - Details toggle (sales count, confidence, analysis)   │    │
+│  │  - eBay OAuth connect button                            │    │
+│  │  - "List on eBay" buttons (3 price tiers)              │    │
+│  │  - Listing preview modal with editable description      │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -34,6 +37,11 @@
 │  │  - /api/valuate (POST) - Full valuation with market data│    │
 │  │  - /api/valuate/simple (POST) - Database only           │    │
 │  │  - /api/lookup (GET) - Raw database lookup              │    │
+│  │  - /api/ebay/auth (GET) - Start OAuth flow              │    │
+│  │  - /api/ebay/callback (GET) - OAuth callback            │    │
+│  │  - /api/ebay/status (GET) - Check connection status     │    │
+│  │  - /api/ebay/generate-description (POST) - AI desc      │    │
+│  │  - /api/ebay/list (POST) - Create eBay listing          │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                              │                                   │
 │              ┌───────────────┼───────────────┐                  │
@@ -153,6 +161,23 @@ CREATE TABLE search_cache (
 
 **48-hour TTL** - Results expire after 2 days for fresh market data.
 
+### ebay_tokens Table
+
+```sql
+CREATE TABLE ebay_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL,
+    access_token TEXT,
+    refresh_token TEXT,
+    token_expiry TIMESTAMP,
+    ebay_username TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Token refresh** - Access tokens auto-refresh when expired (5-minute buffer).
+
 ## Key Algorithms
 
 ### Grade Filtering
@@ -247,6 +272,9 @@ Each pricing tier gets its own confidence score based on data quality:
 |------|---------|
 | `wsgi.py` | Flask API server, routes |
 | `ebay_valuation.py` | Web search, caching, aliases, spelling, grade filtering, tiered pricing |
+| `ebay_oauth.py` | eBay OAuth flow, token storage and refresh |
+| `ebay_listing.py` | Create eBay listings via Inventory API |
+| `ebay_description.py` | AI-generated descriptions (300 char, key issues, mobile-optimized) |
 | `valuation_model.py` | Grade adjustments, era factors |
 | `comic_lookup.py` | Database search (legacy) |
 | `database_schema.py` | Schema definitions (legacy) |
@@ -266,9 +294,14 @@ Each pricing tier gets its own confidence score based on data quality:
 
 | Variable | Location | Purpose |
 |----------|----------|---------|
-| `ANTHROPIC_API_KEY` | Render | Web search API access |
+| `ANTHROPIC_API_KEY` | Render | Web search & description generation API access |
 | `DATABASE_URL` | Render | PostgreSQL connection string (auto-set by Render) |
+| `EBAY_CLIENT_ID` | Render | eBay API app ID |
+| `EBAY_CLIENT_SECRET` | Render | eBay API secret |
+| `EBAY_DEV_ID` | Render | eBay developer ID |
+| `EBAY_RUNAME` | Render | eBay OAuth redirect name |
+| `EBAY_SANDBOX` | Render | "true" for sandbox, omit for production |
 
 ---
 
-*Last updated: January 17, 2026*
+*Last updated: January 18, 2026*

@@ -18,6 +18,8 @@
 - ✅ SQL concepts
 - ✅ Product decisions and prioritization
 - ✅ Cloudflare Pages deployment
+- ✅ PowerShell aliases (created `deploy` command)
+- ✅ Curl basics (for deploy hooks)
 
 ## Where Mike May Need More Guidance
 - ⚠️ New terminal/bash commands - explain what each command does
@@ -42,43 +44,49 @@
 
 ## Key Files
 - `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
+- `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
+- `ebay_listing.py` - eBay listing creation via Inventory API
+- `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `index.html` - Frontend (single page app)
-- `wsgi.py` - Flask routes
+- `wsgi.py` - Flask routes (v3.3)
 - `requirements.txt` - Python dependencies
 
-## Current State (January 17, 2026)
+## Current State (January 18, 2026)
 
-### Just Completed
-- Three-tier pricing (Quick Sale / Fair Value / High End)
-- Per-tier confidence scoring (different confidence for each price tier)
-- UI simplification:
-  - Removed Publisher and Year fields (AI auto-detects)
-  - Added "Details" toggle (replaces Market Data button)
-  - Confidence scores now in Details section
-  - Clean, minimal results display
+### Just Completed (This Session)
+- eBay OAuth integration working (sandbox)
+- eBay "List on eBay" buttons for all 3 price tiers
+- Listing preview modal with editable description
+- AI-generated descriptions:
+  - 300 character limit (mobile-optimized for eBay)
+  - Highlights KEY ISSUES (first appearances, etc.)
+  - Excludes title/publisher/year (shown in eBay fields)
+  - Excludes grade (shown in eBay item specifics)
+  - No "review photos" text (seller policies handle that)
+- Fixed profanity filter (word boundaries - "Cassidy" no longer flagged)
+- Placeholder image with branded calculator icon
+- Render upgraded to Starter tier ($7/mo) - no more cold starts
+
+### Known Issues
+- Rate limit (30k tokens/min) - hit during rapid testing
+- Description caching not implemented yet (planned)
 
 ### In Progress
-- eBay Developer account approval (waiting ~1-2 business days)
-- Cloudflare Access setup for authentication (weekend task)
+- eBay listing actually posting to eBay (sandbox testing)
+- Waiting to test AI descriptions without rate limits
 
-### Tomorrow's Agenda (Weekend)
-1. **Analytics setup** - Track usage (Mike has Wordle site with 90 users/day, wants better insights)
-2. **Mobile testing** - Make sure it works on phone before friends try it
-3. **Cloudflare custom domain** - Point collectioncalc.com to Pages
-4. **Cloudflare Access** - Email-based auth for friends beta
-
-### Next Up
-- Cloudflare custom domain setup (collectioncalc.com)
-- Cloudflare Access (email-based auth for friends beta)
-- eBay listing integration (once API approved)
-- Bulk results table view (future UI improvement)
-- Advanced options (CGC, signed comics, etc.)
+### Next Session Should
+1. Test AI description generation (wait for rate limits to clear)
+2. Confirm listing posts to eBay sandbox
+3. Consider description caching to avoid rate limits
+4. Set up eBay seller policies (shipping, returns) in sandbox
 
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
 2. Mike downloads the file(s) to `cc/v2` folder
-3. Mike runs: `git add .` → `git commit -m "message"` → `git push`
-4. Render auto-deploys from GitHub
+3. Mike runs: `git add .; git commit -m "message"; git push; deploy`
+   - Note: `deploy` is a PowerShell alias that triggers Render deploy hook
+   - Must include `git push` or Render rebuilds old code!
 
 ## Product Decisions Made
 - **Keep it simple:** Users just need Title, Issue, Grade
@@ -107,13 +115,15 @@
 - [ ] **Bulk processing costs** - Understand how processing multiple comics (10, 50, 100) affects Anthropic API costs and response time. Important for pricing decisions.
 
 ## Roadmap Items (from conversations)
+- [ ] Fuzzy matching for misspelled titles (save API costs)
+- [ ] Description caching (avoid regenerating same comic)
+- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
 - [ ] Bulk photo/video upload + extraction
 - [ ] Table view for multi-comic results  
 - [ ] Batch description generation
 - [ ] Bulk listing with batch review
 - [ ] User tone preference setting for descriptions
 - [ ] Mobile timeout fix for fresh valuations
-- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
 
 ---
-*Last updated: January 17, 2026*
+*Last updated: January 18, 2026*

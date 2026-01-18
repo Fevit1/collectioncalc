@@ -85,13 +85,17 @@ Actionable pricing for different selling scenarios.
 One-click listing from valuation results.
 
 - [x] eBay Developer account registered
-- [ ] OAuth flow for user eBay accounts
-- [ ] "List on eBay" buttons (3 price tiers)
+- [x] eBay Developer API approved
+- [x] OAuth flow for user eBay accounts
+- [x] "List on eBay" buttons (3 price tiers)
+- [x] AI-generated descriptions (300 char limit for mobile)
+- [x] Listing preview modal with editable description
+- [x] Placeholder image (branded calculator)
 - [ ] Photo upload for listings
 - [ ] Create eBay listing via Inventory API
 - [ ] Listing confirmation & tracking
 
-**Status:** Awaiting eBay Developer API approval (~1-2 business days)
+**Status:** OAuth working, listing preview complete. Testing API listing creation.
 
 ---
 
@@ -124,6 +128,18 @@ Better experience for different use cases.
   - Newsstand vs Direct edition
   - Variant cover description
 - [ ] Mobile-responsive refinements
+- [ ] User tone preference for descriptions (professional/casual)
+- [ ] Fuzzy matching for misspelled titles (save API costs, improve UX)
+
+---
+
+### Phase 2.96: eBay Listing Enhancements
+Polish the listing experience.
+
+- [ ] Description caching (avoid regenerating same comic)
+- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
+- [ ] Bulk listing from multi-comic valuations
+- [ ] Video upload support
 
 ---
 
@@ -267,4 +283,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 17, 2026*
+*Last updated: January 18, 2026*

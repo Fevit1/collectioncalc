@@ -66,11 +66,10 @@ Comic: {comic_info}
 
 TARGET: Exactly 250-300 characters. This is critical for eBay mobile display.
 
-Example (267 characters):
-"DC Comics (1984), Bronze Age. KEY ISSUE: First appearance of Blue Devil (Dan Cassidy). Created by Dan Mishkin, Gary Cohn, and Paris Cullins. A must-have for Bronze Age DC collectors and fans of supernatural superhero comics."
+Example (248 characters):
+"Copper Age. KEY ISSUE: First appearance of Blue Devil (Dan Cassidy). Created by Dan Mishkin, Gary Cohn, and Paris Cullins. A must-have for Bronze Age DC collectors and fans of supernatural superhero comics."
 
 Include ONLY:
-- Publisher and year
 - Era (Golden/Silver/Bronze/Copper/Modern Age)
 - KEY ISSUE status if applicable (first appearance, origin, death, major event) - call this out explicitly
 - Key characters introduced or featured
@@ -78,6 +77,7 @@ Include ONLY:
 - Why it's collectible (1 short phrase)
 
 Do NOT include:
+- Title, publisher, or year (already shown in eBay listing fields)
 - Grade or condition (shown separately on eBay)
 - "Please review photos" or similar (seller policies cover this)
 - Shipping or packaging info
@@ -124,19 +124,8 @@ def _generate_template_description(title: str, issue: str, grade: str, price: fl
                                    publisher: str = None, year: int = None) -> str:
     """Generate a basic template-based description as fallback. Target: under 300 chars."""
     
-    # Build concise description - no grade, no "review photos" (those appear elsewhere)
-    parts = [f"{title} #{issue}"]
-    
-    if publisher and year:
-        parts.append(f"from {publisher} ({year})")
-    elif publisher:
-        parts.append(f"from {publisher}")
-    elif year:
-        parts.append(f"({year})")
-    
-    parts.append("- A collectible comic for any collection.")
-    
-    return " ".join(parts)
+    # Title, publisher, year shown in other eBay fields - just provide basic collectibility note
+    return "A collectible comic for any collection. Great addition for fans and collectors alike."
 
 
 def _sanitize_description(description: str) -> str:
