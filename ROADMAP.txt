@@ -67,6 +67,15 @@ Actionable pricing for different selling scenarios.
 - [x] Tighter grade filtering (±0.5 grade tolerance)
 - [x] Cache now stores all pricing tiers
 - [x] PostgreSQL database migration (from SQLite)
+- [x] Per-tier confidence scoring:
+  - Quick Sale: boosted if BIN data exists
+  - Fair Value: base confidence (most stable)
+  - High End: lowered if max is outlier vs median
+- [x] UI simplification:
+  - Removed Publisher and Year fields (AI auto-detects)
+  - Collapsed Market Data into "Details" toggle
+  - Confidence scores moved to Details section
+  - Clean 3-box display for prices
 
 ---
 
@@ -76,13 +85,17 @@ Actionable pricing for different selling scenarios.
 One-click listing from valuation results.
 
 - [x] eBay Developer account registered
-- [ ] OAuth flow for user eBay accounts
-- [ ] "List on eBay" buttons (3 price tiers)
+- [x] eBay Developer API approved
+- [x] OAuth flow for user eBay accounts
+- [x] "List on eBay" buttons (3 price tiers)
+- [x] AI-generated descriptions (300 char limit for mobile)
+- [x] Listing preview modal with editable description
+- [x] Placeholder image (branded calculator)
 - [ ] Photo upload for listings
 - [ ] Create eBay listing via Inventory API
 - [ ] Listing confirmation & tracking
 
-**Status:** Awaiting eBay Developer API approval (~1-2 business days)
+**Status:** OAuth working, listing preview complete. Testing API listing creation.
 
 ---
 
@@ -102,6 +115,31 @@ Keep valuations fresh without breaking the bank.
 - [ ] Track "active" comics (searched in last 30 days)
 - [ ] Background job infrastructure (when revenue supports)
 - [ ] Model selection for refresh (Sonnet vs Haiku)
+
+---
+
+### Phase 2.95: UI Improvements
+Better experience for different use cases.
+
+- [ ] Bulk results table view (for multi-comic valuations)
+- [ ] Advanced Options toggle:
+  - CGC/CBCS certified checkbox + grade (e.g., 9.8)
+  - Autographed checkbox + signer name
+  - Newsstand vs Direct edition
+  - Variant cover description
+- [ ] Mobile-responsive refinements
+- [ ] User tone preference for descriptions (professional/casual)
+- [ ] Fuzzy matching for misspelled titles (save API costs)
+
+---
+
+### Phase 2.96: eBay Listing Enhancements
+Polish the listing experience.
+
+- [ ] Description caching (avoid regenerating same comic)
+- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
+- [ ] Bulk listing from multi-comic valuations
+- [ ] Video upload support
 
 ---
 
@@ -245,5 +283,5 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 16, 2026*
+*Last updated: January 18, 2026*
 
