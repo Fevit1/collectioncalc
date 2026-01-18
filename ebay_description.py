@@ -59,30 +59,27 @@ def generate_description(title: str, issue: str, grade: str, price: float,
         
         grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
         
-        prompt = f"""Generate a professional eBay listing description for this comic book:
+        prompt = f"""Generate a SHORT eBay listing description for this comic book.
 
 Comic: {comic_info}
 Grade: {grade} - {grade_desc}
-Price: ${price:.2f}
 
-Write a description similar to this eBay style example:
-"The product is Firestorm #1, a comic book published by DC Comics in March 1978 during the Bronze Age era of US Comics. The storyline introduces characters such as Ronnie Raymond, Mr. Taubman, Firestorm, Prof. Martin Stein, and Doreen Day in a superhero genre setting. With artwork by Joe Rubinstein, Gerry Conway, Adrienne Roy, and Klaus Janson, this collectible comic is a key addition to any comics and graphic novels collection."
+Write 2-3 sentences MAXIMUM, similar to this example:
+"The product is Firestorm #1, a comic book published by DC Comics in March 1978 during the Bronze Age era. The storyline introduces Ronnie Raymond and Prof. Martin Stein in a superhero genre setting. With artwork by Al Milgrom and writing by Gerry Conway, this collectible comic is a key addition to any collection."
+
+Then add the grade in one short sentence.
+Then end with: "Please review all photos carefully before purchasing. Feel free to message with any questions."
 
 Requirements:
-1. Professional, collector-focused tone
-2. Include publisher and publication era (Golden Age, Silver Age, Bronze Age, Modern Age) if you know it
-3. Mention key characters that appear in this issue
-4. Mention creators (writer, artist) if you know them
-5. Explain why this issue is collectible or significant
-6. Include the grade and briefly what it means
-7. Do NOT mention shipping, packaging, or handling
-8. Do NOT mention CollectionCalc or that this was AI-generated
-9. Use clean HTML formatting (only <p>, <br>, <b> tags - no lists)
-10. Do NOT include the title or price (eBay shows those separately)
-11. Do NOT include any contact information, external links, or policies
-12. End with exactly: "Please review all photos carefully before purchasing. Feel free to message with any questions."
+- Keep it SHORT - 4-5 sentences total max
+- Include publisher and era if known
+- Mention 1-2 key characters or why it's significant
+- Do NOT mention shipping or packaging
+- Do NOT mention CollectionCalc or AI
+- Use simple HTML (<p> tags only)
+- Do NOT include title or price (eBay shows those)
 
-Generate only the description HTML, nothing else."""
+Generate only the HTML, nothing else."""
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
@@ -121,34 +118,31 @@ def _generate_template_description(title: str, issue: str, grade: str, price: fl
     """Generate a basic template-based description as fallback."""
     
     grade_descriptions = {
-        'MT': 'Mint - perfect, as-new condition with no visible wear',
-        'NM': 'Near Mint - excellent condition with only minimal wear visible upon close inspection',
-        'VF': 'Very Fine - a sharp, attractive copy with minor wear',
-        'FN': 'Fine - an above-average copy showing moderate wear',
-        'VG': 'Very Good - shows moderate wear but is fully intact and complete',
-        'G': 'Good - a well-read copy with noticeable wear, ideal for reading',
-        'FR': 'Fair - heavy wear present but the comic is complete',
-        'PR': 'Poor - significant wear and possible damage, for collectors who need any copy'
+        'MT': 'Mint - perfect, as-new condition',
+        'NM': 'Near Mint - excellent condition with minimal wear',
+        'VF': 'Very Fine - sharp copy with minor wear',
+        'FN': 'Fine - above-average with moderate wear',
+        'VG': 'Very Good - moderate wear, fully intact',
+        'G': 'Good - noticeable wear, great for reading',
+        'FR': 'Fair - heavy wear but complete',
+        'PR': 'Poor - significant wear'
     }
     
     grade_text = grade_descriptions.get(grade.upper(), f'{grade} condition')
     
-    # Build basic description
-    desc_parts = []
-    
+    # Build concise description
     comic_desc = f"This is {title} #{issue}"
     if publisher:
-        comic_desc += f", published by {publisher}"
+        comic_desc += f" from {publisher}"
     if year:
-        comic_desc += f" in {year}"
+        comic_desc += f" ({year})"
     comic_desc += "."
-    desc_parts.append(f"<p>{comic_desc}</p>")
     
-    desc_parts.append(f"<p><b>Condition:</b> {grade} - {grade_text}.</p>")
-    desc_parts.append("<p>This comic has been carefully evaluated and graded. A great addition to any collection.</p>")
-    desc_parts.append("<p>Please review all photos carefully before purchasing. Feel free to message with any questions.</p>")
-    
-    return "\n\n".join(desc_parts)
+    return f"""<p>{comic_desc} A collectible comic for any collection.</p>
+
+<p><b>Grade:</b> {grade} - {grade_text}.</p>
+
+<p>Please review all photos carefully before purchasing. Feel free to message with any questions.</p>"""
 
 
 def _sanitize_description(description: str) -> str:
