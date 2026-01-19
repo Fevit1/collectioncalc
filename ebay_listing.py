@@ -30,6 +30,76 @@ def get_api_url():
     """Get the appropriate eBay API URL based on sandbox mode."""
     return EBAY_SANDBOX_API_URL if is_sandbox_mode() else EBAY_API_URL
 
+
+def get_or_create_merchant_location(access_token: str) -> str:
+    """
+    Get existing merchant location or create a default one.
+    
+    Args:
+        access_token: User's eBay access token
+    
+    Returns:
+        merchantLocationKey string, or None if failed
+    """
+    api_url = get_api_url()
+    
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    
+    # Try to get existing locations
+    try:
+        locations_url = f"{api_url}/sell/inventory/v1/location"
+        response = requests.get(locations_url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            locations = data.get('locations', [])
+            if locations:
+                # Return first existing location
+                return locations[0].get('merchantLocationKey')
+        
+        # No locations found, create a default one
+        location_key = "collectioncalc-default"
+        create_url = f"{api_url}/sell/inventory/v1/location/{location_key}"
+        
+        location_data = {
+            "location": {
+                "address": {
+                    "addressLine1": "123 Main Street",
+                    "city": "San Jose",
+                    "stateOrProvince": "CA",
+                    "postalCode": "95131",
+                    "country": "US"
+                }
+            },
+            "locationTypes": ["WAREHOUSE"],
+            "name": "CollectionCalc Default Location",
+            "merchantLocationStatus": "ENABLED"
+        }
+        
+        create_response = requests.post(create_url, headers=headers, json=location_data)
+        
+        if create_response.status_code in [200, 201, 204]:
+            print(f"Created merchant location: {location_key}")
+            return location_key
+        else:
+            print(f"Failed to create location: {create_response.status_code} - {create_response.text}")
+            # Try with PUT instead (eBay API quirk)
+            create_response = requests.put(create_url, headers=headers, json=location_data)
+            if create_response.status_code in [200, 201, 204]:
+                print(f"Created merchant location with PUT: {location_key}")
+                return location_key
+            print(f"PUT also failed: {create_response.status_code} - {create_response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"Error getting/creating merchant location: {e}")
+        return None
+
+
 def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None) -> dict:
     """
     Create a listing on eBay for a comic book.
@@ -113,7 +183,15 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'status_code': inv_response.status_code
             }
         
-        # Step 2: Create offer (this makes it a listing)
+        # Step 2: Get or create merchant location
+        location_key = get_or_create_merchant_location(access_token)
+        if not location_key:
+            return {
+                'success': False,
+                'error': 'Could not set up merchant location. Please try again.'
+            }
+        
+        # Step 3: Create offer (this makes it a listing)
         offer_url = f"{api_url}/sell/inventory/v1/offer"
         
         offer_data = {
@@ -123,7 +201,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             "listingDescription": description,
             "availableQuantity": 1,
             "categoryId": COMIC_CATEGORY_ID,
-            "merchantLocationKey": "default",  # User would need to set up location
+            "merchantLocationKey": location_key,
             "pricingSummary": {
                 "price": {
                     "value": str(round(price, 2)),
