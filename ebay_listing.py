@@ -253,6 +253,19 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             },
             "condition": condition,
             "conditionDescription": condition_desc,
+            "packageWeightAndSize": {
+                "weight": {
+                    "value": 8,
+                    "unit": "OUNCE"
+                },
+                "dimensions": {
+                    "height": 0.25,
+                    "length": 10.5,
+                    "width": 7,
+                    "unit": "INCH"
+                },
+                "packageType": "MAILING_BOX"
+            },
             "product": {
                 "title": listing_title,
                 "description": description,
