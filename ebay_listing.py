@@ -12,18 +12,34 @@ EBAY_API_URL = "https://api.ebay.com"
 EBAY_SANDBOX_API_URL = "https://api.sandbox.ebay.com"
 
 # Comic book category on eBay
-COMIC_CATEGORY_ID = "259104"  # Collectibles > Comic Books & Memorabilia > Comics > Silver Age
+COMIC_CATEGORY_ID = "63"  # Collectibles > Comic Books & Memorabilia > Comics
 
-# Grade to eBay condition mapping (Inventory API enum values)
+# Placeholder image URL - eBay requires at least 1 image
+# Using a generic comic-related placeholder until user uploads their own
+PLACEHOLDER_IMAGE_URL = "https://u-mercari-images.mercdn.net/photos/m55849664274_1.jpg"
+
+# Grade to eBay condition mapping (using Inventory API enum values)
 GRADE_TO_CONDITION = {
-    'MT': {'id': 'LIKE_NEW', 'description': 'Mint - Like new, perfect condition'},
-    'NM': {'id': 'LIKE_NEW', 'description': 'Near Mint - Excellent condition with minimal wear'},
-    'VF': {'id': 'USED_EXCELLENT', 'description': 'Very Fine - Minor wear, very good condition'},
-    'FN': {'id': 'USED_VERY_GOOD', 'description': 'Fine - Moderate wear but still presentable'},
-    'VG': {'id': 'USED_VERY_GOOD', 'description': 'Very Good - Noticeable wear but complete'},
-    'G': {'id': 'USED_GOOD', 'description': 'Good - Significant wear, reading copy'},
-    'FR': {'id': 'USED_ACCEPTABLE', 'description': 'Fair - Heavy wear, complete but rough'},
-    'PR': {'id': 'USED_ACCEPTABLE', 'description': 'Poor - Heavily worn, may have damage'}
+    'MT': 'LIKE_NEW',
+    'NM': 'LIKE_NEW',
+    'VF': 'USED_EXCELLENT',
+    'FN': 'USED_VERY_GOOD',
+    'VG': 'USED_VERY_GOOD',
+    'G': 'USED_GOOD',
+    'FR': 'USED_ACCEPTABLE',
+    'PR': 'USED_ACCEPTABLE'
+}
+
+# Condition descriptions for buyers
+CONDITION_DESCRIPTIONS = {
+    'MT': 'Mint - Like new, perfect condition',
+    'NM': 'Near Mint - Excellent condition with minimal wear',
+    'VF': 'Very Fine - Minor wear, very good condition',
+    'FN': 'Fine - Moderate wear but still presentable',
+    'VG': 'Very Good - Noticeable wear but complete',
+    'G': 'Good - Significant wear, reading copy',
+    'FR': 'Fair - Heavy wear, complete but rough',
+    'PR': 'Poor - Heavily worn, may have damage'
 }
 
 def get_api_url():
@@ -102,15 +118,14 @@ def get_or_create_merchant_location(access_token: str) -> str:
 
 def get_or_create_listing_policies(access_token: str) -> dict:
     """
-    Get existing listing policies or create default ones.
+    Get existing business policies or create default ones.
     
     Args:
         access_token: User's eBay access token
     
     Returns:
-        Dict with fulfillmentPolicyId, paymentPolicyId, returnPolicyId or None if failed
+        Dict with fulfillmentPolicyId, paymentPolicyId, returnPolicyId
     """
-    import time
     api_url = get_api_url()
     
     headers = {
@@ -119,134 +134,60 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         'Accept': 'application/json'
     }
     
-    policies = {}
-    timestamp = int(time.time())
+    policies = {
+        'fulfillmentPolicyId': None,
+        'paymentPolicyId': None,
+        'returnPolicyId': None
+    }
     
     try:
-        # Get or create fulfillment policy
+        # Get fulfillment policies
+        print("Get fulfillment policies: 400")
         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
         response = requests.get(fulfillment_url, headers=headers)
-        print(f"Get fulfillment policies: {response.status_code}")
+        print(f"Get fulfillment response: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            existing = data.get('fulfillmentPolicies', [])
-            # Look for a policy with "CollectionCalc" in the name (one we created)
-            for policy in existing:
-                if 'CollectionCalc' in policy.get('name', ''):
-                    policies['fulfillmentPolicyId'] = policy.get('fulfillmentPolicyId')
-                    print(f"Found existing CC fulfillment policy: {policies['fulfillmentPolicyId']}")
-                    break
+            fulfillment_policies = data.get('fulfillmentPolicies', [])
+            if fulfillment_policies:
+                policies['fulfillmentPolicyId'] = fulfillment_policies[0].get('fulfillmentPolicyId')
+                print(f"Found fulfillment policy: {policies['fulfillmentPolicyId']}")
         
-        if 'fulfillmentPolicyId' not in policies:
-            # Create new fulfillment policy with valid shipping
-            create_data = {
-                "name": f"CollectionCalc Shipping {timestamp}",
-                "marketplaceId": "EBAY_US",
-                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
-                "handlingTime": {"value": 3, "unit": "DAY"},
-                "shippingOptions": [{
-                    "optionType": "DOMESTIC",
-                    "costType": "FLAT_RATE",
-                    "shippingServices": [{
-                        "sortOrder": 1,
-                        "shippingCarrierCode": "USPS",
-                        "shippingServiceCode": "USPSFirstClass",
-                        "shippingCost": {"value": "4.50", "currency": "USD"},
-                        "freeShipping": False
-                    }]
-                }]
-            }
-            print(f"Creating fulfillment policy: {create_data}")
-            create_response = requests.post(
-                f"{api_url}/sell/account/v1/fulfillment_policy",
-                headers=headers,
-                json=create_data
-            )
-            print(f"Create fulfillment response: {create_response.status_code} - {create_response.text[:500] if create_response.text else 'empty'}")
-            if create_response.status_code in [200, 201]:
-                policies['fulfillmentPolicyId'] = create_response.json().get('fulfillmentPolicyId')
-            else:
-                print(f"Failed to create fulfillment policy: {create_response.text}")
-        
-        # Get or create payment policy
+        # Get payment policies
         payment_url = f"{api_url}/sell/account/v1/payment_policy?marketplace_id=EBAY_US"
         response = requests.get(payment_url, headers=headers)
+        print(f"Get payment response: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            existing = data.get('paymentPolicies', [])
-            for policy in existing:
-                if 'CollectionCalc' in policy.get('name', ''):
-                    policies['paymentPolicyId'] = policy.get('paymentPolicyId')
-                    print(f"Found existing CC payment policy: {policies['paymentPolicyId']}")
-                    break
+            payment_policies = data.get('paymentPolicies', [])
+            if payment_policies:
+                policies['paymentPolicyId'] = payment_policies[0].get('paymentPolicyId')
+                print(f"Found payment policy: {policies['paymentPolicyId']}")
         
-        if 'paymentPolicyId' not in policies:
-            # Create default payment policy
-            create_data = {
-                "name": f"CollectionCalc Payment {timestamp}",
-                "marketplaceId": "EBAY_US",
-                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
-                "paymentMethods": [{"paymentMethodType": "PERSONAL_CHECK"}]
-            }
-            create_response = requests.post(
-                f"{api_url}/sell/account/v1/payment_policy",
-                headers=headers,
-                json=create_data
-            )
-            print(f"Create payment response: {create_response.status_code}")
-            if create_response.status_code in [200, 201]:
-                policies['paymentPolicyId'] = create_response.json().get('paymentPolicyId')
-            else:
-                print(f"Failed to create payment policy: {create_response.text}")
-        
-        # Get or create return policy
+        # Get return policies
         return_url = f"{api_url}/sell/account/v1/return_policy?marketplace_id=EBAY_US"
         response = requests.get(return_url, headers=headers)
+        print(f"Get return response: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
-            existing = data.get('returnPolicies', [])
-            for policy in existing:
-                if 'CollectionCalc' in policy.get('name', ''):
-                    policies['returnPolicyId'] = policy.get('returnPolicyId')
-                    print(f"Found existing CC return policy: {policies['returnPolicyId']}")
-                    break
+            return_policies = data.get('returnPolicies', [])
+            if return_policies:
+                policies['returnPolicyId'] = return_policies[0].get('returnPolicyId')
+                print(f"Found return policy: {policies['returnPolicyId']}")
         
-        if 'returnPolicyId' not in policies:
-            # Create default return policy
-            create_data = {
-                "name": f"CollectionCalc Returns {timestamp}",
-                "marketplaceId": "EBAY_US",
-                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
-                "returnsAccepted": True,
-                "returnPeriod": {"value": 30, "unit": "DAY"},
-                "refundMethod": "MONEY_BACK",
-                "returnShippingCostPayer": "BUYER"
-            }
-            create_response = requests.post(
-                f"{api_url}/sell/account/v1/return_policy",
-                headers=headers,
-                json=create_data
-            )
-            print(f"Create return response: {create_response.status_code}")
-            if create_response.status_code in [200, 201]:
-                policies['returnPolicyId'] = create_response.json().get('returnPolicyId')
-            else:
-                print(f"Failed to create return policy: {create_response.text}")
+        # Check if we have all policies
+        missing = [k for k, v in policies.items() if not v]
+        if missing:
+            print(f"Missing policies: {missing}")
         
-        # Check we have all three
-        if all(k in policies for k in ['fulfillmentPolicyId', 'paymentPolicyId', 'returnPolicyId']):
-            print(f"All policies ready: {policies}")
-            return policies
-        else:
-            print(f"Missing policies: {policies}")
-            return None
-            
+        return policies
+        
     except Exception as e:
-        print(f"Error getting/creating listing policies: {e}")
-        return None
+        print(f"Error getting policies: {e}")
+        return policies
 
 
 def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None) -> dict:
@@ -273,7 +214,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     api_url = get_api_url()
     
     # Get condition info
-    condition = GRADE_TO_CONDITION.get(grade.upper(), GRADE_TO_CONDITION['VF'])
+    condition = GRADE_TO_CONDITION.get(grade.upper(), 'USED_EXCELLENT')
+    condition_desc = CONDITION_DESCRIPTIONS.get(grade.upper(), 'Good condition')
     
     # Build listing title (eBay max 80 chars)
     listing_title = f"{title} #{issue} Comic Book - {grade} Condition"
@@ -284,7 +226,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     if not description:
         description = f"""
         <h2>{title} #{issue}</h2>
-        <p><strong>Condition:</strong> {grade} - {condition['description']}</p>
+        <p><strong>Condition:</strong> {grade} - {condition_desc}</p>
         <p>Listed via CollectionCalc - AI-powered comic valuation.</p>
         <p>Please review photos carefully. Feel free to ask any questions before purchasing.</p>
         """
@@ -300,7 +242,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     }
     
     try:
-        # Step 1: Create or update inventory item
+        # Step 1: Create or update inventory item (with image!)
         inventory_url = f"{api_url}/sell/inventory/v1/inventory_item/{sku}"
         
         inventory_data = {
@@ -309,11 +251,12 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                     "quantity": 1
                 }
             },
-            "condition": condition['id'],
-            "conditionDescription": condition['description'],
+            "condition": condition,
+            "conditionDescription": condition_desc,
             "product": {
                 "title": listing_title,
                 "description": description,
+                "imageUrls": [PLACEHOLDER_IMAGE_URL],
                 "aspects": {
                     "Type": ["Comic Book"],
                     "Grade": [grade]
@@ -321,6 +264,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             }
         }
         
+        print(f"Creating inventory item: {sku}")
         inv_response = requests.put(inventory_url, headers=headers, json=inventory_data)
         
         if inv_response.status_code not in [200, 201, 204]:
@@ -332,6 +276,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'status_code': inv_response.status_code
             }
         
+        print(f"Inventory item created successfully")
+        
         # Step 2: Get or create merchant location
         location_key = get_or_create_merchant_location(access_token)
         if not location_key:
@@ -339,13 +285,18 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'success': False,
                 'error': 'Could not set up merchant location. Please try again.'
             }
+        print(f"Created merchant location: {location_key}")
         
         # Step 3: Get or create listing policies
         policies = get_or_create_listing_policies(access_token)
-        if not policies:
+        
+        # Check if we have all required policies
+        if not all([policies.get('fulfillmentPolicyId'), policies.get('paymentPolicyId'), policies.get('returnPolicyId')]):
+            missing = [k.replace('PolicyId', '') for k, v in policies.items() if not v]
             return {
                 'success': False,
-                'error': 'Could not set up listing policies (shipping, payment, returns). Please try again.'
+                'error': f'Could not set up listing policies (shipping, payment, returns). Please try again.',
+                'missing_policies': missing
             }
         
         # Step 4: Create offer (this makes it a listing)
@@ -372,6 +323,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             }
         }
         
+        print(f"Creating offer with policies: {policies}")
         offer_response = requests.post(offer_url, headers=headers, json=offer_data)
         
         if offer_response.status_code not in [200, 201]:
@@ -394,10 +346,12 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         
         offer_result = offer_response.json()
         offer_id = offer_result.get('offerId')
+        print(f"Offer created: {offer_id}")
         
-        # Step 3: Publish the offer (make it live)
+        # Step 5: Publish the offer (make it live)
         publish_url = f"{api_url}/sell/inventory/v1/offer/{offer_id}/publish"
         
+        print(f"Publishing offer: {offer_id}")
         publish_response = requests.post(publish_url, headers=headers)
         
         if publish_response.status_code not in [200, 201]:
@@ -412,6 +366,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         
         publish_result = publish_response.json()
         listing_id = publish_result.get('listingId')
+        print(f"Published! Listing ID: {listing_id}")
         
         # Build listing URL
         if is_sandbox_mode():
