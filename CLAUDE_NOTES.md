@@ -51,9 +51,14 @@
 - `wsgi.py` - Flask routes (v3.3)
 - `requirements.txt` - Python dependencies
 
-## Current State (January 18, 2026)
+## Current State (January 19, 2026)
 
-### Just Completed (This Session)
+### This Session
+- Upgraded Anthropic API to Tier 2 (450k tokens/min vs 30k) - eliminates rate limit waits
+- Rate limit research for bulk processing
+- Documentation cleanup (consolidated roadmap items into ROADMAP.md)
+
+### Previous Session (January 18)
 - eBay OAuth integration working (sandbox)
 - eBay "List on eBay" buttons for all 3 price tiers
 - Listing preview modal with editable description
@@ -68,18 +73,37 @@
 - Render upgraded to Starter tier ($7/mo) - no more cold starts
 
 ### Known Issues
-- Rate limit (30k tokens/min) - hit during rapid testing
-- Description caching not implemented yet (planned)
+- Description caching not implemented yet (planned - see ROADMAP.md Phase 2.96)
 
-### In Progress
-- eBay listing actually posting to eBay (sandbox testing)
-- Waiting to test AI descriptions without rate limits
-
-### Next Session Should
-1. Test AI description generation (wait for rate limits to clear)
+### Next Up
+1. Test AI description generation (rate limits should be fine now)
 2. Confirm listing posts to eBay sandbox
-3. Consider description caching to avoid rate limits
-4. Set up eBay seller policies (shipping, returns) in sandbox
+3. Set up eBay seller policies (shipping, returns) in sandbox
+
+## Anthropic API Rate Limits
+
+### Current Tier: Tier 2 ($40 cumulative deposit)
+- **Input tokens:** 450,000/minute
+- **Output tokens:** Much higher than Tier 1
+- **Monthly spend limit:** $500
+
+### Bulk Processing Capacity (Tier 2)
+Each valuation uses roughly:
+- Input: ~2-5k tokens (prompt + eBay data)
+- Output: ~500-1k tokens (analysis)
+
+**What fits comfortably in one minute:**
+- 20 comics: ✅ Easy (~40-100k input tokens)
+- 50 comics: ✅ Should work (~100-250k input tokens)
+- 100 comics: ⚠️ Pushing it, may need pacing
+
+### Tier Reference
+| Tier | Deposit | Input Tokens/Min | Monthly Limit |
+|------|---------|------------------|---------------|
+| 1 | $5 | 30,000 | $100 |
+| 2 | $40 | 450,000 | $500 |
+| 3 | $200 | ~1,000,000 | $1,000 |
+| 4 | $400 | ~2,000,000 | $5,000 |
 
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
@@ -98,9 +122,6 @@
 - **eBay description tone:** Professional (sets us apart, looks reliable)
 - **eBay returns:** Let eBay handle via seller's existing policies
 
-## Future Considerations
-- **Bulk processing costs:** Need to understand how processing 5, 10, 100 comics at once affects Anthropic API costs and response time. Consider batching strategies, Haiku for bulk operations, or parallel vs sequential processing. (Cross this bridge when we build bulk features)
-
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
 - [ ] Mobile works
@@ -111,19 +132,11 @@
 - [ ] Error states handled gracefully
 - [ ] Anthropic billing alerts set
 
-## Future Investigation
-- [ ] **Bulk processing costs** - Understand how processing multiple comics (10, 50, 100) affects Anthropic API costs and response time. Important for pricing decisions.
-
-## Roadmap Items (from conversations)
-- [ ] Fuzzy matching for misspelled titles (save API costs)
-- [ ] Description caching (avoid regenerating same comic)
-- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
-- [ ] Bulk photo/video upload + extraction
-- [ ] Table view for multi-comic results  
-- [ ] Batch description generation
-- [ ] Bulk listing with batch review
-- [ ] User tone preference setting for descriptions
-- [ ] Mobile timeout fix for fresh valuations
+## Related Documents
+- **ROADMAP.md** - Full feature backlog and version history
+- **ARCHITECTURE.md** - System diagrams
+- **BRAND_GUIDELINES.md** - Colors, typography, UI components
 
 ---
-*Last updated: January 18, 2026*
+
+*Last updated: January 19, 2026*

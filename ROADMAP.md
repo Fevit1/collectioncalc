@@ -91,11 +91,12 @@ One-click listing from valuation results.
 - [x] AI-generated descriptions (300 char limit for mobile)
 - [x] Listing preview modal with editable description
 - [x] Placeholder image (branded calculator)
+- [x] Anthropic API upgraded to Tier 2 (450k tokens/min - eliminates rate limit waits)
 - [ ] Photo upload for listings
 - [ ] Create eBay listing via Inventory API
 - [ ] Listing confirmation & tracking
 
-**Status:** OAuth working, listing preview complete. Testing API listing creation.
+**Status:** OAuth working, listing preview complete, Tier 2 rate limits active. Next: test API listing creation in sandbox.
 
 ---
 
@@ -139,6 +140,8 @@ Polish the listing experience.
 - [ ] Description caching (avoid regenerating same comic)
 - [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
 - [ ] Bulk listing from multi-comic valuations
+  - Smart rate limit handling: sequential processing with header checking, pause/retry when approaching limits
+  - Tier 2 capacity: 20-50 comics comfortable, 100+ may need pacing
 - [ ] Video upload support
 
 ---
@@ -247,7 +250,7 @@ Extend platform to additional verticals.
 | Phase | Monthly Cost | Stack |
 |-------|--------------|-------|
 | MVP (Current) | ~$0-3 | Render free + SQLite |
-| Beta | ~$7-15 | Render paid + SQLite |
+| Beta | ~$7-15 | Render paid + PostgreSQL |
 | Production | ~$25-50 | When revenue justifies |
 
 ---
@@ -280,7 +283,17 @@ Extend platform to additional verticals.
 - [Competitive Analysis](COMPETITIVE_ANALYSIS.md) - Market research & academic findings
 - [Database](DATABASE.md) - Schema documentation
 - [Budget](BUDGET.md) - Hosting strategy
+- [Claude Notes](CLAUDE_NOTES.md) - Session context for AI assistant
 
 ---
 
-*Last updated: January 18, 2026*
+## Version History
+
+| Date | Changes |
+|------|---------|
+| 2026-01-19 | Added Tier 2 upgrade to Phase 2.8; added bulk rate limit handling to Phase 2.96; added version history section; updated Budget Phases (now on PostgreSQL) |
+| 2026-01-18 | Phase 2.8 eBay integration progress: OAuth, listing preview, AI descriptions |
+
+---
+
+*Last updated: January 19, 2026*

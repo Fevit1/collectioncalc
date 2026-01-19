@@ -14,16 +14,16 @@ EBAY_SANDBOX_API_URL = "https://api.sandbox.ebay.com"
 # Comic book category on eBay
 COMIC_CATEGORY_ID = "259104"  # Collectibles > Comic Books & Memorabilia > Comics > Silver Age
 
-# Grade to eBay condition mapping
+# Grade to eBay condition mapping (Inventory API enum values)
 GRADE_TO_CONDITION = {
-    'MT': {'id': '3000', 'description': 'Mint - Like new, perfect condition'},
-    'NM': {'id': '3000', 'description': 'Near Mint - Excellent condition with minimal wear'},
-    'VF': {'id': '4000', 'description': 'Very Fine - Minor wear, very good condition'},
-    'FN': {'id': '5000', 'description': 'Fine - Moderate wear but still presentable'},
-    'VG': {'id': '5000', 'description': 'Very Good - Noticeable wear but complete'},
-    'G': {'id': '6000', 'description': 'Good - Significant wear, reading copy'},
-    'FR': {'id': '6000', 'description': 'Fair - Heavy wear, complete but rough'},
-    'PR': {'id': '7000', 'description': 'Poor - Heavily worn, may have damage'}
+    'MT': {'id': 'LIKE_NEW', 'description': 'Mint - Like new, perfect condition'},
+    'NM': {'id': 'LIKE_NEW', 'description': 'Near Mint - Excellent condition with minimal wear'},
+    'VF': {'id': 'USED_EXCELLENT', 'description': 'Very Fine - Minor wear, very good condition'},
+    'FN': {'id': 'USED_VERY_GOOD', 'description': 'Fine - Moderate wear but still presentable'},
+    'VG': {'id': 'USED_VERY_GOOD', 'description': 'Very Good - Noticeable wear but complete'},
+    'G': {'id': 'USED_GOOD', 'description': 'Good - Significant wear, reading copy'},
+    'FR': {'id': 'USED_ACCEPTABLE', 'description': 'Fair - Heavy wear, complete but rough'},
+    'PR': {'id': 'USED_ACCEPTABLE', 'description': 'Poor - Heavily worn, may have damage'}
 }
 
 def get_api_url():
