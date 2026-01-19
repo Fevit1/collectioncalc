@@ -231,8 +231,10 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         <p>Please review photos carefully. Feel free to ask any questions before purchasing.</p>
         """
     
-    # Create inventory item SKU
-    sku = f"CC-{title.replace(' ', '-')[:20]}-{issue}-{int(price*100)}"
+    # Create inventory item SKU (with timestamp to ensure uniqueness)
+    import time
+    timestamp = int(time.time())
+    sku = f"CC-{title.replace(' ', '-')[:15]}-{issue}-{timestamp}"
     
     headers = {
         'Authorization': f'Bearer {access_token}',
