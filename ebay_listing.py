@@ -110,6 +110,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
     Returns:
         Dict with fulfillmentPolicyId, paymentPolicyId, returnPolicyId or None if failed
     """
+    import time
     api_url = get_api_url()
     
     headers = {
@@ -119,22 +120,28 @@ def get_or_create_listing_policies(access_token: str) -> dict:
     }
     
     policies = {}
+    timestamp = int(time.time())
     
     try:
         # Get or create fulfillment policy
         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
         response = requests.get(fulfillment_url, headers=headers)
+        print(f"Get fulfillment policies: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
             existing = data.get('fulfillmentPolicies', [])
-            if existing:
-                policies['fulfillmentPolicyId'] = existing[0].get('fulfillmentPolicyId')
+            # Look for a policy with "CollectionCalc" in the name (one we created)
+            for policy in existing:
+                if 'CollectionCalc' in policy.get('name', ''):
+                    policies['fulfillmentPolicyId'] = policy.get('fulfillmentPolicyId')
+                    print(f"Found existing CC fulfillment policy: {policies['fulfillmentPolicyId']}")
+                    break
         
         if 'fulfillmentPolicyId' not in policies:
-            # Create default fulfillment policy
+            # Create new fulfillment policy with valid shipping
             create_data = {
-                "name": "CollectionCalc Standard Shipping",
+                "name": f"CollectionCalc Shipping {timestamp}",
                 "marketplaceId": "EBAY_US",
                 "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
                 "handlingTime": {"value": 3, "unit": "DAY"},
@@ -144,17 +151,19 @@ def get_or_create_listing_policies(access_token: str) -> dict:
                     "shippingServices": [{
                         "sortOrder": 1,
                         "shippingCarrierCode": "USPS",
-                        "shippingServiceCode": "USPSPriority",
-                        "shippingCost": {"value": "5.00", "currency": "USD"},
+                        "shippingServiceCode": "USPSFirstClass",
+                        "shippingCost": {"value": "4.50", "currency": "USD"},
                         "freeShipping": False
                     }]
                 }]
             }
+            print(f"Creating fulfillment policy: {create_data}")
             create_response = requests.post(
                 f"{api_url}/sell/account/v1/fulfillment_policy",
                 headers=headers,
                 json=create_data
             )
+            print(f"Create fulfillment response: {create_response.status_code} - {create_response.text[:500] if create_response.text else 'empty'}")
             if create_response.status_code in [200, 201]:
                 policies['fulfillmentPolicyId'] = create_response.json().get('fulfillmentPolicyId')
             else:
@@ -167,13 +176,16 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         if response.status_code == 200:
             data = response.json()
             existing = data.get('paymentPolicies', [])
-            if existing:
-                policies['paymentPolicyId'] = existing[0].get('paymentPolicyId')
+            for policy in existing:
+                if 'CollectionCalc' in policy.get('name', ''):
+                    policies['paymentPolicyId'] = policy.get('paymentPolicyId')
+                    print(f"Found existing CC payment policy: {policies['paymentPolicyId']}")
+                    break
         
         if 'paymentPolicyId' not in policies:
             # Create default payment policy
             create_data = {
-                "name": "CollectionCalc Payment Policy",
+                "name": f"CollectionCalc Payment {timestamp}",
                 "marketplaceId": "EBAY_US",
                 "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
                 "paymentMethods": [{"paymentMethodType": "PERSONAL_CHECK"}]
@@ -183,6 +195,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
                 headers=headers,
                 json=create_data
             )
+            print(f"Create payment response: {create_response.status_code}")
             if create_response.status_code in [200, 201]:
                 policies['paymentPolicyId'] = create_response.json().get('paymentPolicyId')
             else:
@@ -195,13 +208,16 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         if response.status_code == 200:
             data = response.json()
             existing = data.get('returnPolicies', [])
-            if existing:
-                policies['returnPolicyId'] = existing[0].get('returnPolicyId')
+            for policy in existing:
+                if 'CollectionCalc' in policy.get('name', ''):
+                    policies['returnPolicyId'] = policy.get('returnPolicyId')
+                    print(f"Found existing CC return policy: {policies['returnPolicyId']}")
+                    break
         
         if 'returnPolicyId' not in policies:
             # Create default return policy
             create_data = {
-                "name": "CollectionCalc Return Policy",
+                "name": f"CollectionCalc Returns {timestamp}",
                 "marketplaceId": "EBAY_US",
                 "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
                 "returnsAccepted": True,
@@ -214,6 +230,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
                 headers=headers,
                 json=create_data
             )
+            print(f"Create return response: {create_response.status_code}")
             if create_response.status_code in [200, 201]:
                 policies['returnPolicyId'] = create_response.json().get('returnPolicyId')
             else:
@@ -221,6 +238,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         
         # Check we have all three
         if all(k in policies for k in ['fulfillmentPolicyId', 'paymentPolicyId', 'returnPolicyId']):
+            print(f"All policies ready: {policies}")
             return policies
         else:
             print(f"Missing policies: {policies}")
