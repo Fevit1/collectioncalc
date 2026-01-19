@@ -129,11 +129,6 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                     "value": str(round(price, 2)),
                     "currency": "USD"
                 }
-            },
-            "listingPolicies": {
-                "fulfillmentPolicyId": "",  # User needs to set up policies
-                "paymentPolicyId": "",
-                "returnPolicyId": ""
             }
         }
         
