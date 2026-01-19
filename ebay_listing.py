@@ -11,8 +11,9 @@ from ebay_oauth import get_user_token, is_sandbox_mode
 EBAY_API_URL = "https://api.ebay.com"
 EBAY_SANDBOX_API_URL = "https://api.sandbox.ebay.com"
 
-# Comic book category on eBay
-COMIC_CATEGORY_ID = "63"  # Collectibles > Comic Books & Memorabilia > Comics
+# Comic book category on eBay  
+# 259104 = Collectibles > Comic Books & Memorabilia > Comics > Comics & Graphic Novels
+COMIC_CATEGORY_ID = "259104"
 
 # Placeholder image URL - eBay requires at least 1 image
 # Using a generic comic-related placeholder until user uploads their own
@@ -256,6 +257,13 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             "condition": condition,
             "conditionDescription": condition_desc,
             "packageWeightAndSize": {
+                "dimensions": {
+                    "height": 1,
+                    "length": 11,
+                    "width": 7,
+                    "unit": "INCH"
+                },
+                "packageType": "LETTER",
                 "weight": {
                     "value": 8,
                     "unit": "OUNCE"
