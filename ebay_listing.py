@@ -100,6 +100,137 @@ def get_or_create_merchant_location(access_token: str) -> str:
         return None
 
 
+def get_or_create_listing_policies(access_token: str) -> dict:
+    """
+    Get existing listing policies or create default ones.
+    
+    Args:
+        access_token: User's eBay access token
+    
+    Returns:
+        Dict with fulfillmentPolicyId, paymentPolicyId, returnPolicyId or None if failed
+    """
+    api_url = get_api_url()
+    
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    
+    policies = {}
+    
+    try:
+        # Get or create fulfillment policy
+        fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
+        response = requests.get(fulfillment_url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            existing = data.get('fulfillmentPolicies', [])
+            if existing:
+                policies['fulfillmentPolicyId'] = existing[0].get('fulfillmentPolicyId')
+        
+        if 'fulfillmentPolicyId' not in policies:
+            # Create default fulfillment policy
+            create_data = {
+                "name": "CollectionCalc Standard Shipping",
+                "marketplaceId": "EBAY_US",
+                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
+                "handlingTime": {"value": 3, "unit": "DAY"},
+                "shippingOptions": [{
+                    "optionType": "DOMESTIC",
+                    "costType": "FLAT_RATE",
+                    "shippingServices": [{
+                        "sortOrder": 1,
+                        "shippingCarrierCode": "USPS",
+                        "shippingServiceCode": "USPSPriority",
+                        "shippingCost": {"value": "5.00", "currency": "USD"},
+                        "freeShipping": False
+                    }]
+                }]
+            }
+            create_response = requests.post(
+                f"{api_url}/sell/account/v1/fulfillment_policy",
+                headers=headers,
+                json=create_data
+            )
+            if create_response.status_code in [200, 201]:
+                policies['fulfillmentPolicyId'] = create_response.json().get('fulfillmentPolicyId')
+            else:
+                print(f"Failed to create fulfillment policy: {create_response.text}")
+        
+        # Get or create payment policy
+        payment_url = f"{api_url}/sell/account/v1/payment_policy?marketplace_id=EBAY_US"
+        response = requests.get(payment_url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            existing = data.get('paymentPolicies', [])
+            if existing:
+                policies['paymentPolicyId'] = existing[0].get('paymentPolicyId')
+        
+        if 'paymentPolicyId' not in policies:
+            # Create default payment policy
+            create_data = {
+                "name": "CollectionCalc Payment Policy",
+                "marketplaceId": "EBAY_US",
+                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
+                "paymentMethods": [{"paymentMethodType": "PERSONAL_CHECK"}]
+            }
+            create_response = requests.post(
+                f"{api_url}/sell/account/v1/payment_policy",
+                headers=headers,
+                json=create_data
+            )
+            if create_response.status_code in [200, 201]:
+                policies['paymentPolicyId'] = create_response.json().get('paymentPolicyId')
+            else:
+                print(f"Failed to create payment policy: {create_response.text}")
+        
+        # Get or create return policy
+        return_url = f"{api_url}/sell/account/v1/return_policy?marketplace_id=EBAY_US"
+        response = requests.get(return_url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            existing = data.get('returnPolicies', [])
+            if existing:
+                policies['returnPolicyId'] = existing[0].get('returnPolicyId')
+        
+        if 'returnPolicyId' not in policies:
+            # Create default return policy
+            create_data = {
+                "name": "CollectionCalc Return Policy",
+                "marketplaceId": "EBAY_US",
+                "categoryTypes": [{"name": "ALL_EXCLUDING_MOTORS_VEHICLES"}],
+                "returnsAccepted": True,
+                "returnPeriod": {"value": 30, "unit": "DAY"},
+                "refundMethod": "MONEY_BACK",
+                "returnShippingCostPayer": "BUYER"
+            }
+            create_response = requests.post(
+                f"{api_url}/sell/account/v1/return_policy",
+                headers=headers,
+                json=create_data
+            )
+            if create_response.status_code in [200, 201]:
+                policies['returnPolicyId'] = create_response.json().get('returnPolicyId')
+            else:
+                print(f"Failed to create return policy: {create_response.text}")
+        
+        # Check we have all three
+        if all(k in policies for k in ['fulfillmentPolicyId', 'paymentPolicyId', 'returnPolicyId']):
+            return policies
+        else:
+            print(f"Missing policies: {policies}")
+            return None
+            
+    except Exception as e:
+        print(f"Error getting/creating listing policies: {e}")
+        return None
+
+
 def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None) -> dict:
     """
     Create a listing on eBay for a comic book.
@@ -191,7 +322,15 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'error': 'Could not set up merchant location. Please try again.'
             }
         
-        # Step 3: Create offer (this makes it a listing)
+        # Step 3: Get or create listing policies
+        policies = get_or_create_listing_policies(access_token)
+        if not policies:
+            return {
+                'success': False,
+                'error': 'Could not set up listing policies (shipping, payment, returns). Please try again.'
+            }
+        
+        # Step 4: Create offer (this makes it a listing)
         offer_url = f"{api_url}/sell/inventory/v1/offer"
         
         offer_data = {
@@ -207,6 +346,11 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                     "value": str(round(price, 2)),
                     "currency": "USD"
                 }
+            },
+            "listingPolicies": {
+                "fulfillmentPolicyId": policies['fulfillmentPolicyId'],
+                "paymentPolicyId": policies['paymentPolicyId'],
+                "returnPolicyId": policies['returnPolicyId']
             }
         }
         
