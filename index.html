@@ -253,6 +253,71 @@
             color: var(--text-muted);
             font-weight: 400;
         }
+        /* Price tier boxes */
+        .price-tiers {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .price-tier {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--surface-color);
+        }
+        .price-tier:hover {
+            border-color: var(--primary-color);
+        }
+        .price-tier.selected {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .price-tier-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .price-tier-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+        .price-tier.selected .price-tier-value {
+            background: var(--value-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .price-tier-hint {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+        .item-card .list-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .item-card .list-btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+        .item-card .list-btn:disabled {
+            background: var(--surface-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
         .item-delete {
             background: none;
             border: none;
@@ -1255,6 +1320,72 @@
             }
         }
         
+        async function listItemOnEbay(idx) {
+            const item = extractedItems[idx];
+            if (!item) return;
+            
+            if (!ebayConnected) {
+                connectEbay();
+                return;
+            }
+            
+            const price = item.selectedPrice || item.fair_value || item.value || 0;
+            const tierNames = { quick: 'Quick Sale', fair: 'Fair Value', high: 'High End' };
+            const tier = tierNames[item.selectedTier] || 'Fair Value';
+            const grade = item.grade || 'VF';
+            
+            // Store pending listing data
+            pendingListing = { 
+                title: item.title, 
+                issue: item.issue, 
+                price, 
+                tier, 
+                grade, 
+                description: '' 
+            };
+            
+            // Show modal with loading state
+            const modal = document.getElementById('listingModal');
+            const modalBody = document.getElementById('listingModalBody');
+            
+            modalBody.innerHTML = `
+                <div class="listing-generating">
+                    <div class="spinner"></div>
+                    <p>Generating professional description...</p>
+                </div>
+            `;
+            
+            modal.classList.add('show');
+            document.getElementById('confirmListingBtn').disabled = true;
+            
+            try {
+                // Generate description via API
+                const response = await fetch(`${API_URL}/api/ebay/generate-description`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: item.title,
+                        issue: item.issue,
+                        grade: grade,
+                        price: price
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    pendingListing.description = result.description;
+                    showListingPreview();
+                } else {
+                    throw new Error(result.error || 'Failed to generate description');
+                }
+            } catch (e) {
+                console.error('Description generation error:', e);
+                pendingListing.description = `<p><b>Condition:</b> ${grade}</p><p>Please review photos carefully. Feel free to ask any questions!</p>`;
+                showListingPreview();
+            }
+        }
+        
         function showListingPreview() {
             const modalBody = document.getElementById('listingModalBody');
             const { title, issue, price, tier, grade, description } = pendingListing;
@@ -1699,30 +1830,49 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             document.getElementById('bulkMode').style.display = 'none';
             document.getElementById('resultsMode').style.display = 'block';
             
-            const total = extractedItems.reduce((sum, item) => sum + (item.value || 0), 0);
+            const total = extractedItems.reduce((sum, item) => sum + (item.selectedPrice || item.fair_value || item.value || 0), 0);
             const valued = extractedItems.filter(item => item.value).length;
             
             document.getElementById('totalValue').textContent = '$' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('itemCount').textContent = `${valued} item${valued !== 1 ? 's' : ''} valued`;
             
-            document.getElementById('resultsList').innerHTML = extractedItems.map((item, idx) => `
+            document.getElementById('resultsList').innerHTML = extractedItems.map((item, idx) => {
+                const quickSale = item.quick_sale || item.value * 0.85 || 0;
+                const fairValue = item.fair_value || item.value || 0;
+                const highEnd = item.high_end || item.value * 1.15 || 0;
+                const selectedTier = item.selectedTier || 'fair';
+                
+                // Set default selected price if not set
+                if (!item.selectedPrice) {
+                    item.selectedPrice = fairValue;
+                    item.selectedTier = 'fair';
+                }
+                
+                return `
                 <div class="item-card has-value">
                     <div class="item-header">
                         <span class="item-number">${idx + 1}</span>
                         <span class="item-title">${item.title} #${item.issue}${item.printing && item.printing !== '1st' ? ` (${item.printing} Print)` : ''}${item.cover ? ` Cover ${item.cover}` : ''}</span>
-                        <span class="item-value-range">
-                            <span class="value-fair">$${(item.fair_value || item.value || 0).toFixed(2)}</span>
-                            ${item.quick_sale && item.high_end ? `<span class="value-range-small">($${item.quick_sale.toFixed(0)} - $${item.high_end.toFixed(0)})</span>` : ''}
-                        </span>
-                        <button class="item-refresh" onclick="refreshItem(${idx})" title="Refresh with 3 samples">🔄</button>
                         ${item.sales_data && item.sales_data.length > 0 ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View sales data">📊</button>` : ''}
                     </div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                        ${item.confidence || ''} confidence · ${item.source || 'estimate'}
-                        ${item.ebay_sales ? ` · ${item.ebay_sales} eBay sale(s)` : ''}
-                        ${item.samples ? ` · Samples: $${item.samples.join(', $')}` : ''}
-                        ${item.lowest_bin ? ` · BIN: $${item.lowest_bin.toFixed(2)}` : ''}
+                    <div class="price-tiers">
+                        <div class="price-tier ${selectedTier === 'quick' ? 'selected' : ''}" onclick="selectPriceTier(${idx}, 'quick', ${quickSale.toFixed(2)})">
+                            <div class="price-tier-label">Quick Sale</div>
+                            <div class="price-tier-value">$${quickSale.toFixed(2)}</div>
+                        </div>
+                        <div class="price-tier ${selectedTier === 'fair' ? 'selected' : ''}" onclick="selectPriceTier(${idx}, 'fair', ${fairValue.toFixed(2)})">
+                            <div class="price-tier-label">Fair Value</div>
+                            <div class="price-tier-value">$${fairValue.toFixed(2)}</div>
+                        </div>
+                        <div class="price-tier ${selectedTier === 'high' ? 'selected' : ''}" onclick="selectPriceTier(${idx}, 'high', ${highEnd.toFixed(2)})">
+                            <div class="price-tier-label">High End</div>
+                            <div class="price-tier-value">$${highEnd.toFixed(2)}</div>
+                        </div>
                     </div>
+                    <div class="price-tier-hint">Click a price to select it for listing</div>
+                    <button class="list-btn" onclick="listItemOnEbay(${idx})" ${ebayConnected ? '' : 'disabled'}>
+                        ${ebayConnected ? '🛒 List on eBay' : '🔗 Connect eBay to List'}
+                    </button>
                     ${item.sales_data && item.sales_data.length > 0 ? `
                     <div class="sales-details" id="details-${idx}">
                         <h5>📊 Sales Data Used for Valuation</h5>
@@ -1742,7 +1892,13 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     </div>
                     ` : ''}
                 </div>
-            `).join('');
+            `}).join('');
+        }
+        
+        function selectPriceTier(idx, tier, price) {
+            extractedItems[idx].selectedTier = tier;
+            extractedItems[idx].selectedPrice = price;
+            showResults(); // Re-render to update selection and total
         }
         
         function toggleDetails(idx) {

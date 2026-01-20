@@ -94,21 +94,51 @@ One-click listing from valuation results.
 - SKU: CC-{title}-{issue}-{timestamp}
 - Condition: LIKE_NEW, USED_EXCELLENT, USED_VERY_GOOD, USED_GOOD, USED_ACCEPTABLE
 
+### Phase 2.85: QuickList Batch Processing ✅ (January 20, 2026)
+**Full pipeline from photo to eBay draft listing.**
+
+- [x] Draft mode for eBay listings (`publish=False` by default)
+- [x] Photo upload to eBay Picture Services
+- [x] Backend extraction via Claude vision (`comic_extraction.py`)
+- [x] Batch processing endpoints:
+  - `/api/extract` - Extract single comic from photo
+  - `/api/batch/process` - Extract + Valuate + Describe multiple comics
+  - `/api/batch/list` - Upload images + Create drafts (after approval)
+- [x] Input validation (max 20 comics, 10MB images)
+- [x] Removed 60-second delay between valuations (was Tier 1 leftover)
+- [x] UI: Three price boxes (Quick/Fair/High) with Fair Value default
+- [x] UI: "List on eBay" button per comic in batch results
+- [x] UI: Removed confidence row (details via 📊 icon)
+- [x] UI: Removed regenerate button
+
+**QuickList Flow:**
+1. Upload → 2. Extract → 3. Review/Edit → 4. Valuate → 5. Describe → 6. List as Draft
+
 ---
 
 ## In Progress 🔨
 
-### Phase 2.85: eBay Listing Polish
-Refine the listing experience.
+### Phase 2.86: QuickList Polish
+Refine the batch experience.
 
-- [ ] Draft vs Live option (currently goes live immediately)
-- [ ] Host our own placeholder image (not external URL)
-- [ ] Photo upload for listings
-- [ ] Listing confirmation page with eBay link
+- [ ] Sort options (by value, title) in batch results
+- [ ] Vision Guide for extraction (where to look, what to ignore)
+- [ ] More progress steps during valuation (keep users engaged)
+- [ ] Custom price entry (not just the three tiers)
 
 ---
 
 ## Planned 📋
+
+### Phase 2.87: Extraction Accuracy
+Improve AI's ability to read comic covers.
+
+**Vision Guide contents:**
+- Issue number location patterns by publisher/era (Marvel top-left, DC varies)
+- Ignore: price stickers, store stamps, grade labels, bag reflections
+- Multiple numbers context: price vs issue vs volume vs year
+- Barcode area for newsstand detection
+- Common OCR confusions (242 vs 206, #1 vs #7)
 
 ### Phase 2.9: Cache Refresh Strategy
 Keep valuations fresh without breaking the bank.
@@ -147,9 +177,12 @@ Polish the listing experience.
 
 - [ ] Description caching (avoid regenerating same comic)
 - [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
-- [ ] Bulk listing from multi-comic valuations
+- [ ] Bulk listing from multi-comic valuations ("List all at Fair Value")
+- [ ] Batch listing groups (e.g., "List all 12 issues of Secret Wars")
 - [ ] Video upload support
+- [ ] Promoted listings option (commission boost)
 - [ ] eBay account deletion notification endpoint (required before other users)
+- [ ] Host our own placeholder image (not external URL)
 
 ---
 
@@ -214,14 +247,8 @@ Forecast future values based on market momentum.
 - [ ] User watchlists with price alerts
 - [ ] Weekly "market movers" email digest
 
-### Phase 7: Photo Upload
-AI-powered comic identification.
-
-- [ ] Upload photo of comic cover
-- [ ] Claude extracts: title, issue, publisher, year
-- [ ] Condition estimation from cover quality
-- [ ] Auto-fill form fields
-- [ ] Batch upload for collections
+### Phase 7: Photo Upload (Now part of QuickList)
+~~AI-powered comic identification.~~ **Moved to Phase 2.85**
 
 ### Phase 8: Advanced Features
 - [ ] Price history charts
@@ -264,6 +291,7 @@ Extend platform to additional verticals.
 - **Current Tier:** Tier 2 (450k tokens/min, $60 credits deposited)
 - **Capacity:** 20-50 comics/minute comfortable, 100+ may need pacing
 - **Cost per valuation:** ~$0.01-0.02 (with caching)
+- **Cost per QuickList (extract+valuate+describe):** ~$0.02-0.03
 
 ---
 
@@ -272,6 +300,7 @@ Extend platform to additional verticals.
 ### Accuracy Metrics
 - **User adjustments trending toward zero** - Model matches expectations
 - **Confidence calibration** - High confidence = accurate predictions
+- **Extraction accuracy** - % of issue numbers read correctly
 
 ### Coverage Metrics
 - **DB hit rate** - % of lookups found in database vs requiring AI search
@@ -282,6 +311,7 @@ Extend platform to additional verticals.
 - **Collections tracked** - Total items in user portfolios
 - **Feedback submissions** - Community corrections submitted
 - **eBay listings created** - Conversion from valuation to listing
+- **QuickList completions** - Users completing full photo-to-listing flow
 
 ### Business Metrics
 - **Cost per valuation** - Target: <$0.01 average (with DB caching)
@@ -293,6 +323,7 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction, batch endpoints, UI overhaul |
 | Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies, package dimensions |
 | Jan 18, 2026 | 2.7.5 | AI descriptions, listing preview modal, Anthropic Tier 2 upgrade |
 | Jan 17, 2026 | 2.7.0 | eBay OAuth (sandbox), listing buttons |
@@ -311,4 +342,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 19, 2026*
+*Last updated: January 20, 2026*

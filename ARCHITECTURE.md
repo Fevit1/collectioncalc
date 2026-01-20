@@ -24,35 +24,45 @@
 │                   collectioncalc.onrender.com                           │
 │                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                      Flask API (wsgi.py)                         │   │
+│  │                      Flask API (wsgi.py v3.4)                    │   │
 │  │                                                                   │   │
-│  │  /api/valuate          - Get comic valuation                     │   │
+│  │  VALUATION                                                        │   │
+│  │  /api/valuate          - Get comic valuation (3 tiers)           │   │
 │  │  /api/lookup           - Database lookup                         │   │
-│  │  /api/messages         - Anthropic proxy                         │   │
+│  │  /api/messages         - Anthropic proxy (frontend extraction)   │   │
+│  │                                                                   │   │
+│  │  QUICKLIST (Batch Processing)                                    │   │
+│  │  /api/extract          - Extract single comic from photo         │   │
+│  │  /api/batch/process    - Extract + Valuate + Describe (batch)    │   │
+│  │  /api/batch/list       - Upload images + Create drafts (batch)   │   │
+│  │                                                                   │   │
+│  │  EBAY INTEGRATION                                                 │   │
 │  │  /api/ebay/auth        - Start OAuth flow                        │   │
 │  │  /api/ebay/callback    - OAuth callback                          │   │
 │  │  /api/ebay/status      - Check connection                        │   │
-│  │  /api/ebay/list        - Create listing                          │   │
+│  │  /api/ebay/list        - Create listing (draft or live)          │   │
+│  │  /api/ebay/upload-image - Upload to eBay Picture Services        │   │
 │  │  /api/ebay/generate-description - AI description                 │   │
 │  │  /api/ebay/disconnect  - Remove eBay connection                  │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                    │                                     │
-│          ┌─────────────────────────┼─────────────────────────┐         │
-│          │                         │                         │          │
-│          ▼                         ▼                         ▼          │
-│  ┌───────────────┐      ┌───────────────┐      ┌───────────────┐       │
-│  │ ebay_valuation│      │  ebay_oauth   │      │ ebay_listing  │       │
-│  │     .py       │      │     .py       │      │     .py       │       │
-│  │               │      │               │      │               │       │
-│  │ - Search eBay │      │ - OAuth flow  │      │ - Create inv  │       │
-│  │ - Parse prices│      │ - Token mgmt  │      │ - Create offer│       │
-│  │ - Calculate   │      │ - Refresh     │      │ - Publish     │       │
-│  │ - Cache       │      │ - Store/load  │      │ - Policies    │       │
-│  └───────────────┘      └───────────────┘      └───────────────┘       │
-│          │                         │                         │          │
-│          └─────────────────────────┼─────────────────────────┘         │
-│                                    │                                     │
-│                                    ▼                                     │
+│       ┌────────────────────────────┼────────────────────────────┐      │
+│       │                            │                            │       │
+│       ▼                            ▼                            ▼       │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐       │
+│  │  ebay_     │  │  ebay_     │  │  ebay_     │  │  comic_    │       │
+│  │ valuation  │  │  oauth     │  │  listing   │  │ extraction │       │
+│  │   .py      │  │   .py      │  │   .py      │  │   .py      │       │
+│  │            │  │            │  │            │  │            │       │
+│  │ - Search   │  │ - OAuth    │  │ - Inventory│  │ - Claude   │       │
+│  │ - Parse    │  │ - Tokens   │  │ - Offers   │  │   vision   │       │
+│  │ - Calculate│  │ - Refresh  │  │ - Publish  │  │ - Extract  │       │
+│  │ - Cache    │  │ - Store    │  │ - Images   │  │   info     │       │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘       │
+│       │                   │              │              │               │
+│       └───────────────────┼──────────────┼──────────────┘              │
+│                           │              │                              │
+│                           ▼              ▼                              │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                    PostgreSQL Database                           │   │
 │  │                   (Render Managed)                               │   │
@@ -76,12 +86,106 @@
          │ - Web search      │           │ - Inventory API   │
          │ - Photo analysis  │           │ - Account API     │
          │ - Descriptions    │           │ - OAuth           │
-         └───────────────────┘           └───────────────────┘
+         └───────────────────┘           │ - Picture Services│
+                                         └───────────────────┘
 ```
 
 ---
 
-## Data Flow: Valuation
+## Data Flow: QuickList (Batch Processing)
+
+**QuickList** is the full pipeline from photo upload to eBay draft listing.
+
+```
+User uploads photos of comics (1-20)
+                │
+                ▼
+┌───────────────────────────────────┐
+│ /api/batch/process                │
+│ (Extract + Valuate + Describe)    │
+└───────────────────────────────────┘
+                │
+    ┌───────────┴───────────┐
+    │   For each comic:     │
+    │                       │
+    ▼                       │
+┌─────────────────┐         │
+│ Extract         │         │
+│ (Claude Vision) │         │
+│ - Title         │         │
+│ - Issue #       │         │
+│ - Grade         │         │
+│ - Edition       │         │
+│ - Publisher     │         │
+│ - Year          │         │
+└─────────────────┘         │
+         │                  │
+         ▼                  │
+┌─────────────────┐         │
+│ Valuate         │         │
+│ (Cache or API)  │         │
+│ - Quick Sale    │         │
+│ - Fair Value    │         │
+│ - High End      │         │
+└─────────────────┘         │
+         │                  │
+         ▼                  │
+┌─────────────────┐         │
+│ Describe        │         │
+│ (Claude)        │         │
+│ - 300 char max  │         │
+│ - Key issues    │         │
+└─────────────────┘         │
+         │                  │
+         └──────────────────┘
+                │
+                ▼
+        Return results to user
+        (extraction, valuations, descriptions)
+                │
+                ▼
+┌───────────────────────────────────┐
+│ USER REVIEWS & APPROVES           │
+│ - Edit grades, issue numbers      │
+│ - Select price tier (Fair default)│
+│ - Click "List on eBay"            │
+└───────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────┐
+│ /api/batch/list                   │
+│ (Upload Images + Create Drafts)   │
+└───────────────────────────────────┘
+                │
+    ┌───────────┴───────────┐
+    │   For each comic:     │
+    │                       │
+    ▼                       │
+┌─────────────────┐         │
+│ Upload Image    │         │
+│ (eBay Picture   │         │
+│  Services)      │         │
+└─────────────────┘         │
+         │                  │
+         ▼                  │
+┌─────────────────┐         │
+│ Create Listing  │         │
+│ (Draft mode)    │         │
+│ - Inventory item│         │
+│ - Offer         │         │
+│ - Skip publish  │         │
+└─────────────────┘         │
+         │                  │
+         └──────────────────┘
+                │
+                ▼
+        Return draft URLs
+        (user publishes when ready)
+```
+
+---
+
+## Data Flow: Single Valuation
 
 ```
 User enters comic info
@@ -129,7 +233,7 @@ User enters comic info
 
 ---
 
-## Data Flow: eBay Listing
+## Data Flow: eBay Listing (Single)
 
 ```
 User clicks "List on eBay" at $X price
@@ -179,7 +283,7 @@ User clicks "List on eBay" at $X price
 │ - Title, description          │
 │ - Condition (LIKE_NEW, etc)   │
 │ - Package dimensions          │
-│ - Placeholder image           │
+│ - Image URLs                  │
 └───────────────────────────────┘
                 │
                 ▼
@@ -210,15 +314,52 @@ User clicks "List on eBay" at $X price
                 │
                 ▼
 ┌───────────────────────────────┐
-│ Publish Offer                 │
-│ (eBay Inventory API)          │
-│ → Listing goes LIVE           │
+│ Publish? (based on param)     │
+│                               │
+│ publish=true  → Goes LIVE     │
+│ publish=false → Returns draft │
+│                 URL to Seller │
+│                 Hub           │
 └───────────────────────────────┘
                 │
                 ▼
-        Return listing URL
+        Return listing/draft URL
         to frontend
 ```
+
+---
+
+## API Endpoints Reference
+
+### Valuation
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/valuate` | POST | Get three-tier valuation for a comic |
+| `/api/lookup` | GET | Database lookup (no AI) |
+| `/api/messages` | POST | Proxy to Anthropic (frontend extraction) |
+
+### QuickList (Batch)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/extract` | POST | Extract single comic info from photo |
+| `/api/batch/process` | POST | Extract + Valuate + Describe (1-20 comics) |
+| `/api/batch/list` | POST | Upload images + Create drafts (1-20 comics) |
+
+### eBay Integration
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ebay/auth` | GET | Start OAuth flow |
+| `/api/ebay/callback` | GET | OAuth callback |
+| `/api/ebay/status` | GET | Check connection status |
+| `/api/ebay/list` | POST | Create listing (supports `publish`, `image_urls`) |
+| `/api/ebay/upload-image` | POST | Upload image to eBay Picture Services |
+| `/api/ebay/generate-description` | POST | Generate AI description |
+| `/api/ebay/disconnect` | POST | Remove eBay connection |
+
+### Input Validation (Batch Endpoints)
+- Max 20 comics per batch
+- Max 10MB per image
+- Supported formats: JPEG, PNG, WebP, HEIC
 
 ---
 
@@ -261,20 +402,22 @@ Stores OAuth tokens for eBay API access.
 - **Tier:** 2 (450k tokens/min)
 - **Uses:**
   - Web search for eBay prices
-  - Photo analysis (comic identification)
+  - Photo analysis (comic extraction)
   - Description generation
 
 ### eBay API
 - **Environment:** Production
 - **APIs Used:**
   - Browse API (searching)
-  - Inventory API (listings)
-  - Account API (policies)
+  - Inventory API (listings, offers)
+  - Account API (policies, locations)
   - OAuth (authentication)
+  - Picture Services (image upload)
 - **Key Settings:**
   - Category: 259104 (Comics & Graphic Novels)
   - Condition enums: LIKE_NEW, USED_EXCELLENT, etc.
   - Package: 1"×11"×7", 8oz, LETTER
+  - Default: Draft mode (publish=false)
 
 ---
 
@@ -285,6 +428,7 @@ Stores OAuth tokens for eBay API access.
 3. **CORS:** Configured for frontend domain only
 4. **OAuth State:** Random state parameter prevents CSRF
 5. **No PII Storage:** Only eBay tokens, no personal data
+6. **Input Validation:** Max image size (10MB), max batch size (20)
 
 ---
 
@@ -302,4 +446,18 @@ Stores OAuth tokens for eBay API access.
 
 ---
 
-*Last updated: January 19, 2026*
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `wsgi.py` | Flask routes (v3.4) |
+| `ebay_valuation.py` | Valuation logic, caching |
+| `ebay_oauth.py` | eBay OAuth flow |
+| `ebay_listing.py` | Listing creation, image upload |
+| `ebay_description.py` | AI description generation |
+| `comic_extraction.py` | **NEW** Backend extraction via Claude vision |
+| `index.html` | Frontend SPA |
+
+---
+
+*Last updated: January 20, 2026*

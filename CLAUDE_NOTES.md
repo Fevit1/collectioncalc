@@ -1,7 +1,18 @@
 # Claude Working Notes - CollectionCalc Project
 
-## IMPORTANT RULE
-**Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
+## IMPORTANT RULES
+1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
+2. **Break large code changes into small chunks** to avoid "thinking longer than usual" failures.
+3. **Update this file at checkpoints** (see Checkpoint System below).
+
+## Checkpoint System
+Update CLAUDE_NOTES.md when:
+- ✅ After any context compacting (conversation got long)
+- ✅ After completing a major feature
+- ✅ Before ending a session
+- ✅ If Mike says "let's checkpoint" or "update notes"
+
+This ensures we can recover quickly if a conversation fails or needs to restart.
 
 ## About Mike
 - **Name:** Mike (legal name Don, goes by Mike)
@@ -52,47 +63,79 @@
 ## Key Files
 - `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
 - `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
-- `ebay_listing.py` - eBay listing creation via Inventory API (includes policy lookup, merchant location, package dimensions)
+- `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
+- `comic_extraction.py` - **NEW** Backend extraction via Claude vision
 - `index.html` - Frontend (single page app)
-- `wsgi.py` - Flask routes (v3.3)
+- `wsgi.py` - Flask routes (v3.4)
 - `requirements.txt` - Python dependencies
 
-## Current State (January 19, 2026)
+## QuickList - The Full Pipeline
+**QuickList** is our name for the complete flow from photo to eBay listing:
+
+1. **Upload** - User uploads photos of comics
+2. **Extract** - AI reads photo, pulls title, issue, grade, newsstand/direct, etc.
+3. **Derive** - AI determines publisher, year, description
+4. **Review** - User reviews extraction, can modify/approve
+5. **Valuate** - Get three-tier pricing (Quick Sale, Fair Value, High End)
+6. **List** - Create eBay draft listing (user publishes when ready)
+
+## Current State (January 20, 2026)
 
 ### Just Completed (This Session) 🎉
-**MAJOR MILESTONE: First live eBay listing created from CollectionCalc!**
+**QuickList batch processing + UI overhaul**
 
-- Upgraded Anthropic API to Tier 2 (450k tokens/min, $60 credits)
-- Switched from eBay Sandbox to Production
-- Fixed OAuth redirect URLs (collectioncalc.onrender.com)
-- eBay business policies setup (shipping, payment, returns)
-- Fixed condition enums (LIKE_NEW, USED_EXCELLENT, etc.)
-- Added auto-create merchant location
-- Added policy lookup (finds user's existing policies)
-- Added placeholder image support (temporary Mercari URL)
-- Added package weight/dimensions for calculated shipping
-- Fixed SKU uniqueness (timestamp-based)
-- Fixed category ID (259104 = Comics & Graphic Novels)
-- **Successfully created and published live eBay listing!**
+- **Draft mode for eBay** - Listings now create as drafts by default (`publish=False`)
+- **Photo upload to eBay** - New `upload_image_to_ebay()` function, `/api/ebay/upload-image` endpoint
+- **Backend extraction** - New `comic_extraction.py` with Claude vision
+- **Batch endpoints:**
+  - `/api/extract` - Extract single comic from photo
+  - `/api/batch/process` - Extract + Valuate + Describe multiple comics (no eBay yet)
+  - `/api/batch/list` - Upload images + Create drafts (after user approval)
+- **Input validation** - Max 20 comics per batch, 10MB max image size
+- **Removed 60-second delay** - Was leftover from Tier 1, slowing batch valuations
+- **UI updates:**
+  - Three price boxes (Quick Sale, Fair Value, High End) side by side
+  - Fair Value selected by default with visual highlight
+  - "List on eBay" button per comic in batch results
+  - Removed confidence row from main display (details available via 📊 icon)
+  - Removed refresh/regenerate button
+
+### In Progress
+- **Part E: Sort options** - Add ability to sort batch results by value, title
+
+### Roadmap Items Added
+- **Vision Guide** - Improve extraction accuracy (where to look for issue numbers, what to ignore like price stickers)
+- **Progress Step Expansion** - More granular steps during valuation to keep users engaged (current 5 steps feel slow)
+
+### API Endpoints (Current)
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/valuate` | Get three-tier valuation for a comic |
+| `/api/messages` | Proxy to Anthropic (frontend extraction) |
+| `/api/extract` | Backend extraction from photo |
+| `/api/batch/process` | QuickList Step 1: Extract + Valuate + Describe (multiple) |
+| `/api/batch/list` | QuickList Step 2: Upload images + Create drafts |
+| `/api/ebay/upload-image` | Upload single image to eBay Picture Services |
+| `/api/ebay/list` | Create eBay listing (supports `publish` and `image_urls` params) |
+| `/api/ebay/generate-description` | AI-generated 300-char description |
+| `/api/ebay/auth` | Start eBay OAuth flow |
+| `/api/ebay/callback` | eBay OAuth callback |
+| `/api/ebay/status` | Check eBay connection status |
 
 ### eBay Integration Technical Details
 - **Category ID:** 259104 (Comics & Graphic Novels - leaf category)
 - **Package dimensions:** 1" x 11" x 7", 8 oz, packageType: LETTER
 - **Condition mapping:** MT/NM→LIKE_NEW, VF→USED_EXCELLENT, FN/VG→USED_VERY_GOOD, G→USED_GOOD, FR/PR→USED_ACCEPTABLE
 - **SKU format:** `CC-{title}-{issue}-{timestamp}` (ensures uniqueness)
-- **Placeholder image:** Currently using external URL (need to host our own)
-
-### Pending Decision
-- **Draft vs Live:** Currently listings go live immediately. Mike considering whether to:
-  1. Change to create drafts only (user publishes after adding photos)
-  2. Add UI option for "Save as Draft" vs "List Now"
+- **Draft mode:** `publish=False` (default) returns `drafts_url` to Seller Hub
 
 ### Known Issues / TODOs
-- Need to host our own placeholder image (not use Mercari's)
-- Photo upload not yet implemented
-- Listings go live immediately (no draft option yet)
-- Before other users: Must implement eBay account deletion notification endpoint
+- [ ] Vision Guide for better extraction (issue numbers near prices get misread)
+- [ ] More progress steps during valuation (users think it's frozen)
+- [ ] Sort options in batch results (by value, title)
+- [ ] Host our own placeholder image (not external URL)
+- [ ] eBay account deletion notification endpoint (GDPR)
 
 ### Anthropic API Rate Limits
 | Tier | Tokens/Min | Tokens/Day | Requirement |
@@ -102,7 +145,7 @@
 | Tier 3 | 1,000,000 | 100M | $200 spend |
 | Tier 4 | 2,000,000+ | Unlimited | Enterprise |
 
-Tier 2 is sufficient for beta. Consider Tier 3 only if processing 100+ comics regularly.
+Tier 2 is sufficient for beta. No more delays needed between valuations!
 
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
@@ -119,24 +162,27 @@ Tier 2 is sufficient for beta. Consider Tier 3 only if processing 100+ comics re
 
 ## Product Decisions Made
 - **Keep it simple:** Users just need Title, Issue, Grade
-- **Details on demand:** Confidence and analysis hidden behind toggle
-- **Three tiers:** Quick Sale (green), Fair Value (highlighted), High End (amber)
-- **No confidence colors on boxes:** Too confusing without context
+- **Details on demand:** Confidence and analysis hidden behind toggle (📊 icon)
+- **Three tiers:** Quick Sale, Fair Value (default/highlighted), High End
+- **QuickList flow:** Extract → Review → Valuate → List (user approves before eBay interaction)
 - **48-hour cache:** Balance between freshness and API costs
-- **Future pricing:** ~$400/week for 25k comics if doing weekly refresh (defer until revenue)
 - **eBay description tone:** Professional (sets us apart, looks reliable)
 - **eBay returns:** Let eBay handle via seller's existing policies
 - **Calculated shipping:** Requires package dimensions in inventory item
+- **Price selection:** User picks tier or enters custom price (Fair Value default)
 
 ## Pre-Launch Requirements (Before Other Users)
 - [ ] Implement eBay account deletion notification endpoint (GDPR compliance)
 - [ ] Host our own placeholder image (not external URL)
-- [ ] Decide on draft vs live listing default
-- [ ] Photo upload for listings
+- [x] Draft mode for listings (done!)
+- [x] Photo upload for listings (done!)
+- [ ] Test full QuickList flow with real comics
 
 ## Future Considerations
-- **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute, 100+ may need pacing
+- **Batch listing groups:** e.g., "List all 12 issues of Secret Wars" as a batch action
+- **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute
 - **Travel agent AI:** Mike's idea for future product (autonomous booking with user approval)
+- **Parallel valuations:** Could speed up batch processing further
 
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
@@ -153,4 +199,4 @@ Tier 2 is sufficient for beta. Consider Tier 3 only if processing 100+ comics re
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 19, 2026*
+*Last updated: January 20, 2026*
