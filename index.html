@@ -298,6 +298,32 @@
             color: var(--text-muted);
             margin-top: 10px;
         }
+        .sort-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        .sort-controls label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .sort-controls select {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .sort-controls select:focus {
+            outline: none;
+            border-color: var(--brand-indigo);
+        }
         .item-card .list-btn {
             margin-top: 10px;
             padding: 8px 16px;
@@ -1073,6 +1099,16 @@
                         <div class="summary-count" id="itemCount">0 items valued</div>
                     </div>
                     
+                    <div class="sort-controls">
+                        <label for="sortSelect">Sort by:</label>
+                        <select id="sortSelect" onchange="sortResults(this.value)">
+                            <option value="default">Order Added</option>
+                            <option value="value-high">Value (High to Low)</option>
+                            <option value="value-low">Value (Low to High)</option>
+                            <option value="title">Title (A-Z)</option>
+                        </select>
+                    </div>
+                    
                     <div id="resultsList"></div>
                     
                     <div class="action-buttons">
@@ -1161,6 +1197,8 @@
         let apiKey = localStorage.getItem('anthropic_api_key') || '';
         let currentMode = 'manual';
         let extractedItems = [];
+        let currentSort = 'default';
+        let originalOrder = []; // Store original order for "Order Added" sort
         
         // eBay integration state
         let ebayUserId = localStorage.getItem('ebay_user_id') || generateUserId();
@@ -1564,9 +1602,14 @@
         
         function resetApp() {
             extractedItems = [];
+            originalOrder = [];
+            currentSort = 'default';
             document.getElementById('result').classList.remove('show');
             document.getElementById('resultsMode').style.display = 'none';
             document.getElementById('bulkMode').style.display = 'none';
+            // Reset sort dropdown
+            const sortSelect = document.getElementById('sortSelect');
+            if (sortSelect) sortSelect.value = 'default';
             if (currentMode === 'photo') {
                 document.getElementById('photoMode').style.display = 'block';
             }
@@ -1826,6 +1869,57 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             };
         }
         
+        function sortResults(sortBy) {
+            currentSort = sortBy;
+            
+            // Store original order if not already stored
+            if (originalOrder.length === 0 || originalOrder.length !== extractedItems.length) {
+                originalOrder = extractedItems.map((item, idx) => ({ ...item, originalIndex: idx }));
+            }
+            
+            // Sort based on selection
+            switch (sortBy) {
+                case 'value-high':
+                    extractedItems.sort((a, b) => {
+                        const aVal = a.selectedPrice || a.fair_value || a.value || 0;
+                        const bVal = b.selectedPrice || b.fair_value || b.value || 0;
+                        return bVal - aVal;
+                    });
+                    break;
+                case 'value-low':
+                    extractedItems.sort((a, b) => {
+                        const aVal = a.selectedPrice || a.fair_value || a.value || 0;
+                        const bVal = b.selectedPrice || b.fair_value || b.value || 0;
+                        return aVal - bVal;
+                    });
+                    break;
+                case 'title':
+                    extractedItems.sort((a, b) => {
+                        const aTitle = (a.title || '').toLowerCase();
+                        const bTitle = (b.title || '').toLowerCase();
+                        if (aTitle === bTitle) {
+                            return (parseInt(a.issue) || 0) - (parseInt(b.issue) || 0);
+                        }
+                        return aTitle.localeCompare(bTitle);
+                    });
+                    break;
+                case 'default':
+                default:
+                    // Restore original order
+                    if (originalOrder.length > 0) {
+                        extractedItems = originalOrder.map(item => {
+                            const current = extractedItems.find(e => 
+                                e.title === item.title && e.issue === item.issue
+                            );
+                            return current || item;
+                        });
+                    }
+                    break;
+            }
+            
+            showResults();
+        }
+        
         function showResults() {
             document.getElementById('bulkMode').style.display = 'none';
             document.getElementById('resultsMode').style.display = 'block';
@@ -2022,6 +2116,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             // Update displays
             setTimeout(() => {
                 hideThinking();
+                // Capture original order for "Order Added" sort
+                originalOrder = extractedItems.map((item, idx) => ({ ...item, originalIndex: idx }));
                 showResults();
             }, 1500);
         }
