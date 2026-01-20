@@ -21,11 +21,11 @@ Our goal: Build the most accurate, user-informed valuation tool by combining rea
 ## Completed ✅
 
 ### Phase 0: Core MVP
-- [x] Database schema (SQLite)
+- [x] Database schema (SQLite → PostgreSQL)
 - [x] Basic valuation model with grade adjustments
 - [x] Comic lookup system
 - [x] API server (Flask)
-- [x] Deployed to Render (free tier)
+- [x] Deployed to Render
 - [x] Basic frontend UI
 
 ### Phase 1: Infrastructure
@@ -67,36 +67,44 @@ Actionable pricing for different selling scenarios.
 - [x] Tighter grade filtering (±0.5 grade tolerance)
 - [x] Cache now stores all pricing tiers
 - [x] PostgreSQL database migration (from SQLite)
-- [x] Per-tier confidence scoring:
-  - Quick Sale: boosted if BIN data exists
-  - Fair Value: base confidence (most stable)
-  - High End: lowered if max is outlier vs median
-- [x] UI simplification:
-  - Removed Publisher and Year fields (AI auto-detects)
-  - Collapsed Market Data into "Details" toggle
-  - Confidence scores moved to Details section
-  - Clean 3-box display for prices
+- [x] Per-tier confidence scoring
+
+### Phase 2.8: eBay Listing Integration ✅ (January 19, 2026)
+**MILESTONE: First live eBay listing created from CollectionCalc!**
+
+One-click listing from valuation results.
+
+- [x] eBay Developer account registered
+- [x] eBay Developer API approved
+- [x] OAuth flow for user eBay accounts (Production)
+- [x] "List on eBay" buttons (3 price tiers)
+- [x] AI-generated descriptions (300 char limit for mobile)
+- [x] Listing preview modal with editable description
+- [x] Placeholder image support
+- [x] Auto-find user's business policies (shipping, payment, returns)
+- [x] Auto-create merchant location
+- [x] Package weight/dimensions for calculated shipping
+- [x] Condition mapping (grade → eBay condition enum)
+- [x] Create eBay listing via Inventory API
+- [x] Listing published to live eBay! 🎉
+
+**Technical details:**
+- Category ID: 259104 (Comics & Graphic Novels)
+- Package: 1" x 11" x 7", 8 oz, LETTER type
+- SKU: CC-{title}-{issue}-{timestamp}
+- Condition: LIKE_NEW, USED_EXCELLENT, USED_VERY_GOOD, USED_GOOD, USED_ACCEPTABLE
 
 ---
 
 ## In Progress 🔨
 
-### Phase 2.8: eBay Listing Integration
-One-click listing from valuation results.
+### Phase 2.85: eBay Listing Polish
+Refine the listing experience.
 
-- [x] eBay Developer account registered
-- [x] eBay Developer API approved
-- [x] OAuth flow for user eBay accounts
-- [x] "List on eBay" buttons (3 price tiers)
-- [x] AI-generated descriptions (300 char limit for mobile)
-- [x] Listing preview modal with editable description
-- [x] Placeholder image (branded calculator)
-- [x] Anthropic API upgraded to Tier 2 (450k tokens/min - eliminates rate limit waits)
+- [ ] Draft vs Live option (currently goes live immediately)
+- [ ] Host our own placeholder image (not external URL)
 - [ ] Photo upload for listings
-- [ ] Create eBay listing via Inventory API
-- [ ] Listing confirmation & tracking
-
-**Status:** OAuth working, listing preview complete, Tier 2 rate limits active. Next: test API listing creation in sandbox.
+- [ ] Listing confirmation page with eBay link
 
 ---
 
@@ -140,9 +148,8 @@ Polish the listing experience.
 - [ ] Description caching (avoid regenerating same comic)
 - [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
 - [ ] Bulk listing from multi-comic valuations
-  - Smart rate limit handling: sequential processing with header checking, pause/retry when approaching limits
-  - Tier 2 capacity: 20-50 comics comfortable, 100+ may need pacing
 - [ ] Video upload support
+- [ ] eBay account deletion notification endpoint (required before other users)
 
 ---
 
@@ -249,9 +256,14 @@ Extend platform to additional verticals.
 
 | Phase | Monthly Cost | Stack |
 |-------|--------------|-------|
-| MVP (Current) | ~$0-3 | Render free + SQLite |
-| Beta | ~$7-15 | Render paid + PostgreSQL |
-| Production | ~$25-50 | When revenue justifies |
+| MVP (Current) | ~$7 | Render Starter + PostgreSQL |
+| Beta | ~$15-25 | + Anthropic Tier 2 |
+| Production | ~$50-100 | When revenue justifies |
+
+### Anthropic API Costs
+- **Current Tier:** Tier 2 (450k tokens/min, $60 credits deposited)
+- **Capacity:** 20-50 comics/minute comfortable, 100+ may need pacing
+- **Cost per valuation:** ~$0.01-0.02 (with caching)
 
 ---
 
@@ -269,6 +281,7 @@ Extend platform to additional verticals.
 - **Return users** - Users coming back to value more items
 - **Collections tracked** - Total items in user portfolios
 - **Feedback submissions** - Community corrections submitted
+- **eBay listings created** - Conversion from valuation to listing
 
 ### Business Metrics
 - **Cost per valuation** - Target: <$0.01 average (with DB caching)
@@ -276,23 +289,25 @@ Extend platform to additional verticals.
 
 ---
 
+## Version History
+
+| Date | Version | Changes |
+|------|---------|---------|
+| Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies, package dimensions |
+| Jan 18, 2026 | 2.7.5 | AI descriptions, listing preview modal, Anthropic Tier 2 upgrade |
+| Jan 17, 2026 | 2.7.0 | eBay OAuth (sandbox), listing buttons |
+| Jan 15, 2026 | 2.5.0 | Three-tier pricing, PostgreSQL migration |
+
+---
+
 ## Related Documents
 
+- [Claude Notes](CLAUDE_NOTES.md) - Session context and working notes
 - [Architecture](ARCHITECTURE.md) - System diagrams
 - [Brand Guidelines](BRAND_GUIDELINES.md) - Colors, typography, UI components
 - [Competitive Analysis](COMPETITIVE_ANALYSIS.md) - Market research & academic findings
 - [Database](DATABASE.md) - Schema documentation
 - [Budget](BUDGET.md) - Hosting strategy
-- [Claude Notes](CLAUDE_NOTES.md) - Session context for AI assistant
-
----
-
-## Version History
-
-| Date | Changes |
-|------|---------|
-| 2026-01-19 | Added Tier 2 upgrade to Phase 2.8; added bulk rate limit handling to Phase 2.96; added version history section; updated Budget Phases (now on PostgreSQL) |
-| 2026-01-18 | Phase 2.8 eBay integration progress: OAuth, listing preview, AI descriptions |
 
 ---
 

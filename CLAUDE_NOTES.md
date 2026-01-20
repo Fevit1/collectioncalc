@@ -4,8 +4,9 @@
 **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
 
 ## About Mike
-- **Name:** Mike (not "this user"!)
+- **Name:** Mike (legal name Don, goes by Mike)
 - **Role:** Product Manager in high tech, manages people (not hands-on dev)
+- **Background:** Former eBay employee (marketing/content supply chain, not engineering)
 - **Technical comfort:** Decent SQL skills, but not a developer
 - **Strengths:** Product vision, feature prioritization, testing, user feedback, UI/UX decisions
 - **Learning style:** Appreciates guidance but wants Claude to recognize when he's mastered something and stop over-explaining
@@ -20,6 +21,8 @@
 - ✅ Cloudflare Pages deployment
 - ✅ PowerShell aliases (created `deploy` command)
 - ✅ Curl basics (for deploy hooks)
+- ✅ eBay Developer Portal (credentials, RuNames, OAuth setup)
+- ✅ eBay Business Policies
 
 ## Where Mike May Need More Guidance
 - ⚠️ New terminal/bash commands - explain what each command does
@@ -34,18 +37,22 @@
 - For learned workflows: Trust him to do it (don't over-explain git anymore)
 - After creating files: Always explain the next action needed
 - Check in if something might be confusing
+- **PowerShell syntax:** Use semicolons not `&&` for chained commands
+  - Correct: `git add .; git commit -m "message"; git push; deploy`
+  - Wrong: `git add . && git commit -m "message" && git push && deploy`
 
 ## Project: CollectionCalc
 - **What it is:** AI-powered comic book valuation tool
 - **Vision:** Multi-collectible platform (comics first, then sports cards, Pokemon, etc.)
 - **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
 - **Hosted on:** Render.com (backend + DB), Cloudflare Pages (frontend)
-- **Live URL:** https://collectioncalc.com (pending Cloudflare setup)
+- **Live URL:** https://collectioncalc.com (frontend), https://collectioncalc.onrender.com (backend API)
+- **Note:** Backend is `collectioncalc.onrender.com` NOT `collectioncalc-v2.onrender.com`
 
 ## Key Files
 - `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
 - `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
-- `ebay_listing.py` - eBay listing creation via Inventory API
+- `ebay_listing.py` - eBay listing creation via Inventory API (includes policy lookup, merchant location, package dimensions)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `index.html` - Frontend (single page app)
 - `wsgi.py` - Flask routes (v3.3)
@@ -53,57 +60,49 @@
 
 ## Current State (January 19, 2026)
 
-### This Session
-- Upgraded Anthropic API to Tier 2 (450k tokens/min vs 30k) - eliminates rate limit waits
-- Rate limit research for bulk processing
-- Documentation cleanup (consolidated roadmap items into ROADMAP.md)
+### Just Completed (This Session) 🎉
+**MAJOR MILESTONE: First live eBay listing created from CollectionCalc!**
 
-### Previous Session (January 18)
-- eBay OAuth integration working (sandbox)
-- eBay "List on eBay" buttons for all 3 price tiers
-- Listing preview modal with editable description
-- AI-generated descriptions:
-  - 300 character limit (mobile-optimized for eBay)
-  - Highlights KEY ISSUES (first appearances, etc.)
-  - Excludes title/publisher/year (shown in eBay fields)
-  - Excludes grade (shown in eBay item specifics)
-  - No "review photos" text (seller policies handle that)
-- Fixed profanity filter (word boundaries - "Cassidy" no longer flagged)
-- Placeholder image with branded calculator icon
-- Render upgraded to Starter tier ($7/mo) - no more cold starts
+- Upgraded Anthropic API to Tier 2 (450k tokens/min, $60 credits)
+- Switched from eBay Sandbox to Production
+- Fixed OAuth redirect URLs (collectioncalc.onrender.com)
+- eBay business policies setup (shipping, payment, returns)
+- Fixed condition enums (LIKE_NEW, USED_EXCELLENT, etc.)
+- Added auto-create merchant location
+- Added policy lookup (finds user's existing policies)
+- Added placeholder image support (temporary Mercari URL)
+- Added package weight/dimensions for calculated shipping
+- Fixed SKU uniqueness (timestamp-based)
+- Fixed category ID (259104 = Comics & Graphic Novels)
+- **Successfully created and published live eBay listing!**
 
-### Known Issues
-- Description caching not implemented yet (planned - see ROADMAP.md Phase 2.96)
+### eBay Integration Technical Details
+- **Category ID:** 259104 (Comics & Graphic Novels - leaf category)
+- **Package dimensions:** 1" x 11" x 7", 8 oz, packageType: LETTER
+- **Condition mapping:** MT/NM→LIKE_NEW, VF→USED_EXCELLENT, FN/VG→USED_VERY_GOOD, G→USED_GOOD, FR/PR→USED_ACCEPTABLE
+- **SKU format:** `CC-{title}-{issue}-{timestamp}` (ensures uniqueness)
+- **Placeholder image:** Currently using external URL (need to host our own)
 
-### Next Up
-1. Test AI description generation (rate limits should be fine now)
-2. Confirm listing posts to eBay sandbox
-3. Set up eBay seller policies (shipping, returns) in sandbox
+### Pending Decision
+- **Draft vs Live:** Currently listings go live immediately. Mike considering whether to:
+  1. Change to create drafts only (user publishes after adding photos)
+  2. Add UI option for "Save as Draft" vs "List Now"
 
-## Anthropic API Rate Limits
+### Known Issues / TODOs
+- Need to host our own placeholder image (not use Mercari's)
+- Photo upload not yet implemented
+- Listings go live immediately (no draft option yet)
+- Before other users: Must implement eBay account deletion notification endpoint
 
-### Current Tier: Tier 2 ($40 cumulative deposit)
-- **Input tokens:** 450,000/minute
-- **Output tokens:** Much higher than Tier 1
-- **Monthly spend limit:** $500
+### Anthropic API Rate Limits
+| Tier | Tokens/Min | Tokens/Day | Requirement |
+|------|-----------|------------|-------------|
+| Tier 1 | 30,000 | 1M | Default |
+| **Tier 2 (Current)** | **450,000** | **50M** | **$40 spend** |
+| Tier 3 | 1,000,000 | 100M | $200 spend |
+| Tier 4 | 2,000,000+ | Unlimited | Enterprise |
 
-### Bulk Processing Capacity (Tier 2)
-Each valuation uses roughly:
-- Input: ~2-5k tokens (prompt + eBay data)
-- Output: ~500-1k tokens (analysis)
-
-**What fits comfortably in one minute:**
-- 20 comics: ✅ Easy (~40-100k input tokens)
-- 50 comics: ✅ Should work (~100-250k input tokens)
-- 100 comics: ⚠️ Pushing it, may need pacing
-
-### Tier Reference
-| Tier | Deposit | Input Tokens/Min | Monthly Limit |
-|------|---------|------------------|---------------|
-| 1 | $5 | 30,000 | $100 |
-| 2 | $40 | 450,000 | $500 |
-| 3 | $200 | ~1,000,000 | $1,000 |
-| 4 | $400 | ~2,000,000 | $5,000 |
+Tier 2 is sufficient for beta. Consider Tier 3 only if processing 100+ comics regularly.
 
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
@@ -111,6 +110,12 @@ Each valuation uses roughly:
 3. Mike runs: `git add .; git commit -m "message"; git push; deploy`
    - Note: `deploy` is a PowerShell alias that triggers Render deploy hook
    - Must include `git push` or Render rebuilds old code!
+
+## eBay Credentials (Production)
+- **App ID:** DonBerry-Collecti-PRD-8b446dc71-59cfad05
+- **RuName:** Don_Berry-DonBerry-Collec-cipbkmzlb
+- **Redirect URL:** https://collectioncalc.onrender.com/api/ebay/callback
+- **Environment:** Production (EBAY_SANDBOX=false or not set)
 
 ## Product Decisions Made
 - **Keep it simple:** Users just need Title, Issue, Grade
@@ -121,6 +126,17 @@ Each valuation uses roughly:
 - **Future pricing:** ~$400/week for 25k comics if doing weekly refresh (defer until revenue)
 - **eBay description tone:** Professional (sets us apart, looks reliable)
 - **eBay returns:** Let eBay handle via seller's existing policies
+- **Calculated shipping:** Requires package dimensions in inventory item
+
+## Pre-Launch Requirements (Before Other Users)
+- [ ] Implement eBay account deletion notification endpoint (GDPR compliance)
+- [ ] Host our own placeholder image (not external URL)
+- [ ] Decide on draft vs live listing default
+- [ ] Photo upload for listings
+
+## Future Considerations
+- **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute, 100+ may need pacing
+- **Travel agent AI:** Mike's idea for future product (autonomous booking with user approval)
 
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
@@ -133,10 +149,8 @@ Each valuation uses roughly:
 - [ ] Anthropic billing alerts set
 
 ## Related Documents
-- **ROADMAP.md** - Full feature backlog and version history
-- **ARCHITECTURE.md** - System diagrams
-- **BRAND_GUIDELINES.md** - Colors, typography, UI components
+- [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-
 *Last updated: January 19, 2026*

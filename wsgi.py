@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.3",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator"]
+        "version": "3.4",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -403,17 +403,349 @@ def ebay_list():
         price = data.get('price')
         grade = data.get('grade', 'VF')
         description = data.get('description')  # User-approved description
+        publish = data.get('publish', False)  # Default to draft mode
+        image_urls = data.get('image_urls')  # List of eBay-hosted image URLs
         
         if not all([title, issue, price]):
             return jsonify({'success': False, 'error': 'Missing required fields: title, issue, price'}), 400
         
-        result = create_listing(user_id, title, issue, float(price), grade, description)
+        result = create_listing(user_id, title, issue, float(price), grade, description, publish, image_urls)
         
         if result.get('success'):
             return jsonify(result)
         else:
             return jsonify(result), 400
             
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ebay/upload-image', methods=['POST', 'OPTIONS'])
+def ebay_upload_image():
+    """Upload an image to eBay Picture Services."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from ebay_listing import upload_image_to_ebay
+        from ebay_oauth import get_user_token
+        import base64
+        
+        data = request.get_json()
+        user_id = data.get('user_id', 'default')
+        image_base64 = data.get('image')  # Base64 encoded image
+        filename = data.get('filename', 'comic.jpg')
+        
+        if not image_base64:
+            return jsonify({'success': False, 'error': 'Missing required field: image (base64)'}), 400
+        
+        # Get user's access token
+        token_data = get_user_token(user_id)
+        if not token_data or not token_data.get('access_token'):
+            return jsonify({'success': False, 'error': 'Not connected to eBay. Please connect your account.'}), 401
+        
+        # Decode base64 image
+        try:
+            # Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+            if ',' in image_base64:
+                image_base64 = image_base64.split(',')[1]
+            image_data = base64.b64decode(image_base64)
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Invalid base64 image: {str(e)}'}), 400
+        
+        # Upload to eBay
+        result = upload_image_to_ebay(token_data['access_token'], image_data, filename)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/extract', methods=['POST', 'OPTIONS'])
+def extract_comic():
+    """Extract comic info from a photo using AI vision."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from comic_extraction import extract_from_base64
+        
+        data = request.get_json()
+        image_base64 = data.get('image')  # Base64 encoded image
+        filename = data.get('filename', 'comic.jpg')
+        
+        if not image_base64:
+            return jsonify({'success': False, 'error': 'Missing required field: image (base64)'}), 400
+        
+        result = extract_from_base64(image_base64, filename)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/batch/process', methods=['POST', 'OPTIONS'])
+def batch_process():
+    """
+    Process multiple comics: Extract + Valuate + Generate Description.
+    No eBay interaction - returns results for user review.
+    Part of QuickList pipeline: Extract → Valuate → Describe → List
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    # Validation limits
+    MAX_BATCH_SIZE = 20  # Max comics per request
+    MAX_IMAGE_SIZE_MB = 10  # Max image size in MB
+    MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    
+    try:
+        from comic_extraction import extract_from_base64
+        from ebay_valuation import get_valuation_with_ebay
+        from ebay_description import generate_description
+        
+        data = request.get_json()
+        comics = data.get('comics', [])
+        
+        if not comics:
+            return jsonify({'success': False, 'error': 'No comics provided'}), 400
+        
+        # Validate batch size
+        if len(comics) > MAX_BATCH_SIZE:
+            return jsonify({
+                'success': False, 
+                'error': f'Too many comics. Maximum {MAX_BATCH_SIZE} per request, received {len(comics)}'
+            }), 400
+        
+        results = []
+        errors = []
+        
+        for idx, comic in enumerate(comics):
+            comic_result = {'index': idx}
+            
+            try:
+                image_base64 = comic.get('image')
+                filename = comic.get('filename', f'comic_{idx}.jpg')
+                
+                if not image_base64:
+                    errors.append({'index': idx, 'error': 'Missing image data'})
+                    continue
+                
+                # Validate image size (base64 is ~33% larger than binary)
+                estimated_size = len(image_base64) * 3 / 4
+                if estimated_size > MAX_IMAGE_SIZE_BYTES:
+                    errors.append({
+                        'index': idx, 
+                        'error': f'Image too large. Maximum {MAX_IMAGE_SIZE_MB}MB, received ~{round(estimated_size / 1024 / 1024, 1)}MB'
+                    })
+                    continue
+                
+                if not image_base64:
+                    errors.append({'index': idx, 'error': 'Missing image data'})
+                    continue
+                
+                # Step 1: Extract comic info from photo
+                extraction = extract_from_base64(image_base64, filename)
+                
+                if not extraction.get('success'):
+                    errors.append({'index': idx, 'error': extraction.get('error', 'Extraction failed'), 'step': 'extract'})
+                    continue
+                
+                extracted = extraction.get('extracted', {})
+                comic_result['extracted'] = extracted
+                comic_result['image'] = image_base64  # Keep for later listing
+                comic_result['filename'] = filename
+                
+                # Step 2: Get valuation
+                title = extracted.get('title', '')
+                issue = extracted.get('issue', '')
+                grade = extracted.get('grade', 'VF')
+                publisher = extracted.get('publisher')
+                year = extracted.get('year')
+                
+                if title and issue:
+                    valuation = get_valuation_with_ebay(
+                        title=title,
+                        issue=issue,
+                        grade=grade,
+                        publisher=publisher,
+                        year=year
+                    )
+                    comic_result['valuation'] = valuation
+                else:
+                    comic_result['valuation'] = {'error': 'Missing title or issue for valuation'}
+                
+                # Step 3: Generate description
+                price = 0
+                if comic_result.get('valuation') and comic_result['valuation'].get('fair_value'):
+                    price = comic_result['valuation']['fair_value']
+                
+                desc_result = generate_description(
+                    title=title,
+                    issue=issue,
+                    grade=grade,
+                    price=price,
+                    publisher=publisher,
+                    year=year
+                )
+                
+                if desc_result.get('success'):
+                    comic_result['description'] = desc_result.get('description', '')
+                else:
+                    comic_result['description'] = ''
+                    comic_result['description_error'] = desc_result.get('error')
+                
+                results.append(comic_result)
+                
+            except Exception as e:
+                errors.append({'index': idx, 'error': str(e)})
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'errors': errors,
+            'processed': len(results),
+            'failed': len(errors)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/batch/list', methods=['POST', 'OPTIONS'])
+def batch_list():
+    """
+    Create eBay draft listings for approved comics.
+    Uploads images to eBay, then creates drafts.
+    Part of QuickList pipeline: Extract → Valuate → Describe → List
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    # Validation limits
+    MAX_BATCH_SIZE = 20  # Max comics per request
+    MAX_IMAGE_SIZE_MB = 10  # Max image size in MB
+    MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    
+    try:
+        from ebay_listing import upload_image_to_ebay, create_listing
+        from ebay_oauth import get_user_token
+        import base64
+        
+        data = request.get_json()
+        user_id = data.get('user_id', 'default')
+        comics = data.get('comics', [])
+        publish = data.get('publish', False)  # Default to draft
+        
+        if not comics:
+            return jsonify({'success': False, 'error': 'No comics provided'}), 400
+        
+        # Validate batch size
+        if len(comics) > MAX_BATCH_SIZE:
+            return jsonify({
+                'success': False, 
+                'error': f'Too many comics. Maximum {MAX_BATCH_SIZE} per request, received {len(comics)}'
+            }), 400
+        
+        # Get user's eBay token
+        token_data = get_user_token(user_id)
+        if not token_data or not token_data.get('access_token'):
+            return jsonify({'success': False, 'error': 'Not connected to eBay. Please connect your account.'}), 401
+        
+        access_token = token_data['access_token']
+        
+        results = []
+        errors = []
+        
+        for idx, comic in enumerate(comics):
+            comic_result = {'index': idx}
+            
+            try:
+                # Required fields
+                title = comic.get('title')
+                issue = comic.get('issue')
+                grade = comic.get('grade', 'VF')
+                description = comic.get('description', '')
+                image_base64 = comic.get('image')
+                filename = comic.get('filename', f'comic_{idx}.jpg')
+                
+                # Price: user specifies, or picks tier, or defaults to fair_value
+                price = comic.get('price')
+                if not price:
+                    # Check if user specified a tier
+                    price_tier = comic.get('price_tier', 'fair_value')
+                    valuation = comic.get('valuation', {})
+                    if price_tier == 'quick_sale':
+                        price = valuation.get('quick_sale_value') or valuation.get('quick_sale')
+                    elif price_tier == 'high_end':
+                        price = valuation.get('high_end_value') or valuation.get('high_end')
+                    else:
+                        price = valuation.get('fair_value') or valuation.get('estimated_value')
+                
+                if not all([title, issue, price]):
+                    errors.append({'index': idx, 'error': 'Missing required fields: title, issue, price'})
+                    continue
+                
+                # Step 1: Upload image to eBay (if provided)
+                image_urls = None
+                if image_base64:
+                    # Validate image size
+                    estimated_size = len(image_base64) * 3 / 4
+                    if estimated_size > MAX_IMAGE_SIZE_BYTES:
+                        comic_result['image_warning'] = f'Image too large ({round(estimated_size / 1024 / 1024, 1)}MB), using placeholder'
+                    else:
+                        try:
+                            # Remove data URL prefix if present
+                            if ',' in image_base64:
+                                image_base64 = image_base64.split(',')[1]
+                            image_data = base64.b64decode(image_base64)
+                            
+                            upload_result = upload_image_to_ebay(access_token, image_data, filename)
+                            
+                            if upload_result.get('success') and upload_result.get('image_url'):
+                                image_urls = [upload_result['image_url']]
+                                comic_result['image_url'] = upload_result['image_url']
+                            else:
+                                comic_result['image_warning'] = upload_result.get('error', 'Image upload failed, using placeholder')
+                        except Exception as e:
+                            comic_result['image_warning'] = f'Image upload failed: {str(e)}, using placeholder'
+                
+                # Step 2: Create draft listing
+                listing_result = create_listing(
+                    user_id=user_id,
+                    title=title,
+                    issue=issue,
+                    price=float(price),
+                    grade=grade,
+                    description=description,
+                    publish=publish,
+                    image_urls=image_urls
+                )
+                
+                if listing_result.get('success'):
+                    comic_result['listing'] = listing_result
+                    comic_result['success'] = True
+                    results.append(comic_result)
+                else:
+                    errors.append({
+                        'index': idx,
+                        'error': listing_result.get('error', 'Listing creation failed'),
+                        'detail': listing_result
+                    })
+                
+            except Exception as e:
+                errors.append({'index': idx, 'error': str(e)})
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'errors': errors,
+            'listed': len(results),
+            'failed': len(errors)
+        })
+        
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

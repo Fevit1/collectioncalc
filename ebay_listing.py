@@ -43,6 +43,94 @@ CONDITION_DESCRIPTIONS = {
     'PR': 'Poor - Heavily worn, may have damage'
 }
 
+
+def upload_image_to_ebay(access_token: str, image_data: bytes, filename: str = "comic.jpg") -> dict:
+    """
+    Upload an image to eBay Picture Services using the Media API.
+    
+    Args:
+        access_token: User's eBay access token
+        image_data: Raw image bytes
+        filename: Original filename (for content type detection)
+    
+    Returns:
+        Dict with success status and image URL or error
+    """
+    api_url = get_api_url()
+    
+    # Determine content type from filename
+    content_type = "image/jpeg"
+    if filename.lower().endswith('.png'):
+        content_type = "image/png"
+    elif filename.lower().endswith('.gif'):
+        content_type = "image/gif"
+    elif filename.lower().endswith('.webp'):
+        content_type = "image/webp"
+    
+    try:
+        # Step 1: Create image resource using Media API
+        create_url = f"{api_url}/commerce/media/v1_beta/image"
+        
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': content_type,
+            'Accept': 'application/json'
+        }
+        
+        print(f"Uploading image to eBay ({len(image_data)} bytes, {content_type})")
+        response = requests.post(create_url, headers=headers, data=image_data)
+        
+        if response.status_code == 201:
+            # Success - get image ID from location header
+            location = response.headers.get('location', '')
+            print(f"Image created, location: {location}")
+            
+            # Extract image ID from location URI
+            # Format: https://apim.ebay.com/commerce/media/v1_beta/image/{image_id}
+            image_id = location.split('/')[-1] if location else None
+            
+            if image_id:
+                # Step 2: Get the actual EPS URL using getImage
+                get_url = f"{api_url}/commerce/media/v1_beta/image/{image_id}"
+                get_headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Accept': 'application/json'
+                }
+                
+                get_response = requests.get(get_url, headers=get_headers)
+                
+                if get_response.status_code == 200:
+                    image_data_response = get_response.json()
+                    image_url = image_data_response.get('imageUrl')
+                    
+                    if image_url:
+                        print(f"Got EPS URL: {image_url}")
+                        return {
+                            'success': True,
+                            'image_url': image_url,
+                            'image_id': image_id
+                        }
+                
+                # If getImage fails, return the image_id anyway
+                return {
+                    'success': True,
+                    'image_id': image_id,
+                    'message': 'Image uploaded but could not retrieve EPS URL'
+                }
+        
+        # Handle errors
+        error_detail = response.text
+        print(f"Image upload failed: {response.status_code} - {error_detail}")
+        return {
+            'success': False,
+            'error': f'Upload failed: {error_detail}',
+            'status_code': response.status_code
+        }
+        
+    except Exception as e:
+        print(f"Image upload error: {e}")
+        return {'success': False, 'error': str(e)}
+
 def get_api_url():
     """Get the appropriate eBay API URL based on sandbox mode."""
     return EBAY_SANDBOX_API_URL if is_sandbox_mode() else EBAY_API_URL
@@ -191,7 +279,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         return policies
 
 
-def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None) -> dict:
+def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None, publish: bool = False, image_urls: list = None) -> dict:
     """
     Create a listing on eBay for a comic book.
     
@@ -202,6 +290,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         price: Listing price in USD
         grade: Comic grade (NM, VF, FN, etc.)
         description: User-approved listing description (HTML)
+        publish: If True, publish immediately (live). If False, create as draft (default)
+        image_urls: List of eBay-hosted image URLs. If None, uses placeholder.
     
     Returns:
         Dict with success status and listing details or error
@@ -272,7 +362,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
             "product": {
                 "title": listing_title,
                 "description": description,
-                "imageUrls": [PLACEHOLDER_IMAGE_URL],
+                "imageUrls": image_urls if image_urls else [PLACEHOLDER_IMAGE_URL],
                 "aspects": {
                     "Type": ["Comic Book"],
                     "Grade": [grade]
@@ -364,41 +454,61 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         offer_id = offer_result.get('offerId')
         print(f"Offer created: {offer_id}")
         
-        # Step 5: Publish the offer (make it live)
-        publish_url = f"{api_url}/sell/inventory/v1/offer/{offer_id}/publish"
-        
-        print(f"Publishing offer: {offer_id}")
-        publish_response = requests.post(publish_url, headers=headers)
-        
-        if publish_response.status_code not in [200, 201]:
-            error_detail = publish_response.text
-            print(f"Publish failed: {publish_response.status_code} - {error_detail}")
+        # Step 5: Publish the offer (only if publish=True)
+        if publish:
+            publish_url = f"{api_url}/sell/inventory/v1/offer/{offer_id}/publish"
+            
+            print(f"Publishing offer: {offer_id}")
+            publish_response = requests.post(publish_url, headers=headers)
+            
+            if publish_response.status_code not in [200, 201]:
+                error_detail = publish_response.text
+                print(f"Publish failed: {publish_response.status_code} - {error_detail}")
+                return {
+                    'success': False,
+                    'error': f'Created draft but failed to publish: {error_detail}',
+                    'offer_id': offer_id,
+                    'draft': True
+                }
+            
+            publish_result = publish_response.json()
+            listing_id = publish_result.get('listingId')
+            print(f"Published! Listing ID: {listing_id}")
+            
+            # Build listing URL
+            if is_sandbox_mode():
+                listing_url = f"https://www.sandbox.ebay.com/itm/{listing_id}"
+            else:
+                listing_url = f"https://www.ebay.com/itm/{listing_id}"
+            
             return {
-                'success': False,
-                'error': f'Created draft but failed to publish: {error_detail}',
+                'success': True,
+                'listing_id': listing_id,
+                'listing_url': listing_url,
                 'offer_id': offer_id,
-                'draft': True
+                'sku': sku,
+                'title': listing_title,
+                'price': price,
+                'draft': False
             }
-        
-        publish_result = publish_response.json()
-        listing_id = publish_result.get('listingId')
-        print(f"Published! Listing ID: {listing_id}")
-        
-        # Build listing URL
-        if is_sandbox_mode():
-            listing_url = f"https://www.sandbox.ebay.com/itm/{listing_id}"
         else:
-            listing_url = f"https://www.ebay.com/itm/{listing_id}"
-        
-        return {
-            'success': True,
-            'listing_id': listing_id,
-            'listing_url': listing_url,
-            'offer_id': offer_id,
-            'sku': sku,
-            'title': listing_title,
-            'price': price
-        }
+            # Draft mode - return link to Seller Hub drafts
+            print(f"Draft created (not published): {offer_id}")
+            
+            drafts_url = "https://www.ebay.com/sh/lst/drafts"
+            if is_sandbox_mode():
+                drafts_url = "https://www.sandbox.ebay.com/sh/lst/drafts"
+            
+            return {
+                'success': True,
+                'offer_id': offer_id,
+                'sku': sku,
+                'title': listing_title,
+                'price': price,
+                'draft': True,
+                'drafts_url': drafts_url,
+                'message': 'Draft created. Visit Seller Hub to add photos and publish.'
+            }
         
     except requests.exceptions.RequestException as e:
         print(f"eBay API request failed: {e}")

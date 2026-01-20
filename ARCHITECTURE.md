@@ -3,305 +3,303 @@
 ## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         USER                                     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   CLOUDFLARE PAGES                               │
-│                collectioncalc.pages.dev                          │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    index.html                            │    │
-│  │  - Brand UI (Indigo/Purple/Cyan gradient)               │    │
-│  │  - Simplified form (title, issue, grade only)           │    │
-│  │  - Animated calculator loading                          │    │
-│  │  - Thinking steps display                               │    │
-│  │  - Three-tier pricing (Quick Sale/Fair Value/High End)  │    │
-│  │  - Details toggle (sales count, confidence, analysis)   │    │
-│  │  - eBay OAuth connect button                            │    │
-│  │  - "List on eBay" buttons (3 price tiers)              │    │
-│  │  - Listing preview modal with editable description      │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ HTTPS POST /api/valuate
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        RENDER                                    │
-│              collectioncalc.onrender.com                         │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                    Flask API (wsgi.py)                   │    │
-│  │  - /api/valuate (POST) - Full valuation with market data│    │
-│  │  - /api/valuate/simple (POST) - Database only           │    │
-│  │  - /api/lookup (GET) - Raw database lookup              │    │
-│  │  - /api/ebay/auth (GET) - Start OAuth flow              │    │
-│  │  - /api/ebay/callback (GET) - OAuth callback            │    │
-│  │  - /api/ebay/status (GET) - Check connection status     │    │
-│  │  - /api/ebay/generate-description (POST) - AI desc      │    │
-│  │  - /api/ebay/list (POST) - Create eBay listing          │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│              ┌───────────────┼───────────────┐                  │
-│              ▼               ▼               ▼                  │
-│  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐    │
-│  │  comic_lookup.py │ │ebay_valuation│ │valuation_model.py│    │
-│  │                  │ │    .py       │ │                  │    │
-│  │ - Title search   │ │ - Web search │ │ - Grade adjust   │    │
-│  │ - Issue lookup   │ │ - Caching    │ │ - Era factors    │    │
-│  │ - Fuzzy match    │ │ - Aliases    │ │ - Publisher adj  │    │
-│  └──────────────────┘ │ - Spelling   │ └──────────────────┘    │
-│                       │ - Grade filter│                         │
-│                       │ - BIN prices │                          │
-│                       └──────┬───────┘                          │
-└──────────────────────────────┼──────────────────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                                 ▼
-┌─────────────────────────┐      ┌─────────────────────────────────┐
-│   RENDER PostgreSQL     │      │         ANTHROPIC API           │
-│                         │      │                                 │
-│  search_cache table     │      │  - Claude with web_search tool  │
-│  - Tiered pricing       │      │  - eBay sold listings           │
-│  - 48hr TTL             │      │  - Buy It Now prices            │
-│  - Grade-filtered data  │      │  - Returns structured JSON      │
-└─────────────────────────┘      └─────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           USER BROWSER                                   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    Frontend (Cloudflare Pages)                   │   │
+│  │                   collectioncalc.pages.dev                       │   │
+│  │                                                                   │   │
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐    │   │
+│  │  │  Manual   │  │   Photo   │  │ Valuation │  │   eBay    │    │   │
+│  │  │   Entry   │  │  Upload   │  │  Results  │  │  Listing  │    │   │
+│  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ HTTPS
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     Backend (Render.com)                                 │
+│                   collectioncalc.onrender.com                           │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                      Flask API (wsgi.py)                         │   │
+│  │                                                                   │   │
+│  │  /api/valuate          - Get comic valuation                     │   │
+│  │  /api/lookup           - Database lookup                         │   │
+│  │  /api/messages         - Anthropic proxy                         │   │
+│  │  /api/ebay/auth        - Start OAuth flow                        │   │
+│  │  /api/ebay/callback    - OAuth callback                          │   │
+│  │  /api/ebay/status      - Check connection                        │   │
+│  │  /api/ebay/list        - Create listing                          │   │
+│  │  /api/ebay/generate-description - AI description                 │   │
+│  │  /api/ebay/disconnect  - Remove eBay connection                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                    │                                     │
+│          ┌─────────────────────────┼─────────────────────────┐         │
+│          │                         │                         │          │
+│          ▼                         ▼                         ▼          │
+│  ┌───────────────┐      ┌───────────────┐      ┌───────────────┐       │
+│  │ ebay_valuation│      │  ebay_oauth   │      │ ebay_listing  │       │
+│  │     .py       │      │     .py       │      │     .py       │       │
+│  │               │      │               │      │               │       │
+│  │ - Search eBay │      │ - OAuth flow  │      │ - Create inv  │       │
+│  │ - Parse prices│      │ - Token mgmt  │      │ - Create offer│       │
+│  │ - Calculate   │      │ - Refresh     │      │ - Publish     │       │
+│  │ - Cache       │      │ - Store/load  │      │ - Policies    │       │
+│  └───────────────┘      └───────────────┘      └───────────────┘       │
+│          │                         │                         │          │
+│          └─────────────────────────┼─────────────────────────┘         │
+│                                    │                                     │
+│                                    ▼                                     │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    PostgreSQL Database                           │   │
+│  │                   (Render Managed)                               │   │
+│  │                                                                   │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │   │
+│  │  │ search_cache│  │ ebay_tokens │  │  comics     │              │   │
+│  │  │             │  │             │  │ (future)    │              │   │
+│  │  │ - prices    │  │ - user_id   │  │             │              │   │
+│  │  │ - timestamp │  │ - access    │  │             │              │   │
+│  │  │ - samples   │  │ - refresh   │  │             │              │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘              │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                    │                               │
+                    │                               │
+                    ▼                               ▼
+         ┌───────────────────┐           ┌───────────────────┐
+         │   Anthropic API   │           │     eBay API      │
+         │                   │           │                   │
+         │ - Claude Sonnet   │           │ - Browse API      │
+         │ - Web search      │           │ - Inventory API   │
+         │ - Photo analysis  │           │ - Account API     │
+         │ - Descriptions    │           │ - OAuth           │
+         └───────────────────┘           └───────────────────┘
 ```
-
-## Data Flow
-
-### Valuation Request Flow
-
-```
-1. User enters: "ASM #300 VF"
-                    │
-                    ▼
-2. Alias expansion: "Amazing Spider-Man #300 VF"
-                    │
-                    ▼
-3. Check PostgreSQL cache (48hr TTL)
-         │                    │
-         │ HIT               │ MISS
-         ▼                    ▼
-4a. Return cached       4b. AI web search
-    result (with            │
-    3 price tiers)          ▼
-                       5. Parse results:
-                          - Sold listings (with grades)
-                          - Buy It Now prices
-                                 │
-                                 ▼
-                       6. Filter by grade (±0.5 tolerance)
-                          VF request → only VF-, VF, VF+ sales
-                                 │
-                                 ▼
-                       7. Calculate three tiers:
-                          - Quick Sale = lowest BIN or min sold
-                          - Fair Value = median sold
-                          - High End = max sold
-                                 │
-                                 ▼
-                       8. Calculate confidence score
-                          - Volume factor
-                          - Recency factor  
-                          - Variance factor
-                                 │
-                                 ▼
-                       9. Cache result (48hr)
-                          with all three tiers
-                                 │
-                                 ▼
-                      10. Return to user:
-                          {
-                            quick_sale: $X,
-                            fair_value: $Y,
-                            high_end: $Z,
-                            lowest_bin: $B,
-                            confidence: "MEDIUM-HIGH"
-                          }
-```
-
-## Database
-
-### Render PostgreSQL (Managed Service)
-
-CollectionCalc uses Render's managed PostgreSQL for persistent storage. This replaced the original SQLite files in January 2026.
-
-**Why PostgreSQL?**
-- Render's free tier SQLite files don't persist across deploys
-- Managed service = automatic backups, no file management
-- Scales better for future growth
-
-### search_cache Table
-
-```sql
-CREATE TABLE search_cache (
-    id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    issue TEXT NOT NULL,
-    search_key TEXT UNIQUE NOT NULL,
-    estimated_value REAL,
-    confidence TEXT,
-    confidence_score INTEGER,
-    num_sales INTEGER,
-    price_min REAL,
-    price_max REAL,
-    sales_data TEXT,  -- JSON array of sales
-    reasoning TEXT,
-    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Three-tier pricing (added Jan 2026)
-    quick_sale REAL,      -- Lowest BIN or floor price
-    fair_value REAL,      -- Median sold price
-    high_end REAL,        -- Maximum recent sold
-    lowest_bin REAL       -- Current Buy It Now price
-);
-```
-
-**48-hour TTL** - Results expire after 2 days for fresh market data.
-
-### ebay_tokens Table
-
-```sql
-CREATE TABLE ebay_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id TEXT UNIQUE NOT NULL,
-    access_token TEXT,
-    refresh_token TEXT,
-    token_expiry TIMESTAMP,
-    ebay_username TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Token refresh** - Access tokens auto-refresh when expired (5-minute buffer).
-
-## Key Algorithms
-
-### Grade Filtering
-
-Sales are filtered to match the requested grade within ±0.5 on the grade scale:
-
-| Grade | Value | Accepts |
-|-------|-------|---------|
-| MT | 10.0 | MT only |
-| NM | 9.4 | NM-, NM, NM+ |
-| VF | 8.0 | VF-, VF, VF+ |
-| FN | 6.0 | FN-, FN, FN+ |
-| VG | 4.0 | VG-, VG, VG+ |
-| G | 2.0 | G-, G, G+ |
-| Raw | 6.0 | ~FN equivalent |
-
-This prevents a VF request from being skewed by NM or FN sales.
-
-### Three-Tier Pricing
-
-| Tier | Calculation | Use Case |
-|------|-------------|----------|
-| Quick Sale | Lowest BIN, or min sold if no BIN | Sell fast |
-| Fair Value | Median of grade-filtered sales | Market value |
-| High End | Max of grade-filtered sales | Patient seller |
-
-### Recency Weighting
-
-| Sale Age | Weight |
-|----------|--------|
-| This week | 100% |
-| This month | 90% |
-| Last 3 months | 70% |
-| Last year | 50% |
-| Older | 25% |
-
-### Confidence Scoring
-
-```
-Base: 50 points
-
-Volume Factor (+/- 25):
-  10+ sales: +25
-  5-9 sales: +15
-  2-4 sales: +5
-  1 sale: -15
-  0 sales: -25
-
-Recency Factor (+/- 15):
-  < 30 days: +15
-  < 90 days: +10
-  < 365 days: 0
-  > 365 days: -10
-
-Variance Factor (+/- 10):
-  CV < 0.1: +10
-  CV < 0.25: +5
-  CV < 0.5: -5
-  CV > 0.5: -10
-
-Labels:
-  90+: HIGH
-  70-89: MEDIUM-HIGH
-  50-69: MEDIUM
-  30-49: LOW
-  <30: VERY LOW
-```
-
-### Per-Tier Confidence Adjustments
-
-Each pricing tier gets its own confidence score based on data quality:
-
-| Tier | Adjustments |
-|------|-------------|
-| **Quick Sale** | +15 if BIN data exists; -5 if no BIN; +10 if multiple sales near floor |
-| **Fair Value** | Uses base confidence (median is most stable metric) |
-| **High End** | -25 if max >2x median (outlier); -15 if max >1.5x median; +10 if multiple high sales |
-
-### Data Source Strategy
-
-| Scenario | Action |
-|----------|--------|
-| Cache hit (< 48hr) | Return cached tiered pricing |
-| Cache miss | AI web search → calculate tiers → cache |
-| No sales found | Return error, VERY LOW confidence |
-
-*Note: The original local database (comics_pricing.db) is no longer used. All pricing comes from real-time market data via AI web search.*
-
-## Files
-
-| File | Purpose |
-|------|---------|
-| `wsgi.py` | Flask API server, routes |
-| `ebay_valuation.py` | Web search, caching, aliases, spelling, grade filtering, tiered pricing |
-| `ebay_oauth.py` | eBay OAuth flow, token storage and refresh |
-| `ebay_listing.py` | Create eBay listings via Inventory API |
-| `ebay_description.py` | AI-generated descriptions (300 char, key issues, mobile-optimized) |
-| `valuation_model.py` | Grade adjustments, era factors |
-| `comic_lookup.py` | Database search (legacy) |
-| `database_schema.py` | Schema definitions (legacy) |
-| `index.html` | Frontend UI |
-| `requirements.txt` | Python dependencies (includes psycopg2) |
-
-## Hosting
-
-| Component | Host | URL | Cost |
-|-----------|------|-----|------|
-| Frontend | Cloudflare Pages | collectioncalc.pages.dev | Free |
-| Backend | Render | collectioncalc.onrender.com | Free |
-| Database | Render PostgreSQL | (internal) | Free |
-| AI | Anthropic API | api.anthropic.com | ~$0.03/search |
-
-## Environment Variables
-
-| Variable | Location | Purpose |
-|----------|----------|---------|
-| `ANTHROPIC_API_KEY` | Render | Web search & description generation API access |
-| `DATABASE_URL` | Render | PostgreSQL connection string (auto-set by Render) |
-| `EBAY_CLIENT_ID` | Render | eBay API app ID |
-| `EBAY_CLIENT_SECRET` | Render | eBay API secret |
-| `EBAY_DEV_ID` | Render | eBay developer ID |
-| `EBAY_RUNAME` | Render | eBay OAuth redirect name |
-| `EBAY_SANDBOX` | Render | "true" for sandbox, omit for production |
 
 ---
 
-*Last updated: January 18, 2026*
+## Data Flow: Valuation
+
+```
+User enters comic info
+         │
+         ▼
+┌─────────────────┐
+│ Check Cache     │──────────────────┐
+│ (48hr valid)    │                  │ Cache HIT
+└─────────────────┘                  │
+         │ Cache MISS                │
+         ▼                           │
+┌─────────────────┐                  │
+│ Anthropic API   │                  │
+│ Web Search      │                  │
+│ (eBay prices)   │                  │
+└─────────────────┘                  │
+         │                           │
+         ▼                           │
+┌─────────────────┐                  │
+│ Parse & Weight  │                  │
+│ - Recency       │                  │
+│ - Volume        │                  │
+│ - Variance      │                  │
+└─────────────────┘                  │
+         │                           │
+         ▼                           │
+┌─────────────────┐                  │
+│ Calculate Tiers │                  │
+│ - Quick Sale    │                  │
+│ - Fair Value    │                  │
+│ - High End      │                  │
+└─────────────────┘                  │
+         │                           │
+         ▼                           │
+┌─────────────────┐                  │
+│ Save to Cache   │                  │
+└─────────────────┘                  │
+         │                           │
+         └───────────┬───────────────┘
+                     │
+                     ▼
+            Return valuation
+            to frontend
+```
+
+---
+
+## Data Flow: eBay Listing
+
+```
+User clicks "List on eBay" at $X price
+                │
+                ▼
+┌───────────────────────────────┐
+│ Check eBay Connection         │
+│ (ebay_tokens table)           │
+└───────────────────────────────┘
+                │
+       ┌────────┴────────┐
+       │                 │
+   Connected         Not Connected
+       │                 │
+       │                 ▼
+       │    ┌───────────────────────────┐
+       │    │ OAuth Flow                │
+       │    │ 1. Redirect to eBay       │
+       │    │ 2. User authorizes        │
+       │    │ 3. Callback with code     │
+       │    │ 4. Exchange for tokens    │
+       │    │ 5. Store in DB            │
+       │    └───────────────────────────┘
+       │                 │
+       └────────┬────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Generate AI Description       │
+│ (Anthropic Claude)            │
+│ - 300 char limit              │
+│ - Key issues highlighted      │
+│ - Mobile optimized            │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Show Preview Modal            │
+│ - Editable description        │
+│ - Confirm price               │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Create Inventory Item         │
+│ (eBay Inventory API)          │
+│ - Title, description          │
+│ - Condition (LIKE_NEW, etc)   │
+│ - Package dimensions          │
+│ - Placeholder image           │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Get/Create Merchant Location  │
+│ - Check existing locations    │
+│ - Create if none exist        │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Get User's Business Policies  │
+│ (eBay Account API)            │
+│ - Fulfillment (shipping)      │
+│ - Payment                     │
+│ - Return                      │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Create Offer                  │
+│ (eBay Inventory API)          │
+│ - Link to inventory item      │
+│ - Set price                   │
+│ - Attach policies             │
+│ - Set category (259104)       │
+└───────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Publish Offer                 │
+│ (eBay Inventory API)          │
+│ → Listing goes LIVE           │
+└───────────────────────────────┘
+                │
+                ▼
+        Return listing URL
+        to frontend
+```
+
+---
+
+## Database Schema
+
+### search_cache
+Stores valuation results for 48-hour caching.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| search_key | VARCHAR | "{title}\|{issue}" normalized |
+| estimated_value | DECIMAL | Fair value (median) |
+| quick_sale_value | DECIMAL | Quick sale price |
+| high_end_value | DECIMAL | High end price |
+| confidence | DECIMAL | 0.0 - 1.0 |
+| sample_count | INTEGER | Number of sales found |
+| samples | JSONB | Raw sale data |
+| cached_at | TIMESTAMP | When cached |
+
+### ebay_tokens
+Stores OAuth tokens for eBay API access.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| user_id | VARCHAR | User identifier |
+| access_token | TEXT | eBay access token |
+| refresh_token | TEXT | eBay refresh token |
+| expires_at | TIMESTAMP | Token expiration |
+| created_at | TIMESTAMP | When created |
+| updated_at | TIMESTAMP | Last updated |
+
+---
+
+## External Services
+
+### Anthropic API
+- **Model:** Claude Sonnet 4
+- **Tier:** 2 (450k tokens/min)
+- **Uses:**
+  - Web search for eBay prices
+  - Photo analysis (comic identification)
+  - Description generation
+
+### eBay API
+- **Environment:** Production
+- **APIs Used:**
+  - Browse API (searching)
+  - Inventory API (listings)
+  - Account API (policies)
+  - OAuth (authentication)
+- **Key Settings:**
+  - Category: 259104 (Comics & Graphic Novels)
+  - Condition enums: LIKE_NEW, USED_EXCELLENT, etc.
+  - Package: 1"×11"×7", 8oz, LETTER
+
+---
+
+## Security Considerations
+
+1. **API Keys:** Stored as environment variables in Render
+2. **eBay Tokens:** Encrypted at rest in PostgreSQL
+3. **CORS:** Configured for frontend domain only
+4. **OAuth State:** Random state parameter prevents CSRF
+5. **No PII Storage:** Only eBay tokens, no personal data
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| DATABASE_URL | PostgreSQL connection string |
+| ANTHROPIC_API_KEY | Claude API key |
+| EBAY_CLIENT_ID | eBay app ID (production) |
+| EBAY_CLIENT_SECRET | eBay cert ID (production) |
+| EBAY_RUNAME | eBay redirect URL name |
+| EBAY_DEV_ID | eBay developer ID |
+| EBAY_SANDBOX | "false" for production |
+
+---
+
+*Last updated: January 19, 2026*
