@@ -1673,15 +1673,18 @@
             const mediaType = mediaTypeMap[extension] || 'image/jpeg';
             
             const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
-- title: Comic book title
-- issue: Issue number (just the number, no #)
-- publisher: Publisher name (Marvel, DC, Image, etc.)
-- year: Publication year
+
+- title: Comic book title (usually the largest text on the cover)
+- issue: Issue number - IMPORTANT: Look for a "#" symbol followed by a number, typically in the TOP-LEFT area near the price. IGNORE prices like "60¢", "$1.00", "25p" - these are NOT issue numbers. The issue number usually appears as "#242" or "No. 242". Just return the number, no # symbol.
+- publisher: Publisher name (Marvel, DC, Image, etc.) - often in small text at top
+- year: Publication year - look for copyright text or indicia, usually small text
 - grade: Estimated condition grade (GM, GD, VG, FN, VF, NM, MT) - be conservative
 - edition: Look at the BOTTOM-LEFT CORNER. If you see a UPC BARCODE, return "newsstand". If you see ARTWORK or LOGO, return "direct". If unclear, return "unknown".
 - printing: Look for "2nd Printing", "3rd Print", "Second Printing", etc. anywhere on cover. Return "1st" if no printing indicator found, otherwise "2nd", "3rd", etc.
 - cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
 - variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
+
+CRITICAL: Do NOT confuse prices (60¢, $1.50, 25p) with issue numbers. Issue numbers are preceded by "#" or "No." and are typically 1-4 digits.
 
 Be accurate. If unsure about any field, use reasonable estimates.`;
             
@@ -1783,6 +1786,18 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
         
         function updateItem(idx, field, value) {
             extractedItems[idx][field] = value;
+            
+            // Update header if title or issue changed
+            if (field === 'title' || field === 'issue') {
+                const card = document.getElementById('item-' + idx);
+                if (card) {
+                    const titleSpan = card.querySelector('.item-title');
+                    if (titleSpan) {
+                        const item = extractedItems[idx];
+                        titleSpan.textContent = `${item.title || 'Unknown'} #${item.issue || '?'}`;
+                    }
+                }
+            }
         }
         
         function deleteItem(idx) {
