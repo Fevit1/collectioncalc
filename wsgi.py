@@ -797,5 +797,155 @@ def validate_ebay_description():
     except Exception as e:
         return jsonify({'valid': False, 'issues': [str(e)]}), 500
 
+@app.route('/api/admin/upload-placeholder', methods=['POST', 'OPTIONS'])
+def upload_placeholder_image():
+    """
+    One-time admin endpoint to upload CollectionCalc placeholder image to eBay.
+    Creates a branded PNG and uploads to eBay Picture Services.
+    Returns the permanent eBay-hosted URL to hardcode in ebay_listing.py.
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        from ebay_listing import upload_image_to_ebay
+        from ebay_oauth import get_user_token
+        import io
+        
+        data = request.get_json() or {}
+        user_id = data.get('user_id', 'default')
+        
+        # Check eBay connection
+        token_data = get_user_token(user_id)
+        if not token_data or not token_data.get('access_token'):
+            return jsonify({
+                'success': False, 
+                'error': 'Not connected to eBay. Please connect your account first.'
+            }), 401
+        
+        access_token = token_data['access_token']
+        
+        # Create 300x300 PNG with brand colors
+        img = Image.new('RGB', (300, 300), color='#0f0f1a')
+        draw = ImageDraw.Draw(img)
+        
+        # Background gradient effect (simplified - darker at edges)
+        for i in range(50):
+            alpha = int(10 + i * 0.5)
+            color = f'#{alpha:02x}{alpha:02x}{30 + alpha//2:02x}'
+            draw.rectangle([i, i, 300-i, 300-i], outline=color)
+        
+        # Calculator body (centered, scaled up)
+        calc_x, calc_y = 102, 40
+        scale = 3
+        
+        # Calculator outline
+        draw.rounded_rectangle(
+            [calc_x, calc_y, calc_x + 96, calc_y + 100],
+            radius=9,
+            outline='#7c3aed',
+            width=3
+        )
+        
+        # Display area
+        draw.rounded_rectangle(
+            [calc_x + 9, calc_y + 9, calc_x + 87, calc_y + 30],
+            radius=3,
+            fill='#0f0f1a',
+            outline='#4f46e5',
+            width=2
+        )
+        
+        # Display text "$---.--"
+        try:
+            font_display = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 14)
+        except:
+            font_display = ImageFont.load_default()
+        draw.text((calc_x + 20, calc_y + 12), "$---.--", fill='#06b6d4', font=font_display)
+        
+        # Calculator buttons (3x3 grid)
+        button_colors = [
+            ['#4f46e5', '#4f46e5', '#7c3aed'],
+            ['#4f46e5', '#4f46e5', '#06b6d4'],
+            ['#4f46e5', '#4f46e5', '#10b981']
+        ]
+        
+        for row in range(3):
+            for col in range(3):
+                bx = calc_x + 9 + col * 28
+                by = calc_y + 38 + row * 20
+                draw.rounded_rectangle(
+                    [bx, by, bx + 20, by + 12],
+                    radius=2,
+                    fill=button_colors[row][col]
+                )
+        
+        # Text: "CollectionCalc"
+        try:
+            font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
+        except:
+            font_title = ImageFont.load_default()
+        
+        title_text = "CollectionCalc"
+        title_bbox = draw.textbbox((0, 0), title_text, font=font_title)
+        title_width = title_bbox[2] - title_bbox[0]
+        draw.text(((300 - title_width) // 2, 165), title_text, fill='#7c3aed', font=font_title)
+        
+        # Text: "Photo Coming Soon"
+        try:
+            font_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+        except:
+            font_sub = ImageFont.load_default()
+        
+        sub_text = "Photo Coming Soon"
+        sub_bbox = draw.textbbox((0, 0), sub_text, font=font_sub)
+        sub_width = sub_bbox[2] - sub_bbox[0]
+        draw.text(((300 - sub_width) // 2, 200), sub_text, fill='#94a3b8', font=font_sub)
+        
+        # Text: "Add your photo on eBay"
+        try:
+            font_hint = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
+        except:
+            font_hint = ImageFont.load_default()
+        
+        hint_text = "Add your photo on eBay"
+        hint_bbox = draw.textbbox((0, 0), hint_text, font=font_hint)
+        hint_width = hint_bbox[2] - hint_bbox[0]
+        draw.text(((300 - hint_width) // 2, 225), hint_text, fill='#64748b', font=font_hint)
+        
+        # Convert to PNG bytes
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG', optimize=True)
+        img_bytes = img_buffer.getvalue()
+        
+        print(f"Generated placeholder image: {len(img_bytes)} bytes")
+        
+        # Upload to eBay
+        upload_result = upload_image_to_ebay(access_token, img_bytes, 'collectioncalc-placeholder.png')
+        
+        if upload_result.get('success') and upload_result.get('image_url'):
+            return jsonify({
+                'success': True,
+                'image_url': upload_result['image_url'],
+                'image_id': upload_result.get('image_id'),
+                'message': 'Placeholder uploaded! Copy this URL to PLACEHOLDER_IMAGE_URL in ebay_listing.py'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': upload_result.get('error', 'Upload failed'),
+                'detail': upload_result
+            }), 500
+            
+    except ImportError as e:
+        return jsonify({
+            'success': False, 
+            'error': f'Missing dependency: {str(e)}. Make sure Pillow is installed.'
+        }), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

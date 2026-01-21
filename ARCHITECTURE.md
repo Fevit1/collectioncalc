@@ -455,9 +455,9 @@ Stores OAuth tokens for eBay API access.
 | `ebay_oauth.py` | eBay OAuth flow |
 | `ebay_listing.py` | Listing creation, image upload |
 | `ebay_description.py` | AI description generation |
-| `comic_extraction.py` | **NEW** Backend extraction via Claude vision |
+| `comic_extraction.py` | **NEW** Backend extraction via Claude vision (with Vision Guide prompt) |
 | `index.html` | Frontend SPA |
 
 ---
 
-*Last updated: January 20, 2026*
+*Last updated: January 20, 2026 (Session 2)*

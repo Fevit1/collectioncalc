@@ -4,6 +4,7 @@
 1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
 2. **Break large code changes into small chunks** to avoid "thinking longer than usual" failures.
 3. **Update this file at checkpoints** (see Checkpoint System below).
+4. **Proactively push back and provide input** - Mike wants Claude to flag potential issues, suggest alternatives, and ask "have you considered..." when there are trade-offs. Don't just execute - use knowledge from other projects and patterns.
 
 ## Checkpoint System
 Update CLAUDE_NOTES.md when:
@@ -21,6 +22,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Technical comfort:** Decent SQL skills, but not a developer
 - **Strengths:** Product vision, feature prioritization, testing, user feedback, UI/UX decisions
 - **Learning style:** Appreciates guidance but wants Claude to recognize when he's mastered something and stop over-explaining
+- **Collaboration style:** Wants Claude to push back on decisions (UI, data flow, database, backend) and proactively share knowledge
 
 ## What Mike's Comfortable With
 - ✅ Render dashboard (deployments, environment variables, redeploys)
@@ -65,7 +67,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
 - `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
-- `comic_extraction.py` - **NEW** Backend extraction via Claude vision
+- `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
 - `index.html` - Frontend (single page app)
 - `wsgi.py` - Flask routes (v3.4)
 - `requirements.txt` - Python dependencies
@@ -82,8 +84,8 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 
 ## Current State (January 20, 2026)
 
-### Just Completed (This Session) 🎉
-**QuickList batch processing + UI overhaul**
+### Completed This Session 🎉
+**QuickList batch processing + UI overhaul + Vision Guide**
 
 - **Draft mode for eBay** - Listings now create as drafts by default (`publish=False`)
 - **Photo upload to eBay** - New `upload_image_to_ebay()` function, `/api/ebay/upload-image` endpoint
@@ -100,13 +102,15 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
   - "List on eBay" button per comic in batch results
   - Removed confidence row from main display (details available via 📊 icon)
   - Removed refresh/regenerate button
+  - **Sort options** - Sort by Value (High/Low), Title (A-Z), or Order Added
+  - **Header sync fix** - Editing title/issue field now updates header immediately
+- **Vision Guide for extraction** - Improved prompt to distinguish issue numbers from prices (fixed FF #242 being read as #206)
 
-### In Progress
-- **Part E: Sort options** - Add ability to sort batch results by value, title
-
-### Roadmap Items Added
-- **Vision Guide** - Improve extraction accuracy (where to look for issue numbers, what to ignore like price stickers)
-- **Progress Step Expansion** - More granular steps during valuation to keep users engaged (current 5 steps feel slow)
+### Known Issues / TODOs
+- [ ] More progress steps during valuation (users think it's frozen)
+- [ ] Custom price entry (not just the three tiers)
+- [ ] Host our own placeholder image (not external URL)
+- [ ] eBay account deletion notification endpoint (GDPR)
 
 ### API Endpoints (Current)
 | Endpoint | Purpose |
@@ -129,13 +133,6 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Condition mapping:** MT/NM→LIKE_NEW, VF→USED_EXCELLENT, FN/VG→USED_VERY_GOOD, G→USED_GOOD, FR/PR→USED_ACCEPTABLE
 - **SKU format:** `CC-{title}-{issue}-{timestamp}` (ensures uniqueness)
 - **Draft mode:** `publish=False` (default) returns `drafts_url` to Seller Hub
-
-### Known Issues / TODOs
-- [ ] Vision Guide for better extraction (issue numbers near prices get misread)
-- [ ] More progress steps during valuation (users think it's frozen)
-- [ ] Sort options in batch results (by value, title)
-- [ ] Host our own placeholder image (not external URL)
-- [ ] eBay account deletion notification endpoint (GDPR)
 
 ### Anthropic API Rate Limits
 | Tier | Tokens/Min | Tokens/Day | Requirement |
@@ -176,7 +173,7 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - [ ] Host our own placeholder image (not external URL)
 - [x] Draft mode for listings (done!)
 - [x] Photo upload for listings (done!)
-- [ ] Test full QuickList flow with real comics
+- [x] Test full QuickList flow with real comics (done - 5 comics tested!)
 
 ## Future Considerations
 - **Batch listing groups:** e.g., "List all 12 issues of Secret Wars" as a batch action
@@ -199,4 +196,4 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 20, 2026*
+*Last updated: January 20, 2026 (Session 2)*

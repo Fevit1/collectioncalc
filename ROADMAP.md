@@ -110,6 +110,9 @@ One-click listing from valuation results.
 - [x] UI: "List on eBay" button per comic in batch results
 - [x] UI: Removed confidence row (details via 📊 icon)
 - [x] UI: Removed regenerate button
+- [x] UI: Sort options (Value High/Low, Title A-Z, Order Added)
+- [x] UI: Header syncs when editing title/issue fields
+- [x] Vision Guide v1: Improved extraction prompt (distinguishes issue numbers from prices)
 
 **QuickList Flow:**
 1. Upload → 2. Extract → 3. Review/Edit → 4. Valuate → 5. Describe → 6. List as Draft
@@ -121,8 +124,8 @@ One-click listing from valuation results.
 ### Phase 2.86: QuickList Polish
 Refine the batch experience.
 
-- [ ] Sort options (by value, title) in batch results
-- [ ] Vision Guide for extraction (where to look, what to ignore)
+- [x] Sort options (by value, title) in batch results ✅
+- [x] Vision Guide v1 for extraction (price vs issue number) ✅
 - [ ] More progress steps during valuation (keep users engaged)
 - [ ] Custom price entry (not just the three tiers)
 
@@ -130,15 +133,20 @@ Refine the batch experience.
 
 ## Planned 📋
 
-### Phase 2.87: Extraction Accuracy
-Improve AI's ability to read comic covers.
+### Phase 2.87: Extraction Accuracy (Vision Guide v2)
+Further improve AI's ability to read comic covers.
 
-**Vision Guide contents:**
-- Issue number location patterns by publisher/era (Marvel top-left, DC varies)
-- Ignore: price stickers, store stamps, grade labels, bag reflections
-- Multiple numbers context: price vs issue vs volume vs year
-- Barcode area for newsstand detection
-- Common OCR confusions (242 vs 206, #1 vs #7)
+**Completed (v1):**
+- [x] Distinguish prices (60¢, $1.50) from issue numbers (#242)
+- [x] Look for "#" or "No." prefix for issue numbers
+- [x] Focus on TOP-LEFT area for issue numbers
+
+**Vision Guide v2 contents (future):**
+- [ ] Issue number location patterns by publisher/era (Marvel top-left, DC varies)
+- [ ] Ignore: price stickers, store stamps, grade labels, bag reflections
+- [ ] Multiple numbers context: price vs issue vs volume vs year
+- [ ] Barcode area for newsstand detection
+- [ ] Common OCR confusions (#1 vs #7, etc.)
 
 ### Phase 2.9: Cache Refresh Strategy
 Keep valuations fresh without breaking the bank.
@@ -323,6 +331,7 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1 (issue# vs price), header sync fix |
 | Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction, batch endpoints, UI overhaul |
 | Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies, package dimensions |
 | Jan 18, 2026 | 2.7.5 | AI descriptions, listing preview modal, Anthropic Tier 2 upgrade |
@@ -342,4 +351,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 20, 2026*
+*Last updated: January 20, 2026 (Session 2)*
