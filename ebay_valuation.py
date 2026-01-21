@@ -602,10 +602,11 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         full_title = f"{title} {issue_type}"
     
     # Build search query - don't include grade (most listings don't specify)
-    search_query = f"{full_title} #{issue} comic"
+    # Add "raw" and exclude CGC/CBCS/slab terms to focus on ungraded copies
+    search_query = f"{full_title} #{issue} comic raw ungraded"
     if publisher:
         search_query += f" {publisher}"
-    search_query += " price sold value"
+    search_query += " -CGC -CBCS -slab -graded price sold value"
     
     # Note in prompt if this is an Annual/Special
     issue_type_note = ""
@@ -627,7 +628,7 @@ CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - "Annual", "Giant-Size", "Special", "King-Size Special" are DIFFERENT series - don't mix them with regular issues
 - Issue number must match EXACTLY
 - REJECT lot sales (multiple comics sold together)
-- REJECT prices for CGC/CBCS graded copies when looking for raw value (graded copies sell for 2-10x more)
+- **CGC/CBCS SLABS: ALWAYS REJECT** - We are valuing RAW (ungraded) comics ONLY. Slabbed/graded copies sell for 2-10x more and MUST NOT be included. Look for keywords: CGC, CBCS, "graded", "slab", "9.8", "9.6" with a grade label. If a price seems unusually high ($200+ for a common comic), verify it's not a slab.
 - REJECT signed copies, variant covers, or special editions unless specifically requested
 
 GRADE ESTIMATION - For each sale/listing, estimate the condition:
@@ -655,8 +656,9 @@ Return JSON:
 IMPORTANT:
 - "sales" = SOLD/COMPLETED listings only (actual transactions)
 - "buy_it_now" = CURRENT active listings (asking prices)
-- For UNGRADED/RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
-- If you only find CGC prices ($500+), note that raw copies are typically worth 20-50% of CGC 9.4 value
+- We want RAW/UNGRADED comics ONLY - never include CGC/CBCS slab prices
+- For RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
+- If you accidentally find only CGC prices, return an empty sales array - do NOT estimate from slab prices
 - Maximum 10 items per array, USD only
 - Use standard grade abbreviations: MT, NM, VF, FN, VG, G, FR, PR (or "raw" if unknown)"""
 
