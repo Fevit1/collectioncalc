@@ -343,3 +343,92 @@ def disconnect_user(user_id: str) -> bool:
         except:
             pass
         return False
+
+
+# ============================================================
+# GDPR / Account Deletion Support
+# ============================================================
+
+def save_ebay_user_id(user_id: str, ebay_user_id: str) -> bool:
+    """
+    Save eBay's user ID (from their system) to our database.
+    Called after successful OAuth to link our user_id with eBay's user ID.
+    
+    Args:
+        user_id: Our internal user identifier
+        ebay_user_id: eBay's user ID (from token response or API)
+    
+    Returns:
+        True if successful
+    """
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE ebay_tokens 
+            SET ebay_username = %s, updated_at = %s
+            WHERE user_id = %s
+        ''', (ebay_user_id, datetime.now(), user_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving eBay user ID: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return False
+
+
+def delete_user_by_ebay_id(ebay_user_id: str) -> bool:
+    """
+    Delete user tokens by eBay's user ID.
+    Called when eBay sends account deletion notification (GDPR compliance).
+    
+    Args:
+        ebay_user_id: eBay's user ID from the deletion notification
+    
+    Returns:
+        True if user was found and deleted, False otherwise
+    """
+    conn = get_db_connection()
+    if not conn:
+        print("No database connection for deletion")
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        
+        # First check if user exists
+        cursor.execute('SELECT user_id FROM ebay_tokens WHERE ebay_username = %s', (ebay_user_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            print(f"No user found with eBay ID: {ebay_user_id}")
+            cursor.close()
+            conn.close()
+            return False
+        
+        # Delete the user's tokens
+        cursor.execute('DELETE FROM ebay_tokens WHERE ebay_username = %s', (ebay_user_id,))
+        deleted_count = cursor.rowcount
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"Deleted {deleted_count} token record(s) for eBay user: {ebay_user_id}")
+        return deleted_count > 0
+    except Exception as e:
+        print(f"Error deleting user by eBay ID: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return False

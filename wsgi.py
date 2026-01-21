@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.5",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection"]
+        "version": "3.6",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection", "gdpr_account_deletion"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -389,6 +389,94 @@ def ebay_disconnect():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ebay/account-deletion', methods=['GET', 'POST'])
+def ebay_account_deletion():
+    """
+    Handle eBay Marketplace Account Deletion notifications (GDPR compliance).
+    
+    GET: eBay sends a challenge to verify endpoint ownership
+    POST: eBay notifies us when a user deletes their account or revokes access
+    
+    Required env var: EBAY_VERIFICATION_TOKEN (set in eBay Developer Portal)
+    """
+    if request.method == 'GET':
+        # eBay challenge verification
+        # eBay sends: GET /api/ebay/account-deletion?challenge_code=XXXX
+        challenge_code = request.args.get('challenge_code')
+        
+        if not challenge_code:
+            return jsonify({'error': 'Missing challenge_code'}), 400
+        
+        # Get our verification token from environment
+        verification_token = os.environ.get('EBAY_VERIFICATION_TOKEN')
+        if not verification_token:
+            print("WARNING: EBAY_VERIFICATION_TOKEN not set!")
+            return jsonify({'error': 'Verification token not configured'}), 500
+        
+        # eBay expects: SHA256(challenge_code + verification_token + endpoint_url)
+        import hashlib
+        endpoint_url = os.environ.get('EBAY_DELETION_ENDPOINT', 
+                                       'https://collectioncalc.onrender.com/api/ebay/account-deletion')
+        
+        hash_input = challenge_code + verification_token + endpoint_url
+        response_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+        
+        print(f"eBay challenge received. Responding with hash.")
+        
+        # eBay expects JSON response with challengeResponse
+        return jsonify({'challengeResponse': response_hash})
+    
+    elif request.method == 'POST':
+        # Actual deletion notification
+        try:
+            from ebay_oauth import delete_user_by_ebay_id
+            
+            data = request.get_json()
+            
+            # eBay sends notification with user info
+            # Format: {"metadata": {...}, "notification": {"data": {"userId": "..."}}}
+            notification = data.get('notification', {})
+            notification_data = notification.get('data', {})
+            ebay_user_id = notification_data.get('userId') or notification_data.get('username')
+            
+            if not ebay_user_id:
+                # Try alternate format
+                ebay_user_id = data.get('userId') or data.get('username')
+            
+            if not ebay_user_id:
+                print(f"Account deletion notification received but no user ID found: {data}")
+                # Still return 200 to acknowledge receipt
+                return jsonify({
+                    'success': True, 
+                    'message': 'Notification received, no user ID found to delete'
+                })
+            
+            print(f"eBay account deletion request for user: {ebay_user_id}")
+            
+            # Delete user's tokens from our database
+            deleted = delete_user_by_ebay_id(ebay_user_id)
+            
+            if deleted:
+                print(f"Successfully deleted tokens for eBay user: {ebay_user_id}")
+            else:
+                print(f"No tokens found for eBay user: {ebay_user_id} (may already be deleted)")
+            
+            # Always return 200 to acknowledge receipt
+            return jsonify({
+                'success': True,
+                'message': 'Account deletion processed',
+                'user_deleted': deleted
+            })
+            
+        except Exception as e:
+            print(f"Error processing account deletion: {e}")
+            # Still return 200 to prevent eBay from retrying
+            return jsonify({
+                'success': True,
+                'message': 'Notification received',
+                'error': str(e)
+            })
 
 @app.route('/api/ebay/list', methods=['POST', 'OPTIONS'])
 def ebay_list():
