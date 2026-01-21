@@ -1785,7 +1785,10 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             const jsonMatch = textContent.match(/\{[\s\S]*\}/);
             
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
+                const extracted = JSON.parse(jsonMatch[0]);
+                // Include the image for preview and eBay listing
+                extracted.image = `data:${mediaType};base64,${base64Data}`;
+                return extracted;
             } else {
                 throw new Error('Could not extract data');
             }
@@ -1806,6 +1809,9 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         ${item.value ? `<span class="item-value">$${item.value.toFixed(2)}</span>` : ''}
                         <button class="item-delete" onclick="deleteItem(${idx})">×</button>
                     </div>
+                    <div class="item-content" style="display: flex; gap: 15px;">
+                        ${item.image ? `<img src="${item.image}" alt="Comic cover" style="width: 80px; height: auto; border-radius: 4px; object-fit: cover;">` : ''}
+                        <div class="item-fields-wrapper" style="flex: 1;">
                     <div class="item-fields">
                         <div class="form-group">
                             <label>Title</label>
@@ -1855,6 +1861,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                                 <option value="newsstand" ${item.edition === 'newsstand' ? 'selected' : ''}>Newsstand</option>
                                 <option value="unknown" ${item.edition === 'unknown' || !item.edition ? 'selected' : ''}>Unknown</option>
                             </select>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>
