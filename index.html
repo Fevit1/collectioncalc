@@ -2050,6 +2050,9 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <span class="item-title">${item.title} #${item.issue}${item.printing && item.printing !== '1st' ? ` (${item.printing} Print)` : ''}${item.cover ? ` Cover ${item.cover}` : ''}</span>
                         ${item.sales_data && item.sales_data.length > 0 ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View sales data">📊</button>` : ''}
                     </div>
+                    <div class="result-content" style="display: flex; gap: 15px; align-items: flex-start;">
+                        ${item.image ? `<img src="${item.image}" alt="Comic cover" style="width: 80px; height: auto; border-radius: 4px; object-fit: cover; flex-shrink: 0;">` : ''}
+                        <div class="result-details" style="flex: 1;">
                     <div class="price-tiers">
                         <div class="price-tier ${selectedTier === 'quick' ? 'selected' : ''}" onclick="selectPriceTier(${idx}, 'quick', ${quickSale.toFixed(2)})">
                             <div class="price-tier-label">Quick Sale</div>
@@ -2086,6 +2089,8 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         `).join('')}
                     </div>
                     ` : ''}
+                        </div>
+                    </div>
                 </div>
             `}).join('');
         }
