@@ -587,7 +587,7 @@ def calculate_tier_confidence(
     
     return (quick_sale_conf, fair_value_conf, high_end_conf)
 
-def _single_search(client, title: str, issue: str, grade: str, publisher: str = None) -> tuple:
+def _single_search(client, title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None) -> tuple:
     """
     Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
     """
@@ -595,17 +595,28 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
     title = str(title) if title else "Unknown"
     issue = str(issue) if issue else "1"
     
+    # Build the full title including issue_type for Annuals, Giant-Size, etc.
+    full_title = title
+    if issue_type and issue_type.lower() not in ['regular', '']:
+        # Add issue_type to the title for searching (e.g., "Amazing Spider-Man Annual")
+        full_title = f"{title} {issue_type}"
+    
     # Build search query - don't include grade (most listings don't specify)
-    search_query = f"{title} #{issue} comic"
+    search_query = f"{full_title} #{issue} comic"
     if publisher:
         search_query += f" {publisher}"
     search_query += " price sold value"
     
-    prompt = f"""Find the market value for: {title} #{issue} in {grade} condition
+    # Note in prompt if this is an Annual/Special
+    issue_type_note = ""
+    if issue_type and issue_type.lower() not in ['regular', '']:
+        issue_type_note = f"\n\nIMPORTANT: This is a {issue_type} issue, NOT a regular series issue. Search specifically for \"{full_title} #{issue}\" - do NOT confuse with the regular series."
+    
+    prompt = f"""Find the market value for: {full_title} #{issue} in {grade} condition{issue_type_note}
 
 STEP 1 - CORRECT SPELLING: Fix any errors (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man")
 
-STEP 2 - SEARCH PRICECHARTING FIRST: Search "site:pricecharting.com {title} #{issue}" to find the exact issue page. PriceCharting has the most reliable ungraded/raw comic prices.
+STEP 2 - SEARCH PRICECHARTING FIRST: Search "site:pricecharting.com {full_title} #{issue}" to find the exact issue page. PriceCharting has the most reliable ungraded/raw comic prices.
 
 STEP 3 - CHECK EBAY SOLD LISTINGS: Search eBay sold/completed listings for recent actual sales.
 
@@ -613,7 +624,7 @@ STEP 4 - CHECK CURRENT BUY IT NOW: Also search eBay for current Buy It Now listi
 
 CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - Title must match EXACTLY (e.g., "Captain America Annual #8" is NOT "Captain America #8")
-- "Annual", "Giant-Size", "Special" are DIFFERENT series - don't mix them
+- "Annual", "Giant-Size", "Special", "King-Size Special" are DIFFERENT series - don't mix them with regular issues
 - Issue number must match EXACTLY
 - REJECT lot sales (multiple comics sold together)
 - REJECT prices for CGC/CBCS graded copies when looking for raw value (graded copies sell for 2-10x more)
@@ -682,18 +693,32 @@ IMPORTANT:
     return ([], [], None)
 
 
-def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, num_samples: int = 3, force_refresh: bool = False) -> EbayValuationResult:
+def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, num_samples: int = 3, force_refresh: bool = False) -> EbayValuationResult:
     """
     Search for market prices using Claude AI with web search.
     Runs multiple samples and takes median for accuracy.
     Checks cache first, saves successful results to cache.
+    
+    Args:
+        title: Comic title (e.g., "Amazing Spider-Man")
+        issue: Issue number (e.g., "6")
+        grade: Grade (e.g., "VF")
+        publisher: Optional publisher
+        issue_type: "Regular", "Annual", "Giant-Size", "Special", etc.
+        num_samples: Number of search samples to run
+        force_refresh: Bypass cache
     """
     # Expand aliases (ASM → Amazing Spider-Man)
     title = expand_title_alias(title)
     
+    # Build cache key that includes issue_type for Annuals, etc.
+    cache_title = title
+    if issue_type and issue_type.lower() not in ['regular', '']:
+        cache_title = f"{title} {issue_type}"
+    
     # Check cache first (unless force_refresh)
     if not force_refresh:
-        cached = get_cached_result(title, issue)
+        cached = get_cached_result(cache_title, issue)
         if cached:
             return cached
     
@@ -722,7 +747,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     corrected_title = None
     
     for i in range(num_samples):
-        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher)
+        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher, issue_type)
         all_sales.extend(sales)
         all_bin_listings.extend(bin_listings)
         if title_fix and not corrected_title:
@@ -982,18 +1007,29 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         high_end_confidence=high_end_conf
     )
     
-    # Save to cache for future requests
-    save_to_cache(title, issue, result)
+    # Save to cache for future requests (use cache_title which includes issue_type)
+    save_to_cache(cache_title, issue, result)
     
     return result
 
 
 def get_valuation_with_ebay(title: str, issue: str, grade: str, 
                             publisher: str = None, year: int = None,
-                            db_result: dict = None, force_refresh: bool = False) -> dict:
+                            db_result: dict = None, force_refresh: bool = False,
+                            issue_type: str = None) -> dict:
     """
     Main valuation function that combines database and eBay data.
     Set force_refresh=True to bypass cache and get fresh eBay data.
+    
+    Args:
+        title: Comic title
+        issue: Issue number
+        grade: Grade (e.g., "VF")
+        publisher: Optional publisher
+        year: Optional year
+        db_result: Optional database lookup result
+        force_refresh: Bypass cache
+        issue_type: "Regular", "Annual", "Giant-Size", "Special", etc.
     """
     from valuation_model import ValuationModel
     
@@ -1009,7 +1045,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
         source = 'database'
         
         # Still search eBay to validate/adjust
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, force_refresh=force_refresh)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh)
         
         if ebay_result.num_sales > 0:
             # Blend database and eBay (favor eBay if high confidence)
@@ -1059,7 +1095,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
     
     else:
         # Not in database - rely on eBay
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, force_refresh=force_refresh)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh)
         
         if ebay_result.num_sales > 0:
             return {

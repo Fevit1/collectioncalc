@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.4",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload"]
+        "version": "3.5",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -69,6 +69,7 @@ def valuate():
         
         data = request.get_json()
         force_refresh = data.get('force_refresh', False)
+        issue_type = data.get('issue_type')  # "Regular", "Annual", "Giant-Size", etc.
         
         # Try database lookup first
         db_result = lookup_comic(
@@ -85,7 +86,8 @@ def valuate():
             publisher=data.get('publisher'),
             year=data.get('year'),
             db_result=db_result,
-            force_refresh=force_refresh
+            force_refresh=force_refresh,
+            issue_type=issue_type
         )
         
         return jsonify(result)
@@ -565,6 +567,7 @@ def batch_process():
                 grade = extracted.get('grade', 'VF')
                 publisher = extracted.get('publisher')
                 year = extracted.get('year')
+                issue_type = extracted.get('issue_type')  # "Regular", "Annual", "Giant-Size", etc.
                 
                 if title and issue:
                     valuation = get_valuation_with_ebay(
@@ -572,7 +575,8 @@ def batch_process():
                         issue=issue,
                         grade=grade,
                         publisher=publisher,
-                        year=year
+                        year=year,
+                        issue_type=issue_type
                     )
                     comic_result['valuation'] = valuation
                 else:
