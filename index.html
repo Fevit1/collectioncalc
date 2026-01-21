@@ -1313,7 +1313,7 @@
             const grade = document.getElementById('grade')?.value || 'VF';
             
             // Store pending listing data
-            pendingListing = { title, issue, price, tier, grade, description: '' };
+            pendingListing = { title, issue, price, tier, grade, description: '', image: null };
             
             // Show modal with loading state
             const modal = document.getElementById('listingModal');
@@ -1379,7 +1379,8 @@
                 price, 
                 tier, 
                 grade, 
-                description: '' 
+                description: '',
+                image: item.image || null
             };
             
             // Show modal with loading state
@@ -1440,11 +1441,11 @@
                 </div>
                 
                 <div class="listing-preview-row">
-                    <div class="listing-preview-label">Placeholder Image</div>
-                    <img src="${PLACEHOLDER_IMAGE}" alt="Photo Coming Soon" class="listing-preview-image">
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
+                    <div class="listing-preview-label">${pendingListing.image ? 'Your Photo' : 'Placeholder Image'}</div>
+                    <img src="${pendingListing.image || PLACEHOLDER_IMAGE}" alt="${pendingListing.image ? 'Comic cover' : 'Photo Coming Soon'}" class="listing-preview-image">
+                    ${!pendingListing.image ? `<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">
                         You can add your actual photos after listing on eBay
-                    </p>
+                    </p>` : ''}
                 </div>
                 
                 <div class="listing-preview-row">
