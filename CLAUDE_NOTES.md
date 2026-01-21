@@ -82,35 +82,36 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 5. **Valuate** - Get three-tier pricing (Quick Sale, Fair Value, High End)
 6. **List** - Create eBay draft listing (user publishes when ready)
 
-## Current State (January 20, 2026)
+## Current State (January 21, 2026)
 
 ### Completed This Session 🎉
-**QuickList batch processing + UI overhaul + Vision Guide**
+**Session 4 - Mobile fixes, image improvements, GDPR**
 
-- **Draft mode for eBay** - Listings now create as drafts by default (`publish=False`)
-- **Photo upload to eBay** - New `upload_image_to_ebay()` function, `/api/ebay/upload-image` endpoint
-- **Backend extraction** - New `comic_extraction.py` with Claude vision
-- **Batch endpoints:**
-  - `/api/extract` - Extract single comic from photo
-  - `/api/batch/process` - Extract + Valuate + Describe multiple comics (no eBay yet)
-  - `/api/batch/list` - Upload images + Create drafts (after user approval)
-- **Input validation** - Max 20 comics per batch, 10MB max image size
-- **Removed 60-second delay** - Was leftover from Tier 1, slowing batch valuations
-- **UI updates:**
-  - Three price boxes (Quick Sale, Fair Value, High End) side by side
-  - Fair Value selected by default with visual highlight
-  - "List on eBay" button per comic in batch results
-  - Removed confidence row from main display (details available via 📊 icon)
-  - Removed refresh/regenerate button
-  - **Sort options** - Sort by Value (High/Low), Title (A-Z), or Order Added
-  - **Header sync fix** - Editing title/issue field now updates header immediately
-- **Vision Guide for extraction** - Improved prompt to distinguish issue numbers from prices (fixed FF #242 being read as #206)
+1. **GDPR account deletion endpoint** - Complete!
+   - Endpoint `/api/ebay/account-deletion` (GET for challenge, POST for deletion)
+   - Registered in eBay Developer Portal (token must be 32+ chars!)
+   - eBay sends periodic health check notifications - this is normal
+
+2. **Smart image compression** - Fixed mobile "failed to fetch"!
+   - Root cause: Pixel camera photos 5-6MB exceed Anthropic's 5MB limit
+   - Solution: Client-side compression using Canvas API
+   - Threshold: Files > 3.5MB get compressed
+
+3. **Image thumbnails everywhere** - Now visible in:
+   - Extraction/editing view ✅
+   - Results view (after valuation) ✅
+   - Listing preview modal ✅
+
+4. **Mobile testing** - All working!
+   - Extraction ✅, Valuation ✅, List on eBay buttons ✅
+
+5. **Cloudflare `purge` command** - New PowerShell alias for cache purging
 
 ### Known Issues / TODOs
 - [ ] More progress steps during valuation (users think it's frozen)
 - [ ] Custom price entry (not just the three tiers)
-- [ ] Host our own placeholder image (not external URL)
-- [ ] eBay account deletion notification endpoint (GDPR)
+- [ ] Issue number extraction: DC comics put issue# top-RIGHT (not top-left)
+- [ ] Multi-comic photo detection and splitting (core feature for Phase 2)
 
 ### API Endpoints (Current)
 | Endpoint | Purpose |
@@ -147,9 +148,13 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
 2. Mike downloads the file(s) to `cc/v2` folder
-3. Mike runs: `git add .; git commit -m "message"; git push; deploy`
-   - Note: `deploy` is a PowerShell alias that triggers Render deploy hook
-   - Must include `git push` or Render rebuilds old code!
+3. **Backend changes:** `git add .; git commit -m "message"; git push; deploy`
+4. **Frontend changes:** `git add .; git commit -m "message"; git push; purge`
+5. **Both:** `git add .; git commit -m "message"; git push; deploy; purge`
+
+**PowerShell aliases:**
+- `deploy` - triggers Render deploy hook (backend)
+- `purge` - purges Cloudflare cache (frontend)
 
 ## eBay Credentials (Production)
 - **App ID:** DonBerry-Collecti-PRD-8b446dc71-59cfad05
@@ -168,12 +173,14 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - **Calculated shipping:** Requires package dimensions in inventory item
 - **Price selection:** User picks tier or enters custom price (Fair Value default)
 
-## Pre-Launch Requirements (Before Other Users)
-- [ ] Implement eBay account deletion notification endpoint (GDPR compliance)
-- [ ] Host our own placeholder image (not external URL)
-- [x] Draft mode for listings (done!)
-- [x] Photo upload for listings (done!)
-- [x] Test full QuickList flow with real comics (done - 5 comics tested!)
+## Pre-Launch Requirements - ALL COMPLETE! ✅
+- [x] Implement eBay account deletion notification endpoint (GDPR compliance) ✅
+- [x] Host our own placeholder image ✅
+- [x] Draft mode for listings ✅
+- [x] Photo upload for listings ✅
+- [x] Test full QuickList flow with real comics ✅
+- [x] Mobile extraction working ✅
+- [x] Image thumbnails in UI ✅
 
 ## Future Considerations
 - **Batch listing groups:** e.g., "List all 12 issues of Secret Wars" as a batch action
@@ -183,7 +190,7 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
-- [ ] Mobile works
+- [x] Mobile works ✅
 - [ ] Cloudflare Access (auth)
 - [ ] Custom domain live
 - [ ] Feedback mechanism (Report Issue link?)
@@ -196,4 +203,4 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 20, 2026 (Session 2)*
+*Last updated: January 21, 2026 (Session 4 - Mobile, compression, thumbnails, GDPR, purge command)*

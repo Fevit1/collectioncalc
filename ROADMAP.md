@@ -121,11 +121,18 @@ One-click listing from valuation results.
 
 ## In Progress 🔨
 
-### Phase 2.86: QuickList Polish
+### Phase 2.86: QuickList Polish ✅ (January 21, 2026)
 Refine the batch experience.
 
 - [x] Sort options (by value, title) in batch results ✅
 - [x] Vision Guide v1 for extraction (price vs issue number) ✅
+- [x] GDPR account deletion endpoint ✅
+- [x] Smart image compression (client-side, files > 3.5MB) ✅
+- [x] Image thumbnails in extraction view ✅
+- [x] Image thumbnails in results view ✅
+- [x] Image in listing preview modal ✅
+- [x] Mobile extraction/valuation/listing working ✅
+- [x] `purge` command for Cloudflare cache ✅
 - [ ] More progress steps during valuation (keep users engaged)
 - [ ] Custom price entry (not just the three tiers)
 
@@ -331,6 +338,7 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 21, 2026 | 2.86.1 | GDPR endpoint, smart image compression, thumbnails (extraction/results/preview), mobile fixes, `purge` command |
 | Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1 (issue# vs price), header sync fix |
 | Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction, batch endpoints, UI overhaul |
 | Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies, package dimensions |
@@ -351,4 +359,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 20, 2026 (Session 2)*
+*Last updated: January 21, 2026 (Session 4)*
