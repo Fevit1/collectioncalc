@@ -16,8 +16,8 @@ EBAY_SANDBOX_API_URL = "https://api.sandbox.ebay.com"
 COMIC_CATEGORY_ID = "259104"
 
 # Placeholder image URL - eBay requires at least 1 image
-# Using a generic comic-related placeholder until user uploads their own
-PLACEHOLDER_IMAGE_URL = "https://u-mercari-images.mercdn.net/photos/m55849664274_1.jpg"
+# Hosted on our Cloudflare Pages frontend
+PLACEHOLDER_IMAGE_URL = "https://collectioncalc.pages.dev/images/placeholder.png"
 
 # Grade to eBay condition mapping (using Inventory API enum values)
 GRADE_TO_CONDITION = {
