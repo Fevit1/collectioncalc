@@ -797,12 +797,13 @@ def validate_ebay_description():
     except Exception as e:
         return jsonify({'valid': False, 'issues': [str(e)]}), 500
 
-@app.route('/api/admin/upload-placeholder', methods=['POST', 'OPTIONS'])
+@app.route('/api/admin/upload-placeholder', methods=['GET', 'POST', 'OPTIONS'])
 def upload_placeholder_image():
     """
     One-time admin endpoint to upload CollectionCalc placeholder image to eBay.
     Creates a branded PNG and uploads to eBay Picture Services.
     Returns the permanent eBay-hosted URL to hardcode in ebay_listing.py.
+    Supports GET for easy browser access.
     """
     if request.method == 'OPTIONS':
         return '', 204
@@ -813,8 +814,12 @@ def upload_placeholder_image():
         from ebay_oauth import get_user_token
         import io
         
-        data = request.get_json() or {}
-        user_id = data.get('user_id', 'default')
+        # Support both GET (query param) and POST (JSON body)
+        if request.method == 'GET':
+            user_id = request.args.get('user_id', 'default')
+        else:
+            data = request.get_json() or {}
+            user_id = data.get('user_id', 'default')
         
         # Check eBay connection
         token_data = get_user_token(user_id)
