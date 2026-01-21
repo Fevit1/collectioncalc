@@ -13,6 +13,7 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 # Vision Guide prompt for accurate extraction
 EXTRACTION_PROMPT = """Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
 
+IDENTIFICATION FIELDS:
 - title: Comic book title (usually the largest text on the cover). Include the main series name only, NOT "Annual" or "Special" - those go in issue_type.
 - issue: Issue number - IMPORTANT: Look for a "#" symbol followed by a number, typically in the TOP-LEFT area near the price. IGNORE prices like "60¢", "$1.00", "25p" - these are NOT issue numbers. The issue number usually appears as "#242" or "No. 242". Just return the number, no # symbol.
 - issue_type: CRITICAL - Look carefully for these indicators on the cover:
@@ -25,16 +26,61 @@ EXTRACTION_PROMPT = """Analyze this comic book image and extract information. Re
   These indicators are often in LARGE TEXT at the top of the cover or in a banner. They dramatically affect the comic's value - an Annual #6 is completely different from Regular #6.
 - publisher: Publisher name (Marvel, DC, Image, etc.) - often in small text at top
 - year: Publication year - look for copyright text or indicia, usually small text
-- grade: Estimated condition grade (GM, GD, VG, FN, VF, NM, MT) - be conservative
 - edition: Look at the BOTTOM-LEFT CORNER. If you see a UPC BARCODE, return "newsstand". If you see ARTWORK or LOGO, return "direct". If unclear, return "unknown".
 - printing: Look for "2nd Printing", "3rd Print", "Second Printing", etc. anywhere on cover. Return "1st" if no printing indicator found, otherwise "2nd", "3rd", etc.
 - cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
 - variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
 
+CONDITION ASSESSMENT FIELDS:
+Examine the comic's PHYSICAL CONDITION carefully. You can only see the front cover, so assess what's visible.
+
+IMPORTANT - DISTINGUISH BETWEEN:
+1. COMIC DEFECTS (on the actual comic) - These affect grade
+2. BAG/SLEEVE ARTIFACTS (on the protective covering) - IGNORE these:
+   - Price stickers on the outside of a bag
+   - Reflections or glare from plastic sleeve
+   - Tape on the bag opening
+   - Bag wrinkles or cloudiness
+   If the comic appears to be in a bag/sleeve, look THROUGH it to assess the comic itself.
+
+3. SIGNATURES - Distinguish between:
+   - CREATOR SIGNATURES (writer, artist, etc.) - These ADD value, not defects. Look for professional signatures, often with CGC/CBCS witness stickers, or signatures that match known creator names for that comic.
+   - RANDOM WRITING (names, dates, scribbles) - These are defects that lower grade.
+
+- suggested_grade: Based on visible condition, suggest one of: MT, NM, VF, FN, VG, G, FR, PR. Be conservative - grade what you can see.
+- defects: Array of visible defects found ON THE COMIC (not on bag). Examples:
+  * "Tear on front cover, approx 1 inch"
+  * "Spine roll"
+  * "Color-breaking crease across cover"
+  * "Corner wear, top right"
+  * "Staining near bottom"
+  * "Rusty staples"
+  * "Price sticker residue on cover"
+  Return empty array [] if no defects visible.
+- signatures: Array of any signatures visible. For each, note if it appears to be a creator signature or unknown. Example:
+  * "Signature present - appears to be creator (Jim Lee)"
+  * "Signature present - unknown/unverified"
+  * "Name written in marker - not a creator signature (defect)"
+  Return empty array [] if no signatures.
+- grade_reasoning: Brief explanation of grade choice, e.g., "VF - Minor spine stress visible, corners sharp, colors bright" or "VG - Visible tear on cover, moderate wear"
+
+GRADE GUIDE (be conservative):
+- MT (10.0): Perfect, virtually flawless
+- NM (9.4): Nearly perfect, minor imperfections only
+- VF (8.0): Minor wear, small stress marks OK, still attractive
+- FN (6.0): Moderate wear, minor creases, slightly rolled spine OK
+- VG (4.0): Significant wear, small tears, creases, still complete
+- G (2.0): Heavy wear, larger creases, small pieces may be missing
+- FR (1.5): Major wear, tears, pieces missing but still readable
+- PR (1.0): Severe damage, may be incomplete
+
 CRITICAL RULES:
 1. Do NOT confuse prices (60¢, $1.50, 25p) with issue numbers. Issue numbers are preceded by "#" or "No." and are typically 1-4 digits.
-2. ALWAYS check for "Annual", "King-Size Special", "Giant-Size", or "Special" - these are DIFFERENT series than the regular comic and have very different values. Look at banners, large text at the top, and the spine.
+2. ALWAYS check for "Annual", "King-Size Special", "Giant-Size", or "Special" - these are DIFFERENT series than the regular comic and have very different values.
 3. If you see "KING-SIZE SPECIAL" anywhere, the issue_type MUST be "Annual".
+4. For condition: You can ONLY see the front cover. Note this limitation - back cover damage would not be visible.
+5. Ignore bag/sleeve artifacts. Assess the comic itself.
+6. Creator signatures are valuable, not defects.
 
 Be accurate. If unsure about any field, use reasonable estimates."""
 
