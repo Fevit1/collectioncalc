@@ -1660,17 +1660,82 @@
             }, 1000);
         }
         
-        async function extractFromPhoto(file) {
-            const base64Data = await new Promise((resolve, reject) => {
+        // Compress image to stay under Anthropic's 5MB limit
+        // Uses smart compression: tries high quality first, reduces only as needed
+        async function compressImage(file, maxSizeBytes = 4.5 * 1024 * 1024) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
                 reader.onerror = reject;
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Start with original dimensions
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Try different quality levels, then resize if needed
+                        const qualities = [0.92, 0.85, 0.75, 0.65, 0.5];
+                        const scales = [1, 0.85, 0.7, 0.5];
+                        
+                        for (const scale of scales) {
+                            canvas.width = Math.round(width * scale);
+                            canvas.height = Math.round(height * scale);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            
+                            for (const quality of qualities) {
+                                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                                const base64 = dataUrl.split(',')[1];
+                                const sizeBytes = base64.length * 0.75; // base64 is ~33% larger
+                                
+                                if (sizeBytes <= maxSizeBytes) {
+                                    console.log(`Compressed image: ${(sizeBytes / 1024 / 1024).toFixed(2)}MB at ${Math.round(scale * 100)}% scale, ${Math.round(quality * 100)}% quality`);
+                                    resolve({ base64, mediaType: 'image/jpeg' });
+                                    return;
+                                }
+                            }
+                        }
+                        
+                        // Last resort: smallest scale and quality
+                        canvas.width = Math.round(width * 0.4);
+                        canvas.height = Math.round(height * 0.4);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                        const base64 = dataUrl.split(',')[1];
+                        console.log(`Compressed image (fallback): ${(base64.length * 0.75 / 1024 / 1024).toFixed(2)}MB`);
+                        resolve({ base64, mediaType: 'image/jpeg' });
+                    };
+                    img.src = e.target.result;
+                };
                 reader.readAsDataURL(file);
             });
+        }
+        
+        async function extractFromPhoto(file) {
+            // Check file size and compress if needed (Anthropic limit is 5MB)
+            const fileSizeMB = file.size / 1024 / 1024;
+            let base64Data, mediaType;
             
-            const extension = file.name.split('.').pop().toLowerCase();
-            const mediaTypeMap = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic' };
-            const mediaType = mediaTypeMap[extension] || 'image/jpeg';
+            if (fileSizeMB > 4.5) {
+                console.log(`Image ${file.name} is ${fileSizeMB.toFixed(2)}MB, compressing...`);
+                const compressed = await compressImage(file);
+                base64Data = compressed.base64;
+                mediaType = compressed.mediaType;
+            } else {
+                // File is small enough, use as-is
+                base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                const extension = file.name.split('.').pop().toLowerCase();
+                const mediaTypeMap = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic' };
+                mediaType = mediaTypeMap[extension] || 'image/jpeg';
+            }
             
             const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
 
