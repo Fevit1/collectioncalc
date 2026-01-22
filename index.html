@@ -1376,27 +1376,7 @@
             </div>
         </header>
         
-        <div class="card" id="apiSetup" style="display: none;">
-            <div class="api-setup">
-                <div class="api-setup-title">🔑 Enter Your Anthropic API Key</div>
-                <div class="api-setup-info">
-                    <strong>How to get an API key:</strong>
-                    <ol>
-                        <li>Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></li>
-                        <li>Sign up or log in</li>
-                        <li>Go to API Keys section</li>
-                        <li>Create a new key and copy it</li>
-                    </ol>
-                </div>
-                <div id="apiError" class="error-msg" style="display: none;"></div>
-                <div class="form-group">
-                    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." style="font-family: monospace;">
-                </div>
-                <button onclick="saveApiKey()">Save & Continue</button>
-            </div>
-        </div>
-        
-        <div id="mainApp" style="display: none;">
+        <div id="mainApp">
             <div class="mode-toggle">
                 <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">✏️ Manual Entry</button>
                 <button class="mode-btn" id="modePhoto" onclick="setMode('photo')">📸 Photo Upload</button>
@@ -1660,7 +1640,6 @@
     
     <script>
         const API_URL = 'https://collectioncalc.onrender.com';
-        let apiKey = localStorage.getItem('anthropic_api_key') || '';
         let currentMode = 'manual';
         let extractedItems = [];
         let currentSort = 'default';
@@ -2501,14 +2480,6 @@
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
-            if (apiKey && apiKey.startsWith('sk-ant-')) {
-                document.getElementById('apiSetup').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-            } else {
-                document.getElementById('apiSetup').style.display = 'block';
-                document.getElementById('mainApp').style.display = 'none';
-            }
-            
             // Check eBay connection status
             await checkEbayConnection();
             
@@ -2521,26 +2492,6 @@
                 if (e.dataTransfer.files.length > 0) handlePhotoUpload(e.dataTransfer.files);
             });
         });
-        
-        function saveApiKey() {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            if (key.startsWith('sk-ant-')) {
-                localStorage.setItem('anthropic_api_key', key);
-                apiKey = key;
-                document.getElementById('apiSetup').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-            } else {
-                document.getElementById('apiError').textContent = 'Invalid API key. Should start with sk-ant-';
-                document.getElementById('apiError').style.display = 'block';
-            }
-        }
-        
-        function changeApiKey() {
-            if (confirm('Clear your API key?')) {
-                localStorage.removeItem('anthropic_api_key');
-                location.reload();
-            }
-        }
         
         function setMode(mode) {
             currentMode = mode;
@@ -2759,7 +2710,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             
             const response = await fetch(`${API_URL}/api/messages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: 'claude-sonnet-4-20250514',
                     max_tokens: 1000,

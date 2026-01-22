@@ -28,10 +28,10 @@ def proxy_messages():
         return '', 204
     
     try:
-        # Get API key from header
-        api_key = request.headers.get('X-API-Key')
+        # Use server-side API key (users don't need their own)
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
         if not api_key:
-            return jsonify({'error': {'message': 'Missing X-API-Key header'}}), 401
+            return jsonify({'error': {'message': 'Server API key not configured'}}), 500
         
         # Get request body
         data = request.get_json()
