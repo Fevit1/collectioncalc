@@ -244,7 +244,7 @@ def init_cache_db():
             pass
         return False
 
-def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
+def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[EbayValuationResult]:
     """Check PostgreSQL cache for existing search result."""
     conn = get_db_connection()
     if not conn:
@@ -254,7 +254,11 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
         init_cache_db()
         cursor = conn.cursor()
         
-        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        # Include grade in cache key if provided
+        if grade:
+            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+        else:
+            search_key = f"{title.lower().strip()}|{issue.strip()}"
         
         cursor.execute('''
             SELECT estimated_value, confidence, confidence_score, num_sales, 
@@ -315,7 +319,7 @@ def get_cached_result(title: str, issue: str) -> Optional[EbayValuationResult]:
             pass
         return None
 
-def save_to_cache(title: str, issue: str, result: EbayValuationResult):
+def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: str = None):
     """Save search result to PostgreSQL cache."""
     conn = get_db_connection()
     if not conn:
@@ -325,7 +329,11 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
         init_cache_db()
         cursor = conn.cursor()
         
-        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        # Include grade in cache key if provided
+        if grade:
+            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+        else:
+            search_key = f"{title.lower().strip()}|{issue.strip()}"
         
         # Use INSERT ... ON CONFLICT for upsert
         cursor.execute('''
@@ -373,7 +381,7 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult):
         except:
             pass
 
-def update_cached_value(title: str, issue: str, new_value: float, samples: list = None) -> bool:
+def update_cached_value(title: str, issue: str, new_value: float, samples: list = None, grade: str = None) -> bool:
     """Update PostgreSQL cache with a new averaged value from admin refresh."""
     # Expand aliases
     title = expand_title_alias(title)
@@ -387,7 +395,11 @@ def update_cached_value(title: str, issue: str, new_value: float, samples: list 
         init_cache_db()
         cursor = conn.cursor()
         
-        search_key = f"{title.lower().strip()}|{issue.strip()}"
+        # Include grade in cache key if provided
+        if grade:
+            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+        else:
+            search_key = f"{title.lower().strip()}|{issue.strip()}"
         
         # Build reasoning
         if samples:
@@ -749,7 +761,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     
     # Check cache first (unless force_refresh)
     if not force_refresh:
-        cached = get_cached_result(cache_title, issue)
+        cached = get_cached_result(cache_title, issue, grade)
         if cached:
             return cached
     
@@ -1038,8 +1050,8 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         high_end_confidence=high_end_conf
     )
     
-    # Save to cache for future requests (use cache_title which includes issue_type)
-    save_to_cache(cache_title, issue, result)
+    # Save to cache for future requests (use cache_title which includes issue_type, and grade)
+    save_to_cache(cache_title, issue, result, grade)
     
     return result
 
