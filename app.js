@@ -1010,12 +1010,14 @@
 
 IDENTIFICATION FIELDS:
 - title: Comic book title (usually the largest text on the cover). Include the main series name only, NOT "Annual" or "Special" - those go in issue_type.
-- issue: Issue number - IMPORTANT: Search MULTIPLE LOCATIONS for the issue number:
-  * Top-left corner (most common for Marvel)
-  * Top-right corner (common for DC comics)
-  * Near the barcode/UPC area (bottom-left or bottom-right)
-  * Small text near the title
-  Look for "#" followed by a number, or "No." followed by a number. IGNORE prices like "60¢", "$1.00", "25p" - these are NOT issue numbers. Just return the number, no # symbol.
+- issue: Issue number - CRITICAL: You MUST find the issue number. Search these locations thoroughly:
+  * Top-left corner near price (Marvel standard)
+  * Top-right corner (DC standard)
+  * Small text WITHIN or NEAR the title logo
+  * Near the barcode/UPC area (bottom corners)
+  * Near creator credits at bottom of cover
+  * Sometimes the number is VERY SMALL or integrated into the cover design
+  Look for "#1", "#2", "No. 1", or just a standalone number. First issues often have the "1" stylized or small. IGNORE prices (60¢, $1.00, $2.99). If this appears to be a first issue of a series, the issue number is "1".
 - issue_type: CRITICAL - Look carefully for these indicators on the cover:
   * "Annual" or "ANNUAL" → return "Annual"
   * "King-Size Special" or "KING-SIZE SPECIAL" → return "Annual" (these are annuals)
@@ -1043,22 +1045,24 @@ IMPORTANT - DISTINGUISH BETWEEN:
    - Bag wrinkles or cloudiness
    If the comic appears to be in a bag/sleeve, look THROUGH it to assess the comic itself.
 
-3. SIGNATURES - Distinguish between:
-   - CREATOR SIGNATURES (writer, artist, etc.) - These ADD value, not defects.
-   - RANDOM WRITING (names, dates, scribbles) - These are defects that lower grade.
+3. SIGNATURES - Look carefully for ANY handwriting on the cover that could be a signature:
+   - LOOK FOR: Gold/silver/metallic marker, black sharpie, pen signatures, any handwritten text that looks like a name
+   - CHECK LOCATIONS: Front cover artwork area, margins, corners, near title
+   - CREATOR SIGNATURES add value - they're typically written in marker (gold, silver, black) and look like stylized names
+   - RANDOM WRITING (names like "property of John", dates, scribbles) - These are defects
 
 - suggested_grade: Based on visible condition, suggest one of: MT, NM, VF, FN, VG, G, FR, PR. Be conservative - grade what you can see.
 - defects: Array of visible defects found ON THE COMIC (not on bag). Examples: "Tear on front cover", "Spine roll", "Color-breaking crease", "Corner wear", "Staining". Return empty array [] if no defects visible.
 - grade_reasoning: Brief explanation of grade choice, e.g., "VF - Minor spine stress visible, corners sharp"
 
 SIGNATURE ANALYSIS FIELDS:
-- signature_detected: boolean - Is there a signature/autograph visible on the cover? (not random writing)
+- signature_detected: boolean - Is there ANY signature, autograph, or handwritten name visible on the cover? Look carefully for gold, silver, or metallic ink signatures which are common. If you see ANYTHING that looks like handwriting/signature, set this to true.
 - signature_analysis: If signature_detected is true, provide this object (otherwise null):
   {
     "creators": [{"name": "Full Name", "role": "Artist/Writer/Inker/Colorist"}],
     "confidence_scores": [{"name": "Full Name", "confidence": 55, "reasoning": "brief reason"}],
     "most_likely_signer": {"name": "Name", "confidence": 55},
-    "signature_characteristics": "Describe ink color, position, style, any legible letters"
+    "signature_characteristics": "Describe ink color (gold/silver/black/blue), position on cover, style (neat/messy), any legible letters"
   }
   
   When assigning confidence, consider: Artists sign more than writers. Cover artists sign most often. Check for legible letters matching creator names.
@@ -1079,8 +1083,8 @@ CRITICAL RULES:
 3. If you see "KING-SIZE SPECIAL" anywhere, the issue_type MUST be "Annual".
 4. For condition: You can ONLY see the front cover. Note this limitation.
 5. Ignore bag/sleeve artifacts. Assess the comic itself.
-6. If you see a signature, set signature_detected to true and provide signature_analysis with confidence scores.
-7. For issue numbers: Check ALL corners and near the barcode - different publishers put them in different places.
+6. SIGNATURES ARE COMMON: Look very carefully for gold, silver, or metallic ink signatures. They're often hard to see. If you see ANY handwriting that could be an autograph, set signature_detected to true.
+7. ISSUE NUMBER IS REQUIRED: Look everywhere - corners, near title, near barcode, near credits. First issues often have small or stylized "1". Do NOT leave issue blank if you can find any number.
 
 Be accurate. If unsure about any field, use reasonable estimates.`;
             
