@@ -8,8 +8,8 @@ app = Flask(__name__)
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, X-API-Key')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     return response
 
 # Simple health check
@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.6",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection", "gdpr_account_deletion"]
+        "version": "3.7",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection", "gdpr_account_deletion", "user_auth", "collections"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -910,6 +910,378 @@ def validate_ebay_description():
         
     except Exception as e:
         return jsonify({'valid': False, 'issues': [str(e)]}), 500
+
+# ============================================
+# AUTH ROUTES
+# ============================================
+
+@app.route('/api/auth/signup', methods=['POST', 'OPTIONS'])
+def auth_signup():
+    """Create a new user account."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import signup
+        
+        data = request.get_json()
+        email = data.get('email', '')
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'error': 'Email and password are required'}), 400
+        
+        result = signup(email, password)
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/login', methods=['POST', 'OPTIONS'])
+def auth_login():
+    """Authenticate user and return JWT token."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import login
+        
+        data = request.get_json()
+        email = data.get('email', '')
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'error': 'Email and password are required'}), 400
+        
+        result = login(email, password)
+        status_code = 200 if result.get('success') else 401
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/verify/<token>', methods=['GET'])
+def auth_verify_email(token):
+    """Verify user's email address."""
+    try:
+        from auth import verify_email
+        
+        result = verify_email(token)
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/resend-verification', methods=['POST', 'OPTIONS'])
+def auth_resend_verification():
+    """Resend email verification link."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import resend_verification
+        
+        data = request.get_json()
+        email = data.get('email', '')
+        
+        if not email:
+            return jsonify({'success': False, 'error': 'Email is required'}), 400
+        
+        result = resend_verification(email)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/forgot-password', methods=['POST', 'OPTIONS'])
+def auth_forgot_password():
+    """Send password reset email."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import forgot_password
+        
+        data = request.get_json()
+        email = data.get('email', '')
+        
+        if not email:
+            return jsonify({'success': False, 'error': 'Email is required'}), 400
+        
+        result = forgot_password(email)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/reset-password', methods=['POST', 'OPTIONS'])
+def auth_reset_password():
+    """Reset password using token from email."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import reset_password
+        
+        data = request.get_json()
+        token = data.get('token', '')
+        new_password = data.get('password', '')
+        
+        if not token or not new_password:
+            return jsonify({'success': False, 'error': 'Token and new password are required'}), 400
+        
+        result = reset_password(token, new_password)
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/me', methods=['GET', 'OPTIONS'])
+def auth_me():
+    """Get current user from JWT token."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import get_current_user
+        
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'success': False, 'error': 'Missing or invalid Authorization header'}), 401
+        
+        token = auth_header[7:]  # Remove 'Bearer ' prefix
+        
+        result = get_current_user(token)
+        status_code = 200 if result.get('success') else 401
+        return jsonify(result), status_code
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# COLLECTION ROUTES
+# ============================================
+
+@app.route('/api/collection', methods=['GET', 'OPTIONS'])
+def get_collection():
+    """Get user's saved comics collection."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import verify_jwt
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        # Authenticate
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        token = auth_header[7:]
+        payload = verify_jwt(token)
+        if not payload:
+            return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
+        
+        user_id = payload['user_id']
+        
+        # Get collection from database
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        try:
+            cur.execute("""
+                SELECT id, comic_data, created_at, updated_at
+                FROM collections
+                WHERE user_id = %s
+                ORDER BY updated_at DESC
+            """, (user_id,))
+            
+            items = cur.fetchall()
+            
+            # Format response
+            collection = []
+            for item in items:
+                comic = item['comic_data']
+                comic['collection_id'] = item['id']
+                comic['saved_at'] = item['created_at'].isoformat() if item['created_at'] else None
+                comic['updated_at'] = item['updated_at'].isoformat() if item['updated_at'] else None
+                collection.append(comic)
+            
+            return jsonify({
+                'success': True,
+                'collection': collection,
+                'count': len(collection)
+            })
+        finally:
+            cur.close()
+            conn.close()
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/collection/save', methods=['POST', 'OPTIONS'])
+def save_to_collection():
+    """Save comics to user's collection."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import verify_jwt
+        import psycopg2
+        from psycopg2.extras import RealDictCursor, Json
+        
+        # Authenticate
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        token = auth_header[7:]
+        payload = verify_jwt(token)
+        if not payload:
+            return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
+        
+        user_id = payload['user_id']
+        
+        data = request.get_json()
+        comics = data.get('comics', [])
+        
+        if not comics:
+            return jsonify({'success': False, 'error': 'No comics provided'}), 400
+        
+        if len(comics) > 100:
+            return jsonify({'success': False, 'error': 'Maximum 100 comics per save'}), 400
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        try:
+            saved = []
+            for comic in comics:
+                # Insert into collection
+                cur.execute("""
+                    INSERT INTO collections (user_id, comic_data)
+                    VALUES (%s, %s)
+                    RETURNING id
+                """, (user_id, Json(comic)))
+                
+                result = cur.fetchone()
+                comic['collection_id'] = result['id']
+                saved.append(comic)
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'saved': saved,
+                'count': len(saved)
+            })
+        except Exception as e:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+            conn.close()
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/collection/<int:item_id>', methods=['DELETE', 'OPTIONS'])
+def delete_from_collection(item_id):
+    """Remove a comic from user's collection."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import verify_jwt
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        # Authenticate
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        token = auth_header[7:]
+        payload = verify_jwt(token)
+        if not payload:
+            return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
+        
+        user_id = payload['user_id']
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        try:
+            # Delete only if belongs to this user
+            cur.execute("""
+                DELETE FROM collections
+                WHERE id = %s AND user_id = %s
+                RETURNING id
+            """, (item_id, user_id))
+            
+            deleted = cur.fetchone()
+            conn.commit()
+            
+            if deleted:
+                return jsonify({'success': True, 'deleted_id': item_id})
+            else:
+                return jsonify({'success': False, 'error': 'Item not found'}), 404
+        finally:
+            cur.close()
+            conn.close()
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/collection/<int:item_id>', methods=['PUT', 'OPTIONS'])
+def update_collection_item(item_id):
+    """Update a comic in user's collection."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        from auth import verify_jwt
+        import psycopg2
+        from psycopg2.extras import RealDictCursor, Json
+        
+        # Authenticate
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        token = auth_header[7:]
+        payload = verify_jwt(token)
+        if not payload:
+            return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
+        
+        user_id = payload['user_id']
+        
+        data = request.get_json()
+        comic_data = data.get('comic_data')
+        
+        if not comic_data:
+            return jsonify({'success': False, 'error': 'No comic data provided'}), 400
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        try:
+            # Update only if belongs to this user
+            cur.execute("""
+                UPDATE collections
+                SET comic_data = %s, updated_at = NOW()
+                WHERE id = %s AND user_id = %s
+                RETURNING id
+            """, (Json(comic_data), item_id, user_id))
+            
+            updated = cur.fetchone()
+            conn.commit()
+            
+            if updated:
+                return jsonify({'success': True, 'updated_id': item_id})
+            else:
+                return jsonify({'success': False, 'error': 'Item not found'}), 404
+        finally:
+            cur.close()
+            conn.close()
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

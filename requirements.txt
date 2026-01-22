@@ -1,6 +1,19 @@
-flask==3.0.0
-anthropic==0.45.0
-python-dotenv==1.0.0
-requests==2.31.0
-gunicorn==21.2.0
-psycopg2-binary==2.9.9
+# CollectionCalc Backend Dependencies
+
+# Web Framework
+flask>=2.0.0
+gunicorn>=20.0.0
+
+# HTTP Requests
+requests>=2.25.0
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Authentication (NEW)
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+resend>=0.7.0
+
+# Anthropic API (for AI extraction and descriptions)
+anthropic>=0.18.0
