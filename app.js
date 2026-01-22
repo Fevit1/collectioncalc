@@ -928,9 +928,9 @@
             }, 1000);
         }
         
-        // Compress image to stay under Anthropic's 5MB limit
-        // Uses smart compression: tries high quality first, reduces only as needed
-        async function compressImage(file, maxSizeBytes = 4.8 * 1024 * 1024) {
+        // Process image for optimal quality while staying under Anthropic's 5MB limit
+        // Prioritizes preserving detail for signature detection
+        async function processImageForExtraction(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onerror = reject;
@@ -941,39 +941,72 @@
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // Start with original dimensions
                         let width = img.width;
                         let height = img.height;
                         
-                        // Try different quality levels, then resize if needed
-                        const qualities = [0.92, 0.85, 0.75, 0.65, 0.5];
-                        const scales = [1, 0.85, 0.7, 0.5];
+                        console.log(`Original image: ${width}x${height}`);
+                        
+                        // Ensure minimum resolution for detail (signatures need at least 1200px)
+                        const minDimension = 1200;
+                        const maxDimension = 2400; // Cap to avoid huge files
+                        
+                        // Scale up small images to minimum resolution
+                        const currentMax = Math.max(width, height);
+                        if (currentMax < minDimension) {
+                            const upscale = minDimension / currentMax;
+                            width = Math.round(width * upscale);
+                            height = Math.round(height * upscale);
+                            console.log(`Upscaling to ${width}x${height} for detail`);
+                        }
+                        
+                        // Scale down very large images
+                        if (currentMax > maxDimension) {
+                            const downscale = maxDimension / currentMax;
+                            width = Math.round(width * downscale);
+                            height = Math.round(height * downscale);
+                            console.log(`Downscaling to ${width}x${height}`);
+                        }
+                        
+                        // Anthropic limit is 5MB base64, target 4.5MB for safety
+                        const maxSizeBytes = 4.5 * 1024 * 1024;
+                        
+                        // Try high quality first, only reduce if necessary
+                        const qualities = [0.95, 0.90, 0.85, 0.80, 0.70, 0.60];
+                        const scales = [1, 0.95, 0.90, 0.85, 0.75];
                         
                         for (const scale of scales) {
-                            canvas.width = Math.round(width * scale);
-                            canvas.height = Math.round(height * scale);
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            const scaledWidth = Math.round(width * scale);
+                            const scaledHeight = Math.round(height * scale);
+                            canvas.width = scaledWidth;
+                            canvas.height = scaledHeight;
+                            
+                            // Use high-quality image smoothing
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = 'high';
+                            ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
                             
                             for (const quality of qualities) {
                                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
                                 const base64 = dataUrl.split(',')[1];
-                                const sizeBytes = base64.length; // base64 string length is the size Anthropic checks
+                                const sizeBytes = base64.length;
                                 
                                 if (sizeBytes <= maxSizeBytes) {
-                                    console.log(`Compressed image: ${(sizeBytes / 1024 / 1024).toFixed(2)}MB base64 at ${Math.round(scale * 100)}% scale, ${Math.round(quality * 100)}% quality`);
+                                    console.log(`Processed image: ${scaledWidth}x${scaledHeight}, ${Math.round(quality * 100)}% quality, ${(sizeBytes / 1024 / 1024).toFixed(2)}MB`);
                                     resolve({ base64, mediaType: 'image/jpeg' });
                                     return;
                                 }
                             }
                         }
                         
-                        // Last resort: smallest scale and quality
-                        canvas.width = Math.round(width * 0.4);
-                        canvas.height = Math.round(height * 0.4);
+                        // Fallback: aggressive compression
+                        canvas.width = Math.round(width * 0.6);
+                        canvas.height = Math.round(height * 0.6);
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                         const base64 = dataUrl.split(',')[1];
-                        console.log(`Compressed image (fallback): ${(base64.length / 1024 / 1024).toFixed(2)}MB base64`);
+                        console.log(`Processed image (fallback): ${canvas.width}x${canvas.height}, ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
                         resolve({ base64, mediaType: 'image/jpeg' });
                     };
                     img.src = e.target.result;
@@ -983,28 +1016,13 @@
         }
         
         async function extractFromPhoto(file) {
-            // Check file size and compress if needed (Anthropic limit is 5MB base64)
-            // Base64 encoding adds ~33%, so 3.5MB file becomes ~4.7MB base64
+            // Always process through canvas for consistent quality
             const fileSizeMB = file.size / 1024 / 1024;
-            let base64Data, mediaType;
+            console.log(`Processing ${file.name}: ${fileSizeMB.toFixed(2)}MB`);
             
-            if (fileSizeMB > 3.5) {
-                console.log(`Image ${file.name} is ${fileSizeMB.toFixed(2)}MB, compressing...`);
-                const compressed = await compressImage(file);
-                base64Data = compressed.base64;
-                mediaType = compressed.mediaType;
-            } else {
-                // File is small enough, use as-is
-                base64Data = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-                const extension = file.name.split('.').pop().toLowerCase();
-                const mediaTypeMap = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp', 'heic': 'image/heic' };
-                mediaType = mediaTypeMap[extension] || 'image/jpeg';
-            }
+            const processed = await processImageForExtraction(file);
+            const base64Data = processed.base64;
+            const mediaType = processed.mediaType;
             
             const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
 
