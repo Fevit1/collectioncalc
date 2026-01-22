@@ -34,7 +34,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - ✅ Cloudflare Pages deployment
 - ✅ PowerShell aliases (created `deploy` command)
 - ✅ Curl basics (for deploy hooks)
-- ✅ eBay Developer Portal (credentials, RuNames, OAuth setup, account deletion notifications)
+- ✅ eBay Developer Portal (credentials, RuNames, OAuth setup)
 - ✅ eBay Business Policies
 
 ## Where Mike May Need More Guidance
@@ -64,12 +64,13 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 
 ## Key Files
 - `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
-- `ebay_oauth.py` - eBay OAuth flow, token storage/refresh, GDPR deletion support
+- `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
 - `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
-- `index.html` - Frontend (single page app)
-- `wsgi.py` - Flask routes (v3.6)
+- `auth.py` - User authentication (signup, login, JWT, password reset)
+- `index.html` - Frontend (single page app, ~3500 lines)
+- `wsgi.py` - Flask routes (v3.7)
 - `requirements.txt` - Python dependencies
 
 ## QuickList - The Full Pipeline
@@ -85,21 +86,55 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 ## Current State (January 21, 2026)
 
 ### Completed This Session 🎉
-**GDPR Compliance + Pre-Launch Blockers Complete!**
+**Session 6 - User Auth, Collections, Valuation Bug Fix**
 
-- **Placeholder image confirmed** - Already hosted at `https://collectioncalc.pages.dev/images/placeholder.png`
-- **GDPR account deletion endpoint** - Full implementation:
-  - New endpoint `/api/ebay/account-deletion` (GET for challenge, POST for deletion)
-  - Added `save_ebay_user_id()` and `delete_user_by_ebay_id()` to `ebay_oauth.py`
-  - Registered in eBay Developer Portal (Production)
-  - Test notification received and processed successfully ✅
-  - Env var: `EBAY_VERIFICATION_TOKEN` (must be 32+ characters!)
-- **Version bumped to 3.6** with `gdpr_account_deletion` feature flag
+1. **User Authentication System** - `auth.py` + `wsgi.py` + `index.html`
+   - Email/password signup with email verification
+   - Login with JWT tokens (30-day expiry)
+   - Forgot password / reset password flow
+   - Resend email service integration (collectioncalc.com domain verified)
+   - Database tables: `users`, `collections`, `password_resets`
+   - Migration script: `db_migrate_auth.py`
 
-### Known Issues / TODOs
+2. **Collections Feature**
+   - Users can save valued comics to their collection
+   - "Save to Collection" button in results view
+   - "My Collection" button in header (when logged in)
+   - Collection stored in PostgreSQL with user_id foreign key
+
+3. **Auth UI** - `index.html`
+   - Login/Signup buttons in header (when logged out)
+   - User menu with avatar and dropdown (when logged in)
+   - Modal-based auth forms (login, signup, forgot password, reset)
+   - Email verification redirect handling
+
+4. **🐛 CRITICAL BUG FIX: Grade in Cache Key** - `ebay_valuation.py`
+   - **Problem:** Cache key was `"{title}|{issue}"` - NO GRADE!
+   - VG lookup → cache result → G lookup → same cached result (WRONG!)
+   - **Fix:** Cache key now `"{title}|{issue}|{grade}"`
+   - Each grade gets its own cached valuation
+
+5. **Roadmap Updates**
+   - Added Phase 5.5: Price Database Integration (GoCollect ~$200/mo)
+   - Added Phase 2.88: User Auth & Collections
+   - Competitive analysis: Ludex is main competitor, moving into multiple verticals
+
+### Previous Session (Session 5)
+- CGC/Slab exclusion from raw valuations
+- Visual condition assessment (defect detection)
+- Signature detection (Stan Lee ✅)
+- Condition Assessment UI
+
+### Known Issues / TODOs (High Priority)
+- [ ] **Lookback period** - Currently searches 17+ years back. Limit to 12 months max, prefer 90 days for accurate current values
+- [ ] **Writing vs Signature detection** - Kid's name/owner writing = defect (grade ↓). Creator signature = valuable (search signed copies). Make AI prompt explicitly distinguish these.
+
+### Known Issues / TODOs (Normal)
 - [ ] More progress steps during valuation (users think it's frozen)
 - [ ] Custom price entry (not just the three tiers)
-- [ ] Mobile "failed to fetch" errors on extraction (investigate - possibly image size from Pixel camera)
+- [ ] Issue number extraction: DC comics put issue# top-RIGHT (not top-left)
+- [ ] Multi-comic photo detection and splitting (core feature for Phase 2)
+- [ ] Future: "I have a CGC slab" checkbox to search FOR slabs instead of excluding them
 
 ### API Endpoints (Current)
 | Endpoint | Purpose |
@@ -115,8 +150,15 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 | `/api/ebay/auth` | Start eBay OAuth flow |
 | `/api/ebay/callback` | eBay OAuth callback |
 | `/api/ebay/status` | Check eBay connection status |
-| `/api/ebay/disconnect` | Disconnect user's eBay account |
-| `/api/ebay/account-deletion` | GDPR: eBay account deletion notifications |
+| `/api/auth/signup` | Create new user account |
+| `/api/auth/login` | Authenticate, return JWT |
+| `/api/auth/verify/<token>` | Verify email address |
+| `/api/auth/forgot-password` | Send password reset email |
+| `/api/auth/reset-password` | Reset password with token |
+| `/api/auth/me` | Get current user (requires JWT) |
+| `/api/collection` | Get user's saved comics |
+| `/api/collection/save` | Save comics to collection |
+| `/api/collection/<id>` | Update/delete collection item |
 
 ### eBay Integration Technical Details
 - **Category ID:** 259104 (Comics & Graphic Novels - leaf category)
@@ -124,8 +166,6 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Condition mapping:** MT/NM→LIKE_NEW, VF→USED_EXCELLENT, FN/VG→USED_VERY_GOOD, G→USED_GOOD, FR/PR→USED_ACCEPTABLE
 - **SKU format:** `CC-{title}-{issue}-{timestamp}` (ensures uniqueness)
 - **Draft mode:** `publish=False` (default) returns `drafts_url` to Seller Hub
-- **Placeholder image:** `https://collectioncalc.pages.dev/images/placeholder.png`
-- **GDPR endpoint:** Registered in eBay Developer Portal, token must be 32+ chars
 
 ### Anthropic API Rate Limits
 | Tier | Tokens/Min | Tokens/Day | Requirement |
@@ -140,16 +180,19 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
 2. Mike downloads the file(s) to `cc/v2` folder
-3. Mike runs: `git add .; git commit -m "message"; git push; deploy`
-   - Note: `deploy` is a PowerShell alias that triggers Render deploy hook
-   - Must include `git push` or Render rebuilds old code!
+3. **Backend changes:** `git add .; git commit -m "message"; git push; deploy`
+4. **Frontend changes:** `git add .; git commit -m "message"; git push; purge`
+5. **Both:** `git add .; git commit -m "message"; git push; deploy; purge`
+
+**PowerShell aliases:**
+- `deploy` - triggers Render deploy hook (backend)
+- `purge` - purges Cloudflare cache (frontend)
 
 ## eBay Credentials (Production)
 - **App ID:** DonBerry-Collecti-PRD-8b446dc71-59cfad05
 - **RuName:** Don_Berry-DonBerry-Collec-cipbkmzlb
 - **Redirect URL:** https://collectioncalc.onrender.com/api/ebay/callback
 - **Environment:** Production (EBAY_SANDBOX=false or not set)
-- **GDPR Endpoint:** https://collectioncalc.onrender.com/api/ebay/account-deletion
 
 ## Product Decisions Made
 - **Keep it simple:** Users just need Title, Issue, Grade
@@ -163,32 +206,55 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - **Price selection:** User picks tier or enters custom price (Fair Value default)
 
 ## Pre-Launch Requirements - ALL COMPLETE! ✅
-- [x] Implement eBay account deletion notification endpoint (GDPR compliance)
-- [x] Host our own placeholder image (not external URL)
-- [x] Draft mode for listings (done!)
-- [x] Photo upload for listings (done!)
-- [x] Test full QuickList flow with real comics (done - 5 comics tested!)
+- [x] Implement eBay account deletion notification endpoint (GDPR compliance) ✅
+- [x] Host our own placeholder image ✅
+- [x] Draft mode for listings ✅
+- [x] Photo upload for listings ✅
+- [x] Test full QuickList flow with real comics ✅
+- [x] Mobile extraction working ✅
+- [x] Image thumbnails in UI ✅
 
 ## Future Considerations
 - **Batch listing groups:** e.g., "List all 12 issues of Secret Wars" as a batch action
 - **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute
 - **Travel agent AI:** Mike's idea for future product (autonomous booking with user approval)
 - **Parallel valuations:** Could speed up batch processing further
+- **GoCollect integration:** ~$200/mo for price database, enables faster valuations + trends
+
+## Competitive Analysis
+- **Ludex** - Main competitor, started with baseball cards, expanding to other verticals
+- **Strategy:** Beat them by moving faster on multi-vertical expansion
+- **Differentiator:** Photo → Extract → Value → List pipeline (end-to-end)
+- **Mike's background:** Hotel revenue management / dynamic pricing (same problem domain)
 
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
-- [ ] Mobile works (investigating "failed to fetch" on extraction)
-- [ ] Cloudflare Access (auth)
-- [ ] Custom domain live
+- [x] Mobile works ✅
+- [x] User auth (email/password) ✅ - Replaced Cloudflare Access plan
+- [x] Custom domain live ✅ - collectioncalc.com
 - [ ] Feedback mechanism (Report Issue link?)
 - [ ] Landing copy explains what it does
 - [ ] Error states handled gracefully
 - [ ] Anthropic billing alerts set
+- [x] Collections (save comics) ✅
+
+## Environment Variables (Render)
+| Key | Purpose |
+|-----|---------|
+| `DATABASE_URL` | PostgreSQL connection |
+| `ANTHROPIC_API_KEY` | AI valuations/extraction |
+| `EBAY_CLIENT_ID` | eBay API |
+| `EBAY_CLIENT_SECRET` | eBay API |
+| `EBAY_RUNAME` | eBay OAuth redirect |
+| `RESEND_API_KEY` | Email service |
+| `RESEND_FROM_EMAIL` | noreply@collectioncalc.com |
+| `JWT_SECRET` | Auth token signing |
+| `FRONTEND_URL` | https://collectioncalc.com |
 
 ## Related Documents
 - [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 21, 2026 (Session 3 - GDPR complete!)*
+*Last updated: January 21, 2026 (Session 6 - User auth, collections, cache key bug fix, GoCollect roadmap)*
 
