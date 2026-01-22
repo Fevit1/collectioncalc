@@ -1363,7 +1363,7 @@
                     <div class="user-menu">
                         <button class="user-menu-btn" onclick="toggleUserMenu()">
                             <div class="user-avatar" id="userAvatar">?</div>
-                            <span id="userEmail">user@email.com</span>
+                            <span id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="96e3e5f3e4d6f3fbf7fffab8f5f9fb">[email&#160;protected]</a></span>
                             <span>▾</span>
                         </button>
                         <div class="user-menu-dropdown" id="userMenuDropdown">
@@ -1638,7 +1638,7 @@
         </div>
     </div>
     
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         const API_URL = 'https://collectioncalc.onrender.com';
         let currentMode = 'manual';
         let extractedItems = [];
@@ -2651,7 +2651,12 @@
 
 IDENTIFICATION FIELDS:
 - title: Comic book title (usually the largest text on the cover). Include the main series name only, NOT "Annual" or "Special" - those go in issue_type.
-- issue: Issue number - IMPORTANT: Look for a "#" symbol followed by a number, typically in the TOP-LEFT area near the price. IGNORE prices like "60¢", "$1.00", "25p" - these are NOT issue numbers. The issue number usually appears as "#242" or "No. 242". Just return the number, no # symbol.
+- issue: Issue number - IMPORTANT: Search MULTIPLE LOCATIONS for the issue number:
+  * Top-left corner (most common for Marvel)
+  * Top-right corner (common for DC comics)
+  * Near the barcode/UPC area (bottom-left or bottom-right)
+  * Small text near the title
+  Look for "#" followed by a number, or "No." followed by a number. IGNORE prices like "60¢", "$1.00", "25p" - these are NOT issue numbers. Just return the number, no # symbol.
 - issue_type: CRITICAL - Look carefully for these indicators on the cover:
   * "Annual" or "ANNUAL" → return "Annual"
   * "King-Size Special" or "KING-SIZE SPECIAL" → return "Annual" (these are annuals)
@@ -2685,8 +2690,25 @@ IMPORTANT - DISTINGUISH BETWEEN:
 
 - suggested_grade: Based on visible condition, suggest one of: MT, NM, VF, FN, VG, G, FR, PR. Be conservative - grade what you can see.
 - defects: Array of visible defects found ON THE COMIC (not on bag). Examples: "Tear on front cover", "Spine roll", "Color-breaking crease", "Corner wear", "Staining". Return empty array [] if no defects visible.
-- signatures: Array of any signatures visible. For each, note if it appears to be a creator signature or unknown. Example: "Creator signature (Jim Lee)" or "Unknown signature" or "Name written in marker (defect)". Return empty array [] if no signatures.
 - grade_reasoning: Brief explanation of grade choice, e.g., "VF - Minor spine stress visible, corners sharp" or "VG - Visible tear on cover, moderate wear"
+
+SIGNATURE ANALYSIS FIELDS:
+- signature_detected: boolean - Is there a signature/autograph visible on the cover? (not random writing or defects)
+- signature_analysis: If signature_detected is true, provide this object (otherwise null):
+  {
+    "creators": Array of ALL creators visible on the cover. For each: {"name": "Full Name", "role": "Artist/Writer/Inker/Colorist/etc"}
+    "confidence_scores": For each creator, estimate likelihood (0-100) they are the signer. Array of: {"name": "Full Name", "confidence": 55, "reasoning": "brief reason"}
+    "most_likely_signer": {"name": "Name", "confidence": 55}
+    "signature_characteristics": Describe what you observe: ink color, position on cover, style (neat/messy), any legible letters
+    "authentication_note": "For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature Program"
+  }
+  
+  When assigning confidence scores, consider:
+  - Artists sign MORE frequently than writers (they attend more conventions)
+  - Cover artists sign most often (it's their cover art)
+  - Signature position (artists often sign near their artwork)
+  - Any legible letters that might match creator names
+  - Interior artists/inkers sign less frequently than cover artists
 
 GRADE GUIDE (be conservative):
 - MT (10.0): Perfect, virtually flawless
@@ -2704,7 +2726,8 @@ CRITICAL RULES:
 3. If you see "KING-SIZE SPECIAL" anywhere, the issue_type MUST be "Annual".
 4. For condition: You can ONLY see the front cover. Note this limitation.
 5. Ignore bag/sleeve artifacts. Assess the comic itself.
-6. Creator signatures are valuable, not defects.
+6. Creator signatures are valuable, not defects. If you see a signature, set signature_detected to true and provide full signature_analysis.
+7. For issue numbers: Check ALL corners and near the barcode - different publishers put them in different places.
 
 Be accurate. If unsure about any field, use reasonable estimates.`;
             
@@ -2735,18 +2758,12 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 if (extracted.suggested_grade && !extracted.grade) {
                     extracted.grade = extracted.suggested_grade;
                 }
-                // Auto-populate signed fields if AI detected a creator signature
-                if (extracted.signatures && extracted.signatures.length > 0) {
-                    const creatorSig = extracted.signatures.find(s => 
-                        s.toLowerCase().includes('creator') && !s.toLowerCase().includes('defect')
-                    );
-                    if (creatorSig) {
-                        extracted.is_signed = true;
-                        // Try to extract the name from the signature string
-                        const nameMatch = creatorSig.match(/\(([^)]+)\)/);
-                        if (nameMatch) {
-                            extracted.signer = nameMatch[1];
-                        }
+                // Auto-populate signed fields if AI detected a signature
+                if (extracted.signature_detected && extracted.signature_analysis) {
+                    extracted.is_signed = true;
+                    // Use the most likely signer
+                    if (extracted.signature_analysis.most_likely_signer) {
+                        extracted.signer = extracted.signature_analysis.most_likely_signer.name;
                     }
                 }
                 return extracted;
@@ -2837,7 +2854,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                             <input type="text" value="${item.signer || ''}" placeholder="e.g., Stan Lee, Scott Snyder" onchange="updateItem(${idx}, 'signer', this.value)">
                         </div>
                     </div>
-                    ${(item.defects && item.defects.length > 0) || (item.signatures && item.signatures.length > 0) || item.grade_reasoning ? `
+                    ${(item.defects && item.defects.length > 0) || item.grade_reasoning ? `
                     <div class="condition-assessment" style="margin-top: 12px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
                         <div style="font-weight: 600; font-size: 12px; color: var(--brand-indigo); margin-bottom: 6px;">📋 Condition Assessment</div>
                         ${item.grade_reasoning ? `<div style="font-size: 13px; margin-bottom: 6px;">${item.grade_reasoning}</div>` : ''}
@@ -2845,10 +2862,32 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <div style="font-size: 12px; margin-bottom: 4px;">
                             <span style="color: var(--status-error);">⚠️ Defects:</span> ${item.defects.join(', ')}
                         </div>` : ''}
-                        ${item.signatures && item.signatures.length > 0 ? `
-                        <div style="font-size: 12px;">
-                            <span style="color: var(--status-success);">✍️ Signatures:</span> ${item.signatures.join(', ')}
+                    </div>
+                    ` : ''}
+                    ${item.signature_detected && item.signature_analysis ? `
+                    <div class="signature-analysis" style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">
+                        <div style="font-weight: 600; font-size: 12px; color: var(--status-success); margin-bottom: 8px;">🖊️ Signature Analysis</div>
+                        ${item.signature_analysis.most_likely_signer ? `
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                            Most likely: ${item.signature_analysis.most_likely_signer.name} (${item.signature_analysis.most_likely_signer.confidence}% confidence)
                         </div>` : ''}
+                        ${item.signature_analysis.confidence_scores && item.signature_analysis.confidence_scores.length > 0 ? `
+                        <div style="font-size: 12px; margin-bottom: 8px;">
+                            <div style="color: var(--text-secondary); margin-bottom: 4px;">All creators on cover:</div>
+                            ${item.signature_analysis.confidence_scores.map(c => `
+                                <div style="display: flex; justify-content: space-between; padding: 2px 0;">
+                                    <span>${c.name}</span>
+                                    <span style="color: ${c.confidence >= 50 ? 'var(--status-success)' : c.confidence >= 25 ? 'var(--status-warning)' : 'var(--text-muted)'}; font-weight: 500;">${c.confidence}%</span>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+                        ${item.signature_analysis.signature_characteristics ? `
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                            <em>${item.signature_analysis.signature_characteristics}</em>
+                        </div>` : ''}
+                        <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">
+                            ⚠️ For definitive authentication, submit to CGC or CBCS
+                        </div>
                     </div>
                     ` : ''}
                         </div>
@@ -3038,7 +3077,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     <div class="item-header">
                         <span class="item-number">${idx + 1}</span>
                         <span class="item-title">${item.title} #${item.issue}${item.printing && item.printing !== '1st' ? ` (${item.printing} Print)` : ''}${item.cover ? ` Cover ${item.cover}` : ''}</span>
-                        ${(item.sales_data && item.sales_data.length > 0) || item.defects || item.signatures || item.grade_reasoning ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View details">📊</button>` : ''}
+                        ${(item.sales_data && item.sales_data.length > 0) || item.defects || item.signature_detected || item.grade_reasoning ? `<button class="item-details-btn" onclick="toggleDetails(${idx})" title="View details">📊</button>` : ''}
                     </div>
                     <div class="result-content" style="display: flex; gap: 15px; align-items: flex-start;">
                         ${item.image ? `<img src="${item.image}" alt="Comic cover" style="width: 80px; height: auto; border-radius: 4px; object-fit: cover; flex-shrink: 0;">` : ''}
@@ -3061,7 +3100,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     <button class="list-btn" onclick="listItemOnEbay(${idx})" ${ebayConnected ? '' : 'disabled'}>
                         ${ebayConnected ? '🛒 List on eBay' : '🔗 Connect eBay to List'}
                     </button>
-                    ${(item.sales_data && item.sales_data.length > 0) || item.defects || item.signatures || item.grade_reasoning ? `
+                    ${(item.sales_data && item.sales_data.length > 0) || item.defects || item.signature_detected || item.grade_reasoning ? `
                     <div class="sales-details" id="details-${idx}">
                         ${item.sales_data && item.sales_data.length > 0 ? `
                         <h5>📊 Sales Data Used for Valuation</h5>
@@ -3079,7 +3118,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                             </div>
                         `).join('')}
                         ` : ''}
-                        ${(item.defects && item.defects.length > 0) || (item.signatures && item.signatures.length > 0) || item.grade_reasoning ? `
+                        ${(item.defects && item.defects.length > 0) || item.grade_reasoning ? `
                         <div style="${item.sales_data && item.sales_data.length > 0 ? 'margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);' : ''}">
                             <h5 style="margin-bottom: 8px;">📋 Condition Assessment</h5>
                             ${item.grade_reasoning ? `<div style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">${item.grade_reasoning}</div>` : ''}
@@ -3087,10 +3126,32 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                             <div style="font-size: 12px; margin-bottom: 4px;">
                                 <span style="color: var(--status-error);">⚠️ Defects:</span> ${item.defects.join(', ')}
                             </div>` : ''}
-                            ${item.signatures && item.signatures.length > 0 ? `
-                            <div style="font-size: 12px;">
-                                <span style="color: var(--status-success);">✍️ Signatures:</span> ${item.signatures.join(', ')}
+                        </div>
+                        ` : ''}
+                        ${item.signature_detected && item.signature_analysis ? `
+                        <div style="${(item.sales_data && item.sales_data.length > 0) || item.defects || item.grade_reasoning ? 'margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);' : ''}">
+                            <h5 style="margin-bottom: 8px; color: var(--status-success);">🖊️ Signature Analysis</h5>
+                            ${item.signature_analysis.most_likely_signer ? `
+                            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                                Most likely: ${item.signature_analysis.most_likely_signer.name} (${item.signature_analysis.most_likely_signer.confidence}% confidence)
                             </div>` : ''}
+                            ${item.signature_analysis.confidence_scores && item.signature_analysis.confidence_scores.length > 0 ? `
+                            <div style="font-size: 12px; margin-bottom: 8px;">
+                                <div style="color: var(--text-secondary); margin-bottom: 4px;">All creators on cover:</div>
+                                ${item.signature_analysis.confidence_scores.map(c => `
+                                    <div style="display: flex; justify-content: space-between; padding: 2px 0; max-width: 250px;">
+                                        <span>${c.name}</span>
+                                        <span style="color: ${c.confidence >= 50 ? 'var(--status-success)' : c.confidence >= 25 ? 'var(--status-warning)' : 'var(--text-muted)'}; font-weight: 500;">${c.confidence}%</span>
+                                    </div>
+                                `).join('')}
+                            </div>` : ''}
+                            ${item.signature_analysis.signature_characteristics ? `
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                                <em>${item.signature_analysis.signature_characteristics}</em>
+                            </div>` : ''}
+                            <div style="font-size: 10px; color: var(--text-muted);">
+                                ⚠️ For definitive authentication, submit to CGC or CBCS
+                            </div>
                         </div>
                         ` : ''}
                     </div>
@@ -3462,13 +3523,4 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             } catch (error) {
                 document.getElementById('resultCard').classList.add('error');
                 document.getElementById('resultContent').innerHTML = `<p class="result-label">Error</p><div class="price">${error.message}</div>`;
-                document.getElementById('result').classList.add('show');
-            }
-            
-            hideThinking();
-            btn.disabled = false;
-            btn.textContent = 'Get Valuation';
-        });
-    </script>
-</body>
-</html>
+                document.g
