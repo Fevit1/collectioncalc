@@ -68,8 +68,9 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
-- `index.html` - Frontend (single page app)
-- `wsgi.py` - Flask routes (v3.4)
+- `auth.py` - User authentication (signup, login, JWT, password reset)
+- `index.html` - Frontend (single page app, ~3500 lines)
+- `wsgi.py` - Flask routes (v3.7)
 - `requirements.txt` - Python dependencies
 
 ## QuickList - The Full Pipeline
@@ -85,39 +86,44 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 ## Current State (January 21, 2026)
 
 ### Completed This Session 🎉
-**Session 5 - Visual Condition Assessment & Valuation Improvements**
+**Session 6 - User Auth, Collections, Valuation Bug Fix**
 
-1. **CGC/Slab exclusion from raw valuations** - `ebay_valuation.py`
-   - Search query now includes `-CGC -CBCS -slab -graded` exclusion terms
-   - Strengthened AI prompt to always reject slabbed comic prices
-   - Raw comics get valued against raw sales only (huge accuracy improvement)
+1. **User Authentication System** - `auth.py` + `wsgi.py` + `index.html`
+   - Email/password signup with email verification
+   - Login with JWT tokens (30-day expiry)
+   - Forgot password / reset password flow
+   - Resend email service integration (collectioncalc.com domain verified)
+   - Database tables: `users`, `collections`, `password_resets`
+   - Migration script: `db_migrate_auth.py`
 
-2. **Visual condition assessment** - `comic_extraction.py` + `index.html`
-   - AI now examines photo for physical defects during extraction
-   - New fields: `suggested_grade`, `defects`, `signatures`, `grade_reasoning`
-   - Grade dropdown expanded: MT, NM, VF, FN, VG, G, FR, PR
-   - `suggested_grade` auto-populates the grade field
+2. **Collections Feature**
+   - Users can save valued comics to their collection
+   - "Save to Collection" button in results view
+   - "My Collection" button in header (when logged in)
+   - Collection stored in PostgreSQL with user_id foreign key
 
-3. **Defect detection** - Tested with damaged Star Wars #4
-   - Detects: corner wear, edge wear, spine stress, surface wear, tears, creases
-   - Ignores bag/sleeve artifacts (stickers on bag, reflections, glare)
-   - Result: VG grade with defects listed ✅
+3. **Auth UI** - `index.html`
+   - Login/Signup buttons in header (when logged out)
+   - User menu with avatar and dropdown (when logged in)
+   - Modal-based auth forms (login, signup, forgot password, reset)
+   - Email verification redirect handling
 
-4. **Signature detection** - Tested with Stan Lee signed Spider-Man
-   - Distinguishes creator signatures (valuable) from random writing (defect)
-   - Identified "Stan Lee" specifically as creator signature ✅
-   - Noted signature adds value, doesn't detract from condition
+4. **🐛 CRITICAL BUG FIX: Grade in Cache Key** - `ebay_valuation.py`
+   - **Problem:** Cache key was `"{title}|{issue}"` - NO GRADE!
+   - VG lookup → cache result → G lookup → same cached result (WRONG!)
+   - **Fix:** Cache key now `"{title}|{issue}|{grade}"`
+   - Each grade gets its own cached valuation
 
-5. **Condition Assessment UI** - Shows in two places:
-   - Extraction view: Purple box with defects/signatures/reasoning
-   - Results view: Inside 📊 details panel
+5. **Roadmap Updates**
+   - Added Phase 5.5: Price Database Integration (GoCollect ~$200/mo)
+   - Added Phase 2.88: User Auth & Collections
+   - Competitive analysis: Ludex is main competitor, moving into multiple verticals
 
-### Previous Session (Session 4)
-- GDPR account deletion endpoint
-- Smart image compression (fixed mobile)
-- Image thumbnails everywhere
-- Mobile testing complete
-- Cloudflare `purge` command
+### Previous Session (Session 5)
+- CGC/Slab exclusion from raw valuations
+- Visual condition assessment (defect detection)
+- Signature detection (Stan Lee ✅)
+- Condition Assessment UI
 
 ### Known Issues / TODOs
 - [ ] More progress steps during valuation (users think it's frozen)
@@ -140,6 +146,15 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 | `/api/ebay/auth` | Start eBay OAuth flow |
 | `/api/ebay/callback` | eBay OAuth callback |
 | `/api/ebay/status` | Check eBay connection status |
+| `/api/auth/signup` | Create new user account |
+| `/api/auth/login` | Authenticate, return JWT |
+| `/api/auth/verify/<token>` | Verify email address |
+| `/api/auth/forgot-password` | Send password reset email |
+| `/api/auth/reset-password` | Reset password with token |
+| `/api/auth/me` | Get current user (requires JWT) |
+| `/api/collection` | Get user's saved comics |
+| `/api/collection/save` | Save comics to collection |
+| `/api/collection/<id>` | Update/delete collection item |
 
 ### eBay Integration Technical Details
 - **Category ID:** 259104 (Comics & Graphic Novels - leaf category)
@@ -200,20 +215,41 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute
 - **Travel agent AI:** Mike's idea for future product (autonomous booking with user approval)
 - **Parallel valuations:** Could speed up batch processing further
+- **GoCollect integration:** ~$200/mo for price database, enables faster valuations + trends
+
+## Competitive Analysis
+- **Ludex** - Main competitor, started with baseball cards, expanding to other verticals
+- **Strategy:** Beat them by moving faster on multi-vertical expansion
+- **Differentiator:** Photo → Extract → Value → List pipeline (end-to-end)
+- **Mike's background:** Hotel revenue management / dynamic pricing (same problem domain)
 
 ## Friends Beta Checklist
 - [ ] Analytics (know who's using it)
 - [x] Mobile works ✅
-- [ ] Cloudflare Access (auth)
-- [ ] Custom domain live
+- [x] User auth (email/password) ✅ - Replaced Cloudflare Access plan
+- [x] Custom domain live ✅ - collectioncalc.com
 - [ ] Feedback mechanism (Report Issue link?)
 - [ ] Landing copy explains what it does
 - [ ] Error states handled gracefully
 - [ ] Anthropic billing alerts set
+- [x] Collections (save comics) ✅
+
+## Environment Variables (Render)
+| Key | Purpose |
+|-----|---------|
+| `DATABASE_URL` | PostgreSQL connection |
+| `ANTHROPIC_API_KEY` | AI valuations/extraction |
+| `EBAY_CLIENT_ID` | eBay API |
+| `EBAY_CLIENT_SECRET` | eBay API |
+| `EBAY_RUNAME` | eBay OAuth redirect |
+| `RESEND_API_KEY` | Email service |
+| `RESEND_FROM_EMAIL` | noreply@collectioncalc.com |
+| `JWT_SECRET` | Auth token signing |
+| `FRONTEND_URL` | https://collectioncalc.com |
 
 ## Related Documents
 - [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 21, 2026 (Session 5 - Visual condition assessment, defect detection, signature detection, CGC exclusion)*
+*Last updated: January 21, 2026 (Session 6 - User auth, collections, cache key bug fix, GoCollect roadmap)*

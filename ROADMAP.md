@@ -155,6 +155,25 @@ Further improve AI's ability to read comic covers.
 - [ ] Barcode area for newsstand detection
 - [ ] Common OCR confusions (#1 vs #7, etc.)
 
+### Phase 2.88: User Auth & Collections ✅ (January 21, 2026)
+**Users can create accounts and save their comics.**
+
+- [x] Email/password authentication (signup, login, logout)
+- [x] Email verification via Resend (collectioncalc.com domain)
+- [x] Forgot password / password reset flow
+- [x] JWT tokens (30-day expiry)
+- [x] Database tables: users, collections, password_resets
+- [x] Save comics to collection
+- [x] View collection (basic)
+- [x] Auth UI in header (login/signup buttons, user menu)
+- [x] "Save to Collection" button in results view
+
+**Technical details:**
+- Auth backend: `auth.py` with bcrypt password hashing
+- Email service: Resend (3k emails/mo free)
+- Frontend: Modal-based login/signup forms
+- Storage: PostgreSQL (same DB as valuations)
+
 ### Phase 2.9: Cache Refresh Strategy
 Keep valuations fresh without breaking the bank.
 
@@ -229,6 +248,32 @@ Use community data to improve base model.
 - [ ] Generate proposed model changes
 - [ ] Admin approval workflow
 - [ ] Version history for model changes
+
+### Phase 5.5: Price Database Integration
+License professional price data for faster, more accurate valuations.
+
+**Business Case:**
+- Cost: ~$200/mo for API access
+- Break-even: ~20 paying users at $10/mo
+- Competitive necessity: Ludex and competitors use similar data
+
+**Candidates to evaluate:**
+| Provider | Data | Pros | Cons |
+|----------|------|------|------|
+| GoCollect | 500k+ comics, CGC census, trends | Most comprehensive | Higher cost |
+| GPA (GPAnalysis) | CGC sales focus | Accurate for slabs | Less raw data |
+| PriceCharting | Comics + games + cards | Multi-vertical | Less depth |
+
+**Implementation:**
+- [ ] Evaluate GoCollect vs GPA vs PriceCharting APIs
+- [ ] License price database (~$200/mo when revenue supports)
+- [ ] Build import pipeline (weekly sync)
+- [ ] Use DB as primary source, fall back to real-time search for misses
+- [ ] Add price history charts to UI
+- [ ] Add "trending up/down" indicators
+- [ ] CGC census integration (population reports - how rare is a 9.8?)
+
+**Mike's Note:** Background in hotel revenue management / dynamic pricing applies here. Same problem domain - predicting optimal price based on features. Comics features: title, issue, grade, key status, market heat.
 
 ### Phase 6: Price Prediction & Trends
 Forecast future values based on market momentum.
@@ -338,6 +383,8 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 21, 2026 | 2.88.0 | 🔐 **User auth & collections!** Email/password signup, JWT tokens, save comics, Resend email integration |
+| Jan 21, 2026 | 2.86.3 | 🐛 **Cache key fix!** Grade now included in cache key - different grades get different valuations |
 | Jan 21, 2026 | 2.86.2 | 📋 **Visual condition assessment!** Defect detection, signature detection (Stan Lee ✅), signed copy checkbox, signed comics valued separately |
 | Jan 21, 2026 | 2.86.1 | GDPR endpoint, smart image compression, thumbnails (extraction/results/preview), mobile fixes, `purge` command |
 | Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1 (issue# vs price), header sync fix |
@@ -360,4 +407,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 21, 2026 (Session 5 - Condition assessment, signed comics)*
+*Last updated: January 21, 2026 (Session 6 - User auth, collections, cache key fix, GoCollect roadmap)*
