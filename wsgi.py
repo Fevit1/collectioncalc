@@ -70,6 +70,8 @@ def valuate():
         data = request.get_json()
         force_refresh = data.get('force_refresh', False)
         issue_type = data.get('issue_type')  # "Regular", "Annual", "Giant-Size", etc.
+        is_signed = data.get('is_signed', False)  # Whether comic is signed
+        signer = data.get('signer', '')  # Name of signer (e.g., "Stan Lee")
         
         # Try database lookup first
         db_result = lookup_comic(
@@ -87,7 +89,9 @@ def valuate():
             year=data.get('year'),
             db_result=db_result,
             force_refresh=force_refresh,
-            issue_type=issue_type
+            issue_type=issue_type,
+            is_signed=is_signed,
+            signer=signer
         )
         
         return jsonify(result)
@@ -652,10 +656,26 @@ def batch_process():
                 # Step 2: Get valuation
                 title = extracted.get('title', '')
                 issue = extracted.get('issue', '')
-                grade = extracted.get('grade', 'VF')
+                grade = extracted.get('suggested_grade') or extracted.get('grade', 'VF')
                 publisher = extracted.get('publisher')
                 year = extracted.get('year')
                 issue_type = extracted.get('issue_type')  # "Regular", "Annual", "Giant-Size", etc.
+                
+                # Check for signatures - auto-detect signed comics
+                is_signed = extracted.get('is_signed', False)
+                signer = extracted.get('signer', '')
+                signatures = extracted.get('signatures', [])
+                if signatures and not is_signed:
+                    # Check if AI detected a creator signature
+                    for sig in signatures:
+                        if 'creator' in sig.lower() and 'defect' not in sig.lower():
+                            is_signed = True
+                            # Try to extract name from parentheses
+                            import re
+                            name_match = re.search(r'\(([^)]+)\)', sig)
+                            if name_match:
+                                signer = name_match.group(1)
+                            break
                 
                 if title and issue:
                     valuation = get_valuation_with_ebay(
@@ -664,7 +684,9 @@ def batch_process():
                         grade=grade,
                         publisher=publisher,
                         year=year,
-                        issue_type=issue_type
+                        issue_type=issue_type,
+                        is_signed=is_signed,
+                        signer=signer
                     )
                     comic_result['valuation'] = valuation
                 else:

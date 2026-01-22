@@ -338,6 +338,7 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 21, 2026 | 2.86.2 | 📋 **Visual condition assessment!** Defect detection, signature detection (Stan Lee ✅), signed copy checkbox, signed comics valued separately |
 | Jan 21, 2026 | 2.86.1 | GDPR endpoint, smart image compression, thumbnails (extraction/results/preview), mobile fixes, `purge` command |
 | Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1 (issue# vs price), header sync fix |
 | Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction, batch endpoints, UI overhaul |
@@ -359,4 +360,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 21, 2026 (Session 4)*
+*Last updated: January 21, 2026 (Session 5 - Condition assessment, signed comics)*

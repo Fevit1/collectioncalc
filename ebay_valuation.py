@@ -587,7 +587,7 @@ def calculate_tier_confidence(
     
     return (quick_sale_conf, fair_value_conf, high_end_conf)
 
-def _single_search(client, title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None) -> tuple:
+def _single_search(client, title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, is_signed: bool = False, signer: str = None) -> tuple:
     """
     Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
     """
@@ -601,19 +601,44 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         # Add issue_type to the title for searching (e.g., "Amazing Spider-Man Annual")
         full_title = f"{title} {issue_type}"
     
-    # Build search query - don't include grade (most listings don't specify)
-    # Add "raw" and exclude CGC/CBCS/slab terms to focus on ungraded copies
-    search_query = f"{full_title} #{issue} comic raw ungraded"
-    if publisher:
-        search_query += f" {publisher}"
-    search_query += " -CGC -CBCS -slab -graded price sold value"
+    # Build search query based on whether it's signed or not
+    if is_signed:
+        # For signed comics, search for signed/autographed copies
+        search_query = f"{full_title} #{issue} comic signed autograph"
+        if signer:
+            search_query += f" {signer}"
+        if publisher:
+            search_query += f" {publisher}"
+        search_query += " price sold value"
+        signed_note = f"\n\nIMPORTANT: This is a SIGNED/AUTOGRAPHED copy{f' signed by {signer}' if signer else ''}. Search for signed copies, not raw unsigned copies. Signed comics are worth significantly more than unsigned."
+    else:
+        # For unsigned comics, exclude CGC/slabs
+        search_query = f"{full_title} #{issue} comic raw ungraded"
+        if publisher:
+            search_query += f" {publisher}"
+        search_query += " -CGC -CBCS -slab -graded price sold value"
+        signed_note = ""
     
     # Note in prompt if this is an Annual/Special
     issue_type_note = ""
     if issue_type and issue_type.lower() not in ['regular', '']:
         issue_type_note = f"\n\nIMPORTANT: This is a {issue_type} issue, NOT a regular series issue. Search specifically for \"{full_title} #{issue}\" - do NOT confuse with the regular series."
     
-    prompt = f"""Find the market value for: {full_title} #{issue} in {grade} condition{issue_type_note}
+    # Build conditional rules based on whether comic is signed
+    if is_signed:
+        slab_rule = "- CGC/CBCS slabbed copies are OK if they are signed - we want to see signed copy prices"
+        signed_rule = "- ONLY include signed/autographed copies - REJECT unsigned copies"
+        value_note = f"""- We want SIGNED copies{f' (signed by {signer})' if signer else ''}
+- Signed comics typically sell for 2-10x more than unsigned
+- If you can't find signed copies, note this and return empty array"""
+    else:
+        slab_rule = "- **CGC/CBCS SLABS: ALWAYS REJECT** - We are valuing RAW (ungraded) comics ONLY. Slabbed/graded copies sell for 2-10x more and MUST NOT be included. Look for keywords: CGC, CBCS, \"graded\", \"slab\", \"9.8\", \"9.6\" with a grade label. If a price seems unusually high ($200+ for a common comic), verify it's not a slab."
+        signed_rule = "- REJECT signed copies, variant covers, or special editions unless specifically requested"
+        value_note = """- We want RAW/UNGRADED comics ONLY - never include CGC/CBCS slab prices
+- For RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
+- If you accidentally find only CGC prices, return an empty sales array - do NOT estimate from slab prices"""
+    
+    prompt = f"""Find the market value for: {full_title} #{issue} in {grade} condition{signed_note}{issue_type_note}
 
 STEP 1 - CORRECT SPELLING: Fix any errors (e.g., "Captian America" → "Captain America", "Spiderman" → "Spider-Man")
 
@@ -628,8 +653,8 @@ CRITICAL MATCHING RULES - REJECT prices that don't match EXACTLY:
 - "Annual", "Giant-Size", "Special", "King-Size Special" are DIFFERENT series - don't mix them with regular issues
 - Issue number must match EXACTLY
 - REJECT lot sales (multiple comics sold together)
-- **CGC/CBCS SLABS: ALWAYS REJECT** - We are valuing RAW (ungraded) comics ONLY. Slabbed/graded copies sell for 2-10x more and MUST NOT be included. Look for keywords: CGC, CBCS, "graded", "slab", "9.8", "9.6" with a grade label. If a price seems unusually high ($200+ for a common comic), verify it's not a slab.
-- REJECT signed copies, variant covers, or special editions unless specifically requested
+{slab_rule}
+{signed_rule}
 
 GRADE ESTIMATION - For each sale/listing, estimate the condition:
 - If listing says "NM", "Near Mint", "9.4" → grade: "NM"
@@ -656,9 +681,7 @@ Return JSON:
 IMPORTANT:
 - "sales" = SOLD/COMPLETED listings only (actual transactions)
 - "buy_it_now" = CURRENT active listings (asking prices)
-- We want RAW/UNGRADED comics ONLY - never include CGC/CBCS slab prices
-- For RAW comics, typical values are $2-100 for most issues, $100-500 for key issues
-- If you accidentally find only CGC prices, return an empty sales array - do NOT estimate from slab prices
+{value_note}
 - Maximum 10 items per array, USD only
 - Use standard grade abbreviations: MT, NM, VF, FN, VG, G, FR, PR (or "raw" if unknown)"""
 
@@ -695,7 +718,7 @@ IMPORTANT:
     return ([], [], None)
 
 
-def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, num_samples: int = 3, force_refresh: bool = False) -> EbayValuationResult:
+def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, num_samples: int = 3, force_refresh: bool = False, is_signed: bool = False, signer: str = None) -> EbayValuationResult:
     """
     Search for market prices using Claude AI with web search.
     Runs multiple samples and takes median for accuracy.
@@ -709,14 +732,20 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
         issue_type: "Regular", "Annual", "Giant-Size", "Special", etc.
         num_samples: Number of search samples to run
         force_refresh: Bypass cache
+        is_signed: Whether comic is signed/autographed
+        signer: Name of signer (e.g., "Stan Lee")
     """
     # Expand aliases (ASM → Amazing Spider-Man)
     title = expand_title_alias(title)
     
-    # Build cache key that includes issue_type for Annuals, etc.
+    # Build cache key that includes issue_type for Annuals, etc. and signed status
     cache_title = title
     if issue_type and issue_type.lower() not in ['regular', '']:
         cache_title = f"{title} {issue_type}"
+    if is_signed:
+        cache_title = f"{cache_title} SIGNED"
+        if signer:
+            cache_title = f"{cache_title} {signer}"
     
     # Check cache first (unless force_refresh)
     if not force_refresh:
@@ -749,7 +778,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     corrected_title = None
     
     for i in range(num_samples):
-        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher, issue_type)
+        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher, issue_type, is_signed, signer)
         all_sales.extend(sales)
         all_bin_listings.extend(bin_listings)
         if title_fix and not corrected_title:
@@ -1018,7 +1047,8 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
 def get_valuation_with_ebay(title: str, issue: str, grade: str, 
                             publisher: str = None, year: int = None,
                             db_result: dict = None, force_refresh: bool = False,
-                            issue_type: str = None) -> dict:
+                            issue_type: str = None, is_signed: bool = False,
+                            signer: str = None) -> dict:
     """
     Main valuation function that combines database and eBay data.
     Set force_refresh=True to bypass cache and get fresh eBay data.
@@ -1032,6 +1062,8 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
         db_result: Optional database lookup result
         force_refresh: Bypass cache
         issue_type: "Regular", "Annual", "Giant-Size", "Special", etc.
+        is_signed: Whether comic is signed/autographed
+        signer: Name of signer (e.g., "Stan Lee")
     """
     from valuation_model import ValuationModel
     
@@ -1047,7 +1079,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
         source = 'database'
         
         # Still search eBay to validate/adjust
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer)
         
         if ebay_result.num_sales > 0:
             # Blend database and eBay (favor eBay if high confidence)
@@ -1097,7 +1129,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
     
     else:
         # Not in database - rely on eBay
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer)
         
         if ebay_result.num_sales > 0:
             return {

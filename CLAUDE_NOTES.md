@@ -85,33 +85,46 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 ## Current State (January 21, 2026)
 
 ### Completed This Session 🎉
-**Session 4 - Mobile fixes, image improvements, GDPR**
+**Session 5 - Visual Condition Assessment & Valuation Improvements**
 
-1. **GDPR account deletion endpoint** - Complete!
-   - Endpoint `/api/ebay/account-deletion` (GET for challenge, POST for deletion)
-   - Registered in eBay Developer Portal (token must be 32+ chars!)
-   - eBay sends periodic health check notifications - this is normal
+1. **CGC/Slab exclusion from raw valuations** - `ebay_valuation.py`
+   - Search query now includes `-CGC -CBCS -slab -graded` exclusion terms
+   - Strengthened AI prompt to always reject slabbed comic prices
+   - Raw comics get valued against raw sales only (huge accuracy improvement)
 
-2. **Smart image compression** - Fixed mobile "failed to fetch"!
-   - Root cause: Pixel camera photos 5-6MB exceed Anthropic's 5MB limit
-   - Solution: Client-side compression using Canvas API
-   - Threshold: Files > 3.5MB get compressed
+2. **Visual condition assessment** - `comic_extraction.py` + `index.html`
+   - AI now examines photo for physical defects during extraction
+   - New fields: `suggested_grade`, `defects`, `signatures`, `grade_reasoning`
+   - Grade dropdown expanded: MT, NM, VF, FN, VG, G, FR, PR
+   - `suggested_grade` auto-populates the grade field
 
-3. **Image thumbnails everywhere** - Now visible in:
-   - Extraction/editing view ✅
-   - Results view (after valuation) ✅
-   - Listing preview modal ✅
+3. **Defect detection** - Tested with damaged Star Wars #4
+   - Detects: corner wear, edge wear, spine stress, surface wear, tears, creases
+   - Ignores bag/sleeve artifacts (stickers on bag, reflections, glare)
+   - Result: VG grade with defects listed ✅
 
-4. **Mobile testing** - All working!
-   - Extraction ✅, Valuation ✅, List on eBay buttons ✅
+4. **Signature detection** - Tested with Stan Lee signed Spider-Man
+   - Distinguishes creator signatures (valuable) from random writing (defect)
+   - Identified "Stan Lee" specifically as creator signature ✅
+   - Noted signature adds value, doesn't detract from condition
 
-5. **Cloudflare `purge` command** - New PowerShell alias for cache purging
+5. **Condition Assessment UI** - Shows in two places:
+   - Extraction view: Purple box with defects/signatures/reasoning
+   - Results view: Inside 📊 details panel
+
+### Previous Session (Session 4)
+- GDPR account deletion endpoint
+- Smart image compression (fixed mobile)
+- Image thumbnails everywhere
+- Mobile testing complete
+- Cloudflare `purge` command
 
 ### Known Issues / TODOs
 - [ ] More progress steps during valuation (users think it's frozen)
 - [ ] Custom price entry (not just the three tiers)
 - [ ] Issue number extraction: DC comics put issue# top-RIGHT (not top-left)
 - [ ] Multi-comic photo detection and splitting (core feature for Phase 2)
+- [ ] Future: "I have a CGC slab" checkbox to search FOR slabs instead of excluding them
 
 ### API Endpoints (Current)
 | Endpoint | Purpose |
@@ -203,4 +216,4 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
 
 ---
-*Last updated: January 21, 2026 (Session 4 - Mobile, compression, thumbnails, GDPR, purge command)*
+*Last updated: January 21, 2026 (Session 5 - Visual condition assessment, defect detection, signature detection, CGC exclusion)*
