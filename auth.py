@@ -111,10 +111,11 @@ def verify_jwt(token):
 def send_verification_email(email, token):
     """Send email verification link."""
     if not RESEND_API_KEY:
-        print(f"[DEV MODE] Verification email for {email}: {FRONTEND_URL}/verify?token={token}")
+        print(f"[DEV MODE] Verification email for {email}: {FRONTEND_URL}?token={token}")
         return True
     
-    verify_url = f"{FRONTEND_URL}/verify?token={token}"
+    # Use query param instead of path for Cloudflare Pages SPA
+    verify_url = f"{FRONTEND_URL}?token={token}"
     
     try:
         resend.Emails.send({
@@ -154,10 +155,11 @@ def send_verification_email(email, token):
 def send_password_reset_email(email, token):
     """Send password reset link."""
     if not RESEND_API_KEY:
-        print(f"[DEV MODE] Password reset for {email}: {FRONTEND_URL}/reset-password?token={token}")
+        print(f"[DEV MODE] Password reset for {email}: {FRONTEND_URL}?action=reset-password&token={token}")
         return True
     
-    reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
+    # Use query params instead of path for Cloudflare Pages SPA
+    reset_url = f"{FRONTEND_URL}?action=reset-password&token={token}"
     
     try:
         resend.Emails.send({
