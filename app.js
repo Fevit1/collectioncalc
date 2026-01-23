@@ -1208,7 +1208,13 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
+                    // STANDARD TIER: Sonnet - good for most extraction, ~$0.01/comic
+                    // model: 'claude-sonnet-4-20250514',
+                    
+                    // PREMIUM TIER: Opus - better signature detection, ~$0.05/comic
+                    // TODO: Gate behind "Super User" pricing tier in future
+                    model: 'claude-opus-4-5-20250514',
+                    
                     max_tokens: 1000,
                     messages: [{ role: 'user', content: [
                         { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data }},
