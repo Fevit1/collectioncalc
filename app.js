@@ -1213,7 +1213,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                     
                     // PREMIUM TIER: Opus - better signature detection, ~$0.05/comic
                     // TODO: Gate behind "Super User" pricing tier in future
-                    model: 'claude-opus-4-5-20250514',
+                    model: 'claude-opus-4-5-20251101',
                     
                     max_tokens: 1000,
                     messages: [{ role: 'user', content: [
