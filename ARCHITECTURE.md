@@ -8,12 +8,22 @@
 │                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                    Frontend (Cloudflare Pages)                   │   │
-│  │                   collectioncalc.pages.dev                       │   │
+│  │                       collectioncalc.com                         │   │
+│  │                                                                   │   │
+│  │  ┌─────────────────────────────────────────────────────────┐    │   │
+│  │  │  index.html  │  styles.css  │  app.js                   │    │   │
+│  │  │  (310 lines) │  (1350 lines)│  (2030 lines)             │    │   │
+│  │  └─────────────────────────────────────────────────────────┘    │   │
 │  │                                                                   │   │
 │  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐    │   │
 │  │  │  Manual   │  │   Photo   │  │ Valuation │  │   eBay    │    │   │
 │  │  │   Entry   │  │  Upload   │  │  Results  │  │  Listing  │    │   │
 │  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘    │   │
+│  │                                                                   │   │
+│  │  ┌───────────┐  ┌───────────┐                                   │   │
+│  │  │   Auth    │  │ Collection│                                   │   │
+│  │  │  Login    │  │   View    │                                   │   │
+│  │  └───────────┘  └───────────┘                                   │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -24,7 +34,7 @@
 │                   collectioncalc.onrender.com                           │
 │                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                      Flask API (wsgi.py v3.4)                    │   │
+│  │                      Flask API (wsgi.py v3.7)                    │   │
 │  │                                                                   │   │
 │  │  VALUATION                                                        │   │
 │  │  /api/valuate          - Get comic valuation (3 tiers)           │   │
@@ -44,6 +54,19 @@
 │  │  /api/ebay/upload-image - Upload to eBay Picture Services        │   │
 │  │  /api/ebay/generate-description - AI description                 │   │
 │  │  /api/ebay/disconnect  - Remove eBay connection                  │   │
+│  │                                                                   │   │
+│  │  USER AUTH                                                        │   │
+│  │  /api/auth/signup      - Create new account                      │   │
+│  │  /api/auth/login       - Authenticate, return JWT                │   │
+│  │  /api/auth/verify/:id  - Verify email address                    │   │
+│  │  /api/auth/forgot-password - Send reset email                    │   │
+│  │  /api/auth/reset-password  - Reset with token                    │   │
+│  │  /api/auth/me          - Get current user                        │   │
+│  │                                                                   │   │
+│  │  COLLECTIONS                                                      │   │
+│  │  /api/collection       - Get user's saved comics                 │   │
+│  │  /api/collection/save  - Save comics to collection               │   │
+│  │  /api/collection/:id   - Update/delete collection item           │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                    │                                     │
 │       ┌────────────────────────────┼────────────────────────────┐      │
@@ -59,21 +82,39 @@
 │  │ - Calculate│  │ - Refresh  │  │ - Publish  │  │ - Extract  │       │
 │  │ - Cache    │  │ - Store    │  │ - Images   │  │   info     │       │
 │  └────────────┘  └────────────┘  └────────────┘  └────────────┘       │
-│       │                   │              │              │               │
-│       └───────────────────┼──────────────┼──────────────┘              │
-│                           │              │                              │
-│                           ▼              ▼                              │
+│       │                                                │               │
+│       │               ┌────────────┐                   │               │
+│       │               │   auth.py  │                   │               │
+│       │               │            │                   │               │
+│       │               │ - Signup   │                   │               │
+│       │               │ - Login    │                   │               │
+│       │               │ - JWT      │                   │               │
+│       │               │ - Password │                   │               │
+│       │               │   reset    │                   │               │
+│       │               └────────────┘                   │               │
+│       │                     │                          │               │
+│       └─────────────────────┼──────────────────────────┘              │
+│                             │                                          │
+│                             ▼                                          │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                    PostgreSQL Database                           │   │
 │  │                   (Render Managed)                               │   │
 │  │                                                                   │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │   │
-│  │  │ search_cache│  │ ebay_tokens │  │  comics     │              │   │
-│  │  │             │  │             │  │ (future)    │              │   │
-│  │  │ - prices    │  │ - user_id   │  │             │              │   │
-│  │  │ - timestamp │  │ - access    │  │             │              │   │
-│  │  │ - samples   │  │ - refresh   │  │             │              │   │
+│  │  │ search_cache│  │ ebay_tokens │  │   users     │              │   │
+│  │  │             │  │             │  │             │              │   │
+│  │  │ - prices    │  │ - user_id   │  │ - email     │              │   │
+│  │  │ - timestamp │  │ - access    │  │ - password  │              │   │
+│  │  │ - samples   │  │ - refresh   │  │ - verified  │              │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘              │   │
+│  │                                                                   │   │
+│  │  ┌─────────────┐  ┌─────────────┐                               │   │
+│  │  │ collections │  │ password_   │                               │   │
+│  │  │             │  │ resets      │                               │   │
+│  │  │ - user_id   │  │             │                               │   │
+│  │  │ - comic data│  │ - token     │                               │   │
+│  │  │ - created   │  │ - expires   │                               │   │
+│  │  └─────────────┘  └─────────────┘                               │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                     │                               │
@@ -88,7 +129,39 @@
          │ - Descriptions    │           │ - OAuth           │
          └───────────────────┘           │ - Picture Services│
                                          └───────────────────┘
+                    │
+                    ▼
+         ┌───────────────────┐
+         │   Resend API      │
+         │                   │
+         │ - Email verify    │
+         │ - Password reset  │
+         └───────────────────┘
 ```
+
+---
+
+## Frontend Architecture (3-File Split)
+
+As of Session 7, the frontend is split into 3 files for maintainability:
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `index.html` | ~310 | HTML structure only |
+| `styles.css` | ~1350 | All CSS styling |
+| `app.js` | ~2030 | All JavaScript logic |
+
+**Benefits:**
+- Easier to edit (no truncation issues)
+- Browser caching (CSS/JS cached separately)
+- Standard web practice
+
+**Image Processing (app.js):**
+- EXIF orientation detection (auto-rotate photos)
+- Upscales small images to 1200px minimum
+- Downscales large images to 2400px max
+- Quality: 60-95% JPEG
+- Manual rotate button (↻) for edge cases
 
 ---
 
@@ -118,6 +191,7 @@ User uploads photos of comics (1-20)
 │ - Edition       │         │
 │ - Publisher     │         │
 │ - Year          │         │
+│ - Signatures    │  NEW    │
 └─────────────────┘         │
          │                  │
          ▼                  │
@@ -208,123 +282,76 @@ User enters comic info
 │ Parse & Weight  │                  │
 │ - Recency       │                  │
 │ - Volume        │                  │
-│ - Variance      │                  │
+│ - Grade match   │                  │
 └─────────────────┘                  │
          │                           │
          ▼                           │
 ┌─────────────────┐                  │
 │ Calculate Tiers │                  │
-│ - Quick Sale    │                  │
-│ - Fair Value    │                  │
-│ - High End      │                  │
+│ - Quick: 15th   │                  │
+│ - Fair: median  │                  │
+│ - High: 85th    │                  │
 └─────────────────┘                  │
          │                           │
          ▼                           │
 ┌─────────────────┐                  │
-│ Save to Cache   │                  │
-└─────────────────┘                  │
-         │                           │
-         └───────────┬───────────────┘
-                     │
-                     ▼
-            Return valuation
-            to frontend
+│ Cache Result    │◄─────────────────┘
+│ (48hr TTL)      │
+└─────────────────┘
+         │
+         ▼
+    Return to user
 ```
 
 ---
 
-## Data Flow: eBay Listing (Single)
+## Data Flow: Photo Extraction
 
 ```
-User clicks "List on eBay" at $X price
-                │
-                ▼
-┌───────────────────────────────┐
-│ Check eBay Connection         │
-│ (ebay_tokens table)           │
-└───────────────────────────────┘
-                │
-       ┌────────┴────────┐
-       │                 │
-   Connected         Not Connected
-       │                 │
-       │                 ▼
-       │    ┌───────────────────────────┐
-       │    │ OAuth Flow                │
-       │    │ 1. Redirect to eBay       │
-       │    │ 2. User authorizes        │
-       │    │ 3. Callback with code     │
-       │    │ 4. Exchange for tokens    │
-       │    │ 5. Store in DB            │
-       │    └───────────────────────────┘
-       │                 │
-       └────────┬────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Generate AI Description       │
-│ (Anthropic Claude)            │
-│ - 300 char limit              │
-│ - Key issues highlighted      │
-│ - Mobile optimized            │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Show Preview Modal            │
-│ - Editable description        │
-│ - Confirm price               │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Create Inventory Item         │
-│ (eBay Inventory API)          │
-│ - Title, description          │
-│ - Condition (LIKE_NEW, etc)   │
-│ - Package dimensions          │
-│ - Image URLs                  │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Get/Create Merchant Location  │
-│ - Check existing locations    │
-│ - Create if none exist        │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Get User's Business Policies  │
-│ (eBay Account API)            │
-│ - Fulfillment (shipping)      │
-│ - Payment                     │
-│ - Return                      │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Create Offer                  │
-│ (eBay Inventory API)          │
-│ - Link to inventory item      │
-│ - Set price                   │
-│ - Attach policies             │
-│ - Set category (259104)       │
-└───────────────────────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Publish? (based on param)     │
-│                               │
-│ publish=true  → Goes LIVE     │
-│ publish=false → Returns draft │
-│                 URL to Seller │
-│                 Hub           │
-└───────────────────────────────┘
-                │
-                ▼
-        Return listing/draft URL
-        to frontend
+User uploads photo
+         │
+         ▼
+┌─────────────────────────┐
+│ Image Processing        │
+│ (Frontend - app.js)     │
+│                         │
+│ 1. Read EXIF orientation│
+│ 2. Auto-rotate if needed│
+│ 3. Scale to 1200-2400px │
+│ 4. Compress to <5MB     │
+└─────────────────────────┘
+         │
+         ▼
+┌─────────────────────────┐
+│ /api/messages           │
+│ (Anthropic Proxy)       │
+│                         │
+│ Claude Vision extracts: │
+│ - Title                 │
+│ - Issue # (multi-loc)   │
+│ - Publisher             │
+│ - Year                  │
+│ - Grade                 │
+│ - Defects               │
+│ - Signature detected?   │
+│ - Signature analysis    │
+└─────────────────────────┘
+         │
+         ▼
+┌─────────────────────────┐
+│ If signature_detected:  │
+│                         │
+│ - List all creators     │
+│ - Confidence % each     │
+│ - Most likely signer    │
+│ - Characteristics       │
+│                         │
+│ Auto-check "Signed" box │
+│ Auto-fill signer name   │
+└─────────────────────────┘
+         │
+         ▼
+    Display for user review
 ```
 
 ---
@@ -355,6 +382,23 @@ User clicks "List on eBay" at $X price
 | `/api/ebay/upload-image` | POST | Upload image to eBay Picture Services |
 | `/api/ebay/generate-description` | POST | Generate AI description |
 | `/api/ebay/disconnect` | POST | Remove eBay connection |
+
+### User Auth
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/signup` | POST | Create new account |
+| `/api/auth/login` | POST | Authenticate, return JWT |
+| `/api/auth/verify/<token>` | GET | Verify email address |
+| `/api/auth/forgot-password` | POST | Send reset email |
+| `/api/auth/reset-password` | POST | Reset with token |
+| `/api/auth/me` | GET | Get current user (requires JWT) |
+
+### Collections
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/collection` | GET | Get user's saved comics |
+| `/api/collection/save` | POST | Save comics to collection |
+| `/api/collection/<id>` | PUT/DELETE | Update/delete collection item |
 
 ### Input Validation (Batch Endpoints)
 - Max 20 comics per batch
@@ -393,17 +437,61 @@ Stores OAuth tokens for eBay API access.
 | created_at | TIMESTAMP | When created |
 | updated_at | TIMESTAMP | Last updated |
 
+### users
+Stores user accounts.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| email | VARCHAR | User email (unique) |
+| password_hash | VARCHAR | Bcrypt hash |
+| email_verified | BOOLEAN | Email confirmed? |
+| verification_token | VARCHAR | Email verify token |
+| created_at | TIMESTAMP | When created |
+
+### collections
+Stores saved comics.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| user_id | INTEGER | FK to users |
+| comic_data | JSONB | Full comic data |
+| created_at | TIMESTAMP | When saved |
+| updated_at | TIMESTAMP | Last modified |
+
+### password_resets
+Stores password reset tokens.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| user_id | INTEGER | FK to users |
+| token | VARCHAR | Reset token |
+| expires_at | TIMESTAMP | Token expiration |
+| used | BOOLEAN | Already used? |
+| created_at | TIMESTAMP | When created |
+
 ---
 
 ## External Services
 
 ### Anthropic API
-- **Model:** Claude Sonnet 4
+- **Standard Model:** Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- **Premium Model:** Claude Opus 4.5 (`claude-opus-4-5-20251101`) - commented out, ready for Premium tier
 - **Tier:** 2 (450k tokens/min)
 - **Uses:**
   - Web search for eBay prices
   - Photo analysis (comic extraction)
   - Description generation
+  - Signature analysis
+
+**Model Comparison (tested Session 7):**
+| Capability | Sonnet | Opus |
+|------------|--------|------|
+| Cost | ~$0.01/comic | ~$0.05/comic |
+| Basic extraction | ✅ | ✅ |
+| Subtle signature detection | ❌ | ✅ (detects existence, not WHO) |
 
 ### eBay API
 - **Environment:** Production
@@ -419,16 +507,23 @@ Stores OAuth tokens for eBay API access.
   - Package: 1"×11"×7", 8oz, LETTER
   - Default: Draft mode (publish=false)
 
+### Resend API
+- **Domain:** collectioncalc.com
+- **Uses:**
+  - Email verification
+  - Password reset emails
+
 ---
 
 ## Security Considerations
 
 1. **API Keys:** Stored as environment variables in Render
 2. **eBay Tokens:** Encrypted at rest in PostgreSQL
-3. **CORS:** Configured for frontend domain only
-4. **OAuth State:** Random state parameter prevents CSRF
-5. **No PII Storage:** Only eBay tokens, no personal data
-6. **Input Validation:** Max image size (10MB), max batch size (20)
+3. **User Passwords:** Bcrypt hashed
+4. **JWT Tokens:** 30-day expiry, signed with secret
+5. **CORS:** Configured for frontend domain only
+6. **OAuth State:** Random state parameter prevents CSRF
+7. **Input Validation:** Max image size (10MB), max batch size (20)
 
 ---
 
@@ -443,21 +538,33 @@ Stores OAuth tokens for eBay API access.
 | EBAY_RUNAME | eBay redirect URL name |
 | EBAY_DEV_ID | eBay developer ID |
 | EBAY_SANDBOX | "false" for production |
+| RESEND_API_KEY | Email service API key |
+| RESEND_FROM_EMAIL | noreply@collectioncalc.com |
+| JWT_SECRET | Auth token signing key |
+| FRONTEND_URL | https://collectioncalc.com |
 
 ---
 
 ## Key Files
 
+### Frontend (Cloudflare Pages)
 | File | Purpose |
 |------|---------|
-| `wsgi.py` | Flask routes (v3.4) |
+| `index.html` | HTML structure (~310 lines) |
+| `styles.css` | All CSS (~1350 lines) |
+| `app.js` | All JavaScript (~2030 lines) |
+
+### Backend (Render)
+| File | Purpose |
+|------|---------|
+| `wsgi.py` | Flask routes (v3.7) |
 | `ebay_valuation.py` | Valuation logic, caching |
 | `ebay_oauth.py` | eBay OAuth flow |
 | `ebay_listing.py` | Listing creation, image upload |
 | `ebay_description.py` | AI description generation |
-| `comic_extraction.py` | **NEW** Backend extraction via Claude vision (with Vision Guide prompt) |
-| `index.html` | Frontend SPA |
+| `comic_extraction.py` | Backend extraction via Claude vision |
+| `auth.py` | User auth (signup, login, JWT, password reset) |
 
 ---
 
-*Last updated: January 20, 2026 (Session 2)*
+*Last updated: January 22, 2026 (Session 7)*

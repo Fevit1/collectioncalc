@@ -1209,12 +1209,12 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     // STANDARD TIER: Sonnet - good for most extraction, ~$0.01/comic
-                    // model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-20250514',
                     
                     // PREMIUM TIER: Opus - better signature detection, ~$0.05/comic
-                    // Proven to work! See Session 7 testing with Moon Knight #1 signed by David Finch
+                    // Proven to work! See Session 7 testing with Moon Knight #1 signed by Danny Miki
                     // TODO: Gate behind "Super User" pricing tier in future
-                    model: 'claude-opus-4-5-20251101',
+                    // model: 'claude-opus-4-5-20251101',
                     
                     max_tokens: 1000,
                     messages: [{ role: 'user', content: [

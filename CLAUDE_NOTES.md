@@ -36,6 +36,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - ✅ Curl basics (for deploy hooks)
 - ✅ eBay Developer Portal (credentials, RuNames, OAuth setup)
 - ✅ eBay Business Policies
+- ✅ Knows frontend vs backend deployment (`purge` vs `deploy`)
 
 ## Where Mike May Need More Guidance
 - ⚠️ New terminal/bash commands - explain what each command does
@@ -62,14 +63,19 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Live URL:** https://collectioncalc.com (frontend), https://collectioncalc.onrender.com (backend API)
 - **Note:** Backend is `collectioncalc.onrender.com` NOT `collectioncalc-v2.onrender.com`
 
-## Key Files
+## Key Files - NOW SPLIT INTO 3 FILES!
+**Frontend (Cloudflare Pages):**
+- `index.html` - HTML structure only (~310 lines)
+- `styles.css` - All CSS (~1350 lines)
+- `app.js` - All JavaScript (~2030 lines)
+
+**Backend (Render):**
 - `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
 - `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
 - `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
 - `auth.py` - User authentication (signup, login, JWT, password reset)
-- `index.html` - Frontend (single page app, ~3500 lines)
 - `wsgi.py` - Flask routes (v3.7)
 - `requirements.txt` - Python dependencies
 
@@ -83,56 +89,103 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 5. **Valuate** - Get three-tier pricing (Quick Sale, Fair Value, High End)
 6. **List** - Create eBay draft listing (user publishes when ready)
 
-## Current State (January 21, 2026)
+## Current State (January 22, 2026)
 
-### Completed This Session 🎉
-**Session 6 - User Auth, Collections, Valuation Bug Fix**
+### Session 7 Progress 🔧
 
-1. **User Authentication System** - `auth.py` + `wsgi.py` + `index.html`
-   - Email/password signup with email verification
-   - Login with JWT tokens (30-day expiry)
-   - Forgot password / reset password flow
-   - Resend email service integration (collectioncalc.com domain verified)
-   - Database tables: `users`, `collections`, `password_resets`
-   - Migration script: `db_migrate_auth.py`
+**1. Fixed API Key Issue**
+- Frontend was calling `/api/messages` without API key
+- Backend was expecting `X-API-Key` header
+- Root cause: "Remove API key screen" commit updated frontend but old backend was deployed
+- Fix: Redeployed wsgi.py which uses server-side `ANTHROPIC_API_KEY`
 
-2. **Collections Feature**
-   - Users can save valued comics to their collection
-   - "Save to Collection" button in results view
-   - "My Collection" button in header (when logged in)
-   - Collection stored in PostgreSQL with user_id foreign key
+**2. Split Frontend into 3 Files** ✅
+- `index.html` was ~3500 lines and causing upload truncation issues
+- Now split into:
+  - `index.html` (310 lines) - HTML structure only
+  - `styles.css` (1350 lines) - All CSS  
+  - `app.js` (2030 lines) - All JavaScript
+- Deployment unchanged: `git push; purge` for frontend
 
-3. **Auth UI** - `index.html`
-   - Login/Signup buttons in header (when logged out)
-   - User menu with avatar and dropdown (when logged in)
-   - Modal-based auth forms (login, signup, forgot password, reset)
-   - Email verification redirect handling
+**3. Signature Confidence Analysis** ✅ (UI ready, needs better images to test)
+- New prompt fields: `signature_detected`, `signature_analysis`
+- `signature_analysis` contains:
+  - `creators` - all creators on cover with roles
+  - `confidence_scores` - array with name, confidence %, reasoning
+  - `most_likely_signer` - highest confidence match
+  - `signature_characteristics` - ink color, position, style
+- New green "🖊️ Signature Analysis" UI box
+- Shows confidence % for each creator
+- Disclaimer about CGC/CBCS for authentication
+- Auto-populates "Signed copy" checkbox with most likely signer
 
-4. **🐛 CRITICAL BUG FIX: Grade in Cache Key** - `ebay_valuation.py`
-   - **Problem:** Cache key was `"{title}|{issue}"` - NO GRADE!
-   - VG lookup → cache result → G lookup → same cached result (WRONG!)
-   - **Fix:** Cache key now `"{title}|{issue}|{grade}"`
-   - Each grade gets its own cached valuation
+**4. Improved Issue # Extraction** ✅
+- Now searches multiple locations: top-left, top-right, near barcode, near title
+- Added hint about DC comics (top-right)
+- Added "CRITICAL: You MUST find the issue number"
+- Fixed Moon Knight #1 detection (was blank before)
 
-5. **Roadmap Updates**
-   - Added Phase 5.5: Price Database Integration (GoCollect ~$200/mo)
-   - Added Phase 2.88: User Auth & Collections
-   - Competitive analysis: Ludex is main competitor, moving into multiple verticals
+**5. Improved Image Quality** ✅
+- All images now processed through canvas (not just large ones)
+- Upscales small images to 1200px minimum
+- Maintains 75%+ scale, 60%+ quality minimum
+- Better logging of dimensions/quality in console
 
-### Previous Session (Session 5)
-- CGC/Slab exclusion from raw valuations
-- Visual condition assessment (defect detection)
-- Signature detection (Stan Lee ✅)
-- Condition Assessment UI
+**6. EXIF Orientation + Rotate Button** 🔧 NEEDS DEBUGGING
+- Added EXIF orientation reading (auto-rotates based on photo metadata)
+- Added ↻ rotate button on item cards
+- Button rotates image 90° clockwise and re-extracts
+- **STATUS: Deployed but not working - needs debugging next session**
 
 ### Known Issues / TODOs
+- [ ] **EXIF rotation not working** - deployed but needs debugging
 - [ ] More progress steps during valuation (users think it's frozen)
 - [ ] Custom price entry (not just the three tiers)
-- [ ] Issue number extraction: DC comics put issue# top-RIGHT (not top-left)
-- [ ] Multi-comic photo detection and splitting (core feature for Phase 2)
-- [ ] Future: "I have a CGC slab" checkbox to search FOR slabs instead of excluding them
 
-### API Endpoints (Current)
+### Premium Tier Discovery (Session 7) 💎
+**Opus can detect subtle signatures that Sonnet cannot!**
+
+Testing with Moon Knight #1 (signed by Danny Miki in gold marker):
+| Model | Result |
+|-------|--------|
+| Sonnet | `signature_detected: false` ❌ |
+| Opus | `signature_detected: true`, listed all creators with confidence % ✅ |
+
+**Current state:** Opus detects signature EXISTS and lists all possible signers. User picks correct one. (It guessed Finch but was actually Miki - can't identify WHO signed, just THAT it's signed.)
+
+**Future enhancement:** Reference signature database
+- Buy verified creator signatures on eBay (~$1 each)
+- Store as reference images
+- AI compares uploaded signature to references
+- Mike researching this approach
+
+**Product opportunity:** Premium/Super User tier with Opus extraction
+- Cost: ~$0.05/comic (vs $0.01 Sonnet)
+- Value prop: Better signature detection
+- Code ready: Just uncomment Opus line in app.js
+
+**Code location:** `app.js` line ~1211
+```javascript
+// STANDARD TIER: Sonnet
+model: 'claude-sonnet-4-20250514',
+
+// PREMIUM TIER: Opus (commented out)
+// model: 'claude-opus-4-5-20251101',
+```
+
+### CGC/CBCS Signature Database Research
+- **No public API available** for signature verification
+- JSA (CGC partner) has ~1 million signature images - internal only
+- CBCS has "exemplars" library - internal only
+- Authentication requires physical submission: $25/signature
+- Our approach: AI-assisted confidence scores with disclaimer
+
+### Image Quality Findings
+- Facebook/Messenger compress images heavily (~458x638 = 0.3MP)
+- Need 3000+ pixel images for signature detection
+- **Tell testers to email original photos**, not send via social media
+
+## API Endpoints (Current)
 | Endpoint | Purpose |
 |----------|---------|
 | `/api/valuate` | Get three-tier valuation for a comic |
@@ -156,28 +209,11 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 | `/api/collection/save` | Save comics to collection |
 | `/api/collection/<id>` | Update/delete collection item |
 
-### eBay Integration Technical Details
-- **Category ID:** 259104 (Comics & Graphic Novels - leaf category)
-- **Package dimensions:** 1" x 11" x 7", 8 oz, packageType: LETTER
-- **Condition mapping:** MT/NM→LIKE_NEW, VF→USED_EXCELLENT, FN/VG→USED_VERY_GOOD, G→USED_GOOD, FR/PR→USED_ACCEPTABLE
-- **SKU format:** `CC-{title}-{issue}-{timestamp}` (ensures uniqueness)
-- **Draft mode:** `publish=False` (default) returns `drafts_url` to Seller Hub
-
-### Anthropic API Rate Limits
-| Tier | Tokens/Min | Tokens/Day | Requirement |
-|------|-----------|------------|-------------|
-| Tier 1 | 30,000 | 1M | Default |
-| **Tier 2 (Current)** | **450,000** | **50M** | **$40 spend** |
-| Tier 3 | 1,000,000 | 100M | $200 spend |
-| Tier 4 | 2,000,000+ | Unlimited | Enterprise |
-
-Tier 2 is sufficient for beta. No more delays needed between valuations!
-
 ## Deployment Process
 1. Claude creates/updates files in `/mnt/user-data/outputs/`
 2. Mike downloads the file(s) to `cc/v2` folder
-3. **Backend changes:** `git add .; git commit -m "message"; git push; deploy`
-4. **Frontend changes:** `git add .; git commit -m "message"; git push; purge`
+3. **Frontend changes (index.html, styles.css, app.js):** `git add .; git commit -m "message"; git push; purge`
+4. **Backend changes (*.py files):** `git add .; git commit -m "message"; git push; deploy`
 5. **Both:** `git add .; git commit -m "message"; git push; deploy; purge`
 
 **PowerShell aliases:**
@@ -200,39 +236,7 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 - **eBay returns:** Let eBay handle via seller's existing policies
 - **Calculated shipping:** Requires package dimensions in inventory item
 - **Price selection:** User picks tier or enters custom price (Fair Value default)
-
-## Pre-Launch Requirements - ALL COMPLETE! ✅
-- [x] Implement eBay account deletion notification endpoint (GDPR compliance) ✅
-- [x] Host our own placeholder image ✅
-- [x] Draft mode for listings ✅
-- [x] Photo upload for listings ✅
-- [x] Test full QuickList flow with real comics ✅
-- [x] Mobile extraction working ✅
-- [x] Image thumbnails in UI ✅
-
-## Future Considerations
-- **Batch listing groups:** e.g., "List all 12 issues of Secret Wars" as a batch action
-- **Bulk processing:** Tier 2 comfortable for 20-50 comics/minute
-- **Travel agent AI:** Mike's idea for future product (autonomous booking with user approval)
-- **Parallel valuations:** Could speed up batch processing further
-- **GoCollect integration:** ~$200/mo for price database, enables faster valuations + trends
-
-## Competitive Analysis
-- **Ludex** - Main competitor, started with baseball cards, expanding to other verticals
-- **Strategy:** Beat them by moving faster on multi-vertical expansion
-- **Differentiator:** Photo → Extract → Value → List pipeline (end-to-end)
-- **Mike's background:** Hotel revenue management / dynamic pricing (same problem domain)
-
-## Friends Beta Checklist
-- [ ] Analytics (know who's using it)
-- [x] Mobile works ✅
-- [x] User auth (email/password) ✅ - Replaced Cloudflare Access plan
-- [x] Custom domain live ✅ - collectioncalc.com
-- [ ] Feedback mechanism (Report Issue link?)
-- [ ] Landing copy explains what it does
-- [ ] Error states handled gracefully
-- [ ] Anthropic billing alerts set
-- [x] Collections (save comics) ✅
+- **Signature detection:** AI confidence scores with CGC/CBCS disclaimer
 
 ## Environment Variables (Render)
 | Key | Purpose |
@@ -247,9 +251,20 @@ Tier 2 is sufficient for beta. No more delays needed between valuations!
 | `JWT_SECRET` | Auth token signing |
 | `FRONTEND_URL` | https://collectioncalc.com |
 
+## Friends Beta Checklist
+- [ ] Analytics (know who's using it)
+- [x] Mobile works ✅
+- [x] User auth (email/password) ✅
+- [x] Custom domain live ✅ - collectioncalc.com
+- [ ] Feedback mechanism (Report Issue link?)
+- [ ] Landing copy explains what it does
+- [ ] Error states handled gracefully
+- [ ] Anthropic billing alerts set
+- [x] Collections (save comics) ✅
+
 ## Related Documents
 - [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams (needs update for 3-file split)
 
 ---
-*Last updated: January 21, 2026 (Session 6 - User auth, collections, cache key bug fix, GoCollect roadmap)*
+*Last updated: January 22, 2026 (Session 7 - Split files, signature analysis, image quality, EXIF rotation)*

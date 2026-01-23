@@ -117,10 +117,6 @@ One-click listing from valuation results.
 **QuickList Flow:**
 1. Upload → 2. Extract → 3. Review/Edit → 4. Valuate → 5. Describe → 6. List as Draft
 
----
-
-## In Progress 🔨
-
 ### Phase 2.86: QuickList Polish ✅ (January 21, 2026)
 Refine the batch experience.
 
@@ -135,25 +131,6 @@ Refine the batch experience.
 - [x] `purge` command for Cloudflare cache ✅
 - [ ] More progress steps during valuation (keep users engaged)
 - [ ] Custom price entry (not just the three tiers)
-
----
-
-## Planned 📋
-
-### Phase 2.87: Extraction Accuracy (Vision Guide v2)
-Further improve AI's ability to read comic covers.
-
-**Completed (v1):**
-- [x] Distinguish prices (60¢, $1.50) from issue numbers (#242)
-- [x] Look for "#" or "No." prefix for issue numbers
-- [x] Focus on TOP-LEFT area for issue numbers
-
-**Vision Guide v2 contents (future):**
-- [ ] Issue number location patterns by publisher/era (Marvel top-left, DC varies)
-- [ ] Ignore: price stickers, store stamps, grade labels, bag reflections
-- [ ] Multiple numbers context: price vs issue vs volume vs year
-- [ ] Barcode area for newsstand detection
-- [ ] Common OCR confusions (#1 vs #7, etc.)
 
 ### Phase 2.88: User Auth & Collections ✅ (January 21, 2026)
 **Users can create accounts and save their comics.**
@@ -173,6 +150,52 @@ Further improve AI's ability to read comic covers.
 - Email service: Resend (3k emails/mo free)
 - Frontend: Modal-based login/signup forms
 - Storage: PostgreSQL (same DB as valuations)
+
+---
+
+## In Progress 🔨
+
+### Phase 2.87: Extraction Accuracy (Vision Guide v2)
+Further improve AI's ability to read comic covers.
+
+**Completed (v1):**
+- [x] Distinguish prices (60¢, $1.50) from issue numbers (#242)
+- [x] Look for "#" or "No." prefix for issue numbers
+- [x] Focus on TOP-LEFT area for issue numbers
+
+**Completed (v2 - Session 7):**
+- [x] Multi-location issue search (top-left, top-right, near barcode, near title)
+- [x] DC comics support (issue # often top-right)
+- [x] Signature detection with confidence analysis
+- [x] Signature analysis UI (green box with creator confidence %)
+- [x] Auto-populate "Signed copy" checkbox from AI detection
+- [x] Frontend split into 3 files (index.html, styles.css, app.js)
+- [x] Improved image quality processing (upscale small images to 1200px)
+
+**In Progress:**
+- [ ] EXIF auto-rotation (code deployed, needs debugging)
+- [ ] Manual rotate button (↻) (code deployed, needs debugging)
+
+**Pending (v2):**
+- [ ] Ignore: price stickers, store stamps, grade labels, bag reflections
+- [ ] Multiple numbers context: price vs issue vs volume vs year
+- [ ] Common OCR confusions (#1 vs #7, etc.)
+
+**Known Limitation:** Signature detection requires high-quality images (~3000px). Facebook/Messenger-compressed images (~500px) are too degraded. Tell testers to EMAIL original photos.
+
+### Phase 2.89: Frontend Code Refactor ✅ (January 22, 2026)
+Split monolithic index.html for maintainability.
+
+- [x] Split into 3 files:
+  - `index.html` (~310 lines) - HTML structure only
+  - `styles.css` (~1350 lines) - All CSS
+  - `app.js` (~2030 lines) - All JavaScript
+- [x] Same deployment process (git push; purge)
+- [x] Fixes file truncation issues during editing
+
+---
+
+## Planned 📋
 
 ### Phase 2.9: Cache Refresh Strategy
 Keep valuations fresh without breaking the bank.
@@ -353,6 +376,35 @@ Extend platform to additional verticals.
 - **Cost per valuation:** ~$0.01-0.02 (with caching)
 - **Cost per QuickList (extract+valuate+describe):** ~$0.02-0.03
 
+### Premium Tier Opportunity 💎 (Discovered Session 7)
+**Opus model provides significantly better signature detection.**
+
+| Feature | Sonnet (Standard) | Opus (Premium) |
+|---------|-------------------|----------------|
+| Cost per extraction | ~$0.01 | ~$0.05 |
+| Basic extraction | ✅ Great | ✅ Great |
+| Obvious signatures | ✅ Works | ✅ Works |
+| Subtle signatures (gold/metallic on dark) | ❌ Misses | ✅ Detects |
+
+**Proven:** Moon Knight #1 signed by Danny Miki (gold marker)
+- Sonnet: `signature_detected: false`
+- Opus: `signature_detected: true`, listed all creators with confidence %
+- Note: Opus detects THAT a signature exists, but can't reliably identify WHO signed
+
+**Future enhancement:** Reference Signature Database
+- Collect verified creator signatures (eBay ~$1 each)
+- Store as reference images
+- AI compares uploaded signature to references for identification
+- Could significantly improve "who signed" accuracy
+
+**Implementation:** Code is ready in app.js - just uncomment the Opus line.
+
+**Pricing idea:** "Super User" tier at ~$10/month could include:
+- Opus-powered extraction
+- Priority processing
+- Extended collection storage
+- Advanced analytics
+
 ---
 
 ## Success Metrics
@@ -361,6 +413,7 @@ Extend platform to additional verticals.
 - **User adjustments trending toward zero** - Model matches expectations
 - **Confidence calibration** - High confidence = accurate predictions
 - **Extraction accuracy** - % of issue numbers read correctly
+- **Signature detection accuracy** - % of signatures detected (needs quality images)
 
 ### Coverage Metrics
 - **DB hit rate** - % of lookups found in database vs requiring AI search
@@ -383,6 +436,8 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 22, 2026 | 2.89.1 | 💎 **Opus Premium tier tested!** Signature detection works with Opus (detects existence, user selects signer), code ready for future Premium pricing, equal creator weighting |
+| Jan 22, 2026 | 2.89.0 | 📁 **Frontend 3-file split!** index.html/styles.css/app.js, signature confidence UI, improved issue # detection, EXIF rotation (needs debugging) |
 | Jan 21, 2026 | 2.88.0 | 🔐 **User auth & collections!** Email/password signup, JWT tokens, save comics, Resend email integration |
 | Jan 21, 2026 | 2.86.3 | 🐛 **Cache key fix!** Grade now included in cache key - different grades get different valuations |
 | Jan 21, 2026 | 2.86.2 | 📋 **Visual condition assessment!** Defect detection, signature detection (Stan Lee ✅), signed copy checkbox, signed comics valued separately |
@@ -407,4 +462,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 21, 2026 (Session 6 - User auth, collections, cache key fix, GoCollect roadmap)*
+*Last updated: January 22, 2026 (Session 7 - 3-file split, signature confidence, EXIF rotation)*
