@@ -1,6 +1,7 @@
         const API_URL = 'https://collectioncalc.onrender.com';
         let currentMode = 'manual';
         let extractedItems = [];
+        let uploadedFiles = []; // Store file references for rotation
         let currentSort = 'default';
         let originalOrder = []; // Store original order for "Order Added" sort
         
@@ -895,10 +896,14 @@
             
             for (let i = 0; i < fileArray.length; i++) {
                 const file = fileArray[i];
+                const fileIndex = uploadedFiles.length;
+                uploadedFiles.push(file); // Store file for potential rotation
                 updateProgress((i / fileArray.length) * 100, `Extracting ${i + 1} of ${fileArray.length}: ${file.name}`);
                 
                 try {
-                    const extracted = await extractFromPhoto(file);
+                    const extracted = await extractFromPhoto(file, 0);
+                    extracted.fileIndex = fileIndex; // Track which file this came from
+                    extracted.rotation = 0; // Track current rotation
                     extractedItems.push(extracted);
                     renderItemsList();
                 } catch (error) {
@@ -910,7 +915,9 @@
                         year: '',
                         grade: 'VF',
                         edition: 'unknown',
-                        error: error.message
+                        error: error.message,
+                        fileIndex: fileIndex,
+                        rotation: 0
                     });
                     renderItemsList();
                 }
@@ -928,9 +935,58 @@
             }, 1000);
         }
         
+        // Read EXIF orientation from image file
+        // Returns orientation value 1-8, or 1 if not found
+        async function getExifOrientation(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const view = new DataView(e.target.result);
+                    // Check for JPEG
+                    if (view.getUint16(0, false) !== 0xFFD8) {
+                        resolve(1);
+                        return;
+                    }
+                    let offset = 2;
+                    while (offset < view.byteLength) {
+                        const marker = view.getUint16(offset, false);
+                        offset += 2;
+                        if (marker === 0xFFE1) { // APP1 marker (EXIF)
+                            if (view.getUint32(offset + 2, false) !== 0x45786966) { // "Exif"
+                                resolve(1);
+                                return;
+                            }
+                            const little = view.getUint16(offset + 8, false) === 0x4949;
+                            const tags = view.getUint16(offset + 16, little);
+                            for (let i = 0; i < tags; i++) {
+                                const tagOffset = offset + 18 + i * 12;
+                                if (view.getUint16(tagOffset, little) === 0x0112) { // Orientation tag
+                                    const orientation = view.getUint16(tagOffset + 8, little);
+                                    console.log(`EXIF orientation: ${orientation}`);
+                                    resolve(orientation);
+                                    return;
+                                }
+                            }
+                        } else if ((marker & 0xFF00) !== 0xFF00) {
+                            break;
+                        } else {
+                            offset += view.getUint16(offset, false);
+                        }
+                    }
+                    resolve(1); // Default: no rotation needed
+                };
+                reader.onerror = () => resolve(1);
+                reader.readAsArrayBuffer(file.slice(0, 65536)); // Only read first 64KB for EXIF
+            });
+        }
+        
         // Process image for optimal quality while staying under Anthropic's 5MB limit
         // Prioritizes preserving detail for signature detection
-        async function processImageForExtraction(file) {
+        // rotation: 0, 90, 180, 270 degrees clockwise (manual override)
+        async function processImageForExtraction(file, manualRotation = 0) {
+            // Get EXIF orientation first
+            const exifOrientation = await getExifOrientation(file);
+            
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onerror = reject;
@@ -944,7 +1000,18 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        console.log(`Original image: ${width}x${height}`);
+                        // Calculate total rotation needed (EXIF + manual)
+                        // EXIF orientation to degrees: 1=0°, 3=180°, 6=90°, 8=270°
+                        const exifRotation = {1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270, 8: 270}[exifOrientation] || 0;
+                        const totalRotation = (exifRotation + manualRotation) % 360;
+                        
+                        console.log(`Original image: ${width}x${height}, EXIF rotation: ${exifRotation}°, manual: ${manualRotation}°, total: ${totalRotation}°`);
+                        
+                        // Swap dimensions if rotating 90 or 270 degrees
+                        const swapDimensions = totalRotation === 90 || totalRotation === 270;
+                        if (swapDimensions) {
+                            [width, height] = [height, width];
+                        }
                         
                         // Ensure minimum resolution for detail (signatures need at least 1200px)
                         const minDimension = 1200;
@@ -983,7 +1050,17 @@
                             // Use high-quality image smoothing
                             ctx.imageSmoothingEnabled = true;
                             ctx.imageSmoothingQuality = 'high';
-                            ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+                            
+                            // Apply rotation
+                            ctx.save();
+                            ctx.translate(scaledWidth / 2, scaledHeight / 2);
+                            ctx.rotate(totalRotation * Math.PI / 180);
+                            if (swapDimensions) {
+                                ctx.drawImage(img, -scaledHeight / 2, -scaledWidth / 2, scaledHeight, scaledWidth);
+                            } else {
+                                ctx.drawImage(img, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+                            }
+                            ctx.restore();
                             
                             for (const quality of qualities) {
                                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -999,11 +1076,21 @@
                         }
                         
                         // Fallback: aggressive compression
-                        canvas.width = Math.round(width * 0.6);
-                        canvas.height = Math.round(height * 0.6);
+                        const fallbackWidth = Math.round(width * 0.6);
+                        const fallbackHeight = Math.round(height * 0.6);
+                        canvas.width = fallbackWidth;
+                        canvas.height = fallbackHeight;
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        ctx.save();
+                        ctx.translate(fallbackWidth / 2, fallbackHeight / 2);
+                        ctx.rotate(totalRotation * Math.PI / 180);
+                        if (swapDimensions) {
+                            ctx.drawImage(img, -fallbackHeight / 2, -fallbackWidth / 2, fallbackHeight, fallbackWidth);
+                        } else {
+                            ctx.drawImage(img, -fallbackWidth / 2, -fallbackHeight / 2, fallbackWidth, fallbackHeight);
+                        }
+                        ctx.restore();
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                         const base64 = dataUrl.split(',')[1];
                         console.log(`Processed image (fallback): ${canvas.width}x${canvas.height}, ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
@@ -1015,12 +1102,12 @@
             });
         }
         
-        async function extractFromPhoto(file) {
+        async function extractFromPhoto(file, manualRotation = 0) {
             // Always process through canvas for consistent quality
             const fileSizeMB = file.size / 1024 / 1024;
             console.log(`Processing ${file.name}: ${fileSizeMB.toFixed(2)}MB`);
             
-            const processed = await processImageForExtraction(file);
+            const processed = await processImageForExtraction(file, manualRotation);
             const base64Data = processed.base64;
             const mediaType = processed.mediaType;
             
@@ -1159,6 +1246,7 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
                         <span class="item-number">${idx + 1}</span>
                         <span class="item-title">${item.title || 'Unknown'} #${item.issue || '?'}</span>
                         ${item.value ? `<span class="item-value">$${item.value.toFixed(2)}</span>` : ''}
+                        ${item.fileIndex !== undefined ? `<button class="item-rotate" onclick="rotateItem(${idx})" title="Rotate image 90°">↻</button>` : ''}
                         <button class="item-delete" onclick="deleteItem(${idx})">×</button>
                     </div>
                     <div class="item-content" style="display: flex; gap: 15px;">
@@ -1291,6 +1379,42 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             renderItemsList();
             if (extractedItems.length === 0) {
                 resetToPhoto();
+            }
+        }
+        
+        async function rotateItem(idx) {
+            const item = extractedItems[idx];
+            if (item.fileIndex === undefined || !uploadedFiles[item.fileIndex]) {
+                console.error('Cannot rotate: no file reference');
+                return;
+            }
+            
+            // Rotate 90 degrees clockwise
+            const newRotation = ((item.rotation || 0) + 90) % 360;
+            const file = uploadedFiles[item.fileIndex];
+            
+            // Show loading state on the card
+            const card = document.getElementById('item-' + idx);
+            if (card) {
+                card.style.opacity = '0.5';
+            }
+            
+            try {
+                console.log(`Rotating item ${idx} to ${newRotation}°`);
+                const extracted = await extractFromPhoto(file, newRotation);
+                
+                // Preserve fileIndex and update rotation
+                extracted.fileIndex = item.fileIndex;
+                extracted.rotation = newRotation;
+                
+                // Replace the item
+                extractedItems[idx] = extracted;
+                renderItemsList();
+            } catch (error) {
+                console.error('Error re-extracting after rotation:', error);
+                // Just update the image rotation without re-extracting
+                item.rotation = newRotation;
+                renderItemsList();
             }
         }
         

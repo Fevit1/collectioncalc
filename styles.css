@@ -347,6 +347,21 @@
             transform: none;
             box-shadow: none;
         }
+        .item-rotate {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1rem;
+            width: auto;
+            transition: transform 0.2s;
+        }
+        .item-rotate:hover {
+            color: var(--brand-indigo);
+            transform: rotate(90deg);
+            box-shadow: none;
+        }
         .item-refresh {
             background: none;
             border: none;
