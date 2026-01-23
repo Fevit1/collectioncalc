@@ -1150,27 +1150,38 @@ IMPORTANT - DISTINGUISH BETWEEN:
    - Bag wrinkles or cloudiness
    If the comic appears to be in a bag/sleeve, look THROUGH it to assess the comic itself.
 
-3. SIGNATURES - Look carefully for ANY handwriting on the cover that could be a signature:
-   - LOOK FOR: Gold/silver/metallic marker, black sharpie, pen signatures, any handwritten text that looks like a name
-   - CHECK LOCATIONS: Front cover artwork area, margins, corners, near title
-   - CREATOR SIGNATURES add value - they're typically written in marker (gold, silver, black) and look like stylized names
-   - RANDOM WRITING (names like "property of John", dates, scribbles) - These are defects
+3. SIGNATURE DETECTION (Two-step process):
+
+   STEP 1 - SCAN: Before analyzing other fields, systematically scan the ENTIRE cover for any handwriting or signatures. Check ALL these areas:
+   - Sky, moon, or background areas
+   - Across character faces or bodies
+   - Title/logo area
+   - All four corners
+   - Margins and edges
+   - Near creator credits
+   Look for: Gold/silver metallic ink (very common), black sharpie, blue/red marker, pen signatures
+   
+   STEP 2 - ANALYZE: If you found ANYTHING that looks like handwriting/signature:
+   - Note exactly where it is located
+   - Describe its appearance (ink color, style)
+   - Look at creator credits at bottom of cover
+   - Compare signature to creator names to estimate who signed
 
 - suggested_grade: Based on visible condition, suggest one of: MT, NM, VF, FN, VG, G, FR, PR. Be conservative - grade what you can see.
 - defects: Array of visible defects found ON THE COMIC (not on bag). Examples: "Tear on front cover", "Spine roll", "Color-breaking crease", "Corner wear", "Staining". Return empty array [] if no defects visible.
 - grade_reasoning: Brief explanation of grade choice, e.g., "VF - Minor spine stress visible, corners sharp"
 
 SIGNATURE ANALYSIS FIELDS:
-- signature_detected: boolean - Is there ANY signature, autograph, or handwritten name visible on the cover? Look carefully for gold, silver, or metallic ink signatures which are common. If you see ANYTHING that looks like handwriting/signature, set this to true.
+- signature_detected: boolean - Did you find ANY handwriting/signature in Step 1? Even if faint or hard to read, set true if you see something.
 - signature_analysis: If signature_detected is true, provide this object (otherwise null):
   {
     "creators": [{"name": "Full Name", "role": "Artist/Writer/Inker/Colorist"}],
     "confidence_scores": [{"name": "Full Name", "confidence": 55, "reasoning": "brief reason"}],
     "most_likely_signer": {"name": "Name", "confidence": 55},
-    "signature_characteristics": "Describe ink color (gold/silver/black/blue), position on cover, style (neat/messy), any legible letters"
+    "signature_characteristics": "Location on cover, ink color (gold/silver/black/blue), style (neat/cursive/messy), any legible letters"
   }
   
-  When assigning confidence, consider: Artists sign more than writers. Cover artists sign most often. Check for legible letters matching creator names.
+  When assigning confidence: Cover artists sign most often. Artists sign more than writers. Match any legible letters to creator names.
 
 GRADE GUIDE (be conservative):
 - MT (10.0): Perfect, virtually flawless
