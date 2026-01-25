@@ -17,8 +17,8 @@ def after_request(response):
 def home():
     return jsonify({
         "status": "CollectionCalc API is running",
-        "version": "3.7",
-        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection", "gdpr_account_deletion", "user_auth", "collections"]
+        "version": "3.8",
+        "features": ["database_lookup", "ebay_valuation", "recency_weighting", "photo_extraction", "ebay_oauth", "ebay_listing", "ebay_description_generator", "quicklist_batch", "draft_mode", "image_upload", "issue_type_detection", "gdpr_account_deletion", "user_auth", "collections", "market_sales"]
     })
 
 @app.route('/api/messages', methods=['POST', 'OPTIONS'])
@@ -1282,6 +1282,161 @@ def update_collection_item(item_id):
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# MARKET SALES API (Whatnot Extension Integration)
+# ============================================
+
+@app.route('/api/sales/record', methods=['POST', 'OPTIONS'])
+def record_sale():
+    """Record a sale from Whatnot extension (or other sources)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        import psycopg2
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Required field
+        if 'price' not in data:
+            return jsonify({'error': 'Price is required'}), 400
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cursor = conn.cursor()
+        
+        # Generate source_id if not provided
+        source_id = data.get('source_id')
+        if not source_id:
+            import uuid
+            source_id = str(uuid.uuid4())
+        
+        # Insert sale record
+        cursor.execute("""
+            INSERT INTO market_sales (
+                source, title, series, issue, grade, grade_source, 
+                slab_type, variant, is_key, price, sold_at, raw_title, 
+                seller, bids, viewers, image_url, source_id
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            ON CONFLICT (source, source_id) DO NOTHING
+            RETURNING id
+        """, (
+            data.get('source', 'whatnot'),
+            data.get('title'),
+            data.get('series'),
+            str(data.get('issue')) if data.get('issue') else None,
+            data.get('grade'),
+            data.get('grade_source'),
+            data.get('slab_type'),
+            data.get('variant'),
+            data.get('is_key', False),
+            data.get('price'),
+            data.get('sold_at'),
+            data.get('raw_title'),
+            data.get('seller'),
+            data.get('bids'),
+            data.get('viewers'),
+            data.get('image_url'),
+            source_id
+        ))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return jsonify({'success': True, 'id': result[0]}), 201
+        else:
+            return jsonify({'success': True, 'message': 'Duplicate skipped'}), 200
+            
+    except Exception as e:
+        print(f"Error recording sale: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales/count', methods=['GET', 'OPTIONS'])
+def get_sales_count():
+    """Get total sales count (for extension display)."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        import psycopg2
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cursor = conn.cursor()
+        
+        source = request.args.get('source')
+        if source:
+            cursor.execute("SELECT COUNT(*) FROM market_sales WHERE source = %s", (source,))
+        else:
+            cursor.execute("SELECT COUNT(*) FROM market_sales")
+        
+        count = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'count': count}), 200
+        
+    except Exception as e:
+        print(f"Error getting sales count: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sales/recent', methods=['GET', 'OPTIONS'])
+def get_recent_sales():
+    """Get recent sales for display."""
+    if request.method == 'OPTIONS':
+        return '', 204
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        
+        limit = min(int(request.args.get('limit', 20)), 100)
+        source = request.args.get('source')
+        
+        if source:
+            cursor.execute("""
+                SELECT * FROM market_sales 
+                WHERE source = %s 
+                ORDER BY sold_at DESC 
+                LIMIT %s
+            """, (source, limit))
+        else:
+            cursor.execute("""
+                SELECT * FROM market_sales 
+                ORDER BY sold_at DESC 
+                LIMIT %s
+            """, (limit,))
+        
+        sales = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Convert to JSON-serializable format
+        result = []
+        for sale in sales:
+            sale_dict = dict(sale)
+            # Convert datetime objects to ISO strings
+            if sale_dict.get('sold_at'):
+                sale_dict['sold_at'] = sale_dict['sold_at'].isoformat()
+            if sale_dict.get('created_at'):
+                sale_dict['created_at'] = sale_dict['created_at'].isoformat()
+            result.append(sale_dict)
+        
+        return jsonify({'sales': result, 'count': len(result)}), 200
+        
+    except Exception as e:
+        print(f"Error getting recent sales: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
