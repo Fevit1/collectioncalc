@@ -41,34 +41,32 @@ except ImportError as e:
     search_ebay_sold = None
 
 try:
-    from ebay_oauth import get_auth_url, handle_oauth_callback, get_valid_token, get_ebay_user_info
-    exchange_code = handle_oauth_callback  # alias
+    from ebay_oauth import get_auth_url, exchange_code_for_token, get_user_token, is_user_connected
 except ImportError as e:
     print(f"ebay_oauth import error: {e}")
     get_auth_url = None
-    exchange_code = None
-    handle_oauth_callback = None
-    get_valid_token = None
-    get_ebay_user_info = None
+    exchange_code_for_token = None
+    get_user_token = None
+    is_user_connected = None
 
 try:
-    from ebay_listing import create_ebay_listing, upload_image_to_ebay
+    from ebay_listing import create_listing, upload_image_to_ebay
 except ImportError as e:
     print(f"ebay_listing import error: {e}")
-    create_ebay_listing = None
+    create_listing = None
     upload_image_to_ebay = None
 
 try:
-    from ebay_description import generate_ebay_description
+    from ebay_description import generate_description
 except ImportError as e:
     print(f"ebay_description import error: {e}")
-    generate_ebay_description = None
+    generate_description = None
 
 try:
-    from comic_extraction import extract_comic_from_image
+    from comic_extraction import extract_from_base64
 except ImportError as e:
     print(f"comic_extraction import error: {e}")
-    extract_comic_from_image = None
+    extract_from_base64 = None
 
 # Optional: Anthropic for AI features
 try:
@@ -431,7 +429,7 @@ def api_valuate():
 @require_auth
 @require_approved
 def api_extract():
-    if not extract_comic_from_image:
+    if not extract_from_base64:
         return jsonify({'success': False, 'error': 'Extraction module not available'}), 503
     
     data = request.get_json() or {}
@@ -440,7 +438,7 @@ def api_extract():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
     
-    result = extract_comic_from_image(image_data)
+    result = extract_from_base64(image_data)
     
     if result.get('success'):
         log_api_usage(g.user_id, '/api/extract', 'claude-sonnet-4-20250514',
@@ -497,7 +495,7 @@ def api_ebay_auth():
 
 @app.route('/api/ebay/callback', methods=['GET'])
 def api_ebay_callback():
-    if not exchange_code:
+    if not exchange_code_for_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     
     code = request.args.get('code')
@@ -506,25 +504,27 @@ def api_ebay_callback():
     if not code:
         return jsonify({'success': False, 'error': 'No code provided'}), 400
     
-    result = exchange_code(code, state)
-    
-    if result.get('success'):
+    try:
+        from ebay_oauth import save_user_token
+        token_data = exchange_code_for_token(code)
+        if state:  # state contains user_id
+            save_user_token(state, token_data)
+        
         frontend_url = os.environ.get('FRONTEND_URL', 'https://collectioncalc.com')
         return f'<script>window.location.href = "{frontend_url}?ebay=connected";</script>'
-    else:
-        return jsonify(result), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/api/ebay/status', methods=['GET'])
 @require_auth
 @require_approved
 def api_ebay_status():
-    if not get_valid_token:
+    if not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
-    token = get_valid_token(g.user_id)
-    if token:
-        user_info = get_ebay_user_info(token)
-        return jsonify({'success': True, 'connected': True, 'user': user_info})
+    token_data = get_user_token(str(g.user_id))
+    if token_data and token_data.get('access_token'):
+        return jsonify({'success': True, 'connected': True})
     return jsonify({'success': True, 'connected': False})
 
 
@@ -532,10 +532,15 @@ def api_ebay_status():
 @require_auth
 @require_approved
 def api_generate_description():
-    if not generate_ebay_description:
+    if not generate_description:
         return jsonify({'success': False, 'error': 'Description module not available'}), 503
     data = request.get_json() or {}
-    result = generate_ebay_description(data)
+    result = generate_description(
+        data.get('title', ''),
+        data.get('issue', ''),
+        data.get('grade', 'VF'),
+        data.get('price', 0)
+    )
     if result.get('success'):
         log_api_usage(g.user_id, '/api/ebay/generate-description', 'claude-sonnet-4-20250514',
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
@@ -546,7 +551,7 @@ def api_generate_description():
 @require_auth
 @require_approved
 def api_upload_image():
-    if not upload_image_to_ebay or not get_valid_token:
+    if not upload_image_to_ebay or not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
     image_data = data.get('image')
@@ -554,11 +559,11 @@ def api_upload_image():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data required'}), 400
     
-    token = get_valid_token(g.user_id)
-    if not token:
+    token_data = get_user_token(str(g.user_id))
+    if not token_data or not token_data.get('access_token'):
         return jsonify({'success': False, 'error': 'eBay not connected'}), 401
     
-    result = upload_image_to_ebay(token, image_data)
+    result = upload_image_to_ebay(token_data['access_token'], image_data)
     return jsonify(result)
 
 
@@ -566,13 +571,24 @@ def api_upload_image():
 @require_auth
 @require_approved
 def api_ebay_list():
-    if not create_ebay_listing or not get_valid_token:
+    if not create_listing or not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
-    token = get_valid_token(g.user_id)
-    if not token:
+    
+    token_data = get_user_token(str(g.user_id))
+    if not token_data or not token_data.get('access_token'):
         return jsonify({'success': False, 'error': 'eBay not connected'}), 401
-    result = create_ebay_listing(token, data)
+    
+    result = create_listing(
+        str(g.user_id),
+        data.get('title', ''),
+        data.get('issue', ''),
+        data.get('price', 0),
+        data.get('grade', 'VF'),
+        data.get('description'),
+        data.get('publish', False),
+        data.get('image_urls')
+    )
     return jsonify(result)
 
 
