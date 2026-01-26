@@ -32,12 +32,43 @@ from admin import (
     natural_language_query, get_nlq_history, get_anthropic_usage_summary
 )
 
-# Import existing modules
-from ebay_valuation import get_valuation_with_ebay, search_ebay_sold
-from ebay_oauth import get_auth_url, exchange_code, get_valid_token, get_ebay_user_info
-from ebay_listing import create_ebay_listing, upload_image_to_ebay
-from ebay_description import generate_ebay_description
-from comic_extraction import extract_comic_from_image
+# Import existing modules (with fallbacks for mismatched function names)
+try:
+    from ebay_valuation import get_valuation_with_ebay, search_ebay_sold
+except ImportError as e:
+    print(f"ebay_valuation import error: {e}")
+    get_valuation_with_ebay = None
+    search_ebay_sold = None
+
+try:
+    from ebay_oauth import get_auth_url, handle_oauth_callback, get_valid_token, get_ebay_user_info
+    exchange_code = handle_oauth_callback  # alias
+except ImportError as e:
+    print(f"ebay_oauth import error: {e}")
+    get_auth_url = None
+    exchange_code = None
+    handle_oauth_callback = None
+    get_valid_token = None
+    get_ebay_user_info = None
+
+try:
+    from ebay_listing import create_ebay_listing, upload_image_to_ebay
+except ImportError as e:
+    print(f"ebay_listing import error: {e}")
+    create_ebay_listing = None
+    upload_image_to_ebay = None
+
+try:
+    from ebay_description import generate_ebay_description
+except ImportError as e:
+    print(f"ebay_description import error: {e}")
+    generate_ebay_description = None
+
+try:
+    from comic_extraction import extract_comic_from_image
+except ImportError as e:
+    print(f"comic_extraction import error: {e}")
+    extract_comic_from_image = None
 
 # Optional: Anthropic for AI features
 try:
@@ -372,6 +403,9 @@ def api_nlq():
 @require_auth
 @require_approved
 def api_valuate():
+    if not get_valuation_with_ebay:
+        return jsonify({'success': False, 'error': 'Valuation module not available'}), 503
+    
     data = request.get_json() or {}
     title = data.get('title', '')
     issue = data.get('issue', '')
@@ -397,6 +431,9 @@ def api_valuate():
 @require_auth
 @require_approved
 def api_extract():
+    if not extract_comic_from_image:
+        return jsonify({'success': False, 'error': 'Extraction module not available'}), 503
+    
     data = request.get_json() or {}
     image_data = data.get('image')
     
@@ -452,12 +489,17 @@ def api_messages():
 @require_auth
 @require_approved
 def api_ebay_auth():
+    if not get_auth_url:
+        return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     url = get_auth_url(g.user_id)
     return jsonify({'success': True, 'url': url})
 
 
 @app.route('/api/ebay/callback', methods=['GET'])
 def api_ebay_callback():
+    if not exchange_code:
+        return jsonify({'success': False, 'error': 'eBay module not available'}), 503
+    
     code = request.args.get('code')
     state = request.args.get('state')
     
@@ -477,6 +519,8 @@ def api_ebay_callback():
 @require_auth
 @require_approved
 def api_ebay_status():
+    if not get_valid_token:
+        return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     token = get_valid_token(g.user_id)
     if token:
         user_info = get_ebay_user_info(token)
@@ -488,6 +532,8 @@ def api_ebay_status():
 @require_auth
 @require_approved
 def api_generate_description():
+    if not generate_ebay_description:
+        return jsonify({'success': False, 'error': 'Description module not available'}), 503
     data = request.get_json() or {}
     result = generate_ebay_description(data)
     if result.get('success'):
@@ -500,6 +546,8 @@ def api_generate_description():
 @require_auth
 @require_approved
 def api_upload_image():
+    if not upload_image_to_ebay or not get_valid_token:
+        return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
     image_data = data.get('image')
     
@@ -518,6 +566,8 @@ def api_upload_image():
 @require_auth
 @require_approved
 def api_ebay_list():
+    if not create_ebay_listing or not get_valid_token:
+        return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
     token = get_valid_token(g.user_id)
     if not token:
