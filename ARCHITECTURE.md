@@ -25,6 +25,16 @@
 │  │  │  Login    │  │   View    │                                   │   │
 │  │  └───────────┘  └───────────┘                                   │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │              Whatnot Valuator (Chrome Extension)                 │   │
+│  │                     v2.40.1 - Live Auctions                      │   │
+│  │                                                                   │   │
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐    │   │
+│  │  │  Apollo   │  │  Claude   │  │   Key     │  │   Sale    │    │   │
+│  │  │  Reader   │  │  Vision   │  │ Database  │  │  Tracker  │    │   │
+│  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     │ HTTPS
@@ -34,7 +44,7 @@
 │                   collectioncalc.onrender.com                           │
 │                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                      Flask API (wsgi.py v3.7)                    │   │
+│  │                      Flask API (wsgi.py v3.8)                    │   │
 │  │                                                                   │   │
 │  │  VALUATION                                                        │   │
 │  │  /api/valuate          - Get comic valuation (3 tiers)           │   │
@@ -45,6 +55,11 @@
 │  │  /api/extract          - Extract single comic from photo         │   │
 │  │  /api/batch/process    - Extract + Valuate + Describe (batch)    │   │
 │  │  /api/batch/list       - Upload images + Create drafts (batch)   │   │
+│  │                                                                   │   │
+│  │  MARKET SALES (Whatnot Integration) 🆕                           │   │
+│  │  /api/sales/record     - Record sale from extension              │   │
+│  │  /api/sales/count      - Get total sales count                   │   │
+│  │  /api/sales/recent     - Get recent sales                        │   │
 │  │                                                                   │   │
 │  │  EBAY INTEGRATION                                                 │   │
 │  │  /api/ebay/auth        - Start OAuth flow                        │   │
@@ -108,13 +123,13 @@
 │  │  │ - samples   │  │ - refresh   │  │ - verified  │              │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘              │   │
 │  │                                                                   │   │
-│  │  ┌─────────────┐  ┌─────────────┐                               │   │
-│  │  │ collections │  │ password_   │                               │   │
-│  │  │             │  │ resets      │                               │   │
-│  │  │ - user_id   │  │             │                               │   │
-│  │  │ - comic data│  │ - token     │                               │   │
-│  │  │ - created   │  │ - expires   │                               │   │
-│  │  └─────────────┘  └─────────────┘                               │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │   │
+│  │  │ collections │  │ password_   │  │market_sales │ 🆕          │   │
+│  │  │             │  │ resets      │  │             │              │   │
+│  │  │ - user_id   │  │             │  │ - source    │              │   │
+│  │  │ - comic data│  │ - token     │  │ - price     │              │   │
+│  │  │ - created   │  │ - expires   │  │ - sold_at   │              │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘              │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                     │                               │
@@ -137,6 +152,79 @@
          │ - Email verify    │
          │ - Password reset  │
          └───────────────────┘
+```
+
+---
+
+## Whatnot Valuator (Chrome Extension)
+
+**Purpose:** Real-time comic valuation during live Whatnot auctions + market data acquisition.
+
+The Whatnot Valuator extension serves two critical functions:
+1. **User Value:** Shows FMV during live auctions so users know what to bid
+2. **Data Acquisition:** Captures actual sale prices (unique competitive moat)
+
+### Extension Architecture
+
+```
+whatnot-valuator/
+├── manifest.json          # v2.40.1, MV3 extension config
+├── content.js             # Main overlay, auction monitoring, sale capture
+├── background.js          # Service worker, badge updates
+├── inject.js              # Apollo GraphQL cache reader (injected)
+├── styles.css             # Overlay styling
+├── popup.html/js          # Extension popup with stats
+├── lib/
+│   ├── apollo-reader.js   # Reads Whatnot's Apollo cache for listing data
+│   ├── normalizer.js      # Parses comic titles → series/issue/grade
+│   ├── valuator.js        # Static FMV database (deprecated, kept for reference)
+│   ├── sale-tracker.js    # Local sale storage
+│   ├── collectioncalc.js  # CollectionCalc API client
+│   ├── vision.js          # Claude Vision API for comic scanning
+│   └── audio.js           # Audio transcription (built but hidden)
+└── data/
+    └── keys.js            # Key issue database (500+ keys) + lookupKeyInfo()
+```
+
+### Data Flow: Whatnot → CollectionCalc
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    WHATNOT LIVE AUCTION                          │
+│                                                                   │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐   │
+│  │  Apollo Cache │───▶│ Content Script│───▶│  Sale Tracker │   │
+│  │  (Listing ID, │    │ (Monitors DOM │    │ (Debounce,    │   │
+│  │   Title, Bids)│    │  for "Sold")  │    │  Validation)  │   │
+│  └───────────────┘    └───────────────┘    └───────────────┘   │
+│                              │                      │            │
+│                              ▼                      │            │
+│                    ┌───────────────┐               │            │
+│                    │ Claude Vision │               │            │
+│                    │ (Auto-scan    │               │            │
+│                    │  comic cover) │               │            │
+│                    └───────────────┘               │            │
+│                              │                      │            │
+│                              └──────────────────────┘            │
+│                                        │                         │
+└────────────────────────────────────────│─────────────────────────┘
+                                         │
+                                         ▼
+                          POST /api/sales/record
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    COLLECTIONCALC DATABASE                       │
+│                                                                  │
+│  market_sales (618+ records as of Jan 25, 2026)                 │
+│  ┌──────────┬────────┬───────┬───────┬───────────┬───────────┐ │
+│  │ source   │ title  │ issue │ grade │   price   │  sold_at  │ │
+│  ├──────────┼────────┼───────┼───────┼───────────┼───────────┤ │
+│  │ whatnot  │ ASM    │ 300   │ 9.4   │   $485    │ 2026-01-25│ │
+│  │ whatnot  │ Batman │ 1     │ raw   │   $140    │ 2026-01-24│ │
+│  │ ebay_auc │ X-Men  │ 1     │ 8.0   │  $1,200   │ 2026-01-20│ │
+│  └──────────┴────────┴───────┴───────┴───────────┴───────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -178,209 +266,151 @@ User uploads photos of comics (1-20)
 │ (Extract + Valuate + Describe)    │
 └───────────────────────────────────┘
                 │
-    ┌───────────┴───────────┐
-    │   For each comic:     │
-    │                       │
-    ▼                       │
-┌─────────────────┐         │
-│ Extract         │         │
-│ (Claude Vision) │         │
-│ - Title         │         │
-│ - Issue #       │         │
-│ - Grade         │         │
-│ - Edition       │         │
-│ - Publisher     │         │
-│ - Year          │         │
-│ - Signatures    │  NEW    │
-└─────────────────┘         │
-         │                  │
-         ▼                  │
-┌─────────────────┐         │
-│ Valuate         │         │
-│ (Cache or API)  │         │
-│ - Quick Sale    │         │
-│ - Fair Value    │         │
-│ - High End      │         │
-└─────────────────┘         │
-         │                  │
-         ▼                  │
-┌─────────────────┐         │
-│ Describe        │         │
-│ (Claude)        │         │
-│ - 300 char max  │         │
-│ - Key issues    │         │
-└─────────────────┘         │
-         │                  │
-         └──────────────────┘
-                │
                 ▼
-        Return results to user
-        (extraction, valuations, descriptions)
+┌───────────────────────────────────┐
+│ Comic Extraction (Claude Vision)  │
+│ - Title, Issue, Grade             │
+│ - Publisher, Year                 │
+│ - Newsstand/Direct                │
+│ - Variant detection               │
+│ - Signature detection             │
+└───────────────────────────────────┘
                 │
                 ▼
 ┌───────────────────────────────────┐
-│ USER REVIEWS & APPROVES           │
-│ - Edit grades, issue numbers      │
-│ - Select price tier (Fair default)│
-│ - Click "List on eBay"            │
+│ User Reviews/Edits Extraction     │
+│ (Can correct AI mistakes)         │
+└───────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────┐
+│ Valuation (eBay + Whatnot data)   │
+│ - Quick Sale                      │
+│ - Fair Value (default)            │
+│ - High End                        │
+└───────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────┐
+│ AI Description Generation         │
+│ (300 char, mobile-optimized)      │
 └───────────────────────────────────┘
                 │
                 ▼
 ┌───────────────────────────────────┐
 │ /api/batch/list                   │
-│ (Upload Images + Create Drafts)   │
+│ - Upload images to eBay           │
+│ - Create draft listings           │
 └───────────────────────────────────┘
                 │
-    ┌───────────┴───────────┐
-    │   For each comic:     │
-    │                       │
-    ▼                       │
-┌─────────────────┐         │
-│ Upload Image    │         │
-│ (eBay Picture   │         │
-│  Services)      │         │
-└─────────────────┘         │
-         │                  │
-         ▼                  │
-┌─────────────────┐         │
-│ Create Listing  │         │
-│ (Draft mode)    │         │
-│ - Inventory item│         │
-│ - Offer         │         │
-│ - Skip publish  │         │
-└─────────────────┘         │
-         │                  │
-         └──────────────────┘
-                │
                 ▼
-        Return draft URLs
-        (user publishes when ready)
+        User reviews drafts
+        in eBay Seller Hub
+        and publishes when ready
 ```
 
 ---
 
-## Data Flow: Single Valuation
+## Data Flow: Unified FMV Engine (Planned)
+
+Future architecture combining multiple data sources:
 
 ```
-User enters comic info
-         │
-         ▼
-┌─────────────────┐
-│ Check Cache     │──────────────────┐
-│ (48hr valid)    │                  │ Cache HIT
-└─────────────────┘                  │
-         │ Cache MISS                │
-         ▼                           │
-┌─────────────────┐                  │
-│ Anthropic API   │                  │
-│ Web Search      │                  │
-│ (eBay prices)   │                  │
-└─────────────────┘                  │
-         │                           │
-         ▼                           │
-┌─────────────────┐                  │
-│ Parse & Weight  │                  │
-│ - Recency       │                  │
-│ - Volume        │                  │
-│ - Grade match   │                  │
-└─────────────────┘                  │
-         │                           │
-         ▼                           │
-┌─────────────────┐                  │
-│ Calculate Tiers │                  │
-│ - Quick: 15th   │                  │
-│ - Fair: median  │                  │
-│ - High: 85th    │                  │
-└─────────────────┘                  │
-         │                           │
-         ▼                           │
-┌─────────────────┐                  │
-│ Cache Result    │◄─────────────────┘
-│ (48hr TTL)      │
-└─────────────────┘
-         │
-         ▼
-    Return to user
-```
-
----
-
-## Data Flow: Photo Extraction
-
-```
-User uploads photo
-         │
-         ▼
-┌─────────────────────────┐
-│ Image Processing        │
-│ (Frontend - app.js)     │
-│                         │
-│ 1. Read EXIF orientation│
-│ 2. Auto-rotate if needed│
-│ 3. Scale to 1200-2400px │
-│ 4. Compress to <5MB     │
-└─────────────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ /api/messages           │
-│ (Anthropic Proxy)       │
-│                         │
-│ Claude Vision extracts: │
-│ - Title                 │
-│ - Issue # (multi-loc)   │
-│ - Publisher             │
-│ - Year                  │
-│ - Grade                 │
-│ - Defects               │
-│ - Signature detected?   │
-│ - Signature analysis    │
-└─────────────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ If signature_detected:  │
-│                         │
-│ - List all creators     │
-│ - Confidence % each     │
-│ - Most likely signer    │
-│ - Characteristics       │
-│                         │
-│ Auto-check "Signed" box │
-│ Auto-fill signer name   │
-└─────────────────────────┘
-         │
-         ▼
-    Display for user review
+┌─────────────────────────────────────────────────────────────────┐
+│                      DATA SOURCES                                │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │   Whatnot   │  │    eBay     │  │PriceCharting│             │
+│  │   (Live)    │  │ (Completed) │  │ (Aggregated)│             │
+│  │             │  │             │  │             │             │
+│  │  618+ sales │  │ Web search  │  │   Future    │             │
+│  │  Real-time  │  │ 48hr cache  │  │   $200/mo   │             │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘             │
+│         │                │                │                     │
+│         └────────────────┴────────────────┘                     │
+│                          │                                      │
+│                          ▼                                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                 UNIFIED FMV ENGINE                       │   │
+│  │                                                          │   │
+│  │  1. Source Weighting                                     │   │
+│  │     - Whatnot: 1.0x (real auction, true price discovery) │   │
+│  │     - eBay Auction: 0.9x (competitive bidding)           │   │
+│  │     - eBay BIN: 0.7x (asking price, not sold)            │   │
+│  │                                                          │   │
+│  │  2. Recency Weighting                                    │   │
+│  │     - This week: 100%                                    │   │
+│  │     - 1-2 weeks: 85%                                     │   │
+│  │     - 2-4 weeks: 70%                                     │   │
+│  │     - 1-2 months: 50%                                    │   │
+│  │     - 2-3 months: 30%                                    │   │
+│  │                                                          │   │
+│  │  3. Grade Matching                                       │   │
+│  │     - Exact grade: 100%                                  │   │
+│  │     - ±0.5 grade: 80%                                    │   │
+│  │     - ±1.0 grade: 50%                                    │   │
+│  │                                                          │   │
+│  │  4. Confidence Scoring                                   │   │
+│  │     - 5+ recent sales = High                             │   │
+│  │     - 3-4 sales = Medium                                 │   │
+│  │     - 1-2 sales = Low                                    │   │
+│  │     - 0 sales = No data                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                          │                                      │
+│                          ▼                                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    OUTPUT                                │   │
+│  │                                                          │   │
+│  │  GET /api/fmv?title=Amazing+Spider-Man&issue=300&grade=9.4 │
+│  │                                                          │   │
+│  │  {                                                       │   │
+│  │    "quick_sale": 420,                                    │   │
+│  │    "fair_value": 485,                                    │   │
+│  │    "high_end": 550,                                      │   │
+│  │    "confidence": "high",                                 │   │
+│  │    "sources": {                                          │   │
+│  │      "whatnot": 3,                                       │   │
+│  │      "ebay": 8                                           │   │
+│  │    }                                                     │   │
+│  │  }                                                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## API Endpoints Reference
+## API Endpoints Summary
 
 ### Valuation
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/valuate` | POST | Get three-tier valuation for a comic |
+| `/api/valuate` | POST | Get three-tier valuation |
 | `/api/lookup` | GET | Database lookup (no AI) |
-| `/api/messages` | POST | Proxy to Anthropic (frontend extraction) |
+| `/api/messages` | POST | Anthropic proxy for frontend |
 
 ### QuickList (Batch)
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/extract` | POST | Extract single comic info from photo |
-| `/api/batch/process` | POST | Extract + Valuate + Describe (1-20 comics) |
-| `/api/batch/list` | POST | Upload images + Create drafts (1-20 comics) |
+| `/api/extract` | POST | Extract single comic from photo |
+| `/api/batch/process` | POST | Extract + Valuate + Describe (batch) |
+| `/api/batch/list` | POST | Upload images + Create drafts |
 
-### eBay Integration
+### Market Sales (Whatnot Integration) 🆕
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sales/record` | POST | Record sale from extension |
+| `/api/sales/count` | GET | Get total sales count |
+| `/api/sales/recent` | GET | Get recent sales |
+
+### eBay
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/ebay/auth` | GET | Start OAuth flow |
 | `/api/ebay/callback` | GET | OAuth callback |
-| `/api/ebay/status` | GET | Check connection status |
-| `/api/ebay/list` | POST | Create listing (supports `publish`, `image_urls`) |
-| `/api/ebay/upload-image` | POST | Upload image to eBay Picture Services |
-| `/api/ebay/generate-description` | POST | Generate AI description |
+| `/api/ebay/status` | GET | Check connection |
+| `/api/ebay/list` | POST | Create listing (draft/live) |
+| `/api/ebay/upload-image` | POST | Upload to Picture Services |
+| `/api/ebay/generate-description` | POST | AI description |
 | `/api/ebay/disconnect` | POST | Remove eBay connection |
 
 ### User Auth
@@ -410,7 +440,7 @@ User uploads photo
 ## Database Schema
 
 ### search_cache
-Stores valuation results for 48-hour caching.
+Stores eBay valuation results for 48-hour caching.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -423,6 +453,38 @@ Stores valuation results for 48-hour caching.
 | sample_count | INTEGER | Number of sales found |
 | samples | JSONB | Raw sale data |
 | cached_at | TIMESTAMP | When cached |
+
+### market_sales 🆕
+Stores actual sales from all sources (Whatnot, eBay, etc.).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| source | TEXT | 'whatnot', 'ebay_auction', 'ebay_bin' |
+| title | TEXT | Comic title |
+| series | TEXT | Series name |
+| issue | TEXT | Issue number (TEXT for "1A" variants) |
+| grade | NUMERIC | Numeric grade (9.8, 9.4, etc.) |
+| grade_source | TEXT | 'cgc', 'cbcs', 'raw', 'vision' |
+| slab_type | TEXT | 'CGC', 'CBCS', 'PGX', 'raw' |
+| variant | TEXT | 'newsstand', '35¢ price variant', etc. |
+| is_key | BOOLEAN | Is this a key issue? |
+| price | NUMERIC | Sale price |
+| sold_at | TIMESTAMPTZ | When sold |
+| created_at | TIMESTAMPTZ | When recorded |
+| raw_title | TEXT | Original title from source |
+| seller | TEXT | Seller username |
+| bids | INTEGER | Number of bids (Whatnot) |
+| viewers | INTEGER | Viewer count (Whatnot) |
+| image_url | TEXT | Image of the comic |
+| source_id | TEXT | External ID for deduplication |
+
+**Indexes:**
+- `idx_market_sales_lookup ON (series, issue, grade)` - FMV queries
+- `idx_market_sales_recency ON (sold_at DESC)` - Recent sales
+- `idx_market_sales_source ON (source)` - Filter by source
+
+**Current Data:** 618+ records (migrated from Supabase Jan 25, 2026)
 
 ### ebay_tokens
 Stores OAuth tokens for eBay API access.
@@ -474,6 +536,25 @@ Stores password reset tokens.
 
 ---
 
+## Database Connection
+
+### Production (Render PostgreSQL)
+| Field | Value |
+|-------|-------|
+| Host | `dpg-d5knv4koud1c73dt21pg-a.oregon-postgres.render.com` |
+| Port | `5432` |
+| Database | `collectioncalc_db` |
+| Username | `collectioncalc_db_user` |
+| Password | (stored in Render dashboard) |
+
+### DBeaver Setup
+- Use **Main** connection tab (not URL)
+- Enter individual fields
+- SSL required
+- Test connection before saving
+
+---
+
 ## External Services
 
 ### Anthropic API
@@ -485,6 +566,7 @@ Stores password reset tokens.
   - Photo analysis (comic extraction)
   - Description generation
   - Signature analysis
+  - Whatnot Vision scanning
 
 **Model Comparison (tested Session 7):**
 | Capability | Sonnet | Opus |
@@ -557,7 +639,7 @@ Stores password reset tokens.
 ### Backend (Render)
 | File | Purpose |
 |------|---------|
-| `wsgi.py` | Flask routes (v3.7) |
+| `wsgi.py` | Flask routes (v3.8) |
 | `ebay_valuation.py` | Valuation logic, caching |
 | `ebay_oauth.py` | eBay OAuth flow |
 | `ebay_listing.py` | Listing creation, image upload |
@@ -565,6 +647,15 @@ Stores password reset tokens.
 | `comic_extraction.py` | Backend extraction via Claude vision |
 | `auth.py` | User auth (signup, login, JWT, password reset) |
 
+### Whatnot Valuator (Chrome Extension)
+| File | Purpose |
+|------|---------|
+| `manifest.json` | Extension config (v2.40.1) |
+| `content.js` | Main overlay, sale detection |
+| `lib/collectioncalc.js` | API client for sales |
+| `lib/vision.js` | Claude Vision scanning |
+| `data/keys.js` | 500+ key issue database |
+
 ---
 
-*Last updated: January 22, 2026 (Session 7)*
+*Last updated: January 25, 2026 (Session 8 - Whatnot integration, market_sales table, unified FMV architecture)*

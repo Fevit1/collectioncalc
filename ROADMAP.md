@@ -16,6 +16,8 @@ Comics are the first vertical. Future expansion includes:
 
 Our goal: Build the most accurate, user-informed valuation tool by combining real market data with community feedback - across ALL collectibles.
 
+**Competitive Moat:** Live auction data from Whatnot Valuator extension gives us unique, real-time price discovery data that competitors don't have.
+
 ---
 
 ## Completed ✅
@@ -151,6 +153,49 @@ Refine the batch experience.
 - Frontend: Modal-based login/signup forms
 - Storage: PostgreSQL (same DB as valuations)
 
+### Phase 2.89: Frontend Code Refactor ✅ (January 22, 2026)
+Split monolithic index.html for maintainability.
+
+- [x] Split into 3 files:
+  - `index.html` (~310 lines) - HTML structure only
+  - `styles.css` (~1350 lines) - All CSS
+  - `app.js` (~2030 lines) - All JavaScript
+- [x] Same deployment process (git push; purge)
+- [x] Fixes file truncation issues during editing
+
+### Phase 2.9: Whatnot Integration ✅ (January 25, 2026) 🆕
+**MILESTONE: Live auction data pipeline operational!**
+
+Chrome extension captures real-time Whatnot sales → CollectionCalc database.
+
+- [x] Whatnot Valuator Chrome extension (v2.40.1)
+- [x] Apollo GraphQL cache reader (extracts listing data)
+- [x] Claude Vision auto-scanning (identifies comics from video)
+- [x] Sale detection with 30-second debounce
+- [x] Price-drop detection for new item signals
+- [x] Key issue database (500+ keys) with local lookup
+- [x] `market_sales` table created in PostgreSQL
+- [x] API endpoints: `/api/sales/record`, `/api/sales/count`, `/api/sales/recent`
+- [x] Migrated 618 historical sales from Supabase → Render
+- [x] Extension writes directly to CollectionCalc (Supabase removed)
+
+**Extension Architecture:**
+```
+whatnot-valuator/
+├── content.js          # Main overlay, auction monitoring
+├── lib/
+│   ├── apollo-reader.js   # Reads Whatnot's GraphQL cache
+│   ├── collectioncalc.js  # API client (replaced supabase.js)
+│   ├── vision.js          # Claude Vision API scanning
+│   └── keys.js            # 500+ key issue database
+```
+
+**Why This Matters:**
+- **Unique data**: Live auction prices = true price discovery (not asking prices)
+- **Competitive moat**: Competitors rely on completed eBay sales only
+- **Accurate FMV**: Real bidding behavior, not list prices
+- **Growing dataset**: 618+ sales and counting
+
 ---
 
 ## In Progress 🔨
@@ -183,94 +228,60 @@ Further improve AI's ability to read comic covers.
 
 **Known Limitation:** Signature detection requires high-quality images (~3000px). Facebook/Messenger-compressed images (~500px) are too degraded. Tell testers to EMAIL original photos.
 
-### Phase 2.89: Frontend Code Refactor ✅ (January 22, 2026)
-Split monolithic index.html for maintainability.
-
-- [x] Split into 3 files:
-  - `index.html` (~310 lines) - HTML structure only
-  - `styles.css` (~1350 lines) - All CSS
-  - `app.js` (~2030 lines) - All JavaScript
-- [x] Same deployment process (git push; purge)
-- [x] Fixes file truncation issues during editing
-
 ---
 
 ## Planned 📋
 
-### Phase 2.9: Cache Refresh Strategy
-Keep valuations fresh without breaking the bank.
+### Phase 3: Unified FMV Engine 🆕
+Combine Whatnot + eBay data with intelligent weighting.
 
-| Phase | Trigger | Cost Impact |
-|-------|---------|-------------|
-| **Now** | 48-hour expiration, refresh on next search | $0 extra |
-| **Beta** | Hybrid: serve stale, background refresh if >7 days | $0 extra |
-| **Production** | Weekly background refresh for active comics | ~$80-165/week |
-| **Scale** | Use Haiku for bulk refreshes | ~$40/week |
+**Architecture:**
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│   Whatnot   │  │    eBay     │  │PriceCharting│
+│   (Live)    │  │ (Completed) │  │ (Aggregated)│
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       └────────────────┴────────────────┘
+                        │
+                        ▼
+            ┌───────────────────────┐
+            │   UNIFIED FMV ENGINE  │
+            │                       │
+            │  - Source weighting   │
+            │  - Recency decay      │
+            │  - Grade matching     │
+            │  - Confidence scoring │
+            └───────────────────────┘
+```
 
-- [ ] Implement hybrid stale-while-revalidate
-- [ ] Track "active" comics (searched in last 30 days)
-- [ ] Background job infrastructure (when revenue supports)
-- [ ] Model selection for refresh (Sonnet vs Haiku)
+**Implementation:**
+- [ ] `GET /api/fmv?title=X&issue=Y&grade=Z` endpoint
+- [ ] Query `market_sales` table for Whatnot data
+- [ ] Query `search_cache` for eBay data
+- [ ] Source weighting: Whatnot 1.0x, eBay Auction 0.9x, eBay BIN 0.7x
+- [ ] Steeper recency decay (recent sales weighted higher)
+- [ ] Update extension to call unified FMV
 
----
+### Phase 4: Visual Tuning Dashboard
+Admin interface for FMV model parameters.
 
-### Phase 2.95: UI Improvements
-Better experience for different use cases.
-
-- [ ] Bulk results table view (for multi-comic valuations)
-- [ ] Advanced Options toggle:
-  - CGC/CBCS certified checkbox + grade (e.g., 9.8)
-  - Autographed checkbox + signer name
-  - Newsstand vs Direct edition
-  - Variant cover description
-- [ ] Mobile-responsive refinements
-- [ ] User tone preference for descriptions (professional/casual)
-- [ ] Fuzzy matching for misspelled titles (save API costs, improve UX)
-
----
-
-### Phase 2.96: eBay Listing Enhancements
-Polish the listing experience.
-
-- [ ] Description caching (avoid regenerating same comic)
-- [ ] Best Offer support (enable/disable, auto-accept/decline thresholds)
-- [ ] Bulk listing from multi-comic valuations ("List all at Fair Value")
-- [ ] Batch listing groups (e.g., "List all 12 issues of Secret Wars")
-- [ ] Video upload support
-- [ ] Promoted listings option (commission boost)
-- [ ] eBay account deletion notification endpoint (required before other users)
-- [ ] Host our own placeholder image (not external URL)
-
----
-
-### Phase 3: Admin Tuning Dashboard
-Owner controls for model refinement.
-
-- [ ] Web dashboard for adjusting weights
-  - Recency decay curve
-  - Volume thresholds
-  - Variance tolerance
-- [ ] Preview changes across sample comics
-- [ ] A/B testing framework
+- [ ] Web UI for adjusting weights
+- [ ] Sliders for recency decay curve
+- [ ] Sliders for source weights
+- [ ] Live preview of price impact
+- [ ] A/B testing support
 - [ ] Rollback capability
+- [ ] Audit log of changes
 
-### Phase 4: User Adjustments
-Let users provide feedback and personalize.
+### Phase 5: Self-Improving Model
+AI recommends weight adjustments based on prediction accuracy.
 
-- [ ] "This seems high/low" feedback buttons
-- [ ] User adjustment history
-- [ ] Optional: Personal weight preferences
-- [ ] Track all adjustments as training data
-
-### Phase 5: Model Learning
-Use community data to improve base model.
-
-- [ ] Analyze adjustment patterns
-  - "Users consistently lower VG prices by 15%"
-  - "Golden Age books undervalued by 20%"
-- [ ] Generate proposed model changes
-- [ ] Admin approval workflow
-- [ ] Version history for model changes
+- [ ] Collect prediction vs actual sale metrics
+- [ ] Calculate prediction error over time
+- [ ] AI analyzes patterns and suggests weight changes
+- [ ] Human approval workflow
+- [ ] Eventually: auto-tune within guardrails
 
 ### Phase 5.5: Price Database Integration
 License professional price data for faster, more accurate valuations.
@@ -330,8 +341,14 @@ Forecast future values based on market momentum.
 - [ ] User watchlists with price alerts
 - [ ] Weekly "market movers" email digest
 
-### Phase 7: Photo Upload (Now part of QuickList)
-~~AI-powered comic identification.~~ **Moved to Phase 2.85**
+### Phase 7: Friend Beta Prep 🆕
+Get ready for external testers.
+
+- [ ] Analytics (track usage patterns)
+- [ ] Feedback mechanism (Report Issue link)
+- [ ] Landing page copy explains what it does
+- [ ] Error states handled gracefully
+- [ ] API key instructions for Whatnot extension
 
 ### Phase 8: Advanced Features
 - [ ] Price history charts
@@ -366,7 +383,7 @@ Extend platform to additional verticals.
 
 | Phase | Monthly Cost | Stack |
 |-------|--------------|-------|
-| MVP (Current) | ~$7 | Render Starter + PostgreSQL |
+| MVP (Current) | ~$7 | Render Starter + PostgreSQL Basic |
 | Beta | ~$15-25 | + Anthropic Tier 2 |
 | Production | ~$50-100 | When revenue justifies |
 
@@ -375,6 +392,7 @@ Extend platform to additional verticals.
 - **Capacity:** 20-50 comics/minute comfortable, 100+ may need pacing
 - **Cost per valuation:** ~$0.01-0.02 (with caching)
 - **Cost per QuickList (extract+valuate+describe):** ~$0.02-0.03
+- **Cost per Whatnot Vision scan:** ~$0.01-0.03
 
 ### Premium Tier Opportunity 💎 (Discovered Session 7)
 **Opus model provides significantly better signature detection.**
@@ -414,10 +432,12 @@ Extend platform to additional verticals.
 - **Confidence calibration** - High confidence = accurate predictions
 - **Extraction accuracy** - % of issue numbers read correctly
 - **Signature detection accuracy** - % of signatures detected (needs quality images)
+- **Whatnot prediction accuracy** - FMV vs actual Whatnot sale price 🆕
 
 ### Coverage Metrics
 - **DB hit rate** - % of lookups found in database vs requiring AI search
 - **Collectible verticals** - Number of active verticals (target: 5+ by 2027)
+- **Whatnot sales captured** - 618+ and growing 🆕
 
 ### Engagement Metrics
 - **Return users** - Users coming back to value more items
@@ -425,6 +445,7 @@ Extend platform to additional verticals.
 - **Feedback submissions** - Community corrections submitted
 - **eBay listings created** - Conversion from valuation to listing
 - **QuickList completions** - Users completing full photo-to-listing flow
+- **Whatnot auction sessions** - Active extension users 🆕
 
 ### Business Metrics
 - **Cost per valuation** - Target: <$0.01 average (with DB caching)
@@ -432,19 +453,32 @@ Extend platform to additional verticals.
 
 ---
 
+## Data Sources
+
+| Source | Type | Unique Value | Status |
+|--------|------|--------------|--------|
+| Whatnot Live | Live auction | True price discovery | ✅ 618+ sales |
+| eBay Completed | Auction + BIN | Highest volume | ✅ Web search + cache |
+| eBay Active BIN | Current listings | Price ceiling | ✅ In valuations |
+| PriceCharting | Aggregated | Historical trends | 📋 Planned ($200/mo) |
+| GoCollect | CGC census | Population data | 📋 Planned |
+
+---
+
 ## Version History
 
 | Date | Version | Changes |
 |------|---------|---------|
-| Jan 22, 2026 | 2.89.1 | 💎 **Opus Premium tier tested!** Signature detection works with Opus (detects existence, user selects signer), code ready for future Premium pricing, equal creator weighting |
-| Jan 22, 2026 | 2.89.0 | 📁 **Frontend 3-file split!** index.html/styles.css/app.js, signature confidence UI, improved issue # detection, EXIF rotation (needs debugging) |
+| Jan 25, 2026 | 2.90.0 | 🔗 **Whatnot Integration!** market_sales table, /api/sales/* endpoints, 618 sales migrated, extension v2.40.1 |
+| Jan 22, 2026 | 2.89.1 | 💎 **Opus Premium tier tested!** Signature detection works with Opus, code ready for Premium pricing |
+| Jan 22, 2026 | 2.89.0 | 📁 **Frontend 3-file split!** index.html/styles.css/app.js, signature confidence UI, improved issue # detection |
 | Jan 21, 2026 | 2.88.0 | 🔐 **User auth & collections!** Email/password signup, JWT tokens, save comics, Resend email integration |
-| Jan 21, 2026 | 2.86.3 | 🐛 **Cache key fix!** Grade now included in cache key - different grades get different valuations |
-| Jan 21, 2026 | 2.86.2 | 📋 **Visual condition assessment!** Defect detection, signature detection (Stan Lee ✅), signed copy checkbox, signed comics valued separately |
-| Jan 21, 2026 | 2.86.1 | GDPR endpoint, smart image compression, thumbnails (extraction/results/preview), mobile fixes, `purge` command |
-| Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1 (issue# vs price), header sync fix |
-| Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction, batch endpoints, UI overhaul |
-| Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies, package dimensions |
+| Jan 21, 2026 | 2.86.3 | 🐛 **Cache key fix!** Grade now included in cache key |
+| Jan 21, 2026 | 2.86.2 | 📋 **Visual condition assessment!** Defect detection, signature detection |
+| Jan 21, 2026 | 2.86.1 | GDPR endpoint, smart image compression, thumbnails, mobile fixes |
+| Jan 20, 2026 | 2.85.1 | Sort options, Vision Guide v1, header sync fix |
+| Jan 20, 2026 | 2.85.0 | 🚀 **QuickList batch processing!** Draft mode, photo upload, backend extraction |
+| Jan 19, 2026 | 2.8.0 | 🎉 **First live eBay listing!** Production OAuth, business policies |
 | Jan 18, 2026 | 2.7.5 | AI descriptions, listing preview modal, Anthropic Tier 2 upgrade |
 | Jan 17, 2026 | 2.7.0 | eBay OAuth (sandbox), listing buttons |
 | Jan 15, 2026 | 2.5.0 | Three-tier pricing, PostgreSQL migration |
@@ -462,4 +496,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 22, 2026 (Session 7 - 3-file split, signature confidence, EXIF rotation)*
+*Last updated: January 25, 2026 (Session 8 - Whatnot integration, market_sales table, unified FMV plans)*

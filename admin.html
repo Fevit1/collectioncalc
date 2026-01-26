@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CollectionCalc</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .admin-badge {
+            background: var(--warning);
+            color: black;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px; }
+        .stat-value { font-size: 2rem; font-weight: 700; }
+        .stat-sub { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.error { color: var(--error); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* NLQ Section */
+        .nlq-input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .nlq-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .nlq-input:focus { outline: none; border-color: var(--primary); }
+        .nlq-input::placeholder { color: var(--text-muted); }
+
+        .btn {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--error); }
+        .btn-secondary { background: var(--bg-card-hover); border: 1px solid var(--border); }
+
+        .nlq-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .suggestion-chip {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .suggestion-chip:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .nlq-result {
+            background: var(--bg-dark);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .nlq-sql {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .data-table tr:hover td { background: var(--bg-card-hover); }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-approved { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .status-admin { background: rgba(99, 102, 241, 0.2); color: var(--primary); }
+
+        .action-btns { display: flex; gap: 8px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-dark);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .tab.active { background: var(--primary); color: white; }
+        .tab:hover:not(.active) { color: var(--text-primary); }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        /* Scrollable table container */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--error); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1 class="logo">CollectionCalc</h1>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            <a href="/app.html" class="back-link">← Back to App</a>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="statUsers">-</div>
+                <div class="stat-sub" id="statUsersSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Approval</div>
+                <div class="stat-value warning" id="statPending">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">API Calls (24h)</div>
+                <div class="stat-value" id="statRequests">-</div>
+                <div class="stat-sub" id="statRequestsSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">API Cost (Month)</div>
+                <div class="stat-value" id="statCost">-</div>
+                <div class="stat-sub" id="statCostSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sales Tracked</div>
+                <div class="stat-value" id="statSales">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Beta Codes</div>
+                <div class="stat-value" id="statCodes">-</div>
+                <div class="stat-sub" id="statCodesSub"></div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="nlq">🔍 Query</button>
+            <button class="tab" data-tab="users">👥 Users</button>
+            <button class="tab" data-tab="codes">🎟️ Beta Codes</button>
+            <button class="tab" data-tab="errors">⚠️ Errors</button>
+            <button class="tab" data-tab="usage">📊 API Usage</button>
+        </div>
+
+        <!-- NLQ Tab -->
+        <div class="tab-panel active" id="tab-nlq">
+            <div class="section">
+                <h2 class="section-title">🔍 Natural Language Query</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Ask questions about your data in plain English. Claude will convert it to SQL and show you the results.
+                </p>
+                
+                <div class="nlq-suggestions">
+                    <span class="suggestion-chip" onclick="setQuery('Show me all users who signed up this week')">Users this week</span>
+                    <span class="suggestion-chip" onclick="setQuery('How many valuations happened today?')">Valuations today</span>
+                    <span class="suggestion-chip" onclick="setQuery('Which endpoints have the most errors?')">Error hotspots</span>
+                    <span class="suggestion-chip" onclick="setQuery('Top 10 users by API usage')">Top users</span>
+                    <span class="suggestion-chip" onclick="setQuery('Show me failed requests from mobile devices')">Mobile failures</span>
+                    <span class="suggestion-chip" onclick="setQuery('Average response time by endpoint')">Response times</span>
+                </div>
+
+                <form class="nlq-input-row" onsubmit="runQuery(event)">
+                    <input type="text" class="nlq-input" id="nlqInput" placeholder="Ask a question about your data...">
+                    <button type="submit" class="btn" id="nlqBtn">Run Query</button>
+                </form>
+
+                <div id="nlqResult"></div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-panel" id="tab-users">
+            <div class="section">
+                <h2 class="section-title">👥 User Management</h2>
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Beta Code</th>
+                                <th>Signed Up</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beta Codes Tab -->
+        <div class="tab-panel" id="tab-codes">
+            <div class="section">
+                <h2 class="section-title">🎟️ Beta Codes</h2>
+                <div style="margin-bottom: 16px;">
+                    <button class="btn btn-sm" onclick="createBetaCode()">+ Create New Code</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Note</th>
+                                <th>Uses</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="codesBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Errors Tab -->
+        <div class="tab-panel" id="tab-errors">
+            <div class="section">
+                <h2 class="section-title">⚠️ Recent Errors</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Endpoint</th>
+                                <th>User</th>
+                                <th>Device</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="errorsBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Tab -->
+        <div class="tab-panel" id="tab-usage">
+            <div class="section">
+                <h2 class="section-title">📊 API Usage (Last 30 Days)</h2>
+                <div id="usageContent">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = 'https://collectioncalc.onrender.com';
+        let token = localStorage.getItem('cc_token');
+
+        // Check admin access
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.user.is_admin) {
+                    showToast('Admin access required', 'error');
+                    setTimeout(() => window.location.href = '/app.html', 2000);
+                    return;
+                }
+
+                loadDashboard();
+            } catch (e) {
+                window.location.href = '/';
+            }
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        async function loadDashboard() {
+            loadStats();
+            loadUsers();
+            loadBetaCodes();
+            loadErrors();
+            loadUsage();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const s = data.stats;
+                    document.getElementById('statUsers').textContent = s.users.total_users;
+                    document.getElementById('statUsersSub').textContent = `${s.users.new_users_week} this week`;
+                    document.getElementById('statPending').textContent = s.users.pending_users;
+                    document.getElementById('statRequests').textContent = s.requests_24h.total.toLocaleString();
+                    document.getElementById('statRequestsSub').textContent = `${s.requests_24h.failed} failed`;
+                    document.getElementById('statCost').textContent = `$${s.api_usage_month.estimated_cost_usd.toFixed(2)}`;
+                    document.getElementById('statCostSub').textContent = `${s.api_usage_month.api_calls} calls`;
+                    document.getElementById('statSales').textContent = s.sales.total.toLocaleString();
+                    document.getElementById('statCodes').textContent = s.beta_codes.available_codes;
+                    document.getElementById('statCodesSub').textContent = `${s.beta_codes.used_codes} used`;
+                }
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('usersBody');
+                if (!data.success || !data.users.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No users found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.users.map(u => `
+                    <tr>
+                        <td>${u.email}</td>
+                        <td>
+                            ${u.is_admin ? '<span class="status-badge status-admin">Admin</span>' :
+                              u.is_approved ? '<span class="status-badge status-approved">Approved</span>' :
+                              '<span class="status-badge status-pending">Pending</span>'}
+                        </td>
+                        <td>${u.beta_code_used || '-'}</td>
+                        <td>${formatDate(u.created_at)}</td>
+                        <td class="action-btns">
+                            ${!u.is_approved && !u.is_admin ? `
+                                <button class="btn btn-sm btn-success" onclick="approveUser(${u.id})">Approve</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectUser(${u.id})">Reject</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load users:', e);
+            }
+        }
+
+        async function loadBetaCodes() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('codesBody');
+                if (!data.success || !data.codes.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No beta codes</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.codes.map(c => `
+                    <tr>
+                        <td><code>${c.code}</code></td>
+                        <td>${c.note || '-'}</td>
+                        <td>${c.uses_remaining}/${c.uses_allowed}</td>
+                        <td>
+                            ${c.uses_remaining > 0 ? 
+                                '<span class="status-badge status-approved">Available</span>' :
+                                '<span class="status-badge status-pending">Used</span>'}
+                        </td>
+                        <td>${formatDate(c.created_at)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load beta codes:', e);
+            }
+        }
+
+        async function loadErrors() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/errors`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('errorsBody');
+                if (!data.success || !data.errors.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No recent errors 🎉</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.errors.map(e => `
+                    <tr>
+                        <td>${formatDate(e.created_at)}</td>
+                        <td><code>${e.endpoint}</code></td>
+                        <td>${e.user_email || 'Anonymous'}</td>
+                        <td>${e.device_type || 'Unknown'}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${e.error_message}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load errors:', e);
+            }
+        }
+
+        async function loadUsage() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/usage`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const container = document.getElementById('usageContent');
+                if (!data.success) {
+                    container.innerHTML = '<div class="empty-state">Failed to load usage data</div>';
+                    return;
+                }
+
+                const u = data.usage;
+                container.innerHTML = `
+                    <div class="stats-grid" style="margin-bottom: 24px;">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Cost</div>
+                            <div class="stat-value">$${u.totals.cost_usd.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Input Tokens</div>
+                            <div class="stat-value">${(u.totals.input_tokens / 1000).toFixed(1)}K</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Output Tokens</div>
+                            <div class="stat-value">${(u.totals.output_tokens / 1000).toFixed(1)}K</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">API Calls</div>
+                            <div class="stat-value">${u.totals.api_calls.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <h3 style="margin-bottom: 12px;">By Endpoint</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Endpoint</th><th>Calls</th><th>Cost</th></tr>
+                        </thead>
+                        <tbody>
+                            ${u.by_endpoint.map(e => `
+                                <tr>
+                                    <td><code>${e.endpoint}</code></td>
+                                    <td>${e.api_calls}</td>
+                                    <td>$${parseFloat(e.cost).toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (e) {
+                console.error('Failed to load usage:', e);
+            }
+        }
+
+        // NLQ
+        function setQuery(q) {
+            document.getElementById('nlqInput').value = q;
+        }
+
+        async function runQuery(event) {
+            event.preventDefault();
+            const query = document.getElementById('nlqInput').value.trim();
+            if (!query) return;
+
+            const btn = document.getElementById('nlqBtn');
+            const result = document.getElementById('nlqResult');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            result.innerHTML = '<div class="loading"><div class="spinner"></div>Analyzing question...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/nlq`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: query })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    let tableHtml = '';
+                    if (data.results.length > 0) {
+                        const cols = Object.keys(data.results[0]);
+                        tableHtml = `
+                            <table class="data-table">
+                                <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+                                <tbody>
+                                    ${data.results.slice(0, 50).map(row => `
+                                        <tr>${cols.map(c => `<td>${row[c] ?? '-'}</td>`).join('')}</tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            ${data.results.length > 50 ? `<p style="color: var(--text-muted); margin-top: 8px;">Showing 50 of ${data.result_count} results</p>` : ''}
+                        `;
+                    } else {
+                        tableHtml = '<div class="empty-state">No results found</div>';
+                    }
+
+                    result.innerHTML = `
+                        <div class="nlq-result">
+                            <div class="nlq-sql">${data.generated_sql}</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+                                ${data.result_count} results in ${data.execution_time_ms}ms
+                            </div>
+                            <div class="table-container">${tableHtml}</div>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="nlq-result" style="border-color: var(--error);">
+                            <p style="color: var(--error);">Error: ${data.error}</p>
+                            ${data.generated_sql ? `<div class="nlq-sql">${data.generated_sql}</div>` : ''}
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                result.innerHTML = `<div class="nlq-result" style="border-color: var(--error);"><p style="color: var(--error);">Network error: ${e.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Run Query';
+            }
+        }
+
+        async function approveUser(id) {
+            if (!confirm('Approve this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('User approved!', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to approve user', 'error');
+            }
+        }
+
+        async function rejectUser(id) {
+            if (!confirm('Reject and delete this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('User rejected', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to reject user', 'error');
+            }
+        }
+
+        async function createBetaCode() {
+            const note = prompt('Note for this code (optional):');
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Created: ${data.code}`, 'success');
+                    loadBetaCodes();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to create code', 'error');
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

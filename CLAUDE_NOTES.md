@@ -37,6 +37,8 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - ✅ eBay Developer Portal (credentials, RuNames, OAuth setup)
 - ✅ eBay Business Policies
 - ✅ Knows frontend vs backend deployment (`purge` vs `deploy`)
+- ✅ DBeaver for database management (Session 8) 🆕
+- ✅ Chrome extension installation/testing (Session 8) 🆕
 
 ## Where Mike May Need More Guidance
 - ⚠️ New terminal/bash commands - explain what each command does
@@ -76,8 +78,14 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
 - `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
 - `auth.py` - User authentication (signup, login, JWT, password reset)
-- `wsgi.py` - Flask routes (v3.7)
-- `requirements.txt` - Python dependencies
+- `wsgi.py` - Flask routes (v3.8) 🆕
+
+**Whatnot Valuator (Chrome Extension):** 🆕
+- `manifest.json` - Extension config (v2.40.1)
+- `content.js` - Main overlay, auction monitoring, sale capture
+- `lib/collectioncalc.js` - API client (replaced supabase.js)
+- `lib/vision.js` - Claude Vision scanning
+- `data/keys.js` - 500+ key issue database
 
 ## QuickList - The Full Pipeline
 **QuickList** is our name for the complete flow from photo to eBay listing:
@@ -89,58 +97,103 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 5. **Valuate** - Get three-tier pricing (Quick Sale, Fair Value, High End)
 6. **List** - Create eBay draft listing (user publishes when ready)
 
-## Current State (January 22, 2026)
+## Current State (January 25, 2026)
 
-### Session 7 Progress 🔧
+### Session 8 Progress 🔧 🆕
 
-**1. Fixed API Key Issue**
-- Frontend was calling `/api/messages` without API key
-- Backend was expecting `X-API-Key` header
-- Root cause: "Remove API key screen" commit updated frontend but old backend was deployed
-- Fix: Redeployed wsgi.py which uses server-side `ANTHROPIC_API_KEY`
+**1. Fixed Whatnot Extension Auto-Scan Bugs**
+- **Stale listing detection** - DOM title wasn't updating between auction items
+- Solution: Added price-drop detection (>50% drop + under $20 = new item)
+- **Duplicate scans** - Multiple scans firing for same item
+- Solution: Added 10-second cooldown after force-scanning
 
-**2. Split Frontend into 3 Files** ✅
-- `index.html` was ~3500 lines and causing upload truncation issues
-- Now split into:
-  - `index.html` (310 lines) - HTML structure only
-  - `styles.css` (1350 lines) - All CSS  
-  - `app.js` (2030 lines) - All JavaScript
-- Deployment unchanged: `git push; purge` for frontend
+**2. Fixed Key Issue Detection**
+- Captain Marvel #1 wasn't showing 🔑 icon
+- Root cause: Key database existed but wasn't being queried after Vision scan
+- Solution: Added `lookupKeyInfo()` function that checks local database (500+ keys)
+- Added Captain Marvel #1, Marvel Super-Heroes #12-13 to database
 
-**3. Signature Confidence Analysis** ✅ (UI ready, needs better images to test)
-- New prompt fields: `signature_detected`, `signature_analysis`
-- `signature_analysis` contains:
-  - `creators` - all creators on cover with roles
-  - `confidence_scores` - array with name, confidence %, reasoning
-  - `most_likely_signer` - highest confidence match
-  - `signature_characteristics` - ink color, position, style
-- New green "🖊️ Signature Analysis" UI box
-- Shows confidence % for each creator
-- Disclaimer about CGC/CBCS for authentication
-- Auto-populates "Signed copy" checkbox with most likely signer
+**3. Set Up DBeaver** ✅
+- Installed DBeaver for database management
+- Connected to both Supabase (via pooler) and Render PostgreSQL
+- Can now query/manage databases with GUI
 
-**4. Improved Issue # Extraction** ✅
-- Now searches multiple locations: top-left, top-right, near barcode, near title
-- Added hint about DC comics (top-right)
-- Added "CRITICAL: You MUST find the issue number"
-- Fixed Moon Knight #1 detection (was blank before)
+**4. Created market_sales Table** ✅
+```sql
+CREATE TABLE market_sales (
+    id SERIAL PRIMARY KEY,
+    source TEXT NOT NULL,              -- 'whatnot', 'ebay_auction', 'ebay_bin'
+    title TEXT,
+    series TEXT,
+    issue TEXT,                        -- TEXT for "1A" variants
+    grade NUMERIC,
+    grade_source TEXT,
+    slab_type TEXT,
+    variant TEXT,
+    is_key BOOLEAN DEFAULT FALSE,
+    price NUMERIC NOT NULL,
+    sold_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    raw_title TEXT,
+    seller TEXT,
+    bids INTEGER,
+    viewers INTEGER,
+    image_url TEXT,
+    source_id TEXT,
+    UNIQUE(source, source_id)
+);
+```
 
-**5. Improved Image Quality** ✅
-- All images now processed through canvas (not just large ones)
-- Upscales small images to 1200px minimum
-- Maintains 75%+ scale, 60%+ quality minimum
-- Better logging of dimensions/quality in console
+**5. Migrated 618 Sales from Supabase → Render** ✅
+- Exported CSV from Supabase via DBeaver
+- Generated INSERT statements
+- Loaded into Render PostgreSQL
+- All historical data preserved
 
-**6. EXIF Orientation + Rotate Button** 🔧 NEEDS DEBUGGING
-- Added EXIF orientation reading (auto-rotates based on photo metadata)
-- Added ↻ rotate button on item cards
-- Button rotates image 90° clockwise and re-extracts
-- **STATUS: Deployed but not working - needs debugging next session**
+**6. Built Sales API Endpoints** ✅
+Added to wsgi.py (now v3.8):
+- `POST /api/sales/record` - Record sales from extension
+- `GET /api/sales/count` - Get total count
+- `GET /api/sales/recent` - Get recent sales
+
+**7. Rewired Extension to CollectionCalc** ✅
+- Replaced `lib/supabase.js` with `lib/collectioncalc.js`
+- Same interface, different backend
+- Extension now writes directly to CollectionCalc PostgreSQL
+- **Supabase dependency completely removed!**
+
+### Extension Version Progression (Session 8)
+| Version | Changes |
+|---------|---------|
+| v2.39.1 | Fixed stale listing detection (price-drop signal) |
+| v2.39.2 | Fixed duplicate scans (10-second cooldown) |
+| v2.39.3 | Added key issue database lookup |
+| v2.40.0 | Migrated to CollectionCalc API |
+| v2.40.1 | Fixed API URL (Render not Cloudflare) |
+
+### Database Connection Details 🆕
+**Render PostgreSQL:**
+| Field | Value |
+|-------|-------|
+| Host | `dpg-d5knv4koud1c73dt21pg-a.oregon-postgres.render.com` |
+| Port | `5432` |
+| Database | `collectioncalc_db` |
+| Username | `collectioncalc_db_user` |
+| Password | (in Render dashboard) |
+
+**Tables:**
+- `search_cache` - eBay valuation cache (48hr TTL)
+- `market_sales` - All sales from all sources (618+ records) 🆕
+- `users` - User accounts
+- `collections` - Saved comics
+- `password_resets` - Reset tokens
+- `ebay_tokens` - OAuth tokens
 
 ### Known Issues / TODOs
-- [ ] **EXIF rotation not working** - deployed but needs debugging
+- [ ] **EXIF rotation not working** - deployed but needs debugging (Session 7)
 - [ ] More progress steps during valuation (users think it's frozen)
 - [ ] Custom price entry (not just the three tiers)
+- [ ] Unified FMV engine (combine Whatnot + eBay data) 🆕
 
 ### Premium Tier Discovery (Session 7) 💎
 **Opus can detect subtle signatures that Sonnet cannot!**
@@ -153,17 +206,6 @@ Testing with Moon Knight #1 (signed by Danny Miki in gold marker):
 
 **Current state:** Opus detects signature EXISTS and lists all possible signers. User picks correct one. (It guessed Finch but was actually Miki - can't identify WHO signed, just THAT it's signed.)
 
-**Future enhancement:** Reference signature database
-- Buy verified creator signatures on eBay (~$1 each)
-- Store as reference images
-- AI compares uploaded signature to references
-- Mike researching this approach
-
-**Product opportunity:** Premium/Super User tier with Opus extraction
-- Cost: ~$0.05/comic (vs $0.01 Sonnet)
-- Value prop: Better signature detection
-- Code ready: Just uncomment Opus line in app.js
-
 **Code location:** `app.js` line ~1211
 ```javascript
 // STANDARD TIER: Sonnet
@@ -173,18 +215,6 @@ model: 'claude-sonnet-4-20250514',
 // model: 'claude-opus-4-5-20251101',
 ```
 
-### CGC/CBCS Signature Database Research
-- **No public API available** for signature verification
-- JSA (CGC partner) has ~1 million signature images - internal only
-- CBCS has "exemplars" library - internal only
-- Authentication requires physical submission: $25/signature
-- Our approach: AI-assisted confidence scores with disclaimer
-
-### Image Quality Findings
-- Facebook/Messenger compress images heavily (~458x638 = 0.3MP)
-- Need 3000+ pixel images for signature detection
-- **Tell testers to email original photos**, not send via social media
-
 ## API Endpoints (Current)
 | Endpoint | Purpose |
 |----------|---------|
@@ -193,6 +223,9 @@ model: 'claude-sonnet-4-20250514',
 | `/api/extract` | Backend extraction from photo |
 | `/api/batch/process` | QuickList Step 1: Extract + Valuate + Describe (multiple) |
 | `/api/batch/list` | QuickList Step 2: Upload images + Create drafts |
+| `/api/sales/record` | Record sale from Whatnot extension 🆕 |
+| `/api/sales/count` | Get total sales count 🆕 |
+| `/api/sales/recent` | Get recent sales 🆕 |
 | `/api/ebay/upload-image` | Upload single image to eBay Picture Services |
 | `/api/ebay/list` | Create eBay listing (supports `publish` and `image_urls` params) |
 | `/api/ebay/generate-description` | AI-generated 300-char description |
@@ -237,6 +270,7 @@ model: 'claude-sonnet-4-20250514',
 - **Calculated shipping:** Requires package dimensions in inventory item
 - **Price selection:** User picks tier or enters custom price (Fair Value default)
 - **Signature detection:** AI confidence scores with CGC/CBCS disclaimer
+- **Whatnot integration:** Extension writes to CollectionCalc, not Supabase 🆕
 
 ## Environment Variables (Render)
 | Key | Purpose |
@@ -261,10 +295,30 @@ model: 'claude-sonnet-4-20250514',
 - [ ] Error states handled gracefully
 - [ ] Anthropic billing alerts set
 - [x] Collections (save comics) ✅
+- [x] Whatnot data pipeline ✅ 🆕
 
 ## Related Documents
 - [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams (needs update for 3-file split)
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams (updated Session 8)
+
+## Quick Reference - Testing Commands
+
+**Test CollectionCalc API:**
+```bash
+curl https://collectioncalc.onrender.com/api/sales/count
+# Returns: {"count": 618}
+```
+
+**Test Whatnot Extension (browser console on Whatnot page):**
+```javascript
+window.ApolloReader.getCurrentListing()  // Get current listing
+window.lookupKeyInfo('Amazing Spider-Man', '300')  // Test key lookup
+```
+
+**DBeaver Quick Connect:**
+- Host: `dpg-d5knv4koud1c73dt21pg-a.oregon-postgres.render.com`
+- Database: `collectioncalc_db`
+- User: `collectioncalc_db_user`
 
 ---
-*Last updated: January 22, 2026 (Session 7 - Split files, signature analysis, image quality, EXIF rotation)*
+*Last updated: January 25, 2026 (Session 8 - Whatnot integration, market_sales table, 618 sales migrated)*
