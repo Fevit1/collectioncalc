@@ -601,7 +601,7 @@ def api_generate_description():
 @app.route('/api/ebay/upload-image', methods=['POST'])
 @require_auth
 @require_approved
-def api_upload_image():
+def api_ebay_upload_image():
     if not upload_image_to_ebay or not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
@@ -758,7 +758,7 @@ def api_sales_recent():
 # ============================================
 
 @app.route('/api/images/upload', methods=['POST'])
-def api_upload_image():
+def api_r2_upload_image():
     """
     Upload an image to R2 storage.
     Used by Whatnot extension to upload sale images.
