@@ -407,10 +407,11 @@ Return ONLY the SQL query, nothing else."""
                 'generated_sql': sql_query
             }
         
-        # Check for dangerous keywords
-        dangerous = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'create', 'grant', 'revoke']
+        # Check for dangerous keywords (whole words only, not substrings like "created_at")
+        dangerous = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'grant', 'revoke']
+        import re
         for word in dangerous:
-            if word in sql_lower:
+            if re.search(rf'\b{word}\b', sql_lower):
                 return {
                     'success': False,
                     'error': f'Query contains forbidden keyword: {word}',
