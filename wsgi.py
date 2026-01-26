@@ -33,7 +33,7 @@ from admin import (
 )
 
 # Import existing modules
-from ebay_valuation import get_ebay_valuation, search_ebay_sold
+from ebay_valuation import get_valuation_with_ebay, search_ebay_sold
 from ebay_oauth import get_auth_url, exchange_code, get_valid_token, get_ebay_user_info
 from ebay_listing import create_ebay_listing, upload_image_to_ebay
 from ebay_description import generate_ebay_description
@@ -379,11 +379,16 @@ def api_valuate():
     if not title or not issue:
         return jsonify({'success': False, 'error': 'Title and issue are required'}), 400
     
-    result = get_ebay_valuation(title, issue, data.get('grade', 'VF'), data.get('publisher'), data.get('year'))
+    result = get_valuation_with_ebay(title, issue, data.get('grade', 'VF'), data.get('publisher'), data.get('year'))
     
-    if result.get('source') == 'web_search':
+    # Log API usage if result indicates web search was used
+    if isinstance(result, dict) and result.get('source') == 'web_search':
         log_api_usage(g.user_id, '/api/valuate', 'claude-sonnet-4-20250514', 
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
+    
+    # Convert dataclass to dict if needed
+    if hasattr(result, '__dict__') and not isinstance(result, dict):
+        result = result.__dict__
     
     return jsonify(result)
 
