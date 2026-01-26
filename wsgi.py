@@ -483,6 +483,43 @@ def api_messages():
 # EBAY ENDPOINTS
 # ============================================
 
+@app.route('/api/ebay/account-deletion', methods=['POST'])
+def api_ebay_account_deletion():
+    """
+    eBay Marketplace Account Deletion Notification endpoint.
+    Called by eBay when a user requests account deletion (GDPR compliance).
+    """
+    try:
+        from ebay_oauth import delete_user_by_ebay_id
+        
+        data = request.get_json() or {}
+        
+        # eBay sends notification with user info
+        # The exact format depends on eBay's notification structure
+        ebay_user_id = data.get('userId') or data.get('user_id') or data.get('username')
+        
+        if not ebay_user_id:
+            # Log for debugging but return 200 to acknowledge receipt
+            print(f"eBay deletion notification received but no user ID found: {data}")
+            return jsonify({'success': True, 'message': 'Notification received'}), 200
+        
+        # Delete user data
+        deleted = delete_user_by_ebay_id(ebay_user_id)
+        
+        if deleted:
+            print(f"Successfully deleted data for eBay user: {ebay_user_id}")
+        else:
+            print(f"No data found for eBay user: {ebay_user_id}")
+        
+        # Always return 200 to acknowledge receipt
+        return jsonify({'success': True, 'deleted': deleted}), 200
+        
+    except Exception as e:
+        print(f"Error processing eBay deletion notification: {e}")
+        # Still return 200 to prevent eBay from retrying
+        return jsonify({'success': False, 'error': str(e)}), 200
+
+
 @app.route('/api/ebay/auth', methods=['GET'])
 @require_auth
 @require_approved
