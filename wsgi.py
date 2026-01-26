@@ -68,6 +68,20 @@ except ImportError as e:
     print(f"comic_extraction import error: {e}")
     extract_from_base64 = None
 
+# R2 Storage for images
+try:
+    from r2_storage import (
+        upload_sale_image, upload_submission_image, upload_temp_image,
+        move_temp_to_sale, check_r2_connection, get_image_url
+    )
+    R2_AVAILABLE = True
+except ImportError as e:
+    print(f"r2_storage import error: {e}")
+    R2_AVAILABLE = False
+    upload_sale_image = None
+    upload_submission_image = None
+    upload_temp_image = None
+
 # Optional: Anthropic for AI features
 try:
     import anthropic
@@ -635,6 +649,10 @@ def api_ebay_list():
 
 @app.route('/api/sales/record', methods=['POST'])
 def api_record_sale():
+    """
+    Record a sale from Whatnot extension.
+    Optionally accepts 'image' field with base64 data to upload to R2.
+    """
     data = request.get_json() or {}
     import psycopg2
     from psycopg2.extras import RealDictCursor
@@ -642,6 +660,10 @@ def api_record_sale():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
+    
+    # Check if image data is included
+    image_data = data.get('image')
+    image_url = data.get('image_url')  # Existing URL (legacy)
     
     try:
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
@@ -656,13 +678,25 @@ def api_record_sale():
         """, (data.get('source', 'whatnot'), data.get('title'), data.get('series'), data.get('issue'),
               data.get('grade'), data.get('grade_source'), data.get('slab_type'), data.get('variant'),
               data.get('is_key', False), data.get('price'), data.get('sold_at'), data.get('raw_title'),
-              data.get('seller'), data.get('bids'), data.get('viewers'), data.get('image_url'), data.get('source_id')))
+              data.get('seller'), data.get('bids'), data.get('viewers'), image_url, data.get('source_id')))
         
         sale_id = cur.fetchone()['id']
         conn.commit()
+        
+        # If image data was provided, upload to R2 and update the record
+        if image_data and R2_AVAILABLE:
+            r2_result = upload_sale_image(sale_id, image_data, 'front')
+            if r2_result.get('success'):
+                cur.execute(
+                    "UPDATE market_sales SET image_url = %s WHERE id = %s",
+                    (r2_result['url'], sale_id)
+                )
+                conn.commit()
+                image_url = r2_result['url']
+        
         cur.close()
         conn.close()
-        return jsonify({'success': True, 'id': sale_id})
+        return jsonify({'success': True, 'id': sale_id, 'image_url': image_url})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -717,6 +751,134 @@ def api_sales_recent():
         return jsonify({'success': True, 'sales': sales_list})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
+# IMAGE UPLOAD ENDPOINTS (R2 Storage)
+# ============================================
+
+@app.route('/api/images/upload', methods=['POST'])
+def api_upload_image():
+    """
+    Upload an image to R2 storage.
+    Used by Whatnot extension to upload sale images.
+    
+    Body: {
+        "image": "base64 encoded image data",
+        "sale_id": 123,  // optional - if provided, stores as sales/{id}/front.jpg
+        "type": "front"  // optional - front, back, spine, centerfold (for B4Cert)
+    }
+    """
+    if not R2_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
+    
+    data = request.get_json() or {}
+    image_data = data.get('image')
+    
+    if not image_data:
+        return jsonify({'success': False, 'error': 'Image data required'}), 400
+    
+    sale_id = data.get('sale_id')
+    image_type = data.get('type', 'front')
+    
+    if sale_id:
+        # Upload directly to sale path
+        result = upload_sale_image(sale_id, image_data, image_type)
+    else:
+        # Upload to temp location
+        result = upload_temp_image(image_data, 'whatnot')
+    
+    return jsonify(result)
+
+
+@app.route('/api/images/upload-for-sale', methods=['POST'])
+def api_upload_image_for_sale():
+    """
+    Upload an image and associate it with a sale record.
+    Updates the market_sales.image_url field.
+    
+    Body: {
+        "image": "base64 encoded image data",
+        "sale_id": 123
+    }
+    """
+    if not R2_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
+    
+    data = request.get_json() or {}
+    image_data = data.get('image')
+    sale_id = data.get('sale_id')
+    
+    if not image_data:
+        return jsonify({'success': False, 'error': 'Image data required'}), 400
+    if not sale_id:
+        return jsonify({'success': False, 'error': 'sale_id required'}), 400
+    
+    # Upload to R2
+    result = upload_sale_image(sale_id, image_data, 'front')
+    
+    if not result.get('success'):
+        return jsonify(result), 500
+    
+    # Update database with new image URL
+    import psycopg2
+    database_url = os.environ.get('DATABASE_URL')
+    
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE market_sales SET image_url = %s WHERE id = %s",
+            (result['url'], sale_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/images/submission', methods=['POST'])
+def api_upload_submission_image():
+    """
+    Upload an image for a B4Cert submission (future).
+    Supports front, back, spine, centerfold.
+    
+    Body: {
+        "image": "base64 encoded image data",
+        "submission_id": "uuid-string",
+        "type": "front" | "back" | "spine" | "centerfold"
+    }
+    """
+    if not R2_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
+    
+    data = request.get_json() or {}
+    image_data = data.get('image')
+    submission_id = data.get('submission_id')
+    image_type = data.get('type', 'front')
+    
+    if not image_data:
+        return jsonify({'success': False, 'error': 'Image data required'}), 400
+    if not submission_id:
+        return jsonify({'success': False, 'error': 'submission_id required'}), 400
+    if image_type not in ['front', 'back', 'spine', 'centerfold']:
+        return jsonify({'success': False, 'error': 'type must be front, back, spine, or centerfold'}), 400
+    
+    result = upload_submission_image(submission_id, image_data, image_type)
+    return jsonify(result)
+
+
+@app.route('/api/images/status', methods=['GET'])
+def api_images_status():
+    """Check R2 storage connection status."""
+    if not R2_AVAILABLE:
+        return jsonify({'connected': False, 'error': 'R2 module not loaded'})
+    
+    result = check_r2_connection()
+    return jsonify(result)
 
 
 # ============================================

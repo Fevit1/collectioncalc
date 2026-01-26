@@ -1,0 +1,193 @@
+﻿# CollectionCalc API Reference
+
+## Purpose
+This document lists the actual function names exported from each module.
+**Reference this before writing import statements to avoid mismatches.**
+
+---
+
+## Module: `ebay_valuation.py`
+
+| Function | Description |
+|----------|-------------|
+| `get_valuation_with_ebay()` | Main valuation function - combines DB + eBay data |
+| `search_ebay_sold()` | Search eBay sold listings via Claude |
+| `expand_title_alias()` | Expand abbreviations (ASM → Amazing Spider-Man) |
+| `get_cached_result()` | Check cache for existing valuation |
+| `save_to_cache()` | Save valuation result to cache |
+| `calculate_confidence()` | Calculate confidence score |
+
+**Common mistake:** Don't use `get_ebay_valuation` — it doesn't exist.
+
+---
+
+## Module: `ebay_oauth.py`
+
+| Function | Description |
+|----------|-------------|
+| `get_auth_url()` | Generate eBay OAuth URL |
+| `exchange_code_for_token()` | Exchange auth code for access token |
+| `refresh_access_token()` | Refresh expired token |
+| `save_user_token()` | Save token to database |
+| `get_user_token()` | Get user's token (refreshes if needed) |
+| `is_user_connected()` | Check if user has valid eBay connection |
+| `disconnect_user()` | Remove user's eBay connection |
+| `delete_user_by_ebay_id()` | GDPR deletion by eBay user ID |
+
+**Common mistakes:**
+- Don't use `exchange_code` — use `exchange_code_for_token`
+- Don't use `get_valid_token` — use `get_user_token`
+- Don't use `handle_oauth_callback` — use `exchange_code_for_token`
+- `get_ebay_user_info` doesn't exist
+
+---
+
+## Module: `ebay_listing.py`
+
+| Function | Description |
+|----------|-------------|
+| `create_listing()` | Create eBay listing via Inventory API |
+| `upload_image_to_ebay()` | Upload image to eBay Picture Services |
+| `get_or_create_merchant_location()` | Set up merchant location |
+| `get_or_create_listing_policies()` | Get business policies |
+| `get_listing_status()` | Check listing status |
+
+**Common mistake:** Don't use `create_ebay_listing` — use `create_listing`.
+
+---
+
+## Module: `ebay_description.py`
+
+| Function | Description |
+|----------|-------------|
+| `generate_description()` | Generate AI description for listing |
+| `validate_description()` | Validate description for eBay compliance |
+
+**Common mistake:** Don't use `generate_ebay_description` — use `generate_description`.
+
+---
+
+## Module: `comic_extraction.py`
+
+| Function | Description |
+|----------|-------------|
+| `extract_from_photo()` | Extract comic info from raw image bytes |
+| `extract_from_base64()` | Extract comic info from base64-encoded image |
+
+**Common mistake:** Don't use `extract_comic_from_image` — use `extract_from_base64`.
+
+---
+
+## Module: `auth.py`
+
+| Function | Description |
+|----------|-------------|
+| `signup()` | Create new user account |
+| `login()` | Authenticate user |
+| `verify_email()` | Verify email with token |
+| `resend_verification()` | Resend verification email |
+| `forgot_password()` | Send password reset email |
+| `reset_password()` | Reset password with token |
+| `generate_jwt()` | Generate JWT token |
+| `verify_jwt()` | Verify JWT token |
+| `get_user_by_id()` | Get user by ID |
+| `get_user_by_email()` | Get user by email |
+| `validate_beta_code()` | Check if beta code is valid |
+| `use_beta_code()` | Mark beta code as used |
+| `create_beta_code()` | Create new beta code (admin) |
+| `list_beta_codes()` | List all beta codes (admin) |
+| `approve_user()` | Approve pending user (admin) |
+| `reject_user()` | Reject and delete user (admin) |
+| `get_pending_users()` | Get users awaiting approval |
+| `get_all_users()` | Get all users (admin) |
+| `require_admin()` | Check if user is admin |
+
+---
+
+## Module: `admin.py`
+
+| Function | Description |
+|----------|-------------|
+| `log_request()` | Log API request to database |
+| `log_api_usage()` | Log Anthropic API usage |
+| `get_dashboard_stats()` | Get admin dashboard statistics |
+| `get_recent_errors()` | Get recent failed requests |
+| `get_endpoint_stats()` | Get stats by endpoint |
+| `get_device_breakdown()` | Get requests by device type |
+| `natural_language_query()` | Execute NLQ via Claude |
+| `get_nlq_history()` | Get past NLQ queries |
+| `get_anthropic_usage_summary()` | Get API usage summary |
+
+---
+
+## Critical Endpoints (Don't Delete!)
+
+| Endpoint | Purpose | Required By |
+|----------|---------|-------------|
+| `/api/ebay/account-deletion` | GDPR compliance | eBay (they poll this) |
+| `/api/sales/record` | Whatnot extension writes | Chrome extension |
+| `/api/sales/recent` | Whatnot extension reads | Chrome extension |
+| `/health` or `/` | Health check | Render |
+
+---
+
+## wsgi.py Import Block (Copy-Paste Reference)
+
+```python
+# Auth imports
+from auth import (
+    signup, login, verify_email, resend_verification, 
+    forgot_password, reset_password, get_current_user,
+    validate_beta_code, create_beta_code, list_beta_codes,
+    approve_user, reject_user, get_pending_users, get_all_users,
+    require_admin, verify_jwt, get_user_by_id
+)
+
+# Admin imports
+from admin import (
+    log_request, log_api_usage, get_dashboard_stats,
+    get_recent_errors, get_endpoint_stats, get_device_breakdown,
+    natural_language_query, get_nlq_history, get_anthropic_usage_summary
+)
+
+# eBay imports (with fallbacks)
+try:
+    from ebay_valuation import get_valuation_with_ebay, search_ebay_sold
+except ImportError as e:
+    print(f"ebay_valuation import error: {e}")
+    get_valuation_with_ebay = None
+    search_ebay_sold = None
+
+try:
+    from ebay_oauth import get_auth_url, exchange_code_for_token, get_user_token, is_user_connected
+except ImportError as e:
+    print(f"ebay_oauth import error: {e}")
+    get_auth_url = None
+    exchange_code_for_token = None
+    get_user_token = None
+    is_user_connected = None
+
+try:
+    from ebay_listing import create_listing, upload_image_to_ebay
+except ImportError as e:
+    print(f"ebay_listing import error: {e}")
+    create_listing = None
+    upload_image_to_ebay = None
+
+try:
+    from ebay_description import generate_description
+except ImportError as e:
+    print(f"ebay_description import error: {e}")
+    generate_description = None
+
+try:
+    from comic_extraction import extract_from_base64
+except ImportError as e:
+    print(f"comic_extraction import error: {e}")
+    extract_from_base64 = None
+```
+
+---
+
+*Last updated: January 26, 2026*
+
