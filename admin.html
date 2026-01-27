@@ -722,7 +722,18 @@
                                 <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
                                 <tbody>
                                     ${data.results.slice(0, 50).map(row => `
-                                        <tr>${cols.map(c => `<td>${row[c] ?? '-'}</td>`).join('')}</tr>
+                                        <tr>${cols.map(c => {
+                                            const val = row[c];
+                                            // Check if this looks like an image URL
+                                            if (c.includes('image') && val && typeof val === 'string' && val.startsWith('http')) {
+                                                return `<td><a href="${val}" target="_blank"><img src="${val}" style="max-height: 50px; max-width: 80px; border-radius: 4px; cursor: pointer;" onerror="this.style.display='none'; this.parentElement.textContent='⚠️ Failed';"></a></td>`;
+                                            }
+                                            // Check if any URL (make clickable)
+                                            if (val && typeof val === 'string' && val.startsWith('http')) {
+                                                return `<td><a href="${val}" target="_blank" style="color: var(--primary);">🔗 Link</a></td>`;
+                                            }
+                                            return `<td>${val ?? '-'}</td>`;
+                                        }).join('')}</tr>
                                     `).join('')}
                                 </tbody>
                             </table>
