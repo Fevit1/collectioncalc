@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Database - CollectionCalc Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .admin-badge {
+            background: var(--success);
+            color: black;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { color: var(--primary); }
+        .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            flex: 1;
+        }
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; }
+        .signatures-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .signature-card {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+        .signature-card:hover { border-color: var(--primary); }
+        .signature-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .signature-name { font-weight: 600; font-size: 1rem; }
+        .signature-role { color: var(--text-muted); font-size: 0.8rem; text-transform: capitalize; }
+        .signature-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 8px;
+            background: var(--bg-card);
+        }
+        .signature-badge.verified { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .signature-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .signature-image {
+            width: 100%;
+            height: 120px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .signature-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .signature-image.empty {
+            border: 2px dashed var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .signature-image.empty:hover { border-color: var(--primary); color: var(--primary); }
+        .signature-style { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; }
+        .signature-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-secondary { background: var(--bg-card-hover); border: 1px solid var(--border); }
+        .btn-success { background: var(--success); }
+        .form-row { display: flex; gap: 12px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-area:hover { border-color: var(--primary); }
+        .upload-area.dragover { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+        .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+        .upload-text { color: var(--text-secondary); font-size: 0.9rem; }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.2rem; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
+        .modal-close:hover { color: var(--text-primary); }
+        .image-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 16px; }
+        .filter-row { display: flex; gap: 12px; margin-bottom: 20px; }
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .search-input:focus { outline: none; border-color: var(--primary); }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--error); }
+        .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1 class="logo">CollectionCalc</h1>
+                <span class="admin-badge">SIGNATURES</span>
+            </div>
+            <a href="/admin.html" class="back-link">← Back to Admin</a>
+        </header>
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Creators</div>
+                <div class="stat-value" id="statTotal">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">With Images</div>
+                <div class="stat-value" id="statWithImages">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Verified</div>
+                <div class="stat-value" id="statVerified">-</div>
+            </div>
+        </div>
+        <div class="section">
+            <h2 class="section-title">➕ Add New Creator</h2>
+            <form id="addCreatorForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Creator Name *</label>
+                        <input type="text" id="newName" placeholder="e.g., Jim Lee" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="newRole">
+                            <option value="artist">Artist</option>
+                            <option value="writer">Writer</option>
+                            <option value="cover_artist">Cover Artist</option>
+                            <option value="inker">Inker</option>
+                            <option value="colorist">Colorist</option>
+                            <option value="creator">Creator</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Signature Style Description</label>
+                    <input type="text" id="newStyle" placeholder="e.g., Large flowing signature, often dated">
+                </div>
+                <button type="submit" class="btn" style="margin-top: 12px;">Add Creator</button>
+            </form>
+        </div>
+        <div class="section">
+            <h2 class="section-title">🖊️ Signature Database</h2>
+            <div class="filter-row">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search creators...">
+                <select id="filterRole" style="padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                    <option value="">All Roles</option>
+                    <option value="artist">Artists</option>
+                    <option value="writer">Writers</option>
+                    <option value="cover_artist">Cover Artists</option>
+                    <option value="creator">Creators</option>
+                </select>
+                <select id="filterImage" style="padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
+                    <option value="">All</option>
+                    <option value="with">With Images</option>
+                    <option value="without">Needs Image</option>
+                </select>
+            </div>
+            <div class="signatures-grid" id="signaturesGrid">
+                <div class="loading"><div class="spinner"></div>Loading...</div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">📷 Upload Signature Reference</h3>
+                <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <div id="uploadModalBody">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Upload a clear photo of <strong id="uploadCreatorName">this creator's</strong> signature.
+                </p>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click();">
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">Click to select image</div>
+                </div>
+                <img id="imagePreview" class="image-preview" style="display: none;">
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Source (optional)</label>
+                    <input type="text" id="uploadSource" placeholder="e.g., eBay purchase, CGC verified">
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                    <button class="btn" id="uploadBtn" onclick="uploadSignature()" disabled>Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        const API_BASE = 'https://collectioncalc.onrender.com';
+        let token = localStorage.getItem('cc_auth_token');
+        let signatures = [];
+        let uploadingCreatorId = null;
+        let selectedFile = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) { window.location.href = '/app.html'; return; }
+            try {
+                const res = await fetch(API_BASE + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                if (!data.success || !data.user.is_admin) { window.location.href = '/app.html'; return; }
+            } catch (e) { window.location.href = '/app.html'; return; }
+            loadSignatures();
+            setupFilters();
+        });
+
+        async function loadSignatures() {
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                if (data.success) { signatures = data.signatures; updateStats(); renderSignatures(); }
+            } catch (e) { console.error('Failed to load:', e); }
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').textContent = signatures.length;
+            document.getElementById('statWithImages').textContent = signatures.filter(s => s.reference_image_url).length;
+            document.getElementById('statVerified').textContent = signatures.filter(s => s.verified).length;
+        }
+
+        function renderSignatures() {
+            const grid = document.getElementById('signaturesGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const roleFilter = document.getElementById('filterRole').value;
+            const imageFilter = document.getElementById('filterImage').value;
+            let filtered = signatures.filter(s => {
+                if (search && !s.creator_name.toLowerCase().includes(search)) return false;
+                if (roleFilter && s.role !== roleFilter) return false;
+                if (imageFilter === 'with' && !s.reference_image_url) return false;
+                if (imageFilter === 'without' && s.reference_image_url) return false;
+                return true;
+            });
+            if (filtered.length === 0) { grid.innerHTML = '<div class="loading">No creators found</div>'; return; }
+            grid.innerHTML = filtered.map(sig => `
+                <div class="signature-card">
+                    <div class="signature-header">
+                        <div>
+                            <div class="signature-name">${sig.creator_name}</div>
+                            <div class="signature-role">${sig.role || 'Unknown'}</div>
+                        </div>
+                        <span class="signature-badge ${sig.verified ? 'verified' : 'pending'}">${sig.verified ? '✓ Verified' : 'Pending'}</span>
+                    </div>
+                    <div class="signature-image ${sig.reference_image_url ? '' : 'empty'}" onclick="${sig.reference_image_url ? '' : "openUploadModal(" + sig.id + ", '" + sig.creator_name.replace(/'/g, "\\'") + "')"}">
+                        ${sig.reference_image_url ? '<img src="' + sig.reference_image_url + '" alt="' + sig.creator_name + ' signature">' : '📷 Click to add image'}
+                    </div>
+                    ${sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : ''}
+                    <div class="signature-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="openUploadModal(${sig.id}, '${sig.creator_name.replace(/'/g, "\\'")}')">
+                            ${sig.reference_image_url ? '🔄 Replace' : '📷 Upload'}
+                        </button>
+                        ${!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setupFilters() {
+            document.getElementById('searchInput').addEventListener('input', renderSignatures);
+            document.getElementById('filterRole').addEventListener('change', renderSignatures);
+            document.getElementById('filterImage').addEventListener('change', renderSignatures);
+        }
+
+        document.getElementById('addCreatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newName').value.trim();
+            const role = document.getElementById('newRole').value;
+            const style = document.getElementById('newStyle').value.trim();
+            if (!name) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ creator_name: name, role: role, signature_style: style })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Added ' + name + '!', 'success');
+                    document.getElementById('newName').value = '';
+                    document.getElementById('newStyle').value = '';
+                    loadSignatures();
+                } else { showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error'); }
+        });
+
+        function openUploadModal(id, name) {
+            uploadingCreatorId = id;
+            document.getElementById('uploadCreatorName').textContent = name;
+            document.getElementById('uploadModal').classList.add('show');
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = true;
+            selectedFile = null;
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('show');
+            uploadingCreatorId = null;
+            selectedFile = null;
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('uploadBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadSignature() {
+            if (!selectedFile || !uploadingCreatorId) return;
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+            try {
+                const base64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                    reader.readAsDataURL(selectedFile);
+                });
+                const source = document.getElementById('uploadSource').value.trim();
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + uploadingCreatorId + '/image', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, source: source })
+                });
+                const data = await res.json();
+                if (data.success) { showToast('Uploaded!', 'success'); closeUploadModal(); loadSignatures(); }
+                else { showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error'); }
+            finally { btn.disabled = false; btn.textContent = 'Upload'; }
+        }
+
+        async function verifySignature(id) {
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + id + '/verify', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.success) { showToast('Verified!', 'success'); loadSignatures(); }
+                else { showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error', 'error'); }
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

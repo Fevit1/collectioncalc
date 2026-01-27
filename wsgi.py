@@ -408,6 +408,175 @@ def api_nlq():
 
 
 # ============================================
+# SIGNATURE ADMIN ENDPOINTS
+# ============================================
+
+@app.route('/api/admin/signatures', methods=['GET'])
+@require_admin_auth
+def api_get_signatures():
+    """Get all creator signatures."""
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            SELECT id, creator_name, role, reference_image_url, 
+                   signature_style, verified, source, notes, created_at
+            FROM creator_signatures
+            ORDER BY creator_name
+        """)
+        creators = cur.fetchall()
+        
+        result = []
+        for c in creators:
+            item = dict(c)
+            if item.get('created_at'):
+                item['created_at'] = item['created_at'].isoformat()
+            result.append(item)
+        
+        return jsonify({'success': True, 'signatures': result})
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/admin/signatures', methods=['POST'])
+@require_admin_auth
+def api_add_signature():
+    """Add a new creator signature."""
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    data = request.get_json() or {}
+    creator_name = data.get('creator_name', '').strip()
+    
+    if not creator_name:
+        return jsonify({'success': False, 'error': 'Creator name is required'}), 400
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("SELECT id FROM creator_signatures WHERE LOWER(creator_name) = LOWER(%s)", (creator_name,))
+        if cur.fetchone():
+            return jsonify({'success': False, 'error': 'Creator already exists'}), 400
+        
+        cur.execute("""
+            INSERT INTO creator_signatures (creator_name, role, signature_style, source)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+        """, (
+            creator_name,
+            data.get('role', 'artist'),
+            data.get('signature_style'),
+            data.get('source')
+        ))
+        
+        new_id = cur.fetchone()['id']
+        conn.commit()
+        
+        return jsonify({'success': True, 'id': new_id})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/admin/signatures/<int:sig_id>/image', methods=['POST'])
+@require_admin_auth
+def api_upload_signature_image(sig_id):
+    """Upload or replace signature reference image."""
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    import base64
+    import uuid
+    
+    data = request.get_json() or {}
+    image_data = data.get('image')
+    
+    if not image_data:
+        return jsonify({'success': False, 'error': 'Image data required'}), 400
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("SELECT id, creator_name FROM creator_signatures WHERE id = %s", (sig_id,))
+        creator = cur.fetchone()
+        if not creator:
+            return jsonify({'success': False, 'error': 'Creator not found'}), 404
+        
+        # Upload to R2
+        if R2_AVAILABLE:
+            from r2_storage import upload_to_r2
+            filename = f"signatures/{sig_id}_{uuid.uuid4().hex[:8]}.jpg"
+            result = upload_to_r2(filename, image_data)
+            
+            if not result.get('success'):
+                return jsonify({'success': False, 'error': 'Failed to upload image'}), 500
+            
+            image_url = result['url']
+        else:
+            return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
+        
+        cur.execute("""
+            UPDATE creator_signatures 
+            SET reference_image_url = %s, updated_at = NOW()
+            WHERE id = %s
+        """, (image_url, sig_id))
+        conn.commit()
+        
+        return jsonify({'success': True, 'url': image_url})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/admin/signatures/<int:sig_id>/verify', methods=['POST'])
+@require_admin_auth
+def api_verify_signature(sig_id):
+    """Mark a signature as verified."""
+    import psycopg2
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url)
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            UPDATE creator_signatures 
+            SET verified = TRUE, updated_at = NOW()
+            WHERE id = %s
+            RETURNING id
+        """, (sig_id,))
+        
+        result = cur.fetchone()
+        conn.commit()
+        
+        if result:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Creator not found'}), 404
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============================================
 # VALUATION ENDPOINTS
 # ============================================
 
