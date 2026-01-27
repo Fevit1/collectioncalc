@@ -753,6 +753,118 @@ def api_sales_recent():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/sales/fmv', methods=['GET'])
+def api_sales_fmv():
+    """
+    Get Fair Market Value data for a comic based on sales history.
+    Groups sales by grade tier and returns averages.
+    
+    Query params:
+        title: Comic title (required)
+        issue: Issue number (optional)
+        days: Number of days to look back (default 90)
+    """
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    title = request.args.get('title', '')
+    issue = request.args.get('issue', '')
+    days = request.args.get('days', 90, type=int)
+    
+    if not title:
+        return jsonify({'success': False, 'error': 'Title is required'}), 400
+    
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        return jsonify({'success': False, 'error': 'Database not configured'}), 500
+    
+    try:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        # Build query - search by title (fuzzy) and optionally issue
+        query = """
+            SELECT grade, price, sold_at
+            FROM market_sales
+            WHERE (
+                LOWER(title) LIKE LOWER(%s) 
+                OR LOWER(series) LIKE LOWER(%s)
+                OR LOWER(raw_title) LIKE LOWER(%s)
+            )
+            AND price > 0
+            AND created_at > NOW() - INTERVAL '%s days'
+        """
+        params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
+        
+        if issue:
+            query += " AND (issue = %s OR issue = %s)"
+            params.extend([str(issue), issue])
+        
+        cur.execute(query, params)
+        sales = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        if not sales:
+            return jsonify({'success': True, 'count': 0, 'tiers': None})
+        
+        # Group by grade tiers
+        tiers = {
+            'low': [],    # < 4.5
+            'mid': [],    # 4.5 - 7.9
+            'high': [],   # 8.0 - 8.9
+            'top': []     # 9.0+
+        }
+        
+        for sale in sales:
+            grade = sale.get('grade')
+            price = float(sale.get('price', 0))
+            
+            if price <= 0:
+                continue
+                
+            if grade is None:
+                tiers['mid'].append(price)
+            elif grade >= 9.0:
+                tiers['top'].append(price)
+            elif grade >= 8.0:
+                tiers['high'].append(price)
+            elif grade >= 4.5:
+                tiers['mid'].append(price)
+            else:
+                tiers['low'].append(price)
+        
+        # Calculate averages
+        result_tiers = {}
+        tier_labels = {
+            'low': '<4.5',
+            'mid': '4.5-7.9',
+            'high': '8.0-8.9',
+            'top': '9.0+'
+        }
+        
+        for tier, prices in tiers.items():
+            if prices:
+                result_tiers[tier] = {
+                    'avg': round(sum(prices) / len(prices), 2),
+                    'min': round(min(prices), 2),
+                    'max': round(max(prices), 2),
+                    'count': len(prices),
+                    'grades': tier_labels[tier]
+                }
+        
+        return jsonify({
+            'success': True,
+            'title': title,
+            'issue': issue,
+            'count': len(sales),
+            'tiers': result_tiers if result_tiers else None
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================
 # IMAGE UPLOAD ENDPOINTS (R2 Storage)
 # ============================================
