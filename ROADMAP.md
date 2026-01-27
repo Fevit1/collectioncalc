@@ -163,7 +163,7 @@ Split monolithic index.html for maintainability.
 - [x] Same deployment process (git push; purge)
 - [x] Fixes file truncation issues during editing
 
-### Phase 2.9: Whatnot Integration ✅ (January 25, 2026) 🆕
+### Phase 2.9: Whatnot Integration ✅ (January 25, 2026)
 **MILESTONE: Live auction data pipeline operational!**
 
 Chrome extension captures real-time Whatnot sales → CollectionCalc database.
@@ -193,115 +193,101 @@ whatnot-valuator/
 **Why This Matters:**
 - **Unique data**: Live auction prices = true price discovery (not asking prices)
 - **Competitive moat**: Competitors rely on completed eBay sales only
-- **Accurate FMV**: Real bidding behavior, not list prices
-- **Growing dataset**: 618+ sales and counting
+
+### Phase 2.91: Beta Access & Admin Dashboard ✅ (January 26, 2026) 🆕
+**MILESTONE: Private beta infrastructure complete!**
+
+Controlled access system with full admin capabilities.
+
+- [x] **Beta Code Gate**
+  - Landing page with beta code entry
+  - Beta codes table with uses_allowed, uses_remaining, expiry
+  - Pre-created codes: BETA-MIKE, BETA-001 through BETA-005
+  - Validation endpoint: `/api/beta/validate`
+
+- [x] **User Approval Workflow**
+  - New users start as `is_approved = FALSE`
+  - Admins approve/reject from dashboard
+  - Unapproved users see "Pending Approval" message
+  - Approval updates `approved_at` and `approved_by`
+
+- [x] **Admin Dashboard** (`/admin.html`)
+  - Stats overview: users, pending approvals, API calls, costs, sales tracked, beta codes
+  - User management tab: approve/reject buttons
+  - Beta codes tab: create new codes, view usage
+  - Errors tab: recent failed requests with device type
+  - API Usage tab: Anthropic token costs by endpoint
+  - **Natural Language Query (NLQ)**: Ask questions in plain English, Claude converts to SQL
+  
+- [x] **Request Logging**
+  - `request_logs` table tracks all API calls
+  - Device type detection (mobile/tablet/desktop)
+  - Response times, error messages
+  - User attribution via JWT
+
+- [x] **API Usage Tracking**
+  - `api_usage` table for Anthropic token costs
+  - Per-endpoint breakdown
+  - Monthly cost calculations
+
+**New Files:**
+- `auth.py` - Updated with beta code and approval logic
+- `admin.py` - Admin functions including NLQ
+- `db_migrate_beta.py` - Database migration script
+- `landing.html` → `index.html` - Beta landing page
+- `admin.html` - Admin dashboard
+
+### Phase 2.92: R2 Image Storage ✅ (January 26, 2026) 🆕
+**MILESTONE: Live auction images now stored permanently!**
+
+Replaced dead Supabase image URLs with Cloudflare R2.
+
+- [x] **Cloudflare R2 Setup**
+  - Bucket: `collectioncalc-images`
+  - Public URL enabled for serving
+  - S3-compatible API via boto3
+
+- [x] **Backend Integration**
+  - `r2_storage.py` module for uploads
+  - `/api/images/upload` endpoint
+  - `/api/images/upload-for-sale` endpoint  
+  - `/api/images/submission` endpoint (B4Cert ready)
+  - `/api/images/status` health check
+  - Images uploaded inline with sale recording
+
+- [x] **Extension Updated**
+  - `collectioncalc.js` sends images with sale data
+  - Drop-in replacement for SupabaseClient
+  - Images from Vision scans stored permanently
+
+- [x] **Admin Dashboard Enhancement**
+  - NLQ results show image thumbnails
+  - Clickable thumbnails open full image
+  - URLs rendered as links
+
+**Image Path Structure (B4Cert ready):**
+```
+/sales/{sale_id}/front.jpg           # Whatnot captures
+/submissions/{id}/front.jpg          # B4Cert (future)
+/submissions/{id}/back.jpg
+/submissions/{id}/spine.jpg  
+/submissions/{id}/centerfold.jpg
+```
+
+**Environment Variables Added:**
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET_NAME`
+- `R2_ENDPOINT`
+- `R2_PUBLIC_URL`
 
 ---
 
-## In Progress 🔨
+## 🔄 In Progress
 
-### Phase 2.87: Extraction Accuracy (Vision Guide v2)
-Further improve AI's ability to read comic covers.
-
-**Completed (v1):**
-- [x] Distinguish prices (60¢, $1.50) from issue numbers (#242)
-- [x] Look for "#" or "No." prefix for issue numbers
-- [x] Focus on TOP-LEFT area for issue numbers
-
-**Completed (v2 - Session 7):**
-- [x] Multi-location issue search (top-left, top-right, near barcode, near title)
-- [x] DC comics support (issue # often top-right)
-- [x] Signature detection with confidence analysis
-- [x] Signature analysis UI (green box with creator confidence %)
-- [x] Auto-populate "Signed copy" checkbox from AI detection
-- [x] Frontend split into 3 files (index.html, styles.css, app.js)
-- [x] Improved image quality processing (upscale small images to 1200px)
-
-**In Progress:**
-- [ ] EXIF auto-rotation (code deployed, needs debugging)
-- [ ] Manual rotate button (↻) (code deployed, needs debugging)
-
-**Pending (v2):**
-- [ ] Ignore: price stickers, store stamps, grade labels, bag reflections
-- [ ] Multiple numbers context: price vs issue vs volume vs year
-- [ ] Common OCR confusions (#1 vs #7, etc.)
-
-**Known Limitation:** Signature detection requires high-quality images (~3000px). Facebook/Messenger-compressed images (~500px) are too degraded. Tell testers to EMAIL original photos.
-
----
-
-## Planned 📋
-
-### Phase 3: Unified FMV Engine 🆕
-Combine Whatnot + eBay data with intelligent weighting.
-
-**Architecture:**
-```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│   Whatnot   │  │    eBay     │  │PriceCharting│
-│   (Live)    │  │ (Completed) │  │ (Aggregated)│
-└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                │
-       └────────────────┴────────────────┘
-                        │
-                        ▼
-            ┌───────────────────────┐
-            │   UNIFIED FMV ENGINE  │
-            │                       │
-            │  - Source weighting   │
-            │  - Recency decay      │
-            │  - Grade matching     │
-            │  - Confidence scoring │
-            └───────────────────────┘
-```
-
-**Implementation:**
-- [ ] `GET /api/fmv?title=X&issue=Y&grade=Z` endpoint
-- [ ] Query `market_sales` table for Whatnot data
-- [ ] Query `search_cache` for eBay data
-- [ ] Source weighting: Whatnot 1.0x, eBay Auction 0.9x, eBay BIN 0.7x
-- [ ] Steeper recency decay (recent sales weighted higher)
-- [ ] Update extension to call unified FMV
-
-### Phase 4: Visual Tuning Dashboard
-Admin interface for FMV model parameters.
-
-- [ ] Web UI for adjusting weights
-- [ ] Sliders for recency decay curve
-- [ ] Sliders for source weights
-- [ ] Live preview of price impact
-- [ ] A/B testing support
-- [ ] Rollback capability
-- [ ] Audit log of changes
-
-### Phase 5: Self-Improving Model
-AI recommends weight adjustments based on prediction accuracy.
-
-- [ ] Collect prediction vs actual sale metrics
-- [ ] Calculate prediction error over time
-- [ ] AI analyzes patterns and suggests weight changes
-- [ ] Human approval workflow
-- [ ] Eventually: auto-tune within guardrails
-
-### Phase 5.5: Price Database Integration
-License professional price data for faster, more accurate valuations.
-
-**Business Case:**
-- Cost: ~$200/mo for API access
-- Break-even: ~20 paying users at $10/mo
-- Competitive necessity: Ludex and competitors use similar data
-
-**Candidates to evaluate:**
-| Provider | Data | Pros | Cons |
-|----------|------|------|------|
-| GoCollect | 500k+ comics, CGC census, trends | Most comprehensive | Higher cost |
-| GPA (GPAnalysis) | CGC sales focus | Accurate for slabs | Less raw data |
-| PriceCharting | Comics + games + cards | Multi-vertical | Less depth |
-
-**Implementation:**
-- [ ] Evaluate GoCollect vs GPA vs PriceCharting APIs
-- [ ] License price database (~$200/mo when revenue supports)
-- [ ] Build import pipeline (weekly sync)
+### Phase 3: FMV Engine Enhancement
+- [ ] Incorporate Whatnot live sales into FMV calculations
 - [ ] Use DB as primary source, fall back to real-time search for misses
 - [ ] Add price history charts to UI
 - [ ] Add "trending up/down" indicators
@@ -341,13 +327,17 @@ Forecast future values based on market momentum.
 - [ ] User watchlists with price alerts
 - [ ] Weekly "market movers" email digest
 
-### Phase 7: Friend Beta Prep 🆕
+### Phase 7: Friend Beta Prep ✅ (Mostly Complete)
 Get ready for external testers.
 
+- [x] Beta code gate
+- [x] User approval workflow
+- [x] Admin dashboard with NLQ
+- [x] Request logging for debugging
 - [ ] Analytics (track usage patterns)
 - [ ] Feedback mechanism (Report Issue link)
-- [ ] Landing page copy explains what it does
-- [ ] Error states handled gracefully
+- [x] Landing page copy explains what it does
+- [x] Error states handled gracefully
 - [ ] API key instructions for Whatnot extension
 
 ### Phase 8: Advanced Features
@@ -432,12 +422,13 @@ Extend platform to additional verticals.
 - **Confidence calibration** - High confidence = accurate predictions
 - **Extraction accuracy** - % of issue numbers read correctly
 - **Signature detection accuracy** - % of signatures detected (needs quality images)
-- **Whatnot prediction accuracy** - FMV vs actual Whatnot sale price 🆕
+- **Whatnot prediction accuracy** - FMV vs actual Whatnot sale price
 
 ### Coverage Metrics
 - **DB hit rate** - % of lookups found in database vs requiring AI search
 - **Collectible verticals** - Number of active verticals (target: 5+ by 2027)
-- **Whatnot sales captured** - 618+ and growing 🆕
+- **Whatnot sales captured** - 3,300+ and growing 🆕
+- **R2 images stored** - New metric starting Jan 26 🆕
 
 ### Engagement Metrics
 - **Return users** - Users coming back to value more items
@@ -445,7 +436,8 @@ Extend platform to additional verticals.
 - **Feedback submissions** - Community corrections submitted
 - **eBay listings created** - Conversion from valuation to listing
 - **QuickList completions** - Users completing full photo-to-listing flow
-- **Whatnot auction sessions** - Active extension users 🆕
+- **Whatnot auction sessions** - Active extension users
+- **Beta users approved** - New metric 🆕
 
 ### Business Metrics
 - **Cost per valuation** - Target: <$0.01 average (with DB caching)
@@ -457,7 +449,7 @@ Extend platform to additional verticals.
 
 | Source | Type | Unique Value | Status |
 |--------|------|--------------|--------|
-| Whatnot Live | Live auction | True price discovery | ✅ 618+ sales |
+| Whatnot Live | Live auction | True price discovery | ✅ 3,300+ sales |
 | eBay Completed | Auction + BIN | Highest volume | ✅ Web search + cache |
 | eBay Active BIN | Current listings | Price ceiling | ✅ In valuations |
 | PriceCharting | Aggregated | Historical trends | 📋 Planned ($200/mo) |
@@ -469,6 +461,8 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 26, 2026 | 2.92.0 | 📷 **R2 Image Storage!** Cloudflare R2 integration, images with sales, admin thumbnails |
+| Jan 26, 2026 | 2.91.0 | 🔐 **Beta Access System!** Beta codes, user approval, admin dashboard, NLQ, request logging |
 | Jan 25, 2026 | 2.90.0 | 🔗 **Whatnot Integration!** market_sales table, /api/sales/* endpoints, 618 sales migrated, extension v2.40.1 |
 | Jan 22, 2026 | 2.89.1 | 💎 **Opus Premium tier tested!** Signature detection works with Opus, code ready for Premium pricing |
 | Jan 22, 2026 | 2.89.0 | 📁 **Frontend 3-file split!** index.html/styles.css/app.js, signature confidence UI, improved issue # detection |
@@ -490,10 +484,11 @@ Extend platform to additional verticals.
 - [Claude Notes](CLAUDE_NOTES.md) - Session context and working notes
 - [Architecture](ARCHITECTURE.md) - System diagrams
 - [Brand Guidelines](BRAND_GUIDELINES.md) - Colors, typography, UI components
+- [API Reference](API_REFERENCE.md) - Function names and import patterns 🆕
 - [Competitive Analysis](COMPETITIVE_ANALYSIS.md) - Market research & academic findings
 - [Database](DATABASE.md) - Schema documentation
 - [Budget](BUDGET.md) - Hosting strategy
 
 ---
 
-*Last updated: January 25, 2026 (Session 8 - Whatnot integration, market_sales table, unified FMV plans)*
+*Last updated: January 26, 2026 (Session 9 - Beta access, admin dashboard, R2 image storage)*
