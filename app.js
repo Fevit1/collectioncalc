@@ -2164,9 +2164,20 @@ async function handleGradingPhoto(step, files) {
             // Store extracted data
             gradingState.extractedData = result;
             
-            // Show preview with extracted info
+            // Show preview with extracted info (with edit button)
             previewInfo.innerHTML = `
-                <div class="extracted-title">${result.title || 'Unknown'} #${result.issue || '?'}</div>
+                <div class="extracted-title">
+                    <span id="extractedTitleText">${result.title || 'Unknown'} #${result.issue || '?'}</span>
+                    <button type="button" class="btn-edit-inline" onclick="editComicInfo()">✏️ Edit</button>
+                </div>
+                <div id="editComicForm" style="display: none; margin: 10px 0;">
+                    <input type="text" id="editTitle" placeholder="Title" value="${result.title || ''}" style="margin-bottom: 8px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="editIssue" placeholder="Issue #" value="${result.issue || ''}" style="width: 80px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                        <button type="button" class="btn-secondary btn-small" onclick="saveComicEdit()">Save</button>
+                        <button type="button" class="btn-secondary btn-small" onclick="cancelComicEdit()">Cancel</button>
+                    </div>
+                </div>
                 <div class="extracted-grade">Cover condition: ${result.suggested_grade || 'Analyzing...'}</div>
                 ${result.defects && result.defects.length > 0 ? 
                     `<div class="extracted-defects">⚠️ ${result.defects.join(', ')}</div>` : 
@@ -2218,6 +2229,37 @@ async function handleGradingPhoto(step, files) {
     }
 }
 
+// Edit comic info functions
+function editComicInfo() {
+    document.getElementById('extractedTitleText').style.display = 'none';
+    document.querySelector('.btn-edit-inline').style.display = 'none';
+    document.getElementById('editComicForm').style.display = 'block';
+}
+
+function saveComicEdit() {
+    const newTitle = document.getElementById('editTitle').value;
+    const newIssue = document.getElementById('editIssue').value;
+    
+    // Update state
+    gradingState.extractedData.title = newTitle;
+    gradingState.extractedData.issue = newIssue;
+    
+    // Update display
+    document.getElementById('extractedTitleText').textContent = `${newTitle} #${newIssue}`;
+    document.getElementById('extractedTitleText').style.display = 'inline';
+    document.querySelector('.btn-edit-inline').style.display = 'inline';
+    document.getElementById('editComicForm').style.display = 'none';
+    
+    // Update banners in steps 2-4
+    updateComicIdBanners(gradingState.extractedData);
+}
+
+function cancelComicEdit() {
+    document.getElementById('extractedTitleText').style.display = 'inline';
+    document.querySelector('.btn-edit-inline').style.display = 'inline';
+    document.getElementById('editComicForm').style.display = 'none';
+}
+
 // Analyze a grading photo with Claude
 async function analyzeGradingPhoto(step, processed) {
     const prompts = {
@@ -2228,7 +2270,7 @@ IMAGE QUALITY CHECK (do this first):
 - quality_message: If quality_issue is true, specific feedback like "Image is too blurry - hold phone steadier" or "Glare detected on cover - try a different angle"
 
 IDENTIFICATION (extract from cover):
-- title: Comic book title (series name)
+- title: Comic book title (series name). READ THE TITLE CAREFULLY - stylized/artistic fonts can be tricky. Look at ALL text on the cover.
 - issue: Issue number (CRITICAL: find this, check corners near price, near barcode, in title area)
 - publisher: Publisher name
 - year: Publication year if visible
@@ -2474,12 +2516,13 @@ async function generateGradeReport() {
     
     gradingState.currentStep = 5;
     
-    // Show loading state
-    const resultEl = document.getElementById('gradeReportResult');
+    // Show loading state with progress steps
     document.getElementById('gradeResultBig').textContent = '...';
-    document.getElementById('gradeResultLabel').textContent = 'Analyzing all photos...';
-    document.getElementById('recommendationValues').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating recommendation...</p>';
-    document.getElementById('recommendationVerdict').innerHTML = '';
+    document.getElementById('gradeResultLabel').textContent = 'Analyzing photos...';
+    document.getElementById('gradePhotosUsed').innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
+    document.getElementById('defectsList').innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
+    document.getElementById('recommendationValues').innerHTML = '';
+    document.getElementById('recommendationVerdict').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating value...</p>';
     
     // Build multi-image prompt
     const imageContent = [];
@@ -2538,6 +2581,8 @@ async function generateGradeReport() {
                         {
                             type: 'text',
                             text: `You are grading this comic book using ${photoLabels.length} photos: ${photoLabels.join(', ')}.
+
+The comic has been identified as: ${gradingState.extractedData?.title || 'Unknown'} #${gradingState.extractedData?.issue || '?'}
 
 Based on ALL images provided, give a comprehensive grade assessment.
 
@@ -2604,17 +2649,28 @@ function renderGradeReport(result, confidence, photoLabels) {
     const defects = result['DEFECTS BY AREA'] || result;
     const sig = result['SIGNATURE'] || result;
     
-    // Comic info
+    // Comic info - prefer user-edited data
+    const displayTitle = gradingState.extractedData?.title || comic.title || 'Unknown';
+    const displayIssue = gradingState.extractedData?.issue || comic.issue || '?';
+    
     document.getElementById('gradeReportComic').innerHTML = `
-        <div class="comic-title-big">${comic.title || gradingState.extractedData?.title || 'Unknown'} #${comic.issue || gradingState.extractedData?.issue || '?'}</div>
+        <div class="comic-title-big">${displayTitle} #${displayIssue}</div>
         <div class="comic-meta">${comic.publisher || ''} ${comic.year || ''}</div>
     `;
     
     // Grade result
     document.getElementById('gradeResultBig').textContent = grade.final_grade || '--';
     document.getElementById('gradeResultLabel').textContent = grade.grade_label || 'Grade';
-    document.getElementById('confidenceText').textContent = `${confidence}% confidence`;
-    document.getElementById('confidenceFill').style.width = `${confidence}%`;
+    
+    // Show quality warning only if confidence < 75%
+    const warningEl = document.getElementById('gradeQualityWarning');
+    if (warningEl) {
+        if (confidence < 75) {
+            warningEl.style.display = 'flex';
+        } else {
+            warningEl.style.display = 'none';
+        }
+    }
     
     // Photos used badges
     const allLabels = ['Front', 'Spine', 'Back', 'Center'];
@@ -2692,7 +2748,10 @@ async function calculateGradingRecommendation(gradeResult) {
     // Handle nested structure
     const comic = gradeResult['COMIC IDENTIFICATION'] || gradeResult;
     const grade = gradeResult['COMPREHENSIVE GRADE'] || gradeResult;
-    const extracted = gradingState.extractedData || comic;
+    
+    // Prefer user-edited data
+    const title = gradingState.extractedData?.title || comic.title;
+    const issue = gradingState.extractedData?.issue || comic.issue;
     
     // Convert letter grade to numeric for valuation lookup
     const gradeMap = {
@@ -2719,8 +2778,8 @@ async function calculateGradingRecommendation(gradeResult) {
                 'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
-                title: extracted.title || comic.title,
-                issue: extracted.issue || comic.issue,
+                title: title,
+                issue: issue,
                 grade: lookupGrade
             })
         });
@@ -2737,27 +2796,36 @@ async function calculateGradingRecommendation(gradeResult) {
         const gradingCost = getGradingCost(rawValue);
         
         const slabbedValue = rawValue * slabPremium;
-        const netBenefit = slabbedValue - rawValue - gradingCost;
-        const roi = rawValue > 0 ? ((netBenefit / gradingCost) * 100).toFixed(0) : 0;
+        const valueIncrease = slabbedValue - rawValue;
+        const netBenefit = valueIncrease - gradingCost;
+        const roi = gradingCost > 0 ? ((netBenefit / gradingCost) * 100).toFixed(0) : 0;
         
-        // Render recommendation
+        // Render recommendation with CLEARER math
+        const isWorthIt = netBenefit > 0;
+        
         document.getElementById('recommendationValues').innerHTML = `
-            <div class="recommendation-value">
-                <div class="label">Raw Value</div>
-                <div class="amount">$${rawValue.toFixed(2)}</div>
-            </div>
-            <div class="recommendation-value">
-                <div class="label">Slabbed Value (est.)</div>
-                <div class="amount">$${slabbedValue.toFixed(2)}</div>
-            </div>
-            <div class="recommendation-value">
-                <div class="label">Grading Cost</div>
-                <div class="amount">~$${gradingCost}</div>
-            </div>
-            <div class="recommendation-value">
-                <div class="label">Net Benefit</div>
-                <div class="amount" style="color: ${netBenefit > 0 ? 'var(--status-success)' : 'var(--status-error)'}">
-                    ${netBenefit > 0 ? '+' : ''}$${netBenefit.toFixed(2)}
+            <div class="recommendation-math">
+                <div class="math-row">
+                    <span class="math-label">Raw value (Fair Market):</span>
+                    <span class="math-value">$${rawValue.toFixed(2)}</span>
+                </div>
+                <div class="math-row">
+                    <span class="math-label">+ Slab premium (~30%):</span>
+                    <span class="math-value positive">+$${valueIncrease.toFixed(2)}</span>
+                </div>
+                <div class="math-row">
+                    <span class="math-label">= Slabbed value:</span>
+                    <span class="math-value">$${slabbedValue.toFixed(2)}</span>
+                </div>
+                <div class="math-divider"></div>
+                <div class="math-row">
+                    <span class="math-label">− Grading cost (CGC):</span>
+                    <span class="math-value negative">−$${gradingCost.toFixed(2)}</span>
+                </div>
+                <div class="math-divider"></div>
+                <div class="math-row math-total ${isWorthIt ? 'positive' : 'negative'}">
+                    <span class="math-label">Net ${isWorthIt ? 'profit' : 'loss'} from grading:</span>
+                    <span class="math-value">${isWorthIt ? '+' : ''}$${netBenefit.toFixed(2)}</span>
                 </div>
             </div>
         `;
@@ -2770,7 +2838,7 @@ async function calculateGradingRecommendation(gradeResult) {
                 <div class="recommendation-verdict submit">
                     <div class="verdict-icon">✅</div>
                     <div class="verdict-text">SUBMIT FOR GRADING</div>
-                    <div class="verdict-reason">Expected ${roi}% return on grading investment</div>
+                    <div class="verdict-reason">You'll make ~$${netBenefit.toFixed(2)} profit after grading costs</div>
                 </div>
             `;
         } else if (netBenefit > 0) {
@@ -2779,7 +2847,7 @@ async function calculateGradingRecommendation(gradeResult) {
                 <div class="recommendation-verdict" style="background: rgba(99, 102, 241, 0.1); border-color: var(--brand-indigo);">
                     <div class="verdict-icon">🤔</div>
                     <div class="verdict-text" style="color: var(--brand-indigo);">CONSIDER GRADING</div>
-                    <div class="verdict-reason">Marginal benefit - depends on your goals</div>
+                    <div class="verdict-reason">Small profit of $${netBenefit.toFixed(2)} - worth it if you want the slab for your collection</div>
                 </div>
             `;
         } else {
@@ -2788,7 +2856,7 @@ async function calculateGradingRecommendation(gradeResult) {
                 <div class="recommendation-verdict keep-raw">
                     <div class="verdict-icon">📦</div>
                     <div class="verdict-text">KEEP RAW</div>
-                    <div class="verdict-reason">Grading cost exceeds likely value increase</div>
+                    <div class="verdict-reason">You'd lose $${Math.abs(netBenefit).toFixed(2)} - grading costs more than the value increase</div>
                 </div>
             `;
         }
@@ -2856,6 +2924,10 @@ function resetGrading() {
         const banner = document.getElementById(`gradingComicId${step}`);
         if (banner) banner.innerHTML = '';
     });
+    
+    // Hide quality warning
+    const warningEl = document.getElementById('gradeQualityWarning');
+    if (warningEl) warningEl.style.display = 'none';
 }
 
 // Save graded comic to collection
@@ -2878,28 +2950,4 @@ function saveGradeToCollection() {
     
     // This would call your existing collection save API
     alert('Save to collection coming soon!');
-}
-
-// Get full valuation after grading
-function getFullValuation() {
-    if (!gradingState.extractedData) return;
-    
-    // Handle nested structure
-    const grade = gradingState.finalGrade?.['COMPREHENSIVE GRADE'] || gradingState.finalGrade;
-    
-    // Switch to manual mode with pre-filled data
-    setMode('manual');
-    
-    document.getElementById('title').value = gradingState.extractedData.title || '';
-    document.getElementById('issue').value = gradingState.extractedData.issue || '';
-    
-    // Map grade
-    const gradeSelect = document.getElementById('grade');
-    const gradeLabel = grade?.grade_label || 'VF';
-    const gradeMap = { 'NM': 'NM', 'VF': 'VF', 'FN': 'FN', 'VG': 'VG', 'G': 'G', 'FR': 'FR', 'PR': 'PR' };
-    const matchedGrade = Object.keys(gradeMap).find(g => gradeLabel.includes(g)) || 'VF';
-    gradeSelect.value = matchedGrade;
-    
-    // Submit form
-    document.getElementById('valuationForm').dispatchEvent(new Event('submit'));
 }

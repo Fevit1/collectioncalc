@@ -2066,3 +2066,112 @@
         width: 100%;
     }
 }
+
+
+/* ============================================
+   EDIT BUTTON FOR COMIC INFO
+   ============================================ */
+
+.btn-edit-inline {
+    background: transparent;
+    border: none;
+    color: var(--brand-cyan);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    margin-left: 8px;
+    width: auto;
+}
+
+.btn-edit-inline:hover {
+    text-decoration: underline;
+    transform: none;
+    box-shadow: none;
+}
+
+.extracted-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ============================================
+   CLEARER MATH DISPLAY FOR SLAB RECOMMENDATION
+   ============================================ */
+
+.recommendation-math {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.math-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 0.95rem;
+}
+
+.math-label {
+    color: var(--text-secondary);
+}
+
+.math-value {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.math-value.positive {
+    color: var(--status-success);
+}
+
+.math-value.negative {
+    color: var(--status-error);
+}
+
+.math-divider {
+    height: 1px;
+    background: var(--border-default);
+    margin: 8px 0;
+}
+
+.math-row.math-total {
+    padding: 12px 0;
+    font-size: 1.1rem;
+}
+
+.math-row.math-total .math-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.math-row.math-total.positive .math-value {
+    color: var(--status-success);
+    font-size: 1.25rem;
+}
+
+.math-row.math-total.negative .math-value {
+    color: var(--status-error);
+    font-size: 1.25rem;
+}
+
+/* Quality Warning */
+.grade-quality-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--status-warning);
+    border-radius: 8px;
+    margin-top: 12px;
+    color: var(--status-warning);
+    font-size: 0.9rem;
+}
+
+.grade-quality-warning .warning-icon {
+    font-size: 1.2rem;
+}

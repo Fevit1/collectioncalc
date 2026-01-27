@@ -31,7 +31,7 @@
                     <div class="user-menu">
                         <button class="user-menu-btn" onclick="toggleUserMenu()">
                             <div class="user-avatar" id="userAvatar">?</div>
-                            <span id="userEmail">user@example.com</span>
+                            <span id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2f5a5c4a5d6f4a574e425f434a014c4042">[email&#160;protected]</a></span>
                             <span>▾</span>
                         </button>
                         <div class="user-menu-dropdown" id="userMenuDropdown">
@@ -285,14 +285,14 @@
                         
                         <div class="grading-actions">
                             <button type="button" class="btn-secondary" onclick="skipGradingStep(4)">Skip</button>
-                            <button type="button" class="btn-primary" id="gradingNext4" onclick="generateGradeReport()">Generate Grade Report →</button>
+                            <button type="button" class="btn-primary" id="gradingNext4" onclick="generateGradeReport()">Generate Slab Report →</button>
                         </div>
                     </div>
                     
                     <!-- Step 5: Grade Report -->
                     <div class="grading-step-content" id="gradingContent5">
                         <div class="grading-header">
-                            <h3>📋 Grade Report</h3>
+                            <h3>📋 Slab Report</h3>
                             <span class="grading-patent">Patent Pending</span>
                         </div>
                         
@@ -305,9 +305,9 @@
                         <div class="grade-report-result" id="gradeReportResult">
                             <div class="grade-big" id="gradeResultBig">--</div>
                             <div class="grade-label" id="gradeResultLabel">Analyzing...</div>
-                            <div class="grade-confidence" id="gradeResultConfidence">
-                                <span class="confidence-bar"><span class="confidence-fill" id="confidenceFill" style="width: 0%"></span></span>
-                                <span class="confidence-text" id="confidenceText">-- % confidence</span>
+                            <div class="grade-quality-warning" id="gradeQualityWarning" style="display: none;">
+                                <span class="warning-icon">⚠️</span>
+                                <span class="warning-text">Photo quality may affect accuracy. Consider retaking photos for better results.</span>
                             </div>
                             <div class="grade-photos-used" id="gradePhotosUsed">
                                 <!-- Shows which photos were analyzed -->
@@ -345,7 +345,6 @@
                         <div class="grading-actions">
                             <button type="button" class="btn-secondary" onclick="resetGrading()">← Grade Another</button>
                             <button type="button" class="btn-primary" onclick="saveGradeToCollection()">💾 Save to Collection</button>
-                            <button type="button" class="btn-primary" onclick="getFullValuation()">📊 Get Full Valuation</button>
                         </div>
                     </div>
                     
@@ -596,11 +595,4 @@
                 <button class="listing-btn-cancel" onclick="closeListingModal()">Cancel</button>
                 <button class="listing-btn-confirm" id="confirmListingBtn" onclick="confirmListing()">
                     Confirm & List on eBay
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <script src="app.js"></script>
-</body>
-</html>
+        
