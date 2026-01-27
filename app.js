@@ -2057,3 +2057,825 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
             btn.disabled = false;
             btn.textContent = 'Get Valuation';
         });
+// ============================================
+// GRADE MY COMIC MODE - JavaScript
+// Add this to the END of app.js
+// ============================================
+
+// Device detection
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Grading state
+let gradingState = {
+    currentStep: 1,
+    photos: {
+        1: null,  // front cover (required)
+        2: null,  // spine
+        3: null,  // back
+        4: null   // centerfold
+    },
+    additionalPhotos: [],
+    extractedData: null,  // from front cover
+    defectsByArea: {},
+    finalGrade: null,
+    confidence: 0
+};
+
+// Initialize grading mode on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initGradingMode();
+});
+
+function initGradingMode() {
+    // Update text based on device
+    const uploadTitles = document.querySelectorAll('.grading-upload .upload-title');
+    uploadTitles.forEach(el => {
+        if (!isMobile) {
+            el.textContent = el.textContent.replace('Tap to photograph', 'Click to upload');
+        }
+    });
+    
+    // Add capture attribute for mobile (defaults to camera)
+    if (isMobile) {
+        document.querySelectorAll('#gradingMode input[type="file"]').forEach(input => {
+            input.setAttribute('capture', 'environment');
+        });
+    }
+}
+
+// Photo Tips Modal
+function togglePhotoTips() {
+    const modal = document.getElementById('photoTipsModal');
+    modal.classList.add('show');
+}
+
+function closePhotoTips() {
+    const modal = document.getElementById('photoTipsModal');
+    modal.classList.remove('show');
+}
+
+// Handle grading photo upload
+async function handleGradingPhoto(step, files) {
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const uploadArea = document.getElementById(`gradingUpload${step}`);
+    const preview = document.getElementById(`gradingPreview${step}`);
+    const previewImg = document.getElementById(`gradingImg${step}`);
+    const previewInfo = document.getElementById(`gradingInfo${step}`);
+    const feedback = document.getElementById(`gradingFeedback${step}`);
+    const feedbackText = document.getElementById(`gradingFeedbackText${step}`);
+    const nextBtn = document.getElementById(`gradingNext${step}`);
+    
+    // Show loading state
+    uploadArea.style.display = 'none';
+    feedback.style.display = 'flex';
+    feedback.className = 'grading-feedback';
+    feedbackText.textContent = 'Analyzing image...';
+    
+    try {
+        // Process image
+        const processed = await processImageForExtraction(file, 0);
+        
+        // Show preview
+        previewImg.src = `data:${processed.mediaType};base64,${processed.base64}`;
+        
+        // Store photo
+        gradingState.photos[step] = {
+            base64: processed.base64,
+            mediaType: processed.mediaType
+        };
+        
+        if (step === 1) {
+            // Front cover - do full extraction + quality check
+            const result = await analyzeGradingPhoto(step, processed);
+            
+            if (result.quality_issue) {
+                // Quality problem - show feedback, allow retry
+                feedback.className = 'grading-feedback';
+                feedbackText.textContent = result.quality_message;
+                feedback.style.display = 'flex';
+                preview.style.display = 'block';
+                nextBtn.disabled = false; // Let them continue anyway
+            } else {
+                feedback.style.display = 'none';
+            }
+            
+            // Store extracted data
+            gradingState.extractedData = result;
+            
+            // Show preview with extracted info
+            previewInfo.innerHTML = `
+                <div class="extracted-title">${result.title || 'Unknown'} #${result.issue || '?'}</div>
+                <div class="extracted-grade">Cover condition: ${result.suggested_grade || 'Analyzing...'}</div>
+                ${result.defects && result.defects.length > 0 ? 
+                    `<div class="extracted-defects">⚠️ ${result.defects.join(', ')}</div>` : 
+                    '<div class="extracted-defects" style="color: var(--status-success);">✓ No major defects detected</div>'}
+            `;
+            
+            // Store defects
+            gradingState.defectsByArea['Front Cover'] = result.defects || [];
+            
+            // Update comic ID banner for subsequent steps
+            updateComicIdBanners(result);
+            
+        } else {
+            // Steps 2-4: Just analyze for defects
+            const result = await analyzeGradingPhoto(step, processed);
+            
+            if (result.quality_issue) {
+                feedback.className = 'grading-feedback';
+                feedbackText.textContent = result.quality_message;
+                feedback.style.display = 'flex';
+            } else {
+                feedback.style.display = 'none';
+            }
+            
+            // Show defects found
+            const areaNames = { 2: 'Spine', 3: 'Back Cover', 4: 'Centerfold' };
+            const areaName = areaNames[step];
+            
+            previewInfo.innerHTML = `
+                <div class="extracted-grade">${areaName} condition: ${result.suggested_grade || 'Good'}</div>
+                ${result.defects && result.defects.length > 0 ? 
+                    `<div class="extracted-defects">⚠️ ${result.defects.join(', ')}</div>` : 
+                    '<div class="extracted-defects" style="color: var(--status-success);">✓ No defects found</div>'}
+            `;
+            
+            // Store defects
+            gradingState.defectsByArea[areaName] = result.defects || [];
+        }
+        
+        preview.style.display = 'block';
+        nextBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error analyzing photo:', error);
+        feedback.className = 'grading-feedback error';
+        feedbackText.textContent = 'Error analyzing image. Please try again.';
+        feedback.style.display = 'flex';
+        uploadArea.style.display = 'block';
+    }
+}
+
+// Analyze a grading photo with Claude
+async function analyzeGradingPhoto(step, processed) {
+    const prompts = {
+        1: `Analyze this comic book FRONT COVER image. Return a JSON object with:
+
+IMAGE QUALITY CHECK (do this first):
+- quality_issue: boolean - Is the image too blurry, too dark, has glare, cut off edges, or at a bad angle?
+- quality_message: If quality_issue is true, specific feedback like "Image is too blurry - hold phone steadier" or "Glare detected on cover - try a different angle"
+
+IDENTIFICATION (extract from cover):
+- title: Comic book title (series name)
+- issue: Issue number (CRITICAL: find this, check corners near price, near barcode, in title area)
+- publisher: Publisher name
+- year: Publication year if visible
+- variant: Variant info if applicable
+
+CONDITION ASSESSMENT:
+- suggested_grade: One of MT, NM, VF, FN, VG, G, FR, PR
+- defects: Array of visible defects (e.g., "Corner wear top right", "Color-breaking crease", "Spine stress")
+- grade_reasoning: Brief explanation
+
+SIGNATURE CHECK:
+- signature_detected: boolean
+- signature_analysis: If detected, describe location, ink color, any identifiable characteristics
+
+Return ONLY valid JSON, no markdown.`,
+
+        2: `Analyze this comic book SPINE image for condition defects. Return a JSON object with:
+
+IMAGE QUALITY CHECK:
+- quality_issue: boolean - Is the spine clearly visible and in focus?
+- quality_message: Feedback if quality is poor
+
+CONDITION ASSESSMENT:
+- suggested_grade: Based on spine alone (MT, NM, VF, FN, VG, G, FR, PR)
+- defects: Array of spine-specific defects (e.g., "Spine roll", "Stress marks", "Color breaking tick", "Spine split 1 inch", "Bindery tear")
+- grade_reasoning: Brief explanation
+
+Return ONLY valid JSON, no markdown.`,
+
+        3: `Analyze this comic book BACK COVER image for condition defects. Return a JSON object with:
+
+IMAGE QUALITY CHECK:
+- quality_issue: boolean - Is the back cover clearly visible and in focus?
+- quality_message: Feedback if quality is poor
+
+CONDITION ASSESSMENT:
+- suggested_grade: Based on back cover alone (MT, NM, VF, FN, VG, G, FR, PR)
+- defects: Array of defects (e.g., "Staining", "Crease", "Writing/stamp", "Subscription label", "Corner wear")
+- grade_reasoning: Brief explanation
+
+Return ONLY valid JSON, no markdown.`,
+
+        4: `Analyze this comic book CENTERFOLD/STAPLES image. Return a JSON object with:
+
+IMAGE QUALITY CHECK:
+- quality_issue: boolean - Are the staples and centerfold clearly visible?
+- quality_message: Feedback if quality is poor
+
+CONDITION ASSESSMENT:
+- suggested_grade: Based on interior (MT, NM, VF, FN, VG, G, FR, PR)
+- defects: Array of defects (e.g., "Rusty staples", "Loose centerfold", "Detached centerfold", "Re-stapled", "Interior staining", "Brittle pages")
+- grade_reasoning: Brief explanation
+
+Return ONLY valid JSON, no markdown.`
+    };
+    
+    const response = await fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'image',
+                        source: {
+                            type: 'base64',
+                            media_type: processed.mediaType,
+                            data: processed.base64
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: prompts[step]
+                    }
+                ]
+            }]
+        })
+    });
+    
+    const data = await response.json();
+    
+    if (data.error) {
+        throw new Error(data.error.message || 'API error');
+    }
+    
+    // Parse JSON response
+    let resultText = data.content[0].text;
+    // Clean up any markdown code blocks
+    resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error('Failed to parse response:', resultText);
+        return { 
+            quality_issue: false,
+            suggested_grade: 'VF',
+            defects: []
+        };
+    }
+}
+
+// Update comic ID banners in steps 2-4
+function updateComicIdBanners(extractedData) {
+    const bannerHTML = `
+        <img class="comic-thumb" src="data:${gradingState.photos[1].mediaType};base64,${gradingState.photos[1].base64}" alt="Cover">
+        <div class="comic-info">
+            <div class="comic-title">${extractedData.title || 'Unknown'} #${extractedData.issue || '?'}</div>
+            <div class="comic-details">${extractedData.publisher || ''} ${extractedData.year || ''}</div>
+        </div>
+    `;
+    
+    [2, 3, 4].forEach(step => {
+        const banner = document.getElementById(`gradingComicId${step}`);
+        if (banner) {
+            banner.innerHTML = bannerHTML;
+            banner.style.display = 'flex';
+        }
+    });
+}
+
+// Retake a photo
+function retakeGradingPhoto(step) {
+    const uploadArea = document.getElementById(`gradingUpload${step}`);
+    const preview = document.getElementById(`gradingPreview${step}`);
+    const feedback = document.getElementById(`gradingFeedback${step}`);
+    const nextBtn = document.getElementById(`gradingNext${step}`);
+    const input = document.getElementById(`gradingInput${step}`);
+    
+    // Reset state
+    gradingState.photos[step] = null;
+    
+    // Reset UI
+    preview.style.display = 'none';
+    feedback.style.display = 'none';
+    uploadArea.style.display = 'block';
+    nextBtn.disabled = true;
+    
+    // Clear input
+    input.value = '';
+}
+
+// Navigate to next step
+function nextGradingStep(currentStep) {
+    // Mark current step as completed
+    const currentStepEl = document.getElementById(`gradingStep${currentStep}`);
+    currentStepEl.classList.remove('active');
+    currentStepEl.classList.add('completed');
+    
+    // Hide current content
+    document.getElementById(`gradingContent${currentStep}`).classList.remove('active');
+    
+    // Show next step
+    const nextStep = currentStep + 1;
+    const nextStepEl = document.getElementById(`gradingStep${nextStep}`);
+    nextStepEl.classList.add('active');
+    document.getElementById(`gradingContent${nextStep}`).classList.add('active');
+    
+    gradingState.currentStep = nextStep;
+}
+
+// Skip a step
+function skipGradingStep(step) {
+    // Mark as skipped
+    const stepEl = document.getElementById(`gradingStep${step}`);
+    stepEl.classList.remove('active');
+    stepEl.classList.add('skipped');
+    
+    // Hide current content
+    document.getElementById(`gradingContent${step}`).classList.remove('active');
+    
+    // Determine next step
+    let nextStep;
+    if (step === 4) {
+        // Go to report
+        nextStep = 5;
+        generateGradeReport();
+    } else {
+        nextStep = step + 1;
+    }
+    
+    // Show next step
+    const nextStepEl = document.getElementById(`gradingStep${nextStep}`);
+    nextStepEl.classList.add('active');
+    document.getElementById(`gradingContent${nextStep}`).classList.add('active');
+    
+    gradingState.currentStep = nextStep;
+}
+
+// Handle additional photos
+function handleAdditionalPhoto(files) {
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        const base64 = e.target.result.split(',')[1];
+        gradingState.additionalPhotos.push({
+            base64: base64,
+            mediaType: file.type
+        });
+        
+        // Update thumbnail display
+        renderAdditionalPhotos();
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // Clear input
+    document.getElementById('additionalPhotoInput').value = '';
+}
+
+function renderAdditionalPhotos() {
+    const container = document.getElementById('additionalPhotos');
+    container.innerHTML = gradingState.additionalPhotos.map((photo, idx) => `
+        <div style="position: relative; display: inline-block;">
+            <img class="additional-photo-thumb" src="data:${photo.mediaType};base64,${photo.base64}" alt="Additional ${idx + 1}">
+            <button class="additional-photo-remove" onclick="removeAdditionalPhoto(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+function removeAdditionalPhoto(idx) {
+    gradingState.additionalPhotos.splice(idx, 1);
+    renderAdditionalPhotos();
+}
+
+// Generate the final grade report
+async function generateGradeReport() {
+    // Show report section
+    document.getElementById(`gradingContent4`).classList.remove('active');
+    document.getElementById(`gradingStep4`).classList.remove('active');
+    document.getElementById(`gradingStep4`).classList.add('completed');
+    document.getElementById(`gradingStep5`).classList.add('active');
+    document.getElementById(`gradingContent5`).classList.add('active');
+    
+    gradingState.currentStep = 5;
+    
+    // Show loading state
+    const resultEl = document.getElementById('gradeReportResult');
+    document.getElementById('gradeResultBig').textContent = '...';
+    document.getElementById('gradeResultLabel').textContent = 'Analyzing all photos...';
+    
+    // Build multi-image prompt
+    const imageContent = [];
+    const photoLabels = [];
+    
+    // Add all captured photos
+    Object.entries(gradingState.photos).forEach(([step, photo]) => {
+        if (photo) {
+            const labels = { 1: 'Front Cover', 2: 'Spine', 3: 'Back Cover', 4: 'Centerfold' };
+            imageContent.push({
+                type: 'image',
+                source: {
+                    type: 'base64',
+                    media_type: photo.mediaType,
+                    data: photo.base64
+                }
+            });
+            photoLabels.push(labels[step]);
+        }
+    });
+    
+    // Add additional photos
+    gradingState.additionalPhotos.forEach((photo, idx) => {
+        imageContent.push({
+            type: 'image',
+            source: {
+                type: 'base64',
+                media_type: photo.mediaType,
+                data: photo.base64
+            }
+        });
+        photoLabels.push(`Additional ${idx + 1}`);
+    });
+    
+    // Calculate photos used for confidence
+    const photosUsed = Object.values(gradingState.photos).filter(p => p !== null).length;
+    const baseConfidence = { 1: 65, 2: 78, 3: 88, 4: 94 }[photosUsed] || 65;
+    const additionalBoost = Math.min(gradingState.additionalPhotos.length * 2, 4);
+    const confidence = Math.min(baseConfidence + additionalBoost, 98);
+    
+    try {
+        // Send all images for comprehensive grading
+        const response = await fetch(`${API_URL}/api/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 2048,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        ...imageContent,
+                        {
+                            type: 'text',
+                            text: `You are grading this comic book using ${photoLabels.length} photos: ${photoLabels.join(', ')}.
+
+Based on ALL images provided, give a comprehensive grade assessment.
+
+Return a JSON object with:
+
+COMIC IDENTIFICATION:
+- title: Series name
+- issue: Issue number
+- publisher: Publisher
+- year: Year if visible
+
+COMPREHENSIVE GRADE:
+- final_grade: Numeric grade (e.g., 9.4, 8.5, 7.0, 6.0, 4.0, 2.0)
+- grade_label: Text label (NM, VF+, VF, FN+, FN, VG, G, etc.)
+- grade_reasoning: Detailed explanation of how you arrived at this grade
+
+DEFECTS BY AREA:
+- front_defects: Array of front cover defects
+- spine_defects: Array of spine defects  
+- back_defects: Array of back cover defects
+- interior_defects: Array of centerfold/staple/interior defects
+- other_defects: Array of any other defects from additional photos
+
+SIGNATURE:
+- signature_detected: boolean
+- signature_info: Object with location, ink_color, likely_signer if detected
+
+Return ONLY valid JSON, no markdown.`
+                        }
+                    ]
+                }]
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error.message || 'API error');
+        }
+        
+        let resultText = data.content[0].text;
+        resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        const result = JSON.parse(resultText);
+        gradingState.finalGrade = result;
+        gradingState.confidence = confidence;
+        
+        // Update UI
+        renderGradeReport(result, confidence, photoLabels);
+        
+        // Get valuation for "should you grade?" calculation
+        await calculateGradingRecommendation(result);
+        
+    } catch (error) {
+        console.error('Error generating grade report:', error);
+        document.getElementById('gradeResultBig').textContent = 'Error';
+        document.getElementById('gradeResultLabel').textContent = 'Failed to analyze. Please try again.';
+    }
+}
+
+// Render the grade report
+function renderGradeReport(result, confidence, photoLabels) {
+    // Comic info
+    document.getElementById('gradeReportComic').innerHTML = `
+        <div class="comic-title-big">${result.title || gradingState.extractedData?.title || 'Unknown'} #${result.issue || gradingState.extractedData?.issue || '?'}</div>
+        <div class="comic-meta">${result.publisher || ''} ${result.year || ''}</div>
+    `;
+    
+    // Grade result
+    document.getElementById('gradeResultBig').textContent = result.final_grade || '--';
+    document.getElementById('gradeResultLabel').textContent = result.grade_label || 'Grade';
+    document.getElementById('confidenceText').textContent = `${confidence}% confidence`;
+    document.getElementById('confidenceFill').style.width = `${confidence}%`;
+    
+    // Photos used badges
+    const allLabels = ['Front', 'Spine', 'Back', 'Center'];
+    document.getElementById('gradePhotosUsed').innerHTML = allLabels.map((label, idx) => {
+        const used = gradingState.photos[idx + 1] !== null;
+        return `<span class="photo-badge ${used ? 'used' : 'skipped'}">${label}${used ? ' ✓' : ''}</span>`;
+    }).join('');
+    
+    // Defects
+    const defectsHTML = [];
+    
+    if (result.front_defects?.length > 0) {
+        defectsHTML.push(`
+            <div class="defect-area">
+                <span class="defect-area-label">Front</span>
+                <div class="defect-area-items">${result.front_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+            </div>
+        `);
+    }
+    if (result.spine_defects?.length > 0) {
+        defectsHTML.push(`
+            <div class="defect-area">
+                <span class="defect-area-label">Spine</span>
+                <div class="defect-area-items">${result.spine_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+            </div>
+        `);
+    }
+    if (result.back_defects?.length > 0) {
+        defectsHTML.push(`
+            <div class="defect-area">
+                <span class="defect-area-label">Back</span>
+                <div class="defect-area-items">${result.back_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+            </div>
+        `);
+    }
+    if (result.interior_defects?.length > 0) {
+        defectsHTML.push(`
+            <div class="defect-area">
+                <span class="defect-area-label">Interior</span>
+                <div class="defect-area-items">${result.interior_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+            </div>
+        `);
+    }
+    
+    document.getElementById('defectsList').innerHTML = defectsHTML.length > 0 
+        ? defectsHTML.join('') 
+        : '<div class="no-defects">✓ No significant defects detected</div>';
+    
+    // Signature
+    if (result.signature_detected) {
+        document.getElementById('gradeReportSignature').style.display = 'block';
+        document.getElementById('signatureInfo').innerHTML = `
+            <p>${result.signature_info?.likely_signer || 'Unknown signer'}</p>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                ${result.signature_info?.ink_color || ''} ink, ${result.signature_info?.location || 'on cover'}
+            </p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+                ⚠️ For authenticated value, submit to CGC Signature Series or CBCS Verified
+            </p>
+        `;
+    } else {
+        document.getElementById('gradeReportSignature').style.display = 'none';
+    }
+}
+
+// Calculate "should you grade?" recommendation
+async function calculateGradingRecommendation(gradeResult) {
+    const extracted = gradingState.extractedData || gradeResult;
+    
+    // Convert letter grade to numeric for valuation lookup
+    const gradeMap = {
+        'MT': 'NM', '10.0': 'NM', '9.8': 'NM', '9.6': 'NM', '9.4': 'NM',
+        'NM': 'NM', 'NM+': 'NM', 'NM-': 'NM',
+        'VF': 'VF', 'VF+': 'VF', 'VF-': 'VF', '8.5': 'VF', '8.0': 'VF',
+        'FN': 'FN', 'FN+': 'FN', 'FN-': 'FN', '6.5': 'FN', '6.0': 'FN',
+        'VG': 'VG', 'VG+': 'VG', 'VG-': 'VG', '4.5': 'VG', '4.0': 'VG',
+        'G': 'G', 'GD': 'G', '2.5': 'G', '2.0': 'G',
+        'FR': 'FR', '1.5': 'FR',
+        'PR': 'PR', '1.0': 'PR', '0.5': 'PR'
+    };
+    
+    const lookupGrade = gradeMap[gradeResult.grade_label] || gradeMap[gradeResult.final_grade] || 'VF';
+    
+    try {
+        // Get valuation
+        const response = await fetch(`${API_URL}/api/valuate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                title: extracted.title,
+                issue: extracted.issue,
+                grade: lookupGrade
+            })
+        });
+        
+        const valuation = await response.json();
+        
+        if (valuation.error) {
+            throw new Error(valuation.error);
+        }
+        
+        // Calculate recommendation
+        const rawValue = valuation.fair_value || valuation.final_value || 0;
+        const slabPremium = 1.3; // Slabbed comics typically sell for 30% more
+        const gradingCost = getGradingCost(rawValue);
+        
+        const slabbedValue = rawValue * slabPremium;
+        const netBenefit = slabbedValue - rawValue - gradingCost;
+        const roi = rawValue > 0 ? ((netBenefit / gradingCost) * 100).toFixed(0) : 0;
+        
+        // Render recommendation
+        document.getElementById('recommendationValues').innerHTML = `
+            <div class="recommendation-value">
+                <div class="label">Raw Value</div>
+                <div class="amount">$${rawValue.toFixed(2)}</div>
+            </div>
+            <div class="recommendation-value">
+                <div class="label">Slabbed Value (est.)</div>
+                <div class="amount">$${slabbedValue.toFixed(2)}</div>
+            </div>
+            <div class="recommendation-value">
+                <div class="label">Grading Cost</div>
+                <div class="amount">~$${gradingCost}</div>
+            </div>
+            <div class="recommendation-value">
+                <div class="label">Net Benefit</div>
+                <div class="amount" style="color: ${netBenefit > 0 ? 'var(--status-success)' : 'var(--status-error)'}">
+                    ${netBenefit > 0 ? '+' : ''}$${netBenefit.toFixed(2)}
+                </div>
+            </div>
+        `;
+        
+        // Verdict
+        let verdictHTML;
+        if (netBenefit > gradingCost * 0.5) {
+            // Good ROI
+            verdictHTML = `
+                <div class="recommendation-verdict submit">
+                    <div class="verdict-icon">✅</div>
+                    <div class="verdict-text">SUBMIT FOR GRADING</div>
+                    <div class="verdict-reason">Expected ${roi}% return on grading investment</div>
+                </div>
+            `;
+        } else if (netBenefit > 0) {
+            // Marginal
+            verdictHTML = `
+                <div class="recommendation-verdict" style="background: rgba(99, 102, 241, 0.1); border-color: var(--brand-indigo);">
+                    <div class="verdict-icon">🤔</div>
+                    <div class="verdict-text" style="color: var(--brand-indigo);">CONSIDER GRADING</div>
+                    <div class="verdict-reason">Marginal benefit - depends on your goals</div>
+                </div>
+            `;
+        } else {
+            // Not worth it
+            verdictHTML = `
+                <div class="recommendation-verdict keep-raw">
+                    <div class="verdict-icon">📦</div>
+                    <div class="verdict-text">KEEP RAW</div>
+                    <div class="verdict-reason">Grading cost exceeds likely value increase</div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('recommendationVerdict').innerHTML = verdictHTML;
+        
+    } catch (error) {
+        console.error('Error calculating recommendation:', error);
+        document.getElementById('recommendationValues').innerHTML = `
+            <p style="color: var(--text-muted); text-align: center;">Could not retrieve market values</p>
+        `;
+        document.getElementById('recommendationVerdict').innerHTML = '';
+    }
+}
+
+// Estimate grading cost based on value
+function getGradingCost(value) {
+    if (value >= 1000) return 150; // Walkthrough tier
+    if (value >= 400) return 85;   // Express tier
+    if (value >= 200) return 50;   // Economy tier
+    return 30; // Modern tier (minimum)
+}
+
+// Reset grading mode
+function resetGrading() {
+    // Reset state
+    gradingState = {
+        currentStep: 1,
+        photos: { 1: null, 2: null, 3: null, 4: null },
+        additionalPhotos: [],
+        extractedData: null,
+        defectsByArea: {},
+        finalGrade: null,
+        confidence: 0
+    };
+    
+    // Reset all step indicators
+    for (let i = 1; i <= 5; i++) {
+        const stepEl = document.getElementById(`gradingStep${i}`);
+        stepEl.classList.remove('active', 'completed', 'skipped');
+        if (i === 1) stepEl.classList.add('active');
+        
+        const contentEl = document.getElementById(`gradingContent${i}`);
+        contentEl.classList.remove('active');
+        if (i === 1) contentEl.classList.add('active');
+    }
+    
+    // Reset all inputs and previews
+    for (let i = 1; i <= 4; i++) {
+        document.getElementById(`gradingUpload${i}`).style.display = 'block';
+        document.getElementById(`gradingPreview${i}`).style.display = 'none';
+        document.getElementById(`gradingFeedback${i}`).style.display = 'none';
+        document.getElementById(`gradingInput${i}`).value = '';
+        if (i > 1) {
+            document.getElementById(`gradingNext${i}`).disabled = true;
+        }
+    }
+    document.getElementById('gradingNext1').disabled = true;
+    
+    // Clear additional photos
+    document.getElementById('additionalPhotos').innerHTML = '';
+    
+    // Clear comic ID banners
+    [2, 3, 4].forEach(step => {
+        const banner = document.getElementById(`gradingComicId${step}`);
+        if (banner) banner.innerHTML = '';
+    });
+}
+
+// Save graded comic to collection
+function saveGradeToCollection() {
+    if (!gradingState.finalGrade || !gradingState.extractedData) {
+        alert('No grade data to save');
+        return;
+    }
+    
+    // Use existing saveToCollection logic
+    const comicData = {
+        title: gradingState.extractedData.title,
+        issue: gradingState.extractedData.issue,
+        grade: gradingState.finalGrade.grade_label || gradingState.finalGrade.final_grade,
+        notes: `Graded via 4-photo analysis. ${gradingState.finalGrade.grade_reasoning || ''}`
+    };
+    
+    // This would call your existing collection save API
+    alert('Save to collection coming soon!');
+}
+
+// Get full valuation after grading
+function getFullValuation() {
+    if (!gradingState.extractedData) return;
+    
+    // Switch to manual mode with pre-filled data
+    setMode('manual');
+    
+    document.getElementById('title').value = gradingState.extractedData.title || '';
+    document.getElementById('issue').value = gradingState.extractedData.issue || '';
+    
+    // Map grade
+    const gradeSelect = document.getElementById('grade');
+    const gradeLabel = gradingState.finalGrade?.grade_label || 'VF';
+    const gradeMap = { 'NM': 'NM', 'VF': 'VF', 'FN': 'FN', 'VG': 'VG', 'G': 'G', 'FR': 'FR', 'PR': 'PR' };
+    const matchedGrade = Object.keys(gradeMap).find(g => gradeLabel.includes(g)) || 'VF';
+    gradeSelect.value = matchedGrade;
+    
+    // Submit form
+    document.getElementById('valuationForm').dispatchEvent(new Event('submit'));
+}
