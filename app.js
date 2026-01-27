@@ -2478,6 +2478,8 @@ async function generateGradeReport() {
     const resultEl = document.getElementById('gradeReportResult');
     document.getElementById('gradeResultBig').textContent = '...';
     document.getElementById('gradeResultLabel').textContent = 'Analyzing all photos...';
+    document.getElementById('recommendationValues').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating recommendation...</p>';
+    document.getElementById('recommendationVerdict').innerHTML = '';
     
     // Build multi-image prompt
     const imageContent = [];
@@ -2539,31 +2541,29 @@ async function generateGradeReport() {
 
 Based on ALL images provided, give a comprehensive grade assessment.
 
-Return a JSON object with:
+Return a JSON object with these EXACT top-level keys:
 
-COMIC IDENTIFICATION:
-- title: Series name
-- issue: Issue number
-- publisher: Publisher
-- year: Year if visible
+{
+  "title": "Series name",
+  "issue": "Issue number",
+  "publisher": "Publisher",
+  "year": "Year if visible",
+  "final_grade": 9.4,
+  "grade_label": "NM",
+  "grade_reasoning": "Detailed explanation",
+  "front_defects": ["array", "of", "defects"],
+  "spine_defects": ["array", "of", "defects"],
+  "back_defects": ["array", "of", "defects"],
+  "interior_defects": ["array", "of", "defects"],
+  "other_defects": ["array", "of", "defects"],
+  "signature_detected": false,
+  "signature_info": null
+}
 
-COMPREHENSIVE GRADE:
-- final_grade: Numeric grade (e.g., 9.4, 8.5, 7.0, 6.0, 4.0, 2.0)
-- grade_label: Text label (NM, VF+, VF, FN+, FN, VG, G, etc.)
-- grade_reasoning: Detailed explanation of how you arrived at this grade
+Use numeric grades like 9.8, 9.4, 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.0, 2.0, 1.0.
+Grade labels: MT, NM+, NM, NM-, VF+, VF, VF-, FN+, FN, FN-, VG+, VG, VG-, G, FR, PR.
 
-DEFECTS BY AREA:
-- front_defects: Array of front cover defects
-- spine_defects: Array of spine defects  
-- back_defects: Array of back cover defects
-- interior_defects: Array of centerfold/staple/interior defects
-- other_defects: Array of any other defects from additional photos
-
-SIGNATURE:
-- signature_detected: boolean
-- signature_info: Object with location, ink_color, likely_signer if detected
-
-Return ONLY valid JSON, no markdown.`
+Return ONLY valid JSON, no markdown, no nested objects.`
                         }
                     ]
                 }]
@@ -2598,15 +2598,21 @@ Return ONLY valid JSON, no markdown.`
 
 // Render the grade report
 function renderGradeReport(result, confidence, photoLabels) {
+    // Handle both flat and nested response structures from Claude
+    const comic = result['COMIC IDENTIFICATION'] || result;
+    const grade = result['COMPREHENSIVE GRADE'] || result;
+    const defects = result['DEFECTS BY AREA'] || result;
+    const sig = result['SIGNATURE'] || result;
+    
     // Comic info
     document.getElementById('gradeReportComic').innerHTML = `
-        <div class="comic-title-big">${result.title || gradingState.extractedData?.title || 'Unknown'} #${result.issue || gradingState.extractedData?.issue || '?'}</div>
-        <div class="comic-meta">${result.publisher || ''} ${result.year || ''}</div>
+        <div class="comic-title-big">${comic.title || gradingState.extractedData?.title || 'Unknown'} #${comic.issue || gradingState.extractedData?.issue || '?'}</div>
+        <div class="comic-meta">${comic.publisher || ''} ${comic.year || ''}</div>
     `;
     
     // Grade result
-    document.getElementById('gradeResultBig').textContent = result.final_grade || '--';
-    document.getElementById('gradeResultLabel').textContent = result.grade_label || 'Grade';
+    document.getElementById('gradeResultBig').textContent = grade.final_grade || '--';
+    document.getElementById('gradeResultLabel').textContent = grade.grade_label || 'Grade';
     document.getElementById('confidenceText').textContent = `${confidence}% confidence`;
     document.getElementById('confidenceFill').style.width = `${confidence}%`;
     
@@ -2617,38 +2623,43 @@ function renderGradeReport(result, confidence, photoLabels) {
         return `<span class="photo-badge ${used ? 'used' : 'skipped'}">${label}${used ? ' ✓' : ''}</span>`;
     }).join('');
     
-    // Defects
+    // Defects - handle both flat and nested structures
+    const frontDefects = defects.front_defects || [];
+    const spineDefects = defects.spine_defects || [];
+    const backDefects = defects.back_defects || [];
+    const interiorDefects = defects.interior_defects || [];
+    
     const defectsHTML = [];
     
-    if (result.front_defects?.length > 0) {
+    if (frontDefects.length > 0) {
         defectsHTML.push(`
             <div class="defect-area">
                 <span class="defect-area-label">Front</span>
-                <div class="defect-area-items">${result.front_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+                <div class="defect-area-items">${frontDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
             </div>
         `);
     }
-    if (result.spine_defects?.length > 0) {
+    if (spineDefects.length > 0) {
         defectsHTML.push(`
             <div class="defect-area">
                 <span class="defect-area-label">Spine</span>
-                <div class="defect-area-items">${result.spine_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+                <div class="defect-area-items">${spineDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
             </div>
         `);
     }
-    if (result.back_defects?.length > 0) {
+    if (backDefects.length > 0) {
         defectsHTML.push(`
             <div class="defect-area">
                 <span class="defect-area-label">Back</span>
-                <div class="defect-area-items">${result.back_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+                <div class="defect-area-items">${backDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
             </div>
         `);
     }
-    if (result.interior_defects?.length > 0) {
+    if (interiorDefects.length > 0) {
         defectsHTML.push(`
             <div class="defect-area">
                 <span class="defect-area-label">Interior</span>
-                <div class="defect-area-items">${result.interior_defects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+                <div class="defect-area-items">${interiorDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
             </div>
         `);
     }
@@ -2658,12 +2669,14 @@ function renderGradeReport(result, confidence, photoLabels) {
         : '<div class="no-defects">✓ No significant defects detected</div>';
     
     // Signature
-    if (result.signature_detected) {
+    const sigDetected = sig.signature_detected || false;
+    if (sigDetected) {
         document.getElementById('gradeReportSignature').style.display = 'block';
+        const sigInfo = sig.signature_info || {};
         document.getElementById('signatureInfo').innerHTML = `
-            <p>${result.signature_info?.likely_signer || 'Unknown signer'}</p>
+            <p>${sigInfo.likely_signer || 'Unknown signer'}</p>
             <p style="font-size: 0.9rem; color: var(--text-secondary);">
-                ${result.signature_info?.ink_color || ''} ink, ${result.signature_info?.location || 'on cover'}
+                ${sigInfo.ink_color || ''} ink, ${sigInfo.location || 'on cover'}
             </p>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
                 ⚠️ For authenticated value, submit to CGC Signature Series or CBCS Verified
@@ -2676,7 +2689,10 @@ function renderGradeReport(result, confidence, photoLabels) {
 
 // Calculate "should you grade?" recommendation
 async function calculateGradingRecommendation(gradeResult) {
-    const extracted = gradingState.extractedData || gradeResult;
+    // Handle nested structure
+    const comic = gradeResult['COMIC IDENTIFICATION'] || gradeResult;
+    const grade = gradeResult['COMPREHENSIVE GRADE'] || gradeResult;
+    const extracted = gradingState.extractedData || comic;
     
     // Convert letter grade to numeric for valuation lookup
     const gradeMap = {
@@ -2690,7 +2706,9 @@ async function calculateGradingRecommendation(gradeResult) {
         'PR': 'PR', '1.0': 'PR', '0.5': 'PR'
     };
     
-    const lookupGrade = gradeMap[gradeResult.grade_label] || gradeMap[gradeResult.final_grade] || 'VF';
+    const gradeLabel = grade.grade_label || gradeResult.grade_label;
+    const finalGrade = grade.final_grade || gradeResult.final_grade;
+    const lookupGrade = gradeMap[gradeLabel] || gradeMap[String(finalGrade)] || 'VF';
     
     try {
         // Get valuation
@@ -2701,8 +2719,8 @@ async function calculateGradingRecommendation(gradeResult) {
                 'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
-                title: extracted.title,
-                issue: extracted.issue,
+                title: extracted.title || comic.title,
+                issue: extracted.issue || comic.issue,
                 grade: lookupGrade
             })
         });
@@ -2847,12 +2865,15 @@ function saveGradeToCollection() {
         return;
     }
     
+    // Handle nested structure
+    const grade = gradingState.finalGrade['COMPREHENSIVE GRADE'] || gradingState.finalGrade;
+    
     // Use existing saveToCollection logic
     const comicData = {
         title: gradingState.extractedData.title,
         issue: gradingState.extractedData.issue,
-        grade: gradingState.finalGrade.grade_label || gradingState.finalGrade.final_grade,
-        notes: `Graded via 4-photo analysis. ${gradingState.finalGrade.grade_reasoning || ''}`
+        grade: grade.grade_label || grade.final_grade,
+        notes: `Graded via 4-photo analysis. ${grade.grade_reasoning || ''}`
     };
     
     // This would call your existing collection save API
@@ -2863,6 +2884,9 @@ function saveGradeToCollection() {
 function getFullValuation() {
     if (!gradingState.extractedData) return;
     
+    // Handle nested structure
+    const grade = gradingState.finalGrade?.['COMPREHENSIVE GRADE'] || gradingState.finalGrade;
+    
     // Switch to manual mode with pre-filled data
     setMode('manual');
     
@@ -2871,7 +2895,7 @@ function getFullValuation() {
     
     // Map grade
     const gradeSelect = document.getElementById('grade');
-    const gradeLabel = gradingState.finalGrade?.grade_label || 'VF';
+    const gradeLabel = grade?.grade_label || 'VF';
     const gradeMap = { 'NM': 'NM', 'VF': 'VF', 'FN': 'FN', 'VG': 'VG', 'G': 'G', 'FR': 'FR', 'PR': 'PR' };
     const matchedGrade = Object.keys(gradeMap).find(g => gradeLabel.includes(g)) || 'VF';
     gradeSelect.value = matchedGrade;
