@@ -28,6 +28,7 @@ IDENTIFICATION FIELDS:
 - year: Publication year - look for copyright text or indicia, usually small text
 - edition: Look at the BOTTOM-LEFT CORNER. If you see a UPC BARCODE, return "newsstand". If you see ARTWORK or LOGO, return "direct". If unclear, return "unknown".
 - printing: Look for "2nd Printing", "3rd Print", "Second Printing", etc. anywhere on cover. Return "1st" if no printing indicator found, otherwise "2nd", "3rd", etc.
+- is_facsimile: IMPORTANT - Look for "FACSIMILE", "FACSIMILE EDITION", or "FACSIMILE REPRINT" anywhere on the cover. These are modern reprints of classic covers. Return true if found, false otherwise. Facsimiles often have a small "FACSIMILE EDITION" banner or text, sometimes in the corner or along an edge.
 - cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
 - variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
 
@@ -78,9 +79,10 @@ CRITICAL RULES:
 1. Do NOT confuse prices (60¢, $1.50, 25p) with issue numbers. Issue numbers are preceded by "#" or "No." and are typically 1-4 digits.
 2. ALWAYS check for "Annual", "King-Size Special", "Giant-Size", or "Special" - these are DIFFERENT series than the regular comic and have very different values.
 3. If you see "KING-SIZE SPECIAL" anywhere, the issue_type MUST be "Annual".
-4. For condition: You can ONLY see the front cover. Note this limitation - back cover damage would not be visible.
-5. Ignore bag/sleeve artifacts. Assess the comic itself.
-6. Creator signatures are valuable, not defects.
+4. ALWAYS check for "FACSIMILE" or "FACSIMILE EDITION" - these are reprints worth $5-15, not originals worth potentially hundreds. Set is_facsimile: true if found.
+5. For condition: You can ONLY see the front cover. Note this limitation - back cover damage would not be visible.
+6. Ignore bag/sleeve artifacts. Assess the comic itself.
+7. Creator signatures are valuable, not defects.
 
 Be accurate. If unsure about any field, use reasonable estimates."""
 

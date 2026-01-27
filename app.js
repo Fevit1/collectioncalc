@@ -96,6 +96,7 @@
             const loggedInEl = document.getElementById('authLoggedIn');
             const userEmailEl = document.getElementById('userEmail');
             const userAvatarEl = document.getElementById('userAvatar');
+            const adminMenuItem = document.getElementById('adminMenuItem');
             
             if (loggedIn && currentUser) {
                 loggedOutEl.style.display = 'none';
@@ -105,9 +106,17 @@
                 const email = currentUser.email;
                 userEmailEl.textContent = email.length > 20 ? email.slice(0, 17) + '...' : email;
                 userAvatarEl.textContent = email.charAt(0).toUpperCase();
+                
+                // Show admin button only for admins
+                if (adminMenuItem) {
+                    adminMenuItem.style.display = currentUser.is_admin ? 'block' : 'none';
+                }
             } else {
                 loggedOutEl.style.display = 'flex';
                 loggedInEl.style.display = 'none';
+                if (adminMenuItem) {
+                    adminMenuItem.style.display = 'none';
+                }
             }
         }
         

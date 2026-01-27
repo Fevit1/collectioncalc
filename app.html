@@ -31,11 +31,12 @@
                     <div class="user-menu">
                         <button class="user-menu-btn" onclick="toggleUserMenu()">
                             <div class="user-avatar" id="userAvatar">?</div>
-                            <span id="userEmail">user@email.com</span>
+                            <span id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="89fcfaecfbc9ece4e8e0e5a7eae6e4">[email&#160;protected]</a></span>
                             <span>▾</span>
                         </button>
                         <div class="user-menu-dropdown" id="userMenuDropdown">
                             <button class="user-menu-item" onclick="showCollection()">📚 My Collection</button>
+                            <button class="user-menu-item admin-only" id="adminMenuItem" onclick="window.location.href='/admin.html'" style="display:none;">🔧 Admin</button>
                             <div class="user-menu-divider"></div>
                             <button class="user-menu-item danger" onclick="logout()">Log Out</button>
                         </div>
@@ -301,11 +302,4 @@
                 <button class="listing-btn-cancel" onclick="closeListingModal()">Cancel</button>
                 <button class="listing-btn-confirm" id="confirmListingBtn" onclick="confirmListing()">
                     Confirm & List on eBay
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <script src="app.js"></script>
-</body>
-</html>
+          

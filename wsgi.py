@@ -671,13 +671,13 @@ def api_record_sale():
         
         cur.execute("""
             INSERT INTO market_sales (source, title, series, issue, grade, grade_source, slab_type,
-                variant, is_key, price, sold_at, raw_title, seller, bids, viewers, image_url, source_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                variant, is_key, is_facsimile, price, sold_at, raw_title, seller, bids, viewers, image_url, source_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (source, source_id) DO UPDATE SET price = EXCLUDED.price, sold_at = EXCLUDED.sold_at
             RETURNING id
         """, (data.get('source', 'whatnot'), data.get('title'), data.get('series'), data.get('issue'),
               data.get('grade'), data.get('grade_source'), data.get('slab_type'), data.get('variant'),
-              data.get('is_key', False), data.get('price'), data.get('sold_at'), data.get('raw_title'),
+              data.get('is_key', False), data.get('is_facsimile', False), data.get('price'), data.get('sold_at'), data.get('raw_title'),
               data.get('seller'), data.get('bids'), data.get('viewers'), image_url, data.get('source_id')))
         
         sale_id = cur.fetchone()['id']
