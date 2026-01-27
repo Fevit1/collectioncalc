@@ -56,11 +56,7 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .back-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; }
         .back-link:hover { color: var(--primary); }
         .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
         .stat-card {
@@ -82,7 +78,7 @@
         .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; }
         .signatures-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 16px;
         }
         .signature-card {
@@ -109,27 +105,78 @@
         }
         .signature-badge.verified { background: rgba(34, 197, 94, 0.2); color: var(--success); }
         .signature-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .signature-image {
-            width: 100%;
-            height: 120px;
+        .signature-images {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        .signature-images::-webkit-scrollbar { height: 6px; }
+        .signature-images::-webkit-scrollbar-track { background: var(--bg-card); border-radius: 3px; }
+        .signature-images::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .sig-thumb {
+            width: 80px;
+            height: 80px;
+            min-width: 80px;
             background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .sig-thumb:hover { border-color: var(--primary); }
+        .sig-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .sig-thumb .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            background: var(--error);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sig-thumb:hover .delete-btn { opacity: 1; }
+        .add-image-btn {
+            width: 80px;
+            height: 80px;
+            min-width: 80px;
+            background: var(--bg-card);
+            border: 2px dashed var(--border);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 12px;
-            overflow: hidden;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            transition: all 0.2s;
         }
-        .signature-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .signature-image.empty {
+        .add-image-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .no-images {
+            width: 100%;
+            height: 80px;
+            background: var(--bg-card);
             border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--text-muted);
             font-size: 0.85rem;
             cursor: pointer;
         }
-        .signature-image.empty:hover { border-color: var(--primary); color: var(--primary); }
-        .signature-style { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; }
-        .signature-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .no-images:hover { border-color: var(--primary); color: var(--primary); }
+        .signature-style { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; margin-bottom: 12px; }
+        .signature-actions { display: flex; gap: 8px; }
         .btn {
             padding: 10px 20px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -149,7 +196,7 @@
         .form-row { display: flex; gap: 12px; margin-bottom: 16px; }
         .form-group { flex: 1; }
         .form-group label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
-        .form-group input, .form-group select, .form-group textarea {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px 12px;
             background: var(--bg-dark);
@@ -158,22 +205,7 @@
             color: var(--text-primary);
             font-size: 0.9rem;
         }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        .upload-area {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .upload-area:hover { border-color: var(--primary); }
-        .upload-area.dragover { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
-        .upload-icon { font-size: 2rem; margin-bottom: 8px; }
-        .upload-text { color: var(--text-secondary); font-size: 0.9rem; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -196,6 +228,18 @@
         .modal-title { font-size: 1.2rem; font-weight: 600; }
         .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
         .modal-close:hover { color: var(--text-primary); }
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .upload-area:hover { border-color: var(--primary); }
+        .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+        .upload-text { color: var(--text-secondary); font-size: 0.9rem; }
         .image-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 16px; }
         .filter-row { display: flex; gap: 12px; margin-bottom: 20px; }
         .search-input {
@@ -208,6 +252,37 @@
             font-size: 0.9rem;
         }
         .search-input:focus { outline: none; border-color: var(--primary); }
+        .image-viewer {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .image-viewer.show { display: flex; }
+        .image-viewer img { max-width: 90%; max-height: 90%; object-fit: contain; }
+        .image-viewer-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .image-viewer-info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
         .toast {
             position: fixed;
             bottom: 24px;
@@ -216,7 +291,6 @@
             border: 1px solid var(--border);
             padding: 16px 20px;
             border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             z-index: 1000;
             transform: translateY(100px);
             opacity: 0;
@@ -236,6 +310,7 @@
             margin: 0 auto 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .image-count { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -253,8 +328,8 @@
                 <div class="stat-value" id="statTotal">-</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">With Images</div>
-                <div class="stat-value" id="statWithImages">-</div>
+                <div class="stat-label">Reference Images</div>
+                <div class="stat-value" id="statImages">-</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Verified</div>
@@ -302,7 +377,7 @@
                 <select id="filterImage" style="padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);">
                     <option value="">All</option>
                     <option value="with">With Images</option>
-                    <option value="without">Needs Image</option>
+                    <option value="without">Needs Images</option>
                 </select>
             </div>
             <div class="signatures-grid" id="signaturesGrid">
@@ -313,20 +388,28 @@
     <div class="modal-overlay" id="uploadModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">📷 Upload Signature Reference</h3>
+                <h3 class="modal-title">📷 Add Signature Reference</h3>
                 <button class="modal-close" onclick="closeUploadModal()">&times;</button>
             </div>
             <div id="uploadModalBody">
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Upload a clear photo of <strong id="uploadCreatorName">this creator's</strong> signature.
+                    Upload a reference image for <strong id="uploadCreatorName">this creator</strong>.
                 </p>
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click();">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click();">
                     <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
                     <div class="upload-icon">📷</div>
                     <div class="upload-text">Click to select image</div>
                 </div>
                 <img id="imagePreview" class="image-preview" style="display: none;">
-                <div class="form-group" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label>Era / Period (optional)</label>
+                    <input type="text" id="uploadEra" placeholder="e.g., 1980s, early career, modern">
+                </div>
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <input type="text" id="uploadNotes" placeholder="e.g., sloppy version, formal signature">
+                </div>
+                <div class="form-group">
                     <label>Source (optional)</label>
                     <input type="text" id="uploadSource" placeholder="e.g., eBay purchase, CGC verified">
                 </div>
@@ -337,13 +420,23 @@
             </div>
         </div>
     </div>
+    <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
+        <button class="image-viewer-close">&times;</button>
+        <img id="viewerImage" src="">
+        <div class="image-viewer-info">
+            <div id="viewerCreator" style="font-weight: 600;"></div>
+            <div id="viewerDetails" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+        </div>
+    </div>
     <div class="toast" id="toast"></div>
     <script>
         const API_BASE = 'https://collectioncalc.onrender.com';
         let token = localStorage.getItem('cc_auth_token');
         let signatures = [];
         let uploadingCreatorId = null;
+        let uploadingCreatorName = '';
         let selectedFile = null;
+        let totalImages = 0;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!token) { window.location.href = '/app.html'; return; }
@@ -360,13 +453,18 @@
             try {
                 const res = await fetch(API_BASE + '/api/admin/signatures', { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
-                if (data.success) { signatures = data.signatures; updateStats(); renderSignatures(); }
+                if (data.success) { 
+                    signatures = data.signatures; 
+                    totalImages = data.total_images || 0;
+                    updateStats(); 
+                    renderSignatures(); 
+                }
             } catch (e) { console.error('Failed to load:', e); }
         }
 
         function updateStats() {
             document.getElementById('statTotal').textContent = signatures.length;
-            document.getElementById('statWithImages').textContent = signatures.filter(s => s.reference_image_url).length;
+            document.getElementById('statImages').textContent = totalImages;
             document.getElementById('statVerified').textContent = signatures.filter(s => s.verified).length;
         }
 
@@ -378,32 +476,45 @@
             let filtered = signatures.filter(s => {
                 if (search && !s.creator_name.toLowerCase().includes(search)) return false;
                 if (roleFilter && s.role !== roleFilter) return false;
-                if (imageFilter === 'with' && !s.reference_image_url) return false;
-                if (imageFilter === 'without' && s.reference_image_url) return false;
+                const hasImages = s.images && s.images.length > 0;
+                if (imageFilter === 'with' && !hasImages) return false;
+                if (imageFilter === 'without' && hasImages) return false;
                 return true;
             });
             if (filtered.length === 0) { grid.innerHTML = '<div class="loading">No creators found</div>'; return; }
-            grid.innerHTML = filtered.map(sig => `
-                <div class="signature-card">
-                    <div class="signature-header">
-                        <div>
-                            <div class="signature-name">${sig.creator_name}</div>
-                            <div class="signature-role">${sig.role || 'Unknown'}</div>
-                        </div>
-                        <span class="signature-badge ${sig.verified ? 'verified' : 'pending'}">${sig.verified ? '✓ Verified' : 'Pending'}</span>
-                    </div>
-                    <div class="signature-image ${sig.reference_image_url ? '' : 'empty'}" onclick="${sig.reference_image_url ? '' : "openUploadModal(" + sig.id + ", '" + sig.creator_name.replace(/'/g, "\\'") + "')"}">
-                        ${sig.reference_image_url ? '<img src="' + sig.reference_image_url + '" alt="' + sig.creator_name + ' signature">' : '📷 Click to add image'}
-                    </div>
-                    ${sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : ''}
-                    <div class="signature-actions">
-                        <button class="btn btn-sm btn-secondary" onclick="openUploadModal(${sig.id}, '${sig.creator_name.replace(/'/g, "\\'")}')">
-                            ${sig.reference_image_url ? '🔄 Replace' : '📷 Upload'}
-                        </button>
-                        ${!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : ''}
-                    </div>
-                </div>
-            `).join('');
+            grid.innerHTML = filtered.map(sig => {
+                const images = sig.images || [];
+                const imageCount = images.length;
+                let imagesHtml = '';
+                if (imageCount === 0) {
+                    imagesHtml = '<div class="no-images" onclick="openUploadModal(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">📷 Click to add reference images</div>';
+                } else {
+                    imagesHtml = '<div class="signature-images">' +
+                        images.map(img => 
+                            '<div class="sig-thumb" onclick="viewImage(\'' + img.image_url + '\', \'' + sig.creator_name.replace(/'/g, "\\'") + '\', \'' + (img.era || '').replace(/'/g, "\\'") + '\', \'' + (img.notes || '').replace(/'/g, "\\'") + '\')">' +
+                                '<img src="' + img.image_url + '" alt="Signature">' +
+                                '<button class="delete-btn" onclick="event.stopPropagation(); deleteImage(' + img.id + ', ' + sig.id + ')">×</button>' +
+                            '</div>'
+                        ).join('') +
+                        '<div class="add-image-btn" onclick="openUploadModal(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">+</div>' +
+                    '</div>';
+                }
+                return '<div class="signature-card">' +
+                    '<div class="signature-header">' +
+                        '<div>' +
+                            '<div class="signature-name">' + sig.creator_name + '</div>' +
+                            '<div class="signature-role">' + (sig.role || 'Unknown') + '</div>' +
+                        '</div>' +
+                        '<span class="signature-badge ' + (sig.verified ? 'verified' : 'pending') + '">' + (sig.verified ? '✓ Verified' : 'Pending') + '</span>' +
+                    '</div>' +
+                    '<div class="image-count">' + imageCount + ' reference image' + (imageCount !== 1 ? 's' : '') + '</div>' +
+                    imagesHtml +
+                    (sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : '') +
+                    '<div class="signature-actions">' +
+                        (!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : '') +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function setupFilters() {
@@ -436,16 +547,21 @@
 
         function openUploadModal(id, name) {
             uploadingCreatorId = id;
+            uploadingCreatorName = name;
             document.getElementById('uploadCreatorName').textContent = name;
             document.getElementById('uploadModal').classList.add('show');
             document.getElementById('imagePreview').style.display = 'none';
             document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadEra').value = '';
+            document.getElementById('uploadNotes').value = '';
+            document.getElementById('uploadSource').value = '';
             selectedFile = null;
         }
 
         function closeUploadModal() {
             document.getElementById('uploadModal').classList.remove('show');
             uploadingCreatorId = null;
+            uploadingCreatorName = '';
             selectedFile = null;
         }
 
@@ -474,17 +590,32 @@
                     reader.onload = (e) => resolve(e.target.result.split(',')[1]);
                     reader.readAsDataURL(selectedFile);
                 });
+                const era = document.getElementById('uploadEra').value.trim();
+                const notes = document.getElementById('uploadNotes').value.trim();
                 const source = document.getElementById('uploadSource').value.trim();
-                const res = await fetch(API_BASE + '/api/admin/signatures/' + uploadingCreatorId + '/image', {
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + uploadingCreatorId + '/images', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64, source: source })
+                    body: JSON.stringify({ image: base64, era: era, notes: notes, source: source })
                 });
                 const data = await res.json();
-                if (data.success) { showToast('Uploaded!', 'success'); closeUploadModal(); loadSignatures(); }
+                if (data.success) { showToast('Image added for ' + uploadingCreatorName + '!', 'success'); closeUploadModal(); loadSignatures(); }
+                else { showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.textContent = 'Upload'; }
+        }
+
+        async function deleteImage(imageId, creatorId) {
+            if (!confirm('Delete this reference image?')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures/images/' + imageId, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.success) { showToast('Image deleted', 'success'); loadSignatures(); }
                 else { showToast(data.error || 'Failed', 'error'); }
             } catch (e) { showToast('Error', 'error'); }
-            finally { btn.disabled = false; btn.textContent = 'Upload'; }
         }
 
         async function verifySignature(id) {
@@ -499,12 +630,28 @@
             } catch (e) { showToast('Error', 'error'); }
         }
 
+        function viewImage(url, creator, era, notes) {
+            document.getElementById('viewerImage').src = url;
+            document.getElementById('viewerCreator').textContent = creator;
+            let details = [];
+            if (era) details.push(era);
+            if (notes) details.push(notes);
+            document.getElementById('viewerDetails').textContent = details.join(' • ') || 'No additional info';
+            document.getElementById('imageViewer').classList.add('show');
+        }
+
+        function closeImageViewer() { document.getElementById('imageViewer').classList.remove('show'); }
+
         function showToast(message, type) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast ' + type + ' show';
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeImageViewer(); closeUploadModal(); }
+        });
     </script>
 </body>
 </html>

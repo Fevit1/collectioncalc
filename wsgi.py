@@ -414,7 +414,7 @@ def api_nlq():
 @app.route('/api/admin/signatures', methods=['GET'])
 @require_admin_auth
 def api_get_signatures():
-    """Get all creator signatures."""
+    """Get all creator signatures with their images."""
     import psycopg2
     from psycopg2.extras import RealDictCursor
     
@@ -423,22 +423,50 @@ def api_get_signatures():
     cur = conn.cursor()
     
     try:
+        # Get all creators
         cur.execute("""
-            SELECT id, creator_name, role, reference_image_url, 
-                   signature_style, verified, source, notes, created_at
+            SELECT id, creator_name, role, signature_style, verified, source, notes, created_at
             FROM creator_signatures
             ORDER BY creator_name
         """)
         creators = cur.fetchall()
         
+        # Get all images
+        cur.execute("""
+            SELECT id, creator_id, image_url, era, notes, source, created_at
+            FROM signature_images
+            ORDER BY created_at
+        """)
+        images = cur.fetchall()
+        
+        # Group images by creator
+        images_by_creator = {}
+        for img in images:
+            cid = img['creator_id']
+            if cid not in images_by_creator:
+                images_by_creator[cid] = []
+            images_by_creator[cid].append({
+                'id': img['id'],
+                'image_url': img['image_url'],
+                'era': img['era'],
+                'notes': img['notes'],
+                'source': img['source']
+            })
+        
+        # Build result
         result = []
         for c in creators:
             item = dict(c)
             if item.get('created_at'):
                 item['created_at'] = item['created_at'].isoformat()
+            item['images'] = images_by_creator.get(c['id'], [])
             result.append(item)
         
-        return jsonify({'success': True, 'signatures': result})
+        total_images = len(images)
+        
+        return jsonify({'success': True, 'signatures': result, 'total_images': total_images})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cur.close()
         conn.close()
@@ -489,13 +517,12 @@ def api_add_signature():
         conn.close()
 
 
-@app.route('/api/admin/signatures/<int:sig_id>/image', methods=['POST'])
+@app.route('/api/admin/signatures/<int:sig_id>/images', methods=['POST'])
 @require_admin_auth
-def api_upload_signature_image(sig_id):
-    """Upload or replace signature reference image."""
+def api_add_signature_image(sig_id):
+    """Add a reference image to a creator."""
     import psycopg2
     from psycopg2.extras import RealDictCursor
-    import base64
     import uuid
     
     data = request.get_json() or {}
@@ -509,6 +536,7 @@ def api_upload_signature_image(sig_id):
     cur = conn.cursor()
     
     try:
+        # Check creator exists
         cur.execute("SELECT id, creator_name FROM creator_signatures WHERE id = %s", (sig_id,))
         creator = cur.fetchone()
         if not creator:
@@ -527,20 +555,64 @@ def api_upload_signature_image(sig_id):
         else:
             return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
         
+        # Insert into signature_images table
         cur.execute("""
-            UPDATE creator_signatures 
-            SET reference_image_url = %s, updated_at = NOW()
-            WHERE id = %s
-        """, (image_url, sig_id))
+            INSERT INTO signature_images (creator_id, image_url, era, notes, source)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            sig_id,
+            image_url,
+            data.get('era'),
+            data.get('notes'),
+            data.get('source')
+        ))
+        
+        new_id = cur.fetchone()['id']
         conn.commit()
         
-        return jsonify({'success': True, 'url': image_url})
+        return jsonify({'success': True, 'id': new_id, 'url': image_url})
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cur.close()
         conn.close()
+
+
+@app.route('/api/admin/signatures/images/<int:image_id>', methods=['DELETE'])
+@require_admin_auth
+def api_delete_signature_image(image_id):
+    """Delete a signature reference image."""
+    import psycopg2
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url)
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("DELETE FROM signature_images WHERE id = %s RETURNING id", (image_id,))
+        result = cur.fetchone()
+        conn.commit()
+        
+        if result:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Image not found'}), 404
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/admin/signatures/<int:sig_id>/image', methods=['POST'])
+@require_admin_auth
+def api_upload_signature_image(sig_id):
+    """Upload or replace signature reference image (legacy endpoint)."""
+    # Redirect to new endpoint
+    return api_add_signature_image(sig_id)
 
 
 @app.route('/api/admin/signatures/<int:sig_id>/verify', methods=['POST'])
