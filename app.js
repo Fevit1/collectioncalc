@@ -862,16 +862,18 @@
             });
         });
         
-        function setMode(mode) {
-            currentMode = mode;
-            document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
-            document.getElementById('modePhoto').classList.toggle('active', mode === 'photo');
-            document.getElementById('manualMode').style.display = mode === 'manual' ? 'block' : 'none';
-            document.getElementById('photoMode').style.display = mode === 'photo' ? 'block' : 'none';
-            document.getElementById('bulkMode').style.display = 'none';
-            document.getElementById('resultsMode').style.display = 'none';
-            document.getElementById('result').classList.remove('show');
-        }
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
+    document.getElementById('modePhoto').classList.toggle('active', mode === 'photo');
+    document.getElementById('modeGrading').classList.toggle('active', mode === 'grading');
+    document.getElementById('manualMode').style.display = mode === 'manual' ? 'block' : 'none';
+    document.getElementById('photoMode').style.display = mode === 'photo' ? 'block' : 'none';
+    document.getElementById('gradingMode').style.display = mode === 'grading' ? 'block' : 'none';
+    document.getElementById('bulkMode').style.display = 'none';
+    document.getElementById('resultsMode').style.display = 'none';
+    document.getElementById('result').classList.remove('show');
+}
         
         function resetToPhoto() {
             document.getElementById('bulkMode').style.display = 'none';
