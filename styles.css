@@ -1344,3 +1344,725 @@
                 justify-content: center;
             }
         }
+/* ============================================
+   GRADE MY COMIC MODE - CSS ADDITIONS
+   Add these styles to the END of styles.css
+   ============================================ */
+
+/* Progress Steps Indicator */
+.grading-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 24px;
+    padding: 16px 0;
+}
+
+.grading-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.grading-step .step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-elevated);
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.grading-step .step-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grading-step.active .step-number {
+    background: var(--brand-indigo);
+    border-color: var(--brand-indigo);
+    color: white;
+}
+
+.grading-step.active .step-label {
+    color: var(--brand-indigo);
+    font-weight: 600;
+}
+
+.grading-step.completed .step-number {
+    background: var(--status-success);
+    border-color: var(--status-success);
+    color: white;
+}
+
+.grading-step.completed .step-number::after {
+    content: '✓';
+}
+
+.grading-step.skipped .step-number {
+    background: var(--surface-elevated);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+}
+
+.grading-step-line {
+    width: 40px;
+    height: 2px;
+    background: var(--border-color);
+    margin: 0 4px;
+    margin-bottom: 20px;
+}
+
+/* Step Content */
+.grading-step-content {
+    display: none;
+}
+
+.grading-step-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.grading-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.grading-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.grading-required {
+    background: var(--status-error);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.grading-optional {
+    background: var(--brand-cyan);
+    color: var(--bg-primary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.grading-patent {
+    background: linear-gradient(135deg, var(--brand-indigo), var(--brand-purple));
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.grading-instruction {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+/* Comic ID Banner (shows detected comic in steps 2-4) */
+.grading-comic-id {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.grading-comic-id .comic-thumb {
+    width: 50px;
+    height: 75px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.grading-comic-id .comic-info {
+    flex: 1;
+}
+
+.grading-comic-id .comic-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.grading-comic-id .comic-details {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Grading Upload Area */
+.grading-upload {
+    min-height: 180px;
+}
+
+/* Preview after photo taken */
+.grading-preview {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.grading-preview img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.grading-preview-info {
+    margin-bottom: 12px;
+}
+
+.grading-preview-info .extracted-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.grading-preview-info .extracted-grade {
+    color: var(--brand-cyan);
+    font-weight: 500;
+}
+
+.grading-preview-info .extracted-defects {
+    color: var(--status-warning);
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+.grading-preview-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Quality Feedback */
+.grading-feedback {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid var(--status-warning);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.grading-feedback.error {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--status-error);
+}
+
+.grading-feedback.success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--status-success);
+}
+
+.grading-feedback .feedback-icon {
+    font-size: 1.25rem;
+}
+
+.grading-feedback .feedback-text {
+    flex: 1;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Photo Tips */
+.grading-tips {
+    margin-bottom: 16px;
+}
+
+.tips-toggle {
+    background: transparent;
+    border: none;
+    color: var(--brand-cyan);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+}
+
+.tips-toggle:hover {
+    text-decoration: underline;
+}
+
+/* Actions */
+.grading-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* Additional Photos */
+.grading-additional {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 20px;
+    margin-bottom: 16px;
+}
+
+.grading-additional h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.grading-additional p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.additional-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.additional-photo-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    position: relative;
+}
+
+.additional-photo-thumb:hover {
+    border-color: var(--brand-indigo);
+}
+
+.additional-photo-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: var(--status-error);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================================
+   GRADE REPORT STYLES
+   ============================================ */
+
+.grade-report-comic {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.grade-report-comic .comic-title-big {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.grade-report-comic .comic-meta {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+/* Grade Result Card */
+.grade-report-result {
+    background: linear-gradient(135deg, var(--brand-indigo), var(--brand-purple));
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.grade-big {
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.grade-label {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+    opacity: 0.9;
+}
+
+.grade-confidence {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.confidence-bar {
+    width: 120px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: var(--brand-cyan);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.confidence-text {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.grade-photos-used {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.grade-photos-used .photo-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.grade-photos-used .photo-badge.used {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.grade-photos-used .photo-badge.skipped {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Defects List */
+.grade-report-defects {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.grade-report-defects h4 {
+    margin: 0 0 12px 0;
+    color: var(--text-primary);
+}
+
+.defects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.defect-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.defect-area-label {
+    min-width: 80px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.defect-area-items {
+    flex: 1;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.defect-item {
+    display: inline-block;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid var(--status-warning);
+    color: var(--status-warning);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin: 2px 4px 2px 0;
+}
+
+.no-defects {
+    color: var(--status-success);
+}
+
+/* Recommendation Section */
+.grade-report-recommendation {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.grade-report-recommendation h4 {
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+}
+
+.recommendation-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.recommendation-value {
+    text-align: center;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+}
+
+.recommendation-value .label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.recommendation-value .amount {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.recommendation-verdict {
+    text-align: center;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.recommendation-verdict.submit {
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid var(--status-success);
+}
+
+.recommendation-verdict.keep-raw {
+    background: rgba(251, 191, 36, 0.1);
+    border: 2px solid var(--status-warning);
+}
+
+.recommendation-verdict .verdict-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.recommendation-verdict .verdict-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.recommendation-verdict.submit .verdict-text {
+    color: var(--status-success);
+}
+
+.recommendation-verdict.keep-raw .verdict-text {
+    color: var(--status-warning);
+}
+
+.recommendation-verdict .verdict-reason {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Signature Section */
+.grade-report-signature {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--status-success);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.grade-report-signature h4 {
+    margin: 0 0 12px 0;
+    color: var(--status-success);
+}
+
+/* ============================================
+   PHOTO TIPS MODAL
+   ============================================ */
+
+.tips-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.tips-modal-overlay.show {
+    display: flex;
+}
+
+.tips-modal {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.tips-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tips-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.tips-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.tips-modal-body {
+    padding: 20px;
+}
+
+.tips-section {
+    margin-bottom: 20px;
+}
+
+.tips-section:last-child {
+    margin-bottom: 0;
+}
+
+.tips-section h4 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.tips-section ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-secondary);
+}
+
+.tips-section li {
+    margin-bottom: 6px;
+}
+
+.tips-section strong {
+    color: var(--text-primary);
+}
+
+.tips-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 600px) {
+    .grading-progress {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .grading-step-line {
+        display: none;
+    }
+    
+    .grading-step .step-number {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .grading-step .step-label {
+        font-size: 10px;
+    }
+    
+    .grade-big {
+        font-size: 3rem;
+    }
+    
+    .recommendation-values {
+        grid-template-columns: 1fr;
+    }
+    
+    .grading-actions {
+        flex-direction: column;
+    }
+    
+    .grading-actions button {
+        width: 100%;
+    }
+}

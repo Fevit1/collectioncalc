@@ -1,397 +1,324 @@
-# Claude Notes - CollectionCalc Development
+# Claude Working Notes - CollectionCalc Project
 
-## Purpose
-This document provides context for Claude (AI assistant) when continuing development work on CollectionCalc. It captures key decisions, patterns, and gotchas learned across sessions.
+## IMPORTANT RULES
+1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
+2. **Break large code changes into small chunks** to avoid "thinking longer than usual" failures.
+3. **Update this file at checkpoints** (see Checkpoint System below).
+4. **Proactively push back and provide input** - Mike wants Claude to flag potential issues, suggest alternatives, and ask "have you considered..." when there are trade-offs. Don't just execute - use knowledge from other projects and patterns.
 
----
+## Checkpoint System
+Update CLAUDE_NOTES.md when:
+- ✅ After any context compacting (conversation got long)
+- ✅ After completing a major feature
+- ✅ Before ending a session
+- ✅ If Mike says "let's checkpoint" or "update notes"
 
-## Session History
+This ensures we can recover quickly if a conversation fails or needs to restart.
 
-### Session 10 (January 26, 2026) - Facsimile Detection, Signatures & Extension Fixes
-**Major accomplishments:**
-- Facsimile detection in vision.js (detects reprints, warns user)
-- Signature database created (40+ creators with style descriptions)
-- Signatures admin page (`/signatures.html`) for managing reference images
-- FMV endpoint (`/api/sales/fmv`) for extension grade-tier pricing
-- Admin button added to app.html header
-- Fixed truncated app.html (missing `<script>` tag)
-- Fixed extension auto-scan (removed hasGoodDOMData check to always capture images)
-- Added debug interface to content.js (`ValuatorDebug.getAutoScanState()`)
+## About Mike
+- **Name:** Mike (legal name Don, goes by Mike)
+- **Role:** Product Manager in high tech, manages people (not hands-on dev)
+- **Background:** Former eBay employee (marketing/content supply chain, not engineering)
+- **Technical comfort:** Decent SQL skills, but not a developer
+- **Strengths:** Product vision, feature prioritization, testing, user feedback, UI/UX decisions
+- **Learning style:** Appreciates guidance but wants Claude to recognize when he's mastered something and stop over-explaining
+- **Collaboration style:** Wants Claude to push back on decisions (UI, data flow, database, backend) and proactively share knowledge
 
-**Key decisions:**
-- Always auto-scan even with "good" DOM data - we want images for every sale
-- Facsimile detection is prompt-based (no fine-tuning needed yet)
-- Signature database starts with text descriptions, images added via admin UI
-- R2 stores signature references at `/signatures/{id}.jpg`
+## What Mike's Comfortable With
+- ✅ Render dashboard (deployments, environment variables, redeploys)
+- ✅ Git workflow (add, commit, push - can do from memory!)
+- ✅ `git status` to check what's staged
+- ✅ Testing the app and providing feedback
+- ✅ SQL concepts
+- ✅ Product decisions and prioritization
+- ✅ Cloudflare Pages deployment
+- ✅ PowerShell aliases (created `deploy` command)
+- ✅ Curl basics (for deploy hooks)
+- ✅ eBay Developer Portal (credentials, RuNames, OAuth setup)
+- ✅ eBay Business Policies
+- ✅ Knows frontend vs backend deployment (`purge` vs `deploy`)
+- ✅ DBeaver for database management (Session 8) 🆕
+- ✅ Chrome extension installation/testing (Session 8) 🆕
 
-**Files created/modified:**
-- `vision.js` - Added facsimile detection to extraction prompt
-- `collectioncalc.js` - Added `getFMV()` function and `is_facsimile` field
-- `content.js` - Removed hasGoodDOMData check, added ValuatorDebug interface
-- `wsgi.py` - Added `/api/sales/fmv` and signature admin endpoints
-- `signatures.html` - New admin page for signature management
-- `admin.html` - Added link to signatures page
-- `app.html` - Fixed truncation, script tag restored
-- `db_migrate_signatures.py` - Migration for creator_signatures and signature_matches tables
+## Where Mike May Need More Guidance
+- ⚠️ New terminal/bash commands - explain what each command does
+- ⚠️ Python debugging - don't assume he can interpret error messages
+- ⚠️ File structure - be explicit about where files go and why
+- ⚠️ New workflows - guide first time, then trust him after that
+- ⚠️ API integrations - explain the concepts before diving into code
 
-**Database tables added:**
+## Communication Preferences
+- Concise is good, but don't skip steps
+- For new workflows: Give explicit "do this, then this" instructions
+- For learned workflows: Trust him to do it (don't over-explain git anymore)
+- After creating files: Always explain the next action needed
+- Check in if something might be confusing
+- **PowerShell syntax:** Use semicolons not `&&` for chained commands
+  - Correct: `git add .; git commit -m "message"; git push; deploy`
+  - Wrong: `git add . && git commit -m "message" && git push && deploy`
+
+## Project: CollectionCalc
+- **What it is:** AI-powered comic book valuation tool
+- **Vision:** Multi-collectible platform (comics first, then sports cards, Pokemon, etc.)
+- **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
+- **Hosted on:** Render.com (backend + DB), Cloudflare Pages (frontend)
+- **Live URL:** https://collectioncalc.com (frontend), https://collectioncalc.onrender.com (backend API)
+- **Note:** Backend is `collectioncalc.onrender.com` NOT `collectioncalc-v2.onrender.com`
+
+## Key Files - NOW SPLIT INTO 3 FILES!
+**Frontend (Cloudflare Pages):**
+- `index.html` - HTML structure only (~310 lines)
+- `styles.css` - All CSS (~1350 lines)
+- `app.js` - All JavaScript (~2030 lines)
+
+**Backend (Render):**
+- `ebay_valuation.py` - Main backend logic (valuations, caching, API, per-tier confidence)
+- `ebay_oauth.py` - eBay OAuth flow, token storage/refresh
+- `ebay_listing.py` - eBay listing creation via Inventory API (now with draft mode, image upload)
+- `ebay_description.py` - AI-generated descriptions (300 char, key issues, mobile-optimized)
+- `comic_extraction.py` - Backend extraction via Claude vision (with Vision Guide prompt)
+- `auth.py` - User authentication (signup, login, JWT, password reset)
+- `wsgi.py` - Flask routes (v3.8) 🆕
+
+**Whatnot Valuator (Chrome Extension):** 🆕
+- `manifest.json` - Extension config (v2.40.1)
+- `content.js` - Main overlay, auction monitoring, sale capture
+- `lib/collectioncalc.js` - API client (replaced supabase.js)
+- `lib/vision.js` - Claude Vision scanning
+- `data/keys.js` - 500+ key issue database
+
+## QuickList - The Full Pipeline
+**QuickList** is our name for the complete flow from photo to eBay listing:
+
+1. **Upload** - User uploads photos of comics
+2. **Extract** - AI reads photo, pulls title, issue, grade, newsstand/direct, etc.
+3. **Derive** - AI determines publisher, year, description
+4. **Review** - User reviews extraction, can modify/approve
+5. **Valuate** - Get three-tier pricing (Quick Sale, Fair Value, High End)
+6. **List** - Create eBay draft listing (user publishes when ready)
+
+## Current State (January 25, 2026)
+
+### Session 8 Progress 🔧 🆕
+
+**1. Fixed Whatnot Extension Auto-Scan Bugs**
+- **Stale listing detection** - DOM title wasn't updating between auction items
+- Solution: Added price-drop detection (>50% drop + under $20 = new item)
+- **Duplicate scans** - Multiple scans firing for same item
+- Solution: Added 10-second cooldown after force-scanning
+
+**2. Fixed Key Issue Detection**
+- Captain Marvel #1 wasn't showing 🔑 icon
+- Root cause: Key database existed but wasn't being queried after Vision scan
+- Solution: Added `lookupKeyInfo()` function that checks local database (500+ keys)
+- Added Captain Marvel #1, Marvel Super-Heroes #12-13 to database
+
+**3. Set Up DBeaver** ✅
+- Installed DBeaver for database management
+- Connected to both Supabase (via pooler) and Render PostgreSQL
+- Can now query/manage databases with GUI
+
+**4. Created market_sales Table** ✅
 ```sql
-creator_signatures (
-    id, creator_name, role, reference_image_url, 
-    signature_style, verified, source, notes, 
-    created_at, updated_at
-)
-
-signature_matches (
-    id, sale_id, signature_id, confidence, 
-    match_method, created_at
-)
-```
-
-**Known issue - Multi-tab auto-scan:**
-- Second Whatnot tab sometimes gets stuck on "Preparing..."
-- Root cause: Chrome throttles background tabs when memory is high
-- Manual scan still works on both tabs
-- Debug tools added: `ValuatorDebug.getAutoScanState()` and `.resetAutoScan()`
-- Workaround: Close unused tabs to free memory, or use manual scan
-
-### Session 9 (January 26, 2026) - Beta Access & R2 Images
-**Major accomplishments:**
-- Beta code gate system (landing page, validation, usage tracking)
-- User approval workflow (admin approves new signups)
-- Admin dashboard with Natural Language Query (NLQ)
-- Request logging for mobile debugging
-- Cloudflare R2 image storage integration
-- Whatnot extension updated to upload images
-- NLQ results now show image thumbnails
-
-**Key decisions:**
-- Used word-boundary regex for SQL keyword blocking in NLQ (prevents `created_at` from matching `create`)
-- Extension sends images inline with sale data (backend uploads to R2)
-- R2 path structure: `/sales/{id}/front.jpg` (ready for B4Cert's 4-image flow)
-- Admin dashboard at `/admin.html`, main app at `/app.html`, landing at `/index.html`
-
-**Files created/modified:**
-- `auth.py` - Added beta code and approval functions
-- `admin.py` - Admin dashboard backend, NLQ
-- `r2_storage.py` - R2 upload module
-- `wsgi.py` - Added admin, image, and beta endpoints
-- `landing.html` → `index.html` - Beta gate landing page
-- `admin.html` - Admin dashboard
-- `collectioncalc.js` - Extension API client (replaces Supabase)
-- `API_REFERENCE.md` - Function names to prevent import errors
-
-### Session 8 (January 25, 2026) - Whatnot Integration
-- Migrated from Supabase to CollectionCalc PostgreSQL
-- Created `market_sales` table
-- Extension writes directly to CollectionCalc backend
-- 618 historical sales migrated
-
-### Session 7 (January 22, 2026) - Frontend Refactor
-- Split index.html into 3 files (index.html, styles.css, app.js)
-- Opus vs Sonnet testing for signature detection
-- Premium tier concept validated
-
-### Sessions 1-6
-- Core valuation engine
-- eBay integration
-- QuickList batch processing
-- User auth and collections
-
----
-
-## Code Patterns
-
-### Import Pattern (wsgi.py)
-Always use try/except for module imports to prevent deployment failures:
-```python
-try:
-    from module_name import function_name
-except ImportError as e:
-    print(f"module_name import error: {e}")
-    function_name = None
-```
-
-### Auth Decorators
-```python
-@require_auth          # Verifies JWT, sets g.user_id
-@require_approved      # Requires is_approved=True (or is_admin)
-@require_admin_auth    # Requires is_admin=True
-```
-
-### R2 Image Upload
-```python
-from r2_storage import upload_sale_image, upload_to_r2
-result = upload_sale_image(sale_id, base64_image_data, 'front')
-# Returns: {'success': True, 'url': 'https://pub-xxx.r2.dev/sales/123/front.jpg'}
-
-# For signatures:
-result = upload_to_r2(f"signatures/{sig_id}.jpg", base64_data)
-```
-
-### NLQ Safety
-The NLQ system blocks dangerous SQL keywords using word boundaries:
-```python
-dangerous = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'grant', 'revoke']
-for word in dangerous:
-    if re.search(rf'\b{word}\b', sql_lower):
-        # Block query
-```
-Note: `create` was removed from the list because it matched `created_at`.
-
----
-
-## Common Gotchas
-
-### Function Name Mismatches
-**Always check `API_REFERENCE.md` before writing imports!**
-
-Common mistakes:
-| Wrong | Correct |
-|-------|---------|
-| `get_ebay_valuation` | `get_valuation_with_ebay` |
-| `exchange_code` | `exchange_code_for_token` |
-| `get_valid_token` | `get_user_token` |
-| `create_ebay_listing` | `create_listing` |
-| `generate_ebay_description` | `generate_description` |
-| `extract_comic_from_image` | `extract_from_base64` |
-
-### Duplicate Function Names
-Flask requires unique function names for endpoints. If you get `AssertionError: View function mapping is overwriting an existing endpoint`:
-```python
-# Wrong - both named api_upload_image
-@app.route('/api/ebay/upload-image')
-def api_upload_image(): ...
-
-@app.route('/api/images/upload')
-def api_upload_image(): ...  # Conflict!
-
-# Right - unique names
-@app.route('/api/ebay/upload-image')
-def api_ebay_upload_image(): ...
-
-@app.route('/api/images/upload')
-def api_r2_upload_image(): ...
-```
-
-### Extension SupabaseClient Interface
-The extension's `content.js` calls `window.SupabaseClient.insertSale(sale)`. The new `collectioncalc.js` must expose this interface for backwards compatibility:
-```javascript
-window.SupabaseClient = {
-    insertSale,
-    getRecentSales,
-    getSalesCount,
-    uploadImage,
-    getFMV  // Added Session 10
-};
-```
-
-### R2 Public Access
-R2 buckets are private by default. Must enable "Public Development URL" in Cloudflare dashboard to serve images publicly.
-
-### CORS on Sales Endpoints
-The `/api/sales/*` endpoints are called by the extension from whatnot.com. CORS must allow `*` origins (already configured in wsgi.py).
-
-### HTML File Truncation
-When editing large HTML files, they can get truncated. Always verify the closing tags and `<script>` references are present. Session 10 fix: `app.html` was missing closing tags and `<script src="app.js"></script>`.
-
----
-
-## Database Tables Added
-
-### Session 10 - Signatures
-```sql
--- Creator signature references
-creator_signatures (
+CREATE TABLE market_sales (
     id SERIAL PRIMARY KEY,
-    creator_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50),                    -- artist, writer, cover_artist, etc.
-    reference_image_url TEXT,            -- R2 URL
-    signature_style TEXT,                -- "Large flowing signature, often dated"
-    verified BOOLEAN DEFAULT FALSE,
-    source VARCHAR(255),                 -- "eBay purchase", "CGC verified"
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-)
-
--- Signature match records (for future AI matching)
-signature_matches (
-    id SERIAL PRIMARY KEY,
-    sale_id INTEGER REFERENCES market_sales(id),
-    signature_id INTEGER REFERENCES creator_signatures(id),
-    confidence DECIMAL(3,2),
-    match_method VARCHAR(50),            -- "ai_vision", "manual"
-    created_at TIMESTAMP DEFAULT NOW()
-)
-
--- Facsimile detection (column added to existing table)
-market_sales ADD COLUMN is_facsimile BOOLEAN DEFAULT FALSE
+    source TEXT NOT NULL,              -- 'whatnot', 'ebay_auction', 'ebay_bin'
+    title TEXT,
+    series TEXT,
+    issue TEXT,                        -- TEXT for "1A" variants
+    grade NUMERIC,
+    grade_source TEXT,
+    slab_type TEXT,
+    variant TEXT,
+    is_key BOOLEAN DEFAULT FALSE,
+    price NUMERIC NOT NULL,
+    sold_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    raw_title TEXT,
+    seller TEXT,
+    bids INTEGER,
+    viewers INTEGER,
+    image_url TEXT,
+    source_id TEXT,
+    UNIQUE(source, source_id)
+);
 ```
 
-### Session 9 - Beta & Admin
-```sql
--- Run via: python db_migrate_beta.py on Render shell
+**5. Migrated 618 Sales from Supabase → Render** ✅
+- Exported CSV from Supabase via DBeaver
+- Generated INSERT statements
+- Loaded into Render PostgreSQL
+- All historical data preserved
 
--- Beta codes
-beta_codes (code, uses_allowed, uses_remaining, expires_at, note, is_active, created_by, created_at)
+**6. Built Sales API Endpoints** ✅
+Added to wsgi.py (now v3.8):
+- `POST /api/sales/record` - Record sales from extension
+- `GET /api/sales/count` - Get total count
+- `GET /api/sales/recent` - Get recent sales
 
--- User fields added
-users ADD COLUMN is_approved BOOLEAN DEFAULT FALSE
-users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE  
-users ADD COLUMN approved_at TIMESTAMP
-users ADD COLUMN approved_by INTEGER
-users ADD COLUMN beta_code_used VARCHAR(50)
+**7. Rewired Extension to CollectionCalc** ✅
+- Replaced `lib/supabase.js` with `lib/collectioncalc.js`
+- Same interface, different backend
+- Extension now writes directly to CollectionCalc PostgreSQL
+- **Supabase dependency completely removed!**
 
--- Request logging
-request_logs (endpoint, method, status_code, response_time_ms, user_id, device_type, error_message, request_data, created_at)
+### Extension Version Progression (Session 8)
+| Version | Changes |
+|---------|---------|
+| v2.39.1 | Fixed stale listing detection (price-drop signal) |
+| v2.39.2 | Fixed duplicate scans (10-second cooldown) |
+| v2.39.3 | Added key issue database lookup |
+| v2.40.0 | Migrated to CollectionCalc API |
+| v2.40.1 | Fixed API URL (Render not Cloudflare) |
 
--- API usage tracking
-api_usage (user_id, endpoint, model, input_tokens, output_tokens, cost_usd, created_at)
+### Database Connection Details 🆕
+**Render PostgreSQL:**
+| Field | Value |
+|-------|-------|
+| Host | `dpg-d5knv4koud1c73dt21pg-a.oregon-postgres.render.com` |
+| Port | `5432` |
+| Database | `collectioncalc_db` |
+| Username | `collectioncalc_db_user` |
+| Password | (in Render dashboard) |
 
--- NLQ history
-admin_nlq_history (admin_id, question, generated_sql, result_count, execution_time_ms, created_at)
-```
+**Tables:**
+- `search_cache` - eBay valuation cache (48hr TTL)
+- `market_sales` - All sales from all sources (618+ records) 🆕
+- `users` - User accounts
+- `collections` - Saved comics
+- `password_resets` - Reset tokens
+- `ebay_tokens` - OAuth tokens
 
----
+### Known Issues / TODOs
+- [ ] **EXIF rotation not working** - deployed but needs debugging (Session 7)
+- [ ] More progress steps during valuation (users think it's frozen)
+- [ ] Custom price entry (not just the three tiers)
+- [ ] Unified FMV engine (combine Whatnot + eBay data) 🆕
 
-## Environment Variables
+### Premium Tier Discovery (Session 7) 💎
+**Opus can detect subtle signatures that Sonnet cannot!**
 
-### Required for Full Functionality
-```bash
-# Database
-DATABASE_URL
+Testing with Moon Knight #1 (signed by Danny Miki in gold marker):
+| Model | Result |
+|-------|--------|
+| Sonnet | `signature_detected: false` ❌ |
+| Opus | `signature_detected: true`, listed all creators with confidence % ✅ |
 
-# Auth
-JWT_SECRET
+**Current state:** Opus detects signature EXISTS and lists all possible signers. User picks correct one. (It guessed Finch but was actually Miki - can't identify WHO signed, just THAT it's signed.)
 
-# Email
-RESEND_API_KEY
-
-# AI
-ANTHROPIC_API_KEY
-
-# eBay
-EBAY_CLIENT_ID
-EBAY_CLIENT_SECRET
-EBAY_RUNAME
-
-# R2 Storage (new in Session 9)
-R2_ACCESS_KEY_ID
-R2_SECRET_ACCESS_KEY
-R2_ACCOUNT_ID
-R2_BUCKET_NAME=collectioncalc-images
-R2_ENDPOINT
-R2_PUBLIC_URL
-```
-
----
-
-## Testing Checklist
-
-### After Backend Deploy
-1. Check Render logs for import errors
-2. Test `/api/images/status` returns `connected: true`
-3. Test NLQ with a simple query
-4. Verify no 404s on `/api/ebay/account-deletion` (eBay polls this)
-5. Test `/api/sales/fmv?title=Spider-Man&issue=1` returns tier data
-
-### After Extension Update
-1. Reload extension in chrome://extensions
-2. Check for console errors on Whatnot page
-3. Verify `[CollectionCalc] ✅ API client loaded` appears
-4. Record a sale with vision scan
-5. Verify image appears in NLQ results with R2 URL
-6. Test auto-scan triggers on new listings
-
-### After Frontend Deploy
-1. Run `purge` to clear Cloudflare cache
-2. Test beta code flow on landing page
-3. Test login persistence
-4. Test admin dashboard at /admin.html
-5. Test signatures page at /signatures.html
-6. Verify admin button appears for admin users
-
----
-
-## Extension Debug Tools (Added Session 10)
-
+**Code location:** `app.js` line ~1211
 ```javascript
-// Check auto-scan state
-ValuatorDebug.getAutoScanState()
-// Returns: { autoScanEnabled, isScanning, scanCooldownUntil, lastScannedListingId, ... }
+// STANDARD TIER: Sonnet
+model: 'claude-sonnet-4-20250514',
 
-// Reset stuck auto-scan
-ValuatorDebug.resetAutoScan()
-
-// Force trigger a scan
-ValuatorDebug.forceScan()
-
-// Get session stats
-ValuatorDebug.getStats()
-
-// Download all sales as JSON
-ValuatorDebug.download()
+// PREMIUM TIER: Opus (commented out)
+// model: 'claude-opus-4-5-20251101',
 ```
 
----
+## API Endpoints (Current)
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/valuate` | Get three-tier valuation for a comic |
+| `/api/messages` | Proxy to Anthropic (frontend extraction) |
+| `/api/extract` | Backend extraction from photo |
+| `/api/batch/process` | QuickList Step 1: Extract + Valuate + Describe (multiple) |
+| `/api/batch/list` | QuickList Step 2: Upload images + Create drafts |
+| `/api/sales/record` | Record sale from Whatnot extension 🆕 |
+| `/api/sales/count` | Get total sales count 🆕 |
+| `/api/sales/recent` | Get recent sales 🆕 |
+| `/api/ebay/upload-image` | Upload single image to eBay Picture Services |
+| `/api/ebay/list` | Create eBay listing (supports `publish` and `image_urls` params) |
+| `/api/ebay/generate-description` | AI-generated 300-char description |
+| `/api/ebay/auth` | Start eBay OAuth flow |
+| `/api/ebay/callback` | eBay OAuth callback |
+| `/api/ebay/status` | Check eBay connection status |
+| `/api/auth/signup` | Create new user account |
+| `/api/auth/login` | Authenticate, return JWT |
+| `/api/auth/verify/<token>` | Verify email address |
+| `/api/auth/forgot-password` | Send password reset email |
+| `/api/auth/reset-password` | Reset password with token |
+| `/api/auth/me` | Get current user (requires JWT) |
+| `/api/collection` | Get user's saved comics |
+| `/api/collection/save` | Save comics to collection |
+| `/api/collection/<id>` | Update/delete collection item |
 
-## Quick Commands
+## Deployment Process
+1. Claude creates/updates files in `/mnt/user-data/outputs/`
+2. Mike downloads the file(s) to `cc/v2` folder
+3. **Frontend changes (index.html, styles.css, app.js):** `git add .; git commit -m "message"; git push; purge`
+4. **Backend changes (*.py files):** `git add .; git commit -m "message"; git push; deploy`
+5. **Both:** `git add .; git commit -m "message"; git push; deploy; purge`
 
+**PowerShell aliases:**
+- `deploy` - triggers Render deploy hook (backend)
+- `purge` - purges Cloudflare cache (frontend)
+
+## eBay Credentials (Production)
+- **App ID:** DonBerry-Collecti-PRD-8b446dc71-59cfad05
+- **RuName:** Don_Berry-DonBerry-Collec-cipbkmzlb
+- **Redirect URL:** https://collectioncalc.onrender.com/api/ebay/callback
+- **Environment:** Production (EBAY_SANDBOX=false or not set)
+
+## Product Decisions Made
+- **Keep it simple:** Users just need Title, Issue, Grade
+- **Details on demand:** Confidence and analysis hidden behind toggle (📊 icon)
+- **Three tiers:** Quick Sale, Fair Value (default/highlighted), High End
+- **QuickList flow:** Extract → Review → Valuate → List (user approves before eBay interaction)
+- **48-hour cache:** Balance between freshness and API costs
+- **eBay description tone:** Professional (sets us apart, looks reliable)
+- **eBay returns:** Let eBay handle via seller's existing policies
+- **Calculated shipping:** Requires package dimensions in inventory item
+- **Price selection:** User picks tier or enters custom price (Fair Value default)
+- **Signature detection:** AI confidence scores with CGC/CBCS disclaimer
+- **Whatnot integration:** Extension writes to CollectionCalc, not Supabase 🆕
+
+## Environment Variables (Render)
+| Key | Purpose |
+|-----|---------|
+| `DATABASE_URL` | PostgreSQL connection |
+| `ANTHROPIC_API_KEY` | AI valuations/extraction |
+| `EBAY_CLIENT_ID` | eBay API |
+| `EBAY_CLIENT_SECRET` | eBay API |
+| `EBAY_RUNAME` | eBay OAuth redirect |
+| `RESEND_API_KEY` | Email service |
+| `RESEND_FROM_EMAIL` | noreply@collectioncalc.com |
+| `JWT_SECRET` | Auth token signing |
+| `FRONTEND_URL` | https://collectioncalc.com |
+
+## Friends Beta Checklist
+- [ ] Analytics (know who's using it)
+- [x] Mobile works ✅
+- [x] User auth (email/password) ✅
+- [x] Custom domain live ✅ - collectioncalc.com
+- [ ] Feedback mechanism (Report Issue link?)
+- [ ] Landing copy explains what it does
+- [ ] Error states handled gracefully
+- [ ] Anthropic billing alerts set
+- [x] Collections (save comics) ✅
+- [x] Whatnot data pipeline ✅ 🆕
+
+## Related Documents
+- [ROADMAP.md](ROADMAP.md) - Feature backlog with version history
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System diagrams (updated Session 8)
+
+## Quick Reference - Testing Commands
+
+**Test CollectionCalc API:**
 ```bash
-# Deploy backend (Render auto-deploys, or manual if set)
-cd cc/v2
-git add .; git commit -m "msg"; git push; deploy
-
-# Deploy frontend + clear cache
-cd cc/v2
-git add .; git commit -m "msg"; git push; purge
-
-# Combined deploy
-git add .; git commit -m "msg"; git push; deploy; purge
-
-# Run database migration (in Render shell)
-python db_migrate_signatures.py
-
-# Set yourself as admin (in DBeaver)
-UPDATE users SET is_admin = TRUE, is_approved = TRUE WHERE email = 'your@email.com';
-
-# Add facsimile column (in DBeaver)
-ALTER TABLE market_sales ADD COLUMN IF NOT EXISTS is_facsimile BOOLEAN DEFAULT FALSE;
+curl https://collectioncalc.onrender.com/api/sales/count
+# Returns: {"count": 618}
 ```
+
+**Test Whatnot Extension (browser console on Whatnot page):**
+```javascript
+window.ApolloReader.getCurrentListing()  // Get current listing
+window.lookupKeyInfo('Amazing Spider-Man', '300')  // Test key lookup
+```
+
+**DBeaver Quick Connect:**
+- Host: `dpg-d5knv4koud1c73dt21pg-a.oregon-postgres.render.com`
+- Database: `collectioncalc_db`
+- User: `collectioncalc_db_user`
 
 ---
-
-## Future Considerations
-
-### Signature Matching
-Current setup: Text descriptions only. Future:
-1. Collect reference images (eBay ~$1-5 for cheap signed comics)
-2. Upload to R2 via signatures admin page
-3. AI compares incoming signatures to references
-4. Return creator name + confidence %
-
-### Facsimile Handling
-Current: Detection only. Future:
-- Auto-adjust FMV to $5-15 when facsimile detected
-- Show prominent warning badge in UI
-- Prevent accidental overpayment
-
-### Image Cropping
-Current images include background noise from Whatnot video. Options:
-1. Vision-guided crop (Claude returns bounding box)
-2. Center crop (60-70% of frame)
-3. AI background removal
-
-### B4Cert Integration
-R2 storage is already set up for 4-image submissions:
-```
-/submissions/{id}/front.jpg
-/submissions/{id}/back.jpg
-/submissions/{id}/spine.jpg
-/submissions/{id}/centerfold.jpg
-```
-
----
-
-*Last updated: January 26, 2026 (Session 10)*
+*Last updated: January 25, 2026 (Session 8 - Whatnot integration, market_sales table, 618 sales migrated)*
