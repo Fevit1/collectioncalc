@@ -17,8 +17,15 @@ CollectionCalc is a multi-component platform for comic book valuation, listing, 
 │  │ • QuickList      │  │ • Beta codes     │  │ • Vision scan    │           │
 │  │ • Collections    │  │ • NLQ queries    │  │ • Sale capture   │           │
 │  │ • eBay listing   │  │ • Error logs     │  │ • FMV display    │           │
-│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘           │
+│  └────────┬─────────┘  │ • Signatures →   │  │ • Facsimile det. │           │
+│           │            └────────┬─────────┘  └────────┬─────────┘           │
 │           │                     │                     │                      │
+│           │            ┌────────┴─────────┐           │                      │
+│           │            │ Signatures Admin │           │                      │
+│           │            │ (signatures.html)│           │                      │
+│           │            │ • Reference imgs │           │                      │
+│           │            │ • Creator mgmt   │           │                      │
+│           │            └────────┬─────────┘           │                      │
 │           └─────────────────────┼─────────────────────┘                      │
 │                                 │                                            │
 │  ┌──────────────────────────────┴───────────────────────────────────────┐   │
@@ -36,7 +43,8 @@ CollectionCalc is a multi-component platform for comic book valuation, listing, 
 │  Cloudflare Pages          │  Cloudflare R2                                  │
 │  • index.html (landing)    │  • collectioncalc-images bucket                │
 │  • app.html (main app)     │  • /sales/{id}/front.jpg                       │
-│  • admin.html (dashboard)  │  • /submissions/{id}/*.jpg (B4Cert ready)      │
+│  • admin.html (dashboard)  │  • /signatures/{id}.jpg (ref images)           │
+│  • signatures.html (admin) │  • /submissions/{id}/*.jpg (B4Cert ready)      │
 │  • styles.css              │                                                 │
 │  • app.js                  │  Public URL: pub-xxx.r2.dev                    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -144,6 +152,7 @@ market_sales (
     slab_type VARCHAR(50),                   -- CGC, CBCS, PGX, raw
     variant VARCHAR(255),
     is_key BOOLEAN DEFAULT FALSE,
+    is_facsimile BOOLEAN DEFAULT FALSE,      -- Reprint detection (Session 10)
     price DECIMAL(10,2),
     sold_at TIMESTAMP,
     raw_title TEXT,
@@ -153,6 +162,30 @@ market_sales (
     image_url TEXT,                          -- R2 URL
     created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(source, source_id)
+)
+
+-- Creator signature references (Session 10)
+creator_signatures (
+    id SERIAL PRIMARY KEY,
+    creator_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50),                        -- artist, writer, cover_artist, inker, colorist
+    reference_image_url TEXT,                -- R2 URL
+    signature_style TEXT,                    -- "Large flowing signature, often dated"
+    verified BOOLEAN DEFAULT FALSE,
+    source VARCHAR(255),                     -- "eBay purchase", "CGC verified"
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+)
+
+-- Signature match records (for AI matching)
+signature_matches (
+    id SERIAL PRIMARY KEY,
+    sale_id INTEGER REFERENCES market_sales(id),
+    signature_id INTEGER REFERENCES creator_signatures(id),
+    confidence DECIMAL(3,2),
+    match_method VARCHAR(50),                -- "ai_vision", "manual"
+    created_at TIMESTAMP DEFAULT NOW()
 )
 
 -- Valuation cache (48-hour TTL)
@@ -266,6 +299,15 @@ ebay_tokens (
 | POST | `/api/sales/record` | Record sale (+ image) | - |
 | GET | `/api/sales/count` | Total sales count | - |
 | GET | `/api/sales/recent` | Recent sales list | - |
+| GET | `/api/sales/fmv` | FMV by grade tier | - |
+
+### Signature Admin
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/admin/signatures` | List all creators | Admin |
+| POST | `/api/admin/signatures` | Add new creator | Admin |
+| POST | `/api/admin/signatures/{id}/image` | Upload reference image | Admin |
+| POST | `/api/admin/signatures/{id}/verify` | Mark as verified | Admin |
 
 ### Images (R2 Storage)
 | Method | Endpoint | Description | Auth |
@@ -406,6 +448,7 @@ frontend/
 ├── index.html              # Beta landing page
 ├── app.html                # Main application
 ├── admin.html              # Admin dashboard
+├── signatures.html         # Signature reference admin
 ├── styles.css              # All CSS
 └── app.js                  # All JavaScript
 ```
@@ -433,4 +476,4 @@ whatnot-valuator/
 
 ---
 
-*Last updated: January 26, 2026*
+*Last updated: January 26, 2026 (Session 10)*

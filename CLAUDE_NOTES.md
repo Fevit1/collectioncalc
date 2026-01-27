@@ -7,6 +7,54 @@ This document provides context for Claude (AI assistant) when continuing develop
 
 ## Session History
 
+### Session 10 (January 26, 2026) - Facsimile Detection, Signatures & Extension Fixes
+**Major accomplishments:**
+- Facsimile detection in vision.js (detects reprints, warns user)
+- Signature database created (40+ creators with style descriptions)
+- Signatures admin page (`/signatures.html`) for managing reference images
+- FMV endpoint (`/api/sales/fmv`) for extension grade-tier pricing
+- Admin button added to app.html header
+- Fixed truncated app.html (missing `<script>` tag)
+- Fixed extension auto-scan (removed hasGoodDOMData check to always capture images)
+- Added debug interface to content.js (`ValuatorDebug.getAutoScanState()`)
+
+**Key decisions:**
+- Always auto-scan even with "good" DOM data - we want images for every sale
+- Facsimile detection is prompt-based (no fine-tuning needed yet)
+- Signature database starts with text descriptions, images added via admin UI
+- R2 stores signature references at `/signatures/{id}.jpg`
+
+**Files created/modified:**
+- `vision.js` - Added facsimile detection to extraction prompt
+- `collectioncalc.js` - Added `getFMV()` function and `is_facsimile` field
+- `content.js` - Removed hasGoodDOMData check, added ValuatorDebug interface
+- `wsgi.py` - Added `/api/sales/fmv` and signature admin endpoints
+- `signatures.html` - New admin page for signature management
+- `admin.html` - Added link to signatures page
+- `app.html` - Fixed truncation, script tag restored
+- `db_migrate_signatures.py` - Migration for creator_signatures and signature_matches tables
+
+**Database tables added:**
+```sql
+creator_signatures (
+    id, creator_name, role, reference_image_url, 
+    signature_style, verified, source, notes, 
+    created_at, updated_at
+)
+
+signature_matches (
+    id, sale_id, signature_id, confidence, 
+    match_method, created_at
+)
+```
+
+**Known issue - Multi-tab auto-scan:**
+- Second Whatnot tab sometimes gets stuck on "Preparing..."
+- Root cause: Chrome throttles background tabs when memory is high
+- Manual scan still works on both tabs
+- Debug tools added: `ValuatorDebug.getAutoScanState()` and `.resetAutoScan()`
+- Workaround: Close unused tabs to free memory, or use manual scan
+
 ### Session 9 (January 26, 2026) - Beta Access & R2 Images
 **Major accomplishments:**
 - Beta code gate system (landing page, validation, usage tracking)
@@ -73,9 +121,12 @@ except ImportError as e:
 
 ### R2 Image Upload
 ```python
-from r2_storage import upload_sale_image
+from r2_storage import upload_sale_image, upload_to_r2
 result = upload_sale_image(sale_id, base64_image_data, 'front')
 # Returns: {'success': True, 'url': 'https://pub-xxx.r2.dev/sales/123/front.jpg'}
+
+# For signatures:
+result = upload_to_r2(f"signatures/{sig_id}.jpg", base64_data)
 ```
 
 ### NLQ Safety
@@ -129,7 +180,9 @@ The extension's `content.js` calls `window.SupabaseClient.insertSale(sale)`. The
 window.SupabaseClient = {
     insertSale,
     getRecentSales,
-    getSalesCount
+    getSalesCount,
+    uploadImage,
+    getFMV  // Added Session 10
 };
 ```
 
@@ -139,10 +192,44 @@ R2 buckets are private by default. Must enable "Public Development URL" in Cloud
 ### CORS on Sales Endpoints
 The `/api/sales/*` endpoints are called by the extension from whatnot.com. CORS must allow `*` origins (already configured in wsgi.py).
 
+### HTML File Truncation
+When editing large HTML files, they can get truncated. Always verify the closing tags and `<script>` references are present. Session 10 fix: `app.html` was missing closing tags and `<script src="app.js"></script>`.
+
 ---
 
-## Database Tables Added (Session 9)
+## Database Tables Added
 
+### Session 10 - Signatures
+```sql
+-- Creator signature references
+creator_signatures (
+    id SERIAL PRIMARY KEY,
+    creator_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50),                    -- artist, writer, cover_artist, etc.
+    reference_image_url TEXT,            -- R2 URL
+    signature_style TEXT,                -- "Large flowing signature, often dated"
+    verified BOOLEAN DEFAULT FALSE,
+    source VARCHAR(255),                 -- "eBay purchase", "CGC verified"
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+)
+
+-- Signature match records (for future AI matching)
+signature_matches (
+    id SERIAL PRIMARY KEY,
+    sale_id INTEGER REFERENCES market_sales(id),
+    signature_id INTEGER REFERENCES creator_signatures(id),
+    confidence DECIMAL(3,2),
+    match_method VARCHAR(50),            -- "ai_vision", "manual"
+    created_at TIMESTAMP DEFAULT NOW()
+)
+
+-- Facsimile detection (column added to existing table)
+market_sales ADD COLUMN is_facsimile BOOLEAN DEFAULT FALSE
+```
+
+### Session 9 - Beta & Admin
 ```sql
 -- Run via: python db_migrate_beta.py on Render shell
 
@@ -207,22 +294,88 @@ R2_PUBLIC_URL
 2. Test `/api/images/status` returns `connected: true`
 3. Test NLQ with a simple query
 4. Verify no 404s on `/api/ebay/account-deletion` (eBay polls this)
+5. Test `/api/sales/fmv?title=Spider-Man&issue=1` returns tier data
 
 ### After Extension Update
 1. Reload extension in chrome://extensions
-2. Check for console errors
-3. Record a sale with vision scan
-4. Verify image appears in NLQ results with R2 URL
+2. Check for console errors on Whatnot page
+3. Verify `[CollectionCalc] ✅ API client loaded` appears
+4. Record a sale with vision scan
+5. Verify image appears in NLQ results with R2 URL
+6. Test auto-scan triggers on new listings
 
 ### After Frontend Deploy
 1. Run `purge` to clear Cloudflare cache
 2. Test beta code flow on landing page
 3. Test login persistence
 4. Test admin dashboard at /admin.html
+5. Test signatures page at /signatures.html
+6. Verify admin button appears for admin users
+
+---
+
+## Extension Debug Tools (Added Session 10)
+
+```javascript
+// Check auto-scan state
+ValuatorDebug.getAutoScanState()
+// Returns: { autoScanEnabled, isScanning, scanCooldownUntil, lastScannedListingId, ... }
+
+// Reset stuck auto-scan
+ValuatorDebug.resetAutoScan()
+
+// Force trigger a scan
+ValuatorDebug.forceScan()
+
+// Get session stats
+ValuatorDebug.getStats()
+
+// Download all sales as JSON
+ValuatorDebug.download()
+```
+
+---
+
+## Quick Commands
+
+```bash
+# Deploy backend (Render auto-deploys, or manual if set)
+cd cc/v2
+git add .; git commit -m "msg"; git push; deploy
+
+# Deploy frontend + clear cache
+cd cc/v2
+git add .; git commit -m "msg"; git push; purge
+
+# Combined deploy
+git add .; git commit -m "msg"; git push; deploy; purge
+
+# Run database migration (in Render shell)
+python db_migrate_signatures.py
+
+# Set yourself as admin (in DBeaver)
+UPDATE users SET is_admin = TRUE, is_approved = TRUE WHERE email = 'your@email.com';
+
+# Add facsimile column (in DBeaver)
+ALTER TABLE market_sales ADD COLUMN IF NOT EXISTS is_facsimile BOOLEAN DEFAULT FALSE;
+```
 
 ---
 
 ## Future Considerations
+
+### Signature Matching
+Current setup: Text descriptions only. Future:
+1. Collect reference images (eBay ~$1-5 for cheap signed comics)
+2. Upload to R2 via signatures admin page
+3. AI compares incoming signatures to references
+4. Return creator name + confidence %
+
+### Facsimile Handling
+Current: Detection only. Future:
+- Auto-adjust FMV to $5-15 when facsimile detected
+- Show prominent warning badge in UI
+- Prevent accidental overpayment
 
 ### Image Cropping
 Current images include background noise from Whatnot video. Options:
@@ -239,38 +392,6 @@ R2 storage is already set up for 4-image submissions:
 /submissions/{id}/centerfold.jpg
 ```
 
-### NLQ Enhancements
-- Results above query box
-- Chart visualizations (bar, line, pie)
-- Query history/favorites
-
-### Sliding JWT Expiration
-Currently tokens expire after 30 days regardless of activity. Could refresh if <7 days remaining on each request.
-
 ---
 
-## Quick Commands
-
-```bash
-# Deploy backend
-cd cc/v2
-git add .; git commit -m "msg"; git push
-# Render auto-deploys
-
-# Deploy frontend
-cd cc/v2/frontend
-git add .; git commit -m "msg"; git push
-purge
-
-# Run database migration
-# In Render shell:
-python db_migrate_beta.py
-
-# Set yourself as admin
-# In DBeaver:
-UPDATE users SET is_admin = TRUE, is_approved = TRUE WHERE email = 'your@email.com';
-```
-
----
-
-*Last updated: January 26, 2026 (Session 9)*
+*Last updated: January 26, 2026 (Session 10)*

@@ -282,6 +282,64 @@ Replaced dead Supabase image URLs with Cloudflare R2.
 - `R2_ENDPOINT`
 - `R2_PUBLIC_URL`
 
+### Phase 2.93: Facsimile Detection & Signature Database ✅ (January 26, 2026) 🆕
+**MILESTONE: AI now detects reprints and tracks creator signatures!**
+
+Protects collectors from overpaying for facsimiles and builds foundation for signature authentication.
+
+- [x] **Facsimile Detection (vision.js)**
+  - Detects "FACSIMILE EDITION" text on covers
+  - Identifies modern barcodes on vintage covers
+  - Flags price mismatches ($4.99 on covers showing 35¢)
+  - Warns about common facsimiles: Amazing Fantasy 15, Giant-Size X-Men 1, etc.
+  - Returns `isFacsimile: true/false` with explanation
+
+- [x] **Signature Database**
+  - `creator_signatures` table with 40+ pre-populated creators
+  - Artists: Jim Lee, Todd McFarlane, Neal Adams, Frank Miller, etc.
+  - Writers: Stan Lee, Chris Claremont, Brian Michael Bendis, etc.
+  - Includes signature style descriptions ("Large flowing signature, often dated")
+  - `signature_matches` table for future AI matching
+
+- [x] **Signatures Admin Page** (`/signatures.html`)
+  - View all creators with search/filter
+  - Filter by role (artist/writer/cover artist)
+  - Filter by image status (needs image/has image)
+  - Upload reference signature images (stored in R2)
+  - Mark signatures as verified
+  - Add new creators
+
+- [x] **FMV Endpoint** (`/api/sales/fmv`)
+  - Returns Fair Market Value by grade tier
+  - Tiers: low (<4.5), mid (4.5-7.9), high (8.0-8.9), top (9.0+)
+  - Used by extension overlay for price guidance
+
+- [x] **Extension Fixes**
+  - Added `getFMV()` to collectioncalc.js
+  - Added `is_facsimile` field to sale records
+  - Fixed auto-scan: removed hasGoodDOMData check (always capture images)
+  - Added debug interface: `ValuatorDebug.getAutoScanState()`
+
+- [x] **Admin UI Updates**
+  - Admin button in app.html header
+  - Link to signatures page from admin dashboard
+  - Fixed truncated app.html (script tag was missing)
+
+**Database Changes:**
+```sql
+-- New tables
+creator_signatures (id, creator_name, role, reference_image_url, signature_style, verified, source, notes)
+signature_matches (id, sale_id, signature_id, confidence, match_method)
+
+-- Column added
+ALTER TABLE market_sales ADD COLUMN is_facsimile BOOLEAN DEFAULT FALSE;
+```
+
+**R2 Path Structure:**
+```
+/signatures/{id}.jpg    # Creator signature references
+```
+
 ---
 
 ## 🔄 In Progress
@@ -461,6 +519,7 @@ Extend platform to additional verticals.
 
 | Date | Version | Changes |
 |------|---------|---------|
+| Jan 26, 2026 | 2.93.0 | 🔍 **Facsimile Detection & Signatures!** AI detects reprints, signature database (40+ creators), signatures admin page, FMV endpoint, extension auto-scan fix |
 | Jan 26, 2026 | 2.92.0 | 📷 **R2 Image Storage!** Cloudflare R2 integration, images with sales, admin thumbnails |
 | Jan 26, 2026 | 2.91.0 | 🔐 **Beta Access System!** Beta codes, user approval, admin dashboard, NLQ, request logging |
 | Jan 25, 2026 | 2.90.0 | 🔗 **Whatnot Integration!** market_sales table, /api/sales/* endpoints, 618 sales migrated, extension v2.40.1 |
@@ -491,4 +550,4 @@ Extend platform to additional verticals.
 
 ---
 
-*Last updated: January 26, 2026 (Session 9 - Beta access, admin dashboard, R2 image storage)*
+*Last updated: January 26, 2026 (Session 10 - Facsimile detection, signature database, extension fixes)*

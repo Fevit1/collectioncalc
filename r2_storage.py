@@ -188,6 +188,21 @@ def get_image_url(path: str) -> str:
     return f"{R2_PUBLIC_URL}/{path}"
 
 
+def upload_to_r2(path: str, image_data: str) -> dict:
+    """
+    Upload an image to R2 at the specified path.
+    Alias for upload_image with path as first argument.
+    
+    Args:
+        path: Storage path (e.g., 'signatures/123.jpg')
+        image_data: Base64-encoded image data
+    
+    Returns:
+        dict with 'success', 'url', or 'error'
+    """
+    return upload_image(image_data, path)
+
+
 def move_temp_to_sale(temp_path: str, sale_id: int, image_type: str = 'front') -> dict:
     """
     Move a temporary image to its permanent sale location.
