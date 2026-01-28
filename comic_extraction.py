@@ -83,6 +83,7 @@ CRITICAL RULES:
 5. For condition: You can ONLY see the front cover. Note this limitation - back cover damage would not be visible.
 6. Ignore bag/sleeve artifacts. Assess the comic itself.
 7. Creator signatures are valuable, not defects.
+8. IMAGE ORIENTATION CHECK: If the image appears to be UPSIDE-DOWN (text is inverted, characters are upside-down), add a field "is_upside_down": true. Otherwise omit this field or set it to false. This helps the system auto-correct the orientation.
 
 Be accurate. If unsure about any field, use reasonable estimates."""
 

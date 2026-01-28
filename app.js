@@ -1014,9 +1014,23 @@ function setMode(mode) {
                         // Calculate total rotation needed (EXIF + manual)
                         // EXIF orientation to degrees: 1=0°, 3=180°, 6=90°, 8=270°
                         const exifRotation = {1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270, 8: 270}[exifOrientation] || 0;
-                        const totalRotation = (exifRotation + manualRotation) % 360;
+                        let totalRotation = (exifRotation + manualRotation) % 360;
                         
-                        console.log(`Original image: ${width}x${height}, EXIF rotation: ${exifRotation}°, manual: ${manualRotation}°, total: ${totalRotation}°`);
+                        console.log(`Original image: ${width}x${height}, EXIF rotation: ${exifRotation}°, manual: ${manualRotation}°`);
+                        
+                        // Auto-rotate landscape images to portrait (comics are always taller than wide)
+                        // Calculate what dimensions would be AFTER EXIF rotation
+                        const postExifSwap = (exifRotation === 90 || exifRotation === 270);
+                        const effectiveWidth = postExifSwap ? height : width;
+                        const effectiveHeight = postExifSwap ? width : height;
+                        
+                        if (effectiveWidth > effectiveHeight && manualRotation === 0) {
+                            // Image is landscape after EXIF correction - rotate 90° to make portrait
+                            console.log('Auto-rotating landscape to portrait');
+                            totalRotation = (totalRotation + 90) % 360;
+                        }
+                        
+                        console.log(`Final rotation: ${totalRotation}°`);
                         
                         // Swap dimensions if rotating 90 or 270 degrees
                         const swapDimensions = totalRotation === 90 || totalRotation === 270;
@@ -2148,7 +2162,43 @@ async function handleGradingPhoto(step, files) {
         
         if (step === 1) {
             // Front cover - do full extraction + quality check
-            const result = await analyzeGradingPhoto(step, processed);
+            let result = await analyzeGradingPhoto(step, processed);
+            
+            // Check if image is upside-down and auto-correct
+            if (result.is_upside_down) {
+                console.log('Image detected as upside-down, auto-rotating 180°');
+                feedbackText.textContent = 'Auto-correcting orientation...';
+                
+                // Rotate 180°
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = `data:${processed.mediaType};base64,${processed.base64}`;
+                });
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI); // 180 degrees
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                
+                const rotatedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                const rotatedBase64 = rotatedDataUrl.split(',')[1];
+                
+                // Update stored photo and preview
+                processed.base64 = rotatedBase64;
+                gradingState.photos[step] = {
+                    base64: rotatedBase64,
+                    mediaType: 'image/jpeg'
+                };
+                previewImg.src = rotatedDataUrl;
+                
+                // Re-analyze with corrected orientation
+                result = await analyzeGradingPhoto(step, { base64: rotatedBase64, mediaType: 'image/jpeg' });
+            }
             
             if (result.quality_issue) {
                 // Quality problem - show feedback, allow retry
@@ -2265,7 +2315,10 @@ async function analyzeGradingPhoto(step, processed) {
     const prompts = {
         1: `Analyze this comic book FRONT COVER image. Return a JSON object with:
 
-IMAGE QUALITY CHECK (do this first):
+IMAGE ORIENTATION CHECK (do this FIRST):
+- is_upside_down: boolean - Is this image upside-down? (text inverted, characters upside-down). If true, still try to extract info but flag this.
+
+IMAGE QUALITY CHECK:
 - quality_issue: boolean - Is the image too blurry, too dark, has glare, cut off edges, or at a bad angle?
 - quality_message: If quality_issue is true, specific feedback like "Image is too blurry - hold phone steadier" or "Glare detected on cover - try a different angle"
 
@@ -2505,11 +2558,11 @@ async function rotateGradingPhoto(step) {
             setComicIdBannersLoading();
         }
         
-        // Debounce: wait 1.5 seconds before analyzing (in case user rotates again)
+        // Debounce: wait 2.5 seconds before analyzing (in case user rotates again)
         rotationDebounceTimer = setTimeout(async () => {
             feedbackText.textContent = 'Analyzing...';
             await performRotationAnalysis(step, newBase64, feedback, feedbackText, previewInfo, nextBtn);
-        }, 1500);
+        }, 2500);
         
     } catch (error) {
         console.error('Error rotating photo:', error);
