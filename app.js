@@ -2435,6 +2435,9 @@ function retakeGradingPhoto(step) {
     input.value = '';
 }
 
+// Debounce timer for rotation analysis
+let rotationDebounceTimer = null;
+
 // Rotate photo 90 degrees clockwise and re-analyze
 async function rotateGradingPhoto(step) {
     const photo = gradingState.photos[step];
@@ -2449,20 +2452,14 @@ async function rotateGradingPhoto(step) {
     const previewInfo = document.getElementById(`gradingInfo${step}`);
     const nextBtn = document.getElementById(`gradingNext${step}`);
     
-    // Show loading state and clear old title immediately
-    feedback.style.display = 'flex';
-    feedback.className = 'grading-feedback';
-    feedbackText.textContent = 'Rotating and re-analyzing...';
-    
-    // Clear the old title/info while processing
-    if (step === 1) {
-        previewInfo.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Analyzing...</div>`;
-        // Also clear banners on other steps
-        setComicIdBannersLoading();
+    // Cancel any pending analysis
+    if (rotationDebounceTimer) {
+        clearTimeout(rotationDebounceTimer);
+        rotationDebounceTimer = null;
     }
     
+    // Immediately rotate the image visually
     try {
-        // Load current image and rotate 90° clockwise
         const img = new Image();
         await new Promise((resolve, reject) => {
             img.onload = resolve;
@@ -2487,19 +2484,44 @@ async function rotateGradingPhoto(step) {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         const newBase64 = dataUrl.split(',')[1];
         
-        // Update stored photo
+        // Update stored photo immediately
         gradingState.photos[step] = {
             base64: newBase64,
             mediaType: 'image/jpeg',
             rotation: ((photo.rotation || 0) + 90) % 360
         };
         
-        // Update preview
+        // Update preview immediately
         previewImg.src = dataUrl;
         
-        // Re-analyze if step 1 (front cover)
+        // Show loading state
+        feedback.style.display = 'flex';
+        feedback.className = 'grading-feedback';
+        feedbackText.textContent = 'Rotate again or wait to analyze...';
+        
+        // Clear the old title/info while waiting
         if (step === 1) {
-            const result = await analyzeGradingPhoto(step, { base64: newBase64, mediaType: 'image/jpeg' });
+            previewInfo.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Analyzing...</div>`;
+            setComicIdBannersLoading();
+        }
+        
+        // Debounce: wait 1.5 seconds before analyzing (in case user rotates again)
+        rotationDebounceTimer = setTimeout(async () => {
+            feedbackText.textContent = 'Analyzing...';
+            await performRotationAnalysis(step, newBase64, feedback, feedbackText, previewInfo, nextBtn);
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error rotating photo:', error);
+        feedbackText.textContent = 'Error rotating image. Please try retaking the photo.';
+    }
+}
+
+// Perform the actual analysis after debounce
+async function performRotationAnalysis(step, base64, feedback, feedbackText, previewInfo, nextBtn) {
+    try {
+        if (step === 1) {
+            const result = await analyzeGradingPhoto(step, { base64, mediaType: 'image/jpeg' });
             
             // Update extracted data
             gradingState.extractedData = result;
@@ -2508,7 +2530,6 @@ async function rotateGradingPhoto(step) {
             updateComicIdBanners(gradingState.extractedData);
             
             // Update title display
-            const previewInfo = document.getElementById(`gradingInfo${step}`);
             previewInfo.innerHTML = `
                 <div class="extracted-title">
                     <span id="extractedTitleText">${result.title || 'Unknown'} #${result.issue || '?'}</span>
@@ -2543,12 +2564,11 @@ async function rotateGradingPhoto(step) {
             }
         } else {
             // For other steps, re-analyze for defects
-            const result = await analyzeGradingPhoto(step, { base64: newBase64, mediaType: 'image/jpeg' });
+            const result = await analyzeGradingPhoto(step, { base64, mediaType: 'image/jpeg' });
             const areaName = {2: 'Spine', 3: 'Back Cover', 4: 'Centerfold/Interior'}[step];
             gradingState.defectsByArea[areaName] = result.defects || [];
             
             // Update info display
-            const previewInfo = document.getElementById(`gradingInfo${step}`);
             previewInfo.innerHTML = result.defects && result.defects.length > 0 
                 ? `<div style="font-size: 0.85rem; color: var(--brand-amber);">⚠️ ${result.defects.join(', ')}</div>`
                 : `<div style="font-size: 0.85rem; color: var(--brand-green);">✓ No defects detected</div>`;
@@ -2559,8 +2579,8 @@ async function rotateGradingPhoto(step) {
         nextBtn.disabled = false;
         
     } catch (error) {
-        console.error('Error rotating photo:', error);
-        feedbackText.textContent = 'Error rotating image. Please try retaking the photo.';
+        console.error('Error analyzing rotated photo:', error);
+        feedbackText.textContent = 'Error analyzing image. Please try again.';
     }
 }
 
