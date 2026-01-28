@@ -2398,6 +2398,22 @@ function updateComicIdBanners(extractedData) {
     });
 }
 
+// Show loading state on comic ID banners during re-analysis
+function setComicIdBannersLoading() {
+    const loadingHTML = `
+        <div class="comic-info" style="font-style: italic; color: var(--text-muted);">
+            Analyzing...
+        </div>
+    `;
+    
+    [2, 3, 4].forEach(step => {
+        const banner = document.getElementById(`gradingComicId${step}`);
+        if (banner) {
+            banner.innerHTML = loadingHTML;
+        }
+    });
+}
+
 // Retake a photo
 function retakeGradingPhoto(step) {
     const uploadArea = document.getElementById(`gradingUpload${step}`);
@@ -2430,12 +2446,20 @@ async function rotateGradingPhoto(step) {
     const feedback = document.getElementById(`gradingFeedback${step}`);
     const feedbackText = document.getElementById(`gradingFeedbackText${step}`);
     const previewImg = document.getElementById(`gradingImg${step}`);
+    const previewInfo = document.getElementById(`gradingInfo${step}`);
     const nextBtn = document.getElementById(`gradingNext${step}`);
     
-    // Show loading
+    // Show loading state and clear old title immediately
     feedback.style.display = 'flex';
     feedback.className = 'grading-feedback';
     feedbackText.textContent = 'Rotating and re-analyzing...';
+    
+    // Clear the old title/info while processing
+    if (step === 1) {
+        previewInfo.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">Analyzing...</div>`;
+        // Also clear banners on other steps
+        setComicIdBannersLoading();
+    }
     
     try {
         // Load current image and rotate 90° clockwise
