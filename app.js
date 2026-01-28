@@ -2419,6 +2419,124 @@ function retakeGradingPhoto(step) {
     input.value = '';
 }
 
+// Rotate photo 90 degrees clockwise and re-analyze
+async function rotateGradingPhoto(step) {
+    const photo = gradingState.photos[step];
+    if (!photo || !photo.base64) {
+        console.error('No photo to rotate');
+        return;
+    }
+    
+    const feedback = document.getElementById(`gradingFeedback${step}`);
+    const feedbackText = document.getElementById(`gradingFeedbackText${step}`);
+    const previewImg = document.getElementById(`gradingImg${step}`);
+    const nextBtn = document.getElementById(`gradingNext${step}`);
+    
+    // Show loading
+    feedback.style.display = 'flex';
+    feedback.className = 'grading-feedback';
+    feedbackText.textContent = 'Rotating and re-analyzing...';
+    
+    try {
+        // Load current image and rotate 90° clockwise
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = `data:${photo.mediaType};base64,${photo.base64}`;
+        });
+        
+        // Create rotated canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Swap dimensions for 90° rotation
+        canvas.width = img.height;
+        canvas.height = img.width;
+        
+        // Rotate 90° clockwise
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(90 * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        
+        // Get new base64
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const newBase64 = dataUrl.split(',')[1];
+        
+        // Update stored photo
+        gradingState.photos[step] = {
+            base64: newBase64,
+            mediaType: 'image/jpeg',
+            rotation: ((photo.rotation || 0) + 90) % 360
+        };
+        
+        // Update preview
+        previewImg.src = dataUrl;
+        
+        // Re-analyze if step 1 (front cover)
+        if (step === 1) {
+            const result = await analyzeGradingPhoto(step, { base64: newBase64, mediaType: 'image/jpeg' });
+            
+            // Update extracted data
+            gradingState.extractedData = result;
+            
+            // Update title display
+            const previewInfo = document.getElementById(`gradingInfo${step}`);
+            previewInfo.innerHTML = `
+                <div class="extracted-title">
+                    <span id="extractedTitleText">${result.title || 'Unknown'} #${result.issue || '?'}</span>
+                    <button type="button" class="btn-edit-inline" onclick="editComicInfo()">✏️ Edit</button>
+                </div>
+                <div id="editComicForm" style="display: none; margin: 10px 0;">
+                    <input type="text" id="editTitle" placeholder="Title" value="${result.title || ''}" style="margin-bottom: 8px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span>#</span>
+                        <input type="text" id="editIssue" placeholder="Issue" value="${result.issue || ''}" style="width: 80px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                        <button type="button" class="btn-primary btn-small" onclick="saveComicInfo()">Save</button>
+                        <button type="button" class="btn-secondary btn-small" onclick="cancelComicEdit()">Cancel</button>
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+                    Cover condition: ${result.suggested_grade || 'Analyzing...'}
+                </div>
+                ${result.defects && result.defects.length > 0 ? `
+                    <div style="font-size: 0.85rem; color: var(--brand-amber); margin-top: 4px;">
+                        ⚠️ ${result.defects.join(', ')}
+                    </div>
+                ` : ''}
+            `;
+            
+            // Store defects
+            gradingState.defectsByArea['Front Cover'] = result.defects || [];
+            
+            if (result.quality_issue) {
+                feedbackText.textContent = result.quality_message;
+            } else {
+                feedback.style.display = 'none';
+            }
+        } else {
+            // For other steps, re-analyze for defects
+            const result = await analyzeGradingPhoto(step, { base64: newBase64, mediaType: 'image/jpeg' });
+            const areaName = {2: 'Spine', 3: 'Back Cover', 4: 'Centerfold/Interior'}[step];
+            gradingState.defectsByArea[areaName] = result.defects || [];
+            
+            // Update info display
+            const previewInfo = document.getElementById(`gradingInfo${step}`);
+            previewInfo.innerHTML = result.defects && result.defects.length > 0 
+                ? `<div style="font-size: 0.85rem; color: var(--brand-amber);">⚠️ ${result.defects.join(', ')}</div>`
+                : `<div style="font-size: 0.85rem; color: var(--brand-green);">✓ No defects detected</div>`;
+            
+            feedback.style.display = 'none';
+        }
+        
+        nextBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error rotating photo:', error);
+        feedbackText.textContent = 'Error rotating image. Please try retaking the photo.';
+    }
+}
+
 // Navigate to next step
 function nextGradingStep(currentStep) {
     // Mark current step as completed
