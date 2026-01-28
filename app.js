@@ -2467,24 +2467,36 @@ function skipGradingStep(step) {
 }
 
 // Handle additional photos
-function handleAdditionalPhoto(files) {
+async function handleAdditionalPhoto(files) {
     if (!files || files.length === 0) return;
     
     const file = files[0];
-    const reader = new FileReader();
     
-    reader.onload = (e) => {
-        const base64 = e.target.result.split(',')[1];
+    try {
+        // Process image with EXIF rotation (same as other photos)
+        const processed = await processImageForExtraction(file, 0);
+        
         gradingState.additionalPhotos.push({
-            base64: base64,
-            mediaType: file.type
+            base64: processed.base64,
+            mediaType: processed.mediaType
         });
         
         // Update thumbnail display
         renderAdditionalPhotos();
-    };
-    
-    reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Error processing additional photo:', error);
+        // Fallback to direct read if processing fails
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result.split(',')[1];
+            gradingState.additionalPhotos.push({
+                base64: base64,
+                mediaType: file.type
+            });
+            renderAdditionalPhotos();
+        };
+        reader.readAsDataURL(file);
+    }
     
     // Clear input
     document.getElementById('additionalPhotoInput').value = '';

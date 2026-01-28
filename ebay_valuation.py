@@ -161,6 +161,35 @@ def expand_title_alias(title: str) -> str:
     title_lower = title.lower().strip()
     return TITLE_ALIASES.get(title_lower, title)
 
+def normalize_grade_for_cache(grade: str) -> str:
+    """
+    Normalize grade variants to base grade for consistent cache keys.
+    VF+, VF, VF- all become "VF" for cache purposes.
+    This prevents cache misses when different grade variants are requested.
+    """
+    if not grade:
+        return "FN"  # Default
+    grade_upper = grade.upper().strip()
+    
+    # Map all variants to their base grade
+    grade_map = {
+        # Near Mint variants
+        'MT': 'NM', 'GM': 'NM', '10.0': 'NM', '9.8': 'NM', '9.6': 'NM', '9.4': 'NM',
+        'NM+': 'NM', 'NM': 'NM', 'NM-': 'NM', '9.2': 'NM',
+        # Very Fine variants
+        'VF+': 'VF', 'VF': 'VF', 'VF-': 'VF', '8.5': 'VF', '8.0': 'VF', '7.5': 'VF',
+        # Fine variants
+        'FN+': 'FN', 'FN': 'FN', 'FN-': 'FN', '6.5': 'FN', '6.0': 'FN', '5.5': 'FN',
+        # Very Good variants
+        'VG+': 'VG', 'VG': 'VG', 'VG-': 'VG', '4.5': 'VG', '4.0': 'VG', '3.5': 'VG',
+        # Good variants
+        'G+': 'G', 'G': 'G', 'GD': 'G', 'G-': 'G', '2.5': 'G', '2.0': 'G', '1.8': 'G',
+        # Fair/Poor
+        'FR': 'FR', '1.5': 'FR',
+        'PR': 'PR', '1.0': 'PR', '0.5': 'PR'
+    }
+    return grade_map.get(grade_upper, 'VF')  # Default to VF if unknown
+
 def get_db_connection():
     """Get PostgreSQL connection from DATABASE_URL environment variable."""
     if not HAS_POSTGRES:
@@ -254,9 +283,10 @@ def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[Eba
         init_cache_db()
         cursor = conn.cursor()
         
-        # Include grade in cache key if provided
+        # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
         if grade:
-            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+            normalized_grade = normalize_grade_for_cache(grade)
+            search_key = f"{title.lower().strip()}|{issue.strip()}|{normalized_grade}"
         else:
             search_key = f"{title.lower().strip()}|{issue.strip()}"
         
@@ -329,9 +359,10 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: st
         init_cache_db()
         cursor = conn.cursor()
         
-        # Include grade in cache key if provided
+        # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
         if grade:
-            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+            normalized_grade = normalize_grade_for_cache(grade)
+            search_key = f"{title.lower().strip()}|{issue.strip()}|{normalized_grade}"
         else:
             search_key = f"{title.lower().strip()}|{issue.strip()}"
         
