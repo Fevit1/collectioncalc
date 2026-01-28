@@ -2516,13 +2516,20 @@ async function generateGradeReport() {
     
     gradingState.currentStep = 5;
     
-    // Show loading state with progress steps
-    document.getElementById('gradeResultBig').textContent = '...';
-    document.getElementById('gradeResultLabel').textContent = 'Analyzing photos...';
-    document.getElementById('gradePhotosUsed').innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
-    document.getElementById('defectsList').innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
-    document.getElementById('recommendationValues').innerHTML = '';
-    document.getElementById('recommendationVerdict').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating value...</p>';
+    // Show loading state with progress steps (with null checks)
+    const gradeResultBig = document.getElementById('gradeResultBig');
+    const gradeResultLabel = document.getElementById('gradeResultLabel');
+    const gradePhotosUsed = document.getElementById('gradePhotosUsed');
+    const defectsList = document.getElementById('defectsList');
+    const recommendationValues = document.getElementById('recommendationValues');
+    const recommendationVerdict = document.getElementById('recommendationVerdict');
+    
+    if (gradeResultBig) gradeResultBig.textContent = '...';
+    if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing photos...';
+    if (gradePhotosUsed) gradePhotosUsed.innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
+    if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
+    if (recommendationValues) recommendationValues.innerHTML = '';
+    if (recommendationVerdict) recommendationVerdict.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating value...</p>';
     
     // Build multi-image prompt
     const imageContent = [];
@@ -2636,8 +2643,10 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         
     } catch (error) {
         console.error('Error generating grade report:', error);
-        document.getElementById('gradeResultBig').textContent = 'Error';
-        document.getElementById('gradeResultLabel').textContent = 'Failed to analyze. Please try again.';
+        const bigEl = document.getElementById('gradeResultBig');
+        const labelEl = document.getElementById('gradeResultLabel');
+        if (bigEl) bigEl.textContent = 'Error';
+        if (labelEl) labelEl.textContent = 'Failed to analyze. Please try again.';
     }
 }
 
@@ -2653,14 +2662,27 @@ function renderGradeReport(result, confidence, photoLabels) {
     const displayTitle = gradingState.extractedData?.title || comic.title || 'Unknown';
     const displayIssue = gradingState.extractedData?.issue || comic.issue || '?';
     
-    document.getElementById('gradeReportComic').innerHTML = `
+    // Helper function for safe element access
+    const safeSet = (id, prop, value) => {
+        const el = document.getElementById(id);
+        if (!el) {
+            console.error(`Element not found: ${id}`);
+            return false;
+        }
+        if (prop === 'innerHTML') el.innerHTML = value;
+        else if (prop === 'textContent') el.textContent = value;
+        else if (prop === 'style.display') el.style.display = value;
+        return true;
+    };
+    
+    safeSet('gradeReportComic', 'innerHTML', `
         <div class="comic-title-big">${displayTitle} #${displayIssue}</div>
         <div class="comic-meta">${comic.publisher || ''} ${comic.year || ''}</div>
-    `;
+    `);
     
     // Grade result
-    document.getElementById('gradeResultBig').textContent = grade.final_grade || '--';
-    document.getElementById('gradeResultLabel').textContent = grade.grade_label || 'Grade';
+    safeSet('gradeResultBig', 'textContent', grade.final_grade || '--');
+    safeSet('gradeResultLabel', 'textContent', grade.grade_label || 'Grade');
     
     // Show quality warning only if confidence < 75%
     const warningEl = document.getElementById('gradeQualityWarning');
@@ -2674,10 +2696,10 @@ function renderGradeReport(result, confidence, photoLabels) {
     
     // Photos used badges
     const allLabels = ['Front', 'Spine', 'Back', 'Center'];
-    document.getElementById('gradePhotosUsed').innerHTML = allLabels.map((label, idx) => {
+    safeSet('gradePhotosUsed', 'innerHTML', allLabels.map((label, idx) => {
         const used = gradingState.photos[idx + 1] !== null;
         return `<span class="photo-badge ${used ? 'used' : 'skipped'}">${label}${used ? ' ✓' : ''}</span>`;
-    }).join('');
+    }).join(''));
     
     // Defects - handle both flat and nested structures
     const frontDefects = defects.front_defects || [];
@@ -2720,16 +2742,16 @@ function renderGradeReport(result, confidence, photoLabels) {
         `);
     }
     
-    document.getElementById('defectsList').innerHTML = defectsHTML.length > 0 
+    safeSet('defectsList', 'innerHTML', defectsHTML.length > 0 
         ? defectsHTML.join('') 
-        : '<div class="no-defects">✓ No significant defects detected</div>';
+        : '<div class="no-defects">✓ No significant defects detected</div>');
     
     // Signature
     const sigDetected = sig.signature_detected || false;
     if (sigDetected) {
-        document.getElementById('gradeReportSignature').style.display = 'block';
+        safeSet('gradeReportSignature', 'style.display', 'block');
         const sigInfo = sig.signature_info || {};
-        document.getElementById('signatureInfo').innerHTML = `
+        safeSet('signatureInfo', 'innerHTML', `
             <p>${sigInfo.likely_signer || 'Unknown signer'}</p>
             <p style="font-size: 0.9rem; color: var(--text-secondary);">
                 ${sigInfo.ink_color || ''} ink, ${sigInfo.location || 'on cover'}
@@ -2737,9 +2759,9 @@ function renderGradeReport(result, confidence, photoLabels) {
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
                 ⚠️ For authenticated value, submit to CGC Signature Series or CBCS Verified
             </p>
-        `;
+        `);
     } else {
-        document.getElementById('gradeReportSignature').style.display = 'none';
+        safeSet('gradeReportSignature', 'style.display', 'none');
     }
 }
 
