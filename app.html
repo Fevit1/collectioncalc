@@ -97,11 +97,6 @@
                 <!-- ========================================== -->
                 <div id="gradingMode" style="display: none;">
                     
-                    <!-- Slab Worthy Header -->
-                    <div style="text-align: center; margin-bottom: 16px;">
-                        <span class="grading-patent">Patent Pending</span>
-                    </div>
-                    
                     <!-- Progress Steps Indicator -->
                     <div class="grading-progress">
                         <div class="grading-step active" id="gradingStep1">
@@ -152,7 +147,6 @@
                                 <!-- Populated after extraction -->
                             </div>
                             <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="rotateGradingPhoto(1)">↻ Rotate</button>
                                 <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(1)">🔄 Retake</button>
                             </div>
                         </div>
@@ -195,7 +189,6 @@
                             <img id="gradingImg2" src="" alt="Spine">
                             <div class="grading-preview-info" id="gradingInfo2"></div>
                             <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="rotateGradingPhoto(2)">↻ Rotate</button>
                                 <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(2)">🔄 Retake</button>
                             </div>
                         </div>
@@ -232,7 +225,6 @@
                             <img id="gradingImg3" src="" alt="Back cover">
                             <div class="grading-preview-info" id="gradingInfo3"></div>
                             <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="rotateGradingPhoto(3)">↻ Rotate</button>
                                 <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(3)">🔄 Retake</button>
                             </div>
                         </div>
@@ -269,7 +261,6 @@
                             <img id="gradingImg4" src="" alt="Centerfold">
                             <div class="grading-preview-info" id="gradingInfo4"></div>
                             <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="rotateGradingPhoto(4)">↻ Rotate</button>
                                 <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(4)">🔄 Retake</button>
                             </div>
                         </div>
@@ -302,6 +293,7 @@
                     <div class="grading-step-content" id="gradingContent5">
                         <div class="grading-header">
                             <h3>📋 Slab Report</h3>
+                            <span class="grading-patent">Patent Pending</span>
                         </div>
                         
                         <!-- Comic Identification -->
@@ -351,7 +343,7 @@
                         
                         <!-- Actions -->
                         <div class="grading-actions">
-                            <button type="button" class="btn-secondary" onclick="resetGrading()">← Check Another</button>
+                            <button type="button" class="btn-secondary" onclick="resetGrading()">← Grade Another</button>
                             <button type="button" class="btn-primary" onclick="saveGradeToCollection()">💾 Save to Collection</button>
                         </div>
                     </div>
@@ -608,6 +600,9 @@
         </div>
     </div>
     
-    <script src="app.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/grading.js"></script>
 </body>
 </html>
