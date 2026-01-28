@@ -1,6 +1,6 @@
 # CollectionCalc / Slab Worthy Roadmap
 
-## Current Version: 2.95.0 (January 28, 2026)
+## Current Version: 2.96.0 (January 28, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -9,7 +9,18 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## Recently Completed
 
-### v2.95.0 - Slab Worthy Live! (Session 12) 🆕
+### v2.96.0 - Auto-Rotation & Code Split (Session 13) 🆕
+- [x] **Auto-rotate landscape→portrait** - Comics are always taller than wide
+- [x] **Auto-detect upside-down** - AI checks orientation, rotates 180° if needed
+- [x] **Split app.js into 4 modules** - Prevents file truncation on low-memory systems
+  - `js/utils.js` - Shared state, image processing, UI helpers
+  - `js/auth.js` - Authentication, user menu, collection
+  - `js/app.js` - eBay, photo upload, valuation, manual entry
+  - `js/grading.js` - Slab Worthy 4-photo flow
+- [x] **"Upright" instruction text** - Guides users to reduce re-analysis costs
+- [x] **Rotate button debounce** - 2.5s cooldown prevents rapid clicks
+
+### v2.95.0 - Slab Worthy Live! (Session 12)
 - [x] **Fixed truncated app.html** - Missing script tag caused setMode undefined
 - [x] **Added defensive null checks** - Grading report won't crash on missing elements
 - [x] **Slab Worthy deployed to production** - Feature is LIVE
@@ -59,12 +70,6 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## In Progress
 
-### Bugs/Quick Fixes (Next Session)
-- [ ] **Image rotation fix** - Rotated photos misidentified (Atari Force → "Alpha Flight")
-  - Auto-detect orientation via EXIF or image analysis
-  - Rotate to correct orientation before sending to Claude Vision
-- [ ] **Button text fix** - "Grade Another" → "Slab Worthy Another"
-
 ### Performance Improvements
 - [ ] **Valuation speed** - "Should you grade?" calculation is slow
 - [ ] **FMV caching audit** - Verify cache is working (same comic+grade shouldn't re-call API)
@@ -82,12 +87,14 @@ Provisional patent filed for multi-angle comic grading system.
 - [ ] **Photo Upload mode** - Keep or deprecate now that Slab Worthy exists?
 - [ ] **Batch grading** - Multiple comics at once? How would UX work?
 - [ ] **Collection-centric UX** - Restructure around collection as hub?
+- [ ] **FAQ page** - Common questions, pricing info
+- [ ] **Pricing model** - Free tier vs paid tiers
 
 ### Testing Slab Worthy
 - [ ] Real comic photo testing (various conditions)
 - [ ] Compare 1-photo vs 4-photo accuracy
 - [ ] Validate against known CGC grades
-- [ ] Test rotated/sideways photos
+- [x] ~~Test rotated/sideways photos~~ - Auto-rotation implemented!
 
 ---
 
@@ -95,9 +102,9 @@ Provisional patent filed for multi-angle comic grading system.
 
 ### High Priority
 - [ ] Save graded comic to collection
-- [ ] EXIF rotation fix (deployed, needs debugging)
 - [ ] Grade report sharing/export
 - [ ] Slab Worthy for mobile app (future)
+- [ ] Mobile parity fixes (Slab Worthy on phones)
 
 ### Medium Priority
 - [ ] Value tracking over time
@@ -126,6 +133,7 @@ Provisional patent filed for multi-angle comic grading system.
 5. Economic decision engine ("should you grade?")
 6. Signature detection module
 7. Facsimile detection module
+8. Auto-orientation correction (landscape/upside-down)
 
 **Status:** Provisional filed January 27, 2026
 **Next:** File utility patent within 12 months (by January 27, 2027)
@@ -136,6 +144,7 @@ Provisional patent filed for multi-angle comic grading system.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.96.0 | Jan 28, 2026 | 🔄 Auto-rotation, JS modular split |
 | 2.95.0 | Jan 28, 2026 | 🚀 Slab Worthy LIVE, bug fixes |
 | 2.94.0 | Jan 27, 2026 | 🔲 Slab Worthy!, Patent filed |
 | 2.93.0 | Jan 26, 2026 | Signature/facsimile detection |

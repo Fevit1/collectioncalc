@@ -57,7 +57,12 @@ cc/v2/
 ├── admin.html           # Admin dashboard
 ├── signatures.html      # Signature reference admin
 ├── styles.css           # All CSS (+ grading styles appended)
-├── app.js               # All JavaScript (+ grading script appended)
+│
+├── js/                  # JavaScript modules (split for maintainability)
+│   ├── utils.js         # Shared state, constants, image processing, UI helpers
+│   ├── auth.js          # Authentication, user menu, collection functions
+│   ├── app.js           # Core app: eBay, photo upload, valuation, manual entry
+│   └── grading.js       # Slab Worthy: 4-photo flow, grade report, ROI calc
 │
 ├── ─────────── BACKEND (Render) ───────────
 ├── wsgi.py              # Flask app, all routes
@@ -84,10 +89,38 @@ cc/v2/
 └── ─────────── DOCUMENTATION ───────────
     ├── CLAUDE_NOTES.md  # Session notes, context for Claude
     ├── ROADMAP.md       # Feature backlog, version history
+    ├── BRAND_GUIDELINES.md  # Colors, typography, UI standards
     └── ARCHITECTURE.md  # This file
 ```
 
-**NOTE:** All frontend files are in `cc/v2/` root. There is NO `frontend/` subfolder.
+**NOTE:** All frontend files are in `cc/v2/` root, with JavaScript in `cc/v2/js/` subfolder.
+
+## JavaScript Module Dependencies
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    app.html                          │
+│  Loads scripts in order:                            │
+│                                                      │
+│  1. js/utils.js    ─── Shared state, API_URL        │
+│         │              Image processing              │
+│         │              Loading/thinking UI           │
+│         ▼                                           │
+│  2. js/auth.js     ─── Uses: API_URL, authToken     │
+│         │              Login/signup/logout           │
+│         │              Collection functions          │
+│         ▼                                           │
+│  3. js/app.js      ─── Uses: all above + ebayUserId │
+│         │              eBay integration              │
+│         │              Photo upload & extraction     │
+│         │              Valuation & results           │
+│         ▼                                           │
+│  4. js/grading.js  ─── Uses: all above              │
+│                        Slab Worthy 4-photo flow     │
+│                        Grade report generation       │
+│                        ROI calculation               │
+└─────────────────────────────────────────────────────┘
+```
 
 ## Slab Worthy Feature Flow
 
@@ -104,6 +137,12 @@ User clicks "🔲 Slab Worthy?" tab
 │ Step 1: FRONT COVER │ ◄── REQUIRED
 │ (Photo capture)     │
 └──────────┬──────────┘
+           │
+     ┌─────┴─────┐
+     │ Auto-     │ → EXIF orientation correction
+     │ Rotation  │ → Landscape→portrait (90°)
+     │           │ → Upside-down detection (180°)
+     └─────┬─────┘
            │
      ┌─────┴─────┐
      │ AI Check  │ → Quality feedback (blur/dark/glare)
@@ -159,6 +198,64 @@ User clicks "🔲 Slab Worthy?" tab
 │  │                                                              │
 │  └─ [Save to Collection] [Get Full Valuation]                   │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+## Auto-Rotation System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    IMAGE AUTO-ROTATION                           │
+│                    (Two-Layer System)                            │
+└─────────────────────────────────────────────────────────────────┘
+
+Photo uploaded
+      │
+      ▼
+┌─────────────────────┐
+│ Layer 1: EXIF       │
+│ (processImageFor-   │
+│  Extraction)        │
+└──────────┬──────────┘
+           │
+           ├─► Read EXIF orientation tag
+           ├─► Calculate effective dimensions after EXIF
+           │
+           │   Is width > height after EXIF?
+           │   (Landscape orientation)
+           │         │
+           │    YES  │  NO
+           │         ▼   │
+           │   Rotate 90° │
+           │   to portrait│
+           │         │    │
+           ▼         ▼    ▼
+┌─────────────────────────────────────┐
+│ Image sent to Claude for analysis   │
+└──────────┬──────────────────────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Layer 2: AI         │
+│ Upside-down check   │
+│ (analyzeGradingPhoto│
+│  + handleGradingPho │
+└──────────┬──────────┘
+           │
+           ├─► Claude checks if image is upside-down
+           │   (Rule 8 in extraction prompt)
+           │
+           │   is_upside_down: true?
+           │         │
+           │    YES  │  NO
+           │         ▼   │
+           │   Rotate 180°│
+           │   Re-analyze │
+           │         │    │
+           ▼         ▼    ▼
+┌─────────────────────────────────────┐
+│ Correctly oriented image displayed  │
+│ Comic identified accurately         │
+└─────────────────────────────────────┘
 ```
 
 ## Valuation Flow
@@ -248,5 +345,5 @@ api_usage (id, user_id, endpoint, tokens_used, created_at)
 
 ---
 
-*Last updated: January 27, 2026*
+*Last updated: January 28, 2026*
 *Patent Pending: Multi-angle comic grading system*
