@@ -2480,6 +2480,9 @@ async function rotateGradingPhoto(step) {
             // Update extracted data
             gradingState.extractedData = result;
             
+            // Update comic ID banners on all subsequent steps
+            updateComicIdBanners(gradingState.extractedData);
+            
             // Update title display
             const previewInfo = document.getElementById(`gradingInfo${step}`);
             previewInfo.innerHTML = `
