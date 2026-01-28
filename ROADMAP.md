@@ -1,6 +1,6 @@
 # CollectionCalc / Slab Worthy Roadmap
 
-## Current Version: 2.94.0 (January 27, 2026)
+## Current Version: 2.95.0 (January 28, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -9,7 +9,12 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## Recently Completed
 
-### v2.94.0 - Slab Worthy! (Session 11) 🆕
+### v2.95.0 - Slab Worthy Live! (Session 12) 🆕
+- [x] **Fixed truncated app.html** - Missing script tag caused setMode undefined
+- [x] **Added defensive null checks** - Grading report won't crash on missing elements
+- [x] **Slab Worthy deployed to production** - Feature is LIVE
+
+### v2.94.0 - Slab Worthy! (Session 11)
 - [x] **Provisional patent filed** - USPTO, Small Entity
 - [x] **"Slab Worthy?" tab** - 4-photo grading assessment
 - [x] Custom slab icon with question mark
@@ -54,15 +59,35 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## In Progress
 
-### UX Restructure (Thinking)
-- [ ] Collection-centric approach
-- [ ] Add to collection → then decide what to do
-- [ ] Possible flow: Collection hub → Slab Worthy? / Valuate / Sell
+### Bugs/Quick Fixes (Next Session)
+- [ ] **Image rotation fix** - Rotated photos misidentified (Atari Force → "Alpha Flight")
+  - Auto-detect orientation via EXIF or image analysis
+  - Rotate to correct orientation before sending to Claude Vision
+- [ ] **Button text fix** - "Grade Another" → "Slab Worthy Another"
+
+### Performance Improvements
+- [ ] **Valuation speed** - "Should you grade?" calculation is slow
+- [ ] **FMV caching audit** - Verify cache is working (same comic+grade shouldn't re-call API)
+
+### Business/Legal
+- [ ] **Trademark evaluation:**
+  - "Slab Worthy" - core brand name
+  - "Slab Report" - distinctive output term
+- [ ] **CGC partnership exploration:**
+  - Affiliate/referral commission for grading submissions
+  - User discounts for using our recommendation
+  - Attribution tracking (blockchain?)
+
+### Product Decisions Needed
+- [ ] **Photo Upload mode** - Keep or deprecate now that Slab Worthy exists?
+- [ ] **Batch grading** - Multiple comics at once? How would UX work?
+- [ ] **Collection-centric UX** - Restructure around collection as hub?
 
 ### Testing Slab Worthy
-- [ ] Real comic photo testing
+- [ ] Real comic photo testing (various conditions)
 - [ ] Compare 1-photo vs 4-photo accuracy
 - [ ] Validate against known CGC grades
+- [ ] Test rotated/sideways photos
 
 ---
 
@@ -111,6 +136,7 @@ Provisional patent filed for multi-angle comic grading system.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.95.0 | Jan 28, 2026 | 🚀 Slab Worthy LIVE, bug fixes |
 | 2.94.0 | Jan 27, 2026 | 🔲 Slab Worthy!, Patent filed |
 | 2.93.0 | Jan 26, 2026 | Signature/facsimile detection |
 | 2.92.0 | Jan 25, 2026 | NLQ, Admin dashboard |
@@ -123,4 +149,4 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-*Last updated: January 27, 2026*
+*Last updated: January 28, 2026*

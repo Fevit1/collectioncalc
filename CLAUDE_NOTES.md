@@ -59,9 +59,20 @@ Update CLAUDE_NOTES.md when:
 - `wsgi.py`, `ebay_valuation.py`, `ebay_oauth.py`, `ebay_listing.py`
 - `comic_extraction.py`, `auth.py`, `admin.py`, `r2_storage.py`
 
-## Current State (January 27, 2026)
+## Current State (January 28, 2026)
 
-### Session 11 Progress 🆕
+### Session 12 Progress 🆕
+
+**Deployed Slab Worthy to Production! ✅**
+- Fixed truncated app.html (was missing `<script src="app.js"></script>`)
+- Added defensive null checks to grading report rendering
+- Feature is LIVE and working
+
+**Bug Found During Testing:**
+- Rotated comic photos cause misidentification (Atari Force at 90° → read as "Alpha Flight", "A-Force")
+- Need to auto-orient images before sending to Claude Vision
+
+### Session 11 Progress
 
 **1. PATENT FILED! 🎉**
 - "System and Method for Automated Comic Book Condition Assessment Using Multi-Angle Imaging and Artificial Intelligence"
@@ -77,23 +88,30 @@ Update CLAUDE_NOTES.md when:
 - Grade report with "Should you grade?" recommendation
 - Confidence scales: 1 photo = 65%, 4 photos = 94%
 
-**3. Files Created**
-- `app.html` - Updated with grading mode
-- `grading-styles.css` - Append to styles.css
-- `grading-script.js` - Append to app.js
-- `slab-icon.svg` - Custom icon
-- `SlabWorthy_Provisional_Patent.docx` - Patent application
+### Backlog Items (Prioritize Next Session)
 
-**4. UX Discussion (In Progress)**
-Thinking about collection-centric approach:
-- Collection as central hub
-- Add comics → then choose: Slab Worthy? / Valuate / Sell
-- May restructure tabs around this concept
+**Bugs/Quick Fixes:**
+- [ ] **Image rotation fix** - Auto-orient photos before Claude Vision (EXIF or detect orientation)
+- [ ] **Button text** - Change "Grade Another" → "Slab Worthy Another"
+
+**Performance:**
+- [ ] **Valuation speed** - "Should you grade?" takes too long
+- [ ] **FMV caching check** - Verify we're caching valuations (same comic+grade shouldn't re-call API)
+
+**Business/Legal Questions:**
+- [ ] **Trademark "Slab Report"?** - Distinctive term for our grade analysis output
+- [ ] **Trademark "Slab Worthy"?** - Core brand term
+- [ ] **CGC partnership** - Affiliate/commission for referrals? User discount? How to track users? (Blockchain for attribution?)
+
+**Product Questions:**
+- [ ] **Keep Photo Upload mode?** - Now that Slab Worthy exists, is it redundant?
+- [ ] **Batch grading** - Can users Slab Worthy multiple comics at once? Should they?
 
 ### Testing Needed
-- [ ] Test Slab Worthy with real comic photos
+- [ ] Test Slab Worthy with real comic photos (various conditions)
 - [ ] Compare 1-photo vs 4-photo grading accuracy
 - [ ] Buy CGC-graded comics to validate accuracy
+- [ ] Test rotated/sideways photos
 
 ### Session 10 Progress (Jan 26)
 - Facsimile detection, signature database, FMV endpoint
@@ -111,4 +129,4 @@ Thinking about collection-centric approach:
 - **Patent covers:** Multi-angle photo + AI + economic decision engine
 
 ---
-*Last updated: January 27, 2026 (Session 11)*
+*Last updated: January 28, 2026 (Session 12)*
