@@ -1144,23 +1144,35 @@ async function refreshItem(idx) {
 }
 
 function showThinking(title, steps) {
-    document.getElementById('thinkingTitle').textContent = title;
+    const titleEl = document.getElementById('thinkingTitle');
+    if (titleEl) titleEl.textContent = title;
     // Make all steps visible and reset them
     for (let i = 1; i <= 5; i++) {
         const step = document.getElementById('step' + i);
-        step.style.display = 'flex';
-        step.classList.remove('active', 'done');
-        step.classList.add('pending');
+        if (step) {
+            step.style.display = 'flex';
+            step.classList.remove('active', 'done');
+            step.classList.add('pending');
+        }
         if (steps && steps[i-1]) {
-            document.getElementById('step' + i + 'Text').textContent = steps[i-1];
+            const stepText = document.getElementById('step' + i + 'Text');
+            if (stepText) stepText.textContent = steps[i-1];
         }
     }
-    document.getElementById('thinking').classList.add('show');
+    const indicator = document.getElementById('thinkingIndicator');
+    if (indicator) {
+        indicator.classList.add('show');
+        indicator.style.display = 'block';
+    }
     animateThinking();
 }
 
 function hideThinking() {
-    document.getElementById('thinking').classList.remove('show');
+    const indicator = document.getElementById('thinkingIndicator');
+    if (indicator) {
+        indicator.classList.remove('show');
+        indicator.style.display = 'none';
+    }
 }
 
 function animateThinking() {
@@ -1169,40 +1181,59 @@ function animateThinking() {
         setTimeout(() => {
             if (index > 0) {
                 const prev = document.getElementById('step' + index);
-                prev.classList.remove('active');
-                prev.classList.add('done');
+                if (prev) {
+                    prev.classList.remove('active');
+                    prev.classList.add('done');
+                }
             }
             const el = document.getElementById('step' + (index + 1));
-            el.classList.remove('pending');
-            el.classList.add('active');
+            if (el) {
+                el.classList.remove('pending');
+                el.classList.add('active');
+            }
         }, delay);
     });
 }
 
 function showWaiting(completedTitle, value) {
-    document.getElementById('thinkingTitle').textContent = '✓ ' + completedTitle;
+    const titleEl = document.getElementById('thinkingTitle');
+    if (titleEl) titleEl.textContent = '✓ ' + completedTitle;
     // Mark all steps as done
     for (let i = 1; i <= 5; i++) {
         const step = document.getElementById('step' + i);
-        step.classList.remove('active', 'pending');
-        step.classList.add('done');
+        if (step) {
+            step.classList.remove('active', 'pending');
+            step.classList.add('done');
+        }
     }
     // Update step text to show result and countdown
-    document.getElementById('step1Text').textContent = value ? `Valued at $${value.toFixed(2)}` : 'Valuation complete';
-    document.getElementById('step2Text').textContent = '';
-    document.getElementById('step3Text').textContent = 'Waiting for rate limit...';
-    document.getElementById('step4Text').textContent = '';
-    document.getElementById('step5Text').textContent = '';
+    const step1Text = document.getElementById('step1Text');
+    const step2Text = document.getElementById('step2Text');
+    const step3Text = document.getElementById('step3Text');
+    const step4Text = document.getElementById('step4Text');
+    const step5Text = document.getElementById('step5Text');
+    if (step1Text) step1Text.textContent = value ? `Valued at $${value.toFixed(2)}` : 'Valuation complete';
+    if (step2Text) step2Text.textContent = '';
+    if (step3Text) step3Text.textContent = 'Waiting for rate limit...';
+    if (step4Text) step4Text.textContent = '';
+    if (step5Text) step5Text.textContent = '';
     // Hide steps 2, 4, 5
-    document.getElementById('step2').style.display = 'none';
-    document.getElementById('step4').style.display = 'none';
-    document.getElementById('step5').style.display = 'none';
+    const step2 = document.getElementById('step2');
+    const step4 = document.getElementById('step4');
+    const step5 = document.getElementById('step5');
+    if (step2) step2.style.display = 'none';
+    if (step4) step4.style.display = 'none';
+    if (step5) step5.style.display = 'none';
 }
 
 function updateWaitingCountdown(seconds, nextItem) {
-    document.getElementById('step3Text').textContent = `Next: ${nextItem.title} #${nextItem.issue} in ${seconds}s`;
-    document.getElementById('step3').classList.remove('done');
-    document.getElementById('step3').classList.add('active');
+    const step3Text = document.getElementById('step3Text');
+    const step3 = document.getElementById('step3');
+    if (step3Text) step3Text.textContent = `Next: ${nextItem.title} #${nextItem.issue} in ${seconds}s`;
+    if (step3) {
+        step3.classList.remove('done');
+        step3.classList.add('active');
+    }
 }
 
 function resetThinkingSteps() {
