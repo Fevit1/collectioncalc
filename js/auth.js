@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function checkAuthState() {
+    // Load token from localStorage if not already set
+    if (!authToken) {
+        authToken = localStorage.getItem('cc_auth_token');
+    }
+    
     if (!authToken) {
         updateAuthUI(false);
         return;
