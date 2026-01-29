@@ -892,7 +892,7 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         /* Pulse animation only for loading states, not disabled */
         
-        .thinking {
+        .thinking, .thinking-indicator {
             margin-top: 20px;
             padding: 20px;
             background: var(--bg-primary);
@@ -901,15 +901,23 @@
             display: none;
             min-height: 200px;
         }
-        .thinking.show { display: block; }
+        .thinking.show, .thinking-indicator.show { display: block; }
         .thinking-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 15px;
         }
-        .thinking-calc { width: 32px; height: 32px; }
-        .thinking-calc svg { width: 100%; height: 100%; }
+        .thinking-calc, .thinking-icon { width: 32px; height: 32px; }
+        .thinking-calc svg, .thinking-icon svg { width: 100%; height: 100%; }
+        .thinking-icon .spinner {
+            animation: spin 1s linear infinite;
+            color: var(--brand-cyan);
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         .calc-display {
             font-family: 'Courier New', monospace;
             font-size: 6px;

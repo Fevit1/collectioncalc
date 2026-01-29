@@ -408,9 +408,31 @@
             <!-- Thinking Indicator -->
             <div class="thinking-indicator" id="thinkingIndicator" style="display: none;">
                 <div class="thinking-header">
-                    <div class="thinking-icon">
-                        <svg viewBox="0 0 24 24" class="spinner">
-                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="50 50" stroke-linecap="round"/>
+                    <div class="thinking-calc">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Calculator body -->
+                            <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="var(--bg-card)"/>
+                            <!-- Display -->
+                            <rect x="7" y="5" width="18" height="7" rx="1" fill="var(--bg-primary)" stroke="var(--brand-indigo)" stroke-width="1"/>
+                            <text x="9" y="10.5" class="calc-display">$---</text>
+                            <!-- Buttons row 1 -->
+                            <rect class="calc-btn1" x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn2" x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn3" x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)"/>
+                            <!-- Buttons row 2 -->
+                            <rect class="calc-btn4" x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn5" x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn6" x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-cyan)"/>
+                            <!-- Buttons row 3 -->
+                            <rect x="7" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="14" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="21" y="25" width="4" height="3" rx="0.5" fill="var(--status-success)"/>
+                            <defs>
+                                <linearGradient id="calcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="var(--brand-indigo)"/>
+                                    <stop offset="100%" stop-color="var(--brand-purple)"/>
+                                </linearGradient>
+                            </defs>
                         </svg>
                     </div>
                     <span class="thinking-title" id="thinkingTitle">Calculating...</span>
