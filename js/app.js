@@ -535,7 +535,10 @@ Be accurate. If unsure about any field, use reasonable estimates.`;
     
     const response = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        },
         body: JSON.stringify({
             // STANDARD TIER: Sonnet - good for most extraction, ~$0.01/comic
             model: 'claude-sonnet-4-20250514',
