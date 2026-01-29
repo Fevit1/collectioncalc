@@ -171,8 +171,44 @@ async function handleGradingPhoto(step, files) {
             updateComicIdBanners(result);
             
         } else {
-            // Steps 2-4: Just analyze for defects
-            const result = await analyzeGradingPhoto(step, processed);
+            // Steps 2-4: Analyze for defects with auto-rotation
+            let result = await analyzeGradingPhoto(step, processed);
+            
+            // Check if image is upside-down and auto-correct
+            if (result.is_upside_down) {
+                console.log(`Step ${step}: Image detected as upside-down, auto-rotating 180°`);
+                feedbackText.textContent = 'Auto-correcting orientation...';
+                
+                // Rotate 180°
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = `data:${processed.mediaType};base64,${processed.base64}`;
+                });
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI); // 180 degrees
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                
+                const rotatedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                const rotatedBase64 = rotatedDataUrl.split(',')[1];
+                
+                // Update stored photo and preview
+                processed.base64 = rotatedBase64;
+                gradingState.photos[step] = {
+                    base64: rotatedBase64,
+                    mediaType: 'image/jpeg'
+                };
+                previewImg.src = rotatedDataUrl;
+                
+                // Re-analyze with corrected orientation
+                result = await analyzeGradingPhoto(step, { base64: rotatedBase64, mediaType: 'image/jpeg' });
+            }
             
             if (result.quality_issue) {
                 feedback.className = 'grading-feedback';
@@ -280,6 +316,9 @@ Return ONLY valid JSON, no markdown.`,
 
         2: `Analyze this comic book SPINE image for condition defects. Return a JSON object with:
 
+IMAGE ORIENTATION CHECK (do this FIRST):
+- is_upside_down: boolean - Is this image upside-down? Check if any text on the spine is inverted.
+
 IMAGE QUALITY CHECK:
 - quality_issue: boolean - Is the spine clearly visible and in focus?
 - quality_message: Feedback if quality is poor
@@ -293,6 +332,9 @@ Return ONLY valid JSON, no markdown.`,
 
         3: `Analyze this comic book BACK COVER image for condition defects. Return a JSON object with:
 
+IMAGE ORIENTATION CHECK (do this FIRST):
+- is_upside_down: boolean - Is this image upside-down? Check if any text (ads, barcodes, price) is inverted.
+
 IMAGE QUALITY CHECK:
 - quality_issue: boolean - Is the back cover clearly visible and in focus?
 - quality_message: Feedback if quality is poor
@@ -305,6 +347,9 @@ CONDITION ASSESSMENT:
 Return ONLY valid JSON, no markdown.`,
 
         4: `Analyze this comic book CENTERFOLD/STAPLES image. Return a JSON object with:
+
+IMAGE ORIENTATION CHECK (do this FIRST):
+- is_upside_down: boolean - Is this image upside-down? Check if any visible text or the staple orientation suggests the image is inverted.
 
 IMAGE QUALITY CHECK:
 - quality_issue: boolean - Are the staples and centerfold clearly visible?
