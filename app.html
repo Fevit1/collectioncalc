@@ -133,11 +133,18 @@
                         </div>
                         <p class="grading-instruction">Take a clear, upright photo of the front cover. This identifies your comic and assesses cover condition.</p>
                         
-                        <div class="upload-area grading-upload" id="gradingUpload1" onclick="document.getElementById('gradingInput1').click();">
-                            <input type="file" id="gradingInput1" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(1, this.files)">
-                            <div class="upload-icon">📸</div>
-                            <div class="upload-title">Tap to photograph FRONT COVER</div>
-                            <div class="upload-subtitle">Full cover visible, good lighting, straight angle</div>
+                        <div class="grading-photo-options" id="gradingUpload1">
+                            <input type="file" id="gradingCamera1" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(1, this.files)">
+                            <input type="file" id="gradingGallery1" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(1, this.files)">
+                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera1').click();">
+                                <span class="photo-option-icon">📷</span>
+                                <span class="photo-option-text">Take Photo</span>
+                            </button>
+                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery1').click();">
+                                <span class="photo-option-icon">📁</span>
+                                <span class="photo-option-text">Upload from Gallery</span>
+                            </button>
+                            <div class="photo-option-hint">FRONT COVER - Full cover visible, good lighting</div>
                         </div>
                         
                         <!-- Preview after photo taken -->
@@ -178,11 +185,18 @@
                             <!-- Shows detected comic from step 1 -->
                         </div>
                         
-                        <div class="upload-area grading-upload" id="gradingUpload2" onclick="document.getElementById('gradingInput2').click();">
-                            <input type="file" id="gradingInput2" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(2, this.files)">
-                            <div class="upload-icon">📸</div>
-                            <div class="upload-title">Tap to photograph SPINE</div>
-                            <div class="upload-subtitle">Hold comic sideways so spine fills frame</div>
+                        <div class="grading-photo-options" id="gradingUpload2">
+                            <input type="file" id="gradingCamera2" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(2, this.files)">
+                            <input type="file" id="gradingGallery2" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(2, this.files)">
+                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera2').click();">
+                                <span class="photo-option-icon">📷</span>
+                                <span class="photo-option-text">Take Photo</span>
+                            </button>
+                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery2').click();">
+                                <span class="photo-option-icon">📁</span>
+                                <span class="photo-option-text">Upload from Gallery</span>
+                            </button>
+                            <div class="photo-option-hint">SPINE - Hold comic sideways so spine fills frame</div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview2" style="display: none;">
@@ -214,11 +228,18 @@
                         
                         <div class="grading-comic-id" id="gradingComicId3"></div>
                         
-                        <div class="upload-area grading-upload" id="gradingUpload3" onclick="document.getElementById('gradingInput3').click();">
-                            <input type="file" id="gradingInput3" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(3, this.files)">
-                            <div class="upload-icon">📸</div>
-                            <div class="upload-title">Tap to photograph BACK COVER</div>
-                            <div class="upload-subtitle">Full back cover visible</div>
+                        <div class="grading-photo-options" id="gradingUpload3">
+                            <input type="file" id="gradingCamera3" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(3, this.files)">
+                            <input type="file" id="gradingGallery3" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(3, this.files)">
+                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera3').click();">
+                                <span class="photo-option-icon">📷</span>
+                                <span class="photo-option-text">Take Photo</span>
+                            </button>
+                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery3').click();">
+                                <span class="photo-option-icon">📁</span>
+                                <span class="photo-option-text">Upload from Gallery</span>
+                            </button>
+                            <div class="photo-option-hint">BACK COVER - Full back cover visible</div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview3" style="display: none;">
@@ -250,11 +271,18 @@
                         
                         <div class="grading-comic-id" id="gradingComicId4"></div>
                         
-                        <div class="upload-area grading-upload" id="gradingUpload4" onclick="document.getElementById('gradingInput4').click();">
-                            <input type="file" id="gradingInput4" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(4, this.files)">
-                            <div class="upload-icon">📸</div>
-                            <div class="upload-title">Tap to photograph CENTERFOLD</div>
-                            <div class="upload-subtitle">Open comic to center, show staples</div>
+                        <div class="grading-photo-options" id="gradingUpload4">
+                            <input type="file" id="gradingCamera4" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(4, this.files)">
+                            <input type="file" id="gradingGallery4" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleGradingPhoto(4, this.files)">
+                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera4').click();">
+                                <span class="photo-option-icon">📷</span>
+                                <span class="photo-option-text">Take Photo</span>
+                            </button>
+                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery4').click();">
+                                <span class="photo-option-icon">📁</span>
+                                <span class="photo-option-text">Upload from Gallery</span>
+                            </button>
+                            <div class="photo-option-hint">CENTERFOLD - Open comic to center, show staples</div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview4" style="display: none;">

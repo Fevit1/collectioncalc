@@ -2183,3 +2183,118 @@
 .grade-quality-warning .warning-icon {
     font-size: 1.2rem;
 }
+/* ============================================
+   PHOTO OPTIONS - Camera & Gallery buttons
+   Add this to the end of styles.css
+   ============================================ */
+
+.grading-photo-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(99, 102, 241, 0.05);
+    border: 2px dashed rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.photo-option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 32px;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+}
+
+.photo-option-btn:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    transform: translateY(-2px);
+}
+
+.photo-option-btn:active {
+    transform: translateY(0);
+}
+
+.photo-option-btn.camera {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+}
+
+.photo-option-btn.camera:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.1));
+}
+
+.photo-option-icon {
+    font-size: 32px;
+}
+
+.photo-option-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.photo-option-hint {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .grading-photo-options {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    
+    .photo-option-btn {
+        background: rgba(30, 30, 40, 0.8);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+    
+    .photo-option-btn:hover {
+        background: rgba(99, 102, 241, 0.2);
+    }
+    
+    .photo-option-text {
+        color: #e5e7eb;
+    }
+    
+    .photo-option-hint {
+        color: #9ca3af;
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 400px) {
+    .grading-photo-options {
+        flex-direction: column;
+        padding: 16px;
+    }
+    
+    .photo-option-btn {
+        width: 100%;
+        padding: 16px;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+    
+    .photo-option-icon {
+        font-size: 24px;
+    }
+}

@@ -419,7 +419,8 @@ function retakeGradingPhoto(step) {
     const preview = document.getElementById(`gradingPreview${step}`);
     const feedback = document.getElementById(`gradingFeedback${step}`);
     const nextBtn = document.getElementById(`gradingNext${step}`);
-    const input = document.getElementById(`gradingInput${step}`);
+    const cameraInput = document.getElementById(`gradingCamera${step}`);
+    const galleryInput = document.getElementById(`gradingGallery${step}`);
     
     // Reset state
     gradingState.photos[step] = null;
@@ -427,11 +428,12 @@ function retakeGradingPhoto(step) {
     // Reset UI
     preview.style.display = 'none';
     feedback.style.display = 'none';
-    uploadArea.style.display = 'block';
+    uploadArea.style.display = 'flex';
     nextBtn.disabled = true;
     
-    // Clear input
-    input.value = '';
+    // Clear both inputs
+    if (cameraInput) cameraInput.value = '';
+    if (galleryInput) galleryInput.value = '';
 }
 
 // Debounce timer for rotation analysis
@@ -1104,10 +1106,14 @@ function resetGrading() {
     
     // Reset all inputs and previews
     for (let i = 1; i <= 4; i++) {
-        document.getElementById(`gradingUpload${i}`).style.display = 'block';
+        document.getElementById(`gradingUpload${i}`).style.display = 'flex';
         document.getElementById(`gradingPreview${i}`).style.display = 'none';
         document.getElementById(`gradingFeedback${i}`).style.display = 'none';
-        document.getElementById(`gradingInput${i}`).value = '';
+        // Clear both camera and gallery inputs
+        const cameraInput = document.getElementById(`gradingCamera${i}`);
+        const galleryInput = document.getElementById(`gradingGallery${i}`);
+        if (cameraInput) cameraInput.value = '';
+        if (galleryInput) galleryInput.value = '';
         if (i > 1) {
             document.getElementById(`gradingNext${i}`).disabled = true;
         }
