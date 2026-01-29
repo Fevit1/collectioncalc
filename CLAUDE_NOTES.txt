@@ -1,4 +1,4 @@
-﻿# Claude Working Notes - CollectionCalc Project
+# Claude Working Notes - CollectionCalc Project
 
 ## IMPORTANT RULES
 1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
@@ -21,7 +21,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Name:** Mike (legal name Don, goes by Mike)
 - **Role:** Product Manager in high tech, manages people (not hands-on dev)
 - **Background:** Former eBay employee (marketing/content supply chain, not engineering)
-- **Technical comfort:** Decent SQL skills, but not a developer
+- **Technical comfort:** Decent SQL skills, uses DBeaver for PostgreSQL queries
 - **Strengths:** Product vision, feature prioritization, testing, user feedback, UI/UX decisions
 - **Learning style:** Appreciates guidance but wants Claude to recognize when he's mastered something and stop over-explaining
 - **Collaboration style:** Wants Claude to push back on decisions (UI, data flow, database, backend) and proactively share knowledge
@@ -31,7 +31,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - ✅ Git workflow (add, commit, push)
 - ✅ PowerShell aliases (`purge`, `deploy`)
 - ✅ Testing the app and providing feedback
-- ✅ SQL concepts
+- ✅ SQL concepts and DBeaver
 - ✅ Product decisions and prioritization
 
 ## Where They Need More Guidance
@@ -43,9 +43,9 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 ### Core Info
 - **What it is:** AI-powered comic book valuation and pre-grading assessment tool
 - **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
-- **Hosted on:** Render.com
+- **Hosted on:** Render.com ($7/mo Starter plan - NO cold starts)
 - **Live URL:** https://collectioncalc.com
-- **Version:** 2.95.0
+- **Version:** 2.97.0
 
 ### Key Product Features
 - **Manual Entry** - Type title/issue/grade for valuation
@@ -55,14 +55,26 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Whatnot Extension** - Browser extension for live stream valuations
 
 ### Key Files
+**Frontend (Cloudflare Pages):**
 - `app.html` - Main frontend
-- `app.js` - Frontend JavaScript
 - `styles.css` - Styling
+- `js/utils.js` - Shared state, image processing, UI helpers
+- `js/auth.js` - Authentication, user menu, collection
+- `js/app.js` - eBay, photo upload, valuation, manual entry
+- `js/grading.js` - Slab Worthy 4-photo flow, grade report
+
+**Backend (Render):**
+- `wsgi.py` - Flask app entry point
 - `ebay_valuation.py` - Backend valuation logic
 - `comic_extraction.py` - AI photo analysis
-- `wsgi.py` - Flask app entry point
 - `auth.py` - Authentication
 - `admin.py` - Admin panel
+
+### Database Info
+- **Host:** Render PostgreSQL
+- **Tool:** DBeaver for queries
+- **Key table:** `search_cache` (title, issue, grade, estimated_value, fair_value, high_value, created_at)
+- **Cache duration:** 48 hours
 
 ### Brand Guidelines Summary
 Reference BRAND_GUIDELINES.md for full details. Key points:
@@ -72,25 +84,72 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 - **Loading text:** "Analyzing..." matches existing patterns
 - **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
 
-## Current Session (January 28, 2026)
+## Previous Session (January 28, 2026 - Sessions 13-14)
 
-### Bugs Fixed Today
-1. ✅ Button text: "Grade Another" → "Check Another" (avoids grading terminology)
-2. ✅ FMV cache key mismatch: Added grade normalization (VF+/VF/VF- → "VF")
+### Bugs Fixed
+1. ✅ Button text: "Grade Another" → "Check Another"
+2. ✅ FMV cache key mismatch: Added grade normalization
 3. ✅ Image rotation: Added "↻ Rotate" button for manual rotation
 4. ✅ Rotation banner update: Comic ID banners now update after rotation
 5. ✅ Loading state: Show "Analyzing..." during rotation re-analysis
-6. ✅ Patent Pending placement: Moved from "Slab Report" to top of Slab Worthy flow
+6. ✅ Patent Pending placement: Moved to top of Slab Worthy flow
+7. ✅ Auto-rotate landscape→portrait
+8. ✅ Auto-detect upside-down via AI
+9. ✅ Split app.js into 4 modules (utils, auth, app, grading)
 
-### Documents Updated Today
-- BRAND_GUIDELINES.md v2.0 - Expanded with voice, terminology, animation principles, GenAI compatibility
+## Current Session (January 29, 2026 - Sessions 15-16)
 
-### Pending
-- Mobile parity fixes (user found "lots of problems")
-- FAQ content (pressing, newsstand vs direct, valuation methodology, grade scale, CGC costs)
-- Pricing model
-- Business model canvas
-- Competitive analysis (CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI)
+### Bugs Fixed Today
+1. ✅ **Login persistence** - Token wasn't loading from localStorage on page init (utils.js already had fix, auth.js had redundant early return)
+2. ✅ **Mobile extraction "bug"** - Was actually auth issue; works when logged in
+3. ✅ **Rotation detection false positive** - Updated prompt to check TEXT only, not artistic elements (Avengers #145 fix)
+4. ✅ **Server slowdown identified** - Whatnot extension polling with `issue=null` was hammering server
+
+### Features Added Today
+1. ✅ **Upload from Gallery** - Slab Worthy now has two buttons: "Take Photo" and "Upload from Gallery"
+2. ✅ **Auto-rotation for all steps** - Steps 2-4 now have `is_upside_down` check in prompts (needs testing)
+
+### Known Issues (Bug List)
+- 🐛 **Auto-rotation steps 2-4** - Added code but not working; needs debugging
+- 🐛 **Whatnot extension** - Polling with null issue, doesn't stop when tab closed
+- 🐛 **Debug alerts still in code** - Remove once stable
+- 🐛 **Slab Worthy UI polish needed** - Camera/Gallery buttons need refinement
+
+### Testing Notes
+- USB debugging failed (authorization popup never appeared)
+- On-screen alert() debugging worked great for mobile
+- Login persistence confirmed working on both desktop and mobile
+- Mobile extraction works when logged in
+
+## Pending Work
+
+### High Priority
+- [ ] Fix auto-rotation for steps 2-4
+- [ ] Remove debug alerts from grading.js
+- [ ] Fix Whatnot extension (null issue polling, stop on tab close)
+- [ ] Slab Worthy UI polish
+
+### Medium Priority
+- [ ] High-value comic testing for ROI validation
+- [ ] FAQ content (pressing, newsstand vs direct, valuation methodology, grade scale, CGC costs)
+- [ ] Mobile visual/layout review
+
+### Low Priority
+- [ ] Pricing model decisions
+- [ ] Business model canvas
+- [ ] Competitive analysis (CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI)
+
+## Useful SQL Queries
+
+```sql
+-- Check for bad cached values
+SELECT title, issue, estimated_value, fair_value FROM search_cache 
+WHERE estimated_value = 0 OR fair_value = 0;
+
+-- Recent cache entries
+SELECT title, issue, grade, estimated_value, created_at 
+FROM search_cache ORDER BY created_at DESC LIMIT 20;
+```
 
 ## Deployment Commands
 ```powershell
@@ -101,3 +160,5 @@ git add .; git commit -m "message"; git push; purge
 purge
 ```
 
+---
+*Last updated: January 29, 2026 (Session 16)*

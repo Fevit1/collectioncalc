@@ -87,7 +87,7 @@ cc/v2/
 │       └── keys.js      # 500+ key issue database
 │
 └── ─────────── DOCUMENTATION ───────────
-    ├── CLAUDE_NOTES.md  # Session notes, context for Claude
+    ├── CLAUDE_NOTES.txt # Session notes, context for Claude
     ├── ROADMAP.md       # Feature backlog, version history
     ├── BRAND_GUIDELINES.md  # Colors, typography, UI standards
     └── ARCHITECTURE.md  # This file
@@ -135,7 +135,8 @@ User clicks "🔲 Slab Worthy?" tab
             ▼
 ┌─────────────────────┐
 │ Step 1: FRONT COVER │ ◄── REQUIRED
-│ (Photo capture)     │
+│ [📷 Take Photo]     │
+│ [📁 Upload Gallery] │ ◄── NEW: Dual input options
 └──────────┬──────────┘
            │
      ┌─────┴─────┐
@@ -155,16 +156,19 @@ User clicks "🔲 Slab Worthy?" tab
 │ Step 2: SPINE       │ ◄── Recommended (skippable)
 └──────────┬──────────┘
            │ → Spine roll, stress marks, splits
+           │ → Auto-rotation check
            ▼
 ┌─────────────────────┐
 │ Step 3: BACK COVER  │ ◄── Recommended (skippable)
 └──────────┬──────────┘
            │ → Back defects, stains, labels
+           │ → Auto-rotation check
            ▼
 ┌─────────────────────┐
 │ Step 4: CENTERFOLD  │ ◄── Recommended (skippable)
 └──────────┬──────────┘
            │ → Staples, interior, attachment
+           │ → Auto-rotation check
            │
            │ (+ Optional additional photos)
            ▼
@@ -208,7 +212,7 @@ User clicks "🔲 Slab Worthy?" tab
 │                    (Two-Layer System)                            │
 └─────────────────────────────────────────────────────────────────┘
 
-Photo uploaded
+Photo uploaded (Camera or Gallery)
       │
       ▼
 ┌─────────────────────┐
@@ -237,12 +241,11 @@ Photo uploaded
 ┌─────────────────────┐
 │ Layer 2: AI         │
 │ Upside-down check   │
-│ (analyzeGradingPhoto│
-│  + handleGradingPho │
+│ (All steps 1-4)     │ ◄── All steps now check orientation
 └──────────┬──────────┘
            │
            ├─► Claude checks if image is upside-down
-           │   (Rule 8 in extraction prompt)
+           │   (is_upside_down in prompt)
            │
            │   is_upside_down: true?
            │         │
@@ -339,11 +342,11 @@ api_usage (id, user_id, endpoint, tokens_used, created_at)
 | Component | Platform | Trigger |
 |-----------|----------|---------|
 | Frontend | Cloudflare Pages | Git push + `purge` command |
-| Backend | Render.com | Git push + `deploy` command |
+| Backend | Render.com ($7/mo) | Git push + `deploy` command |
 | Database | Render PostgreSQL | Managed |
 | Images | Cloudflare R2 | API upload |
 
 ---
 
-*Last updated: January 28, 2026*
+*Last updated: January 29, 2026*
 *Patent Pending: Multi-angle comic grading system*
