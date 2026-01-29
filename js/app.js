@@ -810,7 +810,10 @@ async function valuateAll() {
 async function getValuation(item, forceRefresh = false) {
     const response = await fetch(`${API_URL}/api/valuate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        },
         body: JSON.stringify({
             title: item.title,
             issue: item.issue,
@@ -1115,7 +1118,10 @@ async function refreshItem(idx) {
         try {
             await fetch(`${API_URL}/api/cache/update`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
                 body: JSON.stringify({
                     title: item.title,
                     issue: item.issue,
@@ -1271,7 +1277,10 @@ document.getElementById('valuationForm').addEventListener('submit', async (e) =>
     try {
         const response = await fetch(`${API_URL}/api/valuate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify(data)
         });
         
