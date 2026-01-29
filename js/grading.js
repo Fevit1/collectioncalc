@@ -60,6 +60,9 @@ async function handleGradingPhoto(step, files) {
     if (!files || files.length === 0) return;
     
     const file = files[0];
+    // DEBUG: Log file info
+    console.log('DEBUG handleGradingPhoto: file name:', file.name, 'type:', file.type, 'size:', file.size);
+    
     const uploadArea = document.getElementById(`gradingUpload${step}`);
     const preview = document.getElementById(`gradingPreview${step}`);
     const previewImg = document.getElementById(`gradingImg${step}`);
@@ -199,6 +202,8 @@ async function handleGradingPhoto(step, files) {
         
     } catch (error) {
         console.error('Error analyzing photo:', error);
+        // DEBUG: Show actual error on mobile
+        alert('DEBUG ERROR: ' + error.message + '\n\nStack: ' + (error.stack || 'no stack'));
         feedback.className = 'grading-feedback error';
         feedbackText.textContent = 'Error analyzing image. Please try again.';
         feedback.style.display = 'flex';
@@ -239,6 +244,12 @@ function cancelComicEdit() {
 
 // Analyze a grading photo with Claude
 async function analyzeGradingPhoto(step, processed) {
+    // DEBUG: Check authToken
+    console.log('DEBUG: authToken exists:', !!authToken, 'length:', authToken ? authToken.length : 0);
+    if (!authToken) {
+        alert('DEBUG: No authToken! User may not be logged in.');
+    }
+    
     const prompts = {
         1: `Analyze this comic book FRONT COVER image. Return a JSON object with:
 
@@ -335,6 +346,14 @@ Return ONLY valid JSON, no markdown.`
             }]
         })
     });
+    
+    // DEBUG: Log response status
+    console.log('DEBUG API response status:', response.status);
+    if (!response.ok) {
+        const errorText = await response.text();
+        alert('DEBUG API Error: Status ' + response.status + '\n\n' + errorText.substring(0, 500));
+        throw new Error('API returned ' + response.status);
+    }
     
     const data = await response.json();
     
