@@ -254,7 +254,7 @@ async function analyzeGradingPhoto(step, processed) {
         1: `Analyze this comic book FRONT COVER image. Return a JSON object with:
 
 IMAGE ORIENTATION CHECK (do this FIRST):
-- is_upside_down: boolean - Is this image upside-down? (text inverted, characters upside-down). If true, still try to extract info but flag this.
+- is_upside_down: boolean - Check ONLY the main title text, publisher logo (e.g., "Marvel Comics Group", "DC"), and price/issue number text. Are THESE upside-down? IGNORE any characters or figures that may be artistically drawn upside-down within the cover artwork - comic covers often have artistic elements showing characters in unusual orientations. Only flag as upside-down if the actual printed TEXT is inverted.
 
 IMAGE QUALITY CHECK:
 - quality_issue: boolean - Is the image too blurry, too dark, has glare, cut off edges, or at a bad angle?
