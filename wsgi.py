@@ -693,7 +693,8 @@ def api_extract():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
     
-    result = extract_from_base64(image_data)
+    media_type = data.get('media_type', 'image/jpeg')
+    result = extract_from_base64(image_data, media_type)
     
     if result.get('success'):
         log_api_usage(g.user_id, '/api/extract', 'claude-sonnet-4-20250514',

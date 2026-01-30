@@ -286,34 +286,64 @@ async function analyzeGradingPhoto(step, processed) {
         alert('DEBUG: No authToken! User may not be logged in.');
     }
     
+    // Step 1: Use backend /api/extract for full extraction (single source of truth)
+    if (step === 1) {
+        const response = await fetch(`${API_URL}/api/extract`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                image: processed.base64,
+                media_type: processed.mediaType
+            })
+        });
+        
+        console.log('DEBUG API /api/extract response status:', response.status);
+        if (!response.ok) {
+            const errorText = await response.text();
+            alert('DEBUG API Error: Status ' + response.status + '\n\n' + errorText.substring(0, 500));
+            throw new Error('API returned ' + response.status);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Extraction failed');
+        }
+        
+        // Return the extracted data (map to expected format)
+        const extracted = data.extracted;
+        return {
+            // Identification
+            title: extracted.title,
+            issue: extracted.issue,
+            publisher: extracted.publisher,
+            year: extracted.year,
+            variant: extracted.variant,
+            // New fields now available from backend
+            edition: extracted.edition,
+            printing: extracted.printing,
+            cover: extracted.cover,
+            is_facsimile: extracted.is_facsimile,
+            barcode_digits: extracted.barcode_digits,
+            issue_type: extracted.issue_type,
+            // Condition
+            suggested_grade: extracted.suggested_grade,
+            defects: extracted.defects || [],
+            grade_reasoning: extracted.grade_reasoning,
+            // Signatures
+            signature_detected: extracted.signatures && extracted.signatures.length > 0,
+            signature_analysis: extracted.signatures ? extracted.signatures.join('; ') : null,
+            signatures: extracted.signatures || [],
+            // Orientation
+            is_upside_down: extracted.is_upside_down || false
+        };
+    }
+    
+    // Steps 2-4: Use existing prompts for spine, back, centerfold
     const prompts = {
-        1: `Analyze this comic book FRONT COVER image. Return a JSON object with:
-
-IMAGE ORIENTATION CHECK (do this FIRST):
-- is_upside_down: boolean - Check ONLY the main title text, publisher logo (e.g., "Marvel Comics Group", "DC"), and price/issue number text. Are THESE upside-down? IGNORE any characters or figures that may be artistically drawn upside-down within the cover artwork - comic covers often have artistic elements showing characters in unusual orientations. Only flag as upside-down if the actual printed TEXT is inverted.
-
-IMAGE QUALITY CHECK:
-- quality_issue: boolean - Is the image too blurry, too dark, has glare, cut off edges, or at a bad angle?
-- quality_message: If quality_issue is true, specific feedback like "Image is too blurry - hold phone steadier" or "Glare detected on cover - try a different angle"
-
-IDENTIFICATION (extract from cover):
-- title: Comic book title (series name). READ THE TITLE CAREFULLY - stylized/artistic fonts can be tricky. Look at ALL text on the cover.
-- issue: Issue number (CRITICAL: find this, check corners near price, near barcode, in title area)
-- publisher: Publisher name
-- year: Publication year if visible
-- variant: Variant info if applicable
-
-CONDITION ASSESSMENT:
-- suggested_grade: One of MT, NM, VF, FN, VG, G, FR, PR
-- defects: Array of visible defects (e.g., "Corner wear top right", "Color-breaking crease", "Spine stress")
-- grade_reasoning: Brief explanation
-
-SIGNATURE CHECK:
-- signature_detected: boolean
-- signature_analysis: If detected, describe location, ink color, any identifiable characteristics
-
-Return ONLY valid JSON, no markdown.`,
-
         2: `Analyze this comic book SPINE image for condition defects. Return a JSON object with:
 
 IMAGE ORIENTATION CHECK (do this FIRST):
