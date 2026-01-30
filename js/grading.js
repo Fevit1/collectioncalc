@@ -86,6 +86,32 @@ function stopThinkingAnimation() {
     }
 }
 
+// Animated dots for "Analyzing" text
+let dotsInterval = null;
+let dotsCount = 1;
+
+function startDotsAnimation(element, baseText = 'Analyzing') {
+    dotsCount = 1;
+    if (typeof element === 'string') {
+        element = document.getElementById(element);
+    }
+    if (!element) return;
+    
+    element.textContent = baseText + '.';
+    
+    dotsInterval = setInterval(() => {
+        dotsCount = (dotsCount % 3) + 1;
+        element.textContent = baseText + '.'.repeat(dotsCount);
+    }, 400); // Cycle every 400ms
+}
+
+function stopDotsAnimation() {
+    if (dotsInterval) {
+        clearInterval(dotsInterval);
+        dotsInterval = null;
+    }
+}
+
 // Initialize grading mode on page load
 document.addEventListener('DOMContentLoaded', () => {
     initGradingMode();
@@ -139,7 +165,7 @@ async function handleGradingPhoto(step, files) {
     uploadArea.style.display = 'none';
     feedback.style.display = 'flex';
     feedback.className = 'grading-feedback';
-    feedbackText.textContent = 'Analyzing image...';
+    startDotsAnimation(feedbackText, 'Analyzing image');
     
     try {
         // Process image
@@ -161,6 +187,7 @@ async function handleGradingPhoto(step, files) {
             // Check if image is upside-down and auto-correct
             if (result.is_upside_down) {
                 console.log('Image detected as upside-down, auto-rotating 180°');
+                stopDotsAnimation();
                 feedbackText.textContent = 'Auto-correcting orientation...';
                 
                 // Rotate 180°
@@ -196,12 +223,14 @@ async function handleGradingPhoto(step, files) {
             
             if (result.quality_issue) {
                 // Quality problem - show feedback, allow retry
+                stopDotsAnimation();
                 feedback.className = 'grading-feedback';
                 feedbackText.textContent = result.quality_message;
                 feedback.style.display = 'flex';
                 preview.style.display = 'block';
                 nextBtn.disabled = false; // Let them continue anyway
             } else {
+                stopDotsAnimation();
                 feedback.style.display = 'none';
             }
             
@@ -241,6 +270,7 @@ async function handleGradingPhoto(step, files) {
             // Check if image is upside-down and auto-correct
             if (result.is_upside_down) {
                 console.log(`Step ${step}: Image detected as upside-down, auto-rotating 180°`);
+                stopDotsAnimation();
                 feedbackText.textContent = 'Auto-correcting orientation...';
                 
                 // Rotate 180°
@@ -275,10 +305,12 @@ async function handleGradingPhoto(step, files) {
             }
             
             if (result.quality_issue) {
+                stopDotsAnimation();
                 feedback.className = 'grading-feedback';
                 feedbackText.textContent = result.quality_message;
                 feedback.style.display = 'flex';
             } else {
+                stopDotsAnimation();
                 feedback.style.display = 'none';
             }
             
@@ -302,6 +334,7 @@ async function handleGradingPhoto(step, files) {
         
     } catch (error) {
         console.error('Error analyzing photo:', error);
+        stopDotsAnimation();
         // DEBUG: Show actual error on mobile
         alert('DEBUG ERROR: ' + error.message + '\n\nStack: ' + (error.stack || 'no stack'));
         feedback.className = 'grading-feedback error';
@@ -842,7 +875,10 @@ async function generateGradeReport() {
     const recommendationVerdict = document.getElementById('recommendationVerdict');
     
     if (gradeResultBig) gradeResultBig.textContent = '...';
-    if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing photos...';
+    if (gradeResultLabel) {
+        gradeResultLabel.textContent = 'Analyzing photos.';
+        startDotsAnimation(gradeResultLabel, 'Analyzing photos');
+    }
     if (gradePhotosUsed) gradePhotosUsed.innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
     if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
     if (recommendationValues) recommendationValues.innerHTML = '';
@@ -960,6 +996,7 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         
     } catch (error) {
         console.error('Error generating grade report:', error);
+        stopDotsAnimation();
         const bigEl = document.getElementById('gradeResultBig');
         const labelEl = document.getElementById('gradeResultLabel');
         if (bigEl) bigEl.textContent = 'Error';
@@ -969,6 +1006,9 @@ Return ONLY valid JSON, no markdown, no nested objects.`
 
 // Render the grade report
 function renderGradeReport(result, confidence, photoLabels) {
+    // Stop any running animations
+    stopDotsAnimation();
+    
     // Handle both flat and nested response structures from Claude
     const comic = result['COMIC IDENTIFICATION'] || result;
     const grade = result['COMPREHENSIVE GRADE'] || result;
@@ -1155,7 +1195,7 @@ async function calculateGradingRecommendation(gradeResult) {
                     <span class="math-value">$${rawValue.toFixed(2)}</span>
                 </div>
                 <div class="math-row">
-                    <span class="math-label">+ Slab premium (~30%):</span>
+                    <span class="math-label">+ Slab premium:</span>
                     <span class="math-value positive">+$${valueIncrease.toFixed(2)}</span>
                 </div>
                 <div class="math-row">

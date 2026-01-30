@@ -45,7 +45,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
 - **Hosted on:** Render.com ($7/mo Starter plan - NO cold starts)
 - **Live URL:** https://collectioncalc.com
-- **Version:** 2.97.1
+- **Version:** 2.98.0
 
 ### Key Product Features
 - **Manual Entry** - Type title/issue/grade for valuation
@@ -84,97 +84,100 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 - **Loading text:** "Analyzing..." matches existing patterns
 - **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
 
-## Previous Session (January 29, 2026 - Sessions 15-16)
+## Previous Session (January 29, 2026 - Sessions 15-17)
 
-### Bugs Fixed
-1. ✅ **Login persistence** - Token wasn't loading from localStorage on page init
-2. ✅ **Mobile extraction "bug"** - Was actually auth issue; works when logged in
-3. ✅ **Rotation detection false positive** - Updated prompt to check TEXT only, not artistic elements
-4. ✅ **Server slowdown identified** - Whatnot extension polling with `issue=null`
+### Session 17 Summary
+- ✅ Cache key crash fix (`issue.strip()` on integers)
+- ✅ Added search logging to diagnose Spawn #1 issue
+- ✅ Identified reprint confusion in valuations
 
-### Features Added
-1. ✅ **Upload from Gallery** - Slab Worthy now has two buttons: "Take Photo" and "Upload from Gallery"
-2. ✅ **Auto-rotation for all steps** - Steps 2-4 now have `is_upside_down` check in prompts
+## Current Session (January 30, 2026 - Session 18)
 
-## Current Session (January 30, 2026 - Session 17)
+### Major Changes Completed
 
-### Bugs Fixed Today
-1. ✅ **Cache key crash** - `issue.strip()` failed when issue was integer (e.g., `1` instead of `"1"`). Fixed by wrapping with `str(issue).strip()` in 6 places in ebay_valuation.py.
-2. ✅ **Valuations returning "could not retrieve"** - Was caused by the cache crash above. After deleting bad cache entries and deploying fix, valuations work again.
+1. ✅ **Slab Worthy Step 1 uses backend extraction**
+   - Single source of truth: both Photo Upload and Slab Worthy use `/api/extract`
+   - All extraction fields now available in Slab Worthy (barcode_digits, edition, printing, is_facsimile, etc.)
+   - `grading.js` updated to call `/api/extract` for Step 1
 
-### Diagnostic Work
-1. ✅ **Added search logging** - ebay_valuation.py now logs:
-   - `[SEARCH] Query: {title} #{issue} ({grade}) - signed={bool}`
-   - `[SEARCH RESULTS] Found X sales, Y BIN listings` with first 5 sale details
-   - This will help diagnose why Spawn #1 returned $23 instead of $300+
+2. ✅ **barcode_digits field added to extraction**
+   - New field in `comic_extraction.py` prompt
+   - Extracts 5-digit UPC add-on code for print/variant identification
+   - Includes examples: DC "00111" = issue 1, 1st printing, cover A
+   - Works for modern comics; older comics return empty string (correct)
 
-### Issue Identified (Not Yet Fixed)
-- **Spawn #1 returning ~$25 instead of $300-400** - Likely matching reprints instead of first prints. The search query doesn't distinguish print editions. Better cover reading is the real fix (reprints typically identify themselves on cover). Could also add "key issue" sanity check database.
+3. ✅ **Deterministic grading with temperature=0**
+   - Added `temperature: 0` to `/api/extract` call in `comic_extraction.py`
+   - Added `temperature: 0` to `/api/messages` proxy in `wsgi.py`
+   - Same image now produces same grade every time
 
-### UI Changes Noted (Not Yet Implemented)
-1. "Upload from Gallery" → "Upload" (shorter)
-2. Money bag icon → Slab SVG icon next to "Should you slab it?"
-3. "Should you grade this" → "Should you slab it?"
-4. Add calculating animation/status for valuation step
+4. ✅ **wsgi.py media_type passthrough**
+   - `/api/extract` now accepts and passes `media_type` to extraction function
+   - Supports PNG, HEIC, WebP properly
 
-### Other Notes
-- Mike's book "System Catcher" is live on Amazon since Jan 27. Cover image still not showing after 48hrs - should appear by Jan 30 or contact KDP support.
+5. ✅ **UI Polish Changes (app.html)**
+   - "Upload from Gallery" → "Upload" (all 4 places)
+   - "💰 Should You Grade This?" → Slab SVG icon + "Should You Slab It?"
+   - Warning message → "Grade based on limited photos. Add spine, back, and centerfold for higher confidence."
 
-## Known Issues (Bug List)
-- 🐛 **Spawn #1 / reprint confusion** - Search matches reprints, returns low values for keys
-- 🐛 **Auto-rotation steps 2-4** - Added code but not working; needs debugging
-- 🐛 **Whatnot extension** - Polling with null issue, doesn't stop when tab closed
-- 🐛 **Debug alerts still in code** - Remove once stable
-- 🐛 **Slab Worthy UI polish needed** - Camera/Gallery buttons need refinement
+6. ✅ **Thinking animation added (grading.js)**
+   - Cycles through informative messages during valuation
+   - Messages: market research, valuation, recommendation phases
+   - Spinner + text with fade transitions
+   - **BUG:** Not appearing in UI - needs debugging
 
-## Pending Work
+### Files Modified This Session
+- `comic_extraction.py` - barcode_digits, temperature=0
+- `wsgi.py` - temperature=0 on /api/messages, media_type passthrough
+- `grading.js` - Step 1 uses /api/extract, thinking animation
+- `app.html` - UI text changes
 
-### High Priority
-- [ ] Investigate Spawn #1 reprint issue using new logging
-- [ ] Better cover reading to detect print edition (1st print vs reprint)
-- [ ] UI changes: "Should you slab it?", slab icon, "Upload" button text
-- [ ] Calculating animation for valuation step
-- [ ] Fix auto-rotation for steps 2-4
-- [ ] Remove debug alerts from grading.js
+### Known Bugs to Fix
+- 🐛 **Thinking animation not showing** - Code added but not appearing in Slab Worthy Step 5
+- 🐛 **Photo Upload missing thinking animation** - Needs same treatment as Slab Worthy
+- 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button on non-mobile
 
-### Medium Priority
-- [ ] Key issue sanity check database (floor prices to catch bad values)
-- [ ] Fix Whatnot extension (null issue polling, stop on tab close)
-- [ ] High-value comic testing for ROI validation
-- [ ] FAQ content (pressing, newsstand vs direct, valuation methodology, grade scale, CGC costs)
-- [ ] Mobile visual/layout review
+### Pending Work
 
-### Low Priority
+#### High Priority
+- [ ] Debug thinking animation not appearing
+- [ ] Add thinking animation to Photo Upload (app.js)
+- [ ] Barcode decoder logic (interpret 5-digit codes by publisher)
+- [ ] Test barcode extraction with modern comic (Absolute Batman with better image)
+
+#### Medium Priority
+- [ ] Prompt Management Admin Page - view/edit all prompts in one place
+- [ ] True Meta-Optimization for prompts (Level 4 - use Claude to improve prompts)
+- [ ] Key issue sanity check database (floor prices)
+- [ ] Fix Whatnot extension (null issue polling)
+
+#### Low Priority
+- [ ] Hide "Take Photo" button on desktop
 - [ ] Pricing model decisions
-- [ ] Business model canvas
-- [ ] Competitive analysis (CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI)
+- [ ] FAQ content
 
-## Useful SQL Queries
+## Useful Info
 
-```sql
--- Check for bad cached values
-SELECT title, issue, estimated_value, fair_value FROM search_cache 
-WHERE estimated_value = 0 OR fair_value = 0;
+### Image Quality for Barcode Reading
+- Facebook Messenger: Heavy compression, send as file attachment instead
+- WhatsApp: Tap "HD" button when sending, or send as "Document"
+- Email: Usually full quality (best option)
+- iMessage: Good quality
 
--- Recent cache entries
-SELECT title, issue, grade, estimated_value, created_at 
-FROM search_cache ORDER BY created_at DESC LIMIT 20;
-
--- Delete specific comic from cache (use when investigating bad values)
-DELETE FROM search_cache WHERE title ILIKE '%spawn%' AND issue = '1';
-
--- Find all cached entries for a title
-SELECT * FROM search_cache WHERE title ILIKE '%spawn%';
-```
+### Temperature Setting
+- `temperature: 0` = Deterministic (same input = same output)
+- `temperature: 0.5-0.7` = Balanced
+- `temperature: 1.0` = Creative
+- For grading: ALWAYS use 0
 
 ## Deployment Commands
 ```powershell
 # Deploy and clear cache
-git add .; git commit -m "message"; git push; purge
+git add .; git commit -m "message"; git push; deploy; purge
 
 # Just clear Cloudflare cache
 purge
 ```
 
 ---
-*Last updated: January 30, 2026 (Session 17)*
+*Last updated: January 30, 2026 (Session 18)*

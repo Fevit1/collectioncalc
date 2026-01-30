@@ -1,6 +1,6 @@
 # CollectionCalc / Slab Worthy Roadmap
 
-## Current Version: 2.97.0 (January 29, 2026)
+## Current Version: 2.98.0 (January 30, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -9,13 +9,26 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## Recently Completed
 
-### v2.97.0 - Mobile Fixes & Gallery Upload (Sessions 15-16) 🆕
+### v2.98.0 - Single Source of Truth & Deterministic Grading (Session 18) 🆕
+- [x] **Slab Worthy uses backend extraction** - Step 1 now calls /api/extract (same as Photo Upload)
+- [x] **barcode_digits field added** - Extracts 5-digit UPC add-on code for print/variant identification
+- [x] **Deterministic grading** - Added temperature=0 to all Claude API calls
+- [x] **wsgi.py media_type passthrough** - /api/extract properly handles PNG, HEIC, WebP
+- [x] **UI Polish:**
+  - "Upload from Gallery" → "Upload" (shorter, cleaner)
+  - "💰 Should You Grade This?" → Slab icon + "Should You Slab It?"
+  - Warning message clarified (about photo count, not quality)
+- [x] **Thinking animation code** - Progress messages during valuation (needs debugging)
+
+### v2.97.0 - Mobile Fixes & Gallery Upload (Sessions 15-17)
 - [x] **Login persistence fixed** - Token now properly loads from localStorage
 - [x] **Mobile extraction working** - Was auth issue, not extraction bug
 - [x] **Rotation detection improved** - AI checks TEXT only, ignores artistic elements
-- [x] **Upload from Gallery** - Slab Worthy now has "Take Photo" + "Upload from Gallery" buttons
+- [x] **Upload from Gallery** - Slab Worthy now has "Take Photo" + "Upload" buttons
 - [x] **Server slowdown diagnosed** - Whatnot extension was polling with null issue
 - [x] **Auto-rotation prompts for steps 2-4** - Added is_upside_down check (needs testing)
+- [x] **Cache key crash fix** - issue.strip() on integers
+- [x] **Search logging added** - Diagnose Spawn #1 reprint confusion
 
 ### v2.96.0 - Auto-Rotation & Code Split (Session 13-14)
 - [x] **Auto-rotate landscape→portrait** - Comics are always taller than wide
@@ -46,86 +59,85 @@ Provisional patent filed for multi-angle comic grading system.
 - [x] Additional photos support
 - [x] Photo tips modal
 
-### v2.93.0 - Signature & Facsimile Detection (Session 10)
-- [x] Facsimile edition detection in extension
-- [x] Signature database (40+ creators)
-- [x] Signatures admin page
-- [x] FMV endpoint for extension
-- [x] Admin button in header
-- [x] Extension auto-scan improvements
-- [x] slabworthy.com domain registered
-
-### v2.92.0 - NLQ & Admin (Session 9)
-- [x] Natural Language Query for database
-- [x] Admin dashboard with NLQ
-- [x] Beta code management
-- [x] User approval system
-
-### v2.91.0 - eBay QuickList (Sessions 7-8)
-- [x] Batch photo processing
-- [x] AI-generated descriptions
-- [x] eBay draft listing creation
-- [x] R2 image storage
-
-### v2.90.0 - Authentication (Sessions 5-6)
-- [x] User signup/login with JWT
-- [x] Email verification via Resend
-- [x] Password reset flow
-- [x] Beta code gating
-- [x] Collection saving
-
 ---
 
 ## In Progress / Known Bugs
 
 ### Bugs to Fix
-- [ ] **Auto-rotation steps 2-4** - Code added but not working
-- [ ] **Whatnot extension polling** - Hammers server with null issue, doesn't stop on tab close
-- [ ] **Debug alerts in grading.js** - Remove once stable
-- [ ] **Slab Worthy UI polish** - Camera/Gallery button styling
+- [ ] 🐛 **Thinking animation not showing** - Code added but not appearing in Slab Worthy Step 5
+- [ ] 🐛 **Photo Upload missing thinking animation** - Needs same treatment as Slab Worthy
+- [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
+- [ ] 🐛 **Whatnot extension polling** - Hammers server with null issue, doesn't stop on tab close
+- [ ] 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button on non-mobile
 
-### Performance Improvements
-- [ ] **Valuation speed** - "Should you grade?" calculation is slow
+### Valuation Accuracy
+- [ ] **Spawn #1 reprint confusion** - Returns ~$25 instead of $300-400 for first prints
+- [ ] **Barcode decoder logic** - Interpret 5-digit codes by publisher (DC, Marvel, etc.)
+- [ ] **Key issue sanity check** - Database of floor prices to catch bad values
 
-### Business/Legal
-- [ ] **Trademark evaluation:**
-  - "Slab Worthy" - core brand name
-  - "Slab Report" - distinctive output term
-- [ ] **CGC partnership exploration:**
-  - Affiliate/referral commission for grading submissions
-  - User discounts for using our recommendation
-  - Attribution tracking (blockchain?)
-
-### Product Decisions Needed
-- [ ] **Photo Upload mode** - Keep or deprecate now that Slab Worthy exists?
-- [ ] **Batch grading** - Multiple comics at once? How would UX work?
-- [ ] **Collection-centric UX** - Restructure around collection as hub?
-- [ ] **FAQ page** - Common questions, pricing info
-- [ ] **Pricing model** - Free tier vs paid tiers
+### Performance
+- [ ] **Valuation speed** - "Should you slab it?" calculation takes time (thinking animation helps UX)
 
 ---
 
 ## Backlog
 
 ### High Priority
-- [ ] Save graded comic to collection
-- [ ] Grade report sharing/export
-- [ ] Slab Worthy for mobile app (future)
-- [ ] High-value comic testing for ROI validation
+- [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
+- [ ] **Add thinking animation to Photo Upload** - Same treatment in app.js
+- [ ] **Barcode-based variant detection** - Use 5-digit code to identify prints/variants
+- [ ] **Test barcode with modern comics** - Need high-res Absolute Batman image
+- [ ] **Save graded comic to collection**
+- [ ] **Grade report sharing/export**
 
 ### Medium Priority
-- [ ] Value tracking over time
-- [ ] Collection analytics
-- [ ] Batch grading (multiple comics)
-- [ ] Price alerts
-- [ ] FAQ content (pressing, newsstand vs direct, valuation methodology)
+- [ ] **Slab Premium Admin Panel** - Data-driven premium model management
+  - "Run Analysis" button triggers eBay data collection
+  - Shows proposed tiers vs current model in side-by-side comparison
+  - "Approve" saves new model to database, "Reject" discards
+  - Logs all model changes with timestamp
+  - Re-run periodically to keep model current
+- [ ] **Prompt Management Admin Page** - View/edit all prompts in one place
+  - List all prompts (extraction, grading steps 1-4, signature matching)
+  - Read/Edit/Test views
+  - Store in database instead of hardcoded
+  - Test interface: upload image, run prompt, see raw output
+- [ ] **True Meta-Optimization for prompts** (Level 4)
+  - Send extraction + image to second Claude call
+  - Ask: "Did this extraction miss anything? How could the prompt be improved?"
+  - Log suggestions, human reviews, update prompt
+  - Continuous improvement feedback loop
+- [ ] **Value tracking over time**
+- [ ] **Collection analytics**
+- [ ] **Batch grading (multiple comics)**
+- [ ] **Price alerts**
+- [ ] **FAQ content** (pressing, newsstand vs direct, valuation methodology)
 
 ### Low Priority / Future
-- [ ] Sports cards support
-- [ ] Pokemon cards support
-- [ ] Other collectibles
-- [ ] Social features (share collection)
-- [ ] Marketplace integration beyond eBay
+- [ ] **Sports cards support**
+- [ ] **Pokemon cards support**
+- [ ] **Other collectibles**
+- [ ] **Social features (share collection)**
+- [ ] **Marketplace integration beyond eBay**
+- [ ] **Slab Worthy mobile app**
+
+---
+
+## Business/Legal
+
+### Trademark Evaluation
+- [ ] "Slab Worthy" - core brand name
+- [ ] "Slab Report" - distinctive output term
+
+### CGC Partnership Exploration
+- [ ] Affiliate/referral commission for grading submissions
+- [ ] User discounts for using our recommendation
+- [ ] Attribution tracking
+
+### Product Decisions Needed
+- [ ] **Photo Upload mode** - Keep or deprecate now that Slab Worthy exists?
+- [ ] **Collection-centric UX** - Restructure around collection as hub?
+- [ ] **Pricing model** - Free tier vs paid tiers
 
 ---
 
@@ -142,6 +154,7 @@ Provisional patent filed for multi-angle comic grading system.
 6. Signature detection module
 7. Facsimile detection module
 8. Auto-orientation correction (landscape/upside-down)
+9. Barcode-based variant identification (potential addition)
 
 **Status:** Provisional filed January 27, 2026
 **Next:** File utility patent within 12 months (by January 27, 2027)
@@ -152,6 +165,7 @@ Provisional patent filed for multi-angle comic grading system.
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.98.0 | Jan 30, 2026 | 🎯 Single source extraction, deterministic grading, UI polish |
 | 2.97.0 | Jan 29, 2026 | 📱 Mobile fixes, Gallery upload |
 | 2.96.0 | Jan 28, 2026 | 🔄 Auto-rotation, JS modular split |
 | 2.95.0 | Jan 28, 2026 | 🚀 Slab Worthy LIVE, bug fixes |
@@ -167,4 +181,4 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-*Last updated: January 29, 2026*
+*Last updated: January 30, 2026*
