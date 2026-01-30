@@ -715,6 +715,7 @@ def api_messages():
         return jsonify({'error': 'Anthropic API not available'}), 503
     
     data = request.get_json() or {}
+    data['temperature'] = 0  # Force deterministic responses for consistent grading
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     
     try:
