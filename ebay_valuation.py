@@ -495,20 +495,26 @@ def get_cache_db_path():
     return None
 
 def get_recency_weight(sale_date: datetime) -> float:
-    """Calculate recency weight based on sale date."""
+    """
+    Calculate recency weight using exponential decay.
+    Half-life of 30 days means:
+    - Yesterday: ~0.98 weight
+    - 1 week ago: ~0.84 weight
+    - 30 days ago: 0.5 weight
+    - 60 days ago: 0.25 weight
+    - 90 days ago: 0.125 weight
+    - 1 year ago: ~0.001 weight
+    """
     now = datetime.now()
     days_ago = (now - sale_date).days
     
-    if days_ago <= 7:
-        return RECENCY_WEIGHTS['this_week']
-    elif days_ago <= 30:
-        return RECENCY_WEIGHTS['this_month']
-    elif days_ago <= 90:
-        return RECENCY_WEIGHTS['last_3_months']
-    elif days_ago <= 365:
-        return RECENCY_WEIGHTS['last_year']
-    else:
-        return RECENCY_WEIGHTS['older']
+    # Exponential decay with 30-day half-life
+    # Weight = 0.5 ^ (days / half_life)
+    half_life = 30
+    weight = 0.5 ** (days_ago / half_life)
+    
+    # Floor at 0.01 to prevent near-zero weights for old sales
+    return max(weight, 0.01)
 
 def calculate_confidence(num_sales: int, days_span: int, price_variance: float) -> tuple:
     """

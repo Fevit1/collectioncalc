@@ -83,10 +83,19 @@ Provisional patent filed for multi-angle comic grading system.
 ## Backlog
 
 ### High Priority
+- [ ] **Fix Whatnot Extension** - Critical for collecting real sales data
+  - Polling with null issue hammers server
+  - Doesn't stop when tab closed
+  - Need this working to improve valuations with real data
 - [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
 - [ ] **Add thinking animation to Photo Upload** - Same treatment in app.js
 - [ ] **Barcode-based variant detection** - Use 5-digit code to identify prints/variants
 - [ ] **Test barcode with modern comics** - Need high-res Absolute Batman image
+- [ ] **Whatnot Auction Integration** - Create auctions/sales from graded comics
+  - Similar flow to eBay QuickList
+  - AI-generated descriptions
+  - Pre-fill pricing from valuations
+  - Direct listing creation via Whatnot API
 - [ ] **Save graded comic to collection**
 - [ ] **Grade report sharing/export**
 
@@ -96,7 +105,15 @@ Provisional patent filed for multi-angle comic grading system.
   - Shows proposed tiers vs current model in side-by-side comparison
   - "Approve" saves new model to database, "Reject" discards
   - Logs all model changes with timestamp
-  - Re-run periodically to keep model current
+  - Store tiers in database (not hardcoded in JS)
+  - Collect raw→slabbed value pairs from real sales
+  - Age tier data with recency weighting
+- [ ] **Valuation Engine Improvements**
+  - ✅ Exponential decay for recency (30-day half-life) - Implemented
+  - Configurable half-life in admin
+  - Add standard deviation outlier check (supplement IQR)
+  - Minimum sample warning (<3 sales = flag as unreliable)
+  - Store/display valuation confidence reasoning
 - [ ] **Prompt Management Admin Page** - View/edit all prompts in one place
   - List all prompts (extraction, grading steps 1-4, signature matching)
   - Read/Edit/Test views

@@ -15,7 +15,7 @@ from datetime import datetime
 import requests
 
 # eBay API credentials - uses same env vars as main app
-EBAY_APP_ID = os.environ.get('EBAY_APP_ID')
+EBAY_APP_ID = os.environ.get('EBAY_CLIENT_ID')
 
 # Comics to analyze across value ranges
 # Format: (title, issue, grades_to_check)
@@ -92,7 +92,7 @@ COMICS_TO_ANALYZE = [
 def search_ebay_sold(query, limit=20):
     """Search eBay sold listings using Finding API"""
     if not EBAY_APP_ID:
-        print("ERROR: EBAY_APP_ID not set")
+        print("ERROR: EBAY_CLIENT_ID not set")
         return []
     
     url = "https://svcs.ebay.com/services/search/FindingService/v1"
@@ -318,7 +318,7 @@ def main():
     print()
     
     if not EBAY_APP_ID:
-        print("ERROR: EBAY_APP_ID environment variable not set!")
+        print("ERROR: EBAY_CLIENT_ID environment variable not set!")
         print("Set it and run again.")
         return
     

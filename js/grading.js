@@ -1172,9 +1172,9 @@ async function calculateGradingRecommendation(gradeResult) {
             throw new Error(valuation.error);
         }
         
-        // Calculate recommendation
+        // Calculate recommendation using tiered slab premium model
         const rawValue = valuation.fair_value || valuation.final_value || 0;
-        const slabPremium = 1.3; // Slabbed comics typically sell for 30% more
+        const slabPremium = getSlabPremium(rawValue);
         const gradingCost = getGradingCost(rawValue);
         
         const slabbedValue = rawValue * slabPremium;
@@ -1256,6 +1256,48 @@ async function calculateGradingRecommendation(gradeResult) {
         `;
         document.getElementById('recommendationVerdict').innerHTML = '';
     }
+}
+
+// Slab Premium Calculator - Based on market research (Jan 2026)
+// Premium is inversely proportional to raw value:
+// - Low value books get huge boost from slab legitimacy
+// - High value books already command trust, smaller premium
+function getSlabPremium(rawValue) {
+    const tiers = [
+        { max: 10, premium: 4.0 },      // $0-10: 300% premium - slab = legitimacy
+        { max: 15, premium: 3.5 },      // $10-15: 250%
+        { max: 20, premium: 3.0 },      // $15-20: 200%
+        { max: 30, premium: 2.7 },      // $20-30: 170%
+        { max: 40, premium: 2.4 },      // $30-40: 140%
+        { max: 50, premium: 2.2 },      // $40-50: 120%
+        { max: 75, premium: 2.0 },      // $50-75: 100% - "doubles the value" rule
+        { max: 100, premium: 1.85 },    // $75-100: 85%
+        { max: 150, premium: 1.7 },     // $100-150: 70%
+        { max: 200, premium: 1.6 },     // $150-200: 60%
+        { max: 300, premium: 1.5 },     // $200-300: 50%
+        { max: 400, premium: 1.45 },    // $300-400: 45%
+        { max: 500, premium: 1.4 },     // $400-500: 40%
+        { max: 750, premium: 1.35 },    // $500-750: 35%
+        { max: 1000, premium: 1.3 },    // $750-1000: 30%
+        { max: 1500, premium: 1.25 },   // $1000-1500: 25%
+        { max: 2500, premium: 1.22 },   // $1500-2500: 22%
+        { max: 5000, premium: 1.18 },   // $2500-5000: 18%
+        { max: 10000, premium: 1.15 },  // $5000-10000: 15%
+        { max: Infinity, premium: 1.12 } // $10000+: 12% floor
+    ];
+    
+    // Find tier and interpolate for smooth curve
+    let prevTier = { max: 0, premium: 4.5 };
+    for (const tier of tiers) {
+        if (rawValue <= tier.max) {
+            // Linear interpolation between tiers
+            const range = tier.max === Infinity ? 10000 : tier.max - prevTier.max;
+            const position = Math.min((rawValue - prevTier.max) / range, 1);
+            return prevTier.premium - (prevTier.premium - tier.premium) * position;
+        }
+        prevTier = tier;
+    }
+    return 1.12; // Floor for ultra-high value
 }
 
 // Estimate grading cost based on value
