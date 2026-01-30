@@ -31,6 +31,7 @@ IDENTIFICATION FIELDS:
 - is_facsimile: IMPORTANT - Look for "FACSIMILE", "FACSIMILE EDITION", or "FACSIMILE REPRINT" anywhere on the cover. These are modern reprints of classic covers. Return true if found, false otherwise. Facsimiles often have a small "FACSIMILE EDITION" banner or text, sometimes in the corner or along an edge.
 - cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
 - variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
+- barcode_digits: Look at the UPC barcode area (usually bottom-left of cover). Modern comics (1980s+) have a 5-digit add-on code to the RIGHT of the main barcode (smaller, separate numbers). Extract these 5 digits as a string (e.g., "00111", "00211", "00112"). If no add-on code is visible, or if this is a vintage comic without a modern barcode, return empty string. Do NOT return the main UPC digits, only the 5-digit add-on.
 
 CONDITION ASSESSMENT FIELDS:
 Examine the comic's PHYSICAL CONDITION carefully. You can only see the front cover, so assess what's visible.

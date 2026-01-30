@@ -45,7 +45,7 @@ This ensures we can recover quickly if a conversation fails or needs to restart.
 - **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
 - **Hosted on:** Render.com ($7/mo Starter plan - NO cold starts)
 - **Live URL:** https://collectioncalc.com
-- **Version:** 2.97.0
+- **Version:** 2.97.1
 
 ### Key Product Features
 - **Manual Entry** - Type title/issue/grade for valuation
@@ -84,52 +84,62 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 - **Loading text:** "Analyzing..." matches existing patterns
 - **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
 
-## Previous Session (January 28, 2026 - Sessions 13-14)
+## Previous Session (January 29, 2026 - Sessions 15-16)
 
 ### Bugs Fixed
-1. ✅ Button text: "Grade Another" → "Check Another"
-2. ✅ FMV cache key mismatch: Added grade normalization
-3. ✅ Image rotation: Added "↻ Rotate" button for manual rotation
-4. ✅ Rotation banner update: Comic ID banners now update after rotation
-5. ✅ Loading state: Show "Analyzing..." during rotation re-analysis
-6. ✅ Patent Pending placement: Moved to top of Slab Worthy flow
-7. ✅ Auto-rotate landscape→portrait
-8. ✅ Auto-detect upside-down via AI
-9. ✅ Split app.js into 4 modules (utils, auth, app, grading)
+1. ✅ **Login persistence** - Token wasn't loading from localStorage on page init
+2. ✅ **Mobile extraction "bug"** - Was actually auth issue; works when logged in
+3. ✅ **Rotation detection false positive** - Updated prompt to check TEXT only, not artistic elements
+4. ✅ **Server slowdown identified** - Whatnot extension polling with `issue=null`
 
-## Current Session (January 29, 2026 - Sessions 15-16)
+### Features Added
+1. ✅ **Upload from Gallery** - Slab Worthy now has two buttons: "Take Photo" and "Upload from Gallery"
+2. ✅ **Auto-rotation for all steps** - Steps 2-4 now have `is_upside_down` check in prompts
+
+## Current Session (January 30, 2026 - Session 17)
 
 ### Bugs Fixed Today
-1. ✅ **Login persistence** - Token wasn't loading from localStorage on page init (utils.js already had fix, auth.js had redundant early return)
-2. ✅ **Mobile extraction "bug"** - Was actually auth issue; works when logged in
-3. ✅ **Rotation detection false positive** - Updated prompt to check TEXT only, not artistic elements (Avengers #145 fix)
-4. ✅ **Server slowdown identified** - Whatnot extension polling with `issue=null` was hammering server
+1. ✅ **Cache key crash** - `issue.strip()` failed when issue was integer (e.g., `1` instead of `"1"`). Fixed by wrapping with `str(issue).strip()` in 6 places in ebay_valuation.py.
+2. ✅ **Valuations returning "could not retrieve"** - Was caused by the cache crash above. After deleting bad cache entries and deploying fix, valuations work again.
 
-### Features Added Today
-1. ✅ **Upload from Gallery** - Slab Worthy now has two buttons: "Take Photo" and "Upload from Gallery"
-2. ✅ **Auto-rotation for all steps** - Steps 2-4 now have `is_upside_down` check in prompts (needs testing)
+### Diagnostic Work
+1. ✅ **Added search logging** - ebay_valuation.py now logs:
+   - `[SEARCH] Query: {title} #{issue} ({grade}) - signed={bool}`
+   - `[SEARCH RESULTS] Found X sales, Y BIN listings` with first 5 sale details
+   - This will help diagnose why Spawn #1 returned $23 instead of $300+
 
-### Known Issues (Bug List)
+### Issue Identified (Not Yet Fixed)
+- **Spawn #1 returning ~$25 instead of $300-400** - Likely matching reprints instead of first prints. The search query doesn't distinguish print editions. Better cover reading is the real fix (reprints typically identify themselves on cover). Could also add "key issue" sanity check database.
+
+### UI Changes Noted (Not Yet Implemented)
+1. "Upload from Gallery" → "Upload" (shorter)
+2. Money bag icon → Slab SVG icon next to "Should you slab it?"
+3. "Should you grade this" → "Should you slab it?"
+4. Add calculating animation/status for valuation step
+
+### Other Notes
+- Mike's book "System Catcher" is live on Amazon since Jan 27. Cover image still not showing after 48hrs - should appear by Jan 30 or contact KDP support.
+
+## Known Issues (Bug List)
+- 🐛 **Spawn #1 / reprint confusion** - Search matches reprints, returns low values for keys
 - 🐛 **Auto-rotation steps 2-4** - Added code but not working; needs debugging
 - 🐛 **Whatnot extension** - Polling with null issue, doesn't stop when tab closed
 - 🐛 **Debug alerts still in code** - Remove once stable
 - 🐛 **Slab Worthy UI polish needed** - Camera/Gallery buttons need refinement
 
-### Testing Notes
-- USB debugging failed (authorization popup never appeared)
-- On-screen alert() debugging worked great for mobile
-- Login persistence confirmed working on both desktop and mobile
-- Mobile extraction works when logged in
-
 ## Pending Work
 
 ### High Priority
+- [ ] Investigate Spawn #1 reprint issue using new logging
+- [ ] Better cover reading to detect print edition (1st print vs reprint)
+- [ ] UI changes: "Should you slab it?", slab icon, "Upload" button text
+- [ ] Calculating animation for valuation step
 - [ ] Fix auto-rotation for steps 2-4
 - [ ] Remove debug alerts from grading.js
-- [ ] Fix Whatnot extension (null issue polling, stop on tab close)
-- [ ] Slab Worthy UI polish
 
 ### Medium Priority
+- [ ] Key issue sanity check database (floor prices to catch bad values)
+- [ ] Fix Whatnot extension (null issue polling, stop on tab close)
 - [ ] High-value comic testing for ROI validation
 - [ ] FAQ content (pressing, newsstand vs direct, valuation methodology, grade scale, CGC costs)
 - [ ] Mobile visual/layout review
@@ -149,6 +159,12 @@ WHERE estimated_value = 0 OR fair_value = 0;
 -- Recent cache entries
 SELECT title, issue, grade, estimated_value, created_at 
 FROM search_cache ORDER BY created_at DESC LIMIT 20;
+
+-- Delete specific comic from cache (use when investigating bad values)
+DELETE FROM search_cache WHERE title ILIKE '%spawn%' AND issue = '1';
+
+-- Find all cached entries for a title
+SELECT * FROM search_cache WHERE title ILIKE '%spawn%';
 ```
 
 ## Deployment Commands
@@ -161,4 +177,4 @@ purge
 ```
 
 ---
-*Last updated: January 29, 2026 (Session 16)*
+*Last updated: January 30, 2026 (Session 17)*
