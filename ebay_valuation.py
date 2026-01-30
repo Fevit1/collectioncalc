@@ -286,9 +286,9 @@ def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[Eba
         # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
         if grade:
             normalized_grade = normalize_grade_for_cache(grade)
-            search_key = f"{title.lower().strip()}|{issue.strip()}|{normalized_grade}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}|{normalized_grade}"
         else:
-            search_key = f"{title.lower().strip()}|{issue.strip()}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}"
         
         cursor.execute('''
             SELECT estimated_value, confidence, confidence_score, num_sales, 
@@ -362,9 +362,9 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: st
         # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
         if grade:
             normalized_grade = normalize_grade_for_cache(grade)
-            search_key = f"{title.lower().strip()}|{issue.strip()}|{normalized_grade}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}|{normalized_grade}"
         else:
-            search_key = f"{title.lower().strip()}|{issue.strip()}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}"
         
         # Use INSERT ... ON CONFLICT for upsert
         cursor.execute('''
@@ -428,9 +428,9 @@ def update_cached_value(title: str, issue: str, new_value: float, samples: list 
         
         # Include grade in cache key if provided
         if grade:
-            search_key = f"{title.lower().strip()}|{issue.strip()}|{grade.upper().strip()}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}|{grade.upper().strip()}"
         else:
-            search_key = f"{title.lower().strip()}|{issue.strip()}"
+            search_key = f"{title.lower().strip()}|{str(issue).strip()}"
         
         # Build reasoning
         if samples:
