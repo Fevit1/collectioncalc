@@ -662,6 +662,9 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         search_query += " -CGC -CBCS -slab -graded price sold value"
         signed_note = ""
     
+    # LOG: Search query being sent
+    print(f"[SEARCH] Query: {full_title} #{issue} ({grade}) - signed={is_signed}")
+    
     # Note in prompt if this is an Annual/Special
     issue_type_note = ""
     if issue_type and issue_type.lower() not in ['regular', '']:
@@ -753,6 +756,14 @@ IMPORTANT:
             sales = data.get('sales', [])
             buy_it_now = data.get('buy_it_now', [])
             corrected_title = data.get('corrected_title', None)
+            
+            # LOG: Results received
+            print(f"[SEARCH RESULTS] Found {len(sales)} sales, {len(buy_it_now)} BIN listings")
+            for sale in sales[:5]:  # Log first 5 sales
+                print(f"  - ${sale.get('price')} ({sale.get('grade')}) from {sale.get('source')} - {sale.get('date', 'no date')}")
+            if data.get('notes'):
+                print(f"  Notes: {data.get('notes')}")
+            
             return (sales, buy_it_now, corrected_title)
         
     except Exception as e:
