@@ -146,6 +146,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
             json={
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 1000,
+                "temperature": 0,
                 "messages": [{
                     "role": "user",
                     "content": [
