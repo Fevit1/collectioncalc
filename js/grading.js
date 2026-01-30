@@ -22,6 +22,70 @@ let gradingState = {
     confidence: 0
 };
 
+// Thinking progress messages (shown during valuation)
+const thinkingMessages = [
+    // Identification Phase
+    "Confirming comic identification...",
+    "Checking for variants and printings...",
+    "Verifying issue type (regular vs. annual)...",
+    // Market Research Phase
+    "Searching recent eBay sold listings...",
+    "Filtering for comparable condition...",
+    "Analyzing sale prices from the past 90 days...",
+    "Checking for price outliers...",
+    // Valuation Phase
+    "Calculating fair market value for raw copy...",
+    "Estimating slabbed value with CGC premium...",
+    "Factoring in current grading costs...",
+    "Comparing grading tiers (Modern, Economy, Express)...",
+    // Recommendation Phase
+    "Calculating potential return on investment...",
+    "Weighing grading cost vs. value increase...",
+    "Preparing your Slab Report..."
+];
+
+let thinkingInterval = null;
+let thinkingIndex = 0;
+
+function startThinkingAnimation(elementId) {
+    thinkingIndex = 0;
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    // Initial message
+    element.innerHTML = `
+        <div class="thinking-box" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(79, 70, 229, 0.1); border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3);">
+            <div class="thinking-indicator" style="width: 20px; height: 20px; border: 2px solid rgba(79, 70, 229, 0.3); border-top-color: var(--brand-indigo, #4f46e5); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <span class="thinking-text" style="color: var(--text-secondary, #a1a1aa); font-size: 0.95rem; transition: opacity 0.15s ease;">${thinkingMessages[0]}</span>
+        </div>
+        <style>
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    
+    // Cycle through messages
+    thinkingInterval = setInterval(() => {
+        thinkingIndex = (thinkingIndex + 1) % thinkingMessages.length;
+        const textEl = element.querySelector('.thinking-text');
+        if (textEl) {
+            textEl.style.opacity = '0';
+            setTimeout(() => {
+                textEl.textContent = thinkingMessages[thinkingIndex];
+                textEl.style.opacity = '1';
+            }, 150);
+        }
+    }, 2000); // Change message every 2 seconds
+}
+
+function stopThinkingAnimation() {
+    if (thinkingInterval) {
+        clearInterval(thinkingInterval);
+        thinkingInterval = null;
+    }
+}
+
 // Initialize grading mode on page load
 document.addEventListener('DOMContentLoaded', () => {
     initGradingMode();
@@ -1020,6 +1084,9 @@ function renderGradeReport(result, confidence, photoLabels) {
 
 // Calculate "should you grade?" recommendation
 async function calculateGradingRecommendation(gradeResult) {
+    // Start thinking animation
+    startThinkingAnimation('recommendationVerdict');
+    
     // Handle nested structure
     const comic = gradeResult['COMIC IDENTIFICATION'] || gradeResult;
     const grade = gradeResult['COMPREHENSIVE GRADE'] || gradeResult;
@@ -1077,6 +1144,9 @@ async function calculateGradingRecommendation(gradeResult) {
         
         // Render recommendation with CLEARER math
         const isWorthIt = netBenefit > 0;
+        
+        // Stop thinking animation before showing results
+        stopThinkingAnimation();
         
         document.getElementById('recommendationValues').innerHTML = `
             <div class="recommendation-math">
@@ -1140,6 +1210,7 @@ async function calculateGradingRecommendation(gradeResult) {
         
     } catch (error) {
         console.error('Error calculating recommendation:', error);
+        stopThinkingAnimation();
         document.getElementById('recommendationValues').innerHTML = `
             <p style="color: var(--text-muted); text-align: center;">Could not retrieve market values</p>
         `;
