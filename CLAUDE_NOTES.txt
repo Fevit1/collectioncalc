@@ -7,6 +7,9 @@
 4. **Proactively push back and provide input** - Mike wants Claude to flag potential issues, suggest alternatives, and ask "have you considered..." when there are trade-offs. Don't just execute - use knowledge from other projects and patterns.
 5. **Follow brand guidelines** - All user-facing text, UI elements, animations, and design decisions should align with BRAND_GUIDELINES.md. Check terminology, tone, and visual principles before implementing.
 6. **Verify file integrity before delivering** - Check line count, verify proper closing brackets/braces, and compare to original if editing. Files have been truncated in the past.
+7. **Render auto-deploy is DISABLED** - Always include `deploy` command after `git push` for backend changes.
+8. **Don't accept limitations** - When Claude or existing solutions hit capability limits, proactively research and suggest alternative tools/libraries/APIs. Don't settle unless the effort clearly isn't worth the payoff.
+9. **Reference COMPETITORS.md** - Competitor analysis is maintained separately. Check it when discussing market positioning or feature priorities.
 
 ## Checkpoint System
 Update CLAUDE_NOTES.md when:
@@ -84,77 +87,68 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 - **Loading text:** "Analyzing..." matches existing patterns
 - **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
 
-## Previous Session (January 29, 2026 - Sessions 15-17)
+## Previous Sessions (January 30-31, 2026 - Sessions 18-19)
 
-### Session 17 Summary
-- ✅ Cache key crash fix (`issue.strip()` on integers)
-- ✅ Added search logging to diagnose Spawn #1 issue
-- ✅ Identified reprint confusion in valuations
+### Session 19 Summary (Jan 31)
+- ✅ 20-tier slab premium model (grading.js) - premiums from 4x at $10 to 1.12x at $10k+
+- ✅ Exponential decay recency (ebay_valuation.py) - 30-day half-life
+- ✅ Whatnot extension v2.41.1 - fixed null polling, interval cleanup, visibility pause
+- ✅ Server-side garbage filter (wsgi.py) - blocks "$30", "91 Available", issue=null
 
-## Current Session (January 30, 2026 - Session 18)
+### Session 18 Summary (Jan 30)
+- ✅ Slab Worthy Step 1 uses backend extraction
+- ✅ barcode_digits field added to extraction
+- ✅ Deterministic grading with temperature=0
+- ✅ UI polish (Upload button text, Slab It branding)
+- ✅ Thinking animation added (now working)
 
-### Major Changes Completed
+## Current Session (January 31, 2026 - Session 20)
 
-1. ✅ **Slab Worthy Step 1 uses backend extraction**
-   - Single source of truth: both Photo Upload and Slab Worthy use `/api/extract`
-   - All extraction fields now available in Slab Worthy (barcode_digits, edition, printing, is_facsimile, etc.)
-   - `grading.js` updated to call `/api/extract` for Step 1
+### Changes Completed
+1. ✅ **Barcode decoder function** - `decode_barcode()` in comic_extraction.py
+   - Decodes 5-digit UPC supplement: issue, cover_letter (A/B/C), printing
+   - Returns is_variant, is_reprint flags
+   - Auto-included as `barcode_decoded` in extraction response
 
-2. ✅ **barcode_digits field added to extraction**
-   - New field in `comic_extraction.py` prompt
-   - Extracts 5-digit UPC add-on code for print/variant identification
-   - Includes examples: DC "00111" = issue 1, 1st printing, cover A
-   - Works for modern comics; older comics return empty string (correct)
+2. ✅ **pyzbar barcode scanning** - Middleware solution for reliable barcode reading
+   - Claude Vision struggles with tiny barcode digits
+   - pyzbar scans image before Claude, extracts barcode reliably
+   - Falls back gracefully if not found
+   - Requires: `pyzbar`, `Pillow` in requirements.txt
+   - May require `Aptfile` with `libzbar0` for Render
 
-3. ✅ **Deterministic grading with temperature=0**
-   - Added `temperature: 0` to `/api/extract` call in `comic_extraction.py`
-   - Added `temperature: 0` to `/api/messages` proxy in `wsgi.py`
-   - Same image now produces same grade every time
+3. ✅ **Extraction prompt improvements**
+   - Added `writer` and `artist` fields
+   - Made `barcode_digits` required with JSON template
+   - Still debugging - Render serving old prompt (2985 tokens vs expected 3200+)
 
-4. ✅ **wsgi.py media_type passthrough**
-   - `/api/extract` now accepts and passes `media_type` to extraction function
-   - Supports PNG, HEIC, WebP properly
+4. ✅ **COMPETITORS.md** - Full competitor analysis document created
+   - 6 competitors analyzed: CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI, Tabi
+   - Feature comparison matrix
+   - Threat levels and our differentiators
 
-5. ✅ **UI Polish Changes (app.html)**
-   - "Upload from Gallery" → "Upload" (all 4 places)
-   - "💰 Should You Grade This?" → Slab SVG icon + "Should You Slab It?"
-   - Warning message → "Grade based on limited photos. Add spine, back, and centerfold for higher confidence."
-
-6. ✅ **Thinking animation added (grading.js)**
-   - Cycles through informative messages during valuation
-   - Messages: market research, valuation, recommendation phases
-   - Spinner + text with fade transitions
-   - **BUG:** Not appearing in UI - needs debugging
-
-### Files Modified This Session
-- `comic_extraction.py` - barcode_digits, temperature=0
-- `wsgi.py` - temperature=0 on /api/messages, media_type passthrough
-- `grading.js` - Step 1 uses /api/extract, thinking animation
-- `app.html` - UI text changes
-
-### Known Bugs to Fix
-- 🐛 **Thinking animation not showing** - Code added but not appearing in Slab Worthy Step 5
-- 🐛 **Photo Upload missing thinking animation** - Needs same treatment as Slab Worthy
-- 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button on non-mobile
+### Known Issues
+- 🐛 **Render not picking up new prompt** - Clear cache & rebuild in progress
+- 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button in Slab Worthy on non-mobile
 
 ### Pending Work
 
 #### High Priority
-- [ ] Debug thinking animation not appearing
-- [ ] Add thinking animation to Photo Upload (app.js)
-- [ ] Barcode decoder logic (interpret 5-digit codes by publisher)
-- [ ] Test barcode extraction with modern comic (Absolute Batman with better image)
+- [ ] Verify pyzbar working on Render (may need Aptfile with libzbar0)
+- [ ] Test barcode extraction once Render updated
+- [ ] Reprint filtering for valuations (Spawn #1 problem)
 
 #### Medium Priority
 - [ ] Prompt Management Admin Page - view/edit all prompts in one place
-- [ ] True Meta-Optimization for prompts (Level 4 - use Claude to improve prompts)
 - [ ] Key issue sanity check database (floor prices)
-- [ ] Fix Whatnot extension (null issue polling)
 
 #### Low Priority
-- [ ] Hide "Take Photo" button on desktop
 - [ ] Pricing model decisions
 - [ ] FAQ content
+
+### Files Modified This Session
+- `comic_extraction.py` - pyzbar scanning, decode_barcode(), writer/artist fields, required JSON template
+- `COMPETITORS.md` - Full competitor analysis document
 
 ## Useful Info
 
@@ -172,12 +166,21 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 
 ## Deployment Commands
 ```powershell
-# Deploy and clear cache
-git add .; git commit -m "message"; git push; deploy; purge
+# Backend changes (Render) - deploy is REQUIRED (auto-deploy disabled)
+git add .; git commit -m "message"; git push; deploy
 
-# Just clear Cloudflare cache
-purge
+# Frontend changes (Cloudflare) - purge cache
+git add .; git commit -m "message"; git push; purge
+
+# Both
+git add .; git commit -m "message"; git push; deploy; purge
 ```
 
+## Key Documents
+- `COMPETITORS.md` - Competitor analysis (CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI, Tabi)
+- `BRAND_GUIDELINES.md` - Voice, terminology, design principles
+- `ROADMAP.md` - Feature roadmap and version history
+- `ARCHITECTURE.md` - Technical architecture
+
 ---
-*Last updated: January 30, 2026 (Session 18)*
+*Last updated: January 31, 2026 (Session 20)*
