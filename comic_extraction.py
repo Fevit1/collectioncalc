@@ -10,6 +10,37 @@ import requests
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
+
+def decode_barcode(digits: str) -> dict:
+    """
+    Decode 5-digit UPC supplement code from comic book barcode.
+    
+    Standard format (IIICP) since Diamond 2008/2009:
+        - Digits 1-3: Issue number (001-999)
+        - Digit 4: Cover variant (1=A, 2=B, 3=C, etc.)
+        - Digit 5: Printing (1=1st, 2=2nd, etc.)
+    
+    Args:
+        digits: 5-digit barcode supplement string
+    
+    Returns:
+        dict with decoded info, or None if invalid
+    """
+    if not digits or len(digits) != 5 or not digits.isdigit():
+        return None
+    
+    cover_num = int(digits[3])
+    printing_num = int(digits[4])
+    
+    return {
+        'issue': int(digits[0:3]),
+        'cover': cover_num,
+        'cover_letter': chr(64 + cover_num) if cover_num > 0 else None,  # 1=A, 2=B, etc.
+        'printing': printing_num,
+        'is_variant': cover_num > 1,      # True if not cover A
+        'is_reprint': printing_num > 1,   # True if not 1st printing
+    }
+
 # Vision Guide prompt for accurate extraction
 EXTRACTION_PROMPT = """Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
 
@@ -188,6 +219,14 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
         
         if json_match:
             extracted = json.loads(json_match.group())
+            
+            # Decode barcode if present
+            barcode_decoded = None
+            if extracted.get('barcode_digits'):
+                barcode_decoded = decode_barcode(extracted['barcode_digits'])
+                if barcode_decoded:
+                    extracted['barcode_decoded'] = barcode_decoded
+            
             return {
                 "success": True,
                 "extracted": extracted
