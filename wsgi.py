@@ -1017,6 +1017,25 @@ def api_sales_fmv():
     if not title:
         return jsonify({'success': False, 'error': 'Title is required'}), 400
     
+    # Server-side garbage title filter (belt & suspenders with extension filter)
+    if len(title) < 3:
+        return jsonify({'success': False, 'count': 0, 'tiers': None})
+    
+    # Skip titles that are just numbers/symbols
+    import re
+    if re.match(r'^[\d\s$#%.,]+$', title):
+        return jsonify({'success': False, 'count': 0, 'tiers': None})
+    
+    # Skip known garbage patterns
+    title_lower = title.lower()
+    garbage_patterns = [
+        'available', 'remaining', 'left', 'in stock', 'bid now', 'starting',
+        'mystery', 'random', 'surprise', 'bundle', 'lot of', 'choice', 'pick',
+        'awesome comic', 'comic on screen', 'on screen', 'product', 'item', 'listing'
+    ]
+    if any(p in title_lower for p in garbage_patterns):
+        return jsonify({'success': False, 'count': 0, 'tiers': None})
+    
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
