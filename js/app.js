@@ -589,6 +589,15 @@ function renderItemsList() {
                 </div>` : ''}
             </div>
             ` : ''}
+            ${item.writer || item.artist ? `
+            <div class="credits-info" style="margin-top: 12px; padding: 10px; background: rgba(6, 182, 212, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-cyan);">
+                <div style="font-weight: 600; font-size: 12px; color: var(--brand-cyan); margin-bottom: 6px;">📝 Credits</div>
+                <div style="font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap;">
+                    ${item.writer ? `<span><strong>Writer:</strong> ${item.writer}</span>` : ''}
+                    ${item.artist ? `<span><strong>Artist:</strong> ${item.artist}</span>` : ''}
+                </div>
+            </div>
+            ` : ''}
             ${item.signature_detected && item.signature_analysis ? `
             <div class="signature-analysis" style="margin-top: 12px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">
                 <div style="font-weight: 600; font-size: 12px; color: var(--status-success); margin-bottom: 8px;">🖊️ Signature Analysis</div>
