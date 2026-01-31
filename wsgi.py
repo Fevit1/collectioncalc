@@ -206,6 +206,14 @@ def require_approved(f):
         return f(*args, **kwargs)
     return decorated
 
+@app.route('/api/debug/prompt-check')
+def debug_prompt():
+    from comic_extraction import EXTRACTION_PROMPT
+    return jsonify({
+        'prompt_length': len(EXTRACTION_PROMPT),
+        'has_new_schema': 'YOU MUST RETURN EXACTLY' in EXTRACTION_PROMPT,
+        'first_100_chars': EXTRACTION_PROMPT[:100]
+    })
 
 # ============================================
 # HEALTH CHECK
