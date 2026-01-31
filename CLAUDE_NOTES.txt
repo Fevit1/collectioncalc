@@ -87,81 +87,95 @@ Reference BRAND_GUIDELINES.md for full details. Key points:
 - **Loading text:** "Analyzing..." matches existing patterns
 - **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
 
-## Previous Sessions (January 30-31, 2026 - Sessions 18-19)
+## Previous Sessions Summary
 
-### Session 19 Summary (Jan 31)
-- ✅ 20-tier slab premium model (grading.js) - premiums from 4x at $10 to 1.12x at $10k+
+### Session 19 (Jan 31)
+- ✅ 20-tier slab premium model (grading.js)
 - ✅ Exponential decay recency (ebay_valuation.py) - 30-day half-life
-- ✅ Whatnot extension v2.41.1 - fixed null polling, interval cleanup, visibility pause
-- ✅ Server-side garbage filter (wsgi.py) - blocks "$30", "91 Available", issue=null
+- ✅ Whatnot extension v2.41.1 - fixed null polling, interval cleanup
+- ✅ Server-side garbage filter (wsgi.py)
 
-### Session 18 Summary (Jan 30)
+### Session 18 (Jan 30)
 - ✅ Slab Worthy Step 1 uses backend extraction
 - ✅ barcode_digits field added to extraction
 - ✅ Deterministic grading with temperature=0
 - ✅ UI polish (Upload button text, Slab It branding)
-- ✅ Thinking animation added (now working)
 
 ## Current Session (January 31, 2026 - Session 20)
 
-### Changes Completed
-1. ✅ **Barcode decoder function** - `decode_barcode()` in comic_extraction.py
-   - Decodes 5-digit UPC supplement: issue, cover_letter (A/B/C), printing
-   - Returns is_variant, is_reprint flags
-   - Auto-included as `barcode_decoded` in extraction response
+### CURRENT BLOCKER: Render Not Deploying New Code
+We've been trying to update comic_extraction.py with:
+1. Stricter JSON schema enforcement (template at top of prompt)
+2. New fields: `writer`, `artist`, `barcode_digits`, `signatures`
+3. `decode_barcode()` function for interpreting 5-digit UPC supplements
+4. pyzbar integration for reliable barcode scanning
 
-2. ✅ **pyzbar barcode scanning** - Middleware solution for reliable barcode reading
-   - Claude Vision struggles with tiny barcode digits
-   - pyzbar scans image before Claude, extracts barcode reliably
-   - Falls back gracefully if not found
-   - Requires: `pyzbar`, `Pillow` in requirements.txt
-   - May require `Aptfile` with `libzbar0` for Render
+**The Problem:** Render keeps serving the OLD prompt (2985 input tokens) despite:
+- Multiple `git push; deploy` cycles
+- Full rebuild (Clear cache & deploy)
+- Suspend and resume web service
 
-3. ✅ **Extraction prompt improvements**
-   - Added `writer` and `artist` fields
-   - Made `barcode_digits` required with JSON template
-   - Still debugging - Render serving old prompt (2985 tokens vs expected 3200+)
+**Evidence:** 
+- Response still has old fields (`signature_detected`, `signature_analysis`)
+- Missing new fields (`writer`, `artist`, `barcode_digits`, `signatures`)
+- Token count stuck at 2985 (new prompt should be ~3200+)
 
-4. ✅ **COMPETITORS.md** - Full competitor analysis document created
-   - 6 competitors analyzed: CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI, Tabi
-   - Feature comparison matrix
-   - Threat levels and our differentiators
+**Diagnosis Commands to Run:**
+```powershell
+# Check if file is in git
+git status
 
-### Known Issues
-- 🐛 **Render not picking up new prompt** - Clear cache & rebuild in progress
-- 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button in Slab Worthy on non-mobile
+# Check what's committed
+git log --oneline -1
 
-### Pending Work
+# Verify new prompt is in local file
+Select-String "YOU MUST RETURN EXACTLY" comic_extraction.py
+```
+
+**Likely Issue:** The updated comic_extraction.py file may not have been saved to the correct location or committed to git. Claude provided the file but Mike may need to download and save it to the repo.
+
+### Files Claude Provided This Session
+- `comic_extraction.py` - Revised with:
+  - JSON template at TOP of prompt (Claude anchors on early structure)
+  - Defensive defaults in Python for missing fields
+  - Cleanup of old field names
+  - pyzbar scanning (needs Aptfile with `libzbar0` to work on Render)
+  - `decode_barcode()` function
+
+### When Mike Returns
+1. Run diagnostic commands above
+2. If file not in repo: Download from Claude's output and save to repo root
+3. Commit and deploy: `git add .; git commit -m "Stricter extraction prompt"; git push; deploy`
+4. Test with Batman #4 image
+5. Verify token count increases and new fields appear
+
+### Other Pending Work
 
 #### High Priority
-- [ ] Verify pyzbar working on Render (may need Aptfile with libzbar0)
-- [ ] Test barcode extraction once Render updated
+- [ ] Get comic_extraction.py deployed (CURRENT BLOCKER)
+- [ ] Verify barcode extraction working
+- [ ] Add pyzbar support (Aptfile with libzbar0)
 - [ ] Reprint filtering for valuations (Spawn #1 problem)
 
-#### Medium Priority
-- [ ] Prompt Management Admin Page - view/edit all prompts in one place
-- [ ] Key issue sanity check database (floor prices)
+#### Medium Priority  
+- [ ] UI display for writer/artist/barcode info
+- [ ] Reprint/variant warning badges
+- [ ] Prompt Management Admin Page
 
 #### Low Priority
 - [ ] Pricing model decisions
 - [ ] FAQ content
 
-### Files Modified This Session
-- `comic_extraction.py` - pyzbar scanning, decode_barcode(), writer/artist fields, required JSON template
-- `COMPETITORS.md` - Full competitor analysis document
-
 ## Useful Info
 
 ### Image Quality for Barcode Reading
-- Facebook Messenger: Heavy compression, send as file attachment instead
-- WhatsApp: Tap "HD" button when sending, or send as "Document"
+- Facebook Messenger: Heavy compression, send as file attachment
+- WhatsApp: Tap "HD" button, or send as "Document"
 - Email: Usually full quality (best option)
 - iMessage: Good quality
 
 ### Temperature Setting
 - `temperature: 0` = Deterministic (same input = same output)
-- `temperature: 0.5-0.7` = Balanced
-- `temperature: 1.0` = Creative
 - For grading: ALWAYS use 0
 
 ## Deployment Commands
@@ -177,10 +191,11 @@ git add .; git commit -m "message"; git push; deploy; purge
 ```
 
 ## Key Documents
-- `COMPETITORS.md` - Competitor analysis (CovrPrice, GoCollect, Key Collector, CLZ, ComicMint AI, Tabi)
+- `COMPETITORS.md` - Competitor analysis
 - `BRAND_GUIDELINES.md` - Voice, terminology, design principles
 - `ROADMAP.md` - Feature roadmap and version history
 - `ARCHITECTURE.md` - Technical architecture
 
 ---
-*Last updated: January 31, 2026 (Session 20)*
+*Last updated: January 31, 2026 (Session 20 - Mid-session checkpoint)*
+*Status: Blocked on Render deployment issue*
