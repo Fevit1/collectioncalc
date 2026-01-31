@@ -440,147 +440,60 @@ async function extractFromPhoto(file, manualRotation = 0) {
     const base64Data = processed.base64;
     const mediaType = processed.mediaType;
     
-    const prompt = `Analyze this comic book image and extract information. Return ONLY a JSON object with these fields:
-
-IDENTIFICATION FIELDS:
-- title: Comic book title (usually the largest text on the cover). Include the main series name only, NOT "Annual" or "Special" - those go in issue_type.
-- issue: Issue number - CRITICAL: You MUST find the issue number. Search these locations thoroughly:
-  * Top-left corner near price (Marvel standard)
-  * Top-right corner (DC standard)
-  * Small text WITHIN or NEAR the title logo
-  * Near the barcode/UPC area (bottom corners)
-  * Near creator credits at bottom of cover
-  * Sometimes the number is VERY SMALL or integrated into the cover design
-  Look for "#1", "#2", "No. 1", or just a standalone number. First issues often have the "1" stylized or small. IGNORE prices (60¢, $1.00, $2.99). If this appears to be a first issue of a series, the issue number is "1".
-- issue_type: CRITICAL - Look carefully for these indicators on the cover:
-  * "Annual" or "ANNUAL" → return "Annual"
-  * "King-Size Special" or "KING-SIZE SPECIAL" → return "Annual" (these are annuals)
-  * "Giant-Size" or "GIANT-SIZE" → return "Giant-Size"
-  * "Special" or "SPECIAL" (standalone) → return "Special"
-  * "Special Edition" → return "Special Edition"
-  * If none of these are present → return "Regular"
-  These indicators are often in LARGE TEXT at the top of the cover or in a banner. They dramatically affect the comic's value - an Annual #6 is completely different from Regular #6.
-- publisher: Publisher name (Marvel, DC, Image, etc.) - often in small text at top
-- year: Publication year - look for copyright text or indicia, usually small text
-- edition: Look at the BOTTOM-LEFT CORNER. If you see a UPC BARCODE, return "newsstand". If you see ARTWORK or LOGO, return "direct". If unclear, return "unknown".
-- printing: Look for "2nd Printing", "3rd Print", "Second Printing", etc. anywhere on cover. Return "1st" if no printing indicator found, otherwise "2nd", "3rd", etc.
-- cover: Look for cover variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "1:50", "Incentive", "Virgin", etc. Return the variant info if found, otherwise empty string.
-- variant: Other variant description if applicable (e.g., "McFarlane variant", "Artgerm cover"), otherwise empty string
-
-CONDITION ASSESSMENT FIELDS:
-Examine the comic's PHYSICAL CONDITION carefully. You can only see the front cover, so assess what's visible.
-
-IMPORTANT - DISTINGUISH BETWEEN:
-1. COMIC DEFECTS (on the actual comic) - These affect grade
-2. BAG/SLEEVE ARTIFACTS (on the protective covering) - IGNORE these:
-   - Price stickers on the outside of a bag
-   - Reflections or glare from plastic sleeve
-   - Tape on the bag opening
-   - Bag wrinkles or cloudiness
-   If the comic appears to be in a bag/sleeve, look THROUGH it to assess the comic itself.
-
-3. SIGNATURE DETECTION (Two-step process):
-
-   STEP 1 - SCAN: Before analyzing other fields, systematically scan the ENTIRE cover for any handwriting or signatures. Check ALL these areas:
-   - Sky, moon, or background areas
-   - Across character faces or bodies
-   - Title/logo area
-   - All four corners
-   - Margins and edges
-   - Near creator credits
-   Look for: Gold/silver metallic ink (very common), black sharpie, blue/red marker, pen signatures
-   
-   STEP 2 - ANALYZE: If you found ANYTHING that looks like handwriting/signature:
-   - Note exactly where it is located
-   - Describe its appearance (ink color, style)
-   - Look at creator credits at bottom of cover
-   - Compare signature to creator names to estimate who signed
-
-- suggested_grade: Based on visible condition, suggest one of: MT, NM, VF, FN, VG, G, FR, PR. Be conservative - grade what you can see.
-- defects: Array of visible defects found ON THE COMIC (not on bag). Examples: "Tear on front cover", "Spine roll", "Color-breaking crease", "Corner wear", "Staining". Return empty array [] if no defects visible.
-- grade_reasoning: Brief explanation of grade choice, e.g., "VF - Minor spine stress visible, corners sharp"
-
-SIGNATURE ANALYSIS FIELDS:
-- signature_detected: boolean - Did you find ANY handwriting/signature in Step 1? Even if faint or hard to read, set true if you see something.
-- signature_analysis: If signature_detected is true, provide this object (otherwise null):
-  {
-    "creators": [{"name": "Full Name", "role": "Artist/Writer/Inker/Colorist"}],
-    "confidence_scores": [{"name": "Full Name", "confidence": 55, "reasoning": "brief reason"}],
-    "most_likely_signer": {"name": "Name", "confidence": 55},
-    "signature_characteristics": "Location on cover, ink color (gold/silver/black/blue), style (neat/cursive/messy), any legible letters"
-  }
-  
-  When assigning confidence: Any creator could have signed (writer, artist, inker, colorist). Give roughly equal initial weight to all listed creators. Increase confidence only if legible letters clearly match a specific name.
-
-GRADE GUIDE (be conservative):
-- MT (10.0): Perfect, virtually flawless
-- NM (9.4): Nearly perfect, minor imperfections only
-- VF (8.0): Minor wear, small stress marks OK, still attractive
-- FN (6.0): Moderate wear, minor creases, slightly rolled spine OK
-- VG (4.0): Significant wear, small tears, creases, still complete
-- G (2.0): Heavy wear, larger creases, small pieces may be missing
-- FR (1.5): Major wear, tears, pieces missing but still readable
-- PR (1.0): Severe damage, may be incomplete
-
-CRITICAL RULES:
-1. Do NOT confuse prices (60¢, $1.50, 25p) with issue numbers. Issue numbers are preceded by "#" or "No." and are typically 1-4 digits.
-2. ALWAYS check for "Annual", "King-Size Special", "Giant-Size", or "Special" - these are DIFFERENT series than the regular comic and have very different values.
-3. If you see "KING-SIZE SPECIAL" anywhere, the issue_type MUST be "Annual".
-4. For condition: You can ONLY see the front cover. Note this limitation.
-5. Ignore bag/sleeve artifacts. Assess the comic itself.
-6. SIGNATURES ARE COMMON: Look very carefully for gold, silver, or metallic ink signatures. They're often hard to see. If you see ANY handwriting that could be an autograph, set signature_detected to true.
-7. ISSUE NUMBER IS REQUIRED: Look everywhere - corners, near title, near barcode, near credits. First issues often have small or stylized "1". Do NOT leave issue blank if you can find any number.
-
-Be accurate. If unsure about any field, use reasonable estimates.`;
-    
-    const response = await fetch(`${API_URL}/api/messages`, {
+    // Use backend extraction endpoint (single source of truth)
+    const response = await fetch(`${API_URL}/api/extract`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
-            // STANDARD TIER: Sonnet - good for most extraction, ~$0.01/comic
-            model: 'claude-sonnet-4-20250514',
-            
-            // PREMIUM TIER: Opus - better signature detection, ~$0.05/comic
-            // Proven to work! See Session 7 testing with Moon Knight #1 signed by Danny Miki
-            // TODO: Gate behind "Super User" pricing tier in future
-            // model: 'claude-opus-4-5-20251101',
-            
-            max_tokens: 1000,
-            messages: [{ role: 'user', content: [
-                { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data }},
-                { type: 'text', text: prompt }
-            ]}]
+            image: base64Data,
+            media_type: mediaType
         })
     });
     
     const data = await response.json();
-    if (data.error) throw new Error(data.error.message || 'API Error');
+    if (!data.success) {
+        throw new Error(data.error || 'Extraction failed');
+    }
     
-    const textContent = data.content.filter(item => item.type === 'text').map(item => item.text).join('');
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    const extracted = data.extracted;
     
-    if (jsonMatch) {
-        const extracted = JSON.parse(jsonMatch[0]);
-        // Include the image for preview and eBay listing
-        extracted.image = `data:${mediaType};base64,${base64Data}`;
-        // Use suggested_grade as the grade if present (for valuation)
-        if (extracted.suggested_grade && !extracted.grade) {
-            extracted.grade = extracted.suggested_grade;
-        }
-        // Auto-populate signed fields if AI detected a signature
-        if (extracted.signature_detected && extracted.signature_analysis) {
+    // Include the image for preview and eBay listing
+    extracted.image = `data:${mediaType};base64,${base64Data}`;
+    
+    // Use suggested_grade as the grade if present (for valuation)
+    if (extracted.suggested_grade && !extracted.grade) {
+        extracted.grade = extracted.suggested_grade;
+    }
+    
+    // Auto-populate signed fields if AI detected signatures
+    if (extracted.signatures && extracted.signatures.length > 0) {
+        // Check if any signature looks like a creator signature
+        const creatorSig = extracted.signatures.find(s => 
+            s.toLowerCase().includes('creator') || 
+            !s.toLowerCase().includes('unknown')
+        );
+        if (creatorSig) {
             extracted.is_signed = true;
-            if (extracted.signature_analysis.most_likely_signer) {
-                extracted.signer = extracted.signature_analysis.most_likely_signer.name;
+            // Extract name from signature description if possible
+            const nameMatch = creatorSig.match(/(?:creator signature|signed by)[:\s-]*([^(,]+)/i);
+            if (nameMatch) {
+                extracted.signer = nameMatch[1].trim();
             }
         }
-        return extracted;
-    } else {
-        throw new Error('Could not extract data');
     }
+    
+    // Legacy support: handle old signature_detected format if present
+    if (extracted.signature_detected && extracted.signature_analysis) {
+        extracted.is_signed = true;
+        if (extracted.signature_analysis.most_likely_signer) {
+            extracted.signer = extracted.signature_analysis.most_likely_signer.name;
+        }
+    }
+    
+    return extracted;
 }
 
 function updateProgress(percent, text) {
