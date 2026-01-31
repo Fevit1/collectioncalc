@@ -1014,6 +1014,10 @@ def api_sales_fmv():
     issue = request.args.get('issue', '')
     days = request.args.get('days', 90, type=int)
     
+    # Reject literal "null" or "undefined" issue values
+    if issue in ['null', 'undefined', 'None', 'NaN']:
+        issue = ''
+    
     if not title:
         return jsonify({'success': False, 'error': 'Title is required'}), 400
     
