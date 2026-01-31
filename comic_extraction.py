@@ -119,6 +119,27 @@ CRITICAL RULES:
 7. Creator signatures are valuable, not defects.
 8. IMAGE ORIENTATION CHECK: If the image appears to be UPSIDE-DOWN (text is inverted, characters are upside-down), add a field "is_upside_down": true. Otherwise omit this field or set it to false. This helps the system auto-correct the orientation.
 
+YOUR RESPONSE MUST INCLUDE ALL OF THESE FIELDS (use empty string "" if not found):
+{
+  "title": "",
+  "issue": "",
+  "issue_type": "",
+  "publisher": "",
+  "year": null,
+  "writer": "",
+  "artist": "",
+  "edition": "",
+  "printing": "",
+  "is_facsimile": false,
+  "cover": "",
+  "variant": "",
+  "barcode_digits": "",
+  "suggested_grade": "",
+  "defects": [],
+  "signatures": [],
+  "grade_reasoning": ""
+}
+
 Be accurate. If unsure about any field, use reasonable estimates."""
 
 
