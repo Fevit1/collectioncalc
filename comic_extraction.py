@@ -7,8 +7,69 @@ import os
 import base64
 import json
 import requests
+from io import BytesIO
+
+# Try to import barcode scanning library
+try:
+    from pyzbar import pyzbar
+    from PIL import Image
+    BARCODE_SCANNING_AVAILABLE = True
+except ImportError:
+    BARCODE_SCANNING_AVAILABLE = False
+    print("pyzbar not available - barcode scanning disabled")
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+
+
+def scan_barcode(image_data: bytes) -> dict:
+    """
+    Scan image for UPC barcode and extract the 5-digit supplement.
+    
+    Args:
+        image_data: Raw image bytes (JPEG, PNG, etc.)
+    
+    Returns:
+        dict with barcode info or None if not found
+    """
+    if not BARCODE_SCANNING_AVAILABLE:
+        return None
+    
+    try:
+        # Open image with PIL
+        image = Image.open(BytesIO(image_data))
+        
+        # Scan for barcodes
+        barcodes = pyzbar.decode(image)
+        
+        for barcode in barcodes:
+            data = barcode.data.decode('utf-8')
+            barcode_type = barcode.type
+            
+            # UPC-A is 12 digits, EAN-13 is 13 digits
+            # The 5-digit supplement may be separate or appended
+            if barcode_type in ['UPCA', 'EAN13', 'UPCE']:
+                print(f"[Barcode] Found {barcode_type}: {data}")
+                return {
+                    'type': barcode_type,
+                    'data': data,
+                    'supplement': None  # Supplement usually separate
+                }
+            
+            # EAN-5 is the 5-digit supplement we want!
+            if barcode_type == 'EAN5' or (len(data) == 5 and data.isdigit()):
+                print(f"[Barcode] Found 5-digit supplement: {data}")
+                return {
+                    'type': 'SUPPLEMENT',
+                    'data': data,
+                    'supplement': data
+                }
+        
+        # No barcode found
+        return None
+        
+    except Exception as e:
+        print(f"[Barcode] Scan error: {e}")
+        return None
 
 
 def decode_barcode(digits: str) -> dict:
@@ -189,6 +250,16 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
     if not ANTHROPIC_API_KEY:
         return {"success": False, "error": "ANTHROPIC_API_KEY not configured"}
     
+    # First, try to scan barcode with pyzbar (more reliable than vision)
+    scanned_barcode = None
+    try:
+        image_bytes = base64.b64decode(base64_data)
+        scanned_barcode = scan_barcode(image_bytes)
+        if scanned_barcode:
+            print(f"[Extraction] Barcode scanned: {scanned_barcode}")
+    except Exception as e:
+        print(f"[Extraction] Barcode scan failed: {e}")
+    
     try:
         response = requests.post(
             "https://api.anthropic.com/v1/messages",
@@ -243,10 +314,19 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
         if json_match:
             extracted = json.loads(json_match.group())
             
+            # Use pyzbar barcode if Claude didn't find one
+            if scanned_barcode and scanned_barcode.get('supplement'):
+                if not extracted.get('barcode_digits'):
+                    extracted['barcode_digits'] = scanned_barcode['supplement']
+                    extracted['barcode_source'] = 'pyzbar'
+                    print(f"[Extraction] Using pyzbar barcode: {scanned_barcode['supplement']}")
+            
             # Decode barcode if present
             barcode_decoded = None
             if extracted.get('barcode_digits'):
                 barcode_decoded = decode_barcode(extracted['barcode_digits'])
+                if barcode_decoded:
+                    extracted['barcode_decoded'] = barcode_decoded
                 if barcode_decoded:
                     extracted['barcode_decoded'] = barcode_decoded
             
