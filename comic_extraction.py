@@ -176,7 +176,37 @@ IMPORTANT RULES:
 5. Creator signatures ADD value, random writing is a defect
 6. If image is UPSIDE-DOWN, add "is_upside_down": true
 
-Return ONLY the JSON object with ALL fields shown above. Use empty string "" for unknown text fields, null for year, empty array [] for defects/signatures."""
+Return ONLY the JSON object with ALL fields shown above. Use empty string "" for unknown text fields, null for year, empty array [] for defects/signatures.
+
+<!-- FUTURE: DETAILED SIGNATURE ANALYSIS (commented out for now)
+When signature detection is re-enabled, add these fields to the JSON schema:
+- signature_detected: boolean - true if ANY handwriting/signature found
+- signature_analysis: If signature_detected is true, provide this object (otherwise null):
+  {
+    "creators": [{"name": "Full Name", "role": "Artist/Writer/Inker/Colorist"}],
+    "confidence_scores": [{"name": "Full Name", "confidence": 55, "reasoning": "brief reason"}],
+    "most_likely_signer": {"name": "Name", "confidence": 55},
+    "signature_characteristics": "Location on cover, ink color (gold/silver/black/blue), style"
+  }
+
+SIGNATURE DETECTION INSTRUCTIONS (Two-step process):
+STEP 1 - SCAN: Systematically scan the ENTIRE cover for any handwriting or signatures:
+- Sky, moon, or background areas
+- Across character faces or bodies
+- Title/logo area
+- All four corners
+- Margins and edges
+- Near creator credits
+Look for: Gold/silver metallic ink (very common), black sharpie, blue/red marker, pen signatures
+
+STEP 2 - ANALYZE: If you found ANYTHING that looks like handwriting/signature:
+- Note exactly where it is located
+- Describe its appearance (ink color, style)
+- Look at creator credits at bottom of cover
+- Compare signature to creator names to estimate who signed
+
+When assigning confidence: Any creator could have signed. Give roughly equal initial weight to all listed creators. Increase confidence only if legible letters clearly match a specific name.
+-->"""
 
 
 def extract_from_photo(image_data: bytes, filename: str = "comic.jpg") -> dict:
@@ -315,7 +345,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 if key not in extracted:
                     extracted[key] = default_value
             
-            # Migrate old field names if present
+            # Clean up old field names if Claude returns them
             if "signature_detected" in extracted:
                 del extracted["signature_detected"]
             if "signature_analysis" in extracted:
