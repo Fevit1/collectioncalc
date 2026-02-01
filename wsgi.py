@@ -868,8 +868,7 @@ def api_ebay_account_deletion():
         ebay_user_id = data.get('userId') or data.get('user_id') or data.get('username')
         
         if not ebay_user_id:
-            # Log for debugging but return 200 to acknowledge receipt
-            print(f"eBay deletion notification received but no user ID found: {data}")
+            # Silently acknowledge - these are eBay users who never used our app
             return jsonify({'success': True, 'message': 'Notification received'}), 200
         
         # Delete user data
