@@ -95,24 +95,23 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
-# eBay Sales API Endpoints
-# Add these to your wsgi.py file
-#
-# STEP 1: Add this import at the top of wsgi.py (if not already there):
-#     import hashlib
-#
-# STEP 2: Copy everything below this line into wsgi.py with your other routes:
-# ===========================================================================
+# ============================================
+# eBAY SALES API ENDPOINTS
+# ============================================
 
 @app.route('/api/ebay-sales/batch', methods=['POST'])
 def add_ebay_sales_batch():
     """Batch insert eBay sales from browser extension."""
+    conn = None
     try:
         data = request.get_json()
         sales = data.get('sales', [])
         
         if not sales:
             return jsonify({'error': 'No sales provided'}), 400
+        
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
         
         saved = 0
         duplicates = 0
@@ -122,8 +121,7 @@ def add_ebay_sales_batch():
             content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
             
             try:
-                cursor = get_db().cursor()
-                cursor.execute("""
+                cur.execute("""
                     INSERT INTO ebay_sales (
                         raw_title, parsed_title, issue_number, publisher,
                         sale_price, sale_date, condition, graded, grade,
@@ -146,16 +144,16 @@ def add_ebay_sales_batch():
                     content_hash
                 ))
                 
-                if cursor.rowcount > 0:
+                if cur.rowcount > 0:
                     saved += 1
                 else:
                     duplicates += 1
                     
-                get_db().commit()
+                conn.commit()
                 
             except Exception as e:
                 duplicates += 1
-                get_db().rollback()
+                conn.rollback()
         
         return jsonify({
             'success': True,
@@ -166,22 +164,27 @@ def add_ebay_sales_batch():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route('/api/ebay-sales/stats', methods=['GET'])
 def get_ebay_sales_stats():
     """Get statistics about collected eBay sales."""
+    conn = None
     try:
-        cursor = get_db().cursor()
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
         
-        cursor.execute("SELECT COUNT(*) FROM ebay_sales")
-        total = cursor.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM ebay_sales")
+        total = cur.fetchone()[0]
         
-        cursor.execute("""
+        cur.execute("""
             SELECT COUNT(*) FROM ebay_sales 
             WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'
         """)
-        last_week = cursor.fetchone()[0]
+        last_week = cur.fetchone()[0]
         
         return jsonify({
             'total_sales': total,
@@ -190,6 +193,9 @@ def get_ebay_sales_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 
