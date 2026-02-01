@@ -1,201 +1,189 @@
 # Claude Working Notes - CollectionCalc Project
 
-## IMPORTANT RULES
-1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code. Do not build until approved.**
+## Executive Summary
+
+**Purpose:** This document helps Claude quickly get up to speed when starting a new session with Mike on the CollectionCalc project.
+
+**The Project:** CollectionCalc is an AI-powered comic book valuation tool. The flagship feature "Slab Worthy?" uses patent-pending multi-angle photography to assess whether comics are worth professional grading.
+
+**The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
+
+**Current State (v2.99.0):**
+- Core features working: Manual Entry, Photo Upload, Slab Worthy
+- Single source of truth achieved for all extraction (comic_extraction.py)
+- Writer/Artist extraction working
+- Barcode infrastructure ready but blocked on Docker deployment
+
+**Critical Priority:** Barcode scanning via Docker. Without it, we can't detect reprints (Spawn #1: $25 reprint vs $300 first print). This is the #1 differentiator vs competition.
+
+**Key Rules:**
+1. Get approval before coding
+2. Render auto-deploy is OFF - always run `deploy` command
+3. Don't accept limitations - research alternatives
+4. Update this doc at session end
+
+---
+
+## Important Rules
+
+1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code.**
 2. **Break large code changes into small chunks** to avoid "thinking longer than usual" failures.
-3. **Update this file at checkpoints** (see Checkpoint System below).
-4. **Proactively push back and provide input** - Mike wants Claude to flag potential issues, suggest alternatives, and ask "have you considered..." when there are trade-offs. Don't just execute - use knowledge from other projects and patterns.
-5. **Follow brand guidelines** - All user-facing text, UI elements, animations, and design decisions should align with BRAND_GUIDELINES.md. Check terminology, tone, and visual principles before implementing.
-6. **Verify file integrity before delivering** - Check line count, verify proper closing brackets/braces, and compare to original if editing. Files have been truncated in the past.
-7. **Render auto-deploy is DISABLED** - Always include `deploy` command after `git push` for backend changes.
-8. **Don't accept limitations** - When Claude or existing solutions hit capability limits, proactively research and suggest alternative tools/libraries/APIs. Don't settle unless the effort clearly isn't worth the payoff.
-9. **Reference COMPETITORS.md** - Competitor analysis is maintained separately. Check it when discussing market positioning or feature priorities.
+3. **Update this file at checkpoints** - after compacting, features, or session end.
+4. **Proactively push back** - flag issues, suggest alternatives, share knowledge from other projects.
+5. **Follow brand guidelines** - check BRAND_GUIDELINES.md for voice, terminology, design.
+6. **Verify file integrity** - check line counts, closing brackets. Files have been truncated before.
+7. **Render auto-deploy is DISABLED** - Always include `deploy` command after `git push`.
+8. **Don't accept limitations** - research alternative tools/libraries/APIs. Don't settle.
+9. **Reference COMPETITORS.md** - check it when discussing market positioning.
 
-## Checkpoint System
-Update CLAUDE_NOTES.md when:
-- ✅ After any context compacting (conversation got long)
-- ✅ After completing a major feature
-- ✅ Before ending a session
-- ✅ If Mike says "let's checkpoint" or "update notes"
-
-This ensures we can recover quickly if a conversation fails or needs to restart.
+---
 
 ## About Mike
-- **Name:** Mike (legal name Don, goes by Mike)
-- **Role:** Product Manager in high tech, manages people (not hands-on dev)
-- **Background:** Former eBay employee (marketing/content supply chain, not engineering)
-- **Technical comfort:** Decent SQL skills, uses DBeaver for PostgreSQL queries
-- **Strengths:** Product vision, feature prioritization, testing, user feedback, UI/UX decisions
-- **Learning style:** Appreciates guidance but wants Claude to recognize when he's mastered something and stop over-explaining
-- **Collaboration style:** Wants Claude to push back on decisions (UI, data flow, database, backend) and proactively share knowledge
 
-## What Mike's Comfortable With
-- ✅ Render dashboard (deployments, environment variables, redeploys)
+- **Role:** Product Manager in high tech (manages people, not hands-on dev)
+- **Background:** Former eBay (marketing/content supply chain, not engineering)
+- **Technical comfort:** Decent SQL skills, uses DBeaver for PostgreSQL queries
+
+**Comfortable with:**
+- ✅ Render dashboard (deployments, env vars, redeploys)
 - ✅ Git workflow (add, commit, push)
 - ✅ PowerShell aliases (`purge`, `deploy`)
-- ✅ Testing the app and providing feedback
-- ✅ SQL concepts and DBeaver
+- ✅ Testing and providing feedback
 - ✅ Product decisions and prioritization
 
-## Where They Need More Guidance
+**Needs guidance on:**
 - ⚠️ Complex Python debugging - explain error meanings
 - ⚠️ Architecture decisions - explain trade-offs
 
-## Project: CollectionCalc / Slab Worthy
+**Collaboration style:** Wants Claude to push back on decisions and proactively share knowledge. Appreciates when Claude recognizes he's mastered something and stops over-explaining.
 
-### Core Info
-- **What it is:** AI-powered comic book valuation and pre-grading assessment tool
-- **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL database
-- **Hosted on:** Render.com ($7/mo Starter plan - NO cold starts)
-- **Live URL:** https://collectioncalc.com
-- **Version:** 2.98.0
+---
 
-### Key Product Features
-- **Manual Entry** - Type title/issue/grade for valuation
-- **Photo Upload** - AI extracts comic info from cover photo
-- **Slab Worthy?** - 4-photo grading assessment flow (Patent Pending, filed Jan 27, 2026)
-- **Slab Report** - Output of Slab Worthy with grade estimate and recommendation
-- **Whatnot Extension** - Browser extension for live stream valuations
+## Project Overview
+
+### CollectionCalc / Slab Worthy
+- **What:** AI-powered comic book valuation and pre-grading assessment
+- **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL
+- **Hosting:** Render.com ($7/mo Starter), Cloudflare Pages
+- **URL:** https://collectioncalc.com
+- **Version:** 2.99.0
+
+### Key Features
+| Feature | Description |
+|---------|-------------|
+| Manual Entry | Type title/issue/grade for valuation |
+| Photo Upload | AI extracts comic info from cover photo |
+| Slab Worthy? | 4-photo grading assessment (Patent Pending) |
+| Slab Report | Grade estimate + economic recommendation |
+| Whatnot Extension | Browser extension for live stream valuations |
 
 ### Key Files
 **Frontend (Cloudflare Pages):**
 - `app.html` - Main frontend
-- `styles.css` - Styling
-- `js/utils.js` - Shared state, image processing, UI helpers
-- `js/auth.js` - Authentication, user menu, collection
-- `js/app.js` - eBay, photo upload, valuation, manual entry
-- `js/grading.js` - Slab Worthy 4-photo flow, grade report
+- `styles.css` - Styling  
+- `js/utils.js` - Shared state, image processing
+- `js/auth.js` - Authentication, user menu
+- `js/app.js` - Photo upload, valuation, manual entry
+- `js/grading.js` - Slab Worthy 4-photo flow
 
 **Backend (Render):**
 - `wsgi.py` - Flask app entry point
-- `ebay_valuation.py` - Backend valuation logic
-- `comic_extraction.py` - AI photo analysis
+- `comic_extraction.py` - AI photo analysis (SINGLE SOURCE OF TRUTH)
+- `ebay_valuation.py` - Valuation logic
 - `auth.py` - Authentication
 - `admin.py` - Admin panel
 
-### Database Info
-- **Host:** Render PostgreSQL
-- **Tool:** DBeaver for queries
-- **Key table:** `search_cache` (title, issue, grade, estimated_value, fair_value, high_value, created_at)
-- **Cache duration:** 48 hours
+---
 
-### Brand Guidelines Summary
-Reference BRAND_GUIDELINES.md for full details. Key points:
-- **Voice:** Expert, approachable, honest, helpful (not salesy or hyperbolic)
-- **Terminology:** Use "assess" or "check" not "grade" (CGC grades, we assess)
-- **Animations:** Purposeful and informative, NOT gambling metaphors (no slots, dice, spinning wheels)
-- **Loading text:** "Analyzing..." matches existing patterns
-- **Patent Pending:** Display on Slab Worthy feature, not on Slab Report output
+## Session 20 Summary (January 31, 2026)
 
-## Previous Sessions Summary
+### Major Win: Single Source of Truth ✅
+Photo Upload now uses `/api/extract` backend. Both Photo Upload AND Slab Worthy share the same extraction logic in `comic_extraction.py`.
 
-### Session 19 (Jan 31)
-- ✅ 20-tier slab premium model (grading.js)
-- ✅ Exponential decay recency (ebay_valuation.py) - 30-day half-life
-- ✅ Whatnot extension v2.41.1 - fixed null polling, interval cleanup
-- ✅ Server-side garbage filter (wsgi.py)
+### Completed
+- ✅ Photo Upload migrated to backend extraction
+- ✅ New schema: writer, artist, barcode_digits, signatures[], is_facsimile
+- ✅ Writer/Artist extraction working (tested: Scott Snyder / Nick Dragotta)
+- ✅ UI: "Variant" field → "Artist" field
+- ✅ Barcode decode_barcode() function ready
+- ✅ Signature analysis commented out for future
+- ✅ Debug endpoint: /api/debug/prompt-check
+- ✅ pyzbar + Pillow in requirements.txt
 
-### Session 18 (Jan 30)
-- ✅ Slab Worthy Step 1 uses backend extraction
-- ✅ barcode_digits field added to extraction
-- ✅ Deterministic grading with temperature=0
-- ✅ UI polish (Upload button text, Slab It branding)
+### Blocked: Barcode Scanning Needs Docker 🚧
 
-## Current Session (January 31, 2026 - Session 20)
+**Problem:** pyzbar needs libzbar0 system library. Render won't install it.
+- Aptfile ignored when custom build command exists
+- apt-get fails (read-only filesystem)
 
-### CURRENT BLOCKER: Render Not Deploying New Code
-We've been trying to update comic_extraction.py with:
-1. Stricter JSON schema enforcement (template at top of prompt)
-2. New fields: `writer`, `artist`, `barcode_digits`, `signatures`
-3. `decode_barcode()` function for interpreting 5-digit UPC supplements
-4. pyzbar integration for reliable barcode scanning
-
-**The Problem:** Render keeps serving the OLD prompt (2985 input tokens) despite:
-- Multiple `git push; deploy` cycles
-- Full rebuild (Clear cache & deploy)
-- Suspend and resume web service
-
-**Evidence:** 
-- Response still has old fields (`signature_detected`, `signature_analysis`)
-- Missing new fields (`writer`, `artist`, `barcode_digits`, `signatures`)
-- Token count stuck at 2985 (new prompt should be ~3200+)
-
-**Diagnosis Commands to Run:**
-```powershell
-# Check if file is in git
-git status
-
-# Check what's committed
-git log --oneline -1
-
-# Verify new prompt is in local file
-Select-String "YOU MUST RETURN EXACTLY" comic_extraction.py
+**Solution:** Docker deployment
+```dockerfile
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ```
 
-**Likely Issue:** The updated comic_extraction.py file may not have been saved to the correct location or committed to git. Claude provided the file but Mike may need to download and save it to the repo.
+**Why Critical:**
+- Can't detect reprints (Spawn #1: $25 reprint vs $300 first print)
+- Can't verify variants (Cover A vs B)
+- "No better than competition" without this
 
-### Files Claude Provided This Session
-- `comic_extraction.py` - Revised with:
-  - JSON template at TOP of prompt (Claude anchors on early structure)
-  - Defensive defaults in Python for missing fields
-  - Cleanup of old field names
-  - pyzbar scanning (needs Aptfile with `libzbar0` to work on Render)
-  - `decode_barcode()` function
+### Files Modified This Session
+- `comic_extraction.py` - new schema, decode_barcode(), signature prep
+- `js/app.js` - /api/extract, Artist field
+- `requirements.txt` - pyzbar, Pillow
+- `Aptfile` - created (not working yet)
+- `wsgi.py` - debug endpoint
 
-### When Mike Returns
-1. Run diagnostic commands above
-2. If file not in repo: Download from Claude's output and save to repo root
-3. Commit and deploy: `git add .; git commit -m "Stricter extraction prompt"; git push; deploy`
-4. Test with Batman #4 image
-5. Verify token count increases and new fields appear
+---
 
-### Other Pending Work
+## Next Session Priority
 
-#### High Priority
-- [ ] Get comic_extraction.py deployed (CURRENT BLOCKER)
-- [ ] Verify barcode extraction working
-- [ ] Add pyzbar support (Aptfile with libzbar0)
-- [ ] Reprint filtering for valuations (Spawn #1 problem)
+### Docker Setup for Barcode Scanning
+1. Create Dockerfile in repo root
+2. Change Render Environment to "Docker"
+3. Clear cache and deploy
+4. Verify pyzbar loads (check logs for "not available" message)
+5. Test barcode extraction with real comic
+6. Use barcode data in valuations
 
-#### Medium Priority  
-- [ ] UI display for writer/artist/barcode info
-- [ ] Reprint/variant warning badges
-- [ ] Prompt Management Admin Page
+### After Barcode Working
+- Filter reprints from valuation comps
+- Add reprint/variant warnings to UI
+- Test with Spawn #1 to verify detection
 
-#### Low Priority
-- [ ] Pricing model decisions
-- [ ] FAQ content
+---
 
-## Useful Info
+## Quick Reference
 
-### Image Quality for Barcode Reading
-- Facebook Messenger: Heavy compression, send as file attachment
-- WhatsApp: Tap "HD" button, or send as "Document"
-- Email: Usually full quality (best option)
-- iMessage: Good quality
-
-### Temperature Setting
-- `temperature: 0` = Deterministic (same input = same output)
-- For grading: ALWAYS use 0
-
-## Deployment Commands
+### Deployment Commands
 ```powershell
-# Backend changes (Render) - deploy is REQUIRED (auto-deploy disabled)
+# Backend (Render) - deploy is REQUIRED
 git add .; git commit -m "message"; git push; deploy
 
-# Frontend changes (Cloudflare) - purge cache
+# Frontend (Cloudflare) - purge cache
 git add .; git commit -m "message"; git push; purge
 
 # Both
 git add .; git commit -m "message"; git push; deploy; purge
 ```
 
-## Key Documents
-- `COMPETITORS.md` - Competitor analysis
-- `BRAND_GUIDELINES.md` - Voice, terminology, design principles
+### Render Gotchas
+- Custom Build Command overrides Aptfile detection
+- "Clear build cache & deploy" needed for build changes
+- Check `/api/debug/prompt-check` to verify deployed prompt
+
+### Key Documents
 - `ROADMAP.md` - Feature roadmap and version history
+- `BRAND_GUIDELINES.md` - Voice, terminology, design principles
+- `COMPETITORS.md` - Competitor analysis
 - `ARCHITECTURE.md` - Technical architecture
 
 ---
-*Last updated: January 31, 2026 (Session 20 - Mid-session checkpoint)*
-*Status: Blocked on Render deployment issue*
+
+*Last updated: January 31, 2026 (Session 20)*
+*Next priority: Docker deployment for barcode scanning*

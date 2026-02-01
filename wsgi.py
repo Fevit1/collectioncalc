@@ -14,6 +14,7 @@ New in v3.9:
 import os
 import time
 import json
+import hashlib
 from functools import wraps
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
@@ -93,6 +94,103 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+# eBay Sales API Endpoints
+# Add these to your wsgi.py file
+#
+# STEP 1: Add this import at the top of wsgi.py (if not already there):
+#     import hashlib
+#
+# STEP 2: Copy everything below this line into wsgi.py with your other routes:
+# ===========================================================================
+
+@app.route('/api/ebay-sales/batch', methods=['POST'])
+def add_ebay_sales_batch():
+    """Batch insert eBay sales from browser extension."""
+    try:
+        data = request.get_json()
+        sales = data.get('sales', [])
+        
+        if not sales:
+            return jsonify({'error': 'No sales provided'}), 400
+        
+        saved = 0
+        duplicates = 0
+        
+        for sale in sales:
+            content = f"{sale.get('raw_title', '')}|{sale.get('sale_price', '')}|{sale.get('sale_date', '')}"
+            content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
+            
+            try:
+                cursor = get_db().cursor()
+                cursor.execute("""
+                    INSERT INTO ebay_sales (
+                        raw_title, parsed_title, issue_number, publisher,
+                        sale_price, sale_date, condition, graded, grade,
+                        listing_url, image_url, ebay_item_id, content_hash
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (ebay_item_id) DO NOTHING
+                """, (
+                    sale.get('raw_title'),
+                    sale.get('parsed_title'),
+                    sale.get('issue_number'),
+                    sale.get('publisher'),
+                    sale.get('sale_price'),
+                    sale.get('sale_date'),
+                    sale.get('condition'),
+                    sale.get('graded', False),
+                    sale.get('grade'),
+                    sale.get('listing_url'),
+                    sale.get('image_url'),
+                    sale.get('ebay_item_id'),
+                    content_hash
+                ))
+                
+                if cursor.rowcount > 0:
+                    saved += 1
+                else:
+                    duplicates += 1
+                    
+                get_db().commit()
+                
+            except Exception as e:
+                duplicates += 1
+                get_db().rollback()
+        
+        return jsonify({
+            'success': True,
+            'saved': saved,
+            'duplicates': duplicates,
+            'total': len(sales)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ebay-sales/stats', methods=['GET'])
+def get_ebay_sales_stats():
+    """Get statistics about collected eBay sales."""
+    try:
+        cursor = get_db().cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM ebay_sales")
+        total = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM ebay_sales 
+            WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'
+        """)
+        last_week = cursor.fetchone()[0]
+        
+        return jsonify({
+            'total_sales': total,
+            'last_7_days': last_week
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 # ============================================

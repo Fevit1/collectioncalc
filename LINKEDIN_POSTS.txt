@@ -1,0 +1,95 @@
+# Claude + 1 PM = App: Daily LinkedIn Posts
+
+## Guidelines
+- **No secrets:** Don't reveal patent-pending features, specific algorithms, or competitive advantages
+- **No roadmap:** Don't share upcoming features or plans
+- **Focus on:** The journey, challenges, learnings, PM-AI collaboration, business insights
+- **Tone:** Authentic, relatable, professional but human
+- **Audience:** Marketing leaders, CMOs, Martech professionals, PMs curious about AI
+- **Length:** 150-250 words (LinkedIn sweet spot)
+- **Hashtags:** #BuildingInPublic #AI #ProductManagement #Martech #Innovation
+- **Avoid:** Technical jargon (Docker, APIs, libraries) - keep it business-focused
+
+---
+
+## Post 1: February 1, 2026
+
+### Title/Hook
+**I'm a PM who can't code. I'm building an app with AI as my only developer.**
+
+### Body
+15+ years in product management. I've led teams, managed roadmaps, and shipped products at companies you've heard of.
+
+But I've never written a line of production code.
+
+Six weeks ago, I started an experiment: Could I build a real, working product using AI as my entire engineering team?
+
+Today was humbling.
+
+I needed to add a feature that required something our hosting provider doesn't normally support. Simple ask, right?
+
+Three hours later, I finally found the workaround.
+
+Here's what I'm learning:
+
+Building products has always required translating business needs into technical requirements. The difference now? I'm not handing those requirements to an engineer. I'm working through them myself, with AI as my thought partner.
+
+It's slower than having a dev team. It's faster than learning to code. And it's teaching me more about how software actually works than 15 years of writing PRDs ever did.
+
+Tomorrow I find out if today's fix actually worked.
+
+**Have you experimented with AI as a building tool (not just a writing tool)?**
+
+#BuildingInPublic #AI #ProductManagement #Martech #Innovation
+
+### Image Recommendation
+**Option A:** Simple "Day 1" graphic with your headshot and a robot/AI icon - clean and professional
+
+**Option B:** Photo of you at your desk with coffee - authentic "building something" vibe
+
+**Option C:** Split image: left side = PRD/roadmap, right side = working app screenshot (blurred)
+
+---
+
+## Template for Future Posts
+
+```
+### Title/Hook
+[Attention-grabbing first line - question, bold statement, or relatable frustration]
+
+### Body
+[Context - 1-2 sentences]
+
+[The challenge/situation - what we were trying to do]
+
+[The journey - what we tried, what failed, what worked]
+
+[The learning - insight that others can relate to]
+
+[Call to action - question for engagement]
+
+### Hashtags
+#BuildingInPublic #AI #ProductManagement #Martech #Innovation
+
+### Image Recommendation
+[Describe 2-3 options]
+```
+
+---
+
+## Content Ideas Bank
+- "What building a product taught me about managing product teams"
+- "When AI and I disagree on the solution"
+- "Features I killed (and what the data told me)"
+- "What I wish I knew 6 weeks ago about AI collaboration"
+- "The real cost of running an AI-powered product"
+- "User feedback that changed everything"
+- "The 5-minute feature vs the 5-day feature"
+- "Why I stopped over-explaining to AI (and what happened)"
+- "What PRDs never taught me about building"
+- "The PM skills that transfer to AI collaboration (and the ones that don't)"
+
+---
+
+*Created: February 1, 2026*
+
