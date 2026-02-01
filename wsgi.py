@@ -103,6 +103,7 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 def add_ebay_sales_batch():
     """Batch insert eBay sales from browser extension."""
     import psycopg2
+    database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
         data = request.get_json()
@@ -174,6 +175,7 @@ def add_ebay_sales_batch():
 def get_ebay_sales_stats():
     """Get statistics about collected eBay sales."""
     import psycopg2
+    database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
         conn = psycopg2.connect(database_url)
