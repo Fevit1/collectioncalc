@@ -2,7 +2,7 @@
 // UTILS.JS - Shared constants, state, and utilities
 // ============================================
 
-const API_URL = 'https://collectioncalc.onrender.com';
+const API_URL = 'https://collectioncalc-docker.onrender.com';
 
 // App state - shared across all modules
 let currentMode = 'manual';
