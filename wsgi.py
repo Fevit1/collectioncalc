@@ -101,10 +101,48 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
 @app.route('/api/ebay-sales/batch', methods=['POST'])
 def add_ebay_sales_batch():
-    """Batch insert eBay sales from browser extension."""
+    """Batch insert eBay sales from browser extension with R2 image backup."""
     import psycopg2
+    import requests
+    import base64
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from r2_storage import upload_image
+    
     database_url = os.environ.get('DATABASE_URL')
     conn = None
+    
+    def backup_image_to_r2(sale):
+        """Download image from eBay and upload to R2."""
+        try:
+            image_url = sale.get('image_url', '')
+            ebay_item_id = sale.get('ebay_item_id', '')
+            
+            if not image_url or not ebay_item_id:
+                return None
+            
+            # Download from eBay
+            response = requests.get(image_url, timeout=10)
+            if response.status_code != 200:
+                return None
+            
+            # Convert to base64
+            image_b64 = base64.b64encode(response.content).decode('utf-8')
+            
+            # Determine content type
+            content_type = response.headers.get('Content-Type', 'image/jpeg')
+            ext = 'webp' if 'webp' in content_type else 'jpg'
+            
+            # Upload to R2
+            path = f"ebay-covers/{ebay_item_id}.{ext}"
+            result = upload_image(image_b64, path, content_type)
+            
+            if result.get('success'):
+                return {'ebay_item_id': ebay_item_id, 'r2_url': result['url']}
+            return None
+        except Exception as e:
+            print(f"Image backup error for {sale.get('ebay_item_id')}: {e}")
+            return None
+    
     try:
         data = request.get_json()
         sales = data.get('sales', [])
@@ -117,7 +155,9 @@ def add_ebay_sales_batch():
         
         saved = 0
         duplicates = 0
+        saved_sales = []  # Track which sales were actually saved
         
+        # Step 1: Insert all sales to database
         for sale in sales:
             content = f"{sale.get('raw_title', '')}|{sale.get('sale_price', '')}|{sale.get('sale_date', '')}"
             content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
@@ -148,6 +188,7 @@ def add_ebay_sales_batch():
                 
                 if cur.rowcount > 0:
                     saved += 1
+                    saved_sales.append(sale)
                 else:
                     duplicates += 1
                     
@@ -157,10 +198,33 @@ def add_ebay_sales_batch():
                 duplicates += 1
                 conn.rollback()
         
+        # Step 2: Parallel image backup for newly saved sales (max 5 concurrent)
+        images_backed_up = 0
+        if saved_sales:
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = {executor.submit(backup_image_to_r2, sale): sale for sale in saved_sales}
+                
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result:
+                        # Update database with R2 URL
+                        try:
+                            cur.execute("""
+                                UPDATE ebay_sales 
+                                SET r2_image_url = %s 
+                                WHERE ebay_item_id = %s
+                            """, (result['r2_url'], result['ebay_item_id']))
+                            conn.commit()
+                            images_backed_up += 1
+                        except Exception as e:
+                            print(f"Error updating R2 URL: {e}")
+                            conn.rollback()
+        
         return jsonify({
             'success': True,
             'saved': saved,
             'duplicates': duplicates,
+            'images_backed_up': images_backed_up,
             'total': len(sales)
         })
         

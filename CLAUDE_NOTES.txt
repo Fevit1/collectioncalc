@@ -13,6 +13,8 @@
 - Single source of truth achieved for all extraction (comic_extraction.py)
 - Writer/Artist extraction working
 - Barcode infrastructure ready but blocked on Docker deployment
+- eBay Collector extension ready to test
+- Whatnot Valuator extension v2.41.2 deployed (storage quota fix)
 
 **Critical Priority:** Barcode scanning via Docker. Without it, we can't detect reprints (Spawn #1: $25 reprint vs $300 first print). This is the #1 differentiator vs competition.
 
@@ -76,6 +78,7 @@
 | Slab Worthy? | 4-photo grading assessment (Patent Pending) |
 | Slab Report | Grade estimate + economic recommendation |
 | Whatnot Extension | Browser extension for live stream valuations |
+| eBay Collector | Passive data collection from eBay sold listings |
 
 ### Key Files
 **Frontend (Cloudflare Pages):**
@@ -92,6 +95,46 @@
 - `ebay_valuation.py` - Valuation logic
 - `auth.py` - Authentication
 - `admin.py` - Admin panel
+
+---
+
+## Session 21 Summary (February 1, 2026)
+
+### eBay Collector Extension - API Fixed ✅
+Fixed wsgi.py endpoints for eBay sales data collection:
+- Added `import psycopg2` inside each function (matches existing pattern)
+- Added `database_url = os.environ.get('DATABASE_URL')`
+- Database ready: `ebay_sales` table + `comic_fmv` view created
+- **Status:** Ready to test - install extension, browse eBay sold listings
+
+**Endpoints:**
+- `POST /api/ebay-sales/batch` - Batch insert sales from extension
+- `GET /api/ebay-sales/stats` - Get collection statistics
+
+### Whatnot Valuator Extension - Storage Fix ✅
+Fixed Chrome local storage quota exceeded error (v2.41.2):
+- **Root cause:** Storing full base64 images (5000 sales × ~100KB = 500MB, Chrome limit: 5MB)
+- **Fix:** Strip `imageDataUrl` and `frameData` before storage (images already in R2)
+- Reduced cap: 5000 → 500 sales
+- Added `compactStorage()` function to clean existing bloated data
+- **Status:** Deployed and working
+
+### wsgi.py - Silenced eBay Deletion Notifications ✅
+Removed verbose logging for `MARKETPLACE_ACCOUNT_DELETION` events - these are eBay users who never used our app.
+
+### System Catcher Book Cover (Side Project) ✅
+Created full wraparound cover for Amazon KDP paperback:
+- 282 pages, 6×9 trim, cream paper
+- Back cover: blurb, author photo, bio
+- Spine: title + author name in orange
+- Pricing: $13.99 paperback, $4.99 Kindle
+- File: `System_Catcher_Full_Cover_Final.pdf`
+
+### Not Started This Session
+- Docker deployment for barcode scanning (still #1 priority)
+
+### Files Modified This Session
+- `wsgi.py` - eBay sales endpoints fixed, deletion notifications silenced
 
 ---
 
@@ -132,18 +175,17 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 - Can't verify variants (Cover A vs B)
 - "No better than competition" without this
 
-### Files Modified This Session
-- `comic_extraction.py` - new schema, decode_barcode(), signature prep
-- `js/app.js` - /api/extract, Artist field
-- `requirements.txt` - pyzbar, Pillow
-- `Aptfile` - created (not working yet)
-- `wsgi.py` - debug endpoint
-
 ---
 
 ## Next Session Priority
 
-### Docker Setup for Barcode Scanning
+### 1. Test eBay Collector Extension
+1. Load extension in Chrome (chrome://extensions → Load unpacked)
+2. Verify stats endpoint: https://collectioncalc.onrender.com/api/ebay-sales/stats
+3. Browse eBay sold listings, watch for green toast
+4. Check data in DBeaver: `SELECT * FROM ebay_sales LIMIT 10;`
+
+### 2. Docker Setup for Barcode Scanning
 1. Create Dockerfile in repo root
 2. Change Render Environment to "Docker"
 3. Clear cache and deploy
@@ -185,5 +227,5 @@ git add .; git commit -m "message"; git push; deploy; purge
 
 ---
 
-*Last updated: January 31, 2026 (Session 20)*
-*Next priority: Docker deployment for barcode scanning*
+*Last updated: February 1, 2026 (Session 21)*
+*Next priority: Test eBay extension, then Docker deployment for barcode scanning*
