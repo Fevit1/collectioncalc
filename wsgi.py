@@ -1521,9 +1521,43 @@ def api_delete_collection_item(item_id):
     else:
         return jsonify({'success': False, 'error': 'Item not found'}), 404
 
+
 # ============================================
 # BARCODE SCANNING (Docker only)
 # ============================================
+
+@app.route('/api/barcode-test', methods=['GET'])
+def barcode_test():
+    """Test if pyzbar/libzbar0 is working (requires Docker deployment)."""
+    try:
+        from pyzbar import pyzbar
+        from PIL import Image
+        import io
+        
+        # Create a tiny test image to verify full pipeline works
+        test_image = Image.new('RGB', (10, 10), color='white')
+        
+        # Try to decode it (will find nothing, but proves library loads)
+        results = pyzbar.decode(test_image)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'pyzbar and libzbar0 loaded successfully',
+            'test_decode': 'working',
+            'barcodes_found': len(results)  # Should be 0 for blank image
+        })
+    except ImportError as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'pyzbar import failed: {str(e)}',
+            'hint': 'This endpoint requires Docker deployment with libzbar0'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 
 @app.route('/api/barcode-scan', methods=['POST'])
 def barcode_scan():
@@ -1633,7 +1667,6 @@ def barcode_scan():
             'success': False,
             'error': str(e)
         }), 500
-
 
 
 # ============================================
