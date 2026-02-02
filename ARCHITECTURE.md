@@ -3,34 +3,35 @@
 ## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         USER INTERFACES                              │
-├─────────────────┬─────────────────┬─────────────────────────────────┤
-│  CollectionCalc │  Slab Worthy?   │   Whatnot Extension             │
-│  Web App        │  (Same app)     │   Chrome Extension              │
-│  - Valuations   │  - 4-photo      │   - Live auction overlay        │
-│  - eBay listing │    grading      │   - Auto-scan covers            │
-│  - Collection   │  - Grade report │   - Sale capture                │
-│                 │  - ROI calc     │   - Signature detection         │
-└────────┬────────┴────────┬────────┴─────────────────┬───────────────┘
-         │                 │                          │
-         │    HTTPS/REST   │                          │
-         ▼                 ▼                          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    COLLECTIONCALC API                                │
-│                 (collectioncalc.onrender.com)                        │
-├─────────────────────────────────────────────────────────────────────┤
-│  /api/valuate      - Three-tier comic valuation                      │
-│  /api/messages     - Anthropic proxy (frontend extraction)           │
-│  /api/extract      - Backend photo extraction                        │
-│  /api/batch/*      - QuickList bulk processing                       │
-│  /api/sales/*      - Market data recording/retrieval                 │
-│  /api/ebay/*       - eBay OAuth + listing                           │
-│  /api/auth/*       - User authentication                            │
-│  /api/collection   - User collection CRUD                           │
-│  /api/admin/*      - Admin functions, NLQ                           │
-│  /api/images/*     - R2 image upload                                │
-└────────┬────────────────────┬───────────────────────┬───────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            USER INTERFACES                                   │
+├─────────────────┬─────────────────┬──────────────────┬──────────────────────┤
+│  CollectionCalc │  Slab Worthy?   │ Whatnot Extension│  eBay Collector      │
+│  Web App        │  (Same app)     │ Chrome Extension │  Chrome Extension    │
+│  - Valuations   │  - 4-photo      │ - Live auction   │  - Passive scraping  │
+│  - eBay listing │    grading      │   overlay        │  - Sold listings     │
+│  - Collection   │  - Grade report │ - Auto-scan      │  - R2 image backup   │
+│                 │  - ROI calc     │ - Sale capture   │  - Local + cloud     │
+└────────┬────────┴────────┬────────┴────────┬─────────┴──────────┬───────────┘
+         │                 │                 │                    │
+         │    HTTPS/REST   │                 │                    │
+         ▼                 ▼                 ▼                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         COLLECTIONCALC API                                   │
+│                      (collectioncalc.onrender.com)                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  /api/valuate        - Three-tier comic valuation                            │
+│  /api/messages       - Anthropic proxy (frontend extraction)                 │
+│  /api/extract        - Backend photo extraction                              │
+│  /api/batch/*        - QuickList bulk processing                             │
+│  /api/sales/*        - Market data recording/retrieval                       │
+│  /api/ebay/*         - eBay OAuth + listing                                 │
+│  /api/ebay-sales/*   - eBay Collector data ingestion (NEW)                  │
+│  /api/auth/*         - User authentication                                  │
+│  /api/collection     - User collection CRUD                                 │
+│  /api/admin/*        - Admin functions, NLQ                                 │
+│  /api/images/*       - R2 image upload                                      │
+└────────┬────────────────────┬───────────────────────┬───────────────────────┘
          │                    │                       │
          ▼                    ▼                       ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐
@@ -40,7 +41,8 @@
 │ users           │  └─────────────────┘  │  Cloudflare R2 (images) │
 │ collections     │                       │  Resend (email)         │
 │ market_sales    │                       │  eBay Browse API (data) │
-│ search_cache    │                       └─────────────────────────┘
+│ ebay_sales  🆕  │                       └─────────────────────────┘
+│ search_cache    │
 │ creator_sigs    │
 │ beta_codes      │
 │ ebay_tokens     │
@@ -76,8 +78,8 @@ cc/v2/
 ├── r2_storage.py        # Cloudflare R2 integration
 ├── requirements.txt     # Python dependencies
 │
-├── ─────────── CHROME EXTENSION ───────────
-├── whatnot-valuator/
+├── ─────────── CHROME EXTENSIONS ───────────
+├── whatnot-valuator/    # Whatnot live stream valuations (v2.41.2)
 │   ├── manifest.json    # Extension config
 │   ├── content.js       # Main overlay, auction monitoring
 │   ├── lib/
@@ -85,6 +87,13 @@ cc/v2/
 │   │   └── vision.js          # Claude Vision (facsimile detection)
 │   └── data/
 │       └── keys.js      # 500+ key issue database
+│
+├── ebay-collector/      # eBay sold listings collector (v1.0.3) 🆕
+│   ├── manifest.json    # Extension config
+│   ├── content.js       # Page scraping, sale parsing
+│   ├── popup.html       # Stats popup UI
+│   ├── popup.js         # Sync button, stats display
+│   └── icons/           # Extension icons
 │
 └── ─────────── DOCUMENTATION ───────────
     ├── CLAUDE_NOTES.txt # Session notes, context for Claude
@@ -98,60 +107,98 @@ cc/v2/
 ## JavaScript Module Dependencies
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    app.html                          │
-│  Loads scripts in order:                            │
-│                                                      │
-│  1. js/utils.js    ─── Shared state, API_URL        │
-│         │              Image processing              │
-│         │              Loading/thinking UI           │
-│         ▼                                           │
-│  2. js/auth.js     ─── Uses: API_URL, authToken     │
-│         │              Login/signup/logout           │
-│         │              Collection functions          │
-│         ▼                                           │
-│  3. js/app.js      ─── Uses: all above + ebayUserId │
-│         │              eBay integration              │
-│         │              Photo upload & extraction     │
-│         │              Valuation & results           │
-│         ▼                                           │
-│  4. js/grading.js  ─── Uses: all above              │
-│                        Slab Worthy 4-photo flow     │
-│                        Grade report generation       │
-│                        ROI calculation               │
-└─────────────────────────────────────────────────────┘
+┌─────────────┐
+│  app.html   │
+└─────┬───────┘
+      │ loads (in order)
+      ▼
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  utils.js   │────▶│  auth.js    │────▶│  app.js     │────▶│ grading.js  │
+│             │     │             │     │             │     │             │
+│ - Constants │     │ - JWT       │     │ - eBay mode │     │ - Slab      │
+│ - State     │     │ - Login     │     │ - Photo     │     │   Worthy    │
+│ - Images    │     │ - User menu │     │ - Manual    │     │ - 4 photos  │
+│ - UI utils  │     │ - Collection│     │ - Valuation │     │ - Report    │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+      ▲                   ▲                   ▲                   ▲
+      │                   │                   │                   │
+      └───────────────────┴───────────────────┴───────────────────┘
+                    All modules share window.state
 ```
 
-## Slab Worthy Feature Flow
+## eBay Collector Extension (NEW)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SLAB WORTHY? FLOW                             │
+│                    eBay COLLECTOR FLOW                           │
+└─────────────────────────────────────────────────────────────────┘
+
+User browses eBay sold listings
+      │
+      ▼
+┌─────────────────────┐
+│ content.js triggers │ (on pages with LH_Sold=1)
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Parse li.s-card     │ (eBay's 2026 HTML structure)
+│ elements            │
+└──────────┬──────────┘
+           │
+           ├─► Extract: title, price, date, condition
+           ├─► Parse: issue #, publisher, grade (CGC/CBCS)
+           ├─► Get: listing URL, image URL, eBay item ID
+           │
+           ▼
+┌─────────────────────┐
+│ Local Storage       │ (immediate, offline-capable)
+│ + Show green toast  │ "📊 Collected X new sales"
+└──────────┬──────────┘
+           │
+           ▼ (Sync Now button or auto)
+┌─────────────────────┐
+│ POST /api/ebay-     │
+│ sales/batch         │
+└──────────┬──────────┘
+           │
+           ├─► Insert to ebay_sales (dedupe by item ID)
+           │
+           ▼
+┌─────────────────────┐
+│ Parallel R2 Backup  │ (5 concurrent)
+│ Download eBay image │
+│ Upload to R2        │
+│ Store r2_image_url  │
+└─────────────────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Response:           │
+│ - saved: 61         │
+│ - duplicates: 0     │
+│ - images_backed_up: │
+│   58                │
+└─────────────────────┘
+```
+
+## Slab Worthy Grading Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SLAB WORTHY FLOW                              │
 │                    (Patent Pending)                              │
 └─────────────────────────────────────────────────────────────────┘
 
-User clicks "🔲 Slab Worthy?" tab
-            │
-            ▼
 ┌─────────────────────┐
 │ Step 1: FRONT COVER │ ◄── REQUIRED
-│ [📷 Take Photo]     │
-│ [📁 Upload Gallery] │ ◄── NEW: Dual input options
-└──────────┬──────────┘
-           │
-     ┌─────┴─────┐
-     │ Auto-     │ → EXIF orientation correction
-     │ Rotation  │ → Landscape→portrait (90°)
-     │           │ → Upside-down detection (180°)
-     └─────┬─────┘
-           │
-     ┌─────┴─────┐
-     │ AI Check  │ → Quality feedback (blur/dark/glare)
-     │ Extract   │ → Title, Issue, Publisher, Year
-     │ Defects   │ → Cover condition assessment
-     └─────┬─────┘
-           │
-           ▼
+├─────────────────────┤
+│ Claude Vision:      │
+│ Extract   │ → Title, Issue, Publisher, Year
+│ Defects   │ → Cover condition assessment
+└─────┬─────┘
+      │
+      ▼
 ┌─────────────────────┐
 │ Step 2: SPINE       │ ◄── Recommended (skippable)
 └──────────┬──────────┘
@@ -204,63 +251,6 @@ User clicks "🔲 Slab Worthy?" tab
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Auto-Rotation System
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    IMAGE AUTO-ROTATION                           │
-│                    (Two-Layer System)                            │
-└─────────────────────────────────────────────────────────────────┘
-
-Photo uploaded (Camera or Gallery)
-      │
-      ▼
-┌─────────────────────┐
-│ Layer 1: EXIF       │
-│ (processImageFor-   │
-│  Extraction)        │
-└──────────┬──────────┘
-           │
-           ├─► Read EXIF orientation tag
-           ├─► Calculate effective dimensions after EXIF
-           │
-           │   Is width > height after EXIF?
-           │   (Landscape orientation)
-           │         │
-           │    YES  │  NO
-           │         ▼   │
-           │   Rotate 90° │
-           │   to portrait│
-           │         │    │
-           ▼         ▼    ▼
-┌─────────────────────────────────────┐
-│ Image sent to Claude for analysis   │
-└──────────┬──────────────────────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Layer 2: AI         │
-│ Upside-down check   │
-│ (All steps 1-4)     │ ◄── All steps now check orientation
-└──────────┬──────────┘
-           │
-           ├─► Claude checks if image is upside-down
-           │   (is_upside_down in prompt)
-           │
-           │   is_upside_down: true?
-           │         │
-           │    YES  │  NO
-           │         ▼   │
-           │   Rotate 180°│
-           │   Re-analyze │
-           │         │    │
-           ▼         ▼    ▼
-┌─────────────────────────────────────┐
-│ Correctly oriented image displayed  │
-│ Comic identified accurately         │
-└─────────────────────────────────────┘
-```
-
 ## Valuation Flow
 
 ```
@@ -306,6 +296,29 @@ collections (id, user_id, title, issue, grade, purchase_price, notes, created_at
 market_sales (id, title, issue, grade, price, platform, sold_date, created_at)
 search_cache (id, cache_key, result_json, created_at)  -- 48hr TTL
 
+-- eBay Collector Data (NEW)
+ebay_sales (
+    id, 
+    ebay_item_id,        -- Unique, used for deduplication
+    raw_title,           -- Original eBay listing title
+    parsed_title,        -- Cleaned title
+    issue_number,        -- Extracted issue #
+    publisher,           -- Marvel, DC, Image, etc.
+    sale_price,          -- Final sale price
+    sale_date,           -- When it sold
+    condition,           -- e.g., "CGC 9.8"
+    graded,              -- Boolean
+    grade,               -- Numeric grade
+    listing_url,         -- eBay listing URL
+    image_url,           -- eBay image URL (may expire)
+    r2_image_url,        -- Permanent R2 backup URL
+    content_hash,        -- For deduplication
+    created_at
+)
+
+-- View for Fair Market Value calculations
+comic_fmv (view) - 90-day rolling FMV by title/issue
+
 -- Signatures
 creator_signatures (id, creator_name, signature_url, signature_type, notes)
 signature_matches (id, user_id, comic_title, issue, matched_creator, confidence)
@@ -325,15 +338,33 @@ api_usage (id, user_id, endpoint, tokens_used, created_at)
 | Anthropic Claude | Vision extraction, valuations, descriptions | API Key |
 | eBay Browse API | Market data, completed listings | OAuth |
 | eBay Inventory API | Create draft listings | OAuth |
-| Cloudflare R2 | Image storage | Access Key |
+| Cloudflare R2 | Image storage (sales + eBay covers) | Access Key |
 | Resend | Transactional email | API Key |
+
+## R2 Storage Structure
+
+```
+collectioncalc-images/
+├── sales/              # Whatnot sale images
+│   └── {sale_id}/
+│       └── front.jpg
+├── submissions/        # B4Cert grading submissions  
+│   └── {submission_id}/
+│       ├── front.jpg
+│       ├── back.jpg
+│       ├── spine.jpg
+│       └── centerfold.jpg
+├── ebay-covers/        # eBay Collector images (NEW)
+│   └── {ebay_item_id}.webp
+└── temp/               # Temporary uploads
+```
 
 ## Security
 
 - **JWT tokens** for user authentication (24hr expiry)
 - **Beta codes** gate new signups
 - **Admin approval** required for full access
-- **CORS** restricted to collectioncalc.com
+- **CORS** restricted to collectioncalc.com + onrender.com
 - **Rate limiting** on API endpoints
 - **Passwords** hashed with bcrypt
 
@@ -348,5 +379,5 @@ api_usage (id, user_id, endpoint, tokens_used, created_at)
 
 ---
 
-*Last updated: January 29, 2026*
+*Last updated: February 1, 2026*
 *Patent Pending: Multi-angle comic grading system*

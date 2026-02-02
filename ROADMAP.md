@@ -1,6 +1,6 @@
 # CollectionCalc / Slab Worthy Roadmap
 
-## Current Version: 2.98.0 (January 30, 2026)
+## Current Version: 2.99.0 (February 1, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -9,16 +9,32 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## Recently Completed
 
-### v2.98.0 - Single Source of Truth & Deterministic Grading (Session 18) 🆕
+### v2.99.0 - eBay Collector Extension (Session 21) 🆕
+- [x] **eBay Collector Extension v1.0.3** - Passively collects comic sale data from eBay sold listings
+  - Parses: title, issue, price, date, condition, grade, publisher, image
+  - Fixed selectors for eBay's 2026 HTML structure (`li.s-card`)
+  - Popup shows stats and manual Sync button
+- [x] **R2 Image Backup** - Permanent storage for cover images
+  - Parallel processing (5 concurrent) for speed
+  - Images stored at `ebay-covers/{item_id}.webp`
+  - ~10-15 seconds for 60 images
+- [x] **Database Schema** - `ebay_sales` table with full sale data
+  - `comic_fmv` view for 90-day rolling FMV calculations
+  - Deduplication via `ebay_item_id` unique constraint
+- [x] **Whatnot Extension Fix** - v2.41.2 storage quota fix
+  - Was storing base64 images (500MB+), now stripped before storage
+- [x] **wsgi.py cleanup** - Silenced eBay deletion notification spam
+
+### v2.98.0 - Single Source of Truth & Deterministic Grading (Session 18-20)
 - [x] **Slab Worthy uses backend extraction** - Step 1 now calls /api/extract (same as Photo Upload)
 - [x] **barcode_digits field added** - Extracts 5-digit UPC add-on code for print/variant identification
 - [x] **Deterministic grading** - Added temperature=0 to all Claude API calls
 - [x] **wsgi.py media_type passthrough** - /api/extract properly handles PNG, HEIC, WebP
+- [x] **Writer/Artist extraction** - New schema fields working
 - [x] **UI Polish:**
   - "Upload from Gallery" → "Upload" (shorter, cleaner)
   - "💰 Should You Grade This?" → Slab icon + "Should You Slab It?"
   - Warning message clarified (about photo count, not quality)
-- [x] **Thinking animation code** - Progress messages during valuation (needs debugging)
 
 ### v2.97.0 - Mobile Fixes & Gallery Upload (Sessions 15-17)
 - [x] **Login persistence fixed** - Token now properly loads from localStorage
@@ -34,10 +50,6 @@ Provisional patent filed for multi-angle comic grading system.
 - [x] **Auto-rotate landscape→portrait** - Comics are always taller than wide
 - [x] **Auto-detect upside-down** - AI checks orientation, rotates 180° if needed
 - [x] **Split app.js into 4 modules** - Prevents file truncation on low-memory systems
-  - `js/utils.js` - Shared state, image processing, UI helpers
-  - `js/auth.js` - Authentication, user menu, collection
-  - `js/app.js` - eBay, photo upload, valuation, manual entry
-  - `js/grading.js` - Slab Worthy 4-photo flow
 - [x] **"Upright" instruction text** - Guides users to reduce re-analysis costs
 - [x] **Rotate button debounce** - 2.5s cooldown prevents rapid clicks
 
@@ -61,74 +73,63 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-## In Progress / Known Bugs
+## In Progress / Blocked
 
-### Bugs to Fix
+### 🚧 Barcode Scanning - BLOCKED ON DOCKER
+**Problem:** pyzbar needs libzbar0 system library. Render won't install it.
+
+**Solution:** Docker deployment
+```dockerfile
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
+```
+
+**Why Critical:**
+- Can't detect reprints (Spawn #1: $25 reprint vs $300 first print)
+- Can't verify variants (Cover A vs B)
+- This is the #1 differentiator vs competition
+
+**Next Steps:**
+1. Create Dockerfile in repo root
+2. Change Render Environment to "Docker"
+3. Clear cache and deploy
+4. Test barcode extraction
+
+---
+
+## Known Bugs
+
 - [ ] 🐛 **Thinking animation not showing** - Code added but not appearing in Slab Worthy Step 5
 - [ ] 🐛 **Photo Upload missing thinking animation** - Needs same treatment as Slab Worthy
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
-- [ ] 🐛 **Whatnot extension polling** - Hammers server with null issue, doesn't stop on tab close
 - [ ] 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button on non-mobile
-
-### Valuation Accuracy
-- [ ] **Spawn #1 reprint confusion** - Returns ~$25 instead of $300-400 for first prints
-- [ ] **Barcode decoder logic** - Interpret 5-digit codes by publisher (DC, Marvel, etc.)
-- [ ] **Key issue sanity check** - Database of floor prices to catch bad values
-
-### Performance
-- [ ] **Valuation speed** - "Should you slab it?" calculation takes time (thinking animation helps UX)
 
 ---
 
 ## Backlog
 
 ### High Priority
-- [ ] **Fix Whatnot Extension** - Critical for collecting real sales data
-  - Polling with null issue hammers server
-  - Doesn't stop when tab closed
-  - Need this working to improve valuations with real data
-- [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
-- [ ] **Add thinking animation to Photo Upload** - Same treatment in app.js
+- [ ] **Docker deployment for barcode scanning** - #1 PRIORITY
 - [ ] **Barcode-based variant detection** - Use 5-digit code to identify prints/variants
-- [ ] **Test barcode with modern comics** - Need high-res Absolute Batman image
-- [ ] **Whatnot Auction Integration** - Create auctions/sales from graded comics
-  - Similar flow to eBay QuickList
-  - AI-generated descriptions
-  - Pre-fill pricing from valuations
-  - Direct listing creation via Whatnot API
+- [ ] **Use eBay Collector data in valuations** - FMV from real sales
+- [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
+- [ ] **Whatnot Auction Integration** - Create auctions from graded comics
 - [ ] **Save graded comic to collection**
 - [ ] **Grade report sharing/export**
 
 ### Medium Priority
 - [ ] **Slab Premium Admin Panel** - Data-driven premium model management
-  - "Run Analysis" button triggers eBay data collection
-  - Shows proposed tiers vs current model in side-by-side comparison
-  - "Approve" saves new model to database, "Reject" discards
-  - Logs all model changes with timestamp
-  - Store tiers in database (not hardcoded in JS)
-  - Collect raw→slabbed value pairs from real sales
-  - Age tier data with recency weighting
-- [ ] **Valuation Engine Improvements**
-  - ✅ Exponential decay for recency (30-day half-life) - Implemented
-  - Configurable half-life in admin
-  - Add standard deviation outlier check (supplement IQR)
-  - Minimum sample warning (<3 sales = flag as unreliable)
-  - Store/display valuation confidence reasoning
+- [ ] **Valuation Engine Improvements** - Confidence reasoning, outlier detection
 - [ ] **Prompt Management Admin Page** - View/edit all prompts in one place
-  - List all prompts (extraction, grading steps 1-4, signature matching)
-  - Read/Edit/Test views
-  - Store in database instead of hardcoded
-  - Test interface: upload image, run prompt, see raw output
-- [ ] **True Meta-Optimization for prompts** (Level 4)
-  - Send extraction + image to second Claude call
-  - Ask: "Did this extraction miss anything? How could the prompt be improved?"
-  - Log suggestions, human reviews, update prompt
-  - Continuous improvement feedback loop
 - [ ] **Value tracking over time**
 - [ ] **Collection analytics**
 - [ ] **Batch grading (multiple comics)**
 - [ ] **Price alerts**
-- [ ] **FAQ content** (pressing, newsstand vs direct, valuation methodology)
 
 ### Low Priority / Future
 - [ ] **Sports cards support**
@@ -150,11 +151,6 @@ Provisional patent filed for multi-angle comic grading system.
 - [ ] Affiliate/referral commission for grading submissions
 - [ ] User discounts for using our recommendation
 - [ ] Attribution tracking
-
-### Product Decisions Needed
-- [ ] **Photo Upload mode** - Keep or deprecate now that Slab Worthy exists?
-- [ ] **Collection-centric UX** - Restructure around collection as hub?
-- [ ] **Pricing model** - Free tier vs paid tiers
 
 ---
 
@@ -182,7 +178,8 @@ Provisional patent filed for multi-angle comic grading system.
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 2.98.0 | Jan 30, 2026 | 🎯 Single source extraction, deterministic grading, UI polish |
+| 2.99.0 | Feb 1, 2026 | 📊 eBay Collector extension, R2 image backup |
+| 2.98.0 | Jan 30, 2026 | 🎯 Single source extraction, deterministic grading |
 | 2.97.0 | Jan 29, 2026 | 📱 Mobile fixes, Gallery upload |
 | 2.96.0 | Jan 28, 2026 | 🔄 Auto-rotation, JS modular split |
 | 2.95.0 | Jan 28, 2026 | 🚀 Slab Worthy LIVE, bug fixes |
@@ -198,4 +195,4 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-*Last updated: January 30, 2026*
+*Last updated: February 1, 2026*
