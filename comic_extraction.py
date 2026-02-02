@@ -12,6 +12,7 @@ from io import BytesIO
 # Try to import barcode scanning library
 try:
     from pyzbar import pyzbar
+    from pyzbar.pyzbar import ZBarSymbol
     from PIL import Image
     BARCODE_SCANNING_AVAILABLE = True
 except ImportError:
@@ -24,6 +25,7 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 def scan_barcode(image_data: bytes) -> dict:
     """
     Scan image for UPC barcode and extract the 5-digit supplement.
+    Tries all 4 rotations (0°, 90°, 180°, 270°) to find barcode.
     
     Args:
         image_data: Raw image bytes (JPEG, PNG, etc.)
@@ -38,33 +40,81 @@ def scan_barcode(image_data: bytes) -> dict:
         # Open image with PIL
         image = Image.open(BytesIO(image_data))
         
-        # Scan for barcodes
-        barcodes = pyzbar.decode(image)
+        # Convert to RGB if necessary (pyzbar works better with RGB)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
         
-        for barcode in barcodes:
+        # Try scanning at different rotations (0°, 90°, 180°, 270°)
+        all_barcodes = []
+        rotation_found = 0
+        
+        for rotation in [0, 90, 180, 270]:
+            if rotation == 0:
+                rotated = image
+            else:
+                rotated = image.rotate(-rotation, expand=True)  # Negative for clockwise
+            
+            # Scan for barcodes (UPC-A, EAN-13, UPC-E, EAN-5 for supplement)
+            found = pyzbar.decode(rotated, symbols=[
+                ZBarSymbol.UPCA, ZBarSymbol.EAN13, ZBarSymbol.UPCE, 
+                ZBarSymbol.EAN5, ZBarSymbol.CODE128
+            ])
+            
+            if not found:
+                # Try without symbol filter as fallback
+                found = pyzbar.decode(rotated)
+            
+            if found:
+                all_barcodes = found
+                rotation_found = rotation
+                print(f"[Barcode] Found {len(found)} barcode(s) at {rotation}° rotation")
+                break
+        
+        if not all_barcodes:
+            return None
+        
+        # Process found barcodes
+        upc_main = None
+        upc_addon = None
+        barcode_type = None
+        
+        for barcode in all_barcodes:
             data = barcode.data.decode('utf-8')
-            barcode_type = barcode.type
+            btype = barcode.type
             
-            # UPC-A is 12 digits, EAN-13 is 13 digits
-            # The 5-digit supplement may be separate or appended
-            if barcode_type in ['UPCA', 'EAN13', 'UPCE']:
-                print(f"[Barcode] Found {barcode_type}: {data}")
-                return {
-                    'type': barcode_type,
-                    'data': data,
-                    'supplement': None  # Supplement usually separate
-                }
+            print(f"[Barcode] Found {btype}: {data}")
             
-            # EAN-5 is the 5-digit supplement we want!
-            if barcode_type == 'EAN5' or (len(data) == 5 and data.isdigit()):
-                print(f"[Barcode] Found 5-digit supplement: {data}")
-                return {
-                    'type': 'SUPPLEMENT',
-                    'data': data,
-                    'supplement': data
-                }
+            # EAN-5 is the 5-digit supplement we want
+            if btype == 'EAN5' or (len(data) == 5 and data.isdigit()):
+                upc_addon = data
+                print(f"[Barcode] 5-digit supplement found: {data}")
+            
+            # UPC-A is 12 digits
+            elif btype == 'UPCA' or (len(data) == 12 and data.isdigit()):
+                upc_main = data
+                barcode_type = 'UPCA'
+            
+            # EAN-13 is 13 digits
+            elif btype == 'EAN13' or (len(data) == 13 and data.isdigit()):
+                upc_main = data
+                barcode_type = 'EAN13'
+            
+            # Some scanners return combined UPC + addon (17 digits)
+            elif len(data) >= 17 and data.isdigit():
+                upc_main = data[:12]
+                upc_addon = data[12:17]
+                barcode_type = 'UPCA+EAN5'
+                print(f"[Barcode] Combined code split: main={upc_main}, addon={upc_addon}")
         
-        # No barcode found
+        if upc_main or upc_addon:
+            return {
+                'upc_main': upc_main,
+                'upc_addon': upc_addon,
+                'type': barcode_type,
+                'rotation': rotation_found,
+                'supplement': upc_addon  # Alias for backward compatibility
+            }
+        
         return None
         
     except Exception as e:
@@ -351,18 +401,44 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
             if "signature_analysis" in extracted:
                 del extracted["signature_analysis"]
             
-            # Use pyzbar barcode if Claude didn't find one
-            if scanned_barcode and scanned_barcode.get('supplement'):
-                if not extracted.get('barcode_digits'):
+            # Use pyzbar barcode data (more reliable than vision)
+            if scanned_barcode:
+                # Store full barcode info
+                extracted['barcode_scanned'] = scanned_barcode
+                
+                # Use scanned UPC main if available
+                if scanned_barcode.get('upc_main'):
+                    extracted['upc_main'] = scanned_barcode['upc_main']
+                
+                # Use scanned addon (5-digit) if available
+                if scanned_barcode.get('upc_addon'):
+                    extracted['barcode_digits'] = scanned_barcode['upc_addon']
+                    extracted['barcode_source'] = 'pyzbar'
+                    print(f"[Extraction] Using pyzbar 5-digit addon: {scanned_barcode['upc_addon']}")
+                elif scanned_barcode.get('supplement'):
                     extracted['barcode_digits'] = scanned_barcode['supplement']
                     extracted['barcode_source'] = 'pyzbar'
-                    print(f"[Extraction] Using pyzbar barcode: {scanned_barcode['supplement']}")
+                    print(f"[Extraction] Using pyzbar supplement: {scanned_barcode['supplement']}")
             
             # Decode barcode if present
             if extracted.get('barcode_digits'):
                 barcode_decoded = decode_barcode(extracted['barcode_digits'])
                 if barcode_decoded:
                     extracted['barcode_decoded'] = barcode_decoded
+                    
+                    # Flag reprints and variants from barcode
+                    if barcode_decoded.get('is_reprint'):
+                        extracted['is_reprint'] = True
+                        # Update printing field if barcode says it's not 1st
+                        if barcode_decoded.get('printing', 1) > 1:
+                            extracted['printing'] = f"{barcode_decoded['printing']}{'nd' if barcode_decoded['printing'] == 2 else 'rd' if barcode_decoded['printing'] == 3 else 'th'}"
+                    
+                    if barcode_decoded.get('is_variant'):
+                        extracted['is_variant'] = True
+                        # Add cover letter if not already specified
+                        if not extracted.get('cover') and barcode_decoded.get('cover_letter'):
+                            extracted['cover'] = f"Cover {barcode_decoded['cover_letter']}"
+                    
                     print(f"[Extraction] Barcode decoded: {barcode_decoded}")
             
             return {
