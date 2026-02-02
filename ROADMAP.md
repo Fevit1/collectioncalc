@@ -1,6 +1,6 @@
 # CollectionCalc / Slab Worthy Roadmap
 
-## Current Version: 2.99.0 (February 1, 2026)
+## Current Version: 3.0.0 (February 2, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -9,7 +9,37 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## Recently Completed
 
-### v2.99.0 - eBay Collector Extension (Session 21) 🆕
+### v3.0.0 - 🎉 BARCODE SCANNING LIVE! (Session 22) 🆕
+- [x] **Docker Deployment** - Migrated from Python to Docker on Render
+  - Dockerfile with libzbar0 system library
+  - pyzbar barcode scanning now works!
+  - Production URL: `collectioncalc-docker.onrender.com`
+- [x] **Barcode Endpoints Added:**
+  - `/api/barcode-test` - Verify pyzbar loads
+  - `/api/barcode-scan` - Direct barcode scanning
+- [x] **Barcode Integration in Extraction:**
+  - `scan_barcode()` tries 0°, 90°, 180°, 270° rotations
+  - Extracts `upc_main` (12 digits) + `upc_addon` (5 digits)
+  - Returns barcode data in `/api/extract` response
+- [x] **Frontend Updated:**
+  - `js/utils.js` API_URL points to Docker backend
+- [x] **Cost Savings:**
+  - Suspended old Python service (-$7/mo)
+
+**Test Result (Amethyst #1):**
+```json
+{
+  "barcode_scanned": {
+    "type": "UPCA",
+    "upc_main": "070989311176",
+    "rotation": 0
+  },
+  "title": "Amethyst Princess of Gemworld",
+  "issue": "1"
+}
+```
+
+### v2.99.0 - eBay Collector Extension (Session 21)
 - [x] **eBay Collector Extension v1.0.3** - Passively collects comic sale data from eBay sold listings
   - Parses: title, issue, price, date, condition, grade, publisher, image
   - Fixed selectors for eBay's 2026 HTML structure (`li.s-card`)
@@ -73,32 +103,26 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-## In Progress / Blocked
+## In Progress
 
-### 🚧 Barcode Scanning - BLOCKED ON DOCKER
-**Problem:** pyzbar needs libzbar0 system library. Render won't install it.
+### 🚧 Phase 2: Database Schema for Barcode Storage
+**Status:** Ready to implement
 
-**Solution:** Docker deployment
-```dockerfile
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
-```
+**Tasks:**
+- [ ] Add `upc_main`, `upc_addon`, `is_reprint` columns to `market_sales`
+- [ ] Add `upc_main`, `upc_addon`, `is_reprint` columns to `ebay_sales`
+- [ ] Store barcode data when Whatnot extension uploads images
+- [ ] No extension changes needed (server-side only)
 
-**Why Critical:**
-- Can't detect reprints (Spawn #1: $25 reprint vs $300 first print)
-- Can't verify variants (Cover A vs B)
-- This is the #1 differentiator vs competition
+### 🚧 Phase 3: Backfill Existing Images
+**Status:** After Phase 2
 
-**Next Steps:**
-1. Create Dockerfile in repo root
-2. Change Render Environment to "Docker"
-3. Clear cache and deploy
-4. Test barcode extraction
+**Tasks:**
+- [ ] Create `/api/admin/backfill-barcodes` endpoint
+- [ ] Fetch all sales with R2 image URLs
+- [ ] Download and scan each image with pyzbar
+- [ ] Update database with barcode data
+- [ ] Batch processing with progress tracking
 
 ---
 
@@ -114,8 +138,10 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ## Backlog
 
 ### High Priority
-- [ ] **Docker deployment for barcode scanning** - #1 PRIORITY
-- [ ] **Barcode-based variant detection** - Use 5-digit code to identify prints/variants
+- [ ] **Phase 2: Store barcode data in database** - #1 PRIORITY
+- [ ] **Phase 3: Backfill existing images with barcodes**
+- [ ] **Use barcode to filter reprints from valuations** - Spawn #1 fix!
+- [ ] **Reprint/variant warnings in UI** - Alert users when detected
 - [ ] **Use eBay Collector data in valuations** - FMV from real sales
 - [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
 - [ ] **Whatnot Auction Integration** - Create auctions from graded comics
@@ -167,7 +193,7 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 6. Signature detection module
 7. Facsimile detection module
 8. Auto-orientation correction (landscape/upside-down)
-9. Barcode-based variant identification (potential addition)
+9. **Barcode-based variant/reprint identification** ✅ NOW WORKING
 
 **Status:** Provisional filed January 27, 2026
 **Next:** File utility patent within 12 months (by January 27, 2027)
@@ -178,6 +204,7 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 3.0.0 | Feb 2, 2026 | 🎉 BARCODE SCANNING LIVE! Docker deployment |
 | 2.99.0 | Feb 1, 2026 | 📊 eBay Collector extension, R2 image backup |
 | 2.98.0 | Jan 30, 2026 | 🎯 Single source extraction, deterministic grading |
 | 2.97.0 | Jan 29, 2026 | 📱 Mobile fixes, Gallery upload |
@@ -195,4 +222,4 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 
 ---
 
-*Last updated: February 1, 2026*
+*Last updated: February 2, 2026*

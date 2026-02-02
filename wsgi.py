@@ -1,6 +1,11 @@
 """
-CollectionCalc - WSGI Entry Point (v3.9)
+CollectionCalc - WSGI Entry Point (v4.0)
 Flask routes for the CollectionCalc API
+
+New in v4.0:
+- Barcode scanning and storage for sales
+- Docker deployment with pyzbar/libzbar0
+- UPC data stored in market_sales and ebay_sales
 
 New in v3.9:
 - Beta code validation and management
@@ -89,6 +94,81 @@ try:
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
+
+# Barcode scanning (Docker only - requires libzbar0)
+try:
+    from pyzbar import pyzbar
+    from pyzbar.pyzbar import ZBarSymbol
+    from PIL import Image
+    import io
+    BARCODE_AVAILABLE = True
+except ImportError:
+    BARCODE_AVAILABLE = False
+
+
+def scan_barcode_from_base64(image_data):
+    """
+    Scan barcode from base64 image data.
+    Returns dict with upc_main, upc_addon, is_reprint or None if not found.
+    """
+    if not BARCODE_AVAILABLE:
+        return None
+    
+    try:
+        import base64
+        
+        # Remove data URL prefix if present
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(image_data)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Try rotations
+        for rotation in [0, 90, 180, 270]:
+            if rotation == 0:
+                rotated = image
+            else:
+                rotated = image.rotate(-rotation, expand=True)
+            
+            barcodes = pyzbar.decode(rotated, symbols=[ZBarSymbol.UPCA, ZBarSymbol.EAN13, ZBarSymbol.UPCE])
+            if not barcodes:
+                barcodes = pyzbar.decode(rotated)
+            
+            if barcodes:
+                for barcode in barcodes:
+                    code = barcode.data.decode('utf-8')
+                    if len(code) >= 12:
+                        upc_main = code[:12] if len(code) >= 12 else code
+                        upc_addon = None
+                        is_reprint = False
+                        
+                        if len(code) >= 17:
+                            upc_addon = code[12:17]
+                            # Check if reprint (5th digit > 1)
+                            if len(upc_addon) >= 5:
+                                try:
+                                    printing = int(upc_addon[4])
+                                    is_reprint = printing > 1
+                                except ValueError:
+                                    pass
+                        
+                        print(f"[Barcode] Found at {rotation}°: {upc_main} / {upc_addon} (reprint: {is_reprint})")
+                        return {
+                            'upc_main': upc_main,
+                            'upc_addon': upc_addon,
+                            'is_reprint': is_reprint,
+                            'rotation': rotation
+                        }
+        
+        return None
+    except Exception as e:
+        print(f"[Barcode] Scan error: {e}")
+        return None
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -394,7 +474,7 @@ def debug_prompt():
 @app.route('/')
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '3.9'})
+    return jsonify({'status': 'ok', 'version': '4.0', 'barcode': BARCODE_AVAILABLE})
 
 
 # ============================================
@@ -1074,6 +1154,7 @@ def api_record_sale():
     """
     Record a sale from Whatnot extension.
     Optionally accepts 'image' field with base64 data to upload to R2.
+    Now includes barcode scanning when image provided.
     """
     data = request.get_json() or {}
     import psycopg2
@@ -1087,20 +1168,40 @@ def api_record_sale():
     image_data = data.get('image')
     image_url = data.get('image_url')  # Existing URL (legacy)
     
+    # Barcode fields - can come from request or be scanned from image
+    upc_main = data.get('upc_main')
+    upc_addon = data.get('upc_addon')
+    is_reprint = data.get('is_reprint', False)
+    
+    # If image provided and no barcode data, try to scan it
+    if image_data and not upc_main:
+        barcode_result = scan_barcode_from_base64(image_data)
+        if barcode_result:
+            upc_main = barcode_result.get('upc_main')
+            upc_addon = barcode_result.get('upc_addon')
+            is_reprint = barcode_result.get('is_reprint', False)
+    
     try:
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
         cur = conn.cursor()
         
         cur.execute("""
             INSERT INTO market_sales (source, title, series, issue, grade, grade_source, slab_type,
-                variant, is_key, is_facsimile, price, sold_at, raw_title, seller, bids, viewers, image_url, source_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (source, source_id) DO UPDATE SET price = EXCLUDED.price, sold_at = EXCLUDED.sold_at
+                variant, is_key, is_facsimile, price, sold_at, raw_title, seller, bids, viewers, 
+                image_url, source_id, upc_main, upc_addon, is_reprint)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (source, source_id) DO UPDATE SET 
+                price = EXCLUDED.price, 
+                sold_at = EXCLUDED.sold_at,
+                upc_main = COALESCE(EXCLUDED.upc_main, market_sales.upc_main),
+                upc_addon = COALESCE(EXCLUDED.upc_addon, market_sales.upc_addon),
+                is_reprint = COALESCE(EXCLUDED.is_reprint, market_sales.is_reprint)
             RETURNING id
         """, (data.get('source', 'whatnot'), data.get('title'), data.get('series'), data.get('issue'),
               data.get('grade'), data.get('grade_source'), data.get('slab_type'), data.get('variant'),
-              data.get('is_key', False), data.get('is_facsimile', False), data.get('price'), data.get('sold_at'), data.get('raw_title'),
-              data.get('seller'), data.get('bids'), data.get('viewers'), image_url, data.get('source_id')))
+              data.get('is_key', False), data.get('is_facsimile', False), data.get('price'), data.get('sold_at'), 
+              data.get('raw_title'), data.get('seller'), data.get('bids'), data.get('viewers'), 
+              image_url, data.get('source_id'), upc_main, upc_addon, is_reprint))
         
         sale_id = cur.fetchone()['id']
         conn.commit()
@@ -1118,7 +1219,14 @@ def api_record_sale():
         
         cur.close()
         conn.close()
-        return jsonify({'success': True, 'id': sale_id, 'image_url': image_url})
+        return jsonify({
+            'success': True, 
+            'id': sale_id, 
+            'image_url': image_url,
+            'upc_main': upc_main,
+            'upc_addon': upc_addon,
+            'is_reprint': is_reprint
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1353,6 +1461,7 @@ def api_upload_image_for_sale():
     """
     Upload an image and associate it with a sale record.
     Updates the market_sales.image_url field.
+    Now includes barcode scanning.
     
     Body: {
         "image": "base64 encoded image data",
@@ -1377,20 +1486,34 @@ def api_upload_image_for_sale():
     if not result.get('success'):
         return jsonify(result), 500
     
-    # Update database with new image URL
+    # Scan barcode from image
+    barcode_result = scan_barcode_from_base64(image_data)
+    upc_main = barcode_result.get('upc_main') if barcode_result else None
+    upc_addon = barcode_result.get('upc_addon') if barcode_result else None
+    is_reprint = barcode_result.get('is_reprint', False) if barcode_result else False
+    
+    # Update database with new image URL and barcode data
     import psycopg2
     database_url = os.environ.get('DATABASE_URL')
     
     try:
         conn = psycopg2.connect(database_url)
         cur = conn.cursor()
-        cur.execute(
-            "UPDATE market_sales SET image_url = %s WHERE id = %s",
-            (result['url'], sale_id)
-        )
+        cur.execute("""
+            UPDATE market_sales 
+            SET image_url = %s,
+                upc_main = COALESCE(%s, upc_main),
+                upc_addon = COALESCE(%s, upc_addon),
+                is_reprint = COALESCE(%s, is_reprint)
+            WHERE id = %s
+        """, (result['url'], upc_main, upc_addon, is_reprint, sale_id))
         conn.commit()
         cur.close()
         conn.close()
+        
+        result['upc_main'] = upc_main
+        result['upc_addon'] = upc_addon
+        result['is_reprint'] = is_reprint
         
         return jsonify(result)
     except Exception as e:

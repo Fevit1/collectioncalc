@@ -8,15 +8,17 @@
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
-**Current State (v2.99.0):**
+**Current State (v3.0.0):**
 - Core features working: Manual Entry, Photo Upload, Slab Worthy
 - Single source of truth achieved for all extraction (comic_extraction.py)
-- Writer/Artist extraction working
-- Barcode infrastructure ready but blocked on Docker deployment
+- **🎉 BARCODE SCANNING LIVE** — Docker deployment with pyzbar/libzbar0
+- UPC detection integrated into extraction flow
 - **eBay Collector extension v1.0.3 LIVE** — passively collects sold listings with R2 image backup
-- Whatnot Valuator extension v2.41.2 deployed (storage quota fix)
+- Whatnot Valuator extension v2.41.2 deployed
 
-**Critical Priority:** Barcode scanning via Docker. Without it, we can't detect reprints (Spawn #1: $25 reprint vs $300 first print). This is the #1 differentiator vs competition.
+**Critical Completed:** Barcode scanning via Docker is WORKING. Can now detect reprints (Spawn #1: $25 reprint vs $300 first print). This is the #1 differentiator vs competition.
+
+**Next Priority:** Phase 2 — Database schema updates to store barcode data with sales records.
 
 **Key Rules:**
 1. Get approval before coding
@@ -65,10 +67,10 @@
 
 ### CollectionCalc / Slab Worthy
 - **What:** AI-powered comic book valuation and pre-grading assessment
-- **Stack:** Python/Flask backend, vanilla HTML/JS frontend, PostgreSQL
-- **Hosting:** Render.com ($7/mo Starter), Cloudflare Pages
+- **Stack:** Python/Flask backend (Docker), vanilla HTML/JS frontend, PostgreSQL
+- **Hosting:** Render.com Docker ($7/mo), Cloudflare Pages
 - **URL:** https://collectioncalc.com
-- **Version:** 2.99.0
+- **Version:** 3.0.0
 
 ### Key Features
 | Feature | Description |
@@ -77,25 +79,27 @@
 | Photo Upload | AI extracts comic info from cover photo |
 | Slab Worthy? | 4-photo grading assessment (Patent Pending) |
 | Slab Report | Grade estimate + economic recommendation |
+| **Barcode Scanning** | **UPC detection with pyzbar (Docker)** |
 | Whatnot Extension | Browser extension for live stream valuations |
-| **eBay Collector** | **Passive data collection from eBay sold listings with R2 backup** |
+| eBay Collector | Passive data collection from eBay sold listings with R2 backup |
 
 ### Key Files
 **Frontend (Cloudflare Pages):**
 - `app.html` - Main frontend
 - `styles.css` - Styling  
-- `js/utils.js` - Shared state, image processing
+- `js/utils.js` - Shared state, image processing, **API_URL points to Docker**
 - `js/auth.js` - Authentication, user menu
 - `js/app.js` - Photo upload, valuation, manual entry
 - `js/grading.js` - Slab Worthy 4-photo flow
 
-**Backend (Render):**
-- `wsgi.py` - Flask app entry point
-- `comic_extraction.py` - AI photo analysis (SINGLE SOURCE OF TRUTH)
+**Backend (Render - Docker):**
+- `wsgi.py` - Flask app entry point, **includes barcode endpoints**
+- `comic_extraction.py` - AI photo analysis + barcode scanning (SINGLE SOURCE OF TRUTH)
 - `ebay_valuation.py` - Valuation logic
 - `r2_storage.py` - Cloudflare R2 image uploads
 - `auth.py` - Authentication
 - `admin.py` - Admin panel
+- `Dockerfile` - Docker config with libzbar0
 
 **Browser Extensions:**
 - `ebay-collector/` - eBay sold listings collector (v1.0.3)
@@ -103,61 +107,15 @@
 
 ---
 
-## Session 21 Summary (February 1, 2026)
+## Session 22 Summary (February 2, 2026)
 
-### eBay Collector Extension — FULLY WORKING ✅
+### 🎉 BARCODE SCANNING LIVE — Docker Deployment Complete ✅
 
-**Extension v1.0.3:**
-- Fixed HTML selectors for eBay's new structure (`li.s-card` instead of `.s-item`)
-- Fixed API URL (was pointing to frontend instead of Render backend)
-- Fixed popup.js Sync button URL
+**Problem Solved:** pyzbar requires libzbar0 system library. Render's native Python environment couldn't install it.
 
-**Backend:**
-- Added `/api/ebay-sales/batch` endpoint with parallel R2 image backup
-- Added `/api/ebay-sales/stats` endpoint
-- Silenced eBay `MARKETPLACE_ACCOUNT_DELETION` notification spam
+**Solution:** Docker deployment on Render
 
-**Database:**
-- `ebay_sales` table with: ebay_item_id, raw_title, parsed_title, issue_number, publisher, sale_price, sale_date, condition, graded, grade, listing_url, image_url, r2_image_url, content_hash
-- `comic_fmv` view for 90-day rolling FMV calculations
-- Added `r2_image_url` column for permanent image storage
-
-**R2 Image Backup:**
-- Parallel processing (5 concurrent downloads)
-- Images stored at `ebay-covers/{ebay_item_id}.webp`
-- ~10-15 seconds for 60 images instead of 60+ seconds
-
-**How to use:**
-1. Install extension from `ebay-collector-v1.0.3.zip`
-2. Browse eBay sold listings (search anything + "sold", click Sold Items filter)
-3. Green toast shows collected count
-4. Click extension icon → Sync Now to push to database
-
-### Whatnot Valuator Extension — Storage Fix ✅
-- Fixed Chrome local storage quota exceeded error (v2.41.2)
-- Root cause: Storing full base64 images (500MB+ when Chrome limit is 5MB)
-- Fix: Strip imageDataUrl before storage, reduce cap to 500 sales
-
-### System Catcher Book Cover (Side Project) ✅
-- Created full wraparound cover for Amazon KDP paperback
-- 282 pages, 6×9 trim, cream paper
-- Back cover: blurb, author photo, bio
-- Spine: title + author name
-- File: `System_Catcher_Full_Cover_Final.pdf`
-- Pricing: $13.99 paperback, $4.99 Kindle
-
----
-
-## Session 20 Summary (January 31, 2026)
-
-### Major Win: Single Source of Truth ✅
-Photo Upload now uses `/api/extract` backend. Both Photo Upload AND Slab Worthy share the same extraction logic in `comic_extraction.py`.
-
-### Blocked: Barcode Scanning Needs Docker 🚧
-
-**Problem:** pyzbar needs libzbar0 system library. Render won't install it.
-
-**Solution:** Docker deployment
+**Docker Setup:**
 ```dockerfile
 FROM python:3.11-slim
 RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
@@ -168,24 +126,90 @@ COPY . .
 CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ```
 
-**Why Critical:**
-- Can't detect reprints (Spawn #1: $25 reprint vs $300 first print)
-- Can't verify variants (Cover A vs B)
-- "No better than competition" without this
+**Services:**
+- `collectioncalc-docker.onrender.com` — **PRODUCTION** (Docker, barcode working)
+- `collectioncalc.onrender.com` — **SUSPENDED** (Python, saved $7/mo)
+
+**Frontend Change:**
+- `js/utils.js` line 5: `API_URL` changed from `collectioncalc.onrender.com` to `collectioncalc-docker.onrender.com`
+
+### Barcode Endpoints Added to wsgi.py
+
+**`/api/barcode-test`** — Verifies pyzbar loads
+```json
+{"status": "success", "message": "pyzbar and libzbar0 loaded successfully"}
+```
+
+**`/api/barcode-scan`** — Scans images for UPC
+- Tries 0°, 90°, 180°, 270° rotations automatically
+- Returns `upc_main` (12 digits), `upc_addon` (5 digits), `rotation_detected`
+
+### Barcode Integration in Extraction
+
+**Test Result (Amethyst #1):**
+```json
+{
+    "barcode_scanned": {
+        "rotation": 0,
+        "type": "UPCA",
+        "upc_main": "070989311176",
+        "upc_addon": null
+    },
+    "upc_main": "070989311176",
+    "title": "Amethyst Princess of Gemworld",
+    "issue": "1"
+}
+```
+
+### Comic Barcode Structure
+- **Main UPC:** 12 digits (identifies series)
+- **5-digit addon (EAN-5):** IIICP format
+  - III = Issue number (001-999)
+  - C = Cover variant (1=A, 2=B, 3=C)
+  - P = Printing (1=1st, 2=2nd, 3=3rd)
+  - Example: `00111` = Issue 1, Cover A, 1st print
+  - Example: `00212` = Issue 2, Cover A, 2nd print (REPRINT!)
+
+### Why This Matters
+- ✅ Detect reprints automatically (Spawn #1: $25 vs $300)
+- ✅ Identify cover variants (A, B, C)
+- ✅ Flag 2nd/3rd printings
+- ✅ More accurate valuations
+- ✅ Differentiation vs competitors (none have this)
+
+---
+
+## Session 21 Summary (February 1, 2026)
+
+### eBay Collector Extension — FULLY WORKING ✅
+
+**Extension v1.0.3:**
+- Fixed HTML selectors for eBay's new structure
+- Fixed API URL
+- Parallel R2 image backup (5 concurrent)
+
+**Database:**
+- `ebay_sales` table with permanent image backup
+- `comic_fmv` view for 90-day rolling FMV
 
 ---
 
 ## Next Session Priority
 
-### 1. Docker Setup for Barcode Scanning
-1. Create Dockerfile in repo root
-2. Change Render Environment to "Docker"
-3. Clear cache and deploy
-4. Verify pyzbar loads
-5. Test barcode extraction with real comic
-6. Use barcode data in valuations
+### Phase 2: Database Schema for Barcode Storage
+1. Add columns to `market_sales`: `upc_main`, `upc_addon`, `is_reprint`
+2. Add columns to `ebay_sales`: `upc_main`, `upc_addon`, `is_reprint`
+3. Store barcode data when image uploaded via Whatnot extension
+4. No extension changes needed (server-side only)
 
-### After Barcode Working
+### Phase 3: Backfill Existing Images
+1. Create `/api/admin/backfill-barcodes` endpoint
+2. Fetch all sales with R2 image URLs
+3. Download and scan each image
+4. Update database with barcode data
+5. Batch processing with progress tracking
+
+### After Barcode Data Stored
 - Filter reprints from valuation comps
 - Add reprint/variant warnings to UI
 - Test with Spawn #1 to verify detection
@@ -196,7 +220,7 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 
 ### Deployment Commands
 ```powershell
-# Backend (Render) - deploy is REQUIRED
+# Backend (Render Docker) - deploy is REQUIRED
 git add .; git commit -m "message"; git push; deploy
 
 # Frontend (Cloudflare) - purge cache
@@ -206,7 +230,16 @@ git add .; git commit -m "message"; git push; purge
 git add .; git commit -m "message"; git push; deploy; purge
 ```
 
-### eBay Collector Testing
+### Barcode Testing
+```bash
+# Test endpoint
+curl https://collectioncalc-docker.onrender.com/api/barcode-test
+
+# Should return:
+# {"status": "success", "message": "pyzbar and libzbar0 loaded successfully"}
+```
+
+### Key SQL Queries
 ```sql
 -- Check collected sales
 SELECT COUNT(*) FROM ebay_sales;
@@ -216,9 +249,6 @@ SELECT ebay_item_id, raw_title, r2_image_url
 FROM ebay_sales 
 WHERE r2_image_url IS NOT NULL 
 LIMIT 5;
-
--- Stats endpoint
--- https://collectioncalc.onrender.com/api/ebay-sales/stats
 ```
 
 ### Key Documents
@@ -229,5 +259,5 @@ LIMIT 5;
 
 ---
 
-*Last updated: February 1, 2026 (Session 21)*
-*Next priority: Docker deployment for barcode scanning*
+*Last updated: February 2, 2026 (Session 22)*
+*Next priority: Phase 2 — Database schema for barcode storage*
