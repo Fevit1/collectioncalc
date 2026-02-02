@@ -8,211 +8,38 @@
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
-**Current State (v3.0.0):**
+**Current State (v4.0):**
 - Core features working: Manual Entry, Photo Upload, Slab Worthy
-- Single source of truth achieved for all extraction (comic_extraction.py)
 - **🎉 BARCODE SCANNING LIVE** — Docker deployment with pyzbar/libzbar0
-- UPC detection integrated into extraction flow
-- **eBay Collector extension v1.0.3 LIVE** — passively collects sold listings with R2 image backup
-- Whatnot Valuator extension v2.41.2 deployed
+- **🎉 BARCODE STORAGE LIVE** — New sales automatically scanned and stored
+- eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
 
-**Critical Completed:** Barcode scanning via Docker is WORKING. Can now detect reprints (Spawn #1: $25 reprint vs $300 first print). This is the #1 differentiator vs competition.
-
-**Next Priority:** Phase 2 — Database schema updates to store barcode data with sales records.
-
-**Key Rules:**
-1. Get approval before coding
-2. Render auto-deploy is OFF - always run `deploy` command
-3. Don't accept limitations - research alternatives
-4. Update this doc at session end
-
----
-
-## Important Rules
-
-1. **Always describe what I plan to build and wait for Mike's approval BEFORE writing any code.**
-2. **Break large code changes into small chunks** to avoid "thinking longer than usual" failures.
-3. **Update this file at checkpoints** - after compacting, features, or session end.
-4. **Proactively push back** - flag issues, suggest alternatives, share knowledge from other projects.
-5. **Follow brand guidelines** - check BRAND_GUIDELINES.md for voice, terminology, design.
-6. **Verify file integrity** - check line counts, closing brackets. Files have been truncated before.
-7. **Render auto-deploy is DISABLED** - Always include `deploy` command after `git push`.
-8. **Don't accept limitations** - research alternative tools/libraries/APIs. Don't settle.
-9. **Reference COMPETITORS.md** - check it when discussing market positioning.
-
----
-
-## About Mike
-
-- **Role:** Product Manager in high tech (manages people, not hands-on dev)
-- **Background:** Former eBay (marketing/content supply chain, not engineering)
-- **Technical comfort:** Decent SQL skills, uses DBeaver for PostgreSQL queries
-
-**Comfortable with:**
-- ✅ Render dashboard (deployments, env vars, redeploys)
-- ✅ Git workflow (add, commit, push)
-- ✅ PowerShell aliases (`purge`, `deploy`)
-- ✅ Testing and providing feedback
-- ✅ Product decisions and prioritization
-
-**Needs guidance on:**
-- ⚠️ Complex Python debugging - explain error meanings
-- ⚠️ Architecture decisions - explain trade-offs
-
-**Collaboration style:** Wants Claude to push back on decisions and proactively share knowledge. Appreciates when Claude recognizes he's mastered something and stops over-explaining.
-
----
-
-## Project Overview
-
-### CollectionCalc / Slab Worthy
-- **What:** AI-powered comic book valuation and pre-grading assessment
-- **Stack:** Python/Flask backend (Docker), vanilla HTML/JS frontend, PostgreSQL
-- **Hosting:** Render.com Docker ($7/mo), Cloudflare Pages
-- **URL:** https://collectioncalc.com
-- **Version:** 3.0.0
-
-### Key Features
-| Feature | Description |
-|---------|-------------|
-| Manual Entry | Type title/issue/grade for valuation |
-| Photo Upload | AI extracts comic info from cover photo |
-| Slab Worthy? | 4-photo grading assessment (Patent Pending) |
-| Slab Report | Grade estimate + economic recommendation |
-| **Barcode Scanning** | **UPC detection with pyzbar (Docker)** |
-| Whatnot Extension | Browser extension for live stream valuations |
-| eBay Collector | Passive data collection from eBay sold listings with R2 backup |
-
-### Key Files
-**Frontend (Cloudflare Pages):**
-- `app.html` - Main frontend
-- `styles.css` - Styling  
-- `js/utils.js` - Shared state, image processing, **API_URL points to Docker**
-- `js/auth.js` - Authentication, user menu
-- `js/app.js` - Photo upload, valuation, manual entry
-- `js/grading.js` - Slab Worthy 4-photo flow
-
-**Backend (Render - Docker):**
-- `wsgi.py` - Flask app entry point, **includes barcode endpoints**
-- `comic_extraction.py` - AI photo analysis + barcode scanning (SINGLE SOURCE OF TRUTH)
-- `ebay_valuation.py` - Valuation logic
-- `r2_storage.py` - Cloudflare R2 image uploads
-- `auth.py` - Authentication
-- `admin.py` - Admin panel
-- `Dockerfile` - Docker config with libzbar0
-
-**Browser Extensions:**
-- `ebay-collector/` - eBay sold listings collector (v1.0.3)
-- `whatnot-valuator/` - Whatnot live stream valuations (v2.41.2)
+**Next Priority:** Phase 3 — Backfill existing images with barcode data
 
 ---
 
 ## Session 22 Summary (February 2, 2026)
 
-### 🎉 BARCODE SCANNING LIVE — Docker Deployment Complete ✅
+### Docker Migration COMPLETE ✅
+- Production now runs on `collectioncalc-docker.onrender.com`
+- Old Python service SUSPENDED (saves $7/mo)
+- Updated Whatnot extension (`collectioncalc.js` API URL)
+- Updated eBay extension (`popup.js` API URL)
+- Fixed Mike's `deploy` PowerShell alias (new service ID: `srv-d5vcjqqli9vc73a5a730`)
 
-**Problem Solved:** pyzbar requires libzbar0 system library. Render's native Python environment couldn't install it.
+### Phase 2: Barcode Storage COMPLETE ✅
+- Added database columns: `upc_main`, `upc_addon`, `is_reprint` to both `market_sales` and `ebay_sales`
+- Updated wsgi.py to v4.0 with `scan_barcode_from_base64()` utility
+- `/api/sales/record` now scans barcodes from uploaded images
+- `/api/images/upload-for-sale` also scans barcodes
+- `/health` returns `{"barcode": true, "version": "4.0"}`
 
-**Solution:** Docker deployment on Render
+### Phase 3: Backfill — NOT DONE YET
+Need to create `/api/admin/backfill-barcodes` endpoint to scan existing R2 images
 
-**Docker Setup:**
-```dockerfile
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
-```
-
-**Services:**
-- `collectioncalc-docker.onrender.com` — **PRODUCTION** (Docker, barcode working)
-- `collectioncalc.onrender.com` — **SUSPENDED** (Python, saved $7/mo)
-
-**Frontend Change:**
-- `js/utils.js` line 5: `API_URL` changed from `collectioncalc.onrender.com` to `collectioncalc-docker.onrender.com`
-
-### Barcode Endpoints Added to wsgi.py
-
-**`/api/barcode-test`** — Verifies pyzbar loads
-```json
-{"status": "success", "message": "pyzbar and libzbar0 loaded successfully"}
-```
-
-**`/api/barcode-scan`** — Scans images for UPC
-- Tries 0°, 90°, 180°, 270° rotations automatically
-- Returns `upc_main` (12 digits), `upc_addon` (5 digits), `rotation_detected`
-
-### Barcode Integration in Extraction
-
-**Test Result (Amethyst #1):**
-```json
-{
-    "barcode_scanned": {
-        "rotation": 0,
-        "type": "UPCA",
-        "upc_main": "070989311176",
-        "upc_addon": null
-    },
-    "upc_main": "070989311176",
-    "title": "Amethyst Princess of Gemworld",
-    "issue": "1"
-}
-```
-
-### Comic Barcode Structure
-- **Main UPC:** 12 digits (identifies series)
-- **5-digit addon (EAN-5):** IIICP format
-  - III = Issue number (001-999)
-  - C = Cover variant (1=A, 2=B, 3=C)
-  - P = Printing (1=1st, 2=2nd, 3=3rd)
-  - Example: `00111` = Issue 1, Cover A, 1st print
-  - Example: `00212` = Issue 2, Cover A, 2nd print (REPRINT!)
-
-### Why This Matters
-- ✅ Detect reprints automatically (Spawn #1: $25 vs $300)
-- ✅ Identify cover variants (A, B, C)
-- ✅ Flag 2nd/3rd printings
-- ✅ More accurate valuations
-- ✅ Differentiation vs competitors (none have this)
-
----
-
-## Session 21 Summary (February 1, 2026)
-
-### eBay Collector Extension — FULLY WORKING ✅
-
-**Extension v1.0.3:**
-- Fixed HTML selectors for eBay's new structure
-- Fixed API URL
-- Parallel R2 image backup (5 concurrent)
-
-**Database:**
-- `ebay_sales` table with permanent image backup
-- `comic_fmv` view for 90-day rolling FMV
-
----
-
-## Next Session Priority
-
-### Phase 2: Database Schema for Barcode Storage
-1. Add columns to `market_sales`: `upc_main`, `upc_addon`, `is_reprint`
-2. Add columns to `ebay_sales`: `upc_main`, `upc_addon`, `is_reprint`
-3. Store barcode data when image uploaded via Whatnot extension
-4. No extension changes needed (server-side only)
-
-### Phase 3: Backfill Existing Images
-1. Create `/api/admin/backfill-barcodes` endpoint
-2. Fetch all sales with R2 image URLs
-3. Download and scan each image
-4. Update database with barcode data
-5. Batch processing with progress tracking
-
-### After Barcode Data Stored
-- Filter reprints from valuation comps
-- Add reprint/variant warnings to UI
-- Test with Spawn #1 to verify detection
+### Other
+- Created weekly eBay collection schedule (238 titles across 7 days)
+- Goal: 2,000 sales/day (~34 searches at 60 sales each)
 
 ---
 
@@ -220,44 +47,24 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 
 ### Deployment Commands
 ```powershell
-# Backend (Render Docker) - deploy is REQUIRED
+# Backend (Render Docker)
 git add .; git commit -m "message"; git push; deploy
 
-# Frontend (Cloudflare) - purge cache
+# Frontend (Cloudflare)
 git add .; git commit -m "message"; git push; purge
-
-# Both
-git add .; git commit -m "message"; git push; deploy; purge
 ```
 
-### Barcode Testing
+### Service IDs
+- Docker service: `srv-d5vcjqqli9vc73a5a730`
+- API URL: `https://collectioncalc-docker.onrender.com`
+
+### Test Barcode
 ```bash
-# Test endpoint
-curl https://collectioncalc-docker.onrender.com/api/barcode-test
-
-# Should return:
-# {"status": "success", "message": "pyzbar and libzbar0 loaded successfully"}
+curl https://collectioncalc-docker.onrender.com/health
+# Returns: {"barcode":true,"status":"ok","version":"4.0"}
 ```
-
-### Key SQL Queries
-```sql
--- Check collected sales
-SELECT COUNT(*) FROM ebay_sales;
-
--- Check R2 image backup
-SELECT ebay_item_id, raw_title, r2_image_url 
-FROM ebay_sales 
-WHERE r2_image_url IS NOT NULL 
-LIMIT 5;
-```
-
-### Key Documents
-- `ROADMAP.md` - Feature roadmap and version history
-- `BRAND_GUIDELINES.md` - Voice, terminology, design principles
-- `COMPETITORS.md` - Competitor analysis
-- `ARCHITECTURE.md` - Technical architecture
 
 ---
 
 *Last updated: February 2, 2026 (Session 22)*
-*Next priority: Phase 2 — Database schema for barcode storage*
+*Next priority: Phase 3 — Backfill existing images with barcode data*

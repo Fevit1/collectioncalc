@@ -1,6 +1,10 @@
 """
-CollectionCalc - WSGI Entry Point (v4.0)
+CollectionCalc - WSGI Entry Point (v4.1)
 Flask routes for the CollectionCalc API
+
+New in v4.1:
+- Barcode backfill endpoint for existing R2 images
+- Barcode stats endpoint for monitoring coverage
 
 New in v4.0:
 - Barcode scanning and storage for sales
@@ -474,7 +478,7 @@ def debug_prompt():
 @app.route('/')
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '4.0', 'barcode': BARCODE_AVAILABLE})
+    return jsonify({'status': 'ok', 'version': '4.1', 'barcode': BARCODE_AVAILABLE})
 
 
 # ============================================
@@ -1790,6 +1794,190 @@ def barcode_scan():
             'success': False,
             'error': str(e)
         }), 500
+
+
+# ============================================
+# BARCODE BACKFILL (Admin)
+# ============================================
+
+@app.route('/api/admin/backfill-barcodes', methods=['POST'])
+@require_admin_auth
+def api_backfill_barcodes():
+    """
+    Backfill barcode data for existing market_sales images stored in R2.
+    Downloads each image, scans for barcode, updates database.
+    
+    Body: {
+        "limit": 100,      # Max records to process (default 100, max 500)
+        "dry_run": false   # If true, scan but don't update DB
+    }
+    
+    Returns stats on processed/found/updated counts.
+    """
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    import requests
+    import base64
+    
+    if not BARCODE_AVAILABLE:
+        return jsonify({
+            'success': False, 
+            'error': 'Barcode scanning not available (requires Docker deployment)'
+        }), 503
+    
+    data = request.get_json() or {}
+    limit = min(data.get('limit', 100), 500)  # Cap at 500 to avoid timeout
+    dry_run = data.get('dry_run', False)
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+    
+    stats = {
+        'processed': 0,
+        'barcodes_found': 0,
+        'updated': 0,
+        'errors': 0,
+        'already_have_barcode': 0,
+        'remaining': 0,
+        'dry_run': dry_run,
+        'details': []  # First few results for verification
+    }
+    
+    try:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        # Find records with R2 images but no barcode data
+        cur.execute("""
+            SELECT id, title, issue, image_url
+            FROM market_sales
+            WHERE image_url LIKE '%%.r2.dev%%'
+              AND upc_main IS NULL
+            ORDER BY id
+            LIMIT %s
+        """, (limit,))
+        
+        records = cur.fetchall()
+        
+        # Count remaining for progress tracking
+        cur.execute("""
+            SELECT COUNT(*) as count
+            FROM market_sales
+            WHERE image_url LIKE '%%.r2.dev%%'
+              AND upc_main IS NULL
+        """)
+        total_remaining = cur.fetchone()['count']
+        stats['remaining'] = total_remaining - len(records)
+        
+        for record in records:
+            stats['processed'] += 1
+            sale_id = record['id']
+            image_url = record['image_url']
+            
+            try:
+                # Download image from R2
+                response = requests.get(image_url, timeout=10)
+                if response.status_code != 200:
+                    stats['errors'] += 1
+                    continue
+                
+                # Convert to base64
+                image_b64 = base64.b64encode(response.content).decode('utf-8')
+                
+                # Scan for barcode
+                barcode_result = scan_barcode_from_base64(image_b64)
+                
+                if barcode_result:
+                    stats['barcodes_found'] += 1
+                    upc_main = barcode_result.get('upc_main')
+                    upc_addon = barcode_result.get('upc_addon')
+                    is_reprint = barcode_result.get('is_reprint', False)
+                    
+                    # Add to details (first 10 only)
+                    if len(stats['details']) < 10:
+                        stats['details'].append({
+                            'id': sale_id,
+                            'title': record['title'],
+                            'issue': record['issue'],
+                            'upc_main': upc_main,
+                            'upc_addon': upc_addon,
+                            'is_reprint': is_reprint
+                        })
+                    
+                    if not dry_run:
+                        # Update database
+                        cur.execute("""
+                            UPDATE market_sales
+                            SET upc_main = %s,
+                                upc_addon = %s,
+                                is_reprint = %s
+                            WHERE id = %s
+                        """, (upc_main, upc_addon, is_reprint, sale_id))
+                        conn.commit()
+                        stats['updated'] += 1
+                    else:
+                        stats['updated'] += 1  # Would have updated
+                        
+            except Exception as e:
+                stats['errors'] += 1
+                print(f"[Backfill] Error processing sale {sale_id}: {e}")
+                continue
+        
+        return jsonify({
+            'success': True,
+            **stats
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/admin/barcode-stats', methods=['GET'])
+@require_admin_auth
+def api_barcode_stats():
+    """Get statistics on barcode coverage in market_sales."""
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+    
+    try:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        
+        # Overall stats
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE image_url LIKE '%%.r2.dev%%') as has_r2_image,
+                COUNT(*) FILTER (WHERE upc_main IS NOT NULL) as has_barcode,
+                COUNT(*) FILTER (WHERE is_reprint = true) as reprints_detected,
+                COUNT(*) FILTER (WHERE image_url LIKE '%%.r2.dev%%' AND upc_main IS NULL) as needs_scan
+            FROM market_sales
+        """)
+        stats = dict(cur.fetchone())
+        
+        # Recent barcodes found
+        cur.execute("""
+            SELECT title, issue, upc_main, upc_addon, is_reprint
+            FROM market_sales
+            WHERE upc_main IS NOT NULL
+            ORDER BY id DESC
+            LIMIT 10
+        """)
+        stats['recent_barcodes'] = [dict(r) for r in cur.fetchall()]
+        
+        return jsonify({'success': True, **stats})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # ============================================
