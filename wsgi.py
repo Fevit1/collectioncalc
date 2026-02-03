@@ -1,6 +1,10 @@
 """
-CollectionCalc - WSGI Entry Point (v4.2)
+CollectionCalc - WSGI Entry Point (v4.2.1)
 Flask routes for the CollectionCalc API
+
+New in v4.2.1:
+- Reprint filter! FMV excludes reprints (barcode-detected + text-detected)
+- Filters: "2nd print", "3rd print", "reprint" in titles
 
 New in v4.2:
 - FMV endpoint now pulls from both Whatnot AND eBay sales
@@ -483,7 +487,7 @@ def debug_prompt():
 @app.route('/')
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '4.2', 'barcode': BARCODE_AVAILABLE})
+    return jsonify({'status': 'ok', 'version': '4.2.1', 'barcode': BARCODE_AVAILABLE})
 
 
 # ============================================
@@ -1346,6 +1350,7 @@ def api_sales_fmv():
         cur = conn.cursor()
         
         # Query 1: market_sales (Whatnot data)
+        # Filter out reprints if barcode detected them
         market_query = """
             SELECT grade, price, 'whatnot' as source
             FROM market_sales
@@ -1355,6 +1360,7 @@ def api_sales_fmv():
                 OR LOWER(raw_title) LIKE LOWER(%s)
             )
             AND price > 0
+            AND (is_reprint IS NULL OR is_reprint = false)
             AND created_at > NOW() - INTERVAL '%s days'
         """
         market_params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
@@ -1367,7 +1373,7 @@ def api_sales_fmv():
         market_sales = cur.fetchall()
         
         # Query 2: ebay_sales (eBay Collector data)
-        # Filter out facsimiles, lots, bundles, and very low prices
+        # Filter out facsimiles, lots, bundles, reprints, and very low prices
         ebay_query = """
             SELECT grade, sale_price as price, 'ebay' as source
             FROM ebay_sales
@@ -1376,9 +1382,15 @@ def api_sales_fmv():
                 OR LOWER(raw_title) LIKE LOWER(%s)
             )
             AND sale_price > 5
+            AND (is_reprint IS NULL OR is_reprint = false)
             AND created_at > NOW() - INTERVAL '%s days'
             AND LOWER(parsed_title) NOT LIKE '%%facsimile%%'
             AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
+            AND LOWER(parsed_title) NOT LIKE '%%reprint%%'
+            AND LOWER(raw_title) NOT LIKE '%%reprint%%'
+            AND LOWER(raw_title) NOT LIKE '%%2nd print%%'
+            AND LOWER(raw_title) NOT LIKE '%%3rd print%%'
+            AND LOWER(raw_title) NOT LIKE '%%4th print%%'
             AND LOWER(parsed_title) NOT LIKE '%%lot %%'
             AND LOWER(raw_title) NOT LIKE '%%lot of%%'
             AND LOWER(parsed_title) NOT LIKE '%%set of%%'
