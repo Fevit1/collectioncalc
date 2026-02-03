@@ -1,181 +1,516 @@
-# CollectionCalc / Slab Worthy Roadmap
+# Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 3.0.0 (February 2, 2026)
+## Current Version: 4.2.1 (February 2, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
 
 ---
 
-## Recently Completed
+## 🚨 Immediate Priorities
 
-### v3.0.0 - 🎉 BARCODE SCANNING LIVE! (Session 22) 🆕
-- [x] **Docker Deployment** - Migrated from Python to Docker on Render
-  - Dockerfile with libzbar0 system library
-  - pyzbar barcode scanning now works!
-  - Production URL: `collectioncalc-docker.onrender.com`
-- [x] **Barcode Endpoints Added:**
-  - `/api/barcode-test` - Verify pyzbar loads
-  - `/api/barcode-scan` - Direct barcode scanning
-- [x] **Barcode Integration in Extraction:**
-  - `scan_barcode()` tries 0°, 90°, 180°, 270° rotations
-  - Extracts `upc_main` (12 digits) + `upc_addon` (5 digits)
-  - Returns barcode data in `/api/extract` response
-- [x] **Frontend Updated:**
-  - `js/utils.js` API_URL points to Docker backend
-- [x] **Cost Savings:**
-  - Suspended old Python service (-$7/mo)
+### Legal/Compliance (BLOCKING)
+- [ ] **Create privacy.html** - Currently 404, linked from footer
+- [ ] **Create terms.html** - Currently 404, linked from footer
+- [ ] **Set up support@slabworthy.com** - Linked from footer
 
-**Test Result (Amethyst #1):**
-```json
-{
-  "barcode_scanned": {
-    "type": "UPCA",
-    "upc_main": "070989311176",
-    "rotation": 0
-  },
-  "title": "Amethyst Princess of Gemworld",
-  "issue": "1"
-}
-```
-
-### v2.99.0 - eBay Collector Extension (Session 21)
-- [x] **eBay Collector Extension v1.0.3** - Passively collects comic sale data from eBay sold listings
-  - Parses: title, issue, price, date, condition, grade, publisher, image
-  - Fixed selectors for eBay's 2026 HTML structure (`li.s-card`)
-  - Popup shows stats and manual Sync button
-- [x] **R2 Image Backup** - Permanent storage for cover images
-  - Parallel processing (5 concurrent) for speed
-  - Images stored at `ebay-covers/{item_id}.webp`
-  - ~10-15 seconds for 60 images
-- [x] **Database Schema** - `ebay_sales` table with full sale data
-  - `comic_fmv` view for 90-day rolling FMV calculations
-  - Deduplication via `ebay_item_id` unique constraint
-- [x] **Whatnot Extension Fix** - v2.41.2 storage quota fix
-  - Was storing base64 images (500MB+), now stripped before storage
-- [x] **wsgi.py cleanup** - Silenced eBay deletion notification spam
-
-### v2.98.0 - Single Source of Truth & Deterministic Grading (Session 18-20)
-- [x] **Slab Worthy uses backend extraction** - Step 1 now calls /api/extract (same as Photo Upload)
-- [x] **barcode_digits field added** - Extracts 5-digit UPC add-on code for print/variant identification
-- [x] **Deterministic grading** - Added temperature=0 to all Claude API calls
-- [x] **wsgi.py media_type passthrough** - /api/extract properly handles PNG, HEIC, WebP
-- [x] **Writer/Artist extraction** - New schema fields working
-- [x] **UI Polish:**
-  - "Upload from Gallery" → "Upload" (shorter, cleaner)
-  - "💰 Should You Grade This?" → Slab icon + "Should You Slab It?"
-  - Warning message clarified (about photo count, not quality)
-
-### v2.97.0 - Mobile Fixes & Gallery Upload (Sessions 15-17)
-- [x] **Login persistence fixed** - Token now properly loads from localStorage
-- [x] **Mobile extraction working** - Was auth issue, not extraction bug
-- [x] **Rotation detection improved** - AI checks TEXT only, ignores artistic elements
-- [x] **Upload from Gallery** - Slab Worthy now has "Take Photo" + "Upload" buttons
-- [x] **Server slowdown diagnosed** - Whatnot extension was polling with null issue
-- [x] **Auto-rotation prompts for steps 2-4** - Added is_upside_down check (needs testing)
-- [x] **Cache key crash fix** - issue.strip() on integers
-- [x] **Search logging added** - Diagnose Spawn #1 reprint confusion
-
-### v2.96.0 - Auto-Rotation & Code Split (Session 13-14)
-- [x] **Auto-rotate landscape→portrait** - Comics are always taller than wide
-- [x] **Auto-detect upside-down** - AI checks orientation, rotates 180° if needed
-- [x] **Split app.js into 4 modules** - Prevents file truncation on low-memory systems
-- [x] **"Upright" instruction text** - Guides users to reduce re-analysis costs
-- [x] **Rotate button debounce** - 2.5s cooldown prevents rapid clicks
-
-### v2.95.0 - Slab Worthy Live! (Session 12)
-- [x] **Fixed truncated app.html** - Missing script tag caused setMode undefined
-- [x] **Added defensive null checks** - Grading report won't crash on missing elements
-- [x] **Slab Worthy deployed to production** - Feature is LIVE
-
-### v2.94.0 - Slab Worthy! (Session 11)
-- [x] **Provisional patent filed** - USPTO, Small Entity
-- [x] **"Slab Worthy?" tab** - 4-photo grading assessment
-- [x] Custom slab icon with question mark
-- [x] Sequential photo capture flow (Front → Spine → Back → Centerfold → Report)
-- [x] Device detection (mobile camera vs desktop upload)
-- [x] Photo quality feedback (blur, dark, glare warnings)
-- [x] Grade report with defects by area
-- [x] "Should you grade?" economic recommendation
-- [x] Confidence scaling (65% → 94% based on photos)
-- [x] Additional photos support
-- [x] Photo tips modal
+### Testing
+- [ ] **Mobile testing** - Full Slab Worthy flow on phone
+- [ ] **Comic-shaped upload boxes** - Verify on small screens
 
 ---
 
-## In Progress
+## High Priority
 
-### 🚧 Phase 2: Database Schema for Barcode Storage
-**Status:** Ready to implement
+### Whatnot Auction Integration
+**Goal:** Create Whatnot auctions directly from graded comics
 
-**Tasks:**
-- [ ] Add `upc_main`, `upc_addon`, `is_reprint` columns to `market_sales`
-- [ ] Add `upc_main`, `upc_addon`, `is_reprint` columns to `ebay_sales`
-- [ ] Store barcode data when Whatnot extension uploads images
-- [ ] No extension changes needed (server-side only)
+**Requirements:**
+- [ ] Whatnot API research / partnership inquiry
+- [ ] Authentication flow
+- [ ] Auction creation endpoint
+- [ ] Listing templates optimized for Whatnot format
+- [ ] "List to Whatnot" button in grade report
 
-### 🚧 Phase 3: Backfill Existing Images
-**Status:** After Phase 2
+**Note:** Landing page promises "Whatnot integration coming soon!" - need timeline
 
-**Tasks:**
-- [ ] Create `/api/admin/backfill-barcodes` endpoint
-- [ ] Fetch all sales with R2 image URLs
-- [ ] Download and scan each image with pyzbar
-- [ ] Update database with barcode data
-- [ ] Batch processing with progress tracking
+### My Collection Feature
+**Goal:** Users can save, view, and manage their graded comics
+
+**Desktop (easier):**
+- [ ] Collection grid/list view
+- [ ] Filter by grade, title, value
+- [ ] Sort options
+- [ ] Total collection value
+- [ ] Export to CSV
+
+**Mobile (harder - limited real estate):**
+- [ ] Compact card view
+- [ ] Swipe actions
+- [ ] Quick filters
+- [ ] Consider bottom sheet for details
+
+### Mobile UX: Better Image Picker
+**Problem:** Standard file picker shows tiny thumbnails
+**Desired:** Gallery-style view like native Pixel camera app
+
+**Options:**
+- Custom image picker component with larger previews
+- PWA with File System Access API
+- Native-like gallery grid before upload
+- Consider: Is this worth the complexity?
+
+---
+
+## Medium Priority
+
+### Branding Consistency
+- [ ] Decide: Should collectioncalc.com show CollectionCalc or Slab Worthy branding?
+- [ ] Update email templates (verification, password reset) - still say "CollectionCalc"
+- [ ] Update Chrome extensions to reference Slab Worthy
+- [ ] Consider more playful tone - "Slab Worthy" is casual phrase, current design may be too formal
+
+### Technical Debt: wsgi.py Refactoring
+**Current:** ~1,900 lines
+**Threshold:** Refactor at ~2,500 lines
+
+**Plan:** Split using Flask Blueprints
+```
+wsgi.py (main app, ~200 lines)
+routes/
+  auth.py      - authentication endpoints
+  admin.py     - admin/NLQ endpoints
+  sales.py     - FMV, market data
+  images.py    - R2 upload, barcode scanning
+  grading.py   - extraction, grading
+```
+
+### Analytics Improvements
+Current: Basic admin console analytics
+Consider:
+- [ ] User journey tracking (where do people drop off?)
+- [ ] Grading completion rates
+- [ ] Popular comic titles
+- [ ] Time-to-grade metrics
+- [ ] A/B testing framework
+
+---
+
+## Privacy & Compliance
+
+### GDPR Requirements (EU Users)
+Even if US-only for now, good practice to implement:
+
+**Required:**
+- [ ] Clear privacy policy explaining data collection
+- [ ] Cookie consent banner (if using tracking cookies)
+- [ ] Right to access - users can request their data
+- [ ] Right to deletion - users can delete account and data
+- [ ] Data portability - export user data
+- [ ] Clear consent for marketing emails
+
+**Implementation:**
+- [ ] Add "Delete my account" option in user settings
+- [ ] Add "Export my data" option
+- [ ] Cookie consent component (if needed)
+- [ ] Update privacy policy with GDPR language
+
+### US State Privacy Laws
+
+**California (CCPA/CPRA):**
+- Right to know what data is collected
+- Right to delete personal information
+- Right to opt-out of sale of data
+- "Do Not Sell My Personal Information" link (if applicable)
+
+**Other States:**
+- Virginia (VCDPA), Colorado (CPA), Connecticut (CTDPA) have similar requirements
+- Generally: transparency, access, deletion rights
+
+**Recommended Privacy Policy Sections:**
+1. What data we collect (email, photos, grading history)
+2. How we use it (provide service, improve AI)
+3. How we store it (encrypted, US servers)
+4. Third parties (Anthropic for AI, Cloudflare for hosting)
+5. User rights (access, delete, export)
+6. Contact info
+7. Updates policy
+
+---
+
+## Recently Completed
+
+### v4.2.1 - Reprint Filter (Session 23)
+- [x] FMV excludes reprints (barcode + text detection)
+- [x] Filters: "2nd print", "3rd print", "reprint"
+
+### v4.2.0 - eBay Data Integration (Session 23)
+- [x] FMV queries both market_sales AND ebay_sales
+- [x] 10x more sales data for valuations
+- [x] Source breakdown in response
+
+### v4.1.0 - Slab Worthy Rebrand (Session 23)
+- [x] slabworthy.com live as custom domain
+- [x] New branding throughout
+- [x] Removed Photo Upload tab
+- [x] Slab Worthy as default tab
+- [x] Comic-shaped upload boxes
+- [x] Desktop/mobile text variants
+
+### v4.0.0 - Docker + Barcode (Session 22)
+- [x] Docker deployment with pyzbar
+- [x] Barcode scanning live
+- [x] UPC storage in database
 
 ---
 
 ## Known Bugs
 
-- [ ] 🐛 **Thinking animation not showing** - Code added but not appearing in Slab Worthy Step 5
-- [ ] 🐛 **Photo Upload missing thinking animation** - Needs same treatment as Slab Worthy
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
-- [ ] 🐛 **Hide "Take Photo" on desktop** - Only show "Upload" button on non-mobile
+- [ ] 🐛 **Photo Upload mode removed** - Was it used for testing? May need alternative
 
 ---
 
 ## Backlog
 
-### High Priority
-- [ ] **Phase 2: Store barcode data in database** - #1 PRIORITY
-- [ ] **Phase 3: Backfill existing images with barcodes**
-- [ ] **Use barcode to filter reprints from valuations** - Spawn #1 fix!
-- [ ] **Reprint/variant warnings in UI** - Alert users when detected
-- [ ] **Use eBay Collector data in valuations** - FMV from real sales
-- [ ] **Debug thinking animation** - Fix not appearing in Slab Worthy
-- [ ] **Whatnot Auction Integration** - Create auctions from graded comics
-- [ ] **Save graded comic to collection**
-- [ ] **Grade report sharing/export**
+### Features
+- [ ] Grade report sharing/export (PDF, image)
+- [ ] Batch grading (multiple comics)
+- [ ] Price alerts
+- [ ] Value tracking over time
+- [ ] Collection analytics
 
-### Medium Priority
-- [ ] **Slab Premium Admin Panel** - Data-driven premium model management
-- [ ] **Valuation Engine Improvements** - Confidence reasoning, outlier detection
-- [ ] **Prompt Management Admin Page** - View/edit all prompts in one place
-- [ ] **Value tracking over time**
-- [ ] **Collection analytics**
-- [ ] **Batch grading (multiple comics)**
-- [ ] **Price alerts**
+### Admin
+- [ ] Slab Premium Admin Panel
+- [ ] Prompt Management Admin Page
+- [ ] User management improvements
 
-### Low Priority / Future
-- [ ] **Sports cards support**
-- [ ] **Pokemon cards support**
-- [ ] **Other collectibles**
-- [ ] **Social features (share collection)**
-- [ ] **Marketplace integration beyond eBay**
-- [ ] **Slab Worthy mobile app**
+### Future Verticals (Post-Comics Success)
+- [ ] Coins (coinworthy.com)
+- [ ] Cards (cardworthy.com) 
+- [ ] Stamps (stampworthy.com)
+
+---
+
+## Company Foundation
+
+### Mission
+**Helping collectors maximize the value of their collection.**
+
+### Founder Background
+Mike Berry - Former eBay, CTO org supporting Marketing department
+- Built "Complete Your Collection" - identified collectors (e.g., Star Wars figures) and recommended complementary items
+- Targeted merchandising based on purchase/browsing behavior
+- Deep understanding of collector psychology and data-driven personalization
+
+**Product insight from this:** We should track browsing/collecting behavior to:
+- Recommend what to grade next
+- Alert on price movements for items they're interested in
+- "Complete your collection" style recommendations
+- Personalized grading priorities based on their collection
+
+### Values
+*(To be defined - Mike reflecting on these questions)*
+
+**Questions to consider:**
+- What do you want collectors to feel when they use Slab Worthy?
+- What would you never compromise on?
+- What makes Slab Worthy different from a faceless tool?
+- When things go wrong, how do we make it right?
+- What kind of company do you want to build?
+
+**Candidate values (starting points):**
+- Collector-first (we succeed when they succeed)
+- Transparency (honest grades, real data)
+- Accessibility (make expert knowledge available to everyone)
+- Trust (their data, their collection, their control)
+- Continuous improvement (always learning, always better)
+
+### Leadership Philosophy
+
+**The Leadership Challenge (Kouzes & Posner) - 5 Practices:**
+1. **Model the Way** - Clarify values, set the example
+2. **Inspire a Shared Vision** - Envision the future, enlist others
+3. **Challenge the Process** - Search for opportunities, experiment and take risks
+4. **Enable Others to Act** - Foster collaboration, strengthen others
+5. **Encourage the Heart** - Recognize contributions, celebrate values and victories
+
+**Situational Leadership (Hersey & Blanchard):**
+Adapt leadership style to the development level of the person/team:
+- **Directing** (S1) - High task, low relationship - for new/learning
+- **Coaching** (S2) - High task, high relationship - for developing
+- **Supporting** (S3) - Low task, high relationship - for capable but uncertain
+- **Delegating** (S4) - Low task, low relationship - for self-reliant performers
+
+**Application:** As Slab Worthy grows, leadership style shifts. Early stage = more directing/coaching. Scaled team = more supporting/delegating.
+
+---
+
+## Founder Context & Vision
+
+### The Goal
+**$100M revenue in 5 years** via multi-vertical expansion
+
+### Personal Situation
+- Currently unemployed, actively looking for work
+- ~$500K runway (2-4 years depending on burn)
+- If employed: well-funded side project that can still grow
+- **Domain expertise:** Mike worked in eBay's Collectibles division - knows the categories, the buyers, the data
+
+### Milestones That Validate "Go Full-Time"
+- [ ] 1,000 paying users
+- [ ] $10K MRR
+- [ ] Clear product-market fit (retention, referrals)
+
+### Path to $100M - Multi-Vertical Expansion
+
+**The Math:**
+| Price Point | Users Needed for $100M |
+|-------------|------------------------|
+| $10/mo ($120/yr) | 833K paying users |
+| $20/mo ($240/yr) | 417K paying users |
+| $50/yr one-time | 2M paying users |
+
+**Comics alone probably caps at $20-30M.** Multi-vertical is required.
+
+### Vertical Expansion Roadmap
+
+| Vertical | Brand | Grading Cos | Market Notes | Revenue Potential |
+|----------|-------|-------------|--------------|-------------------|
+| **Comics** | Slab Worthy | CGC, CBCS | 500K-1M graded/year | $15-25M |
+| **Sports Cards** | CardWorthy? | PSA, BGS, SGC | Massive market, $10B+ industry | $25-40M |
+| **Pokemon/TCG** | CardWorthy? | PSA, BGS, CGC | Huge Gen Z/Millennial audience | $15-25M |
+| **Coins** | CoinWorthy? | PCGS, NGC | Established older demographic | $15-25M |
+| **Sneakers** | SoleWorthy? KickWorthy? | - | Authentication, not grading | $10-20M |
+| **Stamps** | StampWorthy? | PSA, PSE | Smaller, older demographic | $5-10M |
+| **Sports Memorabilia** | ? | PSA, Beckett, JSA | Autographs, jerseys, bats | $5-15M |
+| **Vintage Toys** | ? | AFA (Action Figure Authority) | Star Wars, GI Joe, etc. | $5-10M |
+| **Watches** | ? | Various auth services | Authentication focus | $5-10M |
+| **Wine** | ? | WA, Vinous ratings | Different model - storage/provenance | $5-10M |
+
+**Full eBay Collectibles Categories (potential verticals):**
+- Trading Cards (sports, Pokemon, Magic, Yu-Gi-Oh)
+- Comics
+- Coins & Paper Money
+- Stamps
+- Sports Memorabilia
+- Entertainment Memorabilia
+- Vintage & Antique Toys
+- Art
+- Pottery & Glass
+- Militaria
+- Rocks, Fossils & Minerals
+- Breweriana
+- Tobacciana
+
+### Prioritized Expansion Order
+
+**Phase 1 (2026):** Comics - prove the model ✅ IN PROGRESS
+
+**Phase 2 (2027):** Sports Cards + Pokemon
+- Largest grading markets
+- Similar workflow to comics
+- PSA alone grades millions/year
+
+**Phase 3 (2028):** Coins
+- Established market
+- Higher average value items
+- PCGS/NGC are well-known
+
+**Phase 4 (2029+):** Sneakers, Memorabilia, expand based on data
+
+### What Changes Per Vertical
+
+| Component | Comics | Cards | Coins | Sneakers |
+|-----------|--------|-------|-------|----------|
+| AI prompts | Comic defects | Centering, corners, surface | Wear, luster, strike | Authenticity, condition |
+| Grading scale | 0.5-10 | 1-10 | 1-70 | Pass/Fail + condition |
+| Photo angles | Front, spine, back, centerfold | Front, back, edges, corners | Obverse, reverse, edge | Multiple angles, box, tags |
+| Market data | eBay, Whatnot | eBay, PWCC, Goldin | eBay, Heritage, GreatCollections | StockX, GOAT, eBay |
+
+### What Stays the Same (Shared Backend)
+- User authentication
+- Payment/subscription system
+- Image processing pipeline
+- AI vision infrastructure
+- Collection management
+- R2 storage
+- Admin dashboard
+
+---
+
+## Finance & Fundraising
+
+### Documents to Update/Create
+- [ ] **Investor Pitch Deck** - existing draft needs refresh
+- [ ] **FAQ Document** - existing draft needs refresh
+- [ ] **Financial Model** - spreadsheet with projections
+
+### Financial Model Components
+
+**Revenue Forecast:**
+- User growth assumptions (month over month)
+- Conversion rate: free → paid
+- Churn rate assumptions
+- ARPU (Average Revenue Per User)
+- Revenue = Users × Conversion × Price - Churn
+
+**Cost Structure:**
+| Category | Items | Est. Monthly |
+|----------|-------|--------------|
+| Infrastructure | Render, Cloudflare, R2, Anthropic API | $50-500+ |
+| Payments | Stripe fees (2.9% + $0.30) | Variable |
+| Email | Resend or similar | $20-50 |
+| Domains | slabworthy.com, etc. | ~$2/mo amortized |
+| Marketing | Ads, content, Lucent.ai | TBD |
+| Legal | Terms, trademark, etc. | One-time + minimal |
+
+**Key Metrics to Model:**
+- CAC (Customer Acquisition Cost)
+- LTV (Lifetime Value)
+- LTV:CAC ratio (want 3:1 or better)
+- Months to payback
+- Gross margin
+- Burn rate
+- Runway
+
+**Break-even Analysis:**
+- Fixed costs per month
+- Variable cost per user
+- Revenue per user
+- Break-even = Fixed Costs ÷ (Revenue - Variable Cost per User)
+
+### Pro Forma Structure (3-Year)
+
+**Year 1 (2026):**
+- Beta → Launch
+- Focus on product-market fit
+- Likely unprofitable, funded by savings/angel
+
+**Year 2 (2027):**
+- Growth phase
+- Marketing spend increases
+- Target: Break-even or small profit
+
+**Year 3 (2028):**
+- Scale / expand verticals (coins, cards)
+- Profitability
+- Potential Series A if scaling aggressively
+
+### Fundraising Considerations
+
+**Bootstrap vs. Raise:**
+- Current burn rate is low (Render ~$7-20/mo)
+- Could bootstrap to profitability
+- Raising makes sense if: want to move faster, hire, marketing blitz
+
+**If Raising:**
+- Angel round: $50-250K for runway + marketing
+- Seed round: $500K-2M for team + growth
+- What's the use of funds? (X% product, Y% marketing, Z% ops)
+
+**Investor Pitch Updates Needed:**
+- [ ] Traction metrics (users, grades completed, retention)
+- [ ] Market size (comic grading market, CGC revenue as proxy)
+- [ ] Competitive landscape
+- [ ] Team slide
+- [ ] Financial projections
+- [ ] Ask amount and use of funds
 
 ---
 
 ## Business/Legal
 
-### Trademark Evaluation
-- [ ] "Slab Worthy" - core brand name
-- [ ] "Slab Report" - distinctive output term
+### Monetization & Payments
 
-### CGC Partnership Exploration
-- [ ] Affiliate/referral commission for grading submissions
-- [ ] User discounts for using our recommendation
+**Pricing Model Options:**
+- [ ] Freemium (X free grades/month, then paid)
+- [ ] Subscription tiers (Basic/Pro/Unlimited)
+- [ ] Pay-per-grade (credits system)
+- [ ] One-time purchase vs. recurring
+
+**Questions to answer:**
+- What's the free tier limit? (3 grades/month? 5?)
+- What features are gated? (AI grading, collection, eBay listing)
+- Annual discount?
+
+**Payment Processing:**
+- [ ] **Stripe** - industry standard, handles subscriptions, easy integration
+- [ ] Stripe Checkout for payment flow
+- [ ] Stripe Customer Portal for self-service (upgrade, downgrade, cancel)
+- [ ] Webhook handling for subscription events
+- [ ] Receipts and invoices
+
+**Cancellation Flow:**
+- [ ] Self-service cancel via Stripe Customer Portal
+- [ ] Grace period? (access through end of billing period)
+- [ ] Win-back email sequence?
+- [ ] Exit survey (why are you leaving?)
+
+### Terms & Conditions
+
+**Must include:**
+- [ ] IP Protection - "You will not copy, reproduce, or create derivative works..."
+- [ ] Look at Tabi's language for reference
+- [ ] Service limitations and disclaimers
+- [ ] Grading is estimate, not guarantee
+- [ ] User-generated content rights
+- [ ] Account termination conditions
+- [ ] Dispute resolution
+
+**Acceptance flow:**
+- [ ] Checkbox on signup: "I agree to Terms and Privacy Policy"
+- [ ] Store timestamp of acceptance
+- [ ] Re-acceptance required when terms change materially
+
+### Customer Support
+
+**Chatbot on Site:**
+- [ ] AI chatbot for FAQ, how-to, troubleshooting
+- [ ] Escalation to email for complex issues
+- [ ] Options: Intercom, Crisp, custom with Claude API
+
+**Phone Support (Future):**
+- [ ] AI voice agent for phone support
+- [ ] Walk users through grading process
+- [ ] Options: Bland.ai, Vapi, Retell.ai
+- [ ] Consider: Is phone support needed for this demographic?
+
+### Marketing Plan
+
+**Phase 1: Organic/Low Cost**
+- [ ] Comic collector subreddits (r/comicbookcollecting, r/comicbooks)
+- [ ] Facebook groups (comic collectors, CGC fans)
+- [ ] YouTube tutorial video (how to use Slab Worthy)
+- [ ] SEO: "should I grade my comic", "is my comic worth grading"
+- [ ] Comic convention presence (virtual or physical)
+
+**Phase 2: Paid Acquisition**
+- [ ] Google Ads on grading-related searches
+- [ ] Facebook/Instagram ads targeting comic collectors
+- [ ] Influencer partnerships (comic YouTubers, TikTokers)
+
+**Phase 3: Video Marketing**
+- [ ] **Lucent.ai** - Mike is part owner
+- [ ] TikTok content (quick grading demos, before/after values)
+- [ ] Facebook video ads
+- [ ] YouTube pre-roll on comic content
+- [ ] Instagram Reels
+
+**Messaging angles:**
+- "Is your comic worth grading? Find out in 60 seconds"
+- "Don't waste $50 grading a $20 comic"
+- "AI-powered grading assessment"
+- "Know before you slab"
+
+### Trademarks (Not Urgent)
+- [ ] "Slab Worthy" - $250-350 USPTO filing
+- [ ] "CollectionCalc" - lower priority
+- Currently using ™ (unregistered) - provides common law protection
+
+### CGC Partnership
+- [ ] Affiliate/referral commission exploration
+- [ ] User discounts for using recommendation
 - [ ] Attribution tracking
 
 ---
@@ -184,19 +519,8 @@ Provisional patent filed for multi-angle comic grading system.
 
 **Title:** System and Method for Automated Comic Book Condition Assessment Using Multi-Angle Imaging and Artificial Intelligence
 
-**Key Claims:**
-1. Multi-angle photography method (front, spine, back, centerfold)
-2. AI defect detection across multiple views
-3. Confidence scaling based on photo count
-4. Image quality feedback loop
-5. Economic decision engine ("should you grade?")
-6. Signature detection module
-7. Facsimile detection module
-8. Auto-orientation correction (landscape/upside-down)
-9. **Barcode-based variant/reprint identification** ✅ NOW WORKING
-
 **Status:** Provisional filed January 27, 2026
-**Next:** File utility patent within 12 months (by January 27, 2027)
+**Deadline:** File utility patent by January 27, 2027
 
 ---
 
@@ -204,22 +528,12 @@ Provisional patent filed for multi-angle comic grading system.
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 3.0.0 | Feb 2, 2026 | 🎉 BARCODE SCANNING LIVE! Docker deployment |
-| 2.99.0 | Feb 1, 2026 | 📊 eBay Collector extension, R2 image backup |
-| 2.98.0 | Jan 30, 2026 | 🎯 Single source extraction, deterministic grading |
-| 2.97.0 | Jan 29, 2026 | 📱 Mobile fixes, Gallery upload |
-| 2.96.0 | Jan 28, 2026 | 🔄 Auto-rotation, JS modular split |
-| 2.95.0 | Jan 28, 2026 | 🚀 Slab Worthy LIVE, bug fixes |
-| 2.94.0 | Jan 27, 2026 | 🔲 Slab Worthy!, Patent filed |
-| 2.93.0 | Jan 26, 2026 | Signature/facsimile detection |
-| 2.92.0 | Jan 25, 2026 | NLQ, Admin dashboard |
-| 2.91.0 | Jan 24, 2026 | eBay QuickList |
-| 2.90.0 | Jan 22, 2026 | Authentication, beta codes |
-| 2.80.0 | Jan 20, 2026 | Photo extraction, bulk upload |
-| 2.70.0 | Jan 18, 2026 | Three-tier valuation |
-| 2.60.0 | Jan 15, 2026 | Whatnot extension |
-| 2.50.0 | Jan 12, 2026 | Market data integration |
+| 4.2.1 | Feb 2, 2026 | Reprint filter |
+| 4.2.0 | Feb 2, 2026 | eBay data in FMV |
+| 4.1.0 | Feb 2, 2026 | Slab Worthy rebrand |
+| 4.0.0 | Feb 2, 2026 | Docker + barcode scanning |
+| 3.0.0 | Feb 1, 2026 | eBay Collector extension |
 
 ---
 
-*Last updated: February 2, 2026*
+*Last updated: February 2, 2026 (Session 23)*

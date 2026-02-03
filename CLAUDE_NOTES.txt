@@ -1,63 +1,101 @@
-# Claude Working Notes - CollectionCalc Project
+# Claude Working Notes - CollectionCalc / Slab Worthy Project
 
 ## Executive Summary
 
-**Purpose:** This document helps Claude quickly get up to speed when starting a new session with Mike on the CollectionCalc project.
+**Purpose:** This document helps Claude quickly get up to speed when starting a new session with Mike on the Slab Worthy project.
 
-**The Project:** CollectionCalc is an AI-powered comic book valuation tool. The flagship feature "Slab Worthy?" uses patent-pending multi-angle photography to assess whether comics are worth professional grading.
+**The Project:** Slab Worthy is an AI-powered comic grading tool. The flagship feature uses patent-pending multi-angle photography to assess whether comics are worth professional grading. Powered by CollectionCalc backend.
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
 **Current State (v4.2.1):**
-- Core features working: Manual Entry, Photo Upload, Slab Worthy
-- **🎉 BARCODE SCANNING LIVE** — Docker deployment with pyzbar/libzbar0
-- **🎉 FMV NOW USES EBAY + WHATNOT DATA** — 10x more sales data!
-- **🎉 REPRINT FILTER ACTIVE** — Spawn #1 problem fixed!
+- **REBRANDED TO SLAB WORTHY** - slabworthy.com is live!
+- FMV uses eBay + Whatnot data (10x more sales!)
+- Reprint filter active (Spawn #1 fix)
+- Barcode scanning infrastructure ready
 - eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
 
-**Next Priority:** Complete slabworthy.com redirect (waiting for DNS propagation)
+---
+
+## 🚨 IMMEDIATE ACTION ITEMS
+
+### Broken Links in Production
+- [ ] `/privacy.html` - 404, needs to be created
+- [ ] `/terms.html` - 404, needs to be created  
+- [ ] `support@slabworthy.com` - verify email is set up
+
+### Testing Needed
+- [ ] **Mobile testing** - full Slab Worthy grading flow on phone
+- [ ] Comic-shaped upload boxes on small screens
+- [ ] Image picker UX on mobile (see UX improvement below)
+
+### Branding Decisions Needed
+- [ ] **collectioncalc.com** - currently shows Slab Worthy branding. Should it stay CollectionCalc-branded as the backend hub?
+- [ ] **Email templates** - verification/password reset emails probably still say "CollectionCalc"
+- [ ] **Chrome extensions** - still reference CollectionCalc
+- [ ] **Tone consideration** - "Slab Worthy" is casual/playful phrase ("Dude, that's slab worthy!"). Current design may be too formal. Consider more playful branding?
 
 ---
 
 ## Session 23 Summary (February 2, 2026)
 
-### 🎉 BIG WINS
+### Major Wins
+1. **FMV Now Uses eBay + Whatnot Data (v4.2)**
+   - `/api/sales/fmv` queries BOTH tables
+   - ASM #300: 6 Whatnot + 53 eBay = 59 total sales
+   - Response includes `sources: { whatnot: X, ebay: Y }`
 
-**1. FMV Now Uses eBay + Whatnot Data (v4.2)**
-- `/api/sales/fmv` queries BOTH `market_sales` AND `ebay_sales`
-- ASM #300 example: 6 Whatnot + 53 eBay = **59 total sales** (was just 6!)
-- eBay filters: no facsimiles, lots, bundles, or <$5 sales
-- Response includes `sources: { whatnot: X, ebay: Y }`
+2. **Reprint Filter (v4.2.1)**
+   - `is_reprint = false` filter on both tables
+   - Text filters: "reprint", "2nd print", "3rd print", etc.
+   - Fixes Spawn #1 valuation pollution
 
-**2. Reprint Filter (v4.2.1)**
-- `is_reprint = false` filter on both tables
-- Text filters: "reprint", "2nd print", "3rd print", "4th print"
-- **Fixes Spawn #1 problem** — 2nd prints won't pollute 1st print valuations
+3. **Full Slab Worthy Rebrand**
+   - slabworthy.com → custom domain on Cloudflare Pages
+   - New branding: "Slab Worthy™ - AI for Comic Collectors"
+   - Removed Photo Upload tab
+   - Slab Worthy? is now default tab
+   - Comic-shaped upload boxes (7:10 cover, 1:6 spine, 14:10 centerfold)
+   - Centerfold has dotted center line
+   - Desktop: "Upload" text, hidden "Take Photo" button
+   - Footer: Contact, Privacy, Terms + "Powered by CollectionCalc™ © 2026"
 
-**3. Slab Worthy Domain Setup (In Progress)**
-- slabworthy.com added to Cloudflare
-- Nameservers updated at Network Solutions
-- **Waiting for DNS propagation**
-- Next: Add redirect rule → collectioncalc.com/app.html#slab
+### Barcode Backfill - Skipped
+- Endpoints created but Whatnot images don't show barcodes
+- Live stream screenshots with barcode corner cropped
+- Will be useful for: Slab Worthy user photos, eBay Collector images
 
-### Business Vision Discussed
-Mike's plan: "Worthy" brand family
-- **slabworthy.com** — Comics (CGC, CBCS)
-- **coinworthy.com** — Coins (PCGS, NGC)
-- **cardworthy.com** — Cards (PSA, BGS)
-- All share one backend (collectioncalc-api)
-- Same pattern: Photo → AI Vision → Grade → Value → "Worth grading?"
+---
 
-### Other Fixes
-- Fixed deploy command (Render API key format)
-- Fixed index.html typo (`collectioncal-docker` → `collectioncalc-docker`)
-- Disabled auto-deploy in Render (was causing duplicate deploys)
-- Thinking animation in Slab Worthy Step 5 — already working! ✅
+## Technical Debt
 
-### Barcode Backfill — Skipped
-- Added endpoints but Whatnot images don't show barcodes
-- Live stream screenshots, barcode corner cropped out
-- Will be useful for: Slab Worthy photos, eBay Collector images
+### wsgi.py Refactoring Needed
+- Currently ~1,900 lines and growing
+- Recommendation: Split at ~2,500 lines using Flask Blueprints
+- Suggested structure:
+  - `routes/auth.py` - authentication endpoints
+  - `routes/admin.py` - admin/NLQ endpoints  
+  - `routes/sales.py` - FMV, market data
+  - `routes/images.py` - R2 upload, barcode scanning
+  - `routes/grading.py` - extraction, grading endpoints
+
+### Dead Code
+- Barcode backfill endpoints (`/api/admin/backfill-barcodes`, `/api/admin/barcode-stats`) - functional but useless since Whatnot images don't have visible barcodes
+
+---
+
+## Business Vision
+
+### "Worthy" Brand Family
+- **slabworthy.com** — Comics (CGC, CBCS) ✅ LIVE
+- **coinworthy.com** — Coins (PCGS, NGC) - future
+- **cardworthy.com** — Cards (PSA, BGS) - future
+- **stampworthy.com** — Stamps (PSA, PSE) - future
+
+All share one backend (CollectionCalc API). Same pattern:
+```
+Photo → AI Vision → Grade Estimate → Market Value → "Worth grading?"
+```
 
 ---
 
@@ -65,66 +103,39 @@ Mike's plan: "Worthy" brand family
 
 ### Deployment Commands
 ```powershell
-# Backend (Render Docker) - auto-deploy OFF, use API
+# Backend (Render Docker)
 git add .; git commit -m "message"; git push; deploy
 
-# Frontend (Cloudflare)
+# Frontend (Cloudflare)  
 git add .; git commit -m "message"; git push; purge
 ```
 
-### Service IDs
-- Docker service: `srv-d5vcjqqli9vc73a5a730`
-- API URL: `https://collectioncalc-docker.onrender.com`
+### URLs
+- **Frontend:** slabworthy.com (also collectioncalc.com)
+- **API:** collectioncalc-docker.onrender.com
+- **Service ID:** srv-d5vcjqqli9vc73a5a730
 
 ### Test Endpoints
 ```bash
-# Health check
 curl https://collectioncalc-docker.onrender.com/health
 # Returns: {"barcode":true,"status":"ok","version":"4.2.1"}
 
-# FMV with sources
 curl "https://collectioncalc-docker.onrender.com/api/sales/fmv?title=spider-man&issue=300"
 ```
 
-### PowerShell Profile
-Location: `C:\Users\mberr\OneDrive\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
-
-Needs environment variables:
-- `RENDER_API_KEY` — For deploy command
-- `CLOUDFLARE_ZONE_ID` — For purge command
-- `CLOUDFLARE_API_TOKEN` — For purge command
-
 ---
 
-## Pending Tasks
+## UX Improvements Identified
 
-### When DNS Propagates (slabworthy.com)
-1. Check: `nslookup slabworthy.com` (should show Cloudflare IPs)
-2. Cloudflare Dashboard → slabworthy.com → Rules → Redirect Rules
-3. Create rule:
-   - Name: `Redirect to Slab Worthy`
-   - When: All incoming requests
-   - Type: Static
-   - URL: `https://collectioncalc.com/app.html#slab`
-   - Status: 301
-
----
-
-## Key Learnings
-
-### eBay Data Quality
-- 2,805 sales, 2,615 unique titles
-- Needs filtering: facsimiles, lots, bundles, reprints
-- Grade field often NULL (only 45 graded sales)
-- Still valuable for raw comic pricing
-
-### API URL Locations (Watch for typos!)
-- `js/utils.js` — Main API_URL constant
-- `index.html` — Login page (has its own script)
-- Extensions have their own API URLs
+### Mobile Image Picker
+Current: Standard file picker shows tiny thumbnails
+Desired: Gallery-style view like native camera app on Pixel
+Options to explore:
+- Custom image picker component
+- PWA with file system access API
+- Native-like gallery grid before upload
 
 ---
 
 *Last updated: February 2, 2026 (Session 23)*
 *Version: 4.2.1*
-*Next: Complete slabworthy.com redirect*
