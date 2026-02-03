@@ -8,38 +8,56 @@
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
-**Current State (v4.0):**
+**Current State (v4.2.1):**
 - Core features working: Manual Entry, Photo Upload, Slab Worthy
 - **🎉 BARCODE SCANNING LIVE** — Docker deployment with pyzbar/libzbar0
-- **🎉 BARCODE STORAGE LIVE** — New sales automatically scanned and stored
+- **🎉 FMV NOW USES EBAY + WHATNOT DATA** — 10x more sales data!
+- **🎉 REPRINT FILTER ACTIVE** — Spawn #1 problem fixed!
 - eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
 
-**Next Priority:** Phase 3 — Backfill existing images with barcode data
+**Next Priority:** Complete slabworthy.com redirect (waiting for DNS propagation)
 
 ---
 
-## Session 22 Summary (February 2, 2026)
+## Session 23 Summary (February 2, 2026)
 
-### Docker Migration COMPLETE ✅
-- Production now runs on `collectioncalc-docker.onrender.com`
-- Old Python service SUSPENDED (saves $7/mo)
-- Updated Whatnot extension (`collectioncalc.js` API URL)
-- Updated eBay extension (`popup.js` API URL)
-- Fixed Mike's `deploy` PowerShell alias (new service ID: `srv-d5vcjqqli9vc73a5a730`)
+### 🎉 BIG WINS
 
-### Phase 2: Barcode Storage COMPLETE ✅
-- Added database columns: `upc_main`, `upc_addon`, `is_reprint` to both `market_sales` and `ebay_sales`
-- Updated wsgi.py to v4.0 with `scan_barcode_from_base64()` utility
-- `/api/sales/record` now scans barcodes from uploaded images
-- `/api/images/upload-for-sale` also scans barcodes
-- `/health` returns `{"barcode": true, "version": "4.0"}`
+**1. FMV Now Uses eBay + Whatnot Data (v4.2)**
+- `/api/sales/fmv` queries BOTH `market_sales` AND `ebay_sales`
+- ASM #300 example: 6 Whatnot + 53 eBay = **59 total sales** (was just 6!)
+- eBay filters: no facsimiles, lots, bundles, or <$5 sales
+- Response includes `sources: { whatnot: X, ebay: Y }`
 
-### Phase 3: Backfill — NOT DONE YET
-Need to create `/api/admin/backfill-barcodes` endpoint to scan existing R2 images
+**2. Reprint Filter (v4.2.1)**
+- `is_reprint = false` filter on both tables
+- Text filters: "reprint", "2nd print", "3rd print", "4th print"
+- **Fixes Spawn #1 problem** — 2nd prints won't pollute 1st print valuations
 
-### Other
-- Created weekly eBay collection schedule (238 titles across 7 days)
-- Goal: 2,000 sales/day (~34 searches at 60 sales each)
+**3. Slab Worthy Domain Setup (In Progress)**
+- slabworthy.com added to Cloudflare
+- Nameservers updated at Network Solutions
+- **Waiting for DNS propagation**
+- Next: Add redirect rule → collectioncalc.com/app.html#slab
+
+### Business Vision Discussed
+Mike's plan: "Worthy" brand family
+- **slabworthy.com** — Comics (CGC, CBCS)
+- **coinworthy.com** — Coins (PCGS, NGC)
+- **cardworthy.com** — Cards (PSA, BGS)
+- All share one backend (collectioncalc-api)
+- Same pattern: Photo → AI Vision → Grade → Value → "Worth grading?"
+
+### Other Fixes
+- Fixed deploy command (Render API key format)
+- Fixed index.html typo (`collectioncal-docker` → `collectioncalc-docker`)
+- Disabled auto-deploy in Render (was causing duplicate deploys)
+- Thinking animation in Slab Worthy Step 5 — already working! ✅
+
+### Barcode Backfill — Skipped
+- Added endpoints but Whatnot images don't show barcodes
+- Live stream screenshots, barcode corner cropped out
+- Will be useful for: Slab Worthy photos, eBay Collector images
 
 ---
 
@@ -47,7 +65,7 @@ Need to create `/api/admin/backfill-barcodes` endpoint to scan existing R2 image
 
 ### Deployment Commands
 ```powershell
-# Backend (Render Docker)
+# Backend (Render Docker) - auto-deploy OFF, use API
 git add .; git commit -m "message"; git push; deploy
 
 # Frontend (Cloudflare)
@@ -58,13 +76,55 @@ git add .; git commit -m "message"; git push; purge
 - Docker service: `srv-d5vcjqqli9vc73a5a730`
 - API URL: `https://collectioncalc-docker.onrender.com`
 
-### Test Barcode
+### Test Endpoints
 ```bash
+# Health check
 curl https://collectioncalc-docker.onrender.com/health
-# Returns: {"barcode":true,"status":"ok","version":"4.0"}
+# Returns: {"barcode":true,"status":"ok","version":"4.2.1"}
+
+# FMV with sources
+curl "https://collectioncalc-docker.onrender.com/api/sales/fmv?title=spider-man&issue=300"
 ```
+
+### PowerShell Profile
+Location: `C:\Users\mberr\OneDrive\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+
+Needs environment variables:
+- `RENDER_API_KEY` — For deploy command
+- `CLOUDFLARE_ZONE_ID` — For purge command
+- `CLOUDFLARE_API_TOKEN` — For purge command
 
 ---
 
-*Last updated: February 2, 2026 (Session 22)*
-*Next priority: Phase 3 — Backfill existing images with barcode data*
+## Pending Tasks
+
+### When DNS Propagates (slabworthy.com)
+1. Check: `nslookup slabworthy.com` (should show Cloudflare IPs)
+2. Cloudflare Dashboard → slabworthy.com → Rules → Redirect Rules
+3. Create rule:
+   - Name: `Redirect to Slab Worthy`
+   - When: All incoming requests
+   - Type: Static
+   - URL: `https://collectioncalc.com/app.html#slab`
+   - Status: 301
+
+---
+
+## Key Learnings
+
+### eBay Data Quality
+- 2,805 sales, 2,615 unique titles
+- Needs filtering: facsimiles, lots, bundles, reprints
+- Grade field often NULL (only 45 graded sales)
+- Still valuable for raw comic pricing
+
+### API URL Locations (Watch for typos!)
+- `js/utils.js` — Main API_URL constant
+- `index.html` — Login page (has its own script)
+- Extensions have their own API URLs
+
+---
+
+*Last updated: February 2, 2026 (Session 23)*
+*Version: 4.2.1*
+*Next: Complete slabworthy.com redirect*
