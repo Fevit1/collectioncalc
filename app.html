@@ -24,6 +24,38 @@
                 display: none !important;
             }
         }
+        
+        /* Comic-shaped upload boxes */
+        #gradingUpload1, #gradingUpload3 {
+            /* Front & Back Cover - 7:10 comic ratio */
+            aspect-ratio: 7 / 10;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        #gradingUpload2 {
+            /* Spine - narrow and tall */
+            aspect-ratio: 1 / 6;
+            max-width: 80px;
+            margin: 0 auto;
+        }
+        #gradingUpload4 {
+            /* Centerfold - open book landscape */
+            aspect-ratio: 14 / 10;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+        
+        /* Adjust button layout for narrow spine */
+        #gradingUpload2 .photo-option-btn {
+            padding: 8px 4px;
+            font-size: 12px;
+        }
+        #gradingUpload2 .photo-option-icon {
+            font-size: 1.2rem;
+        }
+        #gradingUpload2 .photo-option-text {
+            display: none;
+        }
     </style>
 </head>
 <body>
