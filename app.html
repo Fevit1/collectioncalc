@@ -9,13 +9,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Hide Take Photo button on desktop - only show on mobile */
+        @media (min-width: 768px) {
+            .photo-option-btn.camera {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="header-brand">
-                <h1>Slab Worthy</h1>
-                <p class="subtitle">AI Tools for Comic Collectors</p>
+                <h1>Slab Worthy™</h1>
+                <p class="subtitle">AI for Comic Collectors</p>
             </div>
             <div class="header-auth" id="headerAuth">
                 <!-- Logged out state -->
@@ -666,7 +674,7 @@
             <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
             <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
         </div>
-        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a></div>
+        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a>™ © 2026</div>
     </footer>
 </body>
 </html>
