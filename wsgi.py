@@ -1,6 +1,11 @@
 """
-CollectionCalc - WSGI Entry Point (v4.1)
+CollectionCalc - WSGI Entry Point (v4.2)
 Flask routes for the CollectionCalc API
+
+New in v4.2:
+- FMV endpoint now pulls from both Whatnot AND eBay sales
+- Filters out facsimiles, lots, bundles from eBay data
+- Response includes source breakdown (whatnot vs ebay counts)
 
 New in v4.1:
 - Barcode backfill endpoint for existing R2 images
@@ -478,7 +483,7 @@ def debug_prompt():
 @app.route('/')
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '4.1', 'barcode': BARCODE_AVAILABLE})
+    return jsonify({'status': 'ok', 'version': '4.2', 'barcode': BARCODE_AVAILABLE})
 
 
 # ============================================
@@ -1292,6 +1297,7 @@ def api_sales_fmv():
     """
     Get Fair Market Value data for a comic based on sales history.
     Groups sales by grade tier and returns averages.
+    Now pulls from BOTH market_sales (Whatnot) AND ebay_sales.
     
     Query params:
         title: Comic title (required)
@@ -1339,9 +1345,9 @@ def api_sales_fmv():
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
         cur = conn.cursor()
         
-        # Build query - search by title (fuzzy) and optionally issue
-        query = """
-            SELECT grade, price, sold_at
+        # Query 1: market_sales (Whatnot data)
+        market_query = """
+            SELECT grade, price, 'whatnot' as source
             FROM market_sales
             WHERE (
                 LOWER(title) LIKE LOWER(%s) 
@@ -1351,18 +1357,49 @@ def api_sales_fmv():
             AND price > 0
             AND created_at > NOW() - INTERVAL '%s days'
         """
-        params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
+        market_params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
         
         if issue:
-            query += " AND (issue = %s OR issue = %s)"
-            params.extend([str(issue), issue])
+            market_query += " AND (issue = %s OR issue = %s)"
+            market_params.extend([str(issue), issue])
         
-        cur.execute(query, params)
-        sales = cur.fetchall()
+        cur.execute(market_query, market_params)
+        market_sales = cur.fetchall()
+        
+        # Query 2: ebay_sales (eBay Collector data)
+        # Filter out facsimiles, lots, bundles, and very low prices
+        ebay_query = """
+            SELECT grade, sale_price as price, 'ebay' as source
+            FROM ebay_sales
+            WHERE (
+                LOWER(parsed_title) LIKE LOWER(%s) 
+                OR LOWER(raw_title) LIKE LOWER(%s)
+            )
+            AND sale_price > 5
+            AND created_at > NOW() - INTERVAL '%s days'
+            AND LOWER(parsed_title) NOT LIKE '%%facsimile%%'
+            AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
+            AND LOWER(parsed_title) NOT LIKE '%%lot %%'
+            AND LOWER(raw_title) NOT LIKE '%%lot of%%'
+            AND LOWER(parsed_title) NOT LIKE '%%set of%%'
+            AND LOWER(raw_title) NOT LIKE '%%bundle%%'
+        """
+        ebay_params = [f'%{title}%', f'%{title}%', days]
+        
+        if issue:
+            ebay_query += " AND issue_number = %s"
+            ebay_params.append(str(issue))
+        
+        cur.execute(ebay_query, ebay_params)
+        ebay_sales = cur.fetchall()
+        
         cur.close()
         conn.close()
         
-        if not sales:
+        # Combine both sources
+        all_sales = list(market_sales) + list(ebay_sales)
+        
+        if not all_sales:
             return jsonify({'success': True, 'count': 0, 'tiers': None})
         
         # Group by grade tiers
@@ -1373,12 +1410,22 @@ def api_sales_fmv():
             'top': []     # 9.0+
         }
         
-        for sale in sales:
+        whatnot_count = 0
+        ebay_count = 0
+        
+        for sale in all_sales:
             grade = sale.get('grade')
             price = float(sale.get('price', 0))
+            source = sale.get('source', 'unknown')
             
             if price <= 0:
                 continue
+            
+            # Count by source
+            if source == 'whatnot':
+                whatnot_count += 1
+            elif source == 'ebay':
+                ebay_count += 1
                 
             if grade is None:
                 tiers['mid'].append(price)
@@ -1414,7 +1461,11 @@ def api_sales_fmv():
             'success': True,
             'title': title,
             'issue': issue,
-            'count': len(sales),
+            'count': len(all_sales),
+            'sources': {
+                'whatnot': whatnot_count,
+                'ebay': ebay_count
+            },
             'tiers': result_tiers if result_tiers else None
         })
         
