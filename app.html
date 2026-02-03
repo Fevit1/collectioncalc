@@ -43,6 +43,17 @@
             aspect-ratio: 14 / 10;
             max-width: 450px;
             margin: 0 auto;
+            position: relative;
+        }
+        #gradingUpload4::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 10%;
+            height: 80%;
+            border-left: 2px dashed rgba(99, 102, 241, 0.4);
+            pointer-events: none;
+            z-index: 1;
         }
         
         /* Adjust button layout for narrow spine */
