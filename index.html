@@ -368,6 +368,43 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Password toggle */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            width: 100%;
+            padding-right: 45px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+        }
+        .password-toggle:hover {
+            color: var(--text-primary);
+        }
+        .forgot-link {
+            text-align: right;
+            margin-top: -8px;
+            margin-bottom: 16px;
+        }
+        .forgot-link a {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+        .forgot-link a:hover {
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -429,11 +466,17 @@
                     </div>
                     <div class="form-group">
                         <label for="signupPassword">Password</label>
-                        <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupPassword', this)">👁</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="signupConfirm">Confirm Password</label>
-                        <input type="password" id="signupConfirm" placeholder="••••••••" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="signupConfirm" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupConfirm', this)">👁</button>
+                        </div>
                     </div>
                     <button type="submit" class="btn" id="signupBtn">Create Account</button>
                 </form>
@@ -456,7 +499,13 @@
                     </div>
                     <div class="form-group">
                         <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">👁</button>
+                        </div>
+                    </div>
+                    <div class="forgot-link">
+                        <a href="#" onclick="showPanel('forgotPanel')">Forgot password?</a>
                     </div>
                     <button type="submit" class="btn" id="loginBtn">Log In</button>
                 </form>
@@ -483,11 +532,56 @@
                 </div>
                 <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
             </div>
+
+            <div id="forgotPanel" class="form-panel">
+                <h2 class="beta-title">Reset Password</h2>
+                <p class="beta-desc">Enter your email and we'll send you a reset link</p>
+                
+                <div id="forgotMessage" class="message"></div>
+                
+                <form id="forgotForm" onsubmit="handleForgotPassword(event)">
+                    <div class="form-group">
+                        <label for="forgotEmail">Email</label>
+                        <input type="email" id="forgotEmail" placeholder="you@example.com" required>
+                    </div>
+                    <button type="submit" class="btn" id="forgotBtn">Send Reset Link</button>
+                </form>
+                
+                <p class="footer-link">
+                    Remember your password? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
+                </p>
+            </div>
+
+            <div id="resetPanel" class="form-panel">
+                <h2 class="beta-title">Set New Password</h2>
+                <p class="beta-desc">Enter your new password</p>
+                
+                <div id="resetMessage" class="message"></div>
+                
+                <form id="resetForm" onsubmit="handleResetPassword(event)">
+                    <div class="form-group">
+                        <label for="resetPassword">New Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="resetPassword" placeholder="At least 8 characters" minlength="8" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('resetPassword', this)">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="resetConfirm">Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="resetConfirm" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('resetConfirm', this)">👁</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" id="resetBtn">Reset Password</button>
+                </form>
+            </div>
         </div>
     </section>
 
     <script>
         const API_BASE = 'https://collectioncalc-docker.onrender.com';
+        let resetToken = null;
         
         // Check if already logged in
         document.addEventListener('DOMContentLoaded', () => {
@@ -497,13 +591,35 @@
                 verifyAndRedirect(token);
             }
             
-            // Check URL params for verification token
+            // Check URL params for verification token or reset token
             const params = new URLSearchParams(window.location.search);
             const verifyToken = params.get('token');
-            if (verifyToken) {
+            const action = params.get('action');
+            
+            if (action === 'reset-password' && verifyToken) {
+                resetToken = verifyToken;
+                showPanel('resetPanel');
+            } else if (verifyToken) {
                 verifyEmail(verifyToken);
             }
+            
+            // Clean up URL
+            if (verifyToken || action) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         });
+
+        // Toggle password visibility
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁';
+            }
+        }
 
         async function verifyAndRedirect(token) {
             try {
@@ -678,6 +794,80 @@
             
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            const btn = document.getElementById('forgotBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                
+                // Always show success to prevent email enumeration
+                showMessage('forgotMessage', 'If an account exists with this email, you will receive a reset link shortly.', false);
+                document.getElementById('forgotForm').reset();
+            } catch (e) {
+                showMessage('forgotMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const password = document.getElementById('resetPassword').value;
+            const confirm = document.getElementById('resetConfirm').value;
+            const btn = document.getElementById('resetBtn');
+            
+            if (password !== confirm) {
+                showMessage('resetMessage', 'Passwords do not match');
+                return;
+            }
+            
+            if (!resetToken) {
+                showMessage('resetMessage', 'Invalid reset link. Please request a new one.');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: resetToken, password })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.token) {
+                        localStorage.setItem('cc_token', data.token);
+                        localStorage.setItem('cc_user', JSON.stringify(data.user));
+                        window.location.href = '/app.html';
+                    } else {
+                        showMessage('resetMessage', 'Password reset! You can now log in.', false);
+                        setTimeout(() => showPanel('loginPanel'), 2000);
+                    }
+                } else {
+                    showMessage('resetMessage', data.error || 'Reset failed. Please request a new link.');
+                }
+            } catch (e) {
+                showMessage('resetMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reset Password';
+            }
         }
     </script>
     
