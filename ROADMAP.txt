@@ -9,10 +9,16 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## 🚨 Immediate Priorities
 
-### Legal/Compliance (BLOCKING)
-- [ ] **Create privacy.html** - Currently 404, linked from footer
-- [ ] **Create terms.html** - Currently 404, linked from footer
-- [ ] **Set up support@slabworthy.com** - Linked from footer
+### Legal/Compliance (IN PROGRESS - Session 24)
+- [x] **Create privacy.html** - DRAFTED, ready to deploy
+- [x] **Create terms.html** - DRAFTED, ready to deploy
+- [ ] **Set up Resend for slabworthy.com** - In progress
+- [ ] **Verify support@slabworthy.com** - After Resend setup
+- [ ] **Deploy privacy.html and terms.html** - After Resend
+
+### Pre-Beta MUST-HAVES
+- [ ] **Email verification before account creation** - Confirms real email, reduces fake accounts
+- [ ] **Content moderation system** - See Content Moderation section below
 
 ### Testing
 - [ ] **Mobile testing** - Full Slab Worthy flow on phone
@@ -135,6 +141,84 @@ Even if US-only for now, good practice to implement:
 5. User rights (access, delete, export)
 6. Contact info
 7. Updates policy
+
+---
+
+## Content Moderation (Pre-Beta MUST-HAVE)
+
+### Why This Matters
+- Legal obligation to report CSAM to NCMEC (18 U.S.C. § 2258A)
+- Protect platform from abuse
+- Zero tolerance for illegal/explicit content
+
+### Implementation Plan
+
+**Phase 1: MVP (Before Private Beta)**
+- [ ] Integrate Amazon Rekognition for explicit content detection
+- [ ] Block uploads that fail moderation check
+- [ ] Create `content_incidents` table for logging flagged content
+- [ ] Build basic admin view for reviewing flags
+
+**Phase 2: Enhanced Protection**
+- [ ] Register for NCMEC CyberTipline ESP account (~1 week approval)
+- [ ] Apply for Microsoft PhotoDNA access (~2-4 weeks)
+- [ ] Integrate PhotoDNA for CSAM hash matching
+- [ ] Create incident response procedure document
+
+### Incident Logging Schema
+When content is flagged, capture:
+- User ID / Account email / Name
+- IP address at upload time
+- Timestamp (UTC)
+- Image hash (SHA-256 + PhotoDNA hash)
+- Original filename
+- Device/browser fingerprint
+- Account creation date + IP
+- Other uploads from same user
+
+**Note:** For confirmed CSAM - hash, report to NCMEC, delete. Don't retain actual images.
+
+---
+
+## User Data & PII Collection
+
+### Progressive Data Collection Strategy
+Collect more data as users engage deeper:
+
+**Account Creation:**
+- [x] Email (current)
+- [ ] First name, last name (add to signup form)
+- [ ] Email verification (MUST-HAVE for beta)
+
+**Note:** Need name validation to filter obvious fakes ("Mickey Mouse", "Donald Duck") for email personalization.
+
+**Subscription/Billing:**
+- [ ] Full name
+- [ ] Billing address
+- [ ] Payment method (via Stripe)
+
+**Collection Setup:**
+- [ ] Collection preferences
+- [ ] Notification preferences
+- [ ] Collecting interests (titles, publishers, eras)
+
+### Contact/Support System
+
+**Contact Form (preferred over raw email):**
+```
+Topic Dropdown:
+├── "Delete my data" → Auto-workflow
+├── "Export my data" → Auto-workflow  
+├── "Bug report" → AI triage
+├── "Feature request" → Log + AI ack
+├── "Billing question" → AI or escalate
+└── "Other" → AI first-pass
+```
+
+- [ ] Create /contact.html page with form
+- [ ] Add backend endpoint for form submission
+- [ ] Set up routing logic based on topic
+- [ ] AI-powered response drafting for common requests
 
 ---
 
@@ -573,5 +657,5 @@ Adapt leadership style to the development level of the person/team:
 
 ---
 
-*Last updated: February 2, 2026 (Session 23)*
+*Last updated: February 3, 2026 (Session 24)*
 

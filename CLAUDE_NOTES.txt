@@ -19,10 +19,11 @@
 
 ## 🚨 IMMEDIATE ACTION ITEMS
 
-### Broken Links in Production
-- [ ] `/privacy.html` - 404, needs to be created
-- [ ] `/terms.html` - 404, needs to be created  
-- [ ] `support@slabworthy.com` - verify email is set up
+### In Progress (Session 24)
+- [x] **privacy.html** - DRAFTED, ready to deploy
+- [x] **terms.html** - DRAFTED, ready to deploy
+- [ ] **Set up Resend for slabworthy.com** - Paused, resuming after Mike's call
+- [ ] **Verify support@slabworthy.com** - After Resend setup
 
 ### Testing Needed
 - [ ] **Mobile testing** - full Slab Worthy grading flow on phone
@@ -34,6 +35,43 @@
 - [ ] **Email templates** - verification/password reset emails probably still say "CollectionCalc"
 - [ ] **Chrome extensions** - still reference CollectionCalc
 - [ ] **Tone consideration** - "Slab Worthy" is casual/playful phrase ("Dude, that's slab worthy!"). Current design may be too formal. Consider more playful branding?
+
+---
+
+## Session 24 Summary (February 3, 2026)
+
+### Completed
+1. **Privacy Policy (privacy.html)**
+   - Covers: account info (name, email), progressive PII collection, comic images, usage data
+   - Third-party services: Cloudflare, Render, Resend, R2, Anthropic (Claude)
+   - User rights: access, delete, export, opt-out
+   - US-focused (no GDPR popup needed, browser cookie controls sufficient)
+
+2. **Terms of Service (terms.html)**
+   - Clear "what we do / what we don't do" sections
+   - Added eBay/Whatnot listing generation to capabilities
+   - **Prohibited Content section** with zero-tolerance policy
+   - CSAM reporting to NCMEC language included
+   - Comic publisher trademark acknowledgments (Marvel, DC, Image, etc.)
+   - CGC®/CBCS® trademark disclaimers
+   - Strong liability limitations for grade/value estimates
+   - California governing law (appropriate for US-only, bootstrapped)
+
+### Decisions Made
+- **Email verification before account creation** → MUST-HAVE for private beta
+- **Progressive PII collection** → Collect name at signup, more data over time (billing, collection setup)
+- **Content moderation approach:**
+  - MVP: Amazon Rekognition for explicit content detection
+  - Apply for PhotoDNA (CSAM hash matching)
+  - Register for NCMEC CyberTipline ESP account
+  - Build incident logging for flagged content
+- **Contact form vs raw email** → Contact form with topic dropdown for AI routing
+- **Delaware vs California incorporation** → Stay California for now (simpler, cheaper for bootstrapped)
+
+### Still To Do (This Session)
+- [ ] Set up Resend for slabworthy.com domain
+- [ ] Add DNS records in Cloudflare
+- [ ] Deploy privacy.html and terms.html
 
 ---
 
@@ -81,6 +119,69 @@
 
 ### Dead Code
 - Barcode backfill endpoints (`/api/admin/backfill-barcodes`, `/api/admin/barcode-stats`) - functional but useless since Whatnot images don't have visible barcodes
+
+---
+
+## Content Moderation System (To Build)
+
+### Architecture
+```
+User uploads image
+    ↓
+BEFORE storing/processing:
+    → Amazon Rekognition (explicit content detection)
+    → If flagged: block upload, log incident
+    → If CSAM detected: preserve evidence, report to NCMEC
+    → If clean: proceed to comic analysis
+```
+
+### Incident Logging Requirements
+When content is flagged, capture:
+- User ID / Account email
+- User's name
+- IP address at time of upload
+- Timestamp (UTC)
+- Image hash (SHA-256 + PhotoDNA hash if available)
+- Original filename
+- Device/browser fingerprint
+- Account creation date + IP
+- Any other uploads from same user
+
+**Important:** For confirmed CSAM, hash and report, then delete. Don't retain actual images.
+
+### Setup Steps
+1. [ ] Integrate Amazon Rekognition into image upload pipeline
+2. [ ] Register for NCMEC CyberTipline ESP account
+3. [ ] Apply for PhotoDNA access (Microsoft)
+4. [ ] Create `content_incidents` table
+5. [ ] Build admin view for reviewing flags
+6. [ ] Create incident response procedure document
+
+---
+
+## Contact/Support System (To Build)
+
+### Contact Form (Recommended over raw email)
+```
+Contact Form Fields:
+├── Topic Dropdown (required)
+│   ├── "Delete my data"
+│   ├── "Export my data"
+│   ├── "Bug report"
+│   ├── "Feature request"
+│   ├── "Billing question"
+│   └── "Other"
+├── Email (required)
+├── Message (required)
+└── Submit → API endpoint → Resend → route based on topic
+```
+
+### Routing Logic
+- Delete/Export requests → Auto-workflow (verify identity, process)
+- Bug reports → AI triage + response
+- Feature requests → Log to backlog + AI acknowledgment
+- Billing → AI response or escalate
+- Other → AI first-pass, escalate if needed
 
 ---
 
@@ -137,5 +238,5 @@ Options to explore:
 
 ---
 
-*Last updated: February 2, 2026 (Session 23)*
+*Last updated: February 3, 2026 (Session 24)*
 *Version: 4.2.1*
