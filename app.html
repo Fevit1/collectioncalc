@@ -15,6 +15,14 @@
             .photo-option-btn.camera {
                 display: none !important;
             }
+            .mobile-only {
+                display: none !important;
+            }
+        }
+        @media (max-width: 767px) {
+            .desktop-only {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -138,7 +146,7 @@
                             <h3>📷 Step 1: Front Cover</h3>
                             <span class="grading-required">Required</span>
                         </div>
-                        <p class="grading-instruction">Take a clear, upright photo of the front cover. This identifies your comic and assesses cover condition.</p>
+                        <p class="grading-instruction"><span class="mobile-only">Take</span><span class="desktop-only">Upload</span> a clear, upright photo of the front cover. This identifies your comic and assesses cover condition.</p>
                         
                         <div class="grading-photo-options" id="gradingUpload1">
                             <input type="file" id="gradingCamera1" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(1, this.files)">
@@ -186,7 +194,7 @@
                             <h3>📷 Step 2: Spine</h3>
                             <span class="grading-optional">Recommended</span>
                         </div>
-                        <p class="grading-instruction">Photograph the spine to check for stress marks, rolls, and breaks.</p>
+                        <p class="grading-instruction"><span class="mobile-only">Photograph</span><span class="desktop-only">Upload a photo of</span> the spine to check for stress marks, rolls, and breaks.</p>
                         
                         <div class="grading-comic-id" id="gradingComicId2">
                             <!-- Shows detected comic from step 1 -->
@@ -231,7 +239,7 @@
                             <h3>📷 Step 3: Back Cover</h3>
                             <span class="grading-optional">Recommended</span>
                         </div>
-                        <p class="grading-instruction">Photograph the back cover to check for damage not visible from front.</p>
+                        <p class="grading-instruction"><span class="mobile-only">Photograph</span><span class="desktop-only">Upload a photo of</span> the back cover to check for damage not visible from front.</p>
                         
                         <div class="grading-comic-id" id="gradingComicId3"></div>
                         
@@ -274,7 +282,7 @@
                             <h3>📷 Step 4: Centerfold & Staples</h3>
                             <span class="grading-optional">Recommended</span>
                         </div>
-                        <p class="grading-instruction">Open to the center and photograph the staples and centerfold attachment.</p>
+                        <p class="grading-instruction">Open to the center and <span class="mobile-only">photograph</span><span class="desktop-only">upload a photo of</span> the staples and centerfold attachment.</p>
                         
                         <div class="grading-comic-id" id="gradingComicId4"></div>
                         
