@@ -6,17 +6,22 @@
     <title>Privacy Policy - Slab Worthy™</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0f0f1a;
-            --bg-card: #1a1a2e;
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
             --text-primary: #ffffff;
-            --text-secondary: #9ca3af;
+            --text-secondary: #94a3b8;
             --text-muted: #6b7280;
-            --accent-indigo: #4f46e5;
-            --accent-purple: #7c3aed;
-            --border-color: rgba(79, 70, 229, 0.3);
+            --border-color: rgba(124, 58, 237, 0.3);
         }
 
         * {
@@ -27,7 +32,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-primary);
+            background-color: var(--bg-dark);
             color: var(--text-secondary);
             line-height: 1.7;
             min-height: 100vh;
@@ -35,30 +40,47 @@
             flex-direction: column;
         }
 
+        /* Header */
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: var(--purple-light);
+        }
+
+        /* Main Content */
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 3rem 1.5rem;
             flex: 1;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .logo a {
-            font-size: 1.75rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-decoration: none;
-        }
-
-        .logo a:hover {
-            opacity: 0.9;
         }
 
         h1 {
@@ -67,6 +89,10 @@
             color: var(--text-primary);
             margin-bottom: 0.5rem;
             text-align: center;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .last-updated {
@@ -99,7 +125,7 @@
             display: inline-block;
             width: 4px;
             height: 1.25rem;
-            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
             border-radius: 2px;
         }
 
@@ -121,7 +147,7 @@
         }
 
         a {
-            color: var(--accent-indigo);
+            color: var(--purple-light);
             text-decoration: none;
         }
 
@@ -134,36 +160,88 @@
             font-weight: 500;
         }
 
-        footer {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        /* Footer - Matching index.html */
+        .footer {
             padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .footer-cta {
+            margin-bottom: 1.5rem;
             text-align: center;
         }
 
-        .footer-links {
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0px var(--purple-brand);
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--purple-brand);
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
             display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
         }
 
-        .footer-links a {
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             color: var(--text-secondary);
-            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
         }
-
-        .footer-links a:hover {
+        .footer-col ul { list-style: none; padding-left: 0; margin: 0; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a {
             color: var(--text-primary);
             text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
         }
+        .footer-col a:hover { color: var(--purple-light); text-decoration: none; }
 
-        .footer-copyright {
-            color: var(--text-muted);
-            font-size: 0.875rem;
-        }
-
-        .footer-copyright a {
-            color: var(--accent-indigo);
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
         }
 
         @media (max-width: 640px) {
@@ -178,15 +256,25 @@
             .content-card {
                 padding: 1.5rem;
             }
+
+            .header-nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">
-            <a href="/">Slab Worthy™</a>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">SLAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/login.html">Log In</a>
+            </nav>
         </div>
+    </header>
 
+    <div class="container">
         <h1>Privacy Policy</h1>
         <p class="last-updated">Last Updated: February 3, 2026</p>
 
@@ -300,13 +388,44 @@
         </div>
     </div>
 
-    <footer>
-        <div class="footer-links">
-            <a href="mailto:support@slabworthy.com">Contact</a>
-            <a href="/privacy.html">Privacy</a>
-            <a href="/terms.html">Terms</a>
+    <footer class="footer">
+        <div class="footer-cta">
+            <a href="/login.html" class="cta-button">Check a Comic</a>
         </div>
-        <p class="footer-copyright">Powered by <a href="https://collectioncalc.com">CollectionCalc™</a> © 2026</p>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">SLAB WORTHY</div>
+                <p class="footer-tagline">Powered by CollectionCalc™</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="/#how-it-works">How It Works</a></li>
+                        <li><a href="/pricing.html">Pricing</a></li>
+                        <li><a href="/faq.html">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="/about.html">About</a></li>
+                        <li><a href="mailto:support@slabworthy.com">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/privacy.html">Privacy</a></li>
+                        <li><a href="/terms.html">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+            <p style="margin-top: 0.3rem; font-size: 0.55rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
+        </div>
     </footer>
 </body>
 </html>
