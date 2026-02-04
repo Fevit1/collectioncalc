@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Slab Worthy™</title>
+    <meta name="description" content="The story behind Slab Worthy - AI-powered comic grading estimates built by collectors, for collectors.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: var(--purple-light);
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+        }
+
+        .page-title {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .content-section p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .content-section a {
+            color: var(--purple-light);
+            text-decoration: none;
+        }
+
+        .content-section a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(76, 29, 149, 0.15));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .highlight-box p {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-style: italic;
+            margin: 0;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .value-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .value-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .value-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .value-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(76, 29, 149, 0.2));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .cta-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta-text {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0px var(--purple-brand);
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--purple-brand);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            margin: 0 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--purple-light);
+        }
+
+        .footer-bottom {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .header-nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
+
+            .values-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">SLAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/login.html">Log In</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <h1 class="page-title">About Slab Worthy</h1>
+
+        <div class="content-section">
+            <h2 class="section-title">The Problem</h2>
+            <p>Every comic collector has been there. You're holding a book that looks pretty clean, wondering: should I send this in for grading? Is it worth the $30+ fee, the months of waiting, the risk of disappointment?</p>
+            <p>Most of us guess. Or we ask Reddit. Or we just don't grade and wonder "what if?"</p>
+        </div>
+
+        <div class="highlight-box">
+            <p>"I built Slab Worthy because I was tired of guessing—and tired of watching collectors overpay for grading on books that didn't justify it."</p>
+        </div>
+
+        <div class="content-section">
+            <h2 class="section-title">The Solution</h2>
+            <p>Slab Worthy uses AI to analyze four angles of your comic—front, spine, back, and centerfold—to estimate the grade. Then we pull real sales data from eBay and Whatnot to calculate whether grading makes financial sense.</p>
+            <p>No more guessing. No more "I think it's around an 8." Just data and a straight answer: <strong>Worth the Slab</strong> or <strong>Keep it Raw</strong>.</p>
+        </div>
+
+        <div class="content-section">
+            <h2 class="section-title">What We Believe</h2>
+            <div class="values-grid">
+                <div class="value-card">
+                    <div class="value-icon">🎯</div>
+                    <div class="value-title">Straight Answers</div>
+                    <div class="value-desc">Not vague ranges. Not hedging. A clear recommendation.</div>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">📊</div>
+                    <div class="value-title">Real Data</div>
+                    <div class="value-desc">Actual sales, not price guides or speculation.</div>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🤝</div>
+                    <div class="value-title">Collector First</div>
+                    <div class="value-desc">Built by a collector who's made these decisions too.</div>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🔒</div>
+                    <div class="value-title">Your Collection, Your Data</div>
+                    <div class="value-desc">We don't sell your info. Ever.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2 class="section-title">Patent Pending</h2>
+            <p>Our multi-angle grading approach—the 4-photo system that catches defects other tools miss—is patent pending. We're not just another AI wrapper. We've built something new for collectors.</p>
+        </div>
+
+        <div class="content-section">
+            <h2 class="section-title">Powered by CollectionCalc</h2>
+            <p>Slab Worthy is built on <a href="https://collectioncalc.com">CollectionCalc</a>, a platform for collectors' tools and data. Same team, same mission: help collectors make smarter decisions.</p>
+        </div>
+
+        <div class="cta-section">
+            <h2 class="cta-title">Got questions?</h2>
+            <p class="cta-text">Check the FAQ or reach out directly.</p>
+            <a href="/faq.html" class="cta-button">Read the FAQ</a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/pricing.html">Pricing</a>
+            <a href="/faq.html">FAQ</a>
+            <a href="mailto:support@slabworthy.com">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+            <p style="margin-top: 0.3rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
+        </div>
+    </footer>
+</body>
+</html>

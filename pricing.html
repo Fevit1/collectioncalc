@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Slab Worthy™</title>
+    <meta name="description" content="Slab Worthy pricing - coming soon.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: var(--purple-light);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 3rem 1.5rem;
+        }
+
+        .coming-soon-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-title {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 400px;
+            margin-bottom: 2rem;
+        }
+
+        .beta-note {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            max-width: 400px;
+        }
+
+        .beta-note-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--purple-light);
+        }
+
+        .beta-note-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0px var(--purple-brand);
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 1.5rem;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--purple-brand);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            margin: 0 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--purple-light);
+        }
+
+        .footer-bottom {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .header-nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">SLAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/login.html">Log In</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="coming-soon-icon">💰</div>
+        <h1 class="page-title">Pricing</h1>
+        <p class="page-subtitle">We're finalizing our pricing plans. Check back soon!</p>
+        
+        <div class="beta-note">
+            <div class="beta-note-title">🎉 Beta Access</div>
+            <div class="beta-note-text">During private beta, Slab Worthy is free for approved testers. Have a beta code? Get started now.</div>
+        </div>
+
+        <a href="/login.html" class="cta-button">Join the Beta</a>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/about.html">About</a>
+            <a href="/faq.html">FAQ</a>
+            <a href="mailto:support@slabworthy.com">Contact</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+            <p style="margin-top: 0.3rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
+        </div>
+    </footer>
+</body>
+</html>
