@@ -3,623 +3,615 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master News Dashboard</title>
+    <title>Slab Worthy™ - Know Before You Slab</title>
+    <meta name="description" content="AI-powered comic grading estimates. Snap 4 photos, get a grade prediction, and find out if your comic is worth the slab.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --color-background: #fcfcf9;
-            --color-surface: #fffffd;
-            --color-text: #13343b;
-            --color-text-secondary: #626c71;
-            --color-primary: #21808d;
-            --color-primary-hover: #1d7480;
-            --color-border: rgba(94, 82, 64, 0.2);
-            --color-card-border: rgba(94, 82, 64, 0.12);
-            --color-bg-1: rgba(59, 130, 246, 0.08);
-            --color-bg-2: rgba(245, 158, 11, 0.08);
-            --color-bg-3: rgba(34, 197, 94, 0.08);
-            --color-bg-4: rgba(239, 68, 68, 0.08);
-            --color-bg-5: rgba(147, 51, 234, 0.08);
-            --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-            --radius-base: 8px;
-            --radius-lg: 12px;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --color-background: #1f2121;
-                --color-surface: #262828;
-                --color-text: #f5f5f5;
-                --color-text-secondary: rgba(167, 169, 169, 0.7);
-                --color-primary: #32b8c6;
-                --color-primary-hover: #2da6b2;
-                --color-border: rgba(119, 124, 124, 0.3);
-                --color-card-border: rgba(119, 124, 124, 0.2);
-            }
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
         body {
-            font-family: var(--font-family-base);
-            background-color: var(--color-background);
-            color: var(--color-text);
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        .header {
-            background: var(--color-surface);
-            border-bottom: 1px solid var(--color-border);
-            padding: 20px;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            letter-spacing: -0.01em;
-        }
-
-        .tabs {
+        /* ============================================
+           HERO SECTION
+           ============================================ */
+        .hero {
+            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
-            gap: 8px;
+            flex-direction: column;
             justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            padding: 10px 24px;
-            border: 1px solid var(--color-border);
-            background: var(--color-background);
-            color: var(--color-text);
-            border-radius: var(--radius-base);
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .tab-btn:hover {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-        }
-
-        .tab-btn.active {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-            box-shadow: var(--shadow-md);
-        }
-
-        .tab-content {
-            display: none;
-            padding: 20px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .controls {
-            max-width: 1400px;
-            margin: 0 auto 24px;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
             align-items: center;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: 1px solid var(--color-border);
-            background: var(--color-surface);
-            color: var(--color-text);
-            border-radius: var(--radius-base);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-        }
-
-        .btn.active {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-        }
-
-        .loading {
             text-align: center;
-            padding: 40px;
-            color: var(--color-text-secondary);
-            font-size: 16px;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, var(--purple-dark) 0%, var(--bg-dark) 100%);
         }
 
-        .spinner {
-            border: 3px solid var(--color-border);
-            border-top: 3px solid var(--color-primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(rgba(124, 58, 237, 0.08) 1px, transparent 1px);
+            background-size: 6px 6px;
+            pointer-events: none;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .logo-container {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            padding: 0 1rem;
         }
 
-        .grid {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 24px;
+        /* LOGO - Now uses vw units that scale smoothly */
+        .main-logo {
+            font-family: 'Bangers', cursive;
+            font-size: min(12vw, 6rem); /* 12% of viewport width, max 6rem */
+            letter-spacing: 2px;
+            line-height: 1;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(2px 2px 0px var(--purple-brand)) 
+                    drop-shadow(4px 4px 0px var(--purple-dark));
         }
 
-        .feed-column {
-            background: var(--color-surface);
-            border: 1px solid var(--color-card-border);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            box-shadow: var(--shadow-sm);
+        .patent-badge {
+            position: absolute;
+            top: -5px;
+            right: 1rem;
+            background: var(--purple-brand);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 3px;
+            transform: rotate(12deg);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 2px 2px 0px var(--purple-dark);
         }
 
-        .feed-column h2 {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--color-border);
-            letter-spacing: -0.01em;
-        }
-
-        .feed-column.marketing h2 { border-bottom-color: rgba(59, 130, 246, 0.4); }
-        .feed-column.research h2 { border-bottom-color: rgba(245, 158, 11, 0.4); }
-        .feed-column.tools h2 { border-bottom-color: rgba(34, 197, 94, 0.4); }
-        .feed-column.general h2 { border-bottom-color: rgba(239, 68, 68, 0.4); }
-        .feed-column.seo h2 { border-bottom-color: rgba(59, 130, 246, 0.4); }
-        .feed-column.engines h2 { border-bottom-color: rgba(245, 158, 11, 0.4); }
-        .feed-column.sem h2 { border-bottom-color: rgba(34, 197, 94, 0.4); }
-        .feed-column.analytics h2 { border-bottom-color: rgba(239, 68, 68, 0.4); }
-        .feed-column.industry h2 { border-bottom-color: rgba(147, 51, 234, 0.4); }
-
-        .article {
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid var(--color-card-border);
-            border-radius: var(--radius-base);
-            transition: all 0.2s;
-            background: var(--color-background);
-        }
-
-        .article:hover {
-            box-shadow: var(--shadow-md);
-            transform: translateY(-2px);
-        }
-
-        .article h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-
-        .article h3 a {
-            color: var(--color-text);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .article h3 a:hover {
-            color: var(--color-primary);
-        }
-
-        .article-meta {
-            display: flex;
-            gap: 12px;
-            font-size: 12px;
-            color: var(--color-text-secondary);
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .article-source {
+        .tagline {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
             font-weight: 500;
-            color: var(--color-primary);
         }
 
-        .article-description {
-            font-size: 14px;
-            color: var(--color-text-secondary);
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.9rem 1.8rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 4px 4px 0px var(--purple-brand);
+            text-decoration: none;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--purple-brand);
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-hint a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ============================================
+           HOW IT WORKS SECTION
+           ============================================ */
+        .how-it-works {
+            padding: 3rem 1rem;
+            background: var(--bg-dark);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+        }
+
+        .flow-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ALWAYS VERTICAL - Text above, visual below */
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .flow-content {
+            margin-bottom: 1rem;
+            max-width: 300px;
+        }
+
+        .step-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--purple-light);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .step-title {
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            color: var(--text-primary);
+        }
+
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
             line-height: 1.5;
         }
 
-        .error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--color-text);
-            padding: 16px;
-            border-radius: var(--radius-base);
-            margin: 20px auto;
-            max-width: 600px;
+        .flow-visual {
+            background: var(--bg-card);
+            border: 2px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 280px;
+            min-height: 100px;
+        }
+
+        .flow-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 0;
+        }
+
+        .connector-line {
+            width: 2px;
+            height: 25px;
+            background: linear-gradient(180deg, var(--purple-brand), var(--purple-light));
+            border-radius: 2px;
+        }
+
+        .connector-arrow {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid var(--purple-light);
+        }
+
+        /* Hide last connector */
+        .flow-step:last-child .flow-connector {
+            display: none;
+        }
+
+        /* ============================================
+           COMIC PHOTO GRID
+           ============================================ */
+        .photo-grid {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .photo-box {
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-mid));
+            border: 2px solid var(--purple-light);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .photo-front { width: 38px; height: 54px; }
+        .photo-spine { 
+            width: 12px; 
+            height: 54px; 
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.4rem;
+        }
+        .photo-back { width: 38px; height: 54px; }
+        .photo-centerfold {
+            width: 76px;
+            height: 54px;
+            position: relative;
+        }
+        .photo-centerfold::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 2px dashed rgba(255,255,255,0.4);
+        }
+
+        /* AI Brain */
+        .ai-brain {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Grade Display */
+        .grade-display { text-align: center; }
+        .grade-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .grade-label { font-size: 0.8rem; color: var(--text-secondary); }
+        .confidence-bar {
+            width: 80px;
+            height: 5px;
+            background: var(--purple-dark);
+            border-radius: 3px;
+            margin: 0.3rem auto 0;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            width: 87%;
+            background: linear-gradient(90deg, var(--green), var(--gold-mid));
+            border-radius: 3px;
+        }
+        .confidence-text { font-size: 0.6rem; color: var(--text-secondary); margin-top: 3px; }
+
+        /* Verdict Display */
+        .verdict-display { text-align: center; }
+        .verdict-icon { font-size: 2rem; margin-bottom: 0.2rem; }
+        .verdict-text { font-weight: 700; font-size: 1rem; color: var(--green); }
+        .roi-preview {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            padding: 2rem 1rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .footer-cta {
+            margin-bottom: 1.5rem;
             text-align: center;
         }
 
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
+        .footer-cta .cta-button {
+            font-size: 0.85rem;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .footer-col ul { list-style: none; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        .footer-col a:hover { color: var(--purple-light); }
+
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        /* ============================================
+           SMALL SCREEN TWEAKS
+           ============================================ */
+        @media (max-width: 400px) {
+            .main-logo {
+                font-size: 10vw;
             }
             
-            body {
-                padding: 0;
-            }
+            .photo-front, .photo-back { width: 32px; height: 46px; }
+            .photo-spine { width: 10px; height: 46px; }
+            .photo-centerfold { width: 64px; height: 46px; }
+            .photo-box { font-size: 0.4rem; }
             
-            .header h1 {
-                font-size: 22px;
+            .flow-visual {
+                max-width: 240px;
+                padding: 1rem;
             }
 
-            .tabs {
-                gap: 6px;
-            }
-
-            .tab-btn {
-                padding: 8px 16px;
-                font-size: 14px;
-            }
-
-            .tab-content {
-                padding: 12px;
+            .scroll-hint {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Master News Dashboard</h1>
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('ai')">🤖 AI News</button>
-            <button class="tab-btn" onclick="switchTab('search')">🔍 Search Industry</button>
+    <!-- HERO -->
+    <section class="hero">
+        <div class="logo-container">
+            <h1 class="main-logo">SLAB WORTHY</h1>
+            <span class="patent-badge">Patent Pending</span>
         </div>
-    </div>
-
-    <!-- AI News Tab -->
-    <div id="ai-tab" class="tab-content active">
-        <div class="controls">
-            <button class="btn active" onclick="filterAICategory('all')">All</button>
-            <button class="btn" onclick="filterAICategory('marketing')">Marketing</button>
-            <button class="btn" onclick="filterAICategory('research')">Research</button>
-            <button class="btn" onclick="filterAICategory('tools')">Tools & Products</button>
-            <button class="btn" onclick="filterAICategory('general')">General News</button>
-            <button class="btn" onclick="refreshAIFeeds()" style="margin-left: auto;">↻ Refresh</button>
-        </div>
-
-        <div id="ai-loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading AI news articles...</p>
-        </div>
-
-        <div id="ai-content" class="grid" style="display: none;"></div>
-    </div>
-
-    <!-- Search Industry Tab -->
-    <div id="search-tab" class="tab-content">
-        <div class="controls">
-            <button class="btn active" onclick="filterSearchCategory('all')">All</button>
-            <button class="btn" onclick="filterSearchCategory('seo')">SEO</button>
-            <button class="btn" onclick="filterSearchCategory('engines')">Search Engines</button>
-            <button class="btn" onclick="filterSearchCategory('sem')">SEM & PPC</button>
-            <button class="btn" onclick="filterSearchCategory('analytics')">Analytics</button>
-            <button class="btn" onclick="filterSearchCategory('industry')">Industry News</button>
-            <button class="btn" onclick="refreshSearchFeeds()" style="margin-left: auto;">↻ Refresh</button>
-        </div>
-
-        <div id="search-loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading search industry articles...</p>
-        </div>
-
-        <div id="search-content" class="grid" style="display: none;"></div>
-    </div>
-
-    <script>
-        const CORS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
         
-        // AI News Feeds
-        const aiFeeds = {
-            marketing: [
-                { name: 'Marketing AI Institute', url: 'https://www.marketingaiinstitute.com/blog/rss.xml' },
-                { name: 'HubSpot AI', url: 'https://blog.hubspot.com/marketing/rss.xml' }
-            ],
-            research: [
-                { name: 'Stanford HAI', url: 'https://hai.stanford.edu/news/rss.xml' },
-                { name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/' },
-                { name: 'OpenAI Blog', url: 'https://openai.com/blog/rss/' }
-            ],
-            tools: [
-                { name: 'Hugging Face', url: 'https://huggingface.co/blog/feed.xml' },
-                { name: 'Product Hunt AI', url: 'https://www.producthunt.com/feed' }
-            ],
-            general: [
-                { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },
-                { name: 'VentureBeat AI', url: 'https://venturebeat.com/category/ai/feed/' },
-                { name: 'The Verge AI', url: 'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml' }
-            ]
-        };
+        <p class="tagline">Know before you slab.</p>
+        
+        <a href="/login.html" class="cta-button">Check a Comic</a>
 
-        // Search Industry Feeds
-        const searchFeeds = {
-            seo: [
-                { name: 'Search Engine Journal', url: 'https://www.searchenginejournal.com/feed/' },
-                { name: 'Moz Blog', url: 'https://moz.com/blog/feed' },
-                { name: 'Ahrefs Blog', url: 'https://ahrefs.com/blog/feed/' }
-            ],
-            engines: [
-                { name: 'Search Engine Land', url: 'https://searchengineland.com/feed' },
-                { name: 'Google Search Central', url: 'https://developers.google.com/search/blog/feeds/posts/default' },
-                { name: 'Bing Webmaster Blog', url: 'https://blogs.bing.com/webmaster/feed/' }
-            ],
-            sem: [
-                { name: 'PPC Hero', url: 'https://www.ppchero.com/feed/' },
-                { name: 'WordStream Blog', url: 'https://www.wordstream.com/blog/feed' },
-                { name: 'Search Engine Watch', url: 'https://www.searchenginewatch.com/feed/' }
-            ],
-            analytics: [
-                { name: 'Google Analytics Blog', url: 'https://blog.google/products/marketingplatform/analytics/rss/' },
-                { name: 'SEMrush Blog', url: 'https://www.semrush.com/blog/feed/' }
-            ],
-            industry: [
-                { name: 'Search Engine Roundtable', url: 'https://www.seroundtable.com/feed' },
-                { name: 'Marketing Land', url: 'https://marketingland.com/feed' },
-                { name: 'The SEM Post', url: 'https://www.thesempost.com/feed/' }
-            ]
-        };
+        <div class="scroll-hint"><a href="#how-it-works">↓ See how it works</a></div>
+    </section>
 
-        let aiArticles = [];
-        let searchArticles = [];
-        let currentAIFilter = 'all';
-        let currentSearchFilter = 'all';
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-header">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Four photos. Real data. A straight answer.</p>
+        </div>
 
-        // Tab Switching
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            if (tab === 'ai') {
-                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('ai-tab').classList.add('active');
-                if (aiArticles.length === 0) loadAIFeeds();
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('search-tab').classList.add('active');
-                if (searchArticles.length === 0) loadSearchFeeds();
-            }
-        }
-
-        // Fetch Feed Function
-        async function fetchFeed(url, source, category) {
-            try {
-                const response = await fetch(CORS_PROXY + encodeURIComponent(url));
-                const data = await response.json();
-                
-                if (data.status === 'ok' && data.items) {
-                    return data.items.slice(0, 10).map(item => ({
-                        title: item.title,
-                        link: item.link,
-                        pubDate: item.pubDate,
-                        description: item.description || item.content || '',
-                        source: source,
-                        category: category
-                    }));
-                }
-                return [];
-            } catch (error) {
-                console.error(`Error fetching ${source}:`, error);
-                return [];
-            }
-        }
-
-        // AI News Functions
-        async function loadAIFeeds() {
-            document.getElementById('ai-loading').style.display = 'block';
-            document.getElementById('ai-content').style.display = 'none';
-            aiArticles = [];
-
-            const promises = [];
-            for (const [category, feedList] of Object.entries(aiFeeds)) {
-                for (const feed of feedList) {
-                    promises.push(fetchFeed(feed.url, feed.name, category));
-                }
-            }
-
-            const results = await Promise.all(promises);
-            aiArticles = results.flat().sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-            displayAIArticles();
-        }
-
-        function displayAIArticles() {
-            const content = document.getElementById('ai-content');
-            const loading = document.getElementById('ai-loading');
-            
-            loading.style.display = 'none';
-            content.style.display = 'grid';
-            content.innerHTML = '';
-
-            const categories = currentAIFilter === 'all' 
-                ? ['marketing', 'research', 'tools', 'general']
-                : [currentAIFilter];
-
-            categories.forEach(category => {
-                const categoryArticles = aiArticles.filter(a => a.category === category);
-                if (categoryArticles.length === 0) return;
-
-                const column = document.createElement('div');
-                column.className = `feed-column ${category}`;
-                
-                const titles = {
-                    marketing: 'AI Marketing',
-                    research: 'AI Research',
-                    tools: 'Tools & Products',
-                    general: 'General AI News'
-                };
-                
-                column.innerHTML = `<h2>${titles[category]}</h2>`;
-                categoryArticles.forEach(article => column.appendChild(createArticleElement(article)));
-                content.appendChild(column);
-            });
-
-            if (content.children.length === 0) {
-                content.innerHTML = '<div class="error">No articles found for this category.</div>';
-            }
-        }
-
-        function filterAICategory(category) {
-            currentAIFilter = category;
-            document.querySelectorAll('#ai-tab .controls .btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            displayAIArticles();
-        }
-
-        function refreshAIFeeds() {
-            loadAIFeeds();
-        }
-
-        // Search Industry Functions
-        async function loadSearchFeeds() {
-            document.getElementById('search-loading').style.display = 'block';
-            document.getElementById('search-content').style.display = 'none';
-            searchArticles = [];
-
-            const promises = [];
-            for (const [category, feedList] of Object.entries(searchFeeds)) {
-                for (const feed of feedList) {
-                    promises.push(fetchFeed(feed.url, feed.name, category));
-                }
-            }
-
-            const results = await Promise.all(promises);
-            searchArticles = results.flat().sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-            displaySearchArticles();
-        }
-
-        function displaySearchArticles() {
-            const content = document.getElementById('search-content');
-            const loading = document.getElementById('search-loading');
-            
-            loading.style.display = 'none';
-            content.style.display = 'grid';
-            content.innerHTML = '';
-
-            const categories = currentSearchFilter === 'all' 
-                ? ['seo', 'engines', 'sem', 'analytics', 'industry']
-                : [currentSearchFilter];
-
-            categories.forEach(category => {
-                const categoryArticles = searchArticles.filter(a => a.category === category);
-                if (categoryArticles.length === 0) return;
-
-                const column = document.createElement('div');
-                column.className = `feed-column ${category}`;
-                
-                const titles = {
-                    seo: 'SEO',
-                    engines: 'Search Engines',
-                    sem: 'SEM & PPC',
-                    analytics: 'Analytics',
-                    industry: 'Industry News'
-                };
-                
-                column.innerHTML = `<h2>${titles[category]}</h2>`;
-                categoryArticles.forEach(article => column.appendChild(createArticleElement(article)));
-                content.appendChild(column);
-            });
-
-            if (content.children.length === 0) {
-                content.innerHTML = '<div class="error">No articles found for this category.</div>';
-            }
-        }
-
-        function filterSearchCategory(category) {
-            currentSearchFilter = category;
-            document.querySelectorAll('#search-tab .controls .btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            displaySearchArticles();
-        }
-
-        function refreshSearchFeeds() {
-            loadSearchFeeds();
-        }
-
-        // Shared Functions
-        function createArticleElement(article) {
-            const articleEl = document.createElement('div');
-            articleEl.className = 'article';
-            
-            const cleanDescription = article.description
-                .replace(/<[^>]*>/g, '')
-                .substring(0, 150);
-            
-            const timeAgo = getTimeAgo(new Date(article.pubDate));
-
-            articleEl.innerHTML = `
-                <h3><a href="${article.link}" target="_blank" rel="noopener noreferrer">${article.title}</a></h3>
-                <div class="article-meta">
-                    <span class="article-source">${article.source}</span>
-                    <span>•</span>
-                    <span>${timeAgo}</span>
+        <div class="flow-container">
+            <!-- Step 1 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 01</div>
+                    <h3 class="step-title">Snap 4 Photos</h3>
+                    <p class="step-desc">Front, spine, back, and centerfold. Each angle reveals defects the others miss.</p>
                 </div>
-                <div class="article-description">${cleanDescription}...</div>
-            `;
-            
-            return articleEl;
-        }
+                <div class="flow-visual">
+                    <div class="photo-grid">
+                        <div class="photo-box photo-front">Front</div>
+                        <div class="photo-box photo-spine">Spine</div>
+                        <div class="photo-box photo-back">Back</div>
+                        <div class="photo-box photo-centerfold">Centerfold</div>
+                    </div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+            </div>
 
-        function getTimeAgo(date) {
-            const seconds = Math.floor((new Date() - date) / 1000);
-            const intervals = {
-                year: 31536000,
-                month: 2592000,
-                week: 604800,
-                day: 86400,
-                hour: 3600,
-                minute: 60
-            };
+            <!-- Step 2 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 02</div>
+                    <h3 class="step-title">AI Spots Defects</h3>
+                    <p class="step-desc">Spine ticks, corner wear, color breaks, staple rust, and more.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="ai-brain">🧠</div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+            </div>
 
-            for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-                const interval = Math.floor(seconds / secondsInUnit);
-                if (interval >= 1) {
-                    return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
-                }
-            }
-            return 'just now';
-        }
+            <!-- Step 3 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 03</div>
+                    <h3 class="step-title">Get a Grade Estimate</h3>
+                    <p class="step-desc">We estimate the likely grade range based on what we find.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="grade-display">
+                        <div class="grade-number">8.5</div>
+                        <div class="grade-label">VF+</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill"></div>
+                        </div>
+                        <div class="confidence-text">87% confidence</div>
+                    </div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+            </div>
 
-        // Initialize
-        loadAIFeeds();
-        setInterval(() => {
-            if (document.getElementById('ai-tab').classList.contains('active')) {
-                loadAIFeeds();
-            } else {
-                loadSearchFeeds();
-            }
-        }, 30 * 60 * 1000);
-    </script>
+            <!-- Step 4 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 04</div>
+                    <h3 class="step-title">The Verdict</h3>
+                    <p class="step-desc">Grading costs vs. expected value. A straight answer.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="verdict-display">
+                        <div class="verdict-icon">✓</div>
+                        <div class="verdict-text">Worth the Slab</div>
+                        <div class="roi-preview">+$47 after grading fees</div>
+                    </div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-cta">
+            <a href="/login.html" class="cta-button">Check a Comic</a>
+        </div>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">SLAB WORTHY</div>
+                <p class="footer-tagline">Powered by CollectionCalc™</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="/pricing.html">Pricing</a></li>
+                        <li><a href="/faq.html">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="/about.html">About</a></li>
+                        <li><a href="mailto:support@slabworthy.com">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/privacy.html">Privacy</a></li>
+                        <li><a href="/terms.html">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+            <p style="margin-top: 0.3rem; font-size: 0.55rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
+        </div>
+    </footer>
 </body>
 </html>
