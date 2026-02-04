@@ -6,7 +6,7 @@
     <title>Slab Worthy™ - AI for Comic Collectors</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6366f1;
@@ -23,6 +23,11 @@
             --success: #22c55e;
             --error: #ef4444;
             --warning: #f59e0b;
+            --purple-dark: #1e1b4b;
+            --purple-brand: #7c3aed;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
         }
 
         * {
@@ -55,12 +60,16 @@
         }
 
         .logo {
-            font-size: 3rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            font-family: 'Bangers', cursive;
+            font-size: min(12vw, 4rem);
+            letter-spacing: 2px;
+            line-height: 1;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            filter: drop-shadow(2px 2px 0px var(--purple-brand)) 
+                    drop-shadow(4px 4px 0px var(--purple-dark));
             margin-bottom: 16px;
         }
 
@@ -408,27 +417,10 @@
     </style>
 </head>
 <body>
+    <a href="/" style="position: absolute; top: 1rem; left: 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; z-index: 100;">← Home</a>
     <section class="hero">
-        <h1 class="logo">Slab Worthy™</h1>
-        <p class="tagline">AI for Comic Collectors</p>
-        
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">📸</div>
-                <h3 class="feature-title">Photo Recognition</h3>
-                <p class="feature-desc">Snap a photo and our AI extracts title, issue, and condition automatically.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">💰</div>
-                <h3 class="feature-title">Real Sales Data</h3>
-                <p class="feature-desc">Valuations based on eBay and other sources' sales data. Quick Sale, Fair Value, and High End tiers.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📦</div>
-                <h3 class="feature-title">Auction It!</h3>
-                <p class="feature-desc">List to eBay with AI-generated descriptions. Whatnot integration coming soon!</p>
-            </div>
-        </div>
+        <h1 class="logo">SLAB WORTHY</h1>
+        <p class="tagline">Know before you slab.</p>
 
         <div class="beta-card" id="betaCard">
             <span class="beta-badge">Private Beta</span>
