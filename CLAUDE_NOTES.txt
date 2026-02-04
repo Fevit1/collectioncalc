@@ -10,6 +10,7 @@
 
 **Current State (v4.2.1):**
 - **REBRANDED TO SLAB WORTHY** - slabworthy.com is live!
+- **Email system complete** - Resend configured for slabworthy.com
 - FMV uses eBay + Whatnot data (10x more sales!)
 - Reprint filter active (Spawn #1 fix)
 - Barcode scanning infrastructure ready
@@ -19,26 +20,60 @@
 
 ## 🚨 IMMEDIATE ACTION ITEMS
 
-### In Progress (Session 24)
-- [x] **privacy.html** - DRAFTED, ready to deploy
-- [x] **terms.html** - DRAFTED, ready to deploy
-- [ ] **Set up Resend for slabworthy.com** - Paused, resuming after Mike's call
-- [ ] **Verify support@slabworthy.com** - After Resend setup
-
-### Testing Needed
+### Pre-Beta MUST-HAVES
+- [ ] **Content moderation system** - Amazon Rekognition integration
 - [ ] **Mobile testing** - full Slab Worthy grading flow on phone
-- [ ] Comic-shaped upload boxes on small screens
-- [ ] Image picker UX on mobile (see UX improvement below)
 
 ### Branding Decisions Needed
 - [ ] **collectioncalc.com** - currently shows Slab Worthy branding. Should it stay CollectionCalc-branded as the backend hub?
-- [ ] **Email templates** - verification/password reset emails probably still say "CollectionCalc"
 - [ ] **Chrome extensions** - still reference CollectionCalc
-- [ ] **Tone consideration** - "Slab Worthy" is casual/playful phrase ("Dude, that's slab worthy!"). Current design may be too formal. Consider more playful branding?
+- [ ] **Tone consideration** - "Slab Worthy" is casual/playful phrase. Current design may be too formal. Consider more playful branding?
+
+### Backlog
+- [ ] **Two-factor authentication** - TOTP (authenticator app) recommended
+- [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 
 ---
 
-## Session 24 Summary (February 3, 2026)
+## Session 25 Summary (February 3, 2026 - Evening)
+
+### Completed
+1. **Privacy & Terms Deployed**
+   - privacy.html and terms.html pushed to Cloudflare Pages
+   - Accessible at slabworthy.com/privacy.html and slabworthy.com/terms.html
+
+2. **Resend Configured for slabworthy.com**
+   - Added domain to existing Resend account
+   - Cloudflare auto-configured DNS records (DKIM, SPF, MX)
+   - All records verified ✅
+
+3. **Email Routing Set Up**
+   - support@slabworthy.com → forwards to Mike's Yahoo
+   - Using Cloudflare Email Routing (not Resend receiving)
+   - AI-powered inbox routing is future feature
+
+4. **Email Templates Rebranded**
+   - Updated auth.py: all emails now say "Slab Worthy" instead of "CollectionCalc"
+   - From address: noreply@slabworthy.com
+   - Updated: verification, password reset, approval, rejection emails
+   - Render env vars updated: RESEND_FROM_EMAIL, FRONTEND_URL
+
+5. **Forgot Password Flow Tested**
+   - Full flow working: request → email → reset form → success
+   - Emails branded correctly, links go to slabworthy.com
+
+### Issues Encountered & Resolved
+- **Browser cached 301 redirect** - Old redirect from slabworthy.com → collectioncalc.com was cached. Fixed by disabling cache in DevTools or clearing browser data.
+- **Render cache** - Had to "Clear build cache & deploy" to get new auth.py changes live
+
+### Decisions Made
+- **Skip username for now** - email + password is sufficient for private beta
+- **Two-factor auth** - Added to backlog, TOTP recommended when ready
+- **AI support inbox** - Future feature, forwarding to Yahoo works for now
+
+---
+
+## Session 24 Summary (February 3, 2026 - Earlier)
 
 ### Completed
 1. **Privacy Policy (privacy.html)**
@@ -68,11 +103,6 @@
 - **Contact form vs raw email** → Contact form with topic dropdown for AI routing
 - **Delaware vs California incorporation** → Stay California for now (simpler, cheaper for bootstrapped)
 
-### Still To Do (This Session)
-- [ ] Set up Resend for slabworthy.com domain
-- [ ] Add DNS records in Cloudflare
-- [ ] Deploy privacy.html and terms.html
-
 ---
 
 ## Session 23 Summary (February 2, 2026)
@@ -97,11 +127,6 @@
    - Centerfold has dotted center line
    - Desktop: "Upload" text, hidden "Take Photo" button
    - Footer: Contact, Privacy, Terms + "Powered by CollectionCalc™ © 2026"
-
-### Barcode Backfill - Skipped
-- Endpoints created but Whatnot images don't show barcodes
-- Live stream screenshots with barcode corner cropped
-- Will be useful for: Slab Worthy user photos, eBay Collector images
 
 ---
 
@@ -161,7 +186,23 @@ When content is flagged, capture:
 
 ## Contact/Support System (To Build)
 
-### Contact Form (Recommended over raw email)
+### Current State
+- support@slabworthy.com → forwards to Mike's Yahoo inbox
+- Works for beta, but not scalable
+
+### Future: AI-Powered Support Inbox
+```
+Email to support@slabworthy.com
+    ↓
+Resend webhook → API endpoint
+    ↓
+Claude analyzes (topic, sentiment, urgency)
+    ↓
+Either: auto-respond via Resend API
+Or: forward to Mike with suggested response
+```
+
+### Contact Form (Also Planned)
 ```
 Contact Form Fields:
 ├── Topic Dropdown (required)
@@ -175,13 +216,6 @@ Contact Form Fields:
 ├── Message (required)
 └── Submit → API endpoint → Resend → route based on topic
 ```
-
-### Routing Logic
-- Delete/Export requests → Auto-workflow (verify identity, process)
-- Bug reports → AI triage + response
-- Feature requests → Log to backlog + AI acknowledgment
-- Billing → AI response or escalate
-- Other → AI first-pass, escalate if needed
 
 ---
 
@@ -216,6 +250,14 @@ git add .; git commit -m "message"; git push; purge
 - **API:** collectioncalc-docker.onrender.com
 - **Service ID:** srv-d5vcjqqli9vc73a5a730
 
+### Email
+- **Transactional:** noreply@slabworthy.com (via Resend)
+- **Support:** support@slabworthy.com → Yahoo (via Cloudflare Email Routing)
+
+### Render Env Vars (Updated Session 25)
+- `RESEND_FROM_EMAIL` = `noreply@slabworthy.com`
+- `FRONTEND_URL` = `https://slabworthy.com`
+
 ### Test Endpoints
 ```bash
 curl https://collectioncalc-docker.onrender.com/health
@@ -238,5 +280,5 @@ Options to explore:
 
 ---
 
-*Last updated: February 3, 2026 (Session 24)*
+*Last updated: February 3, 2026 (Session 25)*
 *Version: 4.2.1*
