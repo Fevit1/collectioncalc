@@ -9,7 +9,8 @@
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
 **Current State (v4.2.1):**
-- **REBRANDED TO SLAB WORTHY** - slabworthy.com is live!
+- **NEW MARKETING HOMEPAGE LIVE** - slabworthy.com with gold comic-style branding
+- **Site restructured** - Marketing at /, auth at /login.html
 - **Email system complete** - Resend configured for slabworthy.com
 - FMV uses eBay + Whatnot data (10x more sales!)
 - Reprint filter active (Spawn #1 fix)
@@ -23,15 +24,68 @@
 ### Pre-Beta MUST-HAVES
 - [ ] **Content moderation system** - Amazon Rekognition integration
 - [ ] **Mobile testing** - full Slab Worthy grading flow on phone
+- [ ] **Deploy remaining pages** - faq.html, about.html, pricing.html (files ready)
 
-### Branding Decisions Needed
-- [ ] **collectioncalc.com** - currently shows Slab Worthy branding. Should it stay CollectionCalc-branded as the backend hub?
-- [ ] **Chrome extensions** - still reference CollectionCalc
-- [ ] **Tone consideration** - "Slab Worthy" is casual/playful phrase. Current design may be too formal. Consider more playful branding?
+### Branding ✅ RESOLVED
+- [x] **Tagline decided** - "AI for Comic Collectors"
+- [x] **Logo style decided** - Gold comic-style with purple drop shadows (Bangers font)
+- [x] **Site structure decided** - Marketing homepage + separate login page
 
 ### Backlog
 - [ ] **Two-factor authentication** - TOTP (authenticator app) recommended
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
+- [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
+- [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 26 Summary (February 4, 2026)
+
+### Major Accomplishments
+
+1. **New Marketing Homepage Deployed**
+   - Gold comic-style logo (Bangers font) with purple text-shadow
+   - Tagline: "AI for Comic Collectors"
+   - "How It Works" scrollytelling section (4 steps, always vertical)
+   - Mobile responsive design
+   - CTA buttons link to /login.html
+
+2. **Site Restructure**
+   - `index.html` → New marketing homepage
+   - `login.html` → Auth page (moved from old index.html)
+   - Login page updated: gold logo, removed feature cards, added "← Home" link
+
+3. **New Pages Deployed**
+   - `faq.html` - 10 expandable Q&A items
+   - `about.html` - Problem/solution story, values grid, patent mention
+   - `pricing.html` - "Coming soon" placeholder with beta note
+
+4. **Logo Clipping Bug Fixed**
+   - **Problem:** `background-clip: text` with gradient caused "Y" descender to be cut off
+   - **Solution:** Use solid gold color (`#facc15`) with `text-shadow` instead
+   - **CSS:** `color: #facc15; text-shadow: 2px 2px 0 #7c3aed, 4px 4px 0 #1e1b4b;`
+   - Applied fix to: index.html, login.html, faq.html, about.html, pricing.html
+
+5. **First Beta Testers!**
+   - Beta codes in database: BETA-001 through BETA-005 (1 use each)
+   - BETA-MIKE already used (Mike's account)
+   - Give testers codes like `BETA-001`, `BETA-002`
+
+### Technical Lessons Learned
+- `background-clip: text` + gradient clips to text bounding box, cuts off descenders (y, g, p, q)
+- `text-shadow` works reliably for comic-style shadow effects
+- `filter: drop-shadow` also has clipping issues with text gradients
+- PowerShell uses `Copy-Item` not `cp`, semicolons not `&&`
+
+### Files Updated This Session
+- `/index.html` - Marketing homepage (logo fix applied)
+- `/login.html` - Auth page (logo fix applied)
+- `/faq.html` - FAQ page (logo fix applied)
+- `/about.html` - About page (logo fix applied)
+- `/pricing.html` - Pricing placeholder (logo fix applied)
+- `CLAUDE_NOTES.txt` - This file
+- `ROADMAP.md` - Updated with completed items
+- `SLAB_WORTHY_BRAND_GUIDELINES.md` - New consumer brand guide
 
 ---
 
@@ -92,17 +146,6 @@
    - Strong liability limitations for grade/value estimates
    - California governing law (appropriate for US-only, bootstrapped)
 
-### Decisions Made
-- **Email verification before account creation** → MUST-HAVE for private beta
-- **Progressive PII collection** → Collect name at signup, more data over time (billing, collection setup)
-- **Content moderation approach:**
-  - MVP: Amazon Rekognition for explicit content detection
-  - Apply for PhotoDNA (CSAM hash matching)
-  - Register for NCMEC CyberTipline ESP account
-  - Build incident logging for flagged content
-- **Contact form vs raw email** → Contact form with topic dropdown for AI routing
-- **Delaware vs California incorporation** → Stay California for now (simpler, cheaper for bootstrapped)
-
 ---
 
 ## Session 23 Summary (February 2, 2026)
@@ -130,6 +173,48 @@
 
 ---
 
+## Two-Brand Architecture
+
+### CollectionCalc (Backend/API)
+- **Role:** "The brain" - infrastructure, API, data
+- **Tone:** Professional, expert, measured
+- **Audience:** Developers, partners, B2B
+
+### Slab Worthy (Consumer Product)
+- **Role:** Fun, approachable consumer brand
+- **Tone:** Enthusiastic, knowledgeable, casual
+- **Audience:** Comic collectors (35+, 70%+ male, but welcoming to all)
+- **Tagline:** "AI for Comic Collectors"
+- **Voice:** "Your knowledgeable collector buddy who shoots straight"
+
+### "Worthy" Brand Family (Future)
+- **slabworthy.com** — Comics (CGC, CBCS) ✅ LIVE
+- **psaworthy.com** — Cards (PSA, BGS) - future
+- **coinworthy.com** — Coins (PCGS, NGC) - future
+
+All share CollectionCalc backend. Same pattern:
+```
+Photo → AI Vision → Grade Estimate → Market Value → "Worth grading?"
+```
+
+---
+
+## Site Structure
+
+```
+slabworthy.com/
+├── index.html      → Marketing homepage (gold logo, How It Works)
+├── login.html      → Auth (beta code, signup, login)
+├── app.html        → Grading tool (logged-in users)
+├── faq.html        → FAQ (10 Q&A items)
+├── about.html      → About page
+├── pricing.html    → Pricing (coming soon placeholder)
+├── privacy.html    → Privacy policy
+└── terms.html      → Terms of service
+```
+
+---
+
 ## Technical Debt
 
 ### wsgi.py Refactoring Needed
@@ -147,7 +232,7 @@
 
 ---
 
-## Content Moderation System (To Build)
+## Content Moderation System (To Build - PRE-BETA MUST-HAVE)
 
 ### Architecture
 ```
@@ -160,20 +245,6 @@ BEFORE storing/processing:
     → If clean: proceed to comic analysis
 ```
 
-### Incident Logging Requirements
-When content is flagged, capture:
-- User ID / Account email
-- User's name
-- IP address at time of upload
-- Timestamp (UTC)
-- Image hash (SHA-256 + PhotoDNA hash if available)
-- Original filename
-- Device/browser fingerprint
-- Account creation date + IP
-- Any other uploads from same user
-
-**Important:** For confirmed CSAM, hash and report, then delete. Don't retain actual images.
-
 ### Setup Steps
 1. [ ] Integrate Amazon Rekognition into image upload pipeline
 2. [ ] Register for NCMEC CyberTipline ESP account
@@ -184,69 +255,38 @@ When content is flagged, capture:
 
 ---
 
-## Contact/Support System (To Build)
+## Analytics & A/B Testing (Post-Beta)
 
-### Current State
-- support@slabworthy.com → forwards to Mike's Yahoo inbox
-- Works for beta, but not scalable
+### Recommended Stack: PostHog
+- **Why:** All-in-one (analytics + A/B tests + session replay), open source, generous free tier
+- **Alternative considered:** Statsig (better stats, but experimentation-only)
 
-### Future: AI-Powered Support Inbox
-```
-Email to support@slabworthy.com
-    ↓
-Resend webhook → API endpoint
-    ↓
-Claude analyzes (topic, sentiment, urgency)
-    ↓
-Either: auto-respond via Resend API
-Or: forward to Mike with suggested response
-```
+### Phases
+1. **Phase 1:** PostHog integration - events, funnels, session replay
+2. **Phase 2:** Manual A/B tests - taglines, CTAs, pricing
+3. **Phase 3:** AI-assisted experimentation via RelevantSee
 
-### Contact Form (Also Planned)
-```
-Contact Form Fields:
-├── Topic Dropdown (required)
-│   ├── "Delete my data"
-│   ├── "Export my data"
-│   ├── "Bug report"
-│   ├── "Feature request"
-│   ├── "Billing question"
-│   └── "Other"
-├── Email (required)
-├── Message (required)
-└── Submit → API endpoint → Resend → route based on topic
-```
-
----
-
-## Business Vision
-
-### "Worthy" Brand Family
-- **slabworthy.com** — Comics (CGC, CBCS) ✅ LIVE
-- **coinworthy.com** — Coins (PCGS, NGC) - future
-- **cardworthy.com** — Cards (PSA, BGS) - future
-- **stampworthy.com** — Stamps (PSA, PSE) - future
-
-All share one backend (CollectionCalc API). Same pattern:
-```
-Photo → AI Vision → Grade Estimate → Market Value → "Worth grading?"
-```
+### Key Events to Track
+- `grading_started`, `photo_uploaded`, `grading_completed`
+- `grading_abandoned` (with last step)
+- `verdict_shown`, `save_to_collection`
+- `signup_started`, `signup_completed`
 
 ---
 
 ## Quick Reference
 
-### Deployment Commands
+### Deployment Commands (PowerShell)
 ```powershell
-# Backend (Render Docker)
-git add .; git commit -m "message"; git push; deploy
+# Full deploy (backend changes)
+git add . ; git commit -m "message" ; git push ; purge ; deploy
 
-# Frontend (Cloudflare)  
-git add .; git commit -m "message"; git push; purge
+# Frontend only (try without deploy first)
+git add . ; git commit -m "message" ; git push ; purge
 ```
 
 ### URLs
-- **Frontend:** slabworthy.com (also collectioncalc.com)
+- **Frontend:** slabworthy.com
 - **API:** collectioncalc-docker.onrender.com
 - **Service ID:** srv-d5vcjqqli9vc73a5a730
 
@@ -254,7 +294,7 @@ git add .; git commit -m "message"; git push; purge
 - **Transactional:** noreply@slabworthy.com (via Resend)
 - **Support:** support@slabworthy.com → Yahoo (via Cloudflare Email Routing)
 
-### Render Env Vars (Updated Session 25)
+### Render Env Vars
 - `RESEND_FROM_EMAIL` = `noreply@slabworthy.com`
 - `FRONTEND_URL` = `https://slabworthy.com`
 
@@ -262,23 +302,14 @@ git add .; git commit -m "message"; git push; purge
 ```bash
 curl https://collectioncalc-docker.onrender.com/health
 # Returns: {"barcode":true,"status":"ok","version":"4.2.1"}
-
-curl "https://collectioncalc-docker.onrender.com/api/sales/fmv?title=spider-man&issue=300"
 ```
 
----
-
-## UX Improvements Identified
-
-### Mobile Image Picker
-Current: Standard file picker shows tiny thumbnails
-Desired: Gallery-style view like native camera app on Pixel
-Options to explore:
-- Custom image picker component
-- PWA with file system access API
-- Native-like gallery grid before upload
+### Mobile Testing (Chrome DevTools)
+1. F12 → Click phone icon
+2. Select "Pixel 7" from dropdown
+3. Test at 412px width
 
 ---
 
-*Last updated: February 3, 2026 (Session 25)*
+*Last updated: February 4, 2026 (Session 26)*
 *Version: 4.2.1*
