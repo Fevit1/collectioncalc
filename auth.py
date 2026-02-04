@@ -28,8 +28,8 @@ VERIFICATION_EXPIRY_HOURS = 24  # Email verification link valid for 24 hours
 RESET_EXPIRY_HOURS = 1  # Password reset link valid for 1 hour
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@collectioncalc.com')
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://collectioncalc.com')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://slabworthy.com')
 
 # Initialize Resend
 if RESEND_API_KEY:
@@ -377,12 +377,12 @@ def send_verification_email(email, token):
     
     try:
         resend.Emails.send({
-            "from": f"CollectionCalc <{RESEND_FROM_EMAIL}>",
+            "from": f"Slab Worthy <{RESEND_FROM_EMAIL}>",
             "to": [email],
-            "subject": "Verify your CollectionCalc account",
+            "subject": "Verify your Slab Worthy account",
             "html": f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #6366f1;">Welcome to CollectionCalc!</h2>
+                    <h2 style="color: #6366f1;">Welcome to Slab Worthy!</h2>
                     <p>Thanks for signing up. Please verify your email address by clicking the button below:</p>
                     <p style="text-align: center; margin: 30px 0;">
                         <a href="{verify_url}" 
@@ -421,9 +421,9 @@ def send_password_reset_email(email, token):
     
     try:
         resend.Emails.send({
-            "from": f"CollectionCalc <{RESEND_FROM_EMAIL}>",
+            "from": f"Slab Worthy <{RESEND_FROM_EMAIL}>",
             "to": [email],
-            "subject": "Reset your CollectionCalc password",
+            "subject": "Reset your Slab Worthy password",
             "html": f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #6366f1;">Reset Your Password</h2>
@@ -462,14 +462,14 @@ def send_approval_email(email):
     
     try:
         resend.Emails.send({
-            "from": f"CollectionCalc <{RESEND_FROM_EMAIL}>",
+            "from": f"Slab Worthy <{RESEND_FROM_EMAIL}>",
             "to": [email],
-            "subject": "🎉 You're approved for CollectionCalc!",
+            "subject": "You're approved for Slab Worthy!",
             "html": f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #6366f1;">You're In! 🎉</h2>
-                    <p>Great news! Your CollectionCalc account has been approved.</p>
-                    <p>You can now log in and start valuing your comic collection:</p>
+                    <h2 style="color: #6366f1;">You're In!</h2>
+                    <p>Great news! Your Slab Worthy account has been approved.</p>
+                    <p>You can now log in and start assessing your comics:</p>
                     <p style="text-align: center; margin: 30px 0;">
                         <a href="{FRONTEND_URL}" 
                            style="background: linear-gradient(135deg, #6366f1, #8b5cf6); 
@@ -478,7 +478,7 @@ def send_approval_email(email):
                                   text-decoration: none; 
                                   border-radius: 6px;
                                   display: inline-block;">
-                            Go to CollectionCalc
+                            Go to Slab Worthy
                         </a>
                     </p>
                     <p style="color: #666; font-size: 14px;">
@@ -502,16 +502,16 @@ def send_rejection_email(email, reason=None):
     
     try:
         resend.Emails.send({
-            "from": f"CollectionCalc <{RESEND_FROM_EMAIL}>",
+            "from": f"Slab Worthy <{RESEND_FROM_EMAIL}>",
             "to": [email],
-            "subject": "CollectionCalc account update",
+            "subject": "Slab Worthy account update",
             "html": f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #6366f1;">Account Update</h2>
-                    <p>Unfortunately, we're unable to approve your CollectionCalc account at this time.</p>
+                    <p>Unfortunately, we're unable to approve your Slab Worthy account at this time.</p>
                     {reason_text}
                     <p style="color: #666; font-size: 14px;">
-                        If you have questions, please reply to this email.
+                        If you have questions, please contact us at support@slabworthy.com.
                     </p>
                 </div>
             """
