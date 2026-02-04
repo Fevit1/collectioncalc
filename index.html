@@ -51,7 +51,7 @@
             text-align: center;
             padding: 2rem 1rem;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             background: linear-gradient(180deg, var(--purple-dark) 0%, var(--bg-dark) 100%);
         }
 
@@ -74,7 +74,8 @@
             margin-bottom: 1.5rem;
             width: 100%;
             max-width: 500px;
-            padding: 0 1rem;
+            padding: 0 1rem 12px 1rem;
+            overflow: visible;
         }
 
         /* LOGO - Now uses vw units that scale smoothly */
@@ -82,14 +83,8 @@
             font-family: 'Bangers', cursive;
             font-size: min(12vw, 6rem); /* 12% of viewport width, max 6rem */
             letter-spacing: 2px;
-            line-height: 1.2;
-            padding-bottom: 8px;
-            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(2px 2px 0px var(--purple-brand)) 
-                    drop-shadow(4px 4px 0px var(--purple-dark));
+            color: #facc15;
+            text-shadow: 2px 2px 0 #7c3aed, 4px 4px 0 #1e1b4b;
         }
 
         .patent-badge {

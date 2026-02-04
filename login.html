@@ -53,25 +53,26 @@
             align-items: center;
             padding: 40px 20px;
             text-align: center;
+            overflow: visible;
             background: 
                 radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
                 radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
                 var(--bg-dark);
         }
 
+        .logo-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
         .logo {
             font-family: 'Bangers', cursive;
             font-size: min(12vw, 4rem);
             letter-spacing: 2px;
-            line-height: 1.2;
-            padding-bottom: 8px;
-            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(2px 2px 0px var(--purple-brand)) 
-                    drop-shadow(4px 4px 0px var(--purple-dark));
-            margin-bottom: 16px;
+            margin: 0;
+            color: #facc15;
+            text-shadow: 2px 2px 0 #7c3aed, 4px 4px 0 #1e1b4b;
+            white-space: nowrap;
         }
 
         .tagline {
@@ -420,7 +421,9 @@
 <body>
     <a href="/" style="position: absolute; top: 1rem; left: 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; z-index: 100;">← Home</a>
     <section class="hero">
-        <h1 class="logo">SLAB WORTHY</h1>
+        <div class="logo-wrapper">
+            <h1 class="logo">SLAB WORTHY</h1>
+        </div>
         <p class="tagline">AI for Comic Collectors</p>
 
         <div class="beta-card" id="betaCard">
