@@ -277,6 +277,102 @@ Consider:
 | 4.0.0 | Feb 2, 2026 | Docker + barcode scanning |
 | 3.0.0 | Feb 1, 2026 | eBay Collector extension |
 
+# Analytics & Experimentation - ROADMAP ADDITION
+
+## Add this to Medium Priority section, replacing the current "Analytics Improvements" section:
+
+---
+
+### Analytics & Experimentation Platform
+
+**Current State:** Basic admin console analytics only
+**Goal:** Data-driven product decisions + automated optimization
+
+#### Phase 1: PostHog Integration (Post-Beta)
+**Why PostHog:** All-in-one (analytics + A/B tests + session replay), open source, generous free tier (1M events/mo)
+
+- [ ] Add PostHog JS snippet to frontend
+- [ ] Configure key events to track:
+  - `grading_started` - User begins 4-photo flow
+  - `photo_uploaded` - Each photo step (with step number)
+  - `grading_completed` - Full flow completed
+  - `grading_abandoned` - User exits mid-flow (with last step)
+  - `verdict_shown` - "Worth the slab" or "Keep it raw" displayed
+  - `save_to_collection` - User saves result
+  - `signup_started` / `signup_completed`
+- [ ] Set up conversion funnels:
+  - Landing → Signup → First Grade → Save to Collection
+  - Photo 1 → Photo 2 → Photo 3 → Photo 4 → Result
+- [ ] Enable session replay for debugging UX issues
+- [ ] Create dashboard for key metrics
+
+**Key Metrics to Track:**
+- Grading completion rate (% who finish all 4 photos)
+- Drop-off by step (where do people abandon?)
+- Time-to-grade (how long does full flow take?)
+- Verdict distribution (what % are "worth the slab"?)
+- Popular titles/issues being graded
+
+#### Phase 2: Manual A/B Testing
+- [ ] Set up first experiment: Tagline test
+  - A: "Know before you slab"
+  - B: "The pre-grade gut check"
+  - C: "Should you slab it?"
+  - Measure: Signup conversion rate
+- [ ] Test CTA button copy ("Check a Comic" vs "Grade My Comic" vs "Get Started")
+- [ ] Test pricing page layouts (when ready)
+- [ ] Document experiment results and learnings
+
+#### Phase 3: AI-Assisted Experimentation (Future)
+**Vision:** AI proposes experiments, runs them, analyzes results, proposes iterations
+
+**Architecture (integrate with RelevantSee platform):**
+```
+PostHog event data
+    ↓
+RelevantSee AI Engine
+    ↓
+Analyzes: What's underperforming? What patterns exist?
+    ↓
+Proposes: "Test headline X vs Y based on [reasoning]"
+    ↓
+Human approves (or auto-approve low-risk tests)
+    ↓
+Experiment runs via PostHog feature flags
+    ↓
+AI analyzes results, proposes next iteration
+    ↓
+Weekly digest to human: "Here's what we tested and learned"
+```
+
+**Candidate areas for AI-driven testing:**
+- Headlines and taglines
+- CTA button text and colors
+- Email subject lines
+- Onboarding flow sequence
+- Feature flag rollouts
+
+**Shared Service Vision:**
+This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy, etc. all call. One AI experimentation engine powering the whole "Worthy" brand family.
+
+---
+
+## Also add to Backlog section:
+
+### AI Experimentation Service (RelevantSee Integration)
+- [ ] Define API contract between Worthy sites and RelevantSee
+- [ ] Build experiment proposal engine (AI analyzes data, suggests tests)
+- [ ] Build auto-analysis engine (AI interprets results)
+- [ ] Human-in-the-loop approval workflow
+- [ ] Weekly digest generation
+- [ ] Consider: Bandit algorithms for faster convergence
+
+---
+
+*Added: February 4, 2026 (Session 26)*
+
+
+
 ---
 
 *Last updated: February 3, 2026 (Session 25)*

@@ -3,882 +3,615 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slab Worthy™ - AI for Comic Collectors</title>
+    <title>Slab Worthy™ - Know Before You Slab</title>
+    <meta name="description" content="AI-powered comic grading estimates. Snap 4 photos, get a grade prediction, and find out if your comic is worth the slab.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --primary-light: #818cf8;
-            --secondary: #8b5cf6;
-            --bg-dark: #0f0f23;
-            --bg-card: #1a1a2e;
-            --bg-card-hover: #252542;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a1aa;
-            --text-muted: #71717a;
-            --border: #27272a;
-            --success: #22c55e;
-            --error: #ef4444;
-            --warning: #f59e0b;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
         }
 
-        /* Hero Section */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ============================================
+           HERO SECTION
+           ============================================ */
         .hero {
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 40px 20px;
             text-align: center;
-            background: 
-                radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                var(--bg-dark);
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, var(--purple-dark) 0%, var(--bg-dark) 100%);
         }
 
-        .logo {
-            font-size: 3rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(rgba(124, 58, 237, 0.08) 1px, transparent 1px);
+            background-size: 6px 6px;
+            pointer-events: none;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            padding: 0 1rem;
+        }
+
+        /* LOGO - Now uses vw units that scale smoothly */
+        .main-logo {
+            font-family: 'Bangers', cursive;
+            font-size: min(12vw, 6rem); /* 12% of viewport width, max 6rem */
+            letter-spacing: 2px;
+            line-height: 1;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 16px;
+            filter: drop-shadow(2px 2px 0px var(--purple-brand)) 
+                    drop-shadow(4px 4px 0px var(--purple-dark));
+        }
+
+        .patent-badge {
+            position: absolute;
+            top: -5px;
+            right: 1rem;
+            background: var(--purple-brand);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 3px;
+            transform: rotate(12deg);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 2px 2px 0px var(--purple-dark);
         }
 
         .tagline {
-            font-size: 1.5rem;
+            font-size: clamp(1rem, 3vw, 1.5rem);
             color: var(--text-secondary);
-            margin-bottom: 40px;
-            max-width: 600px;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
         }
 
-        /* Features Grid */
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            max-width: 900px;
-            width: 100%;
-            margin-bottom: 48px;
-        }
-
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: left;
-            transition: all 0.3s ease;
-        }
-
-        .feature-card:hover {
-            background: var(--bg-card-hover);
-            transform: translateY(-2px);
-            border-color: var(--primary);
-        }
-
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 12px;
-        }
-
-        .feature-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .feature-desc {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        /* Beta Access Card */
-        .beta-card {
-            background: var(--bg-card);
-            border: 2px solid var(--primary);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 450px;
-            width: 100%;
-            text-align: center;
-        }
-
-        .beta-badge {
+        .cta-button {
             display: inline-block;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.9rem 1.8rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 4px 4px 0px var(--purple-brand);
+            text-decoration: none;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--purple-brand);
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-hint a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ============================================
+           HOW IT WORKS SECTION
+           ============================================ */
+        .how-it-works {
+            padding: 3rem 1rem;
+            background: var(--bg-dark);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+        }
+
+        .flow-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ALWAYS VERTICAL - Text above, visual below */
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .flow-content {
+            margin-bottom: 1rem;
+            max-width: 300px;
+        }
+
+        .step-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--purple-light);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .step-title {
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            color: var(--text-primary);
+        }
+
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            line-height: 1.5;
+        }
+
+        .flow-visual {
+            background: var(--bg-card);
+            border: 2px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 280px;
+            min-height: 100px;
+        }
+
+        .flow-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 0;
+        }
+
+        .connector-line {
+            width: 2px;
+            height: 25px;
+            background: linear-gradient(180deg, var(--purple-brand), var(--purple-light));
+            border-radius: 2px;
+        }
+
+        .connector-arrow {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid var(--purple-light);
+        }
+
+        /* Hide last connector */
+        .flow-step:last-child .flow-connector {
+            display: none;
+        }
+
+        /* ============================================
+           COMIC PHOTO GRID
+           ============================================ */
+        .photo-grid {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .photo-box {
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-mid));
+            border: 2px solid var(--purple-light);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
             color: white;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 20px;
         }
 
-        .beta-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 12px;
+        .photo-front { width: 38px; height: 54px; }
+        .photo-spine { 
+            width: 12px; 
+            height: 54px; 
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.4rem;
         }
-
-        .beta-desc {
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 14px 16px;
-            background: var(--bg-dark);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: all 0.2s ease;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
-
-        .form-group input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .beta-code-input {
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px 24px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid var(--border);
-            margin-top: 12px;
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--primary);
-            box-shadow: none;
-        }
-
-        /* Messages */
-        .message {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .message.error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            display: block;
-        }
-
-        .message.success {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-            display: block;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 12px;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .tab.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        .tab:hover:not(.active) {
-            border-color: var(--primary);
-            color: var(--text-primary);
-        }
-
-        /* Form Panels */
-        .form-panel {
-            display: none;
-        }
-
-        .form-panel.active {
-            display: block;
-        }
-
-        /* Divider */
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        .divider span {
-            padding: 0 12px;
-        }
-
-        /* Footer Link */
-        .footer-link {
-            margin-top: 24px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .footer-link a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Pending Approval State */
-        .pending-state {
-            text-align: center;
-            padding: 20px 0;
-        }
-
-        .pending-icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-        }
-
-        .pending-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .pending-desc {
-            color: var(--text-secondary);
-        }
-
-        /* Mobile adjustments */
-        @media (max-width: 640px) {
-            .hero {
-                padding: 24px 16px;
-            }
-
-            .logo {
-                font-size: 2.5rem;
-            }
-
-            .tagline {
-                font-size: 1.2rem;
-            }
-
-            .beta-card {
-                padding: 24px;
-            }
-
-            .features {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Password toggle */
-        .password-wrapper {
+        .photo-back { width: 38px; height: 54px; }
+        .photo-centerfold {
+            width: 76px;
+            height: 54px;
             position: relative;
         }
-        .password-wrapper input {
-            width: 100%;
-            padding-right: 45px;
-        }
-        .password-toggle {
+        .photo-centerfold::after {
+            content: '';
             position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
+            top: 5px;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 2px dashed rgba(255,255,255,0.4);
+        }
+
+        /* AI Brain */
+        .ai-brain {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Grade Display */
+        .grade-display { text-align: center; }
+        .grade-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .grade-label { font-size: 0.8rem; color: var(--text-secondary); }
+        .confidence-bar {
+            width: 80px;
+            height: 5px;
+            background: var(--purple-dark);
+            border-radius: 3px;
+            margin: 0.3rem auto 0;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            width: 87%;
+            background: linear-gradient(90deg, var(--green), var(--gold-mid));
+            border-radius: 3px;
+        }
+        .confidence-text { font-size: 0.6rem; color: var(--text-secondary); margin-top: 3px; }
+
+        /* Verdict Display */
+        .verdict-display { text-align: center; }
+        .verdict-icon { font-size: 2rem; margin-bottom: 0.2rem; }
+        .verdict-text { font-weight: 700; font-size: 1rem; color: var(--green); }
+        .roi-preview {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
             color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 4px;
+            margin-top: 0.2rem;
         }
-        .password-toggle:hover {
-            color: var(--text-primary);
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            padding: 2rem 1rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
         }
-        .forgot-link {
-            text-align: right;
-            margin-top: -8px;
-            margin-bottom: 16px;
+
+        .footer-cta {
+            margin-bottom: 1.5rem;
+            text-align: center;
         }
-        .forgot-link a {
-            color: var(--text-secondary);
+
+        .footer-cta .cta-button {
             font-size: 0.85rem;
-            text-decoration: none;
+            padding: 0.75rem 1.5rem;
         }
-        .forgot-link a:hover {
-            color: var(--primary);
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .footer-col ul { list-style: none; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        .footer-col a:hover { color: var(--purple-light); }
+
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        /* ============================================
+           SMALL SCREEN TWEAKS
+           ============================================ */
+        @media (max-width: 400px) {
+            .main-logo {
+                font-size: 10vw;
+            }
+            
+            .photo-front, .photo-back { width: 32px; height: 46px; }
+            .photo-spine { width: 10px; height: 46px; }
+            .photo-centerfold { width: 64px; height: 46px; }
+            .photo-box { font-size: 0.4rem; }
+            
+            .flow-visual {
+                max-width: 240px;
+                padding: 1rem;
+            }
+
+            .scroll-hint {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- HERO -->
     <section class="hero">
-        <h1 class="logo">Slab Worthy™</h1>
-        <p class="tagline">AI for Comic Collectors</p>
+        <div class="logo-container">
+            <h1 class="main-logo">SLAB WORTHY</h1>
+            <span class="patent-badge">Patent Pending</span>
+        </div>
         
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">📸</div>
-                <h3 class="feature-title">Photo Recognition</h3>
-                <p class="feature-desc">Snap a photo and our AI extracts title, issue, and condition automatically.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">💰</div>
-                <h3 class="feature-title">Real Sales Data</h3>
-                <p class="feature-desc">Valuations based on eBay and other sources' sales data. Quick Sale, Fair Value, and High End tiers.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📦</div>
-                <h3 class="feature-title">Auction It!</h3>
-                <p class="feature-desc">List to eBay with AI-generated descriptions. Whatnot integration coming soon!</p>
-            </div>
+        <p class="tagline">Know before you slab.</p>
+        
+        <a href="/login.html" class="cta-button">Check a Comic</a>
+
+        <div class="scroll-hint"><a href="#how-it-works">↓ See how it works</a></div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-header">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Four photos. Real data. A straight answer.</p>
         </div>
 
-        <div class="beta-card" id="betaCard">
-            <span class="beta-badge">Private Beta</span>
-            
-            <div id="betaCodePanel" class="form-panel active">
-                <h2 class="beta-title">Enter Beta Code</h2>
-                <p class="beta-desc">Slab Worthy is currently in private beta. Enter your code to get started.</p>
-                
-                <div id="betaMessage" class="message"></div>
-                
-                <form id="betaCodeForm" onsubmit="validateBetaCode(event)">
-                    <div class="form-group">
-                        <label for="betaCode">Beta Code</label>
-                        <input type="text" id="betaCode" class="beta-code-input" placeholder="BETA-XXXX" required>
-                    </div>
-                    <button type="submit" class="btn" id="betaBtn">Continue</button>
-                </form>
-                
-                <p class="footer-link">
-                    Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
-                </p>
-            </div>
-
-            <div id="signupPanel" class="form-panel">
-                <h2 class="beta-title">Create Account</h2>
-                <p class="beta-desc">Set up your Slab Worthy account</p>
-                
-                <div id="signupMessage" class="message"></div>
-                
-                <form id="signupForm" onsubmit="handleSignup(event)">
-                    <input type="hidden" id="signupBetaCode">
-                    <div class="form-group">
-                        <label for="signupEmail">Email</label>
-                        <input type="email" id="signupEmail" placeholder="you@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="signupPassword">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('signupPassword', this)">👁</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="signupConfirm">Confirm Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="signupConfirm" placeholder="••••••••" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('signupConfirm', this)">👁</button>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn" id="signupBtn">Create Account</button>
-                </form>
-                
-                <p class="footer-link">
-                    Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
-                </p>
-            </div>
-
-            <div id="loginPanel" class="form-panel">
-                <h2 class="beta-title">Welcome Back</h2>
-                <p class="beta-desc">Log in to your Slab Worthy account</p>
-                
-                <div id="loginMessage" class="message"></div>
-                
-                <form id="loginForm" onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label for="loginEmail">Email</label>
-                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="loginPassword" placeholder="••••••••" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">👁</button>
-                        </div>
-                    </div>
-                    <div class="forgot-link">
-                        <a href="#" onclick="showPanel('forgotPanel')">Forgot password?</a>
-                    </div>
-                    <button type="submit" class="btn" id="loginBtn">Log In</button>
-                </form>
-                
-                <p class="footer-link">
-                    Need an account? <a href="#" onclick="showPanel('betaCodePanel')">Enter beta code</a>
-                </p>
-            </div>
-
-            <div id="verifyPanel" class="form-panel">
-                <div class="pending-state">
-                    <div class="pending-icon">📧</div>
-                    <h3 class="pending-title">Check Your Email</h3>
-                    <p class="pending-desc">We sent a verification link to <strong id="verifyEmail"></strong>. Click the link to verify your account.</p>
+        <div class="flow-container">
+            <!-- Step 1 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 01</div>
+                    <h3 class="step-title">Snap 4 Photos</h3>
+                    <p class="step-desc">Front, spine, back, and centerfold. Each angle reveals defects the others miss.</p>
                 </div>
-                <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
-            </div>
-
-            <div id="pendingPanel" class="form-panel">
-                <div class="pending-state">
-                    <div class="pending-icon">⏳</div>
-                    <h3 class="pending-title">Pending Approval</h3>
-                    <p class="pending-desc">Your account is verified and waiting for approval. You'll receive an email when you're approved to access Slab Worthy.</p>
+                <div class="flow-visual">
+                    <div class="photo-grid">
+                        <div class="photo-box photo-front">Front</div>
+                        <div class="photo-box photo-spine">Spine</div>
+                        <div class="photo-box photo-back">Back</div>
+                        <div class="photo-box photo-centerfold">Centerfold</div>
+                    </div>
                 </div>
-                <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
             </div>
 
-            <div id="forgotPanel" class="form-panel">
-                <h2 class="beta-title">Reset Password</h2>
-                <p class="beta-desc">Enter your email and we'll send you a reset link</p>
-                
-                <div id="forgotMessage" class="message"></div>
-                
-                <form id="forgotForm" onsubmit="handleForgotPassword(event)">
-                    <div class="form-group">
-                        <label for="forgotEmail">Email</label>
-                        <input type="email" id="forgotEmail" placeholder="you@example.com" required>
-                    </div>
-                    <button type="submit" class="btn" id="forgotBtn">Send Reset Link</button>
-                </form>
-                
-                <p class="footer-link">
-                    Remember your password? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
-                </p>
+            <!-- Step 2 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 02</div>
+                    <h3 class="step-title">AI Spots Defects</h3>
+                    <p class="step-desc">Spine ticks, corner wear, color breaks, staple rust, and more.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="ai-brain">🧠</div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
             </div>
 
-            <div id="resetPanel" class="form-panel">
-                <h2 class="beta-title">Set New Password</h2>
-                <p class="beta-desc">Enter your new password</p>
-                
-                <div id="resetMessage" class="message"></div>
-                
-                <form id="resetForm" onsubmit="handleResetPassword(event)">
-                    <div class="form-group">
-                        <label for="resetPassword">New Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="resetPassword" placeholder="At least 8 characters" minlength="8" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('resetPassword', this)">👁</button>
+            <!-- Step 3 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 03</div>
+                    <h3 class="step-title">Get a Grade Estimate</h3>
+                    <p class="step-desc">We estimate the likely grade range based on what we find.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="grade-display">
+                        <div class="grade-number">8.5</div>
+                        <div class="grade-label">VF+</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill"></div>
                         </div>
+                        <div class="confidence-text">87% confidence</div>
                     </div>
-                    <div class="form-group">
-                        <label for="resetConfirm">Confirm Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="resetConfirm" placeholder="••••••••" required>
-                            <button type="button" class="password-toggle" onclick="togglePassword('resetConfirm', this)">👁</button>
-                        </div>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flow-step">
+                <div class="flow-content">
+                    <div class="step-number">Step 04</div>
+                    <h3 class="step-title">The Verdict</h3>
+                    <p class="step-desc">Grading costs vs. expected value. A straight answer.</p>
+                </div>
+                <div class="flow-visual">
+                    <div class="verdict-display">
+                        <div class="verdict-icon">✓</div>
+                        <div class="verdict-text">Worth the Slab</div>
+                        <div class="roi-preview">+$47 after grading fees</div>
                     </div>
-                    <button type="submit" class="btn" id="resetBtn">Reset Password</button>
-                </form>
+                </div>
+                <div class="flow-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
             </div>
         </div>
     </section>
 
-    <script>
-        const API_BASE = 'https://collectioncalc-docker.onrender.com';
-        let resetToken = null;
-        
-        // Check if already logged in
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('cc_token');
-            if (token) {
-                // Verify token and redirect if valid
-                verifyAndRedirect(token);
-            }
-            
-            // Check URL params for verification token or reset token
-            const params = new URLSearchParams(window.location.search);
-            const verifyToken = params.get('token');
-            const action = params.get('action');
-            
-            if (action === 'reset-password' && verifyToken) {
-                resetToken = verifyToken;
-                showPanel('resetPanel');
-            } else if (verifyToken) {
-                verifyEmail(verifyToken);
-            }
-            
-            // Clean up URL
-            if (verifyToken || action) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-
-        // Toggle password visibility
-        function togglePassword(inputId, btn) {
-            const input = document.getElementById(inputId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                btn.textContent = '👁';
-            }
-        }
-
-        async function verifyAndRedirect(token) {
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                
-                if (data.success && data.user.is_approved) {
-                    // Redirect to main app
-                    window.location.href = '/app.html';
-                }
-            } catch (e) {
-                localStorage.removeItem('cc_token');
-            }
-        }
-
-        function showPanel(panelId) {
-            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById(panelId).classList.add('active');
-            // Clear messages
-            document.querySelectorAll('.message').forEach(m => {
-                m.className = 'message';
-                m.textContent = '';
-            });
-        }
-
-        function showMessage(elementId, message, isError = true) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.className = `message ${isError ? 'error' : 'success'}`;
-        }
-
-        async function validateBetaCode(event) {
-            event.preventDefault();
-            const code = document.getElementById('betaCode').value.trim();
-            const btn = document.getElementById('betaBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Validating...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/beta/validate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Store code and show signup
-                    document.getElementById('signupBetaCode').value = code;
-                    showPanel('signupPanel');
-                } else {
-                    showMessage('betaMessage', data.error || 'Invalid beta code');
-                }
-            } catch (e) {
-                showMessage('betaMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Continue';
-            }
-        }
-
-        async function handleSignup(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('signupEmail').value.trim();
-            const password = document.getElementById('signupPassword').value;
-            const confirm = document.getElementById('signupConfirm').value;
-            const betaCode = document.getElementById('signupBetaCode').value;
-            const btn = document.getElementById('signupBtn');
-            
-            if (password !== confirm) {
-                showMessage('signupMessage', 'Passwords do not match');
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.textContent = 'Creating account...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, beta_code: betaCode })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('verifyEmail').textContent = email;
-                    showPanel('verifyPanel');
-                } else {
-                    showMessage('signupMessage', data.error || 'Signup failed');
-                }
-            } catch (e) {
-                showMessage('signupMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Create Account';
-            }
-        }
-
-        async function handleLogin(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Logging in...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    localStorage.setItem('cc_token', data.token);
-                    localStorage.setItem('cc_user', JSON.stringify(data.user));
-                    
-                    if (data.user.is_approved || data.user.is_admin) {
-                        window.location.href = '/app.html';
-                    } else {
-                        showPanel('pendingPanel');
-                    }
-                } else if (data.needs_verification) {
-                    document.getElementById('verifyEmail').textContent = email;
-                    showPanel('verifyPanel');
-                } else if (data.pending_approval) {
-                    showPanel('pendingPanel');
-                } else {
-                    showMessage('loginMessage', data.error || 'Login failed');
-                }
-            } catch (e) {
-                showMessage('loginMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Log In';
-            }
-        }
-
-        async function verifyEmail(token) {
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/verify/${token}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (data.token) {
-                        // User is approved, log them in
-                        localStorage.setItem('cc_token', data.token);
-                        localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = '/app.html';
-                    } else if (data.pending_approval) {
-                        showPanel('pendingPanel');
-                    }
-                } else {
-                    showPanel('loginPanel');
-                    showMessage('loginMessage', data.error || 'Verification failed');
-                }
-            } catch (e) {
-                showPanel('loginPanel');
-                showMessage('loginMessage', 'Verification failed. Please try again.');
-            }
-            
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        async function handleForgotPassword(e) {
-            e.preventDefault();
-            const email = document.getElementById('forgotEmail').value;
-            const btn = document.getElementById('forgotBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await response.json();
-                
-                // Always show success to prevent email enumeration
-                showMessage('forgotMessage', 'If an account exists with this email, you will receive a reset link shortly.', false);
-                document.getElementById('forgotForm').reset();
-            } catch (e) {
-                showMessage('forgotMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Send Reset Link';
-            }
-        }
-
-        async function handleResetPassword(e) {
-            e.preventDefault();
-            const password = document.getElementById('resetPassword').value;
-            const confirm = document.getElementById('resetConfirm').value;
-            const btn = document.getElementById('resetBtn');
-            
-            if (password !== confirm) {
-                showMessage('resetMessage', 'Passwords do not match');
-                return;
-            }
-            
-            if (!resetToken) {
-                showMessage('resetMessage', 'Invalid reset link. Please request a new one.');
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.textContent = 'Resetting...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: resetToken, password })
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (data.token) {
-                        localStorage.setItem('cc_token', data.token);
-                        localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = '/app.html';
-                    } else {
-                        showMessage('resetMessage', 'Password reset! You can now log in.', false);
-                        setTimeout(() => showPanel('loginPanel'), 2000);
-                    }
-                } else {
-                    showMessage('resetMessage', data.error || 'Reset failed. Please request a new link.');
-                }
-            } catch (e) {
-                showMessage('resetMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Reset Password';
-            }
-        }
-    </script>
-    
-    <!-- Footer -->
-    <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border);">
-        <div style="margin-bottom: 8px;">
-            <a href="mailto:support@slabworthy.com" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
-            <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
-            <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-cta">
+            <a href="/login.html" class="cta-button">Check a Comic</a>
         </div>
-        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a>™ © 2026</div>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">SLAB WORTHY</div>
+                <p class="footer-tagline">Powered by CollectionCalc™</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="/pricing.html">Pricing</a></li>
+                        <li><a href="/faq.html">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="/about.html">About</a></li>
+                        <li><a href="mailto:support@slabworthy.com">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/privacy.html">Privacy</a></li>
+                        <li><a href="/terms.html">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+            <p style="margin-top: 0.3rem; font-size: 0.55rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
+        </div>
     </footer>
 </body>
 </html>
