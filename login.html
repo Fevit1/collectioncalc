@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slab Worthy™ - AI for Comic Collectors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            text-align: center;
+            background: 
+                radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            width: 100%;
+            margin-bottom: 48px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Beta Access Card */
+        .beta-card {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .beta-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+
+        .beta-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .beta-desc {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .beta-code-input {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            box-shadow: none;
+        }
+
+        /* Messages */
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            display: block;
+        }
+
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            display: block;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        /* Form Panels */
+        .form-panel {
+            display: none;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            padding: 0 12px;
+        }
+
+        /* Footer Link */
+        .footer-link {
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Pending Approval State */
+        .pending-state {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .pending-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .pending-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .pending-desc {
+            color: var(--text-secondary);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 640px) {
+            .hero {
+                padding: 24px 16px;
+            }
+
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .beta-card {
+                padding: 24px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Password toggle */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            width: 100%;
+            padding-right: 45px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+        }
+        .password-toggle:hover {
+            color: var(--text-primary);
+        }
+        .forgot-link {
+            text-align: right;
+            margin-top: -8px;
+            margin-bottom: 16px;
+        }
+        .forgot-link a {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+        .forgot-link a:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <h1 class="logo">Slab Worthy™</h1>
+        <p class="tagline">AI for Comic Collectors</p>
+        
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <h3 class="feature-title">Photo Recognition</h3>
+                <p class="feature-desc">Snap a photo and our AI extracts title, issue, and condition automatically.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3 class="feature-title">Real Sales Data</h3>
+                <p class="feature-desc">Valuations based on eBay and other sources' sales data. Quick Sale, Fair Value, and High End tiers.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📦</div>
+                <h3 class="feature-title">Auction It!</h3>
+                <p class="feature-desc">List to eBay with AI-generated descriptions. Whatnot integration coming soon!</p>
+            </div>
+        </div>
+
+        <div class="beta-card" id="betaCard">
+            <span class="beta-badge">Private Beta</span>
+            
+            <div id="betaCodePanel" class="form-panel active">
+                <h2 class="beta-title">Enter Beta Code</h2>
+                <p class="beta-desc">Slab Worthy is currently in private beta. Enter your code to get started.</p>
+                
+                <div id="betaMessage" class="message"></div>
+                
+                <form id="betaCodeForm" onsubmit="validateBetaCode(event)">
+                    <div class="form-group">
+                        <label for="betaCode">Beta Code</label>
+                        <input type="text" id="betaCode" class="beta-code-input" placeholder="BETA-XXXX" required>
+                    </div>
+                    <button type="submit" class="btn" id="betaBtn">Continue</button>
+                </form>
+                
+                <p class="footer-link">
+                    Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
+                </p>
+            </div>
+
+            <div id="signupPanel" class="form-panel">
+                <h2 class="beta-title">Create Account</h2>
+                <p class="beta-desc">Set up your Slab Worthy account</p>
+                
+                <div id="signupMessage" class="message"></div>
+                
+                <form id="signupForm" onsubmit="handleSignup(event)">
+                    <input type="hidden" id="signupBetaCode">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupPassword', this)">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupConfirm">Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="signupConfirm" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupConfirm', this)">👁</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" id="signupBtn">Create Account</button>
+                </form>
+                
+                <p class="footer-link">
+                    Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
+                </p>
+            </div>
+
+            <div id="loginPanel" class="form-panel">
+                <h2 class="beta-title">Welcome Back</h2>
+                <p class="beta-desc">Log in to your Slab Worthy account</p>
+                
+                <div id="loginMessage" class="message"></div>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">👁</button>
+                        </div>
+                    </div>
+                    <div class="forgot-link">
+                        <a href="#" onclick="showPanel('forgotPanel')">Forgot password?</a>
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">Log In</button>
+                </form>
+                
+                <p class="footer-link">
+                    Need an account? <a href="#" onclick="showPanel('betaCodePanel')">Enter beta code</a>
+                </p>
+            </div>
+
+            <div id="verifyPanel" class="form-panel">
+                <div class="pending-state">
+                    <div class="pending-icon">📧</div>
+                    <h3 class="pending-title">Check Your Email</h3>
+                    <p class="pending-desc">We sent a verification link to <strong id="verifyEmail"></strong>. Click the link to verify your account.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
+            </div>
+
+            <div id="pendingPanel" class="form-panel">
+                <div class="pending-state">
+                    <div class="pending-icon">⏳</div>
+                    <h3 class="pending-title">Pending Approval</h3>
+                    <p class="pending-desc">Your account is verified and waiting for approval. You'll receive an email when you're approved to access Slab Worthy.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
+            </div>
+
+            <div id="forgotPanel" class="form-panel">
+                <h2 class="beta-title">Reset Password</h2>
+                <p class="beta-desc">Enter your email and we'll send you a reset link</p>
+                
+                <div id="forgotMessage" class="message"></div>
+                
+                <form id="forgotForm" onsubmit="handleForgotPassword(event)">
+                    <div class="form-group">
+                        <label for="forgotEmail">Email</label>
+                        <input type="email" id="forgotEmail" placeholder="you@example.com" required>
+                    </div>
+                    <button type="submit" class="btn" id="forgotBtn">Send Reset Link</button>
+                </form>
+                
+                <p class="footer-link">
+                    Remember your password? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
+                </p>
+            </div>
+
+            <div id="resetPanel" class="form-panel">
+                <h2 class="beta-title">Set New Password</h2>
+                <p class="beta-desc">Enter your new password</p>
+                
+                <div id="resetMessage" class="message"></div>
+                
+                <form id="resetForm" onsubmit="handleResetPassword(event)">
+                    <div class="form-group">
+                        <label for="resetPassword">New Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="resetPassword" placeholder="At least 8 characters" minlength="8" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('resetPassword', this)">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="resetConfirm">Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="resetConfirm" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('resetConfirm', this)">👁</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" id="resetBtn">Reset Password</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const API_BASE = 'https://collectioncalc-docker.onrender.com';
+        let resetToken = null;
+        
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('cc_token');
+            if (token) {
+                // Verify token and redirect if valid
+                verifyAndRedirect(token);
+            }
+            
+            // Check URL params for verification token or reset token
+            const params = new URLSearchParams(window.location.search);
+            const verifyToken = params.get('token');
+            const action = params.get('action');
+            
+            if (action === 'reset-password' && verifyToken) {
+                resetToken = verifyToken;
+                showPanel('resetPanel');
+            } else if (verifyToken) {
+                verifyEmail(verifyToken);
+            }
+            
+            // Clean up URL
+            if (verifyToken || action) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
+        // Toggle password visibility
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁';
+            }
+        }
+
+        async function verifyAndRedirect(token) {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.user.is_approved) {
+                    // Redirect to main app
+                    window.location.href = '/app.html';
+                }
+            } catch (e) {
+                localStorage.removeItem('cc_token');
+            }
+        }
+
+        function showPanel(panelId) {
+            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(panelId).classList.add('active');
+            // Clear messages
+            document.querySelectorAll('.message').forEach(m => {
+                m.className = 'message';
+                m.textContent = '';
+            });
+        }
+
+        function showMessage(elementId, message, isError = true) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `message ${isError ? 'error' : 'success'}`;
+        }
+
+        async function validateBetaCode(event) {
+            event.preventDefault();
+            const code = document.getElementById('betaCode').value.trim();
+            const btn = document.getElementById('betaBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Validating...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/beta/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store code and show signup
+                    document.getElementById('signupBetaCode').value = code;
+                    showPanel('signupPanel');
+                } else {
+                    showMessage('betaMessage', data.error || 'Invalid beta code');
+                }
+            } catch (e) {
+                showMessage('betaMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Continue';
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('signupConfirm').value;
+            const betaCode = document.getElementById('signupBetaCode').value;
+            const btn = document.getElementById('signupBtn');
+            
+            if (password !== confirm) {
+                showMessage('signupMessage', 'Passwords do not match');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, beta_code: betaCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('verifyEmail').textContent = email;
+                    showPanel('verifyPanel');
+                } else {
+                    showMessage('signupMessage', data.error || 'Signup failed');
+                }
+            } catch (e) {
+                showMessage('signupMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('cc_token', data.token);
+                    localStorage.setItem('cc_user', JSON.stringify(data.user));
+                    
+                    if (data.user.is_approved || data.user.is_admin) {
+                        window.location.href = '/app.html';
+                    } else {
+                        showPanel('pendingPanel');
+                    }
+                } else if (data.needs_verification) {
+                    document.getElementById('verifyEmail').textContent = email;
+                    showPanel('verifyPanel');
+                } else if (data.pending_approval) {
+                    showPanel('pendingPanel');
+                } else {
+                    showMessage('loginMessage', data.error || 'Login failed');
+                }
+            } catch (e) {
+                showMessage('loginMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Log In';
+            }
+        }
+
+        async function verifyEmail(token) {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/verify/${token}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.token) {
+                        // User is approved, log them in
+                        localStorage.setItem('cc_token', data.token);
+                        localStorage.setItem('cc_user', JSON.stringify(data.user));
+                        window.location.href = '/app.html';
+                    } else if (data.pending_approval) {
+                        showPanel('pendingPanel');
+                    }
+                } else {
+                    showPanel('loginPanel');
+                    showMessage('loginMessage', data.error || 'Verification failed');
+                }
+            } catch (e) {
+                showPanel('loginPanel');
+                showMessage('loginMessage', 'Verification failed. Please try again.');
+            }
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            const btn = document.getElementById('forgotBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                
+                // Always show success to prevent email enumeration
+                showMessage('forgotMessage', 'If an account exists with this email, you will receive a reset link shortly.', false);
+                document.getElementById('forgotForm').reset();
+            } catch (e) {
+                showMessage('forgotMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const password = document.getElementById('resetPassword').value;
+            const confirm = document.getElementById('resetConfirm').value;
+            const btn = document.getElementById('resetBtn');
+            
+            if (password !== confirm) {
+                showMessage('resetMessage', 'Passwords do not match');
+                return;
+            }
+            
+            if (!resetToken) {
+                showMessage('resetMessage', 'Invalid reset link. Please request a new one.');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: resetToken, password })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.token) {
+                        localStorage.setItem('cc_token', data.token);
+                        localStorage.setItem('cc_user', JSON.stringify(data.user));
+                        window.location.href = '/app.html';
+                    } else {
+                        showMessage('resetMessage', 'Password reset! You can now log in.', false);
+                        setTimeout(() => showPanel('loginPanel'), 2000);
+                    }
+                } else {
+                    showMessage('resetMessage', data.error || 'Reset failed. Please request a new link.');
+                }
+            } catch (e) {
+                showMessage('resetMessage', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reset Password';
+            }
+        }
+    </script>
+    
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border);">
+        <div style="margin-bottom: 8px;">
+            <a href="/cdn-cgi/l/email-protection#9eedebeeeef1eceadeedf2fffce9f1eceaf6e7b0fdf1f3" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
+            <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
+            <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
+        </div>
+        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a>™
