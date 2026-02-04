@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "eBay Comic Collector",
+  "version": "1.0.4",
+  "description": "Passively collects comic book sale data from eBay sold listings",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://www.ebay.com/*",
+    "https://collectioncalc.com/*",
+    "https://collectioncalc.onrender.com/*",
+    "https://collectioncalc-docker.onrender.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.ebay.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
