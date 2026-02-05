@@ -1274,6 +1274,9 @@ async function calculateGradingRecommendation(gradeResult) {
         
         document.getElementById('recommendationVerdict').innerHTML = verdictHTML;
         
+        // Hide cache warning now that recommendation is complete
+        hideCacheWarning();
+        
     } catch (error) {
         console.error('Error calculating recommendation:', error);
         stopThinkingAnimation();
@@ -1281,6 +1284,9 @@ async function calculateGradingRecommendation(gradeResult) {
             <p style="color: var(--text-muted); text-align: center;">Could not retrieve market values</p>
         `;
         document.getElementById('recommendationVerdict').innerHTML = '';
+        
+        // Hide cache warning even on error
+        hideCacheWarning();
     }
 }
 
@@ -1455,13 +1461,17 @@ function showCacheWarning() {
         warningEl.style.opacity = '1';
     });
     
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => {
+    // Note: No auto-dismiss - warning stays until hideCacheWarning() is called
+}
+
+function hideCacheWarning() {
+    const warningEl = document.getElementById('cacheWarning');
+    if (warningEl && warningEl.style.display !== 'none') {
         warningEl.style.opacity = '0';
         setTimeout(() => {
             warningEl.style.display = 'none';
         }, 300); // Wait for fade-out animation
-    }, 4000);
+    }
 }
 
 console.log('grading.js loaded');
