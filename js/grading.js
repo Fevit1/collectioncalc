@@ -1152,6 +1152,32 @@ async function calculateGradingRecommendation(gradeResult) {
     const lookupGrade = gradeMap[gradeLabel] || gradeMap[String(finalGrade)] || 'VF';
     
     try {
+        // Check cache status first
+        try {
+            const cacheResponse = await fetch(`${API_URL}/api/cache/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    title: title,
+                    issue: issue,
+                    grade: lookupGrade
+                })
+            });
+            
+            const cacheResult = await cacheResponse.json();
+            
+            // Show warning if not cached
+            if (cacheResult.success && !cacheResult.cached) {
+                showCacheWarning();
+            }
+        } catch (cacheError) {
+            // Don't block on cache check failure - just proceed normally
+            console.log('Cache check failed, proceeding with valuation:', cacheError);
+        }
+        
         // Get valuation
         const response = await fetch(`${API_URL}/api/valuate`, {
             method: 'POST',
@@ -1382,6 +1408,60 @@ function saveGradeToCollection() {
     
     // This would call your existing collection save API
     alert('Save to collection coming soon!');
+}
+
+// Cache warning functionality
+function showCacheWarning() {
+    // Create warning element if it doesn't exist
+    let warningEl = document.getElementById('cacheWarning');
+    if (!warningEl) {
+        warningEl = document.createElement('div');
+        warningEl.id = 'cacheWarning';
+        warningEl.className = 'cache-warning';
+        warningEl.innerHTML = `
+            <div class="cache-warning-content">
+                <div class="cache-warning-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="1" width="18" height="22" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="6" y="4" width="12" height="13" rx="1" fill="rgba(217, 119, 6, 0.15)" stroke="currentColor" stroke-width="1"/>
+                        <text x="12" y="14" text-anchor="middle" fill="currentColor" font-size="10" font-weight="bold" font-family="Arial">?</text>
+                        <rect x="6" y="18" width="12" height="3" rx="0.5" fill="currentColor"/>
+                    </svg>
+                </div>
+                <span class="cache-warning-text">This grade of this comic hasn't been checked recently. Market research may take 60-90 seconds...</span>
+            </div>
+        `;
+        
+        // Insert before the recommendation verdict section
+        const verdictSection = document.getElementById('recommendationVerdict');
+        if (verdictSection && verdictSection.parentNode) {
+            verdictSection.parentNode.insertBefore(warningEl, verdictSection);
+        } else {
+            // Fallback: append to grading section
+            const gradingSection = document.getElementById('gradingSection');
+            if (gradingSection) {
+                gradingSection.appendChild(warningEl);
+            }
+        }
+    }
+    
+    // Show with fade-in animation
+    warningEl.style.display = 'block';
+    warningEl.style.opacity = '0';
+    
+    // Trigger fade-in
+    requestAnimationFrame(() => {
+        warningEl.style.transition = 'opacity 0.3s ease-in-out';
+        warningEl.style.opacity = '1';
+    });
+    
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+        warningEl.style.opacity = '0';
+        setTimeout(() => {
+            warningEl.style.display = 'none';
+        }, 300); // Wait for fade-out animation
+    }, 4000);
 }
 
 console.log('grading.js loaded');
