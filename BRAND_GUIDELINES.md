@@ -1,7 +1,7 @@
 # CollectionCalc Brand Guidelines
 
-> **Version:** 2.0  
-> **Last Updated:** January 28, 2026  
+> **Version:** 2.1  
+> **Last Updated:** February 5, 2026  
 > **Purpose:** Define brand identity for human creators and GenAI content tools
 
 ---
@@ -13,7 +13,7 @@
 | Attribute | Value |
 |-----------|-------|
 | **Brand Name** | CollectionCalc |
-| **Product Name** | Slab Worthy? (Patent Pending) |
+| **Product Name** | Slab Worthy&trade; (Patent Pending) |
 | **Tagline** | AI-Powered Collectible Valuations |
 | **Positioning** | Pre-grading assessment tool for comic collectors |
 | **Website** | collectioncalc.com |
@@ -339,6 +339,42 @@ Key output: "Slab Report" - the assessment results with grade estimate and recom
 - "Certified" assessments
 - Anything implying we are affiliated with CGC/CBCS
 
+### Trademark Usage
+
+#### Trademark Symbols
+
+| Element | Usage | Format |
+|---------|-------|--------|
+| **Slab Worthy** | Always use &trade; symbol | Slab Worthy&trade; |
+| **Product Name** | Include in formal references | Slab Worthy&trade; (Patent Pending) |
+| **Page Titles** | Include in HTML title tags | Slab Worthy&trade; - AI Comic Grading |
+| **Marketing Materials** | Use in headers, CTAs, descriptions | Check with Slab Worthy&trade; |
+
+#### Where to Use &trade; Symbol
+
+**✅ ALWAYS USE:**
+- User-facing headers and titles
+- Marketing copy and descriptions  
+- Page titles and meta tags
+- Button text and CTAs
+- Email templates and signatures
+- Legal documents and terms
+
+**❌ DON'T USE:**
+- Code variables or function names
+- File names or URLs  
+- Internal documentation
+- Database field names
+- CSS class names
+
+#### Trademark Notice
+
+**Standard footer notice:**
+> Slab Worthy&trade; is a trademark of [Company Name]. All rights reserved.
+
+**Extended notice (when space allows):**
+> Slab Worthy&trade; is a trademark of [Company Name]. CGC&reg; and CBCS&reg; are registered trademarks of their respective owners. We are not affiliated with any grading companies.
+
 ---
 
 ## Quick Reference Card
@@ -367,7 +403,7 @@ Key output: "Slab Report" - the assessment results with grade estimate and recom
 
 ### Product Names
 - **CollectionCalc** — Parent brand
-- **Slab Worthy?** — Pre-grading assessment (Patent Pending)
+- **Slab Worthy&trade;** — Pre-grading assessment (Patent Pending)
 - **Slab Report** — Assessment results output
 
 ---
