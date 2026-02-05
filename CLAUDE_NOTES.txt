@@ -8,21 +8,24 @@
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
-**Current State (v4.2.1):**
+**Current State (v4.2.2):**
+- **Content moderation LIVE** - AWS Rekognition checks all user-uploaded images
 - **All pages now have consistent header/footer** - Gold logo, matching nav and footer
 - **Site restructured** - Marketing at /, auth at /login.html
-- **Email system complete** - Resend configured for slabworthy.com
+- **Email system complete** - Resend configured for slabworthy.com (free tier, CC domain removed)
+- **Password reset fixed** - Links go to /login.html, 24hr token expiry
 - FMV uses eBay + Whatnot data (10x more sales!)
 - Reprint filter active (Spawn #1 fix)
 - Barcode scanning infrastructure ready
 - eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
+- **Known limitation:** Slab premium uses hardcoded formula, not real market data (see backlog)
 
 ---
 
 ## 🚨 IMMEDIATE ACTION ITEMS
 
 ### Pre-Beta MUST-HAVES
-- [ ] **Content moderation system** - Amazon Rekognition integration
+- [x] **Content moderation system** - Amazon Rekognition integration ✅ (v4.2.2, Session 28)
 - [ ] **Mobile testing** - full Slab Worthy grading flow on phone
 
 ### Branding ✅ RESOLVED
@@ -32,11 +35,78 @@
 - [x] **Header/footer consistency** - All pages updated (Session 27)
 
 ### Backlog
-- [ ] **Migrate to 11ty static site generator** - Shared header/footer templates instead of duplicating HTML across pages. Cloudflare Pages supports 11ty natively. Would make future updates much easier.
+- [ ] **Real slab premium data** - Currently using hardcoded multiplier tiers (getSlabPremium in grading.js). Replace with actual market data by parsing existing eBay sales titles for CGC/CBCS/PGX + grade numbers. Add fields: is_slabbed, slab_company, slab_grade to ebay_sales. Then calculate real per-title slab premiums by comparing raw vs slabbed averages. Big accuracy improvement for the "Should You Slab It?" verdict.
+- [ ] **Migrate to 11ty static site generator** - Shared header/footer templates instead of duplicating HTML across pages. Also consolidate logo into single template/component (currently duplicated as inline HTML on every page). Cloudflare Pages supports 11ty natively. Free and open source. Would make future updates much easier.
+- [ ] **eBay extension: background sync** - Currently sync runs in popup.js, dies if popup closes. Move sync logic to background service worker so it keeps running after clicking away. Big QOL improvement — Mike runs 34 searches/day manually. Could also explore auto-scheduling searches.
+- [ ] **"Remember me" / persistent login** - Default to short session (24hr), full 30-day token only if user checks "Keep me logged in"
 - [ ] **Two-factor authentication** - TOTP (authenticator app) recommended
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 - [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
 - [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 28 Summary (February 4-5, 2026)
+
+### Major Accomplishments
+
+1. **Content Moderation LIVE (v4.2.2)**
+   - AWS Rekognition integrated into image upload pipeline
+   - Checks run BEFORE images are processed or stored
+   - Blocks: explicit nudity, graphic violence, drugs, hate symbols
+   - Warns but allows: suggestive content, mild violence (comics can be edgy)
+   - `content_incidents` table logs all flagged images
+   - Admin endpoint: `/api/admin/moderation`
+   - Graceful degradation: if Rekognition goes down, images pass through
+   - New file: `content_moderation.py`
+
+2. **Password Reset Bug Fixed**
+   - Reset email links were pointing to `slabworthy.com/` (marketing page) instead of `/login.html`
+   - Fixed in auth.py: both verification and reset URLs now include `/login.html`
+   - Added friendlier "check your inbox" message after submitting forgot password
+   - Extended token expiry from 1 hour to 24 hours
+
+3. **AWS Account Created**
+   - IAM user: `Slabworthy` with `AmazonRekognitionReadOnlyAccess`
+   - Render env vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION=us-west-2
+   - Free tier: 5,000 images/month for 12 months
+
+4. **Resend Downgraded**
+   - Removed CollectionCalc domain from Resend
+   - Downgraded to free tier ($0/mo) — saves $240/year
+   - Only slabworthy.com domain needed
+
+5. **Slab Premium Analysis**
+   - Current model: hardcoded tiered multipliers in `getSlabPremium()` (grading.js line 1265)
+   - Weaknesses: ignores grade (9.8 vs 6.0 have wildly different premiums), ignores title, static formula
+   - `getGradingCost()` also simplified (4 tiers: $30/$50/$85/$150)
+   - Plan: Parse existing eBay sales titles for CGC/CBCS/PGX + grade, tag with is_slabbed/slab_company/slab_grade, then calculate real per-title premiums
+   - ~3 sessions to implement, needs time to accumulate data after build
+   - NOT blocking beta — current formula is reasonable placeholder
+
+6. **Beta Tester (Ron) - Password Reset Issue**
+   - midwestron@gmail.com couldn't reset password
+   - Root cause: email links pointed to index.html (marketing) not login.html (auth)
+   - Fixed in auth.py, token expired before he could use it → extended to 24hr
+
+### AWS Account Details
+- Account ID: 682714859313
+- IAM user: Slabworthy (AmazonRekognitionReadOnlyAccess)
+- Region: us-west-2
+- Free tier: 5,000 Rekognition images/month for 12 months
+
+### Files Updated/Created
+- `content_moderation.py` — NEW: Rekognition wrapper + incident logging
+- `content_incidents.sql` — NEW: Database table for moderation logs
+- `wsgi.py` — Moderation integrated into /api/extract, /api/messages, /api/images/submission
+- `auth.py` — Fixed email URLs, extended reset token to 24hr
+- `login.html` — Friendlier forgot password message
+- `requirements.txt` — Added boto3
+
+### Endpoints Protected by Moderation
+- `/api/extract` — comic photo analysis
+- `/api/messages` — Anthropic proxy (checks images in message content)
+- `/api/images/submission` — B4Cert image uploads
 
 ---
 
@@ -338,7 +408,7 @@ git add . ; git commit -m "message" ; git push ; purge
 ### Test Endpoints
 ```bash
 curl https://collectioncalc-docker.onrender.com/health
-# Returns: {"barcode":true,"status":"ok","version":"4.2.1"}
+# Returns: {"barcode":true,"moderation":true,"status":"ok","version":"4.2.2"}
 ```
 
 ### Mobile Testing (Chrome DevTools)
@@ -348,5 +418,5 @@ curl https://collectioncalc-docker.onrender.com/health
 
 ---
 
-*Last updated: February 4, 2026 (Session 27)*
-*Version: 4.2.1*
+*Last updated: February 5, 2026 (Session 28)*
+*Version: 4.2.2*

@@ -2298,3 +2298,81 @@
         font-size: 24px;
     }
 }
+
+/* =================================================================
+   SHIMMER EFFECT FOR THINKING DISPLAYS
+   ================================================================= */
+
+/* Shimmer effect for thinking/loading text */
+.thinking-title,
+.thinking-step.active span:last-child,
+.thinking-text,
+.thinking-box .thinking-text {
+    background: linear-gradient(
+        90deg,
+        currentColor 0%,
+        currentColor 40%,
+        #facc15 50%,  /* Your brand gold */
+        currentColor 60%,
+        currentColor 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s ease-in-out infinite;
+}
+
+/* Only apply shimmer when thinking indicators are actually visible */
+.thinking-indicator:not([style*="display: none"]) .thinking-title,
+.thinking-indicator:not([style*="display: none"]) .thinking-step.active span:last-child,
+.thinking.show .thinking-title,
+.thinking.show .thinking-step.active span:last-child {
+    background: linear-gradient(
+        90deg,
+        currentColor 0%,
+        currentColor 40%,
+        #facc15 50%, 
+        currentColor 60%,
+        currentColor 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { 
+        background-position: 100% 0; 
+    }
+    100% { 
+        background-position: -100% 0; 
+    }
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+    .thinking-title,
+    .thinking-step.active span:last-child,
+    .thinking-text,
+    .thinking-box .thinking-text {
+        background: none;
+        -webkit-text-fill-color: initial;
+        color: inherit;
+        animation: shimmer-pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+}
+
+/* Prevent descender clipping if it occurs */
+.thinking-title,
+.thinking-text {
+    padding-bottom: 2px;
+    line-height: 1.2;
+}
