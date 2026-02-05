@@ -1,6 +1,13 @@
 """
-CollectionCalc - WSGI Entry Point (v4.2.1)
+CollectionCalc - WSGI Entry Point (v4.2.2)
 Flask routes for the CollectionCalc API
+
+New in v4.2.2:
+- Content moderation via AWS Rekognition
+- Images checked BEFORE processing or storage
+- Blocks explicit/violent/drug/hate content
+- Admin endpoint: /api/admin/moderation
+- content_incidents table for logging
 
 New in v4.2.1:
 - Reprint filter! FMV excludes reprints (barcode-detected + text-detected)
@@ -117,6 +124,17 @@ try:
     BARCODE_AVAILABLE = True
 except ImportError:
     BARCODE_AVAILABLE = False
+
+# Content moderation (AWS Rekognition)
+try:
+    from content_moderation import (
+        moderate_image, log_moderation_incident, get_image_hash,
+        get_moderation_incidents, get_moderation_stats, MODERATION_AVAILABLE
+    )
+except ImportError as e:
+    print(f"content_moderation import error: {e}")
+    MODERATION_AVAILABLE = False
+    moderate_image = None
 
 
 def scan_barcode_from_base64(image_data):
@@ -487,7 +505,7 @@ def debug_prompt():
 @app.route('/')
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '4.2.1', 'barcode': BARCODE_AVAILABLE})
+    return jsonify({'status': 'ok', 'version': '4.2.2', 'barcode': BARCODE_AVAILABLE, 'moderation': MODERATION_AVAILABLE})
 
 
 # ============================================
@@ -667,6 +685,28 @@ def api_get_usage():
     days = request.args.get('days', 30, type=int)
     usage = get_anthropic_usage_summary(days)
     return jsonify({'success': True, 'usage': usage})
+
+
+@app.route('/api/admin/moderation', methods=['GET'])
+@require_admin_auth
+def api_get_moderation():
+    """Get moderation incidents and stats."""
+    limit = request.args.get('limit', 50, type=int)
+    blocked_only = request.args.get('blocked_only', 'false').lower() == 'true'
+    
+    if MODERATION_AVAILABLE:
+        incidents = get_moderation_incidents(limit=limit, blocked_only=blocked_only)
+        stats = get_moderation_stats()
+    else:
+        incidents = []
+        stats = {'total_incidents': 0, 'total_blocked': 0, 'total_warnings': 0, 'users_blocked': 0}
+    
+    return jsonify({
+        'success': True,
+        'moderation_enabled': MODERATION_AVAILABLE,
+        'stats': stats,
+        'incidents': incidents
+    })
 
 
 @app.route('/api/admin/nlq', methods=['POST'])
@@ -966,6 +1006,20 @@ def api_extract():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
     
+    # Content moderation check BEFORE processing
+    if moderate_image:
+        mod_result = moderate_image(image_data)
+        if mod_result.get('blocked'):
+            log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
+            return jsonify({
+                'success': False, 
+                'error': 'Image rejected: inappropriate content detected.',
+                'moderation': True
+            }), 400
+        # Log warnings (but allow through)
+        if mod_result.get('warnings'):
+            log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
+    
     media_type = data.get('media_type', 'image/jpeg')
     result = extract_from_base64(image_data, media_type)
     
@@ -988,6 +1042,26 @@ def api_messages():
         return jsonify({'error': 'Anthropic API not available'}), 503
     
     data = request.get_json() or {}
+    
+    # Content moderation: check any images in the messages
+    if moderate_image:
+        for msg in data.get('messages', []):
+            content = msg.get('content', [])
+            if isinstance(content, list):
+                for block in content:
+                    if block.get('type') == 'image' and block.get('source', {}).get('type') == 'base64':
+                        image_data = block['source'].get('data', '')
+                        if image_data:
+                            mod_result = moderate_image(image_data)
+                            if mod_result.get('blocked'):
+                                log_moderation_incident(g.user_id, '/api/messages', mod_result, get_image_hash(image_data))
+                                return jsonify({
+                                    'error': 'Image rejected: inappropriate content detected.',
+                                    'moderation': True
+                                }), 400
+                            if mod_result.get('warnings'):
+                                log_moderation_incident(g.user_id, '/api/messages', mod_result, get_image_hash(image_data))
+    
     data['temperature'] = 0  # Force deterministic responses for consistent grading
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     
@@ -1613,6 +1687,20 @@ def api_upload_submission_image():
         return jsonify({'success': False, 'error': 'submission_id required'}), 400
     if image_type not in ['front', 'back', 'spine', 'centerfold']:
         return jsonify({'success': False, 'error': 'type must be front, back, spine, or centerfold'}), 400
+    
+    # Content moderation check BEFORE storing
+    if moderate_image:
+        user_id = getattr(g, 'user_id', None)
+        mod_result = moderate_image(image_data)
+        if mod_result.get('blocked'):
+            log_moderation_incident(user_id, '/api/images/submission', mod_result, get_image_hash(image_data))
+            return jsonify({
+                'success': False,
+                'error': 'Image rejected: inappropriate content detected.',
+                'moderation': True
+            }), 400
+        if mod_result.get('warnings'):
+            log_moderation_incident(user_id, '/api/images/submission', mod_result, get_image_hash(image_data))
     
     result = upload_submission_image(submission_id, image_data, image_type)
     return jsonify(result)
