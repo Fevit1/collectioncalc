@@ -96,11 +96,11 @@ async function runQuickTest() {
         ]
     };
     
-    // Show the grade report section
-    document.getElementById('gradeReport').classList.add('show');
-    
-    // Populate grade display
-    displayGradeResults(mockGradeResult);
+    // Show results section by scrolling to it
+    const recommendationVerdict = document.getElementById('recommendationVerdict');
+    if (recommendationVerdict) {
+        recommendationVerdict.scrollIntoView({ behavior: 'smooth' });
+    }
     
     // Run the recommendation calculation (this will test cache warning)
     await calculateGradingRecommendation(mockGradeResult);
