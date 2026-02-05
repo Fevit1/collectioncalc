@@ -25,7 +25,7 @@ import resend
 JWT_SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 JWT_EXPIRY_DAYS = 30  # Token valid for 30 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification link valid for 24 hours
-RESET_EXPIRY_HOURS = 1  # Password reset link valid for 1 hour
+RESET_EXPIRY_HOURS = 24  # Password reset link valid for 24 hours
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
@@ -444,7 +444,7 @@ def send_password_reset_email(email, token):
                         <a href="{reset_url}" style="color: #6366f1;">{reset_url}</a>
                     </p>
                     <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                        This link expires in 1 hour. If you didn't request a password reset, you can ignore this email.
+                        This link expires in 24 hours. If you didn't request a password reset, you can ignore this email.
                     </p>
                 </div>
             """
