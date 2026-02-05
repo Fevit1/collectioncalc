@@ -993,6 +993,67 @@ def api_valuate():
     return jsonify(result)
 
 
+@app.route('/api/cache/check', methods=['POST'])
+@require_auth  
+@require_approved
+def api_cache_check():
+    """Check if a comic title/issue/grade combination exists in search_cache."""
+    import psycopg2
+    
+    data = request.get_json() or {}
+    title = data.get('title', '').strip()
+    issue = data.get('issue', '').strip()
+    grade = data.get('grade', 'VF').strip()
+    
+    if not title or not issue:
+        return jsonify({'success': False, 'error': 'Title and issue are required'}), 400
+    
+    # Normalize grade (same logic as valuation)
+    grade_normalized = grade.replace('+', '').replace('-', '').strip()
+    
+    # Build cache key (matching existing valuation logic format)
+    cache_key = f"{title.lower()}_{issue}_{grade_normalized.lower()}"
+    
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+    
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+        
+        # Check if cache entry exists
+        cur.execute("""
+            SELECT created_at 
+            FROM search_cache 
+            WHERE cache_key = %s 
+            AND created_at > CURRENT_TIMESTAMP - INTERVAL '48 hours'
+        """, (cache_key,))
+        
+        result = cur.fetchone()
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'cached': True,
+                'lastChecked': result[0].isoformat()
+            })
+        else:
+            return jsonify({
+                'success': True, 
+                'cached': False,
+                'lastChecked': None
+            })
+            
+    except Exception as e:
+        print(f"Cache check error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+        
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+
 @app.route('/api/extract', methods=['POST'])
 @require_auth
 @require_approved
