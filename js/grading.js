@@ -22,6 +22,102 @@ let gradingState = {
     confidence: 0
 };
 
+// =================================================================
+// DEV MODE TESTING FUNCTIONALITY
+// =================================================================
+
+function isDevMode() {
+    return window.location.hostname === 'localhost' || 
+           window.location.search.includes('?dev') ||
+           window.location.search.includes('&dev');
+}
+
+function createDevTestButton() {
+    if (!isDevMode()) return;
+    
+    // Create test button
+    const testButton = document.createElement('button');
+    testButton.id = 'devTestButton';
+    testButton.innerHTML = '🧪 Quick Test (Dev Mode)';
+    testButton.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    `;
+    
+    testButton.addEventListener('click', runQuickTest);
+    document.body.appendChild(testButton);
+}
+
+async function runQuickTest() {
+    console.log('🧪 Running dev mode quick test...');
+    
+    // Switch to grading mode if not already
+    setMode('grading');
+    
+    // Mock extracted data
+    gradingState.extractedData = {
+        title: "Amazing Spider-Man",
+        issue: "300",
+        publisher: "Marvel",
+        year: "1988",
+        printing: "1st",
+        cover: "",
+        variant: "",
+        edition: "",
+        issue_type: "Regular"
+    };
+    
+    // Mock grade result data
+    const mockGradeResult = {
+        'COMIC IDENTIFICATION': {
+            title: "Amazing Spider-Man",
+            issue: "300"
+        },
+        'COMPREHENSIVE GRADE': {
+            grade_label: "VF",
+            final_grade: 8.0,
+            grade_reasoning: "Mock test data - Corner wear visible, spine stress present, but overall solid copy"
+        },
+        confidence: 85,
+        defects: [
+            "Minor corner wear (top right front cover)",
+            "Light spine stress",
+            "Small color breaking on spine"
+        ]
+    };
+    
+    // Show the grade report section
+    document.getElementById('gradeReport').classList.add('show');
+    
+    // Populate grade display
+    displayGradeResults(mockGradeResult);
+    
+    // Run the recommendation calculation (this will test cache warning)
+    await calculateGradingRecommendation(mockGradeResult);
+}
+
+// Initialize dev mode when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    if (isDevMode()) {
+        console.log('🧪 Dev mode enabled - Quick test button available');
+        createDevTestButton();
+    }
+});
+
+// =================================================================
+// END DEV MODE TESTING
+// =================================================================
+
 // Thinking progress messages (shown during valuation)
 const thinkingMessages = [
     // Identification Phase
