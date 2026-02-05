@@ -369,11 +369,11 @@ def is_user_approved(user_id):
 def send_verification_email(email, token):
     """Send email verification link."""
     if not RESEND_API_KEY:
-        print(f"[DEV MODE] Verification email for {email}: {FRONTEND_URL}?token={token}")
+        print(f"[DEV MODE] Verification email for {email}: {FRONTEND_URL}/login.html?token={token}")
         return True
     
     # Use query param instead of path for Cloudflare Pages SPA
-    verify_url = f"{FRONTEND_URL}?token={token}"
+    verify_url = f"{FRONTEND_URL}/login.html?token={token}"
     
     try:
         resend.Emails.send({
@@ -413,11 +413,11 @@ def send_verification_email(email, token):
 def send_password_reset_email(email, token):
     """Send password reset link."""
     if not RESEND_API_KEY:
-        print(f"[DEV MODE] Password reset for {email}: {FRONTEND_URL}?action=reset-password&token={token}")
+        print(f"[DEV MODE] Password reset for {email}: {FRONTEND_URL}/login.html?action=reset-password&token={token}")
         return True
     
     # Use query params instead of path for Cloudflare Pages SPA
-    reset_url = f"{FRONTEND_URL}?action=reset-password&token={token}"
+    reset_url = f"{FRONTEND_URL}/login.html?action=reset-password&token={token}"
     
     try:
         resend.Emails.send({

@@ -809,7 +809,7 @@
                 const data = await response.json();
                 
                 // Always show success to prevent email enumeration
-                showMessage('forgotMessage', 'If an account exists with this email, you will receive a reset link shortly.', false);
+                showMessage('forgotMessage', '📧 Check your inbox! A reset link is on the way (may take a minute or two).', false);
                 document.getElementById('forgotForm').reset();
             } catch (e) {
                 showMessage('forgotMessage', 'Network error. Please try again.');

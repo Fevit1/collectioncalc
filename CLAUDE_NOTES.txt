@@ -9,7 +9,7 @@
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
 **Current State (v4.2.1):**
-- **NEW MARKETING HOMEPAGE LIVE** - slabworthy.com with gold comic-style branding
+- **All pages now have consistent header/footer** - Gold logo, matching nav and footer
 - **Site restructured** - Marketing at /, auth at /login.html
 - **Email system complete** - Resend configured for slabworthy.com
 - FMV uses eBay + Whatnot data (10x more sales!)
@@ -24,18 +24,48 @@
 ### Pre-Beta MUST-HAVES
 - [ ] **Content moderation system** - Amazon Rekognition integration
 - [ ] **Mobile testing** - full Slab Worthy grading flow on phone
-- [ ] **Deploy remaining pages** - faq.html, about.html, pricing.html (files ready)
 
 ### Branding ✅ RESOLVED
 - [x] **Tagline decided** - "AI for Comic Collectors"
 - [x] **Logo style decided** - Gold comic-style with purple drop shadows (Bangers font)
 - [x] **Site structure decided** - Marketing homepage + separate login page
+- [x] **Header/footer consistency** - All pages updated (Session 27)
 
 ### Backlog
+- [ ] **Migrate to 11ty static site generator** - Shared header/footer templates instead of duplicating HTML across pages. Cloudflare Pages supports 11ty natively. Would make future updates much easier.
 - [ ] **Two-factor authentication** - TOTP (authenticator app) recommended
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 - [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
 - [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 27 Summary (February 4, 2026)
+
+### Major Accomplishments
+
+1. **Header/Footer Consistency Across All Pages**
+   - Updated: pricing.html, about.html, faq.html, terms.html, privacy.html
+   - Header: Gold "SLAB WORTHY" logo + "Log In" link (removed "How It Works")
+   - Footer: CTA button + logo with tagline + 3-column links (Product, Company, Legal)
+
+2. **Terms & Privacy Pages Restyled**
+   - Changed from old indigo gradient to gold/purple brand colors
+   - Added Bangers font for logo
+   - Consistent with rest of site
+
+3. **Identified Technical Debt: Duplicate HTML**
+   - Current pain point: Changing header/footer requires editing 6+ files
+   - Solution: Migrate to 11ty static site generator
+   - Added to backlog for future session
+
+### Files Updated This Session
+- `/pricing.html` - New header/footer
+- `/about.html` - New header/footer  
+- `/faq.html` - New header/footer
+- `/terms.html` - New header/footer + gold logo styling
+- `/privacy.html` - New header/footer + gold logo styling
+- `CLAUDE_NOTES.txt` - This file
 
 ---
 
@@ -76,16 +106,6 @@
 - `text-shadow` works reliably for comic-style shadow effects
 - `filter: drop-shadow` also has clipping issues with text gradients
 - PowerShell uses `Copy-Item` not `cp`, semicolons not `&&`
-
-### Files Updated This Session
-- `/index.html` - Marketing homepage (logo fix applied)
-- `/login.html` - Auth page (logo fix applied)
-- `/faq.html` - FAQ page (logo fix applied)
-- `/about.html` - About page (logo fix applied)
-- `/pricing.html` - Pricing placeholder (logo fix applied)
-- `CLAUDE_NOTES.txt` - This file
-- `ROADMAP.md` - Updated with completed items
-- `SLAB_WORTHY_BRAND_GUIDELINES.md` - New consumer brand guide
 
 ---
 
@@ -213,9 +233,26 @@ slabworthy.com/
 └── terms.html      → Terms of service
 ```
 
+**Header (all pages except login.html):**
+- Gold "SLAB WORTHY" logo (links to /)
+- "Log In" link
+
+**Footer (all pages except login.html):**
+- "Check a Comic" CTA button
+- Logo + "Powered by CollectionCalc™"
+- 3 columns: Product (How It Works, Pricing, FAQ), Company (About, Contact), Legal (Privacy, Terms)
+- Copyright + trademark disclaimers
+
 ---
 
 ## Technical Debt
+
+### HTML Duplication (HIGH PRIORITY)
+- Header and footer duplicated across 6+ HTML files
+- **Solution:** Migrate to 11ty static site generator
+- 11ty uses templates with shared layouts, compiles to plain HTML
+- Cloudflare Pages supports 11ty builds natively
+- Would allow single-file header/footer changes
 
 ### wsgi.py Refactoring Needed
 - Currently ~1,900 lines and growing
@@ -311,5 +348,5 @@ curl https://collectioncalc-docker.onrender.com/health
 
 ---
 
-*Last updated: February 4, 2026 (Session 26)*
+*Last updated: February 4, 2026 (Session 27)*
 *Version: 4.2.1*
