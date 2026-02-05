@@ -997,22 +997,18 @@ def api_valuate():
 @require_auth  
 @require_approved
 def api_cache_check():
-    """Check if a comic title/issue/grade combination exists in search_cache."""
+    """Check if a comic title/issue combination exists in search_cache."""
     import psycopg2
     
     data = request.get_json() or {}
     title = data.get('title', '').strip()
     issue = data.get('issue', '').strip()
-    grade = data.get('grade', 'VF').strip()
     
     if not title or not issue:
         return jsonify({'success': False, 'error': 'Title and issue are required'}), 400
     
-    # Normalize grade (same logic as valuation)
-    grade_normalized = grade.replace('+', '').replace('-', '').strip()
-    
-    # Build cache key (matching existing valuation logic format)
-    cache_key = f"{title.lower()}_{issue}_{grade_normalized.lower()}"
+    # Build search key matching existing format: "title|issue" (lowercase, no grade)
+    search_key = f"{title.lower()}|{issue}"
     
     database_url = os.environ.get('DATABASE_URL')
     conn = None
@@ -1021,13 +1017,13 @@ def api_cache_check():
         conn = psycopg2.connect(database_url)
         cur = conn.cursor()
         
-        # Check if cache entry exists
+        # Check if cache entry exists (recent within 48 hours)
         cur.execute("""
-            SELECT created_at 
+            SELECT cached_at 
             FROM search_cache 
-            WHERE cache_key = %s 
-            AND created_at > CURRENT_TIMESTAMP - INTERVAL '48 hours'
-        """, (cache_key,))
+            WHERE search_key = %s 
+            AND cached_at > CURRENT_TIMESTAMP - INTERVAL '48 hours'
+        """, (search_key,))
         
         result = cur.fetchone()
         
