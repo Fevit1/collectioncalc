@@ -6,10 +6,26 @@
     <title>Slab Worthy&trade; - AI Comic Grading</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
+        /* Gold Bangers logo for app header */
+        .header-brand h1 {
+            font-family: 'Bangers', cursive !important;
+            font-size: clamp(1.8rem, 5vw, 2.5rem) !important;
+            letter-spacing: 2px !important;
+            color: #facc15 !important;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b !important;
+            margin: 0;
+            line-height: 1.1;
+        }
+        .header-brand .subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
         /* Hide Take Photo button on desktop - only show on mobile */
         @media (min-width: 768px) {
             .photo-option-btn.camera {
@@ -73,7 +89,7 @@
     <div class="container">
         <header>
             <div class="header-brand">
-                <h1>Slab Worthy™</h1>
+                <h1>SLAB WORTHY<span style="font-size: 0.6em; vertical-align: super;">™</span></h1>
                 <p class="subtitle">AI for Comic Collectors</p>
             </div>
             <div class="header-auth" id="headerAuth">
