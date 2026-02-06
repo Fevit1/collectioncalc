@@ -41,7 +41,7 @@ from auth import (
     forgot_password, reset_password, get_current_user,
     validate_beta_code, create_beta_code, list_beta_codes,
     approve_user, reject_user, get_pending_users, get_all_users,
-    require_admin, verify_jwt, get_user_by_id, require_auth, require_approved
+    require_admin, verify_jwt, get_user_by_id
 )
 from admin import (
     log_request, log_api_usage, get_dashboard_stats,
