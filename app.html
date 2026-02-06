@@ -96,6 +96,127 @@
         #gradingUpload2 .photo-option-text {
             display: none;
         }
+        
+        /* Photo diagram container */
+        .photo-diagram-container {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Photo diagram grid */
+        .photo-diagram {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Individual photo boxes */
+        .photo-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(168, 85, 247, 0.4);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        /* Front and Back - tall rectangles (7:10 ratio) */
+        .photo-front,
+        .photo-back {
+            width: 38px;
+            height: 54px;
+        }
+
+        /* Spine - narrow strip */
+        .photo-spine {
+            width: 12px;
+            height: 54px;
+            font-size: 6px;
+            line-height: 1;
+            padding: 2px 0;
+            letter-spacing: 0;
+            word-break: break-all;
+        }
+
+        /* Centerfold - wider horizontal */
+        .photo-centerfold {
+            width: 76px;
+            height: 54px;
+        }
+
+        /* Active state - highlighted box */
+        .photo-box.active {
+            border-color: rgb(168, 85, 247);
+            background: rgba(168, 85, 247, 0.2);
+            color: rgb(168, 85, 247);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        /* Pulse animation for active box */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            }
+        }
+
+        /* Diagram label */
+        .photo-diagram-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mobile adjustments for photo diagram */
+        @media (max-width: 767px) {
+            .photo-diagram {
+                padding: 0.75rem;
+            }
+            
+            .photo-front,
+            .photo-back {
+                width: 32px;
+                height: 46px;
+            }
+            
+            .photo-spine {
+                width: 10px;
+                height: 46px;
+                font-size: 5px;
+            }
+            
+            .photo-centerfold {
+                width: 64px;
+                height: 46px;
+            }
+            
+            .photo-box {
+                font-size: 7px;
+            }
+            
+            .photo-diagram-label {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -231,7 +352,15 @@
                                 <span class="photo-option-icon">📁</span>
                                 <span class="photo-option-text">Upload</span>
                             </button>
-                            <div class="photo-option-hint">FRONT COVER - Full cover visible, good lighting</div>
+                            <div class="photo-diagram-container">
+                                <div class="photo-diagram">
+                                    <div class="photo-box photo-front active">Front</div>
+                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                    <div class="photo-box photo-back">Back</div>
+                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                </div>
+                                <div class="photo-diagram-label">FRONT COVER - Full cover visible, good lighting</div>
+                            </div>
                         </div>
                         
                         <!-- Preview after photo taken -->
@@ -283,7 +412,15 @@
                                 <span class="photo-option-icon">📁</span>
                                 <span class="photo-option-text">Upload</span>
                             </button>
-                            <div class="photo-option-hint">SPINE - Hold comic sideways so spine fills frame</div>
+                            <div class="photo-diagram-container">
+                                <div class="photo-diagram">
+                                    <div class="photo-box photo-front">Front</div>
+                                    <div class="photo-box photo-spine active">S<br>p<br>i<br>n<br>e</div>
+                                    <div class="photo-box photo-back">Back</div>
+                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                </div>
+                                <div class="photo-diagram-label">SPINE - Hold comic sideways so spine fills frame</div>
+                            </div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview2" style="display: none;">
@@ -326,7 +463,15 @@
                                 <span class="photo-option-icon">📁</span>
                                 <span class="photo-option-text">Upload</span>
                             </button>
-                            <div class="photo-option-hint">BACK COVER - Full back cover visible</div>
+                            <div class="photo-diagram-container">
+                                <div class="photo-diagram">
+                                    <div class="photo-box photo-front">Front</div>
+                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                    <div class="photo-box photo-back active">Back</div>
+                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                </div>
+                                <div class="photo-diagram-label">BACK COVER - Full back cover visible</div>
+                            </div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview3" style="display: none;">
@@ -369,7 +514,15 @@
                                 <span class="photo-option-icon">📁</span>
                                 <span class="photo-option-text">Upload</span>
                             </button>
-                            <div class="photo-option-hint">CENTERFOLD - Open comic to center, show staples</div>
+                            <div class="photo-diagram-container">
+                                <div class="photo-diagram">
+                                    <div class="photo-box photo-front">Front</div>
+                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                    <div class="photo-box photo-back">Back</div>
+                                    <div class="photo-box photo-centerfold active">Centerfold</div>
+                                </div>
+                                <div class="photo-diagram-label">CENTERFOLD - Open comic to center, show staples</div>
+                            </div>
                         </div>
                         
                         <div class="grading-preview" id="gradingPreview4" style="display: none;">

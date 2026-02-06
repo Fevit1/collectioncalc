@@ -273,6 +273,166 @@ function closePhotoTips() {
     modal.classList.remove('show');
 }
 
+// ============================================
+// EXIF ORIENTATION FIX FOR MOBILE PHOTOS
+// ============================================
+
+/**
+ * Read EXIF orientation from image file
+ * Returns orientation value (1-8) or 1 if none found
+ */
+function getOrientation(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const view = new DataView(e.target.result);
+            if (view.getUint16(0, false) !== 0xFFD8) {
+                resolve(1); // Not a JPEG
+                return;
+            }
+            const length = view.byteLength;
+            let offset = 2;
+            while (offset < length) {
+                if (view.getUint16(offset+2, false) <= 8) {
+                    resolve(1);
+                    return;
+                }
+                const marker = view.getUint16(offset, false);
+                offset += 2;
+                if (marker === 0xFFE1) {
+                    // EXIF marker found
+                    if (view.getUint32(offset += 2, false) !== 0x45786966) {
+                        resolve(1);
+                        return;
+                    }
+                    const little = view.getUint16(offset += 6, false) === 0x4949;
+                    offset += view.getUint32(offset + 4, little);
+                    const tags = view.getUint16(offset, little);
+                    offset += 2;
+                    for (let i = 0; i < tags; i++) {
+                        if (view.getUint16(offset + (i * 12), little) === 0x0112) {
+                            resolve(view.getUint16(offset + (i * 12) + 8, little));
+                            return;
+                        }
+                    }
+                } else if ((marker & 0xFF00) !== 0xFF00) {
+                    break;
+                } else {
+                    offset += view.getUint16(offset, false);
+                }
+            }
+            resolve(1);
+        };
+        reader.readAsArrayBuffer(file.slice(0, 64 * 1024)); // Read first 64KB
+    });
+}
+
+/**
+ * Apply EXIF orientation to canvas
+ * Handles all 8 EXIF orientation values
+ */
+function applyOrientation(canvas, ctx, img, orientation) {
+    const width = img.width;
+    const height = img.height;
+    
+    // Set canvas size based on orientation
+    if (orientation > 4 && orientation < 9) {
+        // Orientations 5-8 are rotated 90° or 270°, so swap width/height
+        canvas.width = height;
+        canvas.height = width;
+    } else {
+        canvas.width = width;
+        canvas.height = height;
+    }
+    
+    // Apply transformations based on orientation
+    switch(orientation) {
+        case 2:
+            // Horizontal flip
+            ctx.transform(-1, 0, 0, 1, width, 0);
+            break;
+        case 3:
+            // 180° rotation
+            ctx.transform(-1, 0, 0, -1, width, height);
+            break;
+        case 4:
+            // Vertical flip
+            ctx.transform(1, 0, 0, -1, 0, height);
+            break;
+        case 5:
+            // Vertical flip + 90° rotation
+            ctx.transform(0, 1, 1, 0, 0, 0);
+            break;
+        case 6:
+            // 90° rotation (most common for mobile portrait photos)
+            ctx.transform(0, 1, -1, 0, height, 0);
+            break;
+        case 7:
+            // Horizontal flip + 90° rotation
+            ctx.transform(0, -1, -1, 0, height, width);
+            break;
+        case 8:
+            // 270° rotation
+            ctx.transform(0, -1, 1, 0, 0, width);
+            break;
+        default:
+            // No transformation needed for orientation 1
+            break;
+    }
+    
+    // Draw the image
+    ctx.drawImage(img, 0, 0, width, height);
+}
+
+/**
+ * Process image file with EXIF orientation correction
+ * Returns promise with { base64, mediaType }
+ */
+async function processImageWithOrientation(file) {
+    // Get EXIF orientation
+    const orientation = await getOrientation(file);
+    
+    // Read image file
+    const img = new Image();
+    const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+    
+    // Load image
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = dataUrl;
+    });
+    
+    // Apply orientation correction if needed
+    if (orientation !== 1) {
+        console.log(`Applying EXIF orientation correction: ${orientation}`);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        applyOrientation(canvas, ctx, img, orientation);
+        
+        const correctedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const base64 = correctedDataUrl.split(',')[1];
+        
+        return {
+            base64: base64,
+            mediaType: 'image/jpeg'
+        };
+    } else {
+        // No correction needed, return original
+        const base64 = dataUrl.split(',')[1];
+        return {
+            base64: base64,
+            mediaType: file.type
+        };
+    }
+}
+
 // Handle grading photo upload
 async function handleGradingPhoto(step, files) {
     if (!files || files.length === 0) return;
@@ -296,8 +456,8 @@ async function handleGradingPhoto(step, files) {
     startDotsAnimation(feedbackText, 'Analyzing image');
     
     try {
-        // Process image
-        const processed = await processImageForExtraction(file, 0);
+        // Process image with EXIF orientation correction
+        const processed = await processImageWithOrientation(file);
         
         // Show preview
         previewImg.src = `data:${processed.mediaType};base64,${processed.base64}`;
@@ -937,8 +1097,8 @@ async function handleAdditionalPhoto(files) {
     const file = files[0];
     
     try {
-        // Process image with EXIF rotation (same as other photos)
-        const processed = await processImageForExtraction(file, 0);
+        // Process image with EXIF orientation correction
+        const processed = await processImageWithOrientation(file);
         
         gradingState.additionalPhotos.push({
             base64: processed.base64,
