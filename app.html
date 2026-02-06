@@ -109,13 +109,27 @@
         /* Photo diagram grid */
         .photo-diagram {
             display: flex;
-            gap: 4px;
+            flex-direction: column;
+            gap: 8px;
             justify-content: center;
-            align-items: flex-end;
+            align-items: center;
             padding: 1rem;
             background: rgba(99, 102, 241, 0.05);
             border-radius: 8px;
             border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Top row: Front, Spine, Back */
+        .photo-diagram-row-top {
+            display: flex;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        /* Bottom row: Centerfold (centered) */
+        .photo-diagram-row-bottom {
+            display: flex;
+            justify-content: center;
         }
 
         /* Individual photo boxes */
@@ -354,10 +368,14 @@
                             </button>
                             <div class="photo-diagram-container">
                                 <div class="photo-diagram">
-                                    <div class="photo-box photo-front active">Front</div>
-                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                    <div class="photo-box photo-back">Back</div>
-                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                    <div class="photo-diagram-row-top">
+                                        <div class="photo-box photo-front active">Front</div>
+                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                        <div class="photo-box photo-back">Back</div>
+                                    </div>
+                                    <div class="photo-diagram-row-bottom">
+                                        <div class="photo-box photo-centerfold">Centerfold</div>
+                                    </div>
                                 </div>
                                 <div class="photo-diagram-label">FRONT COVER - Full cover visible, good lighting</div>
                             </div>
@@ -414,10 +432,14 @@
                             </button>
                             <div class="photo-diagram-container">
                                 <div class="photo-diagram">
-                                    <div class="photo-box photo-front">Front</div>
-                                    <div class="photo-box photo-spine active">S<br>p<br>i<br>n<br>e</div>
-                                    <div class="photo-box photo-back">Back</div>
-                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                    <div class="photo-diagram-row-top">
+                                        <div class="photo-box photo-front">Front</div>
+                                        <div class="photo-box photo-spine active">S<br>p<br>i<br>n<br>e</div>
+                                        <div class="photo-box photo-back">Back</div>
+                                    </div>
+                                    <div class="photo-diagram-row-bottom">
+                                        <div class="photo-box photo-centerfold">Centerfold</div>
+                                    </div>
                                 </div>
                                 <div class="photo-diagram-label">SPINE - Hold comic sideways so spine fills frame</div>
                             </div>
@@ -465,10 +487,14 @@
                             </button>
                             <div class="photo-diagram-container">
                                 <div class="photo-diagram">
-                                    <div class="photo-box photo-front">Front</div>
-                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                    <div class="photo-box photo-back active">Back</div>
-                                    <div class="photo-box photo-centerfold">Centerfold</div>
+                                    <div class="photo-diagram-row-top">
+                                        <div class="photo-box photo-front">Front</div>
+                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                        <div class="photo-box photo-back active">Back</div>
+                                    </div>
+                                    <div class="photo-diagram-row-bottom">
+                                        <div class="photo-box photo-centerfold">Centerfold</div>
+                                    </div>
                                 </div>
                                 <div class="photo-diagram-label">BACK COVER - Full back cover visible</div>
                             </div>
@@ -516,10 +542,14 @@
                             </button>
                             <div class="photo-diagram-container">
                                 <div class="photo-diagram">
-                                    <div class="photo-box photo-front">Front</div>
-                                    <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                    <div class="photo-box photo-back">Back</div>
-                                    <div class="photo-box photo-centerfold active">Centerfold</div>
+                                    <div class="photo-diagram-row-top">
+                                        <div class="photo-box photo-front">Front</div>
+                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
+                                        <div class="photo-box photo-back">Back</div>
+                                    </div>
+                                    <div class="photo-diagram-row-bottom">
+                                        <div class="photo-box photo-centerfold active">Centerfold</div>
+                                    </div>
                                 </div>
                                 <div class="photo-diagram-label">CENTERFOLD - Open comic to center, show staples</div>
                             </div>

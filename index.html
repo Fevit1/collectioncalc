@@ -271,9 +271,21 @@
            ============================================ */
         .photo-grid {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+        }
+
+        .photo-grid-row-top {
+            display: flex;
             gap: 4px;
+            align-items: flex-end;
+        }
+
+        .photo-grid-row-bottom {
+            display: flex;
+            justify-content: center;
         }
 
         .photo-box {
@@ -314,18 +326,64 @@
             border-left: 2px dashed rgba(255,255,255,0.4);
         }
 
-        /* AI Brain */
-        .ai-brain {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
-            border-radius: 50%;
+        /* AI Inspection Icon - Scanning Magnifying Glass */
+        .ai-inspection {
+            width: 80px;
+            height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            animation: pulse 2s infinite;
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            border-radius: 50%;
+        }
+
+        .ai-magnify {
+            width: 60px;
+            height: 60px;
+            position: relative;
+        }
+
+        .ai-magnify .lens {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #a855f7;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            animation: pulse-scan 2s ease-in-out infinite;
+        }
+
+        .ai-magnify .lens::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #6366f1, transparent);
+            animation: scan-line 2s ease-in-out infinite;
+        }
+
+        .ai-magnify .handle {
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #a855f7, #6366f1);
+            position: absolute;
+            bottom: -20px;
+            right: 2px;
+            transform: rotate(-45deg);
+            transform-origin: top;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+        }
+
+        @keyframes pulse-scan {
+            0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+            50% { box-shadow: 0 0 35px rgba(168, 85, 247, 0.9); }
+        }
+
+        @keyframes scan-line {
+            0%, 100% { transform: translateY(-15px); opacity: 0; }
+            50% { transform: translateY(15px); opacity: 1; }
         }
 
         @keyframes pulse {
@@ -497,10 +555,14 @@
                 </div>
                 <div class="flow-visual">
                     <div class="photo-grid">
-                        <div class="photo-box photo-front">Front</div>
-                        <div class="photo-box photo-spine">Spine</div>
-                        <div class="photo-box photo-back">Back</div>
-                        <div class="photo-box photo-centerfold">Centerfold</div>
+                        <div class="photo-grid-row-top">
+                            <div class="photo-box photo-front">Front</div>
+                            <div class="photo-box photo-spine">Spine</div>
+                            <div class="photo-box photo-back">Back</div>
+                        </div>
+                        <div class="photo-grid-row-bottom">
+                            <div class="photo-box photo-centerfold">Centerfold</div>
+                        </div>
                     </div>
                 </div>
                 <div class="flow-connector">
@@ -517,7 +579,12 @@
                     <p class="step-desc">Spine ticks, corner wear, color breaks, staple rust, and more.</p>
                 </div>
                 <div class="flow-visual">
-                    <div class="ai-brain">🧠</div>
+                    <div class="ai-inspection">
+                        <div class="ai-magnify">
+                            <div class="lens"></div>
+                            <div class="handle"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flow-connector">
                     <div class="connector-line"></div>

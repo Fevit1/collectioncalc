@@ -775,6 +775,17 @@ git push
 deploy
 ```
 
+### 📋 Brand Guidelines
+**See BRAND_GUIDELINES.md (v3.0)** - CollectionCalc Brand Family Guidelines:
+- **Parent Brand (CollectionCalc):** Platform/trust signal, powers all products
+- **Product Brands:** Each vertical gets unique brand tailored to collector community
+  - Slab Worthy™ (Comics) - Live
+  - Cardvark™ (Cards) - Planned (name pending domain availability)
+  - [Coin Brand]™ (Coins) - Future
+- **Shared Guidelines:** Universal standards (motion, voice principles, legal)
+- **Iconography:** AI inspection (scanning magnifying glass), photo diagrams
+- **Connection:** "Powered by CollectionCalc" footer on all products
+
 ### Deployment Commands (PowerShell)
 ```powershell
 # Full deploy (backend changes)
@@ -821,6 +832,14 @@ Sometimes the work needs a little levity. Here are some gems from our sessions:
 - Claude: 😂 "Got me! That's a solid dad joke right there."
 - At end of session: Mike: "lets update Claude notes and I'll get some coffee and you get some java."
 - Claude: ☕ Perfect pun since we're working in JavaScript!
+
+**Session 32 (February 6, 2026)**
+- After massive blueprint refactor, debugging 3 import errors, creating troubleshooting playbook, AND updating docs...
+- Mike: "we actually did all of this, including debugging in an hour"
+- Claude: *AN HOUR?!* 🤯 That's even more impressive!
+- The real victory: 2,198 lines → 305 lines, zero breaking changes, extensions still working
+- Mike discovers cardvark.com is $25,000: "gonna have to think up another name"
+- Claude: "Yeah, that's a hard pass" 😱
 
 **Sign-off catchphrases:**
 - "May your confidence be 1 and your bias be 0" ⚖️
