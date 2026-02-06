@@ -151,10 +151,27 @@ document.addEventListener('DOMContentLoaded', () => {
 // =================================================================
 
 // SLAB WORTHY™ - THINKING MESSAGES
-// Total: 1,005 messages - Updated February 6, 2026
+// Total: 1,015 messages (10 serious + 1,005 humor) - Updated February 6, 2026
+// Strategy: Start with serious messages (~30 sec), then switch to humor
 // Guidelines: Comic references, AI humor, sci-fi, retro tech, meta collecting (tasteful), geeky fun
 // Avoid: Body parts, financial irresponsibility, mental health jokes, dehumanizing language, stereotypes
-const thinkingMessages = [
+
+// SERIOUS MESSAGES - First ~30 seconds (10 messages at 3.1415 sec each)
+const seriousMessages = [
+  "Analyzing your comic photos...",
+  "Identifying title and issue number...",
+  "Searching eBay sold listings...",
+  "Searching Whatnot recent sales...",
+  "Filtering for comparable condition...",
+  "Calculating fair market value...",
+  "Estimating CGC graded value...",
+  "Calculating slab premium multipliers...",
+  "Weighing grading cost vs value increase...",
+  "Preparing your Slab Report...",
+];
+
+// HUMOR MESSAGES - After serious phase completes (1,005 messages)
+const humorMessages = [
   
   // ============================================
   // CATEGORY 1: COMIC/SUPERHERO REFERENCES
@@ -1261,17 +1278,19 @@ const thinkingMessages = [
 
 let thinkingInterval = null;
 let thinkingIndex = 0;
+let usingSeriousMessages = true; // Start with serious messages
 
 function startThinkingAnimation(elementId) {
     thinkingIndex = 0;
+    usingSeriousMessages = true; // Reset to serious messages
     const element = document.getElementById(elementId);
     if (!element) return;
     
-    // Initial message
+    // Initial message (from serious array)
     element.innerHTML = `
         <div class="thinking-box" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(79, 70, 229, 0.1); border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3);">
             <div class="thinking-indicator" style="width: 20px; height: 20px; border: 2px solid rgba(79, 70, 229, 0.3); border-top-color: var(--brand-indigo, #4f46e5); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <span class="thinking-text" style="color: var(--text-secondary, #a1a1aa); font-size: 0.95rem; transition: opacity 0.15s ease;">${thinkingMessages[0]}</span>
+            <span class="thinking-text" style="color: var(--text-secondary, #a1a1aa); font-size: 0.95rem; font-style: italic; transition: opacity 0.15s ease;">${seriousMessages[0]}</span>
         </div>
         <style>
             @keyframes spin {
@@ -1280,18 +1299,49 @@ function startThinkingAnimation(elementId) {
         </style>
     `;
     
-    // Cycle through messages
+    // Cycle through messages with pause effect
     thinkingInterval = setInterval(() => {
-        thinkingIndex = (thinkingIndex + 1) % thinkingMessages.length;
+        // Determine which array to use
+        const messages = usingSeriousMessages ? seriousMessages : humorMessages;
+        
+        // Advance to next message
+        thinkingIndex = (thinkingIndex + 1) % messages.length;
+        
+        // If we've cycled through all serious messages, switch to humor
+        if (usingSeriousMessages && thinkingIndex === 0 && messages === seriousMessages) {
+            usingSeriousMessages = false;
+            thinkingIndex = 0;
+        }
+        
+        const currentMessages = usingSeriousMessages ? seriousMessages : humorMessages;
+        const message = currentMessages[thinkingIndex];
         const textEl = element.querySelector('.thinking-text');
+        
         if (textEl) {
             textEl.style.opacity = '0';
             setTimeout(() => {
-                textEl.textContent = thinkingMessages[thinkingIndex];
-                textEl.style.opacity = '1';
+                // Random pause chance between 10-35%
+                const pauseChance = Math.floor(Math.random() * 26) + 10; // Random between 10-35
+                const shouldPause = Math.random() * 100 < pauseChance;
+                
+                if (shouldPause) {
+                    // Show first half of message (cut mid-character for "thinking" effect)
+                    const halfwayPoint = Math.floor(message.length / 2);
+                    textEl.textContent = message.substring(0, halfwayPoint);
+                    textEl.style.opacity = '1';
+                    
+                    // After 800ms, complete the message
+                    setTimeout(() => {
+                        textEl.textContent = message;
+                    }, 800);
+                } else {
+                    // Show full message immediately (65-90% of the time)
+                    textEl.textContent = message;
+                    textEl.style.opacity = '1';
+                }
             }, 150);
         }
-    }, 2000); // Change message every 2 seconds
+    }, 3141.5); // π seconds! 🥧
 }
 
 function stopThinkingAnimation() {
