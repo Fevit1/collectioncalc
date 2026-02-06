@@ -16,6 +16,8 @@ import jwt
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
+from functools import wraps
+from flask import g, jsonify
 import resend
 
 # ============================================
@@ -935,3 +937,66 @@ def require_admin(token):
         return None, 'Admin access required'
     
     return user, None
+
+
+# ============================================
+# FLASK DECORATORS (for route protection)
+# ============================================
+
+def require_auth(f):
+    """
+    Decorator to require authentication.
+    Expects g.user_id to be set by middleware.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not hasattr(g, 'user_id') or g.user_id is None:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_approved(f):
+    """
+    Decorator to require user to be approved.
+    Expects g.user_id to be set by middleware.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not hasattr(g, 'user_id') or g.user_id is None:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        
+        user = get_user_by_id(g.user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        if not user.get('is_approved', False) and not user.get('is_admin', False):
+            return jsonify({'success': False, 'error': 'Account pending approval'}), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_admin_auth(f):
+    """
+    Decorator to require admin authentication.
+    Expects g.user_id to be set by middleware.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not hasattr(g, 'user_id') or g.user_id is None:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        
+        user = get_user_by_id(g.user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        if not user.get('is_admin', False):
+            return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        
+        # Set admin_id in g for use in route functions
+        g.admin_id = user['id']
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
