@@ -82,6 +82,43 @@ Provisional patent filed for multi-angle comic grading system.
 - Native-like gallery grid before upload
 - Consider: Is this worth the complexity?
 
+### User-Facing NLQ Database Queries
+**Goal:** Premium users can query market data using natural language
+
+**Why This Matters:**
+- Powerful research tool for serious collectors
+- Differentiation from competitors
+- Premium tier monetization opportunity
+- Leverages our massive database (market_sales, ebay_sales, grading data)
+
+**Example Queries:**
+- "How many Absolute Batman #1 sales happened in the last week? What's the average price?"
+- "Show me all comics graded 9.6+ this month with centerfold damage"
+- "What's the price trend for Amazing Spider-Man #300 over the last 6 months?"
+- "Find all sales of Spawn #1 reprints vs first prints"
+- "What percentage of X-Men #1 submissions get 9.8 or higher?"
+
+**Implementation:**
+- [ ] NLQ input window in "My Collection" or separate "Research" tab
+- [ ] Query → Claude API → SQL generation
+- [ ] Safety checks (read-only, rate limiting, user data isolation)
+- [ ] Results display (tables, charts, exports)
+- [ ] Usage tracking for billing
+- [ ] Consider: Query history, saved queries, sharing results
+
+**Pricing Considerations:**
+- Free tier: X queries/month
+- Pro tier: Y queries/month
+- Enterprise: Unlimited queries
+- Track API costs and adjust pricing accordingly
+
+**Technical Notes:**
+- Reuse existing NLQ infrastructure from admin panel
+- Add user context to SQL generation (only show their data + public market data)
+- Cache common queries to reduce API costs
+
+**Status:** Concept (noted Session 32, Feb 6 2026)
+
 ---
 
 ## Medium Priority
@@ -196,6 +233,7 @@ Consider:
 
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
+- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API, so grading shows "Unknown #Unknown" instead of comic title/issue. Need to add extraction step after Front upload with loading state. (Session 32, Feb 6 2026)
 
 ---
 

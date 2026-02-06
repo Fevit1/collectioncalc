@@ -31,6 +31,7 @@
 - Barcode scanning infrastructure ready
 - eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
 - **Known limitation:** Slab premium uses hardcoded formula, not real market data (see backlog)
+- **Single-page upload redesign DEPLOYED** - New interactive diagram, but missing extraction step (shows "Unknown #Unknown" - see Known Issues) (Session 32)
 
 ---
 
@@ -858,6 +859,35 @@ curl https://collectioncalc-docker.onrender.com/health
 1. F12 → Click phone icon
 2. Select "Pixel 7" from dropdown
 3. Test at 412px width
+
+---
+
+## 🐛 Known Issues & To-Do
+
+### Single-Page Upload - Missing Extraction Step
+**Issue:** New single-page upload flow allows "Generate Slab Report" button to be clicked before comic identification happens.
+
+**Old 4-step flow:**
+1. Upload Front → Extraction API called → Comic identified (title/issue/publisher)
+2. Store in `gradingState.extractedData`
+3. Enable "Next" button
+4. Repeat for spine, back, centerfold
+5. Generate report with comic identity
+
+**New single-page flow:**
+1. Upload any photo → Just stores raw image
+2. Button enables after Front uploaded
+3. No extraction happens
+4. Grading runs without comic identity → "Unknown #Unknown"
+
+**Fix needed:**
+- Add extraction API call after Front upload completes
+- Show "Identifying comic..." spinner
+- Store result in `gradingState.extractedData`
+- Only then enable "Generate Slab Report" button
+- Estimated: ~30-50 lines of JavaScript
+
+**Status:** Deferred (noted Session 32, Feb 6 2026)
 
 ---
 
