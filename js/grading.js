@@ -1278,11 +1278,11 @@ const humorMessages = [
 
 let thinkingInterval = null;
 let thinkingIndex = 0;
-let usingSeriousMessages = true; // Start with serious messages
+let inInitialPhase = true; // Track if we're in the first 30 seconds
 
 function startThinkingAnimation(elementId) {
     thinkingIndex = 0;
-    usingSeriousMessages = true; // Reset to serious messages
+    inInitialPhase = true; // Reset to initial phase
     const element = document.getElementById(elementId);
     if (!element) return;
     
@@ -1301,20 +1301,32 @@ function startThinkingAnimation(elementId) {
     
     // Cycle through messages with pause effect
     thinkingInterval = setInterval(() => {
-        // Determine which array to use
-        const messages = usingSeriousMessages ? seriousMessages : humorMessages;
+        let message;
         
-        // Advance to next message
-        thinkingIndex = (thinkingIndex + 1) % messages.length;
-        
-        // If we've cycled through all serious messages, switch to humor
-        if (usingSeriousMessages && thinkingIndex === 0 && messages === seriousMessages) {
-            usingSeriousMessages = false;
-            thinkingIndex = 0;
+        if (inInitialPhase) {
+            // First 30 seconds: cycle through serious messages sequentially
+            thinkingIndex = (thinkingIndex + 1) % seriousMessages.length;
+            message = seriousMessages[thinkingIndex];
+            
+            // After cycling through all serious messages once, switch to ratio mode
+            if (thinkingIndex === seriousMessages.length - 1) {
+                inInitialPhase = false;
+            }
+        } else {
+            // After 30 seconds: 4:1 ratio (80% serious, 20% humor)
+            const random = Math.floor(Math.random() * 5) + 1; // Random 1-5
+            
+            if (random === 1) {
+                // 20% chance: show humor message
+                const randomIndex = Math.floor(Math.random() * humorMessages.length);
+                message = humorMessages[randomIndex];
+            } else {
+                // 80% chance: show serious message
+                const randomIndex = Math.floor(Math.random() * seriousMessages.length);
+                message = seriousMessages[randomIndex];
+            }
         }
         
-        const currentMessages = usingSeriousMessages ? seriousMessages : humorMessages;
-        const message = currentMessages[thinkingIndex];
         const textEl = element.querySelector('.thinking-text');
         
         if (textEl) {
