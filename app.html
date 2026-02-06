@@ -1132,39 +1132,85 @@
             }
         });
         
-        // Override generateGradeReport to use new photo data
+        // Initialize gradingState if it doesn't exist
+        if (typeof window.gradingState === 'undefined') {
+            window.gradingState = {
+                photos: {},
+                additionalPhotos: [],
+                extractedData: null,
+                currentStep: 1
+            };
+        }
+        
+        // Store original generateGradeReport from grading.js (already loaded)
         const originalGenerateGradeReport = window.generateGradeReport;
-        window.generateGradeReport = function() {
+        
+        // Override with our version that sets up data for single-page upload
+        window.generateGradeReport = async function() {
             // Check if at least front is uploaded
             if (!uploadedPhotos.front) {
                 alert('Please upload at least the front cover photo.');
                 return;
             }
             
-            // Prepare photos array for existing grading logic
-            // Map to the format expected by existing code
-            window.gradingPhotos = {
-                1: uploadedPhotos.front ? { file: uploadedPhotos.front.file, dataUrl: uploadedPhotos.front.dataUrl } : null,
-                2: uploadedPhotos.spine ? { file: uploadedPhotos.spine.file, dataUrl: uploadedPhotos.spine.dataUrl } : null,
-                3: uploadedPhotos.back ? { file: uploadedPhotos.back.file, dataUrl: uploadedPhotos.back.dataUrl } : null,
-                4: uploadedPhotos.centerfold ? { file: uploadedPhotos.centerfold.file, dataUrl: uploadedPhotos.centerfold.dataUrl } : null
-            };
+            // Convert uploaded photos to gradingState format (expected by grading.js)
+            if (uploadedPhotos.front) {
+                window.gradingState.photos[1] = {
+                    base64: uploadedPhotos.front.dataUrl.split(',')[1],
+                    mediaType: uploadedPhotos.front.file.type,
+                    file: uploadedPhotos.front.file
+                };
+            }
+            if (uploadedPhotos.spine) {
+                window.gradingState.photos[2] = {
+                    base64: uploadedPhotos.spine.dataUrl.split(',')[1],
+                    mediaType: uploadedPhotos.spine.file.type,
+                    file: uploadedPhotos.spine.file
+                };
+            }
+            if (uploadedPhotos.back) {
+                window.gradingState.photos[3] = {
+                    base64: uploadedPhotos.back.dataUrl.split(',')[1],
+                    mediaType: uploadedPhotos.back.file.type,
+                    file: uploadedPhotos.back.file
+                };
+            }
+            if (uploadedPhotos.centerfold) {
+                window.gradingState.photos[4] = {
+                    base64: uploadedPhotos.centerfold.dataUrl.split(',')[1],
+                    mediaType: uploadedPhotos.centerfold.file.type,
+                    file: uploadedPhotos.centerfold.file
+                };
+            }
             
-            // Call original function if it exists
-            if (originalGenerateGradeReport) {
-                originalGenerateGradeReport();
+            // Update UI manually for 2-step flow
+            const step1 = document.getElementById('gradingStep1');
+            const step2 = document.getElementById('gradingStep2');
+            const content1 = document.getElementById('gradingContent1');
+            const content5 = document.getElementById('gradingContent5');
+            
+            if (step1) {
+                step1.classList.remove('active');
+                step1.classList.add('completed');
+            }
+            if (step2) step2.classList.add('active');
+            if (content1) content1.classList.remove('active');
+            if (content5) content5.classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Call the original (now patched) grading.js function
+            if (originalGenerateGradeReport && typeof originalGenerateGradeReport === 'function') {
+                try {
+                    await originalGenerateGradeReport();
+                } catch (error) {
+                    console.error('Grading error:', error);
+                    alert('Error analyzing comic. Please check console and try again.');
+                }
             } else {
-                // Fallback: manually trigger report generation
-                // Update step indicator
-                document.getElementById('gradingStep1').classList.remove('active');
-                document.getElementById('gradingStep2').classList.add('active');
-                
-                // Hide upload content, show report
-                document.getElementById('gradingContent1').classList.remove('active');
-                document.getElementById('gradingContent5').classList.add('active');
-                
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                console.error('Original generateGradeReport function not found');
+                alert('Grading system not loaded properly. Please refresh the page.');
             }
         };
     </script>
