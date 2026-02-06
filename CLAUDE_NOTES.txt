@@ -8,6 +8,8 @@
 
 **The Human:** Mike is a Product Manager (not a developer). He's comfortable with Git, Render deployments, and SQL queries, but needs guidance on complex debugging and architecture decisions. He wants Claude to push back and share knowledge proactively.
 
+**Working Style Preference:** Mike prefers natural, collaborative conversation over formal business consultant mode. Keep it friendly and conversational - avoid getting too structured/professional even when reviewing project documentation. Think "working on cool stuff together" rather than "client presentation."
+
 **Current State (v4.2.2):**
 - **Content moderation LIVE** - AWS Rekognition checks all user-uploaded images
 - **All pages now have consistent header/footer** - Gold logo, matching nav and footer
@@ -43,6 +45,75 @@
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 - [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
 - [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 29 Summary (February 5, 2026)
+
+### Major Accomplishments
+
+1. **Trademark Protection Deployed ✅**
+   - Added ™ symbol across entire site (app.html, Brand Guidelines v2.1)
+   - HTML entity: `&trade;` for proper display
+   - Locations: page titles, buttons, headers, product names
+   - Establishes legal claim to "Slab Worthy" trademark
+
+2. **Trademark Research - Conflict Resolved ✅**
+   - Canadian eBay seller "mig9976" investigated thoroughly
+   - Zero commercial use of "Slab Worthy" found in their business
+   - Different territory (Canada vs US) reduces risk further
+   - Clear path for US trademark filing when budget approved
+
+3. **Cache Warning System - Backend Complete ✅**
+   - `/api/cache/check` endpoint working properly
+   - Uses correct database structure: `search_cache` table, `search_key` column format `title|issue`
+   - 48-hour cache expiry logic
+   - Returns `{success, cached: boolean, lastChecked: timestamp}`
+
+4. **Cache Warning System - Frontend Complete ✅**
+   - Amber-colored warning component with slab+? SVG icon
+   - Shows when comic hasn't been checked recently
+   - **Key improvement:** Persists during entire valuation process (not 4-second dismiss)
+   - Auto-hides when recommendation appears
+   - CSS styling matches brand (amber `#d97706` + purple theme)
+
+5. **Dev Mode Testing Framework ✅**
+   - Activated with `?dev` URL parameter or localhost
+   - Green 🧪 "Quick Test" button appears in top-right
+   - **Status:** Detection and button creation working
+   - **Issue:** DOM element targeting errors when clicked (needs 15min fix next session)
+
+6. **USPTO Trademark Research Session**
+   - Navigated government website redirect loops successfully
+   - Confirmed filing costs: TEAS Plus ($250) vs TEAS Standard ($350) 
+   - Mike has existing USPTO account from patent filing
+   - Ready to file when CFO approves budget
+
+### Brand Guidelines Updated
+- Version bumped to v2.1 
+- New trademark usage section added
+- Specifies where/how to use ™ symbol
+- Standard footer trademark notice template
+
+### Current Status - Pre-Beta Checklist
+- [x] **Content moderation** - Live with AWS Rekognition
+- [x] **Trademark protection** - ™ symbols deployed
+- [x] **Cache warning system** - Complete (just needs testing)
+- [x] **Shimmer effects** - Live during thinking animations  
+- [ ] **Mobile testing** - Full Slab Worthy flow on phone
+- [ ] **Dev mode fixes** - DOM element targeting (15min fix)
+
+### Files Deployed This Session
+- `app.html` - ™ symbols added to page title, buttons, headers
+- `grading.js` - Cache warning logic + dev mode framework  
+- `styles.css` - Cache warning component styling
+- `wsgi.py` - `/api/cache/check` endpoint
+- `BRAND_GUIDELINES.md` - v2.1 with trademark usage section
+
+### Next Session Priorities
+1. **Fix dev mode DOM targeting** - Identify correct element IDs for quick test
+2. **Test cache warning end-to-end** - Validate full flow works
+3. **Mobile testing** or **Ron's login debugging** (he had redirect issues)
 
 ---
 
@@ -418,5 +489,5 @@ curl https://collectioncalc-docker.onrender.com/health
 
 ---
 
-*Last updated: February 5, 2026 (Session 28)*
+*Last updated: February 5, 2026 (Session 29)*
 *Version: 4.2.2*
