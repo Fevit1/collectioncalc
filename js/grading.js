@@ -61,8 +61,8 @@ function createDevTestButton() {
 async function runQuickTest() {
     console.log('🧪 Running dev mode quick test...');
     
-    // Switch to grading mode if not already
-    setMode('grading');
+    // Note: No setMode('grading') call — user is already on the grading tab
+    // when this button is visible. setMode targets DOM elements that don't exist.
     
     // Mock extracted data
     gradingState.extractedData = {
@@ -96,13 +96,43 @@ async function runQuickTest() {
         ]
     };
     
-    // Show results section by scrolling to it
-    const recommendationVerdict = document.getElementById('recommendationVerdict');
-    if (recommendationVerdict) {
-        recommendationVerdict.scrollIntoView({ behavior: 'smooth' });
+    // Jump to step 5 (report) so recommendation elements are visible
+    for (let i = 1; i <= 4; i++) {
+        const content = document.getElementById(`gradingContent${i}`);
+        const step = document.getElementById(`gradingStep${i}`);
+        if (content) content.classList.remove('active');
+        if (step) {
+            step.classList.remove('active');
+            step.classList.add('completed');
+        }
+    }
+    const step5 = document.getElementById('gradingStep5');
+    const content5 = document.getElementById('gradingContent5');
+    if (step5) step5.classList.add('active');
+    if (content5) content5.classList.add('active');
+    gradingState.currentStep = 5;
+    
+    // Populate grade display with mock data
+    const gradeResultBig = document.getElementById('gradeResultBig');
+    const gradeResultLabel = document.getElementById('gradeResultLabel');
+    const gradePhotosUsed = document.getElementById('gradePhotosUsed');
+    const defectsList = document.getElementById('defectsList');
+    
+    if (gradeResultBig) gradeResultBig.textContent = '8.0';
+    if (gradeResultLabel) gradeResultLabel.textContent = 'VF (Very Fine)';
+    if (gradePhotosUsed) gradePhotosUsed.innerHTML = '🧪 <em>Dev mode — mock data (no photos)</em>';
+    if (defectsList) {
+        defectsList.innerHTML = mockGradeResult.defects
+            .map(d => `<li>${d}</li>`).join('');
     }
     
-    // Run the recommendation calculation (this will test cache warning)
+    // Scroll to report section
+    const reportSection = content5 || document.getElementById('recommendationVerdict');
+    if (reportSection) {
+        reportSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Run the recommendation calculation (tests cache warning + valuation flow)
     await calculateGradingRecommendation(mockGradeResult);
 }
 
