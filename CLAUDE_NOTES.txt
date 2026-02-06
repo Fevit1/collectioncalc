@@ -11,6 +11,7 @@
 **Working Style Preference:** Mike prefers natural, collaborative conversation over formal business consultant mode. Keep it friendly and conversational - avoid getting too structured/professional even when reviewing project documentation. Think "working on cool stuff together" rather than "client presentation." **IMPORTANT:** When making code changes, explain the plan first and get Mike's approval before writing any code.
 
 **Current State (v4.3.0):**
+- **Slab Worthy = Multi-Collectible Platform** - Discovery: PSA card holders also called "slabs"! Plan to expand same site for comics AND cards with mode selector (Session 32) ⭐
 - **Blueprint refactor COMPLETE** - wsgi.py split from 2,198 lines to 305 lines, 54 routes organized into 9 blueprints (Session 32) ⭐
 - **Troubleshooting playbook created** - TROUBLESHOOTING.md for debugging deployment issues (Session 32) ⭐
 - **Thinking messages enhanced** - 1,015 total messages (10 serious + 1,005 humor), 2-phase flow, italic font, π second timing (3.1415s), random pause effect (Session 31)
@@ -47,6 +48,7 @@
 
 ### Backlog
 - [x] **Thinking messages ratio adjustment** - After initial 30-second serious phase, adjust to 4:1 serious:humor ratio. Prevents "joke fatigue" and keeps humor as pleasant surprises rather than constant stream. ✅ Implemented Session 31
+- [ ] **Baseball cards expansion (Next Vertical)** - Expand Slab Worthy to handle baseball cards with mode selector. Key insight: PSA also uses "slabs" so same brand works! Implementation: Landing page collectible type selector (comics vs cards), cookie preference, mode-specific grading companies (PSA/BGS/SGC), different photo flow (Front/Back/4 Corners vs Front/Spine/Back/Centerfold), PSA 1-10 scale vs CGC granular scale. Can later expand to Pokemon, Magic, other cards. (Session 32)
 - [ ] **Back button on photo upload flow** - Allow users to go back if they made a mistake during the 4-photo upload process (front, spine, back, centerfold). Currently users are stuck once they start the flow. (Session 31)
 - [ ] **Real slab premium data** - Currently using hardcoded multiplier tiers (getSlabPremium in grading.js). Replace with actual market data by parsing existing eBay sales titles for CGC/CBCS/PGX + grade numbers. Add fields: is_slabbed, slab_company, slab_grade to ebay_sales. Then calculate real per-title slab premiums by comparing raw vs slabbed averages. Big accuracy improvement for the "Should You Slab It?" verdict.
 - [ ] **Migrate to 11ty static site generator** - Shared header/footer templates instead of duplicating HTML across pages. Also consolidate logo into single template/component (currently duplicated as inline HTML on every page). Cloudflare Pages supports 11ty natively. Free and open source. Would make future updates much easier.
@@ -206,6 +208,44 @@ def route_function():
 - **wsgi.py** - Reduced from 2,198 to 305 lines, registers 9 blueprints
 - **auth.py** - Added Flask decorators (require_auth, require_approved, require_admin_auth)
 - **routes/** - Created entire directory with 9 blueprint files + __init__.py
+
+**CRITICAL INSIGHT:** Session ended with major strategic discovery! 💡
+
+**Discovery:** PSA baseball card holders are ALSO called "slabs" - same terminology as CGC/CBCS for comics!
+
+**Strategic Pivot:** Don't build separate "Cardvark" site. Instead, expand **Slab Worthy™** to handle BOTH comics and cards:
+
+**Implementation Plan:**
+1. **Landing Page Mode Selector:**
+   - "What are you grading today?"
+   - [ 📚 Comic Books ] or [ 🃏 Baseball Cards ]
+   
+2. **Cookie Preference:**
+   - Save user's choice: `collectible_type = "comics"` or `"cards"`
+   - Auto-route returning users to their preference
+   - Allow switching via header button
+
+3. **Mode-Specific Customization:**
+   - **Comics:** CGC/CBCS/PGX, Front/Spine/Back/Centerfold photos, CGC scale
+   - **Cards:** PSA/BGS/SGC, Front/Back/4 Corners photos, PSA 1-10 scale
+   - Shared: "Slab Worthy" brand, 4-photo AI flow, "Should you slab it?" question
+
+4. **Why This Works:**
+   - ✅ "Slab" terminology universal to both
+   - ✅ Same core tech, different grading company APIs
+   - ✅ Cross-pollination (collectors often do both)
+   - ✅ Faster to market than building Cardvark from scratch
+   - ✅ Proven "Slab Worthy" brand already resonates
+
+5. **Future Expansion:**
+   - Can add Pokemon, Magic, other cards later
+   - Any "slabbed" collectible fits the brand
+
+**Brand Guidelines Impact:** Need to update Slab Worthy from "comics only" to "multi-collectible platform". Drop Cardvark as separate product (or repurpose as content/community brand).
+
+**Domain Saved:** slabworthy.com covers everything. No need for cardvark.com ($25k anyway!)
+
+---
 
 ### Next Session Priorities (When Deployment Succeeds)
 1. **Verify all routes work** - Test each endpoint using ROUTE_MAPPING.md

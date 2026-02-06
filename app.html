@@ -231,6 +231,266 @@
                 font-size: 10px;
             }
         }
+
+        /* ========================================== 
+           INTERACTIVE UPLOAD DIAGRAM 
+           ========================================== */
+        .photo-upload-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            margin: 2rem 0;
+        }
+
+        .photo-upload-row-top {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .photo-upload-row-bottom {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Upload boxes - interactive */
+        .photo-upload-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid rgba(168, 85, 247, 0.4);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .photo-upload-box:hover {
+            transform: scale(1.05);
+            border-color: rgb(168, 85, 247);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+
+        /* Sizing */
+        .photo-upload-box {
+            width: 120px;
+            height: 170px;
+        }
+
+        .photo-spine-upload {
+            width: 40px;
+            height: 170px;
+        }
+
+        .photo-centerfold-upload {
+            width: 296px;
+            height: 170px;
+        }
+
+        /* Upload box content (before upload) */
+        .upload-box-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .upload-box-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .upload-box-label-vertical {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1.4;
+        }
+
+        .upload-box-icon {
+            font-size: 32px;
+            opacity: 0.6;
+        }
+
+        .upload-box-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+        }
+
+        /* Required indicator for front */
+        .photo-upload-box[data-required="true"] {
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .photo-upload-box[data-required="true"]:hover {
+            border-color: rgb(245, 158, 11);
+        }
+
+        /* Highlight state - suggests next upload */
+        .photo-upload-box.highlight {
+            border-color: rgb(168, 85, 247);
+            background: rgba(168, 85, 247, 0.15);
+            animation: pulse-upload 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-upload {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(168, 85, 247, 0.7);
+            }
+        }
+
+        /* Uploaded state */
+        .photo-upload-box.uploaded .upload-box-content {
+            display: none;
+        }
+
+        .upload-box-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .photo-upload-box.uploaded .upload-box-thumbnail {
+            display: block;
+        }
+
+        .upload-box-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-checkmark {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgb(16, 185, 129);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Hidden file inputs */
+        .upload-input-hidden {
+            display: none;
+        }
+
+        /* Upload progress indicator */
+        .upload-progress-indicator {
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 400px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgb(168, 85, 247), rgb(99, 102, 241));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Warning banner */
+        .upload-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 767px) {
+            .photo-upload-diagram {
+                padding: 1rem;
+            }
+
+            .photo-upload-box {
+                width: 90px;
+                height: 130px;
+            }
+
+            .photo-spine-upload {
+                width: 30px;
+                height: 130px;
+            }
+
+            .photo-centerfold-upload {
+                width: 226px;
+                height: 130px;
+            }
+
+            .upload-box-label {
+                font-size: 11px;
+            }
+
+            .upload-box-icon {
+                font-size: 24px;
+            }
+
+            .upload-box-hint {
+                font-size: 9px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -323,271 +583,119 @@
                     <div class="grading-progress">
                         <div class="grading-step active" id="gradingStep1">
                             <div class="step-number">1</div>
-                            <div class="step-label">Front</div>
+                            <div class="step-label">Upload Photos</div>
                         </div>
                         <div class="grading-step-line"></div>
                         <div class="grading-step" id="gradingStep2">
                             <div class="step-number">2</div>
-                            <div class="step-label">Spine</div>
-                        </div>
-                        <div class="grading-step-line"></div>
-                        <div class="grading-step" id="gradingStep3">
-                            <div class="step-number">3</div>
-                            <div class="step-label">Back</div>
-                        </div>
-                        <div class="grading-step-line"></div>
-                        <div class="grading-step" id="gradingStep4">
-                            <div class="step-number">4</div>
-                            <div class="step-label">Center</div>
-                        </div>
-                        <div class="grading-step-line"></div>
-                        <div class="grading-step" id="gradingStep5">
-                            <div class="step-number">5</div>
-                            <div class="step-label">Report</div>
+                            <div class="step-label">Slab Report</div>
                         </div>
                     </div>
                     
-                    <!-- Step 1: Front Cover (Required) -->
+                    <!-- Single Page Upload Interface -->
                     <div class="grading-step-content active" id="gradingContent1">
                         <div class="grading-header">
-                            <h3>📷 Step 1: Front Cover</h3>
-                            <span class="grading-required">Required</span>
+                            <h3>📷 Upload Your Comic Photos</h3>
+                            <p class="grading-subtitle">Click each section to upload. Front cover is required.</p>
                         </div>
-                        <p class="grading-instruction"><span class="mobile-only">Take</span><span class="desktop-only">Upload</span> a clear, upright photo of the front cover. This identifies your comic and assesses cover condition.</p>
                         
-                        <div class="grading-photo-options" id="gradingUpload1">
-                            <input type="file" id="gradingCamera1" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(1, this.files)">
-                            <input type="file" id="gradingGallery1" class="upload-input" accept="*/*" onchange="handleGradingPhoto(1, this.files)">
-                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera1').click();">
-                                <span class="photo-option-icon">📷</span>
-                                <span class="photo-option-text">Take Photo</span>
-                            </button>
-                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery1').click();">
-                                <span class="photo-option-icon">📁</span>
-                                <span class="photo-option-text">Upload</span>
-                            </button>
-                            <div class="photo-diagram-container">
-                                <div class="photo-diagram">
-                                    <div class="photo-diagram-row-top">
-                                        <div class="photo-box photo-front active">Front</div>
-                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                        <div class="photo-box photo-back">Back</div>
+                        <!-- Interactive Photo Diagram -->
+                        <div class="photo-upload-diagram">
+                            <!-- Top Row: Front, Spine, Back -->
+                            <div class="photo-upload-row-top">
+                                <div class="photo-upload-box" id="uploadBoxFront" data-photo-type="front" data-required="true" onclick="triggerPhotoUpload('front')">
+                                    <input type="file" id="uploadInputFront" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('front', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">FRONT*</div>
+                                        <div class="upload-box-icon">📷</div>
+                                        <div class="upload-box-hint">Click to upload</div>
                                     </div>
-                                    <div class="photo-diagram-row-bottom">
-                                        <div class="photo-box photo-centerfold">Centerfold</div>
+                                    <div class="upload-box-thumbnail" id="thumbnailFront" style="display: none;">
+                                        <img id="imgFront" src="" alt="Front cover">
+                                        <div class="thumbnail-checkmark">✓</div>
                                     </div>
                                 </div>
-                                <div class="photo-diagram-label">FRONT COVER - Full cover visible, good lighting</div>
+                                
+                                <div class="photo-upload-box photo-spine-upload" id="uploadBoxSpine" data-photo-type="spine" onclick="triggerPhotoUpload('spine')">
+                                    <input type="file" id="uploadInputSpine" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('spine', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label-vertical">S<br>P<br>I<br>N<br>E</div>
+                                        <div class="upload-box-icon">📷</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailSpine" style="display: none;">
+                                        <img id="imgSpine" src="" alt="Spine">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="photo-upload-box" id="uploadBoxBack" data-photo-type="back" onclick="triggerPhotoUpload('back')">
+                                    <input type="file" id="uploadInputBack" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('back', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">BACK</div>
+                                        <div class="upload-box-icon">📷</div>
+                                        <div class="upload-box-hint">Click to upload</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailBack" style="display: none;">
+                                        <img id="imgBack" src="" alt="Back cover">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bottom Row: Centerfold -->
+                            <div class="photo-upload-row-bottom">
+                                <div class="photo-upload-box photo-centerfold-upload" id="uploadBoxCenterfold" data-photo-type="centerfold" onclick="triggerPhotoUpload('centerfold')">
+                                    <input type="file" id="uploadInputCenterfold" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('centerfold', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">CENTERFOLD</div>
+                                        <div class="upload-box-icon">📷</div>
+                                        <div class="upload-box-hint">Click to upload</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailCenterfold" style="display: none;">
+                                        <img id="imgCenterfold" src="" alt="Centerfold">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Preview after photo taken -->
-                        <div class="grading-preview" id="gradingPreview1" style="display: none;">
-                            <img id="gradingImg1" src="" alt="Front cover">
-                            <div class="grading-preview-info" id="gradingInfo1">
-                                <!-- Populated after extraction -->
-                            </div>
-                            <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(1)">🔄 Retake</button>
+                        <!-- Upload Progress -->
+                        <div class="upload-progress-indicator">
+                            <div class="progress-text" id="uploadProgressText">0 of 4 photos uploaded</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="uploadProgressBar" style="width: 0%"></div>
                             </div>
                         </div>
                         
-                        <!-- Quality feedback -->
-                        <div class="grading-feedback" id="gradingFeedback1" style="display: none;">
-                            <span class="feedback-icon">⚠️</span>
-                            <span class="feedback-text" id="gradingFeedbackText1"></span>
+                        <!-- Warning Banner -->
+                        <div class="upload-warning" id="uploadWarning" style="display: none;">
+                            <span class="warning-icon">⚠️</span>
+                            <span class="warning-text">Upload all 4 photos for the most accurate assessment. Analysis with fewer photos will have limited accuracy.</span>
                         </div>
                         
+                        <!-- Photo Tips -->
                         <div class="grading-tips">
                             <button type="button" class="tips-toggle" onclick="togglePhotoTips()">💡 Photo tips</button>
+                            <div class="tips-content" id="photoTips" style="display: none;">
+                                <ul>
+                                    <li><strong>Lighting:</strong> Natural, indirect light works best. Avoid glare and shadows.</li>
+                                    <li><strong>Angle:</strong> Hold camera parallel to comic. Keep it level and centered.</li>
+                                    <li><strong>Distance:</strong> Fill most of frame with comic, leaving small border.</li>
+                                    <li><strong>Focus:</strong> Tap to focus. Make sure text is sharp and readable.</li>
+                                    <li><strong>Background:</strong> Plain, neutral background (white/black preferred).</li>
+                                </ul>
+                            </div>
                         </div>
                         
+                        <!-- Generate Button -->
                         <div class="grading-actions">
-                            <button type="button" class="btn-primary" id="gradingNext1" onclick="nextGradingStep(1)" disabled>Continue to Spine →</button>
+                            <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
+                                Generate Slab Report →
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Step 2: Spine -->
-                    <div class="grading-step-content" id="gradingContent2">
-                        <div class="grading-header">
-                            <h3>📷 Step 2: Spine</h3>
-                            <span class="grading-optional">Recommended</span>
-                        </div>
-                        <p class="grading-instruction"><span class="mobile-only">Photograph</span><span class="desktop-only">Upload a photo of</span> the spine to check for stress marks, rolls, and breaks.</p>
-                        
-                        <div class="grading-comic-id" id="gradingComicId2">
-                            <!-- Shows detected comic from step 1 -->
-                        </div>
-                        
-                        <div class="grading-photo-options" id="gradingUpload2">
-                            <input type="file" id="gradingCamera2" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(2, this.files)">
-                            <input type="file" id="gradingGallery2" class="upload-input" accept="*/*" onchange="handleGradingPhoto(2, this.files)">
-                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera2').click();">
-                                <span class="photo-option-icon">📷</span>
-                                <span class="photo-option-text">Take Photo</span>
-                            </button>
-                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery2').click();">
-                                <span class="photo-option-icon">📁</span>
-                                <span class="photo-option-text">Upload</span>
-                            </button>
-                            <div class="photo-diagram-container">
-                                <div class="photo-diagram">
-                                    <div class="photo-diagram-row-top">
-                                        <div class="photo-box photo-front">Front</div>
-                                        <div class="photo-box photo-spine active">S<br>p<br>i<br>n<br>e</div>
-                                        <div class="photo-box photo-back">Back</div>
-                                    </div>
-                                    <div class="photo-diagram-row-bottom">
-                                        <div class="photo-box photo-centerfold">Centerfold</div>
-                                    </div>
-                                </div>
-                                <div class="photo-diagram-label">SPINE - Hold comic sideways so spine fills frame</div>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-preview" id="gradingPreview2" style="display: none;">
-                            <img id="gradingImg2" src="" alt="Spine">
-                            <div class="grading-preview-info" id="gradingInfo2"></div>
-                            <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(2)">🔄 Retake</button>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-feedback" id="gradingFeedback2" style="display: none;">
-                            <span class="feedback-icon">⚠️</span>
-                            <span class="feedback-text" id="gradingFeedbackText2"></span>
-                        </div>
-                        
-                        <div class="grading-actions">
-                            <button type="button" class="btn-secondary" onclick="skipGradingStep(2)">Skip</button>
-                            <button type="button" class="btn-primary" id="gradingNext2" onclick="nextGradingStep(2)" disabled>Continue to Back →</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Step 3: Back Cover -->
-                    <div class="grading-step-content" id="gradingContent3">
-                        <div class="grading-header">
-                            <h3>📷 Step 3: Back Cover</h3>
-                            <span class="grading-optional">Recommended</span>
-                        </div>
-                        <p class="grading-instruction"><span class="mobile-only">Photograph</span><span class="desktop-only">Upload a photo of</span> the back cover to check for damage not visible from front.</p>
-                        
-                        <div class="grading-comic-id" id="gradingComicId3"></div>
-                        
-                        <div class="grading-photo-options" id="gradingUpload3">
-                            <input type="file" id="gradingCamera3" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(3, this.files)">
-                            <input type="file" id="gradingGallery3" class="upload-input" accept="*/*" onchange="handleGradingPhoto(3, this.files)">
-                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera3').click();">
-                                <span class="photo-option-icon">📷</span>
-                                <span class="photo-option-text">Take Photo</span>
-                            </button>
-                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery3').click();">
-                                <span class="photo-option-icon">📁</span>
-                                <span class="photo-option-text">Upload</span>
-                            </button>
-                            <div class="photo-diagram-container">
-                                <div class="photo-diagram">
-                                    <div class="photo-diagram-row-top">
-                                        <div class="photo-box photo-front">Front</div>
-                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                        <div class="photo-box photo-back active">Back</div>
-                                    </div>
-                                    <div class="photo-diagram-row-bottom">
-                                        <div class="photo-box photo-centerfold">Centerfold</div>
-                                    </div>
-                                </div>
-                                <div class="photo-diagram-label">BACK COVER - Full back cover visible</div>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-preview" id="gradingPreview3" style="display: none;">
-                            <img id="gradingImg3" src="" alt="Back cover">
-                            <div class="grading-preview-info" id="gradingInfo3"></div>
-                            <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(3)">🔄 Retake</button>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-feedback" id="gradingFeedback3" style="display: none;">
-                            <span class="feedback-icon">⚠️</span>
-                            <span class="feedback-text" id="gradingFeedbackText3"></span>
-                        </div>
-                        
-                        <div class="grading-actions">
-                            <button type="button" class="btn-secondary" onclick="skipGradingStep(3)">Skip</button>
-                            <button type="button" class="btn-primary" id="gradingNext3" onclick="nextGradingStep(3)" disabled>Continue to Centerfold →</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Step 4: Centerfold/Staples -->
-                    <div class="grading-step-content" id="gradingContent4">
-                        <div class="grading-header">
-                            <h3>📷 Step 4: Centerfold & Staples</h3>
-                            <span class="grading-optional">Recommended</span>
-                        </div>
-                        <p class="grading-instruction">Open to the center and <span class="mobile-only">photograph</span><span class="desktop-only">upload a photo of</span> the staples and centerfold attachment.</p>
-                        
-                        <div class="grading-comic-id" id="gradingComicId4"></div>
-                        
-                        <div class="grading-photo-options" id="gradingUpload4">
-                            <input type="file" id="gradingCamera4" class="upload-input" accept="image/*" capture="environment" onchange="handleGradingPhoto(4, this.files)">
-                            <input type="file" id="gradingGallery4" class="upload-input" accept="*/*" onchange="handleGradingPhoto(4, this.files)">
-                            <button type="button" class="photo-option-btn camera" onclick="document.getElementById('gradingCamera4').click();">
-                                <span class="photo-option-icon">📷</span>
-                                <span class="photo-option-text">Take Photo</span>
-                            </button>
-                            <button type="button" class="photo-option-btn gallery" onclick="document.getElementById('gradingGallery4').click();">
-                                <span class="photo-option-icon">📁</span>
-                                <span class="photo-option-text">Upload</span>
-                            </button>
-                            <div class="photo-diagram-container">
-                                <div class="photo-diagram">
-                                    <div class="photo-diagram-row-top">
-                                        <div class="photo-box photo-front">Front</div>
-                                        <div class="photo-box photo-spine">S<br>p<br>i<br>n<br>e</div>
-                                        <div class="photo-box photo-back">Back</div>
-                                    </div>
-                                    <div class="photo-diagram-row-bottom">
-                                        <div class="photo-box photo-centerfold active">Centerfold</div>
-                                    </div>
-                                </div>
-                                <div class="photo-diagram-label">CENTERFOLD - Open comic to center, show staples</div>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-preview" id="gradingPreview4" style="display: none;">
-                            <img id="gradingImg4" src="" alt="Centerfold">
-                            <div class="grading-preview-info" id="gradingInfo4"></div>
-                            <div class="grading-preview-actions">
-                                <button type="button" class="btn-secondary btn-small" onclick="retakeGradingPhoto(4)">🔄 Retake</button>
-                            </div>
-                        </div>
-                        
-                        <div class="grading-feedback" id="gradingFeedback4" style="display: none;">
-                            <span class="feedback-icon">⚠️</span>
-                            <span class="feedback-text" id="gradingFeedbackText4"></span>
-                        </div>
-                        
-                        <!-- Additional Photos Section -->
-                        <div class="grading-additional">
-                            <h4>📷 Additional Photos (Optional)</h4>
-                            <p>Add photos of specific defects, torn pages, or other issues.</p>
-                            <div class="additional-photos" id="additionalPhotos">
-                                <!-- Thumbnails of additional photos appear here -->
-                            </div>
-                            <button type="button" class="btn-secondary btn-small" onclick="document.getElementById('additionalPhotoInput').click();">
-                                + Add Photo
-                            </button>
-                            <input type="file" id="additionalPhotoInput" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleAdditionalPhoto(this.files)">
-                        </div>
-                        
-                        <div class="grading-actions">
-                            <button type="button" class="btn-secondary" onclick="skipGradingStep(4)">Skip</button>
-                            <button type="button" class="btn-primary" id="gradingNext4" onclick="generateGradeReport()">Generate Slab Report →</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Step 5: Grade Report -->
+                    <!-- Step 2: Grade Report -->
                     <div class="grading-step-content" id="gradingContent5">
                         <div class="grading-header">
                             <h3>📋 Slab Report</h3>
@@ -916,6 +1024,150 @@
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
     <script src="js/grading.js"></script>
+    
+    <!-- Single Page Upload JavaScript -->
+    <script>
+        // Track uploaded photos
+        const uploadedPhotos = {
+            front: null,
+            spine: null,
+            back: null,
+            centerfold: null
+        };
+        
+        // Trigger file input when box is clicked
+        function triggerPhotoUpload(photoType) {
+            document.getElementById(`uploadInput${capitalize(photoType)}`).click();
+        }
+        
+        // Handle photo upload
+        function handlePhotoUpload(photoType, files) {
+            if (!files || files.length === 0) return;
+            
+            const file = files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Store the photo data
+                uploadedPhotos[photoType] = {
+                    file: file,
+                    dataUrl: e.target.result
+                };
+                
+                // Update UI
+                const box = document.getElementById(`uploadBox${capitalize(photoType)}`);
+                const thumbnail = document.getElementById(`thumbnail${capitalize(photoType)}`);
+                const img = document.getElementById(`img${capitalize(photoType)}`);
+                
+                // Show thumbnail
+                img.src = e.target.result;
+                thumbnail.style.display = 'block';
+                box.classList.add('uploaded');
+                box.classList.remove('highlight');
+                
+                // Update progress
+                updateUploadProgress();
+                
+                // Highlight next box
+                highlightNextBox(photoType);
+                
+                // Enable generate button if front is uploaded
+                if (uploadedPhotos.front) {
+                    document.getElementById('generateReportBtn').disabled = false;
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Update upload progress indicator
+        function updateUploadProgress() {
+            const uploadCount = Object.values(uploadedPhotos).filter(p => p !== null).length;
+            const progressText = document.getElementById('uploadProgressText');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const warning = document.getElementById('uploadWarning');
+            
+            progressText.textContent = `${uploadCount} of 4 photos uploaded`;
+            progressBar.style.width = `${(uploadCount / 4) * 100}%`;
+            
+            // Show warning if less than 4 photos and at least 1 uploaded
+            if (uploadCount > 0 && uploadCount < 4) {
+                warning.style.display = 'flex';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+        
+        // Highlight next box in sequence
+        function highlightNextBox(currentType) {
+            // Remove all highlights
+            document.querySelectorAll('.photo-upload-box').forEach(box => {
+                box.classList.remove('highlight');
+            });
+            
+            // Sequence: front -> spine -> back -> centerfold
+            const sequence = ['front', 'spine', 'back', 'centerfold'];
+            const currentIndex = sequence.indexOf(currentType);
+            
+            // Find next unuploaded box
+            for (let i = currentIndex + 1; i < sequence.length; i++) {
+                const nextType = sequence[i];
+                if (!uploadedPhotos[nextType]) {
+                    document.getElementById(`uploadBox${capitalize(nextType)}`).classList.add('highlight');
+                    break;
+                }
+            }
+        }
+        
+        // Capitalize first letter
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+        
+        // Initialize - highlight front box
+        document.addEventListener('DOMContentLoaded', function() {
+            const frontBox = document.getElementById('uploadBoxFront');
+            if (frontBox) {
+                frontBox.classList.add('highlight');
+            }
+        });
+        
+        // Override generateGradeReport to use new photo data
+        const originalGenerateGradeReport = window.generateGradeReport;
+        window.generateGradeReport = function() {
+            // Check if at least front is uploaded
+            if (!uploadedPhotos.front) {
+                alert('Please upload at least the front cover photo.');
+                return;
+            }
+            
+            // Prepare photos array for existing grading logic
+            // Map to the format expected by existing code
+            window.gradingPhotos = {
+                1: uploadedPhotos.front ? { file: uploadedPhotos.front.file, dataUrl: uploadedPhotos.front.dataUrl } : null,
+                2: uploadedPhotos.spine ? { file: uploadedPhotos.spine.file, dataUrl: uploadedPhotos.spine.dataUrl } : null,
+                3: uploadedPhotos.back ? { file: uploadedPhotos.back.file, dataUrl: uploadedPhotos.back.dataUrl } : null,
+                4: uploadedPhotos.centerfold ? { file: uploadedPhotos.centerfold.file, dataUrl: uploadedPhotos.centerfold.dataUrl } : null
+            };
+            
+            // Call original function if it exists
+            if (originalGenerateGradeReport) {
+                originalGenerateGradeReport();
+            } else {
+                // Fallback: manually trigger report generation
+                // Update step indicator
+                document.getElementById('gradingStep1').classList.remove('active');
+                document.getElementById('gradingStep2').classList.add('active');
+                
+                // Hide upload content, show report
+                document.getElementById('gradingContent1').classList.remove('active');
+                document.getElementById('gradingContent5').classList.add('active');
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+    </script>
     
     <!-- Auto-select tab from URL hash, default to grading -->
     <script>
