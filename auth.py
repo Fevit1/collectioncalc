@@ -1000,3 +1000,5 @@ def require_admin_auth(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+# Blueprint decorators added v4.3.0
