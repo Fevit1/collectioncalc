@@ -113,11 +113,13 @@ async function runQuickTest() {
     gradingState.currentStep = 5;
     
     // Populate grade display with mock data
+    const gradeReportComic = document.getElementById('gradeReportComic');
     const gradeResultBig = document.getElementById('gradeResultBig');
     const gradeResultLabel = document.getElementById('gradeResultLabel');
     const gradePhotosUsed = document.getElementById('gradePhotosUsed');
     const defectsList = document.getElementById('defectsList');
     
+    if (gradeReportComic) gradeReportComic.innerHTML = `<div class="comic-title-big">Amazing Spider-Man #300</div>`;
     if (gradeResultBig) gradeResultBig.textContent = '8.0';
     if (gradeResultLabel) gradeResultLabel.textContent = 'VF (Very Fine)';
     if (gradePhotosUsed) gradePhotosUsed.innerHTML = '🧪 <em>Dev mode — mock data (no photos)</em>';
@@ -461,8 +463,7 @@ async function handleGradingPhoto(step, files) {
     } catch (error) {
         console.error('Error analyzing photo:', error);
         stopDotsAnimation();
-        // DEBUG: Show actual error on mobile
-        alert('DEBUG ERROR: ' + error.message + '\n\nStack: ' + (error.stack || 'no stack'));
+        console.error('Photo analysis error:', error.message, error.stack);
         feedback.className = 'grading-feedback error';
         feedbackText.textContent = 'Error analyzing image. Please try again.';
         feedback.style.display = 'flex';
@@ -506,7 +507,9 @@ async function analyzeGradingPhoto(step, processed) {
     // DEBUG: Check authToken
     console.log('DEBUG: authToken exists:', !!authToken, 'length:', authToken ? authToken.length : 0);
     if (!authToken) {
-        alert('DEBUG: No authToken! User may not be logged in.');
+        console.error('No authToken — redirecting to login');
+        window.location.replace('/login.html');
+        return;
     }
     
     // Step 1: Use backend /api/extract for full extraction (single source of truth)
@@ -523,10 +526,9 @@ async function analyzeGradingPhoto(step, processed) {
             })
         });
         
-        console.log('DEBUG API /api/extract response status:', response.status);
         if (!response.ok) {
             const errorText = await response.text();
-            alert('DEBUG API Error: Status ' + response.status + '\n\n' + errorText.substring(0, 500));
+            console.error('API Error:', response.status, errorText.substring(0, 500));
             throw new Error('API returned ' + response.status);
         }
         
@@ -645,11 +647,9 @@ Return ONLY valid JSON, no markdown.`
         })
     });
     
-    // DEBUG: Log response status
-    console.log('DEBUG API response status:', response.status);
     if (!response.ok) {
         const errorText = await response.text();
-        alert('DEBUG API Error: Status ' + response.status + '\n\n' + errorText.substring(0, 500));
+        console.error('API Error:', response.status, errorText.substring(0, 500));
         throw new Error('API returned ' + response.status);
     }
     
