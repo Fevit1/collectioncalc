@@ -41,7 +41,7 @@ from auth import (
     forgot_password, reset_password, get_current_user,
     validate_beta_code, create_beta_code, list_beta_codes,
     approve_user, reject_user, get_pending_users, get_all_users,
-    require_admin, verify_jwt, get_user_by_id
+    require_admin, verify_jwt, get_user_by_id, require_auth, require_approved
 )
 from admin import (
     log_request, log_api_usage, get_dashboard_stats,
@@ -227,7 +227,11 @@ from routes.collection import collection_bp
 
 # Initialize blueprint modules with global variables
 utils_init_globals(BARCODE_AVAILABLE, MODERATION_AVAILABLE)
-admin_init_modules(MODERATION_AVAILABLE, BARCODE_AVAILABLE, R2_AVAILABLE, scan_barcode_from_base64)
+admin_init_modules(
+    MODERATION_AVAILABLE, BARCODE_AVAILABLE, R2_AVAILABLE, scan_barcode_from_base64,
+    get_moderation_incidents if MODERATION_AVAILABLE else None,
+    get_moderation_stats if MODERATION_AVAILABLE else None
+)
 grading_init_modules(
     get_valuation_with_ebay, extract_from_base64, moderate_image,
     log_moderation_incident, get_image_hash, ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE

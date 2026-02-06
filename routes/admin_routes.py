@@ -18,8 +18,12 @@ from auth import (
 )
 from admin import (
     get_dashboard_stats, get_recent_errors, get_anthropic_usage_summary,
-    natural_language_query, get_moderation_incidents, get_moderation_stats
+    natural_language_query
 )
+
+# Moderation functions (will be passed in via init_modules if available)
+get_moderation_incidents = None
+get_moderation_stats = None
 
 # Module imports (will be set by wsgi.py)
 MODERATION_AVAILABLE = False
@@ -28,13 +32,18 @@ R2_AVAILABLE = False
 scan_barcode_from_base64 = None
 
 
-def init_modules(moderation_available, barcode_available, r2_available, scan_barcode_func):
+def init_modules(moderation_available, barcode_available, r2_available, scan_barcode_func,
+                 get_mod_incidents_func=None, get_mod_stats_func=None):
     """Initialize modules from wsgi.py"""
     global MODERATION_AVAILABLE, BARCODE_AVAILABLE, R2_AVAILABLE, scan_barcode_from_base64
+    global get_moderation_incidents, get_moderation_stats
+    
     MODERATION_AVAILABLE = moderation_available
     BARCODE_AVAILABLE = barcode_available
     R2_AVAILABLE = r2_available
     scan_barcode_from_base64 = scan_barcode_func
+    get_moderation_incidents = get_mod_incidents_func
+    get_moderation_stats = get_mod_stats_func
 
 
 @admin_bp.route('/dashboard', methods=['GET'])
@@ -151,7 +160,7 @@ def api_get_moderation():
     limit = request.args.get('limit', 50, type=int)
     blocked_only = request.args.get('blocked_only', 'false').lower() == 'true'
     
-    if MODERATION_AVAILABLE:
+    if MODERATION_AVAILABLE and get_moderation_incidents and get_moderation_stats:
         incidents = get_moderation_incidents(limit=limit, blocked_only=blocked_only)
         stats = get_moderation_stats()
     else:
