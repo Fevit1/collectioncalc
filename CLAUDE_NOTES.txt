@@ -13,7 +13,13 @@
 **Current State (v4.2.2):**
 - **Content moderation LIVE** - AWS Rekognition checks all user-uploaded images
 - **All pages now have consistent header/footer** - Gold logo, matching nav and footer
+- **Gold Bangers logo on app page** - Matches homepage branding (Session 30)
+- **Auth token unified** - login.html and auth.js both use `cc_token` now (Session 30)
+- **Auth gate on app page** - Unauthenticated users redirected to /login.html (Session 30)
+- **Debug alerts removed** - Production-safe error handling in grading.js (Session 30)
+- **Dev mode Quick Test working** - 🧪 button runs full mock grading flow (Session 30)
 - **Site restructured** - Marketing at /, auth at /login.html
+- **Mode toggle hidden** - Slab Worthy is now the only visible mode (Manual Entry hidden)
 - **Email system complete** - Resend configured for slabworthy.com (free tier, CC domain removed)
 - **Password reset fixed** - Links go to /login.html, 24hr token expiry
 - FMV uses eBay + Whatnot data (10x more sales!)
@@ -28,7 +34,7 @@
 
 ### Pre-Beta MUST-HAVES
 - [x] **Content moderation system** - Amazon Rekognition integration ✅ (v4.2.2, Session 28)
-- [ ] **Mobile testing** - full Slab Worthy grading flow on phone
+- [ ] **Mobile testing** - IN PROGRESS (Session 30). Auth gate, logo, debug alerts done. Photo rotation, password eye, spine box still need fixing.
 
 ### Branding ✅ RESOLVED
 - [x] **Tagline decided** - "AI for Comic Collectors"
@@ -45,6 +51,81 @@
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 - [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
 - [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 30 Summary (February 5, 2026)
+
+### Major Accomplishments
+
+1. **Dev Mode Quick Test — FIXED ✅**
+   - Root cause: `runQuickTest()` called `setMode('grading')` which targeted DOM elements that don't exist
+   - Fix: Removed `setMode` call (unnecessary — user is already on grading tab), added step 5 activation logic, populated mock grade data (ASM #300, 8.0 VF)
+   - Full flow now works: mock grade → defects → cache warning → valuation → verdict
+   - **Gotcha:** grading.js lives in `js/` folder — first push went to repo root and didn't take effect
+
+2. **Gold Bangers Logo on App Page ✅**
+   - Added Bangers font import to app.html
+   - Styled header h1 with gold `#facc15` + purple text-shadow
+   - Had to override `styles.css` global h1 rule that used `-webkit-text-fill-color: transparent` with `background-clip: text` for gradient effect — this always beats `color` even with `!important`
+   - Fix: explicit `-webkit-text-fill-color: #facc15 !important` + `background: none !important`
+   - Uppercase "SLAB WORTHY" with superscript ™ to match homepage
+
+3. **Auth Token Key Mismatch — FIXED ✅**
+   - **Root cause:** `login.html` stored token as `cc_token`, `auth.js` looked for `cc_auth_token` — they never found each other
+   - Unified everything on `cc_token` (login.html's key, since that's the primary login page)
+   - Files updated: `auth.js`, `app.html` auth gate
+
+4. **Auth Gate on App Page ✅**
+   - Inline script at top of app.html checks `localStorage.getItem('cc_token')`
+   - No token → immediate `window.location.replace('/login.html')`
+   - Runs before any other scripts load — unauthenticated users never see the grading UI
+
+5. **Debug Alerts Removed ✅**
+   - 4 `alert('DEBUG ...')` calls in grading.js replaced with `console.error()`
+   - No-auth check now redirects to login instead of alerting
+   - User-facing alerts kept ("Save to collection coming soon!", "No grade data to save")
+
+6. **Mode Toggle Hidden ✅**
+   - "Slab Worthy™? / Manual Entry" toggle bar hidden with `display: none`
+   - HTML kept intact so `setMode()` in app.js doesn't throw null errors
+   - Users now go straight from header to step 1
+
+7. **"Should You Slab It?" Heading Cleaned Up ✅**
+   - Removed "| Slab Worthy™" — just says "Should You Slab It?" now
+
+8. **Homepage ™ Added ✅**
+   - Main hero logo: `SLAB WORTHY™` (superscript span)
+   - Footer logo: `SLAB WORTHY™`
+
+### Bugs Found During Mobile Testing (IN PROGRESS)
+- [ ] **App page logo still purple** — Gold override deployed but may need verification. The `-webkit-text-fill-color` fix was deployed but last screenshot still showed purple/blue. May need hard refresh or further CSS specificity work.
+- [ ] **Password eye icon** — not native, only shows via browser extension. Need to add toggle to login.html (login.html already has `togglePassword()` function — may just need visible button in HTML)
+- [ ] **Photo rotation on mobile** — images display upside down. EXIF orientation handling may not be working
+- [ ] **Spine upload box** — icon misaligned. Idea: comic diagram that highlights current area per step (reuse homepage icon)
+- [ ] **Micronauts #6** — "could not retrieve market values" — may be Render cold start / no sales data
+- [ ] **Login page** — replace "← Home" link with gold Bangers logo linking to /
+- [ ] **"Remember me" checkbox** — on login page, short session default, 30-day if checked
+
+### ⚠️ IMPORTANT: Token Key Reference
+All frontend files MUST use `cc_token` for localStorage:
+- `login.html` — stores `cc_token` ✅
+- `auth.js` — reads/stores `cc_token` ✅ (was `cc_auth_token`, fixed Session 30)
+- `app.html` auth gate — checks `cc_token` ✅
+- If any other file touches auth tokens, verify it uses `cc_token`
+
+### Files Updated This Session
+- `app.html` — Gold Bangers logo, auth gate, mode toggle hidden, "Should You Slab It?" heading
+- `js/grading.js` — Quick Test fix, debug alerts removed (**NOTE: lives in js/ folder, not repo root**)
+- `js/auth.js` — Token key unified to `cc_token`
+- `index.html` — ™ added to hero logo and footer logo
+
+### Next Session Priorities (When Mike Returns)
+1. **Continue mobile testing** — Mike was mid-walkthrough
+2. **Fix remaining mobile bugs** (photo rotation, password eye, spine box, login page logo)
+3. **Remember me checkbox** on login
+4. **Investigate Micronauts #6 valuation failure**
+5. **Ron's login debugging** — may be resolved by token key fix
 
 ---
 
@@ -97,11 +178,13 @@
 
 ### Current Status - Pre-Beta Checklist
 - [x] **Content moderation** - Live with AWS Rekognition
-- [x] **Trademark protection** - ™ symbols deployed
-- [x] **Cache warning system** - Complete (just needs testing)
+- [x] **Trademark protection** - ™ symbols deployed (homepage added Session 30)
+- [x] **Cache warning system** - Complete and tested via Quick Test
 - [x] **Shimmer effects** - Live during thinking animations  
-- [ ] **Mobile testing** - Full Slab Worthy flow on phone
-- [ ] **Dev mode fixes** - DOM element targeting (15min fix)
+- [x] **Dev mode fixes** - Quick Test working ✅ (Session 30)
+- [x] **Auth gate** - Unauthenticated users redirected ✅ (Session 30)
+- [x] **Debug alerts removed** - Production-safe ✅ (Session 30)
+- [ ] **Mobile testing** - IN PROGRESS (Session 30)
 
 ### Files Deployed This Session
 - `app.html` - ™ symbols added to page title, buttons, headers
@@ -489,5 +572,5 @@ curl https://collectioncalc-docker.onrender.com/health
 
 ---
 
-*Last updated: February 5, 2026 (Session 29)*
+*Last updated: February 5, 2026 (Session 30)*
 *Version: 4.2.2*
