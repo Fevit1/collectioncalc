@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function checkAuthState() {
     // Load token from localStorage if not already set
     if (!authToken) {
-        authToken = localStorage.getItem('cc_auth_token');
+        authToken = localStorage.getItem('cc_token');
     }
     
     if (!authToken) {
@@ -29,7 +29,7 @@ async function checkAuthState() {
             currentUser = data.user;
             updateAuthUI(true);
         } else {
-            localStorage.removeItem('cc_auth_token');
+            localStorage.removeItem('cc_token');
             authToken = null;
             updateAuthUI(false);
         }
@@ -64,7 +64,7 @@ async function verifyEmail(token) {
         if (data.success) {
             if (data.token) {
                 authToken = data.token;
-                localStorage.setItem('cc_auth_token', authToken);
+                localStorage.setItem('cc_token', authToken);
                 currentUser = data.user;
                 updateAuthUI(true);
             }
@@ -203,7 +203,7 @@ async function handleLogin(e) {
         
         if (data.success) {
             authToken = data.token;
-            localStorage.setItem('cc_auth_token', authToken);
+            localStorage.setItem('cc_token', authToken);
             currentUser = data.user;
             updateAuthUI(true);
             closeAuthModal();
@@ -322,7 +322,7 @@ async function handleResetPassword(e) {
         if (data.success) {
             if (data.token) {
                 authToken = data.token;
-                localStorage.setItem('cc_auth_token', authToken);
+                localStorage.setItem('cc_token', authToken);
                 currentUser = data.user;
                 updateAuthUI(true);
             }
@@ -362,7 +362,7 @@ async function resendVerification() {
 function logout() {
     authToken = null;
     currentUser = null;
-    localStorage.removeItem('cc_auth_token');
+    localStorage.removeItem('cc_token');
     updateAuthUI(false);
     closeUserMenu();
 }

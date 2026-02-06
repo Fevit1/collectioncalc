@@ -12,7 +12,7 @@
     <script>
         // Auth gate — redirect to login if not authenticated
         (function() {
-            const token = localStorage.getItem('cc_auth_token');
+            const token = localStorage.getItem('cc_token');
             if (!token) {
                 window.location.replace('/login.html');
             }
