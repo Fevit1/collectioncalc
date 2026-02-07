@@ -1105,8 +1105,8 @@
                 const base64Data = dataUrl.split(',')[1];
                 const mediaType = dataUrl.split(';')[0].split(':')[1];
                 
-                // Call extraction API
-                const response = await fetch('/api/extract', {
+                // Call extraction API (using API_URL from utils.js)
+                const response = await fetch(`${API_URL}/api/extract`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
