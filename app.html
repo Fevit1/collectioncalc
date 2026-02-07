@@ -579,24 +579,10 @@
                 <!-- ========================================== -->
                 <div id="gradingMode">
                     
-                    <!-- Progress Steps Indicator -->
-                    <div class="grading-progress">
-                        <div class="grading-step active" id="gradingStep1">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Upload Photos</div>
-                        </div>
-                        <div class="grading-step-line"></div>
-                        <div class="grading-step" id="gradingStep2">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Slab Report</div>
-                        </div>
-                    </div>
-                    
                     <!-- Single Page Upload Interface -->
                     <div class="grading-step-content active" id="gradingContent1">
                         <div class="grading-header">
-                            <h3>📷 Upload Your Comic Photos</h3>
-                            <p class="grading-subtitle">Click each section to upload. Front cover is required.</p>
+                            <p class="grading-subtitle" style="text-align: center; margin: 0 auto 1.5rem; max-width: 600px;">Click each section to upload. Front cover is required.</p>
                         </div>
                         
                         <!-- Interactive Photo Diagram -->
@@ -1149,7 +1135,7 @@
         
         // Update upload progress indicator
         function updateUploadProgress() {
-            const uploadCount = Object.values(gradingState.photos).filter(p => p !== null).length;
+            const uploadCount = Object.values(window.gradingState.photos).filter(p => p !== null).length;
             const progressText = document.getElementById('uploadProgressText');
             const progressBar = document.getElementById('uploadProgressBar');
             const warning = document.getElementById('uploadWarning');
@@ -1187,7 +1173,7 @@
             for (let i = currentIndex + 1; i < sequence.length; i++) {
                 const nextType = sequence[i];
                 const nextNum = photoMap[nextType];
-                if (!gradingState.photos[nextNum]) {
+                if (!window.gradingState.photos[nextNum]) {
                     document.getElementById(`uploadBox${capitalize(nextType)}`).classList.add('highlight');
                     break;
                 }
