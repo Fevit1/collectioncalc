@@ -1041,13 +1041,13 @@
         }
         
         // Handle photo upload
-        function handlePhotoUpload(photoType, files) {
+        async function handlePhotoUpload(photoType, files) {
             if (!files || files.length === 0) return;
             
             const file = files[0];
             const reader = new FileReader();
             
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 // Store the photo data
                 uploadedPhotos[photoType] = {
                     file: file,
@@ -1071,13 +1071,80 @@
                 // Highlight next box
                 highlightNextBox(photoType);
                 
-                // Enable generate button if front is uploaded
-                if (uploadedPhotos.front) {
+                // Special handling for FRONT photo - extract comic data
+                if (photoType === 'front') {
+                    await extractComicData(e.target.result);
+                }
+                
+                // Enable generate button if front is uploaded AND extracted
+                if (uploadedPhotos.front && window.gradingState.extractedData) {
                     document.getElementById('generateReportBtn').disabled = false;
                 }
             };
             
             reader.readAsDataURL(file);
+        }
+        
+        // Extract comic data from front cover
+        async function extractComicData(dataUrl) {
+            const progressText = document.getElementById('uploadProgressText');
+            const generateBtn = document.getElementById('generateReportBtn');
+            
+            try {
+                // Show extracting state
+                progressText.textContent = '🔍 Identifying comic...';
+                generateBtn.disabled = true;
+                
+                // Get auth token
+                const authToken = localStorage.getItem('cc_token');
+                if (!authToken) {
+                    throw new Error('Not authenticated');
+                }
+                
+                // Extract base64 data (remove data:image/...;base64, prefix)
+                const base64Data = dataUrl.split(',')[1];
+                const mediaType = dataUrl.split(';')[0].split(':')[1];
+                
+                // Call extraction API
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        image: base64Data,
+                        media_type: mediaType
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Extraction failed');
+                }
+                
+                // Store extracted data in gradingState
+                window.gradingState.extractedData = data.extracted;
+                
+                // Update progress text with comic info
+                const title = data.extracted.title || 'Unknown';
+                const issue = data.extracted.issue || '?';
+                progressText.textContent = `✓ Identified: ${title} #${issue}`;
+                
+                // Enable button now that extraction is complete
+                generateBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Extraction error:', error);
+                // Still allow grading even if extraction fails
+                progressText.textContent = '⚠️ Could not identify comic - you can still grade';
+                generateBtn.disabled = false;
+            }
         }
         
         // Update upload progress indicator
@@ -1087,7 +1154,13 @@
             const progressBar = document.getElementById('uploadProgressBar');
             const warning = document.getElementById('uploadWarning');
             
-            progressText.textContent = `${uploadCount} of 4 photos uploaded`;
+            // Don't overwrite extraction message (if it contains "Identifying" or "Identified")
+            if (!progressText.textContent.includes('Identifying') && 
+                !progressText.textContent.includes('Identified') && 
+                !progressText.textContent.includes('Could not identify')) {
+                progressText.textContent = `${uploadCount} of 4 photos uploaded`;
+            }
+            
             progressBar.style.width = `${(uploadCount / 4) * 100}%`;
             
             // Show warning if less than 4 photos and at least 1 uploaded
