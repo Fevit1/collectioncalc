@@ -984,6 +984,40 @@ let thinkingInterval = null;
 let thinkingIndex = 0;
 let shuffledMessages = [];
 let usedIndices = new Set();
+let thinkingStartTime = null;
+
+// Serious professional messages ONLY (for first 30 seconds)
+const seriousMessages = [
+    "Searching recent eBay sold listings...",
+    "Filtering for comparable condition...",
+    "Analyzing sale prices from the past 90 days...",
+    "Checking for price outliers...",
+    "Comparing raw vs. slabbed sales...",
+    "Reviewing auction vs. Buy It Now prices...",
+    "Analyzing seasonal pricing trends...",
+    "Examining regional price variations...",
+    "Checking collector demand trends...",
+    "Calculating fair market value for raw copy...",
+    "Estimating slabbed value with CGC premium...",
+    "Factoring in current grading costs...",
+    "Comparing grading tiers (Modern, Economy, Express)...",
+    "Adjusting for market demand...",
+    "Accounting for shipping and insurance...",
+    "Analyzing historical value trajectory...",
+    "Projecting future appreciation potential...",
+    "Calculating potential return on investment...",
+    "Weighing grading cost vs. value increase...",
+    "Analyzing risk/reward ratio...",
+    "Considering turnaround time impact...",
+    "Evaluating signature authentication value...",
+    "Preparing your Slab Report...",
+    "Confirming comic identification...",
+    "Checking for variants and printings...",
+    "Verifying issue type (regular vs. annual)...",
+    "Scanning for key issue indicators...",
+    "Detecting first appearances and deaths...",
+    "Analyzing cover significance...",
+];
 
 // Fisher-Yates shuffle algorithm
 function shuffleArray(array) {
@@ -996,15 +1030,17 @@ function shuffleArray(array) {
 }
 
 function startThinkingAnimation(elementId) {
-    // Shuffle messages in random order
-    shuffledMessages = shuffleArray(thinkingMessages);
+    thinkingStartTime = Date.now();
+    
+    // Start with ONLY serious messages
+    shuffledMessages = shuffleArray(seriousMessages);
     thinkingIndex = 0;
     usedIndices.clear();
     
     const element = document.getElementById(elementId);
     if (!element) return;
     
-    // Initial message
+    // Initial message (always serious)
     element.innerHTML = `
         <div class="thinking-box" style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(79, 70, 229, 0.1); border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.3);">
             <div class="thinking-indicator" style="width: 20px; height: 20px; border: 2px solid rgba(79, 70, 229, 0.3); border-top-color: var(--brand-indigo, #4f46e5); border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -1021,11 +1057,24 @@ function startThinkingAnimation(elementId) {
     
     // Cycle through messages without repeating
     thinkingInterval = setInterval(() => {
+        const elapsedSeconds = (Date.now() - thinkingStartTime) / 1000;
+        
+        // After 30 seconds, switch to ALL messages (serious + funny)
+        if (elapsedSeconds >= 30 && shuffledMessages.length === seriousMessages.length) {
+            // Reshuffle with ALL messages
+            shuffledMessages = shuffleArray(thinkingMessages);
+            thinkingIndex = 0;
+            usedIndices.clear();
+        }
+        
         thinkingIndex = (thinkingIndex + 1) % shuffledMessages.length;
         
         // If we've cycled through all messages, reshuffle
         if (usedIndices.size >= shuffledMessages.length) {
-            shuffledMessages = shuffleArray(thinkingMessages);
+            // After 30 seconds, use all messages; before 30 seconds, only serious
+            const elapsedSeconds = (Date.now() - thinkingStartTime) / 1000;
+            const messagesToUse = elapsedSeconds >= 30 ? thinkingMessages : seriousMessages;
+            shuffledMessages = shuffleArray(messagesToUse);
             thinkingIndex = 0;
             usedIndices.clear();
         }
