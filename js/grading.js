@@ -152,24 +152,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Thinking progress messages (shown during valuation)
 const thinkingMessages = [
-    // Identification Phase
+    // Identification Phase (Professional)
     "Confirming comic identification...",
     "Checking for variants and printings...",
     "Verifying issue type (regular vs. annual)...",
-    // Market Research Phase
+    "Cross-referencing publisher database...",
+    "Scanning for key issue indicators...",
+    
+    // Market Research Phase (Professional)
     "Searching recent eBay sold listings...",
     "Filtering for comparable condition...",
     "Analyzing sale prices from the past 90 days...",
     "Checking for price outliers...",
-    // Valuation Phase
+    "Comparing raw vs. slabbed sales...",
+    "Reviewing auction vs. Buy It Now prices...",
+    "Analyzing seasonal pricing trends...",
+    
+    // Valuation Phase (Professional)
     "Calculating fair market value for raw copy...",
     "Estimating slabbed value with CGC premium...",
     "Factoring in current grading costs...",
     "Comparing grading tiers (Modern, Economy, Express)...",
-    // Recommendation Phase
+    "Adjusting for market demand...",
+    "Accounting for shipping and insurance...",
+    
+    // Recommendation Phase (Professional)
     "Calculating potential return on investment...",
     "Weighing grading cost vs. value increase...",
-    "Preparing your Slab Report..."
+    "Analyzing risk/reward ratio...",
+    "Preparing your Slab Report...",
+    
+    // Funny Messages (20%)
+    "Pretending to know what I'm doing...",
+    "Consulting the comic gods...",
+    "Asking Reddit for opinions...",
+    "Checking if this is a Liefeld...",
+    "Counting pouches on costumes..."
 ];
 
 let thinkingInterval = null;
@@ -1417,7 +1435,10 @@ function renderGradeReport(result, confidence, photoLabels) {
 
 // Calculate "should you grade?" recommendation
 async function calculateGradingRecommendation(gradeResult) {
-    // Start thinking animation
+    // Give user time to see the defects (2 seconds) before starting valuation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Start thinking animation for valuation
     startThinkingAnimation('recommendationVerdict');
     
     // Handle nested structure
@@ -1539,7 +1560,7 @@ async function calculateGradingRecommendation(gradeResult) {
         if (netBenefit > gradingCost * 0.5) {
             // Good ROI
             verdictHTML = `
-                <div class="recommendation-verdict submit">
+                <div class="recommendation-verdict submit" style="border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
                     <div class="verdict-icon">✅</div>
                     <div class="verdict-text">SUBMIT FOR GRADING</div>
                     <div class="verdict-reason">You'll make ~$${netBenefit.toFixed(2)} profit after grading costs</div>
@@ -1548,7 +1569,7 @@ async function calculateGradingRecommendation(gradeResult) {
         } else if (netBenefit > 0) {
             // Marginal
             verdictHTML = `
-                <div class="recommendation-verdict" style="background: rgba(99, 102, 241, 0.1); border-color: var(--brand-indigo);">
+                <div class="recommendation-verdict" style="background: rgba(99, 102, 241, 0.1); border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
                     <div class="verdict-icon">🤔</div>
                     <div class="verdict-text" style="color: var(--brand-indigo);">CONSIDER GRADING</div>
                     <div class="verdict-reason">Small profit of $${netBenefit.toFixed(2)} - worth it if you want the slab for your collection</div>
@@ -1557,7 +1578,7 @@ async function calculateGradingRecommendation(gradeResult) {
         } else {
             // Not worth it
             verdictHTML = `
-                <div class="recommendation-verdict keep-raw">
+                <div class="recommendation-verdict keep-raw" style="border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
                     <div class="verdict-icon">📦</div>
                     <div class="verdict-text">KEEP RAW</div>
                     <div class="verdict-reason">You'd lose $${Math.abs(netBenefit).toFixed(2)} - grading costs more than the value increase</div>
