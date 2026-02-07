@@ -514,10 +514,10 @@
         .defect-pill {
             display: inline-block;
             padding: 0.35rem 0.75rem;
-            background: rgba(245, 158, 11, 0.1);
-            border: 1.5px solid #f59e0b;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1.5px solid #ef4444;
             border-radius: 6px;
-            color: #f59e0b;
+            color: #ef4444;
             font-size: 0.85rem;
             font-weight: 500;
             letter-spacing: 0.3px;
@@ -525,8 +525,24 @@
         }
 
         .defect-pill:hover {
-            background: rgba(245, 158, 11, 0.15);
+            background: rgba(239, 68, 68, 0.15);
             transform: translateY(-1px);
+        }
+
+        /* ========================================== 
+           ANIMATED ELLIPSIS 
+           ========================================== */
+        .loading-dots::after {
+            content: '';
+            animation: ellipsis 1.5s infinite;
+        }
+
+        @keyframes ellipsis {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
         }
     </style>
 </head>
@@ -1113,9 +1129,41 @@
             const progressText = document.getElementById('uploadProgressText');
             const generateBtn = document.getElementById('generateReportBtn');
             
+            // Extraction thinking messages (80% professional, 20% funny)
+            const extractionMessages = [
+                // Professional (80%)
+                "Analyzing front cover details...",
+                "Detecting title and issue number...",
+                "Identifying publisher and series...",
+                "Cross-referencing comic database...",
+                "Scanning for variant indicators...",
+                "Checking barcode and UPC data...",
+                "Verifying publication date...",
+                "Analyzing cover art and layout...",
+                "Detecting grade-affecting text...",
+                "Confirming first appearance markers...",
+                "Checking for special editions...",
+                "Scanning for key issue indicators...",
+                // Funny (20%)
+                "Judging this cover art...",
+                "Wondering if this is a Liefeld...",
+                "Counting how many pouches on this costume..."
+            ];
+            
+            let messageIndex = 0;
+            let messageInterval;
+            
             try {
-                // Show extracting state
-                progressText.textContent = '🔍 Identifying comic...';
+                // Show extracting state with cycling messages
+                const startMessageCycle = () => {
+                    progressText.innerHTML = `<span class="loading-dots">${extractionMessages[messageIndex]}</span>`;
+                    messageInterval = setInterval(() => {
+                        messageIndex = (messageIndex + 1) % extractionMessages.length;
+                        progressText.innerHTML = `<span class="loading-dots">${extractionMessages[messageIndex]}</span>`;
+                    }, 3141.5); // π seconds (because why not?)
+                };
+                
+                startMessageCycle();
                 generateBtn.disabled = true;
                 
                 // Get auth token
@@ -1154,6 +1202,9 @@
                 // Store extracted data in gradingState
                 window.gradingState.extractedData = data.extracted;
                 
+                // Stop message cycling
+                clearInterval(messageInterval);
+                
                 // Update progress text with comic info
                 const title = data.extracted.title || 'Unknown';
                 const issue = data.extracted.issue || '?';
@@ -1164,6 +1215,8 @@
                 
             } catch (error) {
                 console.error('Extraction error:', error);
+                // Stop message cycling
+                clearInterval(messageInterval);
                 // Still allow grading even if extraction fails
                 progressText.textContent = '⚠️ Could not identify comic - you can still grade';
                 generateBtn.disabled = false;
@@ -1275,9 +1328,9 @@
             const defectsList = document.getElementById('defectsList');
             
             if (gradeResultBig) gradeResultBig.textContent = '...';
-            if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing photos...';
+            if (gradeResultLabel) gradeResultLabel.innerHTML = '<span class="loading-dots">Analyzing photos</span>';
             if (gradePhotosUsed) gradePhotosUsed.innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
-            if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
+            if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);" class="loading-dots">Finding defects</span>';
             
             try {
                 // Build image array from gradingState.photos
@@ -1398,33 +1451,36 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 if (defectsList) {
                     let defectsHTML = '';
                     
+                    // Helper to capitalize first letter
+                    const capitalizeFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+                    
                     if (result.front_defects && result.front_defects.length > 0) {
                         defectsHTML += '<div class="defect-section"><strong>FRONT</strong><div class="defect-pills">';
-                        result.front_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        result.front_defects.forEach(d => defectsHTML += `<span class="defect-pill">${capitalizeFirst(d)}</span>`);
                         defectsHTML += '</div></div>';
                     }
                     
                     if (result.spine_defects && result.spine_defects.length > 0) {
                         defectsHTML += '<div class="defect-section"><strong>SPINE</strong><div class="defect-pills">';
-                        result.spine_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        result.spine_defects.forEach(d => defectsHTML += `<span class="defect-pill">${capitalizeFirst(d)}</span>`);
                         defectsHTML += '</div></div>';
                     }
                     
                     if (result.back_defects && result.back_defects.length > 0) {
                         defectsHTML += '<div class="defect-section"><strong>BACK</strong><div class="defect-pills">';
-                        result.back_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        result.back_defects.forEach(d => defectsHTML += `<span class="defect-pill">${capitalizeFirst(d)}</span>`);
                         defectsHTML += '</div></div>';
                     }
                     
                     if (result.interior_defects && result.interior_defects.length > 0) {
                         defectsHTML += '<div class="defect-section"><strong>INTERIOR</strong><div class="defect-pills">';
-                        result.interior_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        result.interior_defects.forEach(d => defectsHTML += `<span class="defect-pill">${capitalizeFirst(d)}</span>`);
                         defectsHTML += '</div></div>';
                     }
                     
                     if (result.other_defects && result.other_defects.length > 0) {
                         defectsHTML += '<div class="defect-section"><strong>OTHER</strong><div class="defect-pills">';
-                        result.other_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        result.other_defects.forEach(d => defectsHTML += `<span class="defect-pill">${capitalizeFirst(d)}</span>`);
                         defectsHTML += '</div></div>';
                     }
                     
