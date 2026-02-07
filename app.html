@@ -491,6 +491,43 @@
                 font-size: 9px;
             }
         }
+
+        /* ========================================== 
+           DEFECT PILLS 
+           ========================================== */
+        .defect-section {
+            margin-bottom: 1rem;
+        }
+
+        .defect-section strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .defect-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .defect-pill {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1.5px solid #f59e0b;
+            border-radius: 6px;
+            color: #f59e0b;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+        }
+
+        .defect-pill:hover {
+            background: rgba(245, 158, 11, 0.15);
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -1362,33 +1399,33 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                     let defectsHTML = '';
                     
                     if (result.front_defects && result.front_defects.length > 0) {
-                        defectsHTML += '<div class="defect-section"><strong>FRONT</strong><ul>';
-                        result.front_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
-                        defectsHTML += '</ul></div>';
+                        defectsHTML += '<div class="defect-section"><strong>FRONT</strong><div class="defect-pills">';
+                        result.front_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        defectsHTML += '</div></div>';
                     }
                     
                     if (result.spine_defects && result.spine_defects.length > 0) {
-                        defectsHTML += '<div class="defect-section"><strong>SPINE</strong><ul>';
-                        result.spine_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
-                        defectsHTML += '</ul></div>';
+                        defectsHTML += '<div class="defect-section"><strong>SPINE</strong><div class="defect-pills">';
+                        result.spine_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        defectsHTML += '</div></div>';
                     }
                     
                     if (result.back_defects && result.back_defects.length > 0) {
-                        defectsHTML += '<div class="defect-section"><strong>BACK</strong><ul>';
-                        result.back_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
-                        defectsHTML += '</ul></div>';
+                        defectsHTML += '<div class="defect-section"><strong>BACK</strong><div class="defect-pills">';
+                        result.back_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        defectsHTML += '</div></div>';
                     }
                     
                     if (result.interior_defects && result.interior_defects.length > 0) {
-                        defectsHTML += '<div class="defect-section"><strong>INTERIOR</strong><ul>';
-                        result.interior_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
-                        defectsHTML += '</ul></div>';
+                        defectsHTML += '<div class="defect-section"><strong>INTERIOR</strong><div class="defect-pills">';
+                        result.interior_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        defectsHTML += '</div></div>';
                     }
                     
                     if (result.other_defects && result.other_defects.length > 0) {
-                        defectsHTML += '<div class="defect-section"><strong>OTHER</strong><ul>';
-                        result.other_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
-                        defectsHTML += '</ul></div>';
+                        defectsHTML += '<div class="defect-section"><strong>OTHER</strong><div class="defect-pills">';
+                        result.other_defects.forEach(d => defectsHTML += `<span class="defect-pill">${d}</span>`);
+                        defectsHTML += '</div></div>';
                     }
                     
                     if (!defectsHTML) {
