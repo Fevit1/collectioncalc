@@ -1223,7 +1223,7 @@
         // Complete standalone grading function
         window.generateGradeReport = async function() {
             // Check if at least front is uploaded
-            if (!gradingState.photos[1]) {
+            if (!window.gradingState.photos[1]) {
                 alert('Please upload at least the front cover photo.');
                 return;
             }
@@ -1262,7 +1262,7 @@
                 const photoLabels = [];
                 const labels = { 1: 'Front Cover', 2: 'Spine', 3: 'Back Cover', 4: 'Centerfold' };
                 
-                Object.entries(gradingState.photos).forEach(([step, photo]) => {
+                Object.entries(window.gradingState.photos).forEach(([step, photo]) => {
                     if (photo && photo.base64) {
                         imageContent.push({
                             type: 'image',
@@ -1277,9 +1277,9 @@
                 });
                 
                 // Get comic info from extractedData
-                const title = gradingState.extractedData?.title || 'Unknown';
-                const issue = gradingState.extractedData?.issue || '?';
-                const publisher = gradingState.extractedData?.publisher || 'Unknown';
+                const title = window.gradingState.extractedData?.title || 'Unknown';
+                const issue = window.gradingState.extractedData?.issue || '?';
+                const publisher = window.gradingState.extractedData?.publisher || 'Unknown';
                 
                 // Count photos for confidence
                 const photosUsed = imageContent.length;
@@ -1359,8 +1359,8 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 const result = JSON.parse(resultText);
                 
                 // Store in gradingState
-                gradingState.finalGrade = result;
-                gradingState.confidence = baseConfidence;
+                window.gradingState.finalGrade = result;
+                window.gradingState.confidence = baseConfidence;
                 
                 // Display results
                 if (gradeResultBig) gradeResultBig.textContent = result.final_grade || '?';
