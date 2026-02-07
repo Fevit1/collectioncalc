@@ -1027,14 +1027,6 @@
     
     <!-- Single Page Upload JavaScript -->
     <script>
-        // Track uploaded photos
-        const uploadedPhotos = {
-            front: null,
-            spine: null,
-            back: null,
-            centerfold: null
-        };
-        
         // Trigger file input when box is clicked
         function triggerPhotoUpload(photoType) {
             document.getElementById(`uploadInput${capitalize(photoType)}`).click();
@@ -1048,10 +1040,18 @@
             const reader = new FileReader();
             
             reader.onload = async function(e) {
-                // Store the photo data
-                uploadedPhotos[photoType] = {
-                    file: file,
-                    dataUrl: e.target.result
+                // Get photo type number (front=1, spine=2, back=3, centerfold=4)
+                const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
+                const photoNum = photoMap[photoType];
+                
+                // Store in gradingState.photos with base64 (without data:image prefix)
+                const base64Data = e.target.result.split(',')[1];
+                const mediaType = e.target.result.split(';')[0].split(':')[1];
+                
+                window.gradingState.photos[photoNum] = {
+                    base64: base64Data,
+                    mediaType: mediaType,
+                    file: file
                 };
                 
                 // Update UI
@@ -1077,7 +1077,7 @@
                 }
                 
                 // Enable generate button if front is uploaded AND extracted
-                if (uploadedPhotos.front && window.gradingState.extractedData) {
+                if (window.gradingState.photos[1] && window.gradingState.extractedData) {
                     document.getElementById('generateReportBtn').disabled = false;
                 }
             };
@@ -1149,7 +1149,7 @@
         
         // Update upload progress indicator
         function updateUploadProgress() {
-            const uploadCount = Object.values(uploadedPhotos).filter(p => p !== null).length;
+            const uploadCount = Object.values(gradingState.photos).filter(p => p !== null).length;
             const progressText = document.getElementById('uploadProgressText');
             const progressBar = document.getElementById('uploadProgressBar');
             const warning = document.getElementById('uploadWarning');
@@ -1180,12 +1180,14 @@
             
             // Sequence: front -> spine -> back -> centerfold
             const sequence = ['front', 'spine', 'back', 'centerfold'];
+            const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
             const currentIndex = sequence.indexOf(currentType);
             
             // Find next unuploaded box
             for (let i = currentIndex + 1; i < sequence.length; i++) {
                 const nextType = sequence[i];
-                if (!uploadedPhotos[nextType]) {
+                const nextNum = photoMap[nextType];
+                if (!gradingState.photos[nextNum]) {
                     document.getElementById(`uploadBox${capitalize(nextType)}`).classList.add('highlight');
                     break;
                 }
@@ -1215,48 +1217,18 @@
             };
         }
         
-        // Store original generateGradeReport from grading.js (already loaded)
+        // Store original generateGradeReport from grading.js (we won't use it)
         const originalGenerateGradeReport = window.generateGradeReport;
         
-        // Override with our version that sets up data for single-page upload
+        // Complete standalone grading function
         window.generateGradeReport = async function() {
             // Check if at least front is uploaded
-            if (!uploadedPhotos.front) {
+            if (!gradingState.photos[1]) {
                 alert('Please upload at least the front cover photo.');
                 return;
             }
             
-            // Convert uploaded photos to gradingState format (expected by grading.js)
-            if (uploadedPhotos.front) {
-                window.gradingState.photos[1] = {
-                    base64: uploadedPhotos.front.dataUrl.split(',')[1],
-                    mediaType: uploadedPhotos.front.file.type,
-                    file: uploadedPhotos.front.file
-                };
-            }
-            if (uploadedPhotos.spine) {
-                window.gradingState.photos[2] = {
-                    base64: uploadedPhotos.spine.dataUrl.split(',')[1],
-                    mediaType: uploadedPhotos.spine.file.type,
-                    file: uploadedPhotos.spine.file
-                };
-            }
-            if (uploadedPhotos.back) {
-                window.gradingState.photos[3] = {
-                    base64: uploadedPhotos.back.dataUrl.split(',')[1],
-                    mediaType: uploadedPhotos.back.file.type,
-                    file: uploadedPhotos.back.file
-                };
-            }
-            if (uploadedPhotos.centerfold) {
-                window.gradingState.photos[4] = {
-                    base64: uploadedPhotos.centerfold.dataUrl.split(',')[1],
-                    mediaType: uploadedPhotos.centerfold.file.type,
-                    file: uploadedPhotos.centerfold.file
-                };
-            }
-            
-            // Update UI manually for 2-step flow
+            // Update UI: Switch from upload to report
             const step1 = document.getElementById('gradingStep1');
             const step2 = document.getElementById('gradingStep2');
             const content1 = document.getElementById('gradingContent1');
@@ -1273,17 +1245,194 @@
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Call the original (now patched) grading.js function
-            if (originalGenerateGradeReport && typeof originalGenerateGradeReport === 'function') {
-                try {
-                    await originalGenerateGradeReport();
-                } catch (error) {
-                    console.error('Grading error:', error);
-                    alert('Error analyzing comic. Please check console and try again.');
+            // Show loading state
+            const gradeResultBig = document.getElementById('gradeResultBig');
+            const gradeResultLabel = document.getElementById('gradeResultLabel');
+            const gradePhotosUsed = document.getElementById('gradePhotosUsed');
+            const defectsList = document.getElementById('defectsList');
+            
+            if (gradeResultBig) gradeResultBig.textContent = '...';
+            if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing photos...';
+            if (gradePhotosUsed) gradePhotosUsed.innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
+            if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
+            
+            try {
+                // Build image array from gradingState.photos
+                const imageContent = [];
+                const photoLabels = [];
+                const labels = { 1: 'Front Cover', 2: 'Spine', 3: 'Back Cover', 4: 'Centerfold' };
+                
+                Object.entries(gradingState.photos).forEach(([step, photo]) => {
+                    if (photo && photo.base64) {
+                        imageContent.push({
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: photo.mediaType,
+                                data: photo.base64
+                            }
+                        });
+                        photoLabels.push(labels[step]);
+                    }
+                });
+                
+                // Get comic info from extractedData
+                const title = gradingState.extractedData?.title || 'Unknown';
+                const issue = gradingState.extractedData?.issue || '?';
+                const publisher = gradingState.extractedData?.publisher || 'Unknown';
+                
+                // Count photos for confidence
+                const photosUsed = imageContent.length;
+                const baseConfidence = { 1: 65, 2: 78, 3: 88, 4: 94 }[photosUsed] || 65;
+                
+                // Get auth token
+                const authToken = localStorage.getItem('cc_token');
+                if (!authToken) {
+                    throw new Error('Not authenticated');
                 }
-            } else {
-                console.error('Original generateGradeReport function not found');
-                alert('Grading system not loaded properly. Please refresh the page.');
+                
+                // Make grading API call
+                const response = await fetch(`${API_URL}/api/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 2048,
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                ...imageContent,
+                                {
+                                    type: 'text',
+                                    text: `You are grading this comic book using ${photoLabels.length} photos: ${photoLabels.join(', ')}.
+
+The comic has been identified as: ${title} #${issue}
+Publisher: ${publisher}
+
+Based on ALL images provided, give a comprehensive grade assessment.
+
+Return a JSON object with these EXACT top-level keys:
+
+{
+  "title": "${title}",
+  "issue": "${issue}",
+  "publisher": "${publisher}",
+  "year": "Year if visible",
+  "final_grade": 9.4,
+  "grade_label": "NM",
+  "grade_reasoning": "Detailed explanation",
+  "front_defects": ["array", "of", "defects"],
+  "spine_defects": ["array", "of", "defects"],
+  "back_defects": ["array", "of", "defects"],
+  "interior_defects": ["array", "of", "defects"],
+  "other_defects": ["array", "of", "defects"],
+  "signature_detected": false,
+  "signature_info": null
+}
+
+Use numeric grades like 9.8, 9.4, 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.0, 2.0, 1.0.
+Grade labels: MT, NM+, NM, NM-, VF+, VF, VF-, FN+, FN, FN-, VG+, VG, VG-, G, FR, PR.
+
+Return ONLY valid JSON, no markdown, no nested objects.`
+                                }
+                            ]
+                        }]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message || 'API error');
+                }
+                
+                // Parse response
+                let resultText = data.content[0].text;
+                resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                const result = JSON.parse(resultText);
+                
+                // Store in gradingState
+                gradingState.finalGrade = result;
+                gradingState.confidence = baseConfidence;
+                
+                // Display results
+                if (gradeResultBig) gradeResultBig.textContent = result.final_grade || '?';
+                if (gradeResultLabel) gradeResultLabel.textContent = result.grade_label || 'Unknown';
+                
+                // Display photos used
+                if (gradePhotosUsed) {
+                    gradePhotosUsed.innerHTML = `<strong>${photosUsed} photos analyzed</strong> (${photoLabels.join(', ')}) • Confidence: ${baseConfidence}%`;
+                }
+                
+                // Display defects
+                if (defectsList) {
+                    let defectsHTML = '';
+                    
+                    if (result.front_defects && result.front_defects.length > 0) {
+                        defectsHTML += '<div class="defect-section"><strong>FRONT</strong><ul>';
+                        result.front_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
+                        defectsHTML += '</ul></div>';
+                    }
+                    
+                    if (result.spine_defects && result.spine_defects.length > 0) {
+                        defectsHTML += '<div class="defect-section"><strong>SPINE</strong><ul>';
+                        result.spine_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
+                        defectsHTML += '</ul></div>';
+                    }
+                    
+                    if (result.back_defects && result.back_defects.length > 0) {
+                        defectsHTML += '<div class="defect-section"><strong>BACK</strong><ul>';
+                        result.back_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
+                        defectsHTML += '</ul></div>';
+                    }
+                    
+                    if (result.interior_defects && result.interior_defects.length > 0) {
+                        defectsHTML += '<div class="defect-section"><strong>INTERIOR</strong><ul>';
+                        result.interior_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
+                        defectsHTML += '</ul></div>';
+                    }
+                    
+                    if (result.other_defects && result.other_defects.length > 0) {
+                        defectsHTML += '<div class="defect-section"><strong>OTHER</strong><ul>';
+                        result.other_defects.forEach(d => defectsHTML += `<li>${d}</li>`);
+                        defectsHTML += '</ul></div>';
+                    }
+                    
+                    if (!defectsHTML) {
+                        defectsHTML = '<p style="color: var(--text-muted);">No significant defects detected</p>';
+                    }
+                    
+                    defectsList.innerHTML = defectsHTML;
+                }
+                
+                // Display comic info at top
+                const gradeReportComic = document.getElementById('gradeReportComic');
+                if (gradeReportComic) {
+                    gradeReportComic.innerHTML = `
+                        <h2>${result.title || 'Unknown'} #${result.issue || '?'}</h2>
+                        <p class="comic-metadata">${result.publisher || 'Unknown Publisher'} ${result.year ? '• ' + result.year : ''}</p>
+                    `;
+                }
+                
+                // Call valuation if function exists
+                if (window.calculateGradingRecommendation && typeof window.calculateGradingRecommendation === 'function') {
+                    await window.calculateGradingRecommendation(result);
+                }
+                
+            } catch (error) {
+                console.error('Grading error:', error);
+                if (gradeResultBig) gradeResultBig.textContent = 'Error';
+                if (gradeResultLabel) gradeResultLabel.textContent = 'Failed to analyze';
+                if (defectsList) {
+                    defectsList.innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p><p style="color: var(--text-muted); margin-top: 0.5rem;">Please try again or contact support if the issue persists.</p>`;
+                }
             }
         };
     </script>
