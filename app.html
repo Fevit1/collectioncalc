@@ -1437,19 +1437,6 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         };
     </script>
     
-    <!-- Auto-select tab from URL hash, default to grading -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const hash = window.location.hash.replace('#', '');
-            if (hash === 'manual') {
-                setMode('manual');
-            } else {
-                // Default to grading mode
-                setMode('grading');
-            }
-        });
-    </script>
-    
     <!-- Footer -->
     <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border-color);">
         <div style="margin-bottom: 8px;">

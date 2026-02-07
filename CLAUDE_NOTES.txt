@@ -14,6 +14,7 @@
 - **Slab Worthy = Multi-Collectible Platform** - Discovery: PSA card holders also called "slabs"! Plan to expand same site for comics AND cards with mode selector (Session 32) ⭐
 - **Blueprint refactor COMPLETE** - wsgi.py split from 2,198 lines to 305 lines, 54 routes organized into 9 blueprints (Session 32) ⭐
 - **Troubleshooting playbook created** - TROUBLESHOOTING.md for debugging deployment issues (Session 32) ⭐
+- **⚠️ CRITICAL BUG: Single-page upload broken** - UI shows thumbnails/extraction but photos don't store in gradingState, blocking all grading (Session 32)
 - **Thinking messages enhanced** - 1,015 total messages (10 serious + 1,005 humor), 2-phase flow, italic font, π second timing (3.1415s), random pause effect (Session 31)
 - **Content moderation LIVE** - AWS Rekognition checks all user-uploaded images
 - **All pages now have consistent header/footer** - Gold logo, matching nav and footer
@@ -31,7 +32,6 @@
 - Barcode scanning infrastructure ready
 - eBay Collector extension v1.0.3, Whatnot Valuator v2.41.2
 - **Known limitation:** Slab premium uses hardcoded formula, not real market data (see backlog)
-- **Single-page upload redesign DEPLOYED** - New interactive diagram, but missing extraction step (shows "Unknown #Unknown" - see Known Issues) (Session 32)
 
 ---
 
@@ -279,6 +279,101 @@ deploy
 - ImportError → Check if function exists in the file being imported from
 - Worker failed to boot → Look for actual error above the "failed to boot" line
 - Extensions failing → Server is probably down, check /health endpoint
+
+---
+
+### Session 32 Continued - Evening (February 6, 2026)
+
+**Focus:** Fix single-page upload extraction bug → Discovered deeper photo storage bug
+
+### Attempted Fixes
+
+1. **Fixed Extraction API URL ✅**
+   - **Issue:** 405 Method Not Allowed on `/api/extract`
+   - **Root Cause:** Using hardcoded `/api/extract` instead of `${API_URL}/api/extract`
+   - **Fix:** Updated `extractComicData()` function to use API_URL variable from utils.js
+   - **Result:** Extraction now works! Shows "✓ Identified: The Invincible Iron Man #109"
+
+2. **Fixed Auth Token ✅**
+   - **Issue:** 401 Unauthorized errors blocking all API calls
+   - **Root Cause:** Expired/invalid auth token
+   - **Fix:** Logout and login to get fresh token
+   - **Result:** API calls now authenticate successfully
+
+3. **Rewrote generateGradeReport() as Standalone Function ✅**
+   - **Issue:** Original function showed "0 photos" in API request despite photos being uploaded
+   - **Root Cause:** Original grading.js function couldn't find photos in expected format
+   - **Fix:** Complete 200+ line standalone implementation that:
+     - Builds image array directly from `gradingState.photos`
+     - Uses comic info from `gradingState.extractedData`
+     - Makes API call with all photos
+     - Displays results independently
+   - **Files Changed:** app.html (~400 lines modified)
+   - **Deployment:** Code pushed to git and deployed
+
+4. **Updated Photo Storage Logic ✅**
+   - **Issue:** Photos stored in `uploadedPhotos` object, then converted to `gradingState.photos` format
+   - **Fix:** Store directly in `gradingState.photos` from the start:
+   ```javascript
+   const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
+   const photoNum = photoMap[photoType];
+   window.gradingState.photos[photoNum] = {
+       base64: base64Data,
+       mediaType: mediaType,
+       file: file
+   };
+   ```
+   - **Also Updated:** `updateUploadProgress()`, `highlightNextBox()` to use gradingState
+   - **Removed:** Unused `uploadedPhotos` object
+
+### CRITICAL BUG DISCOVERED ⚠️
+
+Despite all fixes above, **photos still not storing in gradingState.photos**.
+
+**Symptoms:**
+- ✅ Upload 4 photos → Thumbnails show with green checkmarks
+- ✅ Extraction works → "✓ Identified: The Invincible Iron Man #109"
+- ❌ Progress bar stuck at "0 of 4 photos uploaded"
+- ❌ Click "Generate Slab Report" → Error: "Please upload at least the front cover photo"
+- ❌ Console: `window.gradingState.photos = {1: null, 2: null, 3: null, 4: null}`
+
+**What We Know:**
+- Code looks correct (reviewed multiple times)
+- Deployment confirmed (git push successful)
+- Hard refresh tried (Ctrl+Shift+R) - no change
+- No JavaScript errors in console (except unrelated setMode error in app.js)
+- Waiting between uploads doesn't help (tried 10-30 seconds)
+- Auth working (token valid, 200 responses)
+
+**Possible Causes:**
+1. Browser aggressive caching - new code not loading
+2. Render deployment lag - CDN not updated yet
+3. Silent JavaScript error failing somewhere
+4. Original grading.js overwriting gradingState
+5. File input events not triggering correctly
+6. Code not actually deployed despite git confirmation
+
+**Next Steps (for tomorrow):**
+1. View page source in browser - verify new `handlePhotoUpload` code is live
+2. Add `console.log()` statements to trace execution
+3. Try incognito mode to rule out caching
+4. Check if gradingState is initialized correctly on page load
+5. Look for code that might reset gradingState
+6. **Rollback option:** Revert to old 4-step flow if debugging takes too long
+
+**Status:** CRITICAL - Feature completely broken, blocks all grading
+
+**Session ended:** ~6:30pm - Mike went to dinner, decided to tackle with fresh eyes tomorrow
+
+### Files Deployed
+- `app.html` - Complete rewrite of upload and grading logic (~400 lines)
+- `index.html` - Homepage scanner animation fixes (from earlier Session 32)
+- `grading.js` - Null check patches (from earlier Session 32)
+
+### Documentation Created
+- **EXTRACTION_FIX_SUMMARY.md** - Details of extraction API fix
+- **REWRITE_SUMMARY.md** - Full explanation of standalone grading rewrite
+- **SESSION_END_SUMMARY.md** - Tonight's debugging summary (merged into this section)
 
 ---
 
@@ -864,30 +959,72 @@ curl https://collectioncalc-docker.onrender.com/health
 
 ## 🐛 Known Issues & To-Do
 
-### Single-Page Upload - Missing Extraction Step
-**Issue:** New single-page upload flow allows "Generate Slab Report" button to be clicked before comic identification happens.
+### CRITICAL: Single-Page Upload - Photos Not Storing in gradingState
+**Date Discovered:** February 6, 2026 (Session 32 continued)
 
-**Old 4-step flow:**
-1. Upload Front → Extraction API called → Comic identified (title/issue/publisher)
-2. Store in `gradingState.extractedData`
-3. Enable "Next" button
-4. Repeat for spine, back, centerfold
-5. Generate report with comic identity
+**Issue:** Single-page upload shows thumbnails and extraction works, but `gradingState.photos` stays empty/null, causing "please upload at least front cover" error when clicking Generate button.
 
-**New single-page flow:**
-1. Upload any photo → Just stores raw image
-2. Button enables after Front uploaded
-3. No extraction happens
-4. Grading runs without comic identity → "Unknown #Unknown"
+**Symptoms:**
+1. ✅ Upload 4 photos → Thumbnails show with green checkmarks
+2. ✅ Extraction message appears: "✓ Identified: The Invincible Iron Man #109"
+3. ❌ Progress bar shows "0 of 4 photos uploaded" (never updates)
+4. ❌ Click "Generate Slab Report" → Error: "Please upload at least the front cover photo"
+5. ❌ Console check shows: `window.gradingState.photos` = `{1: null, 2: null, 3: null, 4: null}`
 
-**Fix needed:**
-- Add extraction API call after Front upload completes
-- Show "Identifying comic..." spinner
-- Store result in `gradingState.extractedData`
-- Only then enable "Generate Slab Report" button
-- Estimated: ~30-50 lines of JavaScript
+**What Works:**
+- UI rendering (thumbnails, checkmarks, highlighting)
+- Extraction API call (comic identified correctly)
+- `gradingState.extractedData` populated correctly
+- Button enable/disable logic
+- Visual feedback
 
-**Status:** Deferred (noted Session 32, Feb 6 2026)
+**What's Broken:**
+- Photo data not being stored in `gradingState.photos[1-4]`
+- Progress bar not updating
+- Generate button thinks no photos uploaded
+- Grading API call would send 0 photos
+
+**Attempted Fixes (Session 32):**
+1. ✅ Fixed extraction API call (was using wrong URL, now uses `${API_URL}/api/extract`)
+2. ✅ Rewrote `generateGradeReport()` as standalone function (200+ lines)
+3. ✅ Updated `handlePhotoUpload()` to store directly in `gradingState.photos` format
+4. ✅ Fixed auth token issue (401 errors - resolved by logout/login)
+5. ❌ **STILL NOT WORKING** - Photos not being stored despite code changes
+
+**Debugging Notes:**
+- Hard refresh attempted (Ctrl+Shift+R) - no change
+- Deployment confirmed (new app.html pushed to git)
+- Auth working (token valid, extraction API returns 200)
+- No JavaScript errors in console (other than unrelated setMode error in app.js)
+- Waiting 10-30 seconds between uploads doesn't help
+- Possible browser caching issue or deployment not fully propagated
+
+**Code That Should Be Working (from app.html rewrite):**
+```javascript
+// In handlePhotoUpload() - should store photos directly
+const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
+const photoNum = photoMap[photoType];
+window.gradingState.photos[photoNum] = {
+    base64: base64Data,
+    mediaType: mediaType,
+    file: file
+};
+```
+
+**Next Steps to Try:**
+1. Check deployed app.html source in browser - verify new code is actually live
+2. Add console.log statements to verify handlePhotoUpload is being called
+3. Check if there's a JavaScript error silently failing
+4. Verify gradingState is initialized before photos are uploaded
+5. Try incognito/private browsing to rule out cache issues
+6. Check if original grading.js is somehow overwriting gradingState
+7. Verify file upload events are triggering correctly
+
+**Workaround:** None - feature completely broken until fixed
+
+**Priority:** CRITICAL - blocks all grading functionality
+
+**Status:** Active bug, needs fresh debugging session (Session 32 ended Feb 6, 2026 ~6:30pm)
 
 ---
 
@@ -917,5 +1054,5 @@ Sometimes the work needs a little levity. Here are some gems from our sessions:
 
 ---
 
-*Last updated: February 6, 2026 (Session 32)*
-*Version: 4.3.0 - Blueprint Refactor Era*
+*Last updated: February 6, 2026 (Session 32 - Evening)*
+*Version: 4.3.0 - Blueprint Refactor Era - CRITICAL BUG: Upload broken*
