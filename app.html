@@ -1098,8 +1098,12 @@
                 const thumbnail = document.getElementById(`thumbnail${capitalize(photoType)}`);
                 const img = document.getElementById(`img${capitalize(photoType)}`);
                 
+                // Read EXIF orientation and apply rotation
+                const orientation = await getOrientation(e.target.result);
+                
                 // Show thumbnail
                 img.src = e.target.result;
+                applyOrientation(img, orientation);
                 thumbnail.style.display = 'block';
                 box.classList.add('uploaded');
                 box.classList.remove('highlight');
@@ -1122,6 +1126,81 @@
             };
             
             reader.readAsDataURL(file);
+        }
+        
+        // Read EXIF orientation from image data URL
+        function getOrientation(dataUrl) {
+            return new Promise((resolve) => {
+                const base64 = dataUrl.split(',')[1];
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                
+                // Check for JPEG signature
+                if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) {
+                    resolve(1); // Not a JPEG, no rotation needed
+                    return;
+                }
+                
+                let offset = 2;
+                while (offset < bytes.length) {
+                    if (bytes[offset] !== 0xFF) break;
+                    if (bytes[offset + 1] === 0xE1) { // APP1 marker (EXIF)
+                        const exifOffset = offset + 4;
+                        if (bytes[exifOffset] === 0x45 && bytes[exifOffset + 1] === 0x78 && 
+                            bytes[exifOffset + 2] === 0x69 && bytes[exifOffset + 3] === 0x66) {
+                            // Found EXIF data
+                            const tiffOffset = exifOffset + 6;
+                            const littleEndian = bytes[tiffOffset] === 0x49;
+                            
+                            // Read IFD0 offset
+                            const ifd0Offset = tiffOffset + (littleEndian ? 
+                                bytes[tiffOffset + 4] + (bytes[tiffOffset + 5] << 8) :
+                                (bytes[tiffOffset + 4] << 8) + bytes[tiffOffset + 5]);
+                            
+                            // Read number of entries
+                            const entries = littleEndian ?
+                                bytes[ifd0Offset] + (bytes[ifd0Offset + 1] << 8) :
+                                (bytes[ifd0Offset] << 8) + bytes[ifd0Offset + 1];
+                            
+                            // Search for orientation tag (0x0112)
+                            for (let i = 0; i < entries; i++) {
+                                const entryOffset = ifd0Offset + 2 + (i * 12);
+                                const tag = littleEndian ?
+                                    bytes[entryOffset] + (bytes[entryOffset + 1] << 8) :
+                                    (bytes[entryOffset] << 8) + bytes[entryOffset + 1];
+                                
+                                if (tag === 0x0112) { // Orientation tag
+                                    const orientation = littleEndian ?
+                                        bytes[entryOffset + 8] + (bytes[entryOffset + 9] << 8) :
+                                        (bytes[entryOffset + 8] << 8) + bytes[entryOffset + 9];
+                                    resolve(orientation);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    offset += 2 + (bytes[offset + 2] << 8) + bytes[offset + 3];
+                }
+                resolve(1); // No orientation tag found
+            });
+        }
+        
+        // Apply CSS transform based on EXIF orientation
+        function applyOrientation(img, orientation) {
+            const transforms = {
+                1: 'none',
+                2: 'scaleX(-1)',
+                3: 'rotate(180deg)',
+                4: 'scaleY(-1)',
+                5: 'rotate(90deg) scaleX(-1)',
+                6: 'rotate(90deg)',
+                7: 'rotate(270deg) scaleX(-1)',
+                8: 'rotate(270deg)'
+            };
+            img.style.transform = transforms[orientation] || 'none';
         }
         
         // Extract comic data from front cover
@@ -1205,10 +1284,102 @@
                 // Stop message cycling
                 clearInterval(messageInterval);
                 
-                // Update progress text with comic info
+                // Update progress text with comic info and edit button
                 const title = data.extracted.title || 'Unknown';
                 const issue = data.extracted.issue || '?';
-                progressText.textContent = `✓ Identified: ${title} #${issue}`;
+                const publisher = data.extracted.publisher || '';
+                const year = data.extracted.year || '';
+                
+                // Create display with edit button
+                progressText.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                        <span id="extractedDisplay">✓ Identified: ${title} #${issue}</span>
+                        <button type="button" id="editExtractedBtn" onclick="showEditForm()" style="
+                            background: rgba(139, 92, 246, 0.1);
+                            border: 1px solid rgba(139, 92, 246, 0.3);
+                            color: var(--brand-purple);
+                            border-radius: 4px;
+                            padding: 4px 8px;
+                            font-size: 12px;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                            min-height: 32px;
+                        ">✏️ Edit</button>
+                    </div>
+                    <div id="editExtractedForm" style="display: none; margin-top: 12px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title</label>
+                            <input type="text" id="editTitle" value="${title}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                            <input type="text" id="editIssue" value="${issue}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                            <input type="text" id="editPublisher" value="${publisher}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                            <input type="text" id="editYear" value="${year}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button type="button" onclick="cancelEdit()" style="
+                                background: rgba(255,255,255,0.1);
+                                border: 1px solid rgba(255,255,255,0.2);
+                                color: rgba(255,255,255,0.8);
+                                border-radius: 4px;
+                                padding: 8px 16px;
+                                font-size: 13px;
+                                cursor: pointer;
+                            ">Cancel</button>
+                            <button type="button" onclick="saveEdit()" style="
+                                background: var(--brand-purple);
+                                border: none;
+                                color: white;
+                                border-radius: 4px;
+                                padding: 8px 16px;
+                                font-size: 13px;
+                                cursor: pointer;
+                                font-weight: 500;
+                            ">✓ Save</button>
+                        </div>
+                    </div>
+                `;
                 
                 // Enable button now that extraction is complete
                 generateBtn.disabled = false;
@@ -1221,6 +1392,41 @@
                 progressText.textContent = '⚠️ Could not identify comic - you can still grade';
                 generateBtn.disabled = false;
             }
+        }
+        
+        // Show edit form for extracted data
+        function showEditForm() {
+            document.getElementById('editExtractedBtn').style.display = 'none';
+            document.getElementById('extractedDisplay').style.display = 'none';
+            document.getElementById('editExtractedForm').style.display = 'block';
+        }
+        
+        // Cancel editing
+        function cancelEdit() {
+            document.getElementById('editExtractedBtn').style.display = 'flex';
+            document.getElementById('extractedDisplay').style.display = 'inline';
+            document.getElementById('editExtractedForm').style.display = 'none';
+        }
+        
+        // Save edited data
+        function saveEdit() {
+            const title = document.getElementById('editTitle').value.trim();
+            const issue = document.getElementById('editIssue').value.trim();
+            const publisher = document.getElementById('editPublisher').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+            
+            // Update gradingState
+            window.gradingState.extractedData.title = title || 'Unknown';
+            window.gradingState.extractedData.issue = issue || '?';
+            window.gradingState.extractedData.publisher = publisher;
+            window.gradingState.extractedData.year = year ? parseInt(year) : null;
+            
+            // Update display text
+            document.getElementById('extractedDisplay').textContent = 
+                `✓ Identified: ${window.gradingState.extractedData.title} #${window.gradingState.extractedData.issue}`;
+            
+            // Hide form
+            cancelEdit();
         }
         
         // Update upload progress indicator
