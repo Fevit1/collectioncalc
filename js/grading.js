@@ -1131,6 +1131,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initGradingMode() {
+    // Set favicon to default state on page load
+    if (typeof FaviconManager !== 'undefined') {
+        FaviconManager.setState('default');
+    }
+    
     // Update text based on device
     const uploadTitles = document.querySelectorAll('.grading-upload .upload-title');
     uploadTitles.forEach(el => {
@@ -2028,6 +2033,11 @@ function removeAdditionalPhoto(idx) {
 
 // Generate the final grade report
 async function generateGradeReport() {
+    // Set favicon to analyzing state
+    if (typeof FaviconManager !== 'undefined') {
+        FaviconManager.setState('analyzing');
+    }
+    
     // Show report section (with null checks for new single-page upload flow)
     const gradingContent4 = document.getElementById(`gradingContent4`);
     const gradingStep4 = document.getElementById(`gradingStep4`);
@@ -2174,6 +2184,12 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         
     } catch (error) {
         console.error('Error generating grade report:', error);
+        
+        // Set favicon to error state
+        if (typeof FaviconManager !== 'undefined') {
+            FaviconManager.setState('error');
+        }
+        
         stopDotsAnimation();
         const bigEl = document.getElementById('gradeResultBig');
         const labelEl = document.getElementById('gradeResultLabel');
@@ -2455,11 +2471,27 @@ async function calculateGradingRecommendation(gradeResult) {
         
         document.getElementById('recommendationVerdict').innerHTML = verdictHTML;
         
+        // Set favicon to complete state
+        if (typeof FaviconManager !== 'undefined') {
+            FaviconManager.setState('complete');
+            
+            // If user is on another tab, add notification badge to grab their attention
+            if (document.hidden) {
+                FaviconManager.addNotificationBadge();
+            }
+        }
+        
         // Hide cache warning now that recommendation is complete
         hideCacheWarning();
         
     } catch (error) {
         console.error('Error calculating recommendation:', error);
+        
+        // Set favicon to error state
+        if (typeof FaviconManager !== 'undefined') {
+            FaviconManager.setState('error');
+        }
+        
         stopThinkingAnimation();
         document.getElementById('recommendationValues').innerHTML = `
             <p style="color: var(--text-muted); text-align: center;">Could not retrieve market values</p>
@@ -2523,6 +2555,11 @@ function getGradingCost(value) {
 
 // Reset grading mode
 function resetGrading() {
+    // Set favicon back to default state
+    if (typeof FaviconManager !== 'undefined') {
+        FaviconManager.setState('default');
+    }
+    
     // Reset state
     gradingState = {
         currentStep: 1,

@@ -1,4 +1,4 @@
-# CollectionCalc / Slab Worthy Architecture
+﻿# CollectionCalc / Slab Worthy Architecture
 
 ## System Overview
 
@@ -77,8 +77,9 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ```
 cc/v2/
 ├── ─────────── FRONTEND (Cloudflare Pages) ───────────
-├── index.html           # Beta landing page
-├── app.html             # Main application (with Slab Worthy tab)
+├── index.html           # Homepage (slabworthy.com redirects here)
+├── login.html           # Auth gate (Session 30)
+├── app.html             # Main app - Single-page upload flow (1,525 lines)
 ├── admin.html           # Admin dashboard
 ├── signatures.html      # Signature reference admin
 ├── styles.css           # All CSS (+ grading styles appended)
@@ -87,13 +88,27 @@ cc/v2/
 │   ├── utils.js         # Shared state, constants, API_URL → Docker backend
 │   ├── auth.js          # Authentication, user menu, collection functions
 │   ├── app.js           # Core app: eBay, photo upload, valuation, manual entry
-│   └── grading.js       # Slab Worthy: 4-photo flow, grade report, ROI calc
+│   └── grading.js       # Slab Worthy: Single-page 4-photo flow, grade report, ROI calc (1,770 lines)
 │
 ├── ─────────── BACKEND (Render Docker) ───────────
 ├── Dockerfile           # Docker config with libzbar0
-├── wsgi.py              # Flask app, all routes, barcode endpoints
+├── wsgi.py              # Flask app entry point (305 lines - refactored v4.3.0!)
+│
+├── routes/              # Blueprint modules (NEW - Session 32)
+│   ├── __init__.py
+│   ├── utils.py         # Health checks, debug (50 lines)
+│   ├── auth_routes.py   # Auth endpoints (81 lines)
+│   ├── admin_routes.py  # Admin dashboard, NLQ (585 lines)
+│   ├── grading.py       # Valuations, extraction (215 lines)
+│   ├── sales.py         # Market data, FMV (507 lines)
+│   ├── images.py        # R2 uploads (191 lines)
+│   ├── barcodes.py      # Barcode scanning (151 lines)
+│   ├── ebay.py          # eBay OAuth, listings (188 lines)
+│   └── collection.py    # User collections (88 lines)
+│
 ├── auth.py              # Authentication (JWT, signup, login, reset)
-├── admin.py             # Admin functions, NLQ
+├── admin.py             # Admin functions, NLQ, moderation logging
+├── content_moderation.py# AWS Rekognition image moderation (NEW)
 ├── ebay_valuation.py    # Valuation logic, caching
 ├── ebay_oauth.py        # eBay OAuth flow
 ├── ebay_listing.py      # eBay Inventory API
@@ -449,7 +464,70 @@ ebay_tokens (id, user_id, access_token, refresh_token, expires_at)
 -- Logging
 request_logs (id, endpoint, method, user_id, ip_address, created_at)
 api_usage (id, user_id, endpoint, tokens_used, created_at)
+moderation_incidents (id, user_id, endpoint, labels, confidence_scores, image_hash, created_at)
 ```
+
+## Content Moderation (NEW - Session 28)
+
+**AWS Rekognition** checks all uploaded images before processing to prevent inappropriate content.
+
+```
+User uploads image
+      │
+      ▼
+┌──────────────────────┐
+│ content_moderation.py│
+│ moderate_image()     │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ AWS Rekognition      │
+│ DetectModerationLabels│
+└──────────┬───────────┘
+           │
+           ├─► BLOCK if confidence > 75%:
+           │   - Explicit Nudity
+           │   - Violence
+           │   - Visually Disturbing
+           │   - Rude Gestures
+           │
+           ├─► WARN if confidence 50-75%:
+           │   - Suggestive content
+           │   - Drugs
+           │   - Tobacco
+           │   - Alcohol
+           │   (Log but allow through)
+           │
+           └─► ALLOW if confidence < 50%
+```
+
+**Moderation Logging:**
+- All incidents logged to `moderation_incidents` table
+- Includes: user_id, endpoint, labels, confidence scores, image hash
+- Admin dashboard shows moderation activity
+- Image hash prevents re-uploads of blocked content
+
+**Endpoints Protected:**
+- `/api/extract` - Comic front cover extraction
+- `/api/messages` - Multi-photo grading (checks all photos)
+- `/api/images/submission` - B4Cert submission uploads
+
+## Email System (NEW - Session 29)
+
+**Resend API** handles transactional email on `slabworthy.com` domain:
+
+**Email Types:**
+- Welcome email (after signup with beta code)
+- Email verification (click-to-verify link)
+- Password reset (secure token link)
+- Admin notifications (new user signups)
+
+**Configuration:**
+- From: `noreply@slabworthy.com`
+- Domain verified in Resend dashboard
+- Templates use brand colors/styling
+- Links point to `slabworthy.com/login`
 
 ## External APIs
 
@@ -459,7 +537,8 @@ api_usage (id, user_id, endpoint, tokens_used, created_at)
 | eBay Browse API | Market data, completed listings | OAuth |
 | eBay Inventory API | Create draft listings | OAuth |
 | Cloudflare R2 | Image storage (sales + eBay covers) | Access Key |
-| Resend | Transactional email | API Key |
+| Resend | Transactional email (NEW - Session 29) | API Key |
+| AWS Rekognition | Content moderation (NEW - Session 28) | IAM Access Key |
 
 ## R2 Storage Structure
 
@@ -499,7 +578,43 @@ collectioncalc-images/
 
 **Note:** Auto-deploy is DISABLED. Always run `deploy` command after pushing backend changes.
 
+## Recent Updates
+
+### v4.3.0 - Blueprint Refactor (Session 32 - Feb 6, 2026)
+- Split monolithic wsgi.py (2,198 lines) into 9 modular blueprints
+- Routes organized by feature area in `routes/` directory
+- Main file reduced to 305 lines (86% smaller)
+- Improved maintainability and testability
+
+### v4.2.4 - Single-Page Upload Flow (Session 32 - Feb 7, 2026)
+- Removed 5-step wizard, now single-page upload
+- Interactive photo diagram (Front/Spine/Back/Centerfold)
+- Real-time extraction with cycling thinking messages
+- Defect pills styled in brand red (#ef4444)
+- Animated ellipsis on loading states
+- Extraction messages cycle every π seconds (3.1415s)
+- 80/20 split: professional vs. humorous messages
+
+### Auth Gate & Login (Session 30 - Feb 4, 2026)
+- App requires authentication to access
+- Login page at slabworthy.com/login
+- Token unification fix (cc_token standardized)
+- Beta code validation on signup
+
+### Email System (Session 29 - Feb 3, 2026)
+- Resend API integration on slabworthy.com domain
+- Welcome emails, verification, password reset
+- Admin notifications for new signups
+
+### Content Moderation (Session 28 - Jan 31, 2026)
+- AWS Rekognition checks all uploaded images
+- Blocks explicit content (>75% confidence)
+- Warns on suggestive content (50-75%)
+- Moderation incident logging
+- Admin dashboard for monitoring
+
 ---
 
-*Last updated: February 2, 2026*
+*Last updated: February 7, 2026 (Session 32)*
 *Patent Pending: Multi-angle comic grading system*
+
