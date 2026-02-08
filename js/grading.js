@@ -2245,12 +2245,13 @@ function renderGradeReport(result, confidence, photoLabels) {
         }
     }
     
-    // Photos used badges
-    const allLabels = ['Front', 'Spine', 'Back', 'Center'];
-    safeSet('gradePhotosUsed', 'innerHTML', allLabels.map((label, idx) => {
-        const used = gradingState.photos[idx + 1] !== null;
-        return `<span class="photo-badge ${used ? 'used' : 'skipped'}">${label}${used ? ' ✓' : ''}</span>`;
-    }).join(''));
+    // Photos used - simple count
+    const photosUsed = Object.values(gradingState.photos).filter(p => p !== null).length;
+    safeSet('gradePhotosUsed', 'innerHTML', `
+        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">
+            Based on ${photosUsed} photo${photosUsed !== 1 ? 's' : ''}
+        </div>
+    `);
     
     // Defects - handle both flat and nested structures
     const frontDefects = defects.front_defects || [];
