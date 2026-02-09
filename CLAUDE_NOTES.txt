@@ -10,8 +10,9 @@
 
 **Working Style Preference:** Mike prefers natural, collaborative conversation over formal business consultant mode. Keep it friendly and conversational - avoid getting too structured/professional even when reviewing project documentation. Think "working on cool stuff together" rather than "client presentation." **IMPORTANT:** When making code changes, explain the plan first and get Mike's approval before writing any code.
 
-**Current State (v4.3.0 - February 8, 2026):**
-- **✨ UI Polish Complete** - Red defect pills, animated ellipsis, purple borders, sentence case capitalization (Session 33) ⭐
+**Current State (v4.3.1 - February 8, 2026):**
+- **📱 Mobile UX Improvements** - EXIF photo rotation, edit extraction UI, purple defect pills, sticky nav (Session 34) ⭐
+- **✨ UI Polish Complete** - Purple defect pills (was red), animated ellipsis, purple borders, sentence case capitalization (Sessions 33-34) ⭐
 - **📚 826-Message Thinking Library** - Massive expansion with comic/tech crossover focus, serious-first logic (30s timer), π second intervals (Session 33) ⭐
 - **🎯 Flow Timing Fixed** - 2-second pause between defect display and valuation, users can read defects now (Session 33) ⭐
 - **Blueprint refactor COMPLETE** - wsgi.py split from 2,198 lines to 305 lines, 9 modular blueprints (Session 32)
@@ -32,7 +33,17 @@
 
 ### Pre-Beta MUST-HAVES
 - [x] **Content moderation system** - Amazon Rekognition integration ✅ (v4.2.2, Session 28)
-- [ ] **Mobile testing** - IN PROGRESS (Session 30). Auth gate, logo, debug alerts done. Photo rotation, password eye, spine box still need fixing.
+- [ ] **Mobile testing** - IN PROGRESS (Sessions 30, 34)
+  - ✅ Auth gate, logo, debug alerts (Session 30)
+  - ✅ Photo rotation EXIF fix (Session 34)
+  - ✅ Edit extraction UI (Session 34)
+  - ✅ Purple defect color - less harsh than red (Session 34)
+  - ✅ "Based on X photos" - cleaner than badge list (Session 34)
+  - ✅ Contact link → mailto:support@slabworthy.com (Session 34)
+  - 🔧 **NEEDS FIX:** My Collection / Login links at top - need to move to bottom on mobile (upload page)
+  - 🔧 **NEEDS FIX:** Floating navigation bar covering footer content - adjust spacing
+  - ❌ Password eye (show/hide toggle) - still needs fixing
+  - ❌ Spine box - still needs fixing
 
 ### Branding ✅ RESOLVED
 - [x] **Tagline decided** - "AI for Comic Collectors"
@@ -41,6 +52,7 @@
 - [x] **Header/footer consistency** - All pages updated (Session 27)
 
 ### Backlog
+- [ ] **Favicon creation** - "SW" monogram in gold with purple shadow, variations for different status messages (Session 34)
 - [ ] **User review of 826 thinking messages** - Word doc delivered (Session 33), user will mark ones to remove over time
 - [x] **Thinking messages ratio adjustment** - After initial 30-second serious phase, adjust to 4:1 serious:humor ratio. Prevents "joke fatigue" and keeps humor as pleasant surprises rather than constant stream. ✅ Implemented Session 31, refined Session 33
 - [ ] **Baseball cards expansion (Next Vertical)** - Expand Slab Worthy to handle baseball cards with mode selector. Key insight: PSA also uses "slabs" so same brand works! Implementation: Landing page collectible type selector (comics vs cards), cookie preference, mode-specific grading companies (PSA/BGS/SGC), different photo flow (Front/Back/4 Corners vs Front/Spine/Back/Centerfold), PSA 1-10 scale vs CGC granular scale. Can later expand to Pokemon, Magic, other cards. (Session 32)
@@ -53,6 +65,93 @@
 - [ ] **AI-powered support inbox** - Route support@slabworthy.com through Claude for auto-responses
 - [ ] **PostHog integration** - Analytics, A/B tests, session replay (post-beta)
 - [ ] **Pricing page content** - Need to finalize pricing model
+
+---
+
+## Session 34 Summary (February 8, 2026)
+
+**Context:** User continuing mobile testing on Pixel 7 Android device. Found photo rotation issues, wrong issue number extraction, and various mobile UX problems.
+
+### Major Accomplishments
+
+1. **EXIF Photo Rotation Fix ✅**
+   **Problem:** Mobile photos (especially centerfold) rotating 90° off - displaying sideways
+   **Root Cause:** Mobile phones save EXIF orientation metadata instead of rotating pixels
+   **Solution:** 
+   - Added `getOrientation()` function to read EXIF orientation tag from JPEG images (~65 lines)
+   - Added `applyOrientation()` function to apply CSS transforms based on EXIF data
+   - Modified photo upload handler to read orientation and apply transform before displaying
+   - Supports all 8 EXIF orientation values (normal, mirrored, rotated 90/180/270°, etc.)
+   **Result:** All mobile photos now display correctly oriented
+
+2. **Edit Extraction UI ✅**
+   **Problem:** Issue number extracted incorrectly (#2 instead of #1 for Conqueror of Barren Earth)
+   **Broader Issue:** Computer vision will never be 100% perfect on all comics
+   **Solution:** Mobile-first inline edit UI
+   - ✏️ Edit button next to extracted data (44px minimum tap target)
+   - Inline form (no modal) - saves screen space
+   - 4 editable fields: Title, Issue #, Publisher, Year
+   - Purple theme matches brand colors
+   - Updates `gradingState.extractedData` when saved
+   **User Feedback:** "Edit function looks good"
+
+3. **Purple Defect Pills ✅**
+   **Problem:** Red defect color too harsh/severe
+   **Solution:** Changed from red (#ef4444) to purple/magenta (#e879f9)
+   **User Feedback:** "I like the color of the new font"
+
+4. **Simplified Photo Display ✅**
+   **Problem:** Photo badges (Front ✓, Spine ✓, Back ✓, Center ✓) too cluttered on mobile
+   **Solution:** Changed to "Based on X photos" - simple and clean
+
+5. **Contact Link Fix ✅**
+   **Problem:** Contact link showing Cloudflare "Access Denied" error
+   **Solution:** Changed from Cloudflare-protected URL to `mailto:support@slabworthy.com`
+
+6. **Mobile Sticky Navigation ✅ (PARTIAL)**
+   **What Works:** Grade Another / Save to Collection buttons now sticky at bottom with purple border
+   **What Needs Fix:**
+   - My Collection / Login links still at top - need to move to bottom on mobile (upload page)
+   - Floating navigation bar covering footer content - needs spacing adjustment
+
+### Pending Mobile Fixes
+
+**Navigation Issues:**
+- 🔧 My Collection / Login links at top of upload page - should be at bottom on mobile
+- 🔧 Floating navigation bar covering footer - adjust spacing/padding
+
+**Original Issues Still Outstanding:**
+- ❌ Password eye (show/hide toggle)
+- ❌ Spine box issues
+
+### Next Steps After Mobile
+
+1. **Favicon creation** - "SW" monogram with status variations
+2. **Signup flow** - Admin approval interface for beta
+3. **Feedback mechanism** - Before larger beta rollout
+4. **Onboarding** - First-time user guidance
+
+### Technical Details
+
+**Files Modified:**
+- `app.html` (~130 lines added)
+  * EXIF orientation reading functions
+  * Edit extraction UI and handlers
+  * Defect pill color change (red → purple)
+  * Mobile sticky navigation CSS
+  * Contact mailto link
+  
+- `grading.js` (5 lines changed)
+  * Photo display simplified to count
+
+**EXIF Orientation Values:**
+1. Normal, 2. Flipped horizontal, 3. Rotated 180°, 4. Flipped vertical
+5. Rotated 90° CCW + flipped, 6. Rotated 90° CW, 7. Rotated 90° CW + flipped, 8. Rotated 90° CCW
+
+### User Preferences Noted
+- No summary documents - update Claude Notes at end of session
+- Semicolon-chained CLI commands for easy copy-paste deployment
+- Favicon: "SW" monogram with status variations
 
 ---
 
@@ -1162,6 +1261,6 @@ Session 32 Continued - Feb 7, 2026 (Morning)
 
 ---
 
-*Last updated: February 8, 2026 (Session 33)*
-*Version: 4.3.0 - UI Polish & 826-Message Library Era*
+*Last updated: February 8, 2026 (Session 34)*
+*Version: 4.3.1 - Mobile UX Era*
 *Patent Pending: Multi-angle comic grading system*

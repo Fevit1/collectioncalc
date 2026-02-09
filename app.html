@@ -38,6 +38,117 @@
             font-size: 0.75rem;
             margin-top: 2px;
         }
+        
+        /* Updated header layout - centered logo with avatar on right */
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 1.5rem 0;
+        }
+        
+        .header-brand {
+            text-align: center;
+        }
+        
+        /* Hide My Collection button from header (it's in dropdown menu) */
+        .save-collection-btn {
+            display: none !important;
+        }
+        
+        /* User menu positioning - absolute right */
+        .header-auth {
+            position: absolute;
+            right: 0;
+        }
+        
+        /* Circular user avatar */
+        .user-menu-btn {
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(139, 92, 246, 0.3);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e7ff;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .user-avatar:hover {
+            background: rgba(139, 92, 246, 0.5);
+            border-color: rgba(139, 92, 246, 0.8);
+        }
+        
+        /* Hide email and arrow on desktop, show just avatar */
+        .user-menu-btn #userEmail,
+        .user-menu-btn > span:last-child {
+            display: none;
+        }
+        
+        /* Camera/Upload Toggle */
+        .photo-mode-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .mode-toggle-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        
+        .mode-toggle-label.active {
+            color: #facc15;
+        }
+        
+        .mode-toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .mode-toggle-switch.active {
+            background: #6366f1;
+        }
+        
+        .mode-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mode-toggle-switch.active .mode-toggle-slider {
+            transform: translateX(24px);
+        }
 
         /* Hide Take Photo button on desktop - only show on mobile */
         @media (min-width: 768px) {
@@ -667,6 +778,15 @@
                             <p class="grading-subtitle" style="text-align: center; margin: 0 auto 1.5rem; max-width: 600px;">Click each section to upload. Front cover is required.</p>
                         </div>
                         
+                        <!-- Camera/Upload Mode Toggle -->
+                        <div class="photo-mode-toggle">
+                            <span class="mode-toggle-label" id="cameraModeLabel">📷 Camera</span>
+                            <div class="mode-toggle-switch" id="photoModeToggle" onclick="togglePhotoInputMode()">
+                                <div class="mode-toggle-slider"></div>
+                            </div>
+                            <span class="mode-toggle-label active" id="uploadModeLabel">📁 Upload</span>
+                        </div>
+                        
                         <!-- Interactive Photo Diagram -->
                         <div class="photo-upload-diagram">
                             <!-- Top Row: Front, Spine, Back -->
@@ -1095,6 +1215,57 @@
     
     <!-- Single Page Upload JavaScript -->
     <script>
+        // Toggle between camera and upload modes
+        function togglePhotoInputMode() {
+            const toggle = document.getElementById('photoModeToggle');
+            const cameraLabel = document.getElementById('cameraModeLabel');
+            const uploadLabel = document.getElementById('uploadModeLabel');
+            const allInputs = document.querySelectorAll('.upload-input-hidden');
+            
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                // Upload mode
+                cameraLabel.classList.remove('active');
+                uploadLabel.classList.add('active');
+                // Remove capture attribute from inputs
+                allInputs.forEach(input => input.removeAttribute('capture'));
+            } else {
+                // Camera mode
+                cameraLabel.classList.add('active');
+                uploadLabel.classList.remove('active');
+                // Add capture attribute to inputs
+                allInputs.forEach(input => input.setAttribute('capture', 'environment'));
+            }
+        }
+        
+        // Initialize toggle based on device type
+        function initializePhotoMode() {
+            const isMobile = window.innerWidth < 768;
+            const toggle = document.getElementById('photoModeToggle');
+            const cameraLabel = document.getElementById('cameraModeLabel');
+            const uploadLabel = document.getElementById('uploadModeLabel');
+            
+            if (isMobile) {
+                // Mobile: default to camera mode (toggle OFF)
+                toggle.classList.remove('active');
+                cameraLabel.classList.add('active');
+                uploadLabel.classList.remove('active');
+            } else {
+                // Desktop: default to upload mode (toggle ON)
+                toggle.classList.add('active');
+                cameraLabel.classList.remove('active');
+                uploadLabel.classList.add('active');
+                // Remove capture attribute on desktop
+                document.querySelectorAll('.upload-input-hidden').forEach(input => {
+                    input.removeAttribute('capture');
+                });
+            }
+        }
+        
+        // Call on page load
+        initializePhotoMode();
+        
         // Trigger file input when box is clicked
         function triggerPhotoUpload(photoType) {
             document.getElementById(`uploadInput${capitalize(photoType)}`).click();
@@ -1754,8 +1925,8 @@ Return ONLY valid JSON, no markdown, no nested objects.`
     <!-- Footer -->
     <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border-color);">
         <div style="margin-bottom: 8px;">
-            <a href="mailto:support@slabworthy.com" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
+            <a href="/cdn-cgi/l/email-protection#81f2f4f1f1eef3f5c1f2ede0e3f6eef3f5e9f8afe2eeec" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
             <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
             <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
         </div>
-        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a>™
+        <div>Powered by <a href="https://collectioncalc.com" style="color: var(--primary); 

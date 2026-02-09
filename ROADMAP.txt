@@ -121,6 +121,169 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
+## Grade Verification & Provenance System
+
+### Phase 1: Verifiable Gradings (High Priority)
+
+**The Problem:** Anyone can screenshot a grade and claim it's real. No way for buyers to verify authenticity of grading claims.
+
+**The Solution:** Public verification system with immutable grades and unique IDs.
+
+**How It Works:**
+1. User grades comic → unique ID auto-generated (format: `SW-2026-XXXXXXX`)
+2. Grade results show ID at bottom of page
+3. User clicks "Save to My Collection" → ID + 4 photos + grade data locked (immutable)
+4. User can only list on eBay/Whatnot from My Collection
+5. System provides verification link: `slabworthy.com/grade/SW-2026-XXXXXXX`
+6. Seller pastes link in eBay/Whatnot listing description
+7. Buyers click link to verify grade authenticity
+
+**Public Verification Page (slabworthy.com/grade/SW-2026-XXXXXXX):**
+- All 4 photos (front, spine, back, centerfold)
+- Grade details, defects, date graded
+- Platform where sold (eBay / Whatnot / Private Transaction)
+- Owner username (only visible if viewer is logged in)
+- "Sign in to see owner" prompt for non-logged-in users
+- No PII displayed publicly
+
+**Public Search Interface (slabworthy.com/verify):**
+- Search by Slab Worthy ID
+- Read-only database (no account required to search)
+- Teaser to drive signups: "Create account to see owner details"
+- Similar to CGC cert lookup experience
+
+**Fraud Prevention:**
+- Grade + photos immutable once saved to collection
+- Buyers verify actual photos vs. listing photos
+- Mismatched photos = fraud exposed
+- To change grade → must re-grade comic (new ID issued)
+
+**Implementation Tasks:**
+- [ ] Generate unique IDs (sequential with year prefix: SW-2026-000001)
+- [ ] Create `grade_id` field in database
+- [ ] Lock grade data when saved to collection (immutability flag)
+- [ ] Build public verification page (/grade/SW-XXXX route)
+- [ ] Build public search interface (/verify route)
+- [ ] "Copy verification link" button in My Collection
+- [ ] Track platform (eBay/Whatnot/Private) in database
+- [ ] Show "Sign in to see owner" gate for usernames
+
+**Settings:**
+- ☑️ Auto-include Slab Worthy verification link in eBay/Whatnot exports (default: ON)
+
+**Why This First:**
+- Immediate value to sellers (builds trust with buyers)
+- Drives traffic to site (people verifying grades)
+- Network effect: more verifications = more trust in platform
+- No complex ownership logic required yet
+- Differentiates from competitors (no one else offers this)
+
+---
+
+### Phase 2: Ownership Provenance (Future)
+
+**The Vision:** Track full ownership history of graded comics. Creates value for high-end collectibles where provenance = authenticity.
+
+**Requirements:**
+
+**Username System:**
+- [ ] Add `username` field (unique, required)
+- [ ] Username creation during signup (not just email)
+- [ ] Avoids PII in public provenance records
+- [ ] Usernames are the identity layer for transfers
+
+**Transfer Flow (Two-Party Verification):**
+
+**Scenario 1: eBay/Whatnot Sale**
+1. Seller goes to My Collection → clicks "Mark as Sold"
+2. Enters: Buyer's Slab Worthy username, eBay/Whatnot sale ID, platform
+3. Pending transfer notification appears at top of buyer's My Collection
+4. Buyer confirms transfer (enters seller username + sale ID for verification)
+5. Ownership updates, comic moves to buyer's collection
+6. Provenance chain updated publicly
+
+**Scenario 2: Off-Platform Sale (Comic Shop, Cash, Trade)**
+1. Seller initiates transfer: "Sold to [username] via Private Transaction"
+2. Buyer confirms transfer
+3. Same flow, just marked as "Private Transaction" instead of platform
+
+**Scenario 3: Buyer Doesn't Have Account**
+1. Seller initiates transfer → enters buyer's email
+2. System sends invitation email: "You purchased a Slab Worthy graded comic!"
+3. Buyer creates account → transfer completes
+4. Drives new user acquisition
+
+**Pending Transfer UI:**
+- Notification bar at top of My Collection (dismissible but persistent)
+- Shows: "Supermanlover123 wants to transfer Amazing Spider-Man #300 to you. Confirm?"
+- Accept/Reject buttons
+- Only disappears when action taken
+
+**Public Provenance Display (on verification page):**
+```
+Graded: Feb 9, 2026
+Ownership History:
+- Supermanlover123 (Feb 9, 2026 - Mar 15, 2026) [eBay]
+- Spideysensor4 (Mar 15, 2026 - present)
+```
+
+**Privacy Controls (in Settings):**
+- [ ] ☑️ Show my username in public grade searches (default: OFF)
+- [ ] ☑️ Show my collection publicly (default: OFF)  
+- [ ] ☑️ Show my ownership history in provenance chain (default: OFF)
+- Users can opt out of public provenance while still transferring ownership privately
+
+**Admin Console Features:**
+- [ ] Click username to see all grades by that user
+- [ ] View transfer history
+- [ ] Flag suspicious transfer patterns
+- [ ] Override/correct transfers if disputed
+
+**Implementation Tasks:**
+- [ ] Add `username` field to users table (unique, indexed)
+- [ ] Create `ownership_transfers` table:
+  - transfer_id, grade_id, from_user_id, to_user_id, platform (ebay/whatnot/private), 
+  - sale_id, initiated_date, confirmed_date, status (pending/confirmed/rejected)
+- [ ] Create `ownership_history` table:
+  - grade_id, user_id, acquired_date, transferred_date
+- [ ] Build transfer initiation UI in My Collection
+- [ ] Build transfer confirmation UI / notification system
+- [ ] Build invitation email flow for non-users
+- [ ] Update public verification page to show provenance
+- [ ] Add privacy toggles to settings
+- [ ] Admin console username tools
+
+**Open Questions:**
+- What if transfer is disputed? (Seller says sold, buyer says no)
+- How long does pending transfer stay active? (30 days auto-expire?)
+- Should we require sale ID proof for eBay/Whatnot? (API verification?)
+- What if someone loses access to their account? (transfer recovery flow?)
+
+---
+
+### Phase 3: Advanced Provenance (Futuristic)
+
+**Blockchain Integration:**
+- [ ] Research blockchain options for immutable ownership records
+- [ ] NFT-style ownership tokens (without crypto speculation)
+- [ ] Decentralized proof of provenance
+- [ ] Cross-platform compatibility (other grading services could integrate)
+
+**Anti-Fraud Features:**
+- [ ] "Report fraud" button on verification pages
+- [ ] Photo matching algorithm (reverse image search to detect reused IDs)
+- [ ] Seller reputation score (based on confirmed transfers)
+- [ ] Required field: eBay/Whatnot listing URL for cross-reference
+- [ ] Automated alerts for suspicious patterns
+
+**Enhanced Search:**
+- [ ] Search by title, issue, grade range
+- [ ] Filter by platform, date range, owner
+- [ ] Price history graph (if we track sale prices)
+- [ ] "Similar grades" recommendations
+
+---
+
 ## Medium Priority
 
 ### Two-Factor Authentication (Backlog)
