@@ -537,3 +537,82 @@ Key output: "Slab Report" - the assessment results with grade estimate and recom
 
 *This document is designed to guide both human creators and GenAI content tools. When in doubt, ask: "Would a knowledgeable comic shop friend say it this way?"*
 
+## Technical Implementation Notes
+
+### Stylesheet Reference
+
+**Primary Stylesheet:** `styles.css`
+- Contains base color palette, typography, and component styling
+- Defines CSS variables for consistent theming
+- Located in root directory, imported by main app pages
+
+**Key CSS Variables in styles.css:**
+```css
+:root {
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --brand-indigo: #4f46e5;
+    --brand-purple: #7c3aed;
+    --brand-cyan: #06b6d4;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+}
+```
+
+### Slab Worthy™ Logo - Technical Specs
+
+The Slab Worthy™ logo requires special handling to maintain the gold color:
+
+| Element | Specification |
+|---------|--------------|
+| **Font** | Bangers (from Google Fonts) |
+| **Primary Color** | `#facc15` (Gold) - DO NOT use gradient |
+| **Text Shadow** | `1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b` |
+| **Font Size** | `clamp(1.8rem, 5vw, 2.5rem)` (responsive) |
+| **Letter Spacing** | `2px` |
+| **Subtitle** | Inter font, `rgba(255,255,255,0.6)`, `0.75rem` |
+
+**CSS Implementation:**
+```css
+.header-brand h1 {
+    font-family: 'Bangers', cursive;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    letter-spacing: 2px;
+    color: #facc15;  /* Gold - DO NOT change to gradient */
+    text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.header-brand .subtitle {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+```
+
+**Google Fonts Import:**
+```html
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+```
+
+**Important Implementation Notes:**
+1. When `styles.css` is linked, it may override h1 styling with a gradient
+2. For standalone pages (FAQ, legal pages), use self-contained CSS
+3. Always specify color as `#facc15` explicitly, not through CSS variables
+4. Test logo appearance on all pages to ensure gold is visible
+
+### When to Use External vs Self-Contained CSS
+
+**Use `styles.css` (linked):**
+- Main app pages (photo upload, results, collection)
+- Pages that need full component library
+- Interactive features with shared styling
+
+**Use Self-Contained CSS (inline):**
+- Marketing/informational pages (FAQ, About, Terms)
+- Landing pages
+- Email templates
+- Any page where logo must be gold, not gradient
+

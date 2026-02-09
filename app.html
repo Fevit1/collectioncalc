@@ -313,6 +313,22 @@
 
         /* Mobile adjustments for photo diagram */
         @media (max-width: 767px) {
+            /* Fix header layout for mobile */
+            header {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem 0;
+            }
+            
+            .header-auth {
+                position: static;
+                width: 100%;
+                display: flex;
+                justify-content: flex-end;
+                padding-right: 1rem;
+            }
+            
             .photo-diagram {
                 padding: 0.75rem;
             }
@@ -665,16 +681,10 @@
            MOBILE NAVIGATION
            ========================================== */
         @media (max-width: 767px) {
+            /* Remove fixed positioning - make buttons regular */
             .grading-actions {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: var(--bg-card);
-                border-top: 2px solid var(--brand-purple);
-                padding: 12px 16px;
-                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-                z-index: 100;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
                 display: flex;
                 gap: 8px;
             }
@@ -682,11 +692,6 @@
             .grading-actions button {
                 flex: 1;
                 margin: 0;
-            }
-            
-            /* Add padding to content so it doesn't hide under fixed buttons */
-            #gradingContent5 {
-                padding-bottom: 80px;
             }
         }
     </style>
@@ -696,7 +701,7 @@
         <header>
             <div class="header-brand">
                 <h1>SLAB WORTHY<span style="font-size: 0.6em; vertical-align: super;">™</span></h1>
-                <p class="subtitle">AI for Comic Collectors</p>
+                <p class="subtitle">AI for Comic Collectors <span style="opacity: 0.5; font-size: 0.65rem;">• Patent Pending</span></p>
             </div>
             <div class="header-auth" id="headerAuth">
                 <!-- Logged out state -->
@@ -892,7 +897,6 @@
                     <div class="grading-step-content" id="gradingContent5">
                         <div class="grading-header">
                             <h3>📋 Slab Report</h3>
-                            <span class="grading-patent">Patent Pending</span>
                         </div>
                         
                         <!-- Comic Identification -->
@@ -1413,9 +1417,8 @@
             const progressText = document.getElementById('uploadProgressText');
             const generateBtn = document.getElementById('generateReportBtn');
             
-            // Extraction thinking messages (80% professional, 20% funny)
-            const extractionMessages = [
-                // Professional (80%)
+            // Extraction thinking messages
+            const seriousMessages = [
                 "Analyzing front cover details...",
                 "Detecting title and issue number...",
                 "Identifying publisher and series...",
@@ -1427,8 +1430,10 @@
                 "Detecting grade-affecting text...",
                 "Confirming first appearance markers...",
                 "Checking for special editions...",
-                "Scanning for key issue indicators...",
-                // Funny (20%)
+                "Scanning for key issue indicators..."
+            ];
+            
+            const funnyMessages = [
                 "Judging this cover art...",
                 "Wondering if this is a Liefeld...",
                 "Counting how many pouches on this costume..."
@@ -1436,15 +1441,35 @@
             
             let messageIndex = 0;
             let messageInterval;
+            let startTime = Date.now();
+            const SERIOUS_PERIOD = 30000; // 30 seconds in milliseconds
             
             try {
                 // Show extracting state with cycling messages
                 const startMessageCycle = () => {
-                    progressText.innerHTML = `<span class="loading-dots">${extractionMessages[messageIndex]}</span>`;
+                    const getNextMessage = () => {
+                        const elapsed = Date.now() - startTime;
+                        
+                        if (elapsed < SERIOUS_PERIOD) {
+                            // First 30 seconds: only serious messages
+                            messageIndex = (messageIndex + 1) % seriousMessages.length;
+                            return seriousMessages[messageIndex];
+                        } else {
+                            // After 30 seconds: 20% chance of funny message
+                            if (Math.random() < 0.2) {
+                                const funnyIndex = Math.floor(Math.random() * funnyMessages.length);
+                                return funnyMessages[funnyIndex];
+                            } else {
+                                messageIndex = (messageIndex + 1) % seriousMessages.length;
+                                return seriousMessages[messageIndex];
+                            }
+                        }
+                    };
+                    
+                    progressText.innerHTML = `<span class="loading-dots">${seriousMessages[0]}</span>`;
                     messageInterval = setInterval(() => {
-                        messageIndex = (messageIndex + 1) % extractionMessages.length;
-                        progressText.innerHTML = `<span class="loading-dots">${extractionMessages[messageIndex]}</span>`;
-                    }, 3141.5); // π seconds (because why not?)
+                        progressText.innerHTML = `<span class="loading-dots">${getNextMessage()}</span>`;
+                    }, 3141.5); // π seconds
                 };
                 
                 startMessageCycle();
