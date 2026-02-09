@@ -10,6 +10,15 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         /* Gold Bangers logo */
+        header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.3);
+        }
+        
+        .header-brand {
+            text-align: center;
+        }
+        
         .header-brand h1 {
             font-family: 'Bangers', cursive !important;
             font-size: clamp(1.8rem, 5vw, 2.5rem) !important;
@@ -63,16 +72,17 @@
         }
         
         .faq-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
+            background: rgba(124, 58, 237, 0.08);
+            border: 2px solid rgba(124, 58, 237, 0.4);
+            border-radius: 12px;
+            margin-bottom: 1rem;
             overflow: hidden;
             transition: all 0.3s;
         }
         
         .faq-item:hover {
-            border-color: rgba(168, 85, 247, 0.5);
+            border-color: rgba(168, 85, 247, 0.7);
+            background: rgba(124, 58, 237, 0.12);
         }
         
         .faq-question {
@@ -186,10 +196,10 @@
 <body>
     <div class="container">
         <header>
-            <div class="header-brand">
+            <a href="/" class="header-brand" style="text-decoration: none; display: block;">
                 <h1>SLAB WORTHY<span style="font-size: 0.6em; vertical-align: super;">™</span></h1>
                 <p class="subtitle">AI for Comic Collectors</p>
-            </div>
+            </a>
         </header>
         
         <div class="faq-container">
@@ -440,7 +450,7 @@
                             <li><strong>File format:</strong> We support JPG, PNG, and WEBP. Other formats may not work.</li>
                             <li><strong>Connection:</strong> Slow internet can cause uploads to fail. Try again on a better connection.</li>
                         </ul>
-                        <p>If the problem persists, contact us at support@slabworthy.com.</p>
+                        <p>If the problem persists, contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c2b1b7b2b2adb0b682b1aea3a0b5adb0b6aabbeca1adaf">[email&#160;protected]</a>.</p>
                     </div>
                 </div>
                 
@@ -466,7 +476,7 @@
                         <span class="faq-icon">▼</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Email us at <a href="mailto:support@slabworthy.com" style="color: var(--primary);">support@slabworthy.com</a></p>
+                        <p>Email us at <a href="/cdn-cgi/l/email-protection#a3d0d6d3d3ccd1d7e3d0cfc2c1d4ccd1d7cbda8dc0ccce" style="color: var(--primary);"><span class="__cf_email__" data-cfemail="2b585e5b5b44595f6b58474a495c44595f435205484446">[email&#160;protected]</span></a></p>
                         <p>We typically respond within 24 hours. Please include:</p>
                         <ul>
                             <li>A description of the issue</li>
@@ -482,7 +492,7 @@
             <div class="faq-cta">
                 <h3>Still have questions?</h3>
                 <p>We're here to help!</p>
-                <p><a href="mailto:support@slabworthy.com">Contact Support</a> or <a href="/app.html">Try Slab Worthy™</a></p>
+                <p><a href="/cdn-cgi/l/email-protection#b9caccc9c9d6cbcdf9cad5d8dbced6cbcdd1c097dad6d4">Contact Support</a> or <a href="/app.html">Try Slab Worthy™</a></p>
             </div>
         </div>
         
@@ -490,7 +500,7 @@
         <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border-color);">
             <div style="margin-bottom: 8px;">
                 <a href="/faq.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">FAQ</a>
-                <a href="mailto:support@slabworthy.com" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
+                <a href="/cdn-cgi/l/email-protection#e5969095958a9791a596898487928a97918d9ccb868a88" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
                 <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
                 <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
             </div>
@@ -498,21 +508,6 @@
         </footer>
     </div>
     
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         function toggleFAQ(button) {
-            const item = button.parentElement;
-            const wasActive = item.classList.contains('active');
-            
-            // Close all items
-            document.querySelectorAll('.faq-item').forEach(faq => {
-                faq.classList.remove('active');
-            });
-            
-            // Open clicked item if it wasn't already open
-            if (!wasActive) {
-                item.classList.add('active');
-            }
-        }
-    </script>
-</body>
-</html>
+            const item = b
