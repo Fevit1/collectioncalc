@@ -389,6 +389,11 @@
             border-color: rgb(168, 85, 247);
             box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
         }
+        
+        .photo-upload-box:hover .upload-box-hint {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
 
         /* Sizing */
         .photo-upload-box {
@@ -861,6 +866,13 @@
                             <span class="warning-text">Upload all 4 photos for the most accurate assessment. Analysis with fewer photos will have limited accuracy.</span>
                         </div>
                         
+                        <!-- Generate Button -->
+                        <div class="grading-actions">
+                            <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
+                                Generate Slab Report →
+                            </button>
+                        </div>
+                        
                         <!-- Photo Tips -->
                         <div class="grading-tips">
                             <button type="button" class="tips-toggle" onclick="togglePhotoTips()">💡 Photo tips</button>
@@ -873,13 +885,6 @@
                                     <li><strong>Background:</strong> Plain, neutral background (white/black preferred).</li>
                                 </ul>
                             </div>
-                        </div>
-                        
-                        <!-- Generate Button -->
-                        <div class="grading-actions">
-                            <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
-                                Generate Slab Report →
-                            </button>
                         </div>
                     </div>
                     
@@ -1925,6 +1930,7 @@ Return ONLY valid JSON, no markdown, no nested objects.`
     <!-- Footer -->
     <footer style="text-align: center; padding: 20px 0; margin-top: 40px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border-color);">
         <div style="margin-bottom: 8px;">
+            <a href="/faq.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">FAQ</a>
             <a href="/cdn-cgi/l/email-protection#81f2f4f1f1eef3f5c1f2ede0e3f6eef3f5e9f8afe2eeec" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Contact</a>
             <a href="/privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy</a>
             <a href="/terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms</a>
