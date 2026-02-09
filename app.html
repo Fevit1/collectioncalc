@@ -32,6 +32,7 @@
             text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b !important;
             margin: 0;
             line-height: 1.1;
+            white-space: nowrap;
         }
         .header-brand .subtitle {
             color: rgba(255,255,255,0.6);
@@ -313,20 +314,18 @@
 
         /* Mobile adjustments for photo diagram */
         @media (max-width: 767px) {
-            /* Fix header layout for mobile */
+            /* Keep header as single row on mobile */
             header {
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
-                padding: 1rem 0;
+                justify-content: space-between;
+                padding: 1rem;
+            }
+            
+            .header-brand {
+                text-align: left;
             }
             
             .header-auth {
                 position: static;
-                width: 100%;
-                display: flex;
-                justify-content: flex-end;
-                padding-right: 1rem;
             }
             
             .photo-diagram {
@@ -692,6 +691,28 @@
             .grading-actions button {
                 flex: 1;
                 margin: 0;
+            }
+        }
+        
+        /* Landscape mode optimization (no reload needed) */
+        @media (max-width: 767px) and (orientation: landscape) {
+            /* Compact header for landscape */
+            header {
+                padding: 0.5rem 1rem;
+            }
+            
+            .header-brand h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            .header-brand .subtitle {
+                font-size: 0.65rem;
+            }
+            
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.85rem;
             }
         }
     </style>
