@@ -1461,62 +1461,9 @@
             const progressText = document.getElementById('uploadProgressText');
             const generateBtn = document.getElementById('generateReportBtn');
             
-            // Extraction thinking messages
-            const seriousMessages = [
-                "Analyzing front cover details...",
-                "Detecting title and issue number...",
-                "Identifying publisher and series...",
-                "Cross-referencing comic database...",
-                "Scanning for variant indicators...",
-                "Checking barcode and UPC data...",
-                "Verifying publication date...",
-                "Analyzing cover art and layout...",
-                "Detecting grade-affecting text...",
-                "Confirming first appearance markers...",
-                "Checking for special editions...",
-                "Scanning for key issue indicators..."
-            ];
-            
-            const funnyMessages = [
-                "Judging this cover art...",
-                "Wondering if this is a Liefeld...",
-                "Counting how many pouches on this costume..."
-            ];
-            
-            let messageIndex = 0;
-            let messageInterval;
-            let startTime = Date.now();
-            const SERIOUS_PERIOD = 30000; // 30 seconds in milliseconds
-            
             try {
-                // Show extracting state with cycling messages
-                const startMessageCycle = () => {
-                    const getNextMessage = () => {
-                        const elapsed = Date.now() - startTime;
-                        
-                        if (elapsed < SERIOUS_PERIOD) {
-                            // First 30 seconds: only serious messages
-                            messageIndex = (messageIndex + 1) % seriousMessages.length;
-                            return seriousMessages[messageIndex];
-                        } else {
-                            // After 30 seconds: 20% chance of funny message
-                            if (Math.random() < 0.2) {
-                                const funnyIndex = Math.floor(Math.random() * funnyMessages.length);
-                                return funnyMessages[funnyIndex];
-                            } else {
-                                messageIndex = (messageIndex + 1) % seriousMessages.length;
-                                return seriousMessages[messageIndex];
-                            }
-                        }
-                    };
-                    
-                    progressText.innerHTML = `<span class="loading-dots">${seriousMessages[0]}</span>`;
-                    messageInterval = setInterval(() => {
-                        progressText.innerHTML = `<span class="loading-dots">${getNextMessage()}</span>`;
-                    }, 3141.5); // π seconds
-                };
-                
-                startMessageCycle();
+                // Show simple extracting state
+                progressText.innerHTML = `<span class="loading-dots">Extracting metadata...</span>`;
                 generateBtn.disabled = true;
                 
                 // Get auth token
@@ -1554,9 +1501,6 @@
                 
                 // Store extracted data in gradingState
                 window.gradingState.extractedData = data.extracted;
-                
-                // Stop message cycling
-                clearInterval(messageInterval);
                 
                 // Update progress text with comic info and edit button
                 const title = data.extracted.title || 'Unknown';
@@ -1660,8 +1604,6 @@
                 
             } catch (error) {
                 console.error('Extraction error:', error);
-                // Stop message cycling
-                clearInterval(messageInterval);
                 // Still allow grading even if extraction fails
                 progressText.textContent = '⚠️ Could not identify comic - you can still grade';
                 generateBtn.disabled = false;
@@ -2048,19 +1990,44 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 window.gradingState.finalGrade.verdict = verdict;
                 
                 // Update UI with verdict
-                const verdictSection = document.getElementById('gradingVerdict');
-                if (verdictSection) {
+                const valuesSection = document.getElementById('recommendationValues');
+                const verdictSection = document.getElementById('recommendationVerdict');
+                
+                if (valuesSection && verdictSection) {
+                    // Show market values
+                    valuesSection.innerHTML = `
+                        <div class="value-comparison">
+                            <div class="value-item">
+                                <span class="value-label">Raw Value:</span>
+                                <span class="value-amount">$${raw_value.toFixed(2)}</span>
+                            </div>
+                            <div class="value-item">
+                                <span class="value-label">Slabbed Value:</span>
+                                <span class="value-amount">$${slabbed_value.toFixed(2)}</span>
+                            </div>
+                            <div class="value-item">
+                                <span class="value-label">Grading Cost:</span>
+                                <span class="value-amount">-$${grading_cost.toFixed(2)}</span>
+                            </div>
+                            <div class="value-item value-roi">
+                                <span class="value-label">ROI:</span>
+                                <span class="value-amount ${roi > 0 ? 'positive' : 'negative'}">${roi > 0 ? '+' : ''}$${roi.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show verdict
                     const verdictText = roi > 0 
                         ? `<span class="verdict-worth">✓ Worth the Slab</span>`
-                        : `<span class="verdict-keep">Keep it Raw</span>`;
+                        : `<span class="verdict-keep">🟡 Keep it Raw</span>`;
                     const roiText = roi > 0 
-                        ? `+$${roi.toFixed(2)} potential profit`
-                        : `$${Math.abs(roi).toFixed(2)} loss if graded`;
+                        ? `You'll gain $${roi.toFixed(2)} after grading fees`
+                        : `You'll lose $${Math.abs(roi).toFixed(2)} after grading fees`;
                     
                     verdictSection.innerHTML = `
                         <div class="verdict-result">
                             ${verdictText}
-                            <p class="verdict-explanation">${roiText} (after ~$${grading_cost} grading fees)</p>
+                            <p class="verdict-explanation">${roiText}</p>
                         </div>
                     `;
                 }
