@@ -333,6 +333,16 @@
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
+        .action-btn.danger {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .action-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #dc2626;
+        }
+
         .comic-date {
             font-size: 0.7rem;
             color: var(--text-muted);
@@ -585,7 +595,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    collection = data.items || [];
+                    collection = data.collection || [];
                     filteredCollection = [...collection];
                     updateSummary();
                     filterAndDisplay();
@@ -672,10 +682,16 @@
             const verdictClass = comic.verdict === 'worth-it' ? 'worth-it' : 'keep-raw';
             const verdictText = comic.verdict === 'worth-it' ? '✓ Worth the Slab' : 'Keep it Raw';
 
+            // Get first available photo (prefer front, then spine, then back, then centerfold)
+            let photoUrl = null;
+            if (comic.photos) {
+                photoUrl = comic.photos.front || comic.photos.spine || comic.photos.back || comic.photos.centerfold;
+            }
+
             return `
                 <div class="comic-card" data-id="${comic.id}">
                     <div class="comic-thumbnail">
-                        ${comic.image_url ? `<img src="${comic.image_url}" alt="${comic.title}">` : '📖'}
+                        ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
                     </div>
                     <div class="comic-info">
                         <div class="comic-title">${comic.title}</div>
@@ -700,18 +716,18 @@
                         <div class="verdict-badge ${verdictClass}">${verdictText}</div>
 
                         <div class="comic-actions">
-                            <button class="action-btn primary" onclick="listOnEbay('${comic.id}')">
+                            <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
                                 List on eBay
                             </button>
-                            <button class="action-btn" onclick="viewDetails('${comic.id}')">
+                            <button class="action-btn" onclick="viewDetails(${comic.id})">
                                 View Details
                             </button>
-                            <button class="action-btn" onclick="deleteComic('${comic.id}')">
-                                🗑️
+                            <button class="action-btn danger" onclick="deleteComic(${comic.id})">
+                                🗑️ Delete
                             </button>
                         </div>
 
-                        <div class="comic-date">Added ${formatDate(comic.date_added)}</div>
+                        <div class="comic-date">Added ${formatDate(comic.created_at)}</div>
                     </div>
                 </div>
             `;
@@ -742,9 +758,9 @@
                 });
 
                 if (response.ok) {
-                    // Remove from local array
-                    collection = collection.filter(c => c.id !== comicId);
-                    filteredCollection = filteredCollection.filter(c => c.id !== comicId);
+                    // Remove from local array (use == for type coercion since comicId might be string or int)
+                    collection = collection.filter(c => c.id != comicId);
+                    filteredCollection = filteredCollection.filter(c => c.id != comicId);
                     updateSummary();
                     displayCollection();
                 } else {
