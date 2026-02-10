@@ -434,7 +434,55 @@ def api_sales_fmv():
         all_sales = list(market_sales) + list(ebay_sales)
         
         if not all_sales:
-            return jsonify({'success': True, 'count': 0, 'tiers': None})
+            # No sales data found - provide intelligent fallback estimates
+            grade_param = request.args.get('grade', type=float)
+            publisher = request.args.get('publisher', '').lower()
+            year = request.args.get('year', type=int)
+            
+            # Grade-based baseline values (raw comics)
+            grade_baselines = {
+                10.0: 50, 9.8: 45, 9.6: 40, 9.4: 35, 9.2: 30, 9.0: 25,
+                8.5: 20, 8.0: 18, 7.5: 16, 7.0: 14, 6.5: 12, 6.0: 10,
+                5.5: 9, 5.0: 8, 4.5: 7, 4.0: 6, 3.5: 5, 3.0: 4, 2.0: 3, 1.0: 2
+            }
+            
+            # Get baseline from grade
+            raw_estimate = grade_baselines.get(grade_param, 8)  # Default to $8
+            
+            # Publisher multiplier (Big 2 worth more)
+            if any(pub in publisher for pub in ['marvel', 'dc']):
+                raw_estimate *= 1.3
+            elif any(pub in publisher for pub in ['image', 'dark horse', 'idw']):
+                raw_estimate *= 1.1
+            
+            # Era adjustment (older = more valuable generally)
+            if year:
+                if year < 1970:  # Silver Age
+                    raw_estimate *= 2.0
+                elif year < 1984:  # Bronze Age
+                    raw_estimate *= 1.5
+                elif year < 1992:  # Copper Age
+                    raw_estimate *= 1.2
+                # Modern age (1992+) = no multiplier
+            
+            # Slabbed premium (typically 40-60% for raw comics without known value)
+            slabbed_estimate = raw_estimate * 1.5
+            grading_cost = 30  # Standard grading fee
+            
+            # Round to 2 decimals
+            raw_estimate = round(raw_estimate, 2)
+            slabbed_estimate = round(slabbed_estimate, 2)
+            
+            return jsonify({
+                'success': True, 
+                'count': 0, 
+                'tiers': None,
+                'raw_fmv': raw_estimate,
+                'slabbed_fmv': slabbed_estimate,
+                'grading_cost': grading_cost,
+                'estimated': True,
+                'note': 'Estimate based on grade/publisher/era - limited sales data available'
+            })
         
         # Group by grade tiers
         tiers = {

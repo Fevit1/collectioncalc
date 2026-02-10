@@ -2005,7 +2005,9 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 const params = new URLSearchParams({
                     title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
                     issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
-                    grade: gradeResult.final_grade || '5.0'
+                    grade: gradeResult.final_grade || '5.0',
+                    publisher: gradeResult.publisher || window.gradingState.extractedData?.publisher || '',
+                    year: gradeResult.year || window.gradingState.extractedData?.year || ''
                 });
                 
                 // Call FMV API
