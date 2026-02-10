@@ -717,7 +717,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    collection = data.collection || [];
+                    collection = data.items || [];
                     filteredCollection = [...collection];
                     updateSummary();
                     filterAndDisplay();
