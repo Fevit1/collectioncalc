@@ -84,20 +84,23 @@ function updateAuthUI(loggedIn) {
     const userAvatarEl = document.getElementById('userAvatar');
     const adminMenuItem = document.getElementById('adminMenuItem');
     
+    // Only update UI if elements exist (they don't exist on all pages)
     if (loggedIn && currentUser) {
-        loggedOutEl.style.display = 'none';
-        loggedInEl.style.display = 'flex';
+        if (loggedOutEl) loggedOutEl.style.display = 'none';
+        if (loggedInEl) loggedInEl.style.display = 'flex';
         
-        const email = currentUser.email;
-        userEmailEl.textContent = email.length > 20 ? email.slice(0, 17) + '...' : email;
-        userAvatarEl.textContent = email.charAt(0).toUpperCase();
+        if (userEmailEl && userAvatarEl) {
+            const email = currentUser.email;
+            userEmailEl.textContent = email.length > 20 ? email.slice(0, 17) + '...' : email;
+            userAvatarEl.textContent = email.charAt(0).toUpperCase();
+        }
         
         if (adminMenuItem) {
             adminMenuItem.style.display = currentUser.is_admin ? 'block' : 'none';
         }
     } else {
-        loggedOutEl.style.display = 'flex';
-        loggedInEl.style.display = 'none';
+        if (loggedOutEl) loggedOutEl.style.display = 'flex';
+        if (loggedInEl) loggedInEl.style.display = 'none';
         if (adminMenuItem) {
             adminMenuItem.style.display = 'none';
         }
