@@ -373,27 +373,137 @@
             margin-bottom: 2rem;
         }
 
-        /* List View */
+        /* List View - Table Layout */
+        .comics-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
         .comics-list .comic-card {
             display: grid;
-            grid-template-columns: 100px 1fr auto;
-            gap: 1.5rem;
+            grid-template-columns: 60px 2fr 0.8fr 0.8fr 0.8fr 1fr 1.2fr 1.5fr;
+            gap: 1rem;
             align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-default);
+            background: var(--bg-secondary);
+        }
+
+        .comics-list .comic-card:hover {
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .comics-list .comic-card:first-child {
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .comics-list .comic-card:last-child {
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            border-bottom: none;
         }
 
         .comics-list .comic-thumbnail {
-            width: 100px;
-            height: 140px;
+            width: 50px;
+            height: 70px;
             margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comics-list .comic-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .comics-list .comic-info {
-            flex: 1;
+            display: contents;
+        }
+
+        .comics-list .comic-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .comics-list .comic-issue {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .comics-list .comic-grade {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--brand-purple);
+        }
+
+        .comics-list .comic-values {
+            display: contents;
+        }
+
+        .comics-list .value-item {
+            text-align: left;
+        }
+
+        .comics-list .value-label {
+            display: none;
+        }
+
+        .comics-list .value-amount {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .comics-list .comic-roi {
+            font-size: 0.85rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .comics-list .verdict-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
         }
 
         .comics-list .comic-actions {
-            flex-direction: column;
-            min-width: 120px;
+            display: flex;
+            flex-direction: row;
+            gap: 0.5rem;
+        }
+
+        .comics-list .action-btn {
+            flex: 0;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .comics-list .comic-date {
+            display: none;
+        }
+
+        /* Table Headers */
+        .table-headers {
+            display: grid;
+            grid-template-columns: 60px 2fr 0.8fr 0.8fr 0.8fr 1fr 1.2fr 1.5fr;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px 12px 0 0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: -1px;
         }
 
         /* Bulk Actions Bar */
@@ -517,6 +627,18 @@
             </div>
         </div>
 
+        <!-- Table Headers (List View Only) -->
+        <div class="table-headers" id="tableHeaders" style="display: none;">
+            <div style="width: 60px;"></div>
+            <div>Title</div>
+            <div>Grade</div>
+            <div>Raw Value</div>
+            <div>Slabbed</div>
+            <div>ROI</div>
+            <div>Verdict</div>
+            <div>Actions</div>
+        </div>
+
         <!-- Comics Grid/List -->
         <div class="comics-grid" id="comicsContainer">
             <!-- Comics will be populated here by JavaScript -->
@@ -595,7 +717,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    collection = data.items || [];
+                    collection = data.collection || [];
                     filteredCollection = [...collection];
                     updateSummary();
                     filterAndDisplay();
@@ -666,7 +788,15 @@
 
         function displayCollection() {
             const container = document.getElementById('comicsContainer');
+            const tableHeaders = document.getElementById('tableHeaders');
             container.className = currentView === 'grid' ? 'comics-grid' : 'comics-list';
+            
+            // Show/hide table headers based on view
+            if (currentView === 'list' && filteredCollection.length > 0) {
+                tableHeaders.style.display = 'grid';
+            } else {
+                tableHeaders.style.display = 'none';
+            }
             
             if (filteredCollection.length === 0 && collection.length > 0) {
                 container.innerHTML = '<div class="empty-state"><p style="color: var(--text-secondary);">No comics match your filters</p></div>';
@@ -680,7 +810,7 @@
             const roi = (comic.slabbed_value || 0) - (comic.raw_value || 0);
             const roiClass = roi > 0 ? 'positive' : 'negative';
             const verdictClass = comic.verdict === 'worth-it' ? 'worth-it' : 'keep-raw';
-            const verdictText = comic.verdict === 'worth-it' ? '✓ Worth the Slab' : 'Keep it Raw';
+            const verdictText = comic.verdict === 'worth-it' ? '✓ Worth It' : 'Keep Raw';
 
             // Get first available photo (prefer front, then spine, then back, then centerfold)
             let photoUrl = null;
@@ -688,6 +818,40 @@
                 photoUrl = comic.photos.front || comic.photos.spine || comic.photos.back || comic.photos.centerfold;
             }
 
+            // For list view, create a table-like row structure
+            if (currentView === 'list') {
+                return `
+                    <div class="comic-card" data-id="${comic.id}">
+                        <div class="comic-thumbnail">
+                            ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
+                        </div>
+                        <div class="comic-info">
+                            <div class="comic-title">${comic.title}</div>
+                            <div class="comic-issue">#${comic.issue} • ${comic.publisher || 'Unknown'}</div>
+                        </div>
+                        <div class="comic-grade">${comic.grade} ${comic.grade_label || ''}</div>
+                        <div class="value-amount">$${(comic.raw_value || 0).toLocaleString()}</div>
+                        <div class="value-amount">$${(comic.slabbed_value || 0).toLocaleString()}</div>
+                        <div class="comic-roi ${roiClass}">
+                            ${roi >= 0 ? '+' : ''}$${roi.toLocaleString()}
+                        </div>
+                        <div class="verdict-badge ${verdictClass}">${verdictText}</div>
+                        <div class="comic-actions">
+                            <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
+                                eBay
+                            </button>
+                            <button class="action-btn" onclick="viewDetails(${comic.id})">
+                                Details
+                            </button>
+                            <button class="action-btn danger" onclick="deleteComic(${comic.id})">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Grid view - original card layout
             return `
                 <div class="comic-card" data-id="${comic.id}">
                     <div class="comic-thumbnail">
