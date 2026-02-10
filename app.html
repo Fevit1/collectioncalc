@@ -1995,9 +1995,171 @@ Return ONLY valid JSON, no markdown, no nested objects.`
             }
         };
         
+        // Calculate grading recommendation (FMV, ROI, verdict)
+        window.calculateGradingRecommendation = async function(gradeResult) {
+            try {
+                const token = localStorage.getItem('cc_token');
+                if (!token) return;
+                
+                // Build FMV API URL with query parameters
+                const params = new URLSearchParams({
+                    title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
+                    issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
+                    grade: gradeResult.final_grade || '5.0'
+                });
+                
+                // Call FMV API
+                const response = await fetch(`${API_URL}/api/sales/fmv?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('FMV API failed:', response.status);
+                    return;
+                }
+                
+                const fmvData = await response.json();
+                
+                // Add FMV data to gradeResult and gradingState
+                const raw_value = fmvData.raw_fmv || 0;
+                const slabbed_value = fmvData.slabbed_fmv || 0;
+                const grading_cost = fmvData.grading_cost || 30;
+                const roi = slabbed_value - raw_value - grading_cost;
+                const verdict = roi > 0 ? 'worth' : 'keep-raw';
+                
+                // Update the grade result object
+                gradeResult.raw_value = raw_value;
+                gradeResult.slabbed_value = slabbed_value;
+                gradeResult.grading_cost = grading_cost;
+                gradeResult.roi = roi;
+                gradeResult.verdict = verdict;
+                
+                // Also update gradingState.finalGrade
+                window.gradingState.finalGrade.raw_value = raw_value;
+                window.gradingState.finalGrade.slabbed_value = slabbed_value;
+                window.gradingState.finalGrade.grading_cost = grading_cost;
+                window.gradingState.finalGrade.roi = roi;
+                window.gradingState.finalGrade.verdict = verdict;
+                
+                // Update UI with verdict
+                const verdictSection = document.getElementById('gradingVerdict');
+                if (verdictSection) {
+                    const verdictText = roi > 0 
+                        ? `<span class="verdict-worth">✓ Worth the Slab</span>`
+                        : `<span class="verdict-keep">Keep it Raw</span>`;
+                    const roiText = roi > 0 
+                        ? `+$${roi.toFixed(2)} potential profit`
+                        : `$${Math.abs(roi).toFixed(2)} loss if graded`;
+                    
+                    verdictSection.innerHTML = `
+                        <div class="verdict-result">
+                            ${verdictText}
+                            <p class="verdict-explanation">${roiText} (after ~$${grading_cost} grading fees)</p>
+                        </div>
+                    `;
+                }
+                
+                // Update value displays if they exist
+                const rawValueEl = document.getElementById('rawValue');
+                const slabbedValueEl = document.getElementById('slabbedValue');
+                if (rawValueEl) rawValueEl.textContent = `$${raw_value.toFixed(2)}`;
+                if (slabbedValueEl) slabbedValueEl.textContent = `$${slabbed_value.toFixed(2)}`;
+                
+            } catch (error) {
+                console.error('Error calculating recommendation:', error);
+                // Don't fail the whole grading if FMV lookup fails
+            }
+        };
+        
         // Navigate to My Collection page
         function showCollection() {
             window.location.href = '/collection.html';
+        }
+        
+        // Save current grading to collection
+        async function saveGradeToCollection() {
+            return await saveToCollection();
+        }
+        
+        // Save all grading data to collection (same as above)
+        async function saveAllToCollection() {
+            return await saveToCollection();
+        }
+        
+        // Core save to collection function
+        async function saveToCollection() {
+            // Check if we have grade data
+            if (!window.gradingState || !window.gradingState.finalGrade) {
+                alert('No grade data to save. Please complete the grading process first.');
+                return;
+            }
+            
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                alert('Please log in to save to your collection.');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            try {
+                // Gather all the data
+                const saveData = {
+                    title: window.gradingState.extractedData?.title || 'Unknown',
+                    issue: window.gradingState.extractedData?.issue || '?',
+                    publisher: window.gradingState.extractedData?.publisher || null,
+                    year: window.gradingState.extractedData?.year || null,
+                    grade: window.gradingState.finalGrade.final_grade || null,
+                    grade_label: window.gradingState.finalGrade.grade_label || null,
+                    confidence: window.gradingState.confidence || null,
+                    defects: {
+                        front: window.gradingState.finalGrade.front_defects || [],
+                        spine: window.gradingState.finalGrade.spine_defects || [],
+                        back: window.gradingState.finalGrade.back_defects || [],
+                        interior: window.gradingState.finalGrade.interior_defects || []
+                    },
+                    photos: {
+                        front: window.gradingState.photos[1]?.imageUrl || null,
+                        spine: window.gradingState.photos[2]?.imageUrl || null,
+                        back: window.gradingState.photos[3]?.imageUrl || null,
+                        centerfold: window.gradingState.photos[4]?.imageUrl || null
+                    },
+                    raw_value: window.gradingState.finalGrade.raw_value || null,
+                    slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
+                    roi: window.gradingState.finalGrade.roi || null,
+                    verdict: window.gradingState.finalGrade.verdict || null
+                };
+                
+                // Send to API
+                const response = await fetch(`${API_URL}/api/collection/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save');
+                }
+                
+                const result = await response.json();
+                
+                // Success!
+                alert('✓ Saved to your collection!');
+                
+                // Optionally navigate to collection
+                // window.location.href = '/collection.html';
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                alert(`Failed to save: ${error.message}\n\nPlease try again.`);
+            }
         }
     </script>
     
