@@ -1274,9 +1274,9 @@
 <script>
 // eBay Listing Modal Logic
 let currentComic = null;
-// Use existing ebayConnected from auth.js, or create if it doesn't exist
-if (typeof ebayConnected === 'undefined') {
-    var ebayConnected = false;
+// ebayConnected is declared in auth.js - ensure it exists globally
+if (typeof window.ebayConnected === 'undefined') {
+    window.ebayConnected = false;
 }
 let uploadedImageUrls = [];
 
@@ -1322,14 +1322,14 @@ async function checkEbayConnection() {
         });
         
         const data = await response.json();
-        ebayConnected = data.connected || false;
+        window.ebayConnected = data.connected || false;
         
         const indicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
         const connectBtn = document.getElementById('connectBtn');
         const publishBtn = document.getElementById('publishBtn');
         
-        if (ebayConnected) {
+        if (window.ebayConnected) {
             indicator.classList.remove('disconnected');
             statusText.textContent = `Connected to eBay as ${data.username || 'user'}`;
             connectBtn.style.display = 'none';
@@ -1525,7 +1525,7 @@ async function uploadPhotosToEbay() {
 }
 
 async function saveAsDraft() {
-    if (!ebayConnected) {
+    if (!window.ebayConnected) {
         alert('Please connect to eBay first');
         return;
     }
@@ -1534,7 +1534,7 @@ async function saveAsDraft() {
 }
 
 async function publishListing() {
-    if (!ebayConnected) {
+    if (!window.ebayConnected) {
         alert('Please connect to eBay first');
         return;
     }
@@ -1600,7 +1600,7 @@ async function createListing(publish) {
         alert(`Failed to create listing:\n${error.message}\n\nPlease try again or check your eBay connection.`);
     } finally {
         // Re-enable buttons
-        publishBtn.disabled = !ebayConnected;
+        publishBtn.disabled = !window.ebayConnected;
         draftBtn.disabled = false;
         publishBtn.textContent = '🚀 Publish Now';
     }
