@@ -1264,3 +1264,150 @@ Session 32 Continued - Feb 7, 2026 (Morning)
 *Last updated: February 8, 2026 (Session 34)*
 *Version: 4.3.1 - Mobile UX Era*
 *Patent Pending: Multi-angle comic grading system*
+
+## Session 35 - February 9, 2026
+**Focus:** FAQ Page Creation, Mobile Testing & Polish, Brand Alignment
+
+### FAQ Page Development
+
+**Question Structure (18 questions, 5 categories):**
+- About Slab Worthy™ (4 questions)
+- Taking Photos (4 questions)
+- Assessment & Valuation (4 questions - hot topic)
+- Professional Grading Companies (3 questions - critical differentiator)
+- Technical & Support (3 questions)
+
+**Content Refinements (User Feedback):**
+1. Assessment timing: "1-2 minutes after you upload all 4 photos, though it can be faster if we've previously assessed this comic in similar condition"
+2. Future features added: "batch upload and video upload features for future updates"
+3. Database size: "tens of thousands of sales" (20K+ qualifies)
+4. Removed value ranges line (app shows specific numbers, not ranges)
+5. FMV calculation made more vague per user request
+
+**UI Polish:**
+- Logo styling: Gold (#facc15) with purple shadow (had to fix styles.css override issue)
+- Purple boxes: `rgba(124, 58, 237, 0.08)` background with `0.4` border
+- Clickable header logo linking to home page
+- Self-contained CSS (no external stylesheet to avoid conflicts)
+
+**Brand Consistency:**
+- All answers follow BRAND_GUIDELINES.txt voice (expert, approachable, honest, helpful)
+- "We're a pre-assessment tool, not a grading service" messaging
+- Realistic expectations throughout
+- Educational without being salesy
+
+**Files Created:**
+- `/mnt/user-data/outputs/faq.html` - Production-ready FAQ page
+
+### Mobile Testing & Fixes
+
+**Issue #1: User Avatar Overlap**
+- Problem: Avatar appearing on top of logo on mobile
+- Fix: Changed mobile header to keep single row, logo left, avatar right
+- Result: Clean, organized header layout
+
+**Issue #2 & #4: Floating Buttons**
+- Problem: "Generate Slab Report" and "Grade Another/Save" buttons were `position: fixed`, obscuring footer
+- Fix: Removed fixed positioning, made regular buttons above footer
+- Result: No more overlap, better scrolling experience
+
+**Issue #3: Patent Pending Placement**
+- Problem: "Patent Pending" on Slab Report header (Slab Report isn't patent pending, Slab Worthy™ is)
+- Fix: Moved to main header subtitle: "AI for Comic Collectors • Patent Pending"
+- Result: Correct legal placement
+
+**Issue #5: Thinking Messages Protocol**
+- Problem: Messages not following approved pattern
+- Fix: Implemented proper timing:
+  * First 30 seconds: Only serious messages
+  * After 30 seconds: 20% chance of funny message per cycle
+  * Each message displays for π seconds (3.1415s)
+- Separate `seriousMessages` and `funnyMessages` arrays
+
+**Mobile Toggle Simplification:**
+- Removed toggle switch on mobile (just visual clutter)
+- Made Camera/Upload labels directly tappable
+- Active label gets gold highlight with subtle background
+- Cleaner, more intuitive UX
+
+**Landscape Mode Optimization:**
+- Added media query for `(orientation: landscape)`
+- Compact header (smaller padding, logo, avatar)
+- No page reload needed - CSS responds instantly to rotation
+
+### Home Page (index.html) Fixes
+
+**Logo Wrapping Issue:**
+- Problem: "SLAB WORTHY" appearing on two lines on desktop
+- Root cause: `.logo-container` had `max-width: 500px`
+- Fix: Changed to `max-width: none` + added `white-space: nowrap` to logo
+- Result: Logo stays on one line, scales down if needed
+
+**Page Title Update:**
+- Changed from "Know Before You Slab" to "AI for Comic Collectors"
+- Shows in browser tabs, bookmarks, URL autocomplete, search results
+- Better brand alignment with main tagline
+
+### Login Page (login.html) Fix
+
+**Duplicate Logo:**
+- Problem: Logo in both top-left corner AND center
+- Fix: Removed top-left logo, kept only centered logo
+- Result: Cleaner, less cluttered layout
+
+### Documentation Updates
+
+**BRAND_GUIDELINES.txt Enhancement:**
+- Added "Technical Implementation Notes" section
+- Documented `styles.css` CSS variables
+- **Slab Worthy™ Logo Technical Specs:**
+  * Font: Bangers (Google Fonts)
+  * Color: `#facc15` (Gold) - DO NOT use gradient
+  * Text shadow: `1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b`
+  * Important: External stylesheets may override with gradient
+- **When to Use External vs Self-Contained CSS:**
+  * Use `styles.css` linked: Main app pages, interactive features
+  * Use self-contained CSS: Marketing pages, FAQ, legal pages, emails
+  * Rule: Standalone pages should use inline CSS to preserve gold logo
+
+### Files Updated
+- `app.html` - Mobile fixes, thinking messages, button positioning
+- `index.html` - Logo wrapping fix, page title update
+- `login.html` - Removed duplicate logo
+- `faq.html` - Complete FAQ page with brand voice
+- `BRAND_GUIDELINES.txt` - Added technical implementation section
+
+### Key Learnings
+
+**CSS Inheritance Issues:**
+- `styles.css` h1 gradient overrides gold logo
+- Solution: Self-contained CSS for marketing pages
+- Always test logo color after linking external stylesheets
+
+**Mobile UX Patterns:**
+- Fixed buttons can obscure content on scroll
+- Simpler is better: tap labels directly vs toggle switches
+- Landscape mode needs compact header
+
+**Brand Consistency:**
+- "Patent Pending" belongs to Slab Worthy™ (the product), not individual features
+- Page titles matter for SEO and UX
+- Logo placement: center for marketing, left+avatar for app
+
+### Testing Protocol Established
+
+User-led mobile testing workflow:
+1. User does full mobile run-through
+2. Reports specific issues with screenshots
+3. Claude fixes all issues
+4. Claude suggests additional areas to check
+5. Iterate until polished
+
+This worked great - caught all major mobile UX issues!
+
+---
+
+*Last updated: February 9, 2026 (Session 35)*
+*Version: 4.3.2 - Mobile Polish & FAQ Launch*
+*Patent Pending: Multi-angle comic grading system*
+

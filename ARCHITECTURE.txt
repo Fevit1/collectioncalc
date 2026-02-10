@@ -580,6 +580,19 @@ collectioncalc-images/
 
 ## Recent Updates
 
+### v4.3.2 - Mobile Polish & FAQ (Session 35 - Feb 9, 2026)
+- Created comprehensive FAQ page with 18 questions across 5 categories
+- Fixed mobile header layout: logo left, avatar right (no overlap)
+- Removed fixed button positioning to prevent footer obscuring
+- Corrected "Patent Pending" placement (Slab Worthy™ product, not Slab Report)
+- Implemented thinking messages protocol: 30s serious only, then 20% funny at π second intervals
+- Simplified mobile photo mode toggle: direct label tapping, no switch UI
+- Added landscape mode CSS optimization (auto-responds to rotation)
+- Fixed home page logo wrapping issue (removed max-width constraint)
+- Updated page title from "Know Before You Slab" to "AI for Comic Collectors"
+- Removed duplicate logo from login page (center only)
+- Enhanced BRAND_GUIDELINES.txt with technical implementation notes
+
 ### v4.3.0 - Blueprint Refactor (Session 32 - Feb 6, 2026)
 - Split monolithic wsgi.py (2,198 lines) into 9 modular blueprints
 - Routes organized by feature area in `routes/` directory
@@ -615,6 +628,6 @@ collectioncalc-images/
 
 ---
 
-*Last updated: February 7, 2026 (Session 32)*
+*Last updated: February 9, 2026 (Session 35)*
 *Patent Pending: Multi-angle comic grading system*
 
