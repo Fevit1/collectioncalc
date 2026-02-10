@@ -382,7 +382,7 @@
 
         .comics-list .comic-card {
             display: grid;
-            grid-template-columns: 60px 2fr 0.8fr 0.8fr 0.8fr 1fr 1.2fr 1.5fr;
+            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 2fr;
             gap: 1rem;
             align-items: center;
             padding: 0.75rem 1rem;
@@ -406,13 +406,16 @@
         }
 
         .comics-list .comic-thumbnail {
-            width: 50px;
-            height: 70px;
+            width: 60px;
+            height: 85px;
             margin: 0;
-            font-size: 2rem;
+            border-radius: 4px;
+            overflow: hidden;
+            background: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 2rem;
         }
 
         .comics-list .comic-thumbnail img {
@@ -426,21 +429,98 @@
         }
 
         .comics-list .comic-title {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
             margin-bottom: 0;
+            color: var(--text-primary);
         }
 
         .comics-list .comic-issue {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 2px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
         }
 
         .comics-list .comic-grade {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--brand-purple);
+            text-align: center;
+            cursor: help;
+            position: relative;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .comics-list .comic-grade:hover {
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        /* Defects Tooltip */
+        .defects-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 0.5rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            text-align: left;
+        }
+
+        .comics-list .comic-grade:hover .defects-tooltip {
+            display: block;
+        }
+
+        .defects-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--border-default);
+        }
+
+        .defects-tooltip h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .defects-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.85rem;
+        }
+
+        .defects-list li {
+            padding: 0.25rem 0;
+            color: var(--text-secondary);
+        }
+
+        .defects-list li::before {
+            content: '•';
+            color: var(--brand-purple);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .no-defects {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
         }
 
         .comics-list .comic-values {
@@ -448,7 +528,7 @@
         }
 
         .comics-list .value-item {
-            text-align: left;
+            text-align: right;
         }
 
         .comics-list .value-label {
@@ -456,31 +536,56 @@
         }
 
         .comics-list .value-amount {
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: right;
+            padding-right: 0.5rem;
+        }
+
+        /* My Valuation Input */
+        .my-valuation-input {
+            width: 100%;
+            padding: 0.4rem 0.6rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
             font-size: 0.9rem;
             font-weight: 600;
+            text-align: right;
+            transition: border-color 0.2s;
+        }
+
+        .my-valuation-input:focus {
+            outline: none;
+            border-color: var(--brand-purple);
+        }
+
+        .my-valuation-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
         }
 
         .comics-list .comic-roi {
-            font-size: 0.85rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            text-align: center;
+            display: none;
         }
 
         .comics-list .verdict-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
+            display: none;
         }
 
         .comics-list .comic-actions {
             display: flex;
             flex-direction: row;
             gap: 0.5rem;
+            justify-content: flex-start;
+            padding-left: 1rem;
+            border-left: 1px solid var(--border-default);
         }
 
         .comics-list .action-btn {
             flex: 0;
-            padding: 0.4rem 0.6rem;
+            padding: 0.4rem 0.75rem;
             font-size: 0.75rem;
             white-space: nowrap;
         }
@@ -492,7 +597,7 @@
         /* Table Headers */
         .table-headers {
             display: grid;
-            grid-template-columns: 60px 2fr 0.8fr 0.8fr 0.8fr 1fr 1.2fr 1.5fr;
+            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 3fr;
             gap: 1rem;
             padding: 0.75rem 1rem;
             background: var(--bg-primary);
@@ -504,6 +609,141 @@
             letter-spacing: 0.5px;
             color: var(--text-muted);
             margin-bottom: -1px;
+        }
+
+        /* Gallery View */
+        .comics-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 2rem;
+            padding: 1rem 0;
+        }
+
+        .comics-gallery .comic-frame {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .comics-gallery .comic-frame:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
+        }
+
+        .comics-gallery .frame-outer {
+            background: #2e2755;
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .comics-gallery .frame-inner {
+            background: #1f1f35;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .comics-gallery .comic-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .comics-gallery .comic-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Gallery Expanded State */
+        .comics-gallery .comic-frame.expanded {
+            grid-column: 1 / -1;
+        }
+
+        .comics-gallery .comic-frame.expanded .comic-details {
+            display: block;
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-default);
+        }
+
+        .comics-gallery .comic-details {
+            display: none;
+        }
+
+        .comics-gallery .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .comics-gallery .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .comics-gallery .detail-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .comics-gallery .detail-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .comics-gallery .detail-grade {
+            position: relative;
+            cursor: help;
+        }
+
+        .comics-gallery .detail-grade:hover .defects-tooltip {
+            display: block;
+        }
+
+        .comics-gallery .detail-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Export Button */
+        .export-btn {
+            background: var(--brand-indigo);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.5rem;
+        }
+
+        .export-btn:hover {
+            background: var(--brand-purple);
+            transform: translateY(-2px);
+        }
+
+        /* Update Actions column width in list view */
+        .comics-list .comic-card {
+            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 3fr;
+        }
+
+        .comics-list .comic-actions {
+            justify-content: space-between;
         }
 
         /* Bulk Actions Bar */
@@ -616,12 +856,39 @@
                     </select>
                 </div>
 
+                <div class="controls-group">
+                    <span class="control-label">Era:</span>
+                    <select id="eraFilter">
+                        <option value="all">All Eras</option>
+                        <option value="golden">Golden Age (1938-1956)</option>
+                        <option value="silver">Silver Age (1956-1970)</option>
+                        <option value="bronze">Bronze Age (1970-1985)</option>
+                        <option value="copper">Copper Age (1985-1992)</option>
+                        <option value="modern">Modern Age (1992+)</option>
+                    </select>
+                </div>
+
+                <div class="controls-group">
+                    <span class="control-label">Sort:</span>
+                    <select id="sortSelect">
+                        <option value="series">Series & Issue</option>
+                        <option value="value-high">Value: High to Low</option>
+                        <option value="value-low">Value: Low to High</option>
+                        <option value="grade-high">Grade: High to Low</option>
+                        <option value="grade-low">Grade: Low to High</option>
+                        <option value="recent">Recently Added</option>
+                    </select>
+                </div>
+
                 <div class="view-toggle">
-                    <button class="view-btn active" data-view="grid" title="Grid View">
-                        <span>⊞</span>
-                    </button>
-                    <button class="view-btn" data-view="list" title="List View">
+                    <button class="view-btn active" data-view="list" title="List View">
                         <span>☰</span>
+                    </button>
+                    <button class="view-btn" data-view="gallery" title="Gallery View">
+                        <span>🖼️</span>
+                    </button>
+                    <button class="export-btn" id="exportGallery" title="Export Gallery Image" style="display: none;">
+                        📸 Export
                     </button>
                 </div>
             </div>
@@ -629,14 +896,13 @@
 
         <!-- Table Headers (List View Only) -->
         <div class="table-headers" id="tableHeaders" style="display: none;">
-            <div style="width: 60px;"></div>
+            <div>Cover</div>
             <div>Title</div>
-            <div>Grade</div>
-            <div>Raw Value</div>
-            <div>Slabbed</div>
-            <div>ROI</div>
-            <div>Verdict</div>
-            <div>Actions</div>
+            <div style="text-align: center;">Issue</div>
+            <div style="text-align: center;">Grade</div>
+            <div style="text-align: right; padding-right: 0.5rem;">FMV</div>
+            <div style="text-align: right;">My Valuation</div>
+            <div style="border-left: 1px solid var(--border-default); padding-left: 1rem;">Actions</div>
         </div>
 
         <!-- Comics Grid/List -->
@@ -672,7 +938,7 @@
         // Collection state
         let collection = [];
         let filteredCollection = [];
-        let currentView = 'grid';
+        let currentView = 'list';
 
         // Load collection on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -689,6 +955,15 @@
             
             // Filter
             document.getElementById('filterSelect').addEventListener('change', filterAndDisplay);
+
+            // Era filter
+            document.getElementById('eraFilter').addEventListener('change', filterAndDisplay);
+
+            // Export gallery
+            const exportBtn = document.getElementById('exportGallery');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportGalleryImage);
+            }
             
             // View toggle
             document.querySelectorAll('.view-btn').forEach(btn => {
@@ -755,6 +1030,7 @@
         function filterAndDisplay() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const filterValue = document.getElementById('filterSelect').value;
+            const eraValue = document.getElementById('eraFilter').value;
             const sortValue = document.getElementById('sortSelect').value;
 
             // Filter
@@ -767,19 +1043,51 @@
                 // Verdict filter
                 const matchesFilter = filterValue === 'all' || comic.verdict === filterValue;
 
-                return matchesSearch && matchesFilter;
+                // Era filter
+                let matchesEra = true;
+                if (eraValue !== 'all' && comic.year) {
+                    const year = parseInt(comic.year);
+                    switch(eraValue) {
+                        case 'golden': matchesEra = year >= 1938 && year <= 1956; break;
+                        case 'silver': matchesEra = year >= 1956 && year <= 1970; break;
+                        case 'bronze': matchesEra = year >= 1970 && year <= 1985; break;
+                        case 'copper': matchesEra = year >= 1985 && year <= 1992; break;
+                        case 'modern': matchesEra = year >= 1992; break;
+                    }
+                }
+
+                return matchesSearch && matchesFilter && matchesEra;
             });
 
             // Sort
             filteredCollection.sort((a, b) => {
                 switch(sortValue) {
-                    case 'date-desc': return new Date(b.date_added) - new Date(a.date_added);
-                    case 'date-asc': return new Date(a.date_added) - new Date(b.date_added);
-                    case 'value-desc': return (b.slabbed_value || 0) - (a.slabbed_value || 0);
-                    case 'value-asc': return (a.slabbed_value || 0) - (b.slabbed_value || 0);
-                    case 'grade-desc': return parseFloat(b.grade) - parseFloat(a.grade);
-                    case 'title-asc': return a.title.localeCompare(b.title);
-                    default: return 0;
+                    case 'series':
+                        // Sort by title first, then by issue number
+                        const titleCompare = a.title.localeCompare(b.title);
+                        if (titleCompare !== 0) return titleCompare;
+                        // Parse issue numbers for numeric sort
+                        const issueA = parseInt(a.issue) || 0;
+                        const issueB = parseInt(b.issue) || 0;
+                        return issueA - issueB;
+                    
+                    case 'value-high': 
+                        return (b.raw_value || 0) - (a.raw_value || 0);
+                    
+                    case 'value-low': 
+                        return (a.raw_value || 0) - (b.raw_value || 0);
+                    
+                    case 'grade-high': 
+                        return parseFloat(b.grade) - parseFloat(a.grade);
+                    
+                    case 'grade-low': 
+                        return parseFloat(a.grade) - parseFloat(b.grade);
+                    
+                    case 'recent': 
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    
+                    default: 
+                        return 0;
                 }
             });
 
@@ -789,13 +1097,25 @@
         function displayCollection() {
             const container = document.getElementById('comicsContainer');
             const tableHeaders = document.getElementById('tableHeaders');
-            container.className = currentView === 'grid' ? 'comics-grid' : 'comics-list';
+            const exportBtn = document.getElementById('exportGallery');
+            
+            // Set container class based on view
+            if (currentView === 'list') {
+                container.className = 'comics-list';
+            } else if (currentView === 'gallery') {
+                container.className = 'comics-gallery';
+            }
             
             // Show/hide table headers based on view
             if (currentView === 'list' && filteredCollection.length > 0) {
                 tableHeaders.style.display = 'grid';
             } else {
                 tableHeaders.style.display = 'none';
+            }
+
+            // Show/hide export button (only for gallery view)
+            if (exportBtn) {
+                exportBtn.style.display = currentView === 'gallery' ? 'inline-block' : 'none';
             }
             
             if (filteredCollection.length === 0 && collection.length > 0) {
@@ -818,30 +1138,51 @@
                 photoUrl = comic.photos.front || comic.photos.spine || comic.photos.back || comic.photos.centerfold;
             }
 
-            // For list view, create a table-like row structure
+            // For list view, create a simplified table row
             if (currentView === 'list') {
+                // Build defects list
+                const defectsList = comic.defects && comic.defects.length > 0
+                    ? comic.defects.map(d => `<li>${d}</li>`).join('')
+                    : '<div class="no-defects">No defects detected</div>';
+                
+                const defectsTooltip = `
+                    <div class="defects-tooltip">
+                        <h4>Detected Defects</h4>
+                        ${comic.defects && comic.defects.length > 0 
+                            ? `<ul class="defects-list">${defectsList}</ul>` 
+                            : defectsList}
+                    </div>
+                `;
+
+                const myValInput = comic.my_valuation 
+                    ? `$${comic.my_valuation.toFixed(2)}`
+                    : '';
+
                 return `
                     <div class="comic-card" data-id="${comic.id}">
                         <div class="comic-thumbnail">
                             ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
                         </div>
-                        <div class="comic-info">
-                            <div class="comic-title">${comic.title}</div>
-                            <div class="comic-issue">#${comic.issue} • ${comic.publisher || 'Unknown'}</div>
+                        <div class="comic-title">${comic.title}</div>
+                        <div class="comic-issue">#${comic.issue}</div>
+                        <div class="comic-grade">
+                            ${comic.grade} ${comic.grade_label || ''}
+                            ${defectsTooltip}
                         </div>
-                        <div class="comic-grade">${comic.grade} ${comic.grade_label || ''}</div>
-                        <div class="value-amount">$${(comic.raw_value || 0).toLocaleString()}</div>
-                        <div class="value-amount">$${(comic.slabbed_value || 0).toLocaleString()}</div>
-                        <div class="comic-roi ${roiClass}">
-                            ${roi >= 0 ? '+' : ''}$${roi.toLocaleString()}
+                        <div class="value-amount">$${(comic.raw_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div>
+                            <input 
+                                type="text" 
+                                class="my-valuation-input" 
+                                placeholder="$0.00"
+                                value="${myValInput}"
+                                data-comic-id="${comic.id}"
+                                onblur="updateMyValuation(${comic.id}, this.value)"
+                            />
                         </div>
-                        <div class="verdict-badge ${verdictClass}">${verdictText}</div>
                         <div class="comic-actions">
                             <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
                                 eBay
-                            </button>
-                            <button class="action-btn" onclick="viewDetails(${comic.id})">
-                                Details
                             </button>
                             <button class="action-btn danger" onclick="deleteComic(${comic.id})">
                                 🗑️
@@ -851,50 +1192,75 @@
                 `;
             }
 
-            // Grid view - original card layout
-            return `
-                <div class="comic-card" data-id="${comic.id}">
-                    <div class="comic-thumbnail">
-                        ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
+            // Gallery view - framed covers with expand-in-place details
+            if (currentView === 'gallery') {
+                // Build defects list
+                const defectsList = comic.defects && comic.defects.length > 0
+                    ? comic.defects.map(d => `<li>${d}</li>`).join('')
+                    : '<div class="no-defects">No defects detected</div>';
+                
+                const defectsTooltip = `
+                    <div class="defects-tooltip">
+                        <h4>Detected Defects</h4>
+                        ${comic.defects && comic.defects.length > 0 
+                            ? `<ul class="defects-list">${defectsList}</ul>` 
+                            : defectsList}
                     </div>
-                    <div class="comic-info">
-                        <div class="comic-title">${comic.title}</div>
-                        <div class="comic-issue">#${comic.issue} • ${comic.publisher || 'Unknown'}</div>
-                        <div class="comic-grade">${comic.grade} ${comic.grade_label || ''}</div>
-                        
-                        <div class="comic-values">
-                            <div class="value-item">
-                                <div class="value-label">Raw</div>
-                                <div class="value-amount">$${(comic.raw_value || 0).toLocaleString()}</div>
+                `;
+
+                const myValInput = comic.my_valuation 
+                    ? `$${comic.my_valuation.toFixed(2)}`
+                    : '';
+
+                return `
+                    <div class="comic-frame" data-id="${comic.id}" onclick="toggleGalleryExpand(${comic.id})">
+                        <div class="frame-outer">
+                            <div class="frame-inner">
+                                <div class="comic-cover">
+                                    ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
+                                </div>
                             </div>
-                            <div class="value-item">
-                                <div class="value-label">Slabbed</div>
-                                <div class="value-amount">$${(comic.slabbed_value || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="comic-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Title</span>
+                                <span class="detail-value">${comic.title} #${comic.issue}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Grade</span>
+                                <span class="detail-value detail-grade">
+                                    ${comic.grade} ${comic.grade_label || ''}
+                                    ${defectsTooltip}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">FMV</span>
+                                <span class="detail-value">$${(comic.raw_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">My Valuation</span>
+                                <input 
+                                    type="text" 
+                                    class="my-valuation-input" 
+                                    placeholder="$0.00"
+                                    value="${myValInput}"
+                                    data-comic-id="${comic.id}"
+                                    onclick="event.stopPropagation()"
+                                    onblur="updateMyValuation(${comic.id}, this.value)"
+                                />
+                            </div>
+                            <div class="detail-actions">
+                                <button class="action-btn primary" onclick="event.stopPropagation(); listOnEbay(${comic.id})">
+                                    eBay
+                                </button>
+                                <button class="action-btn danger" onclick="event.stopPropagation(); deleteComic(${comic.id})">
+                                    🗑️ Delete
+                                </button>
                             </div>
                         </div>
-
-                        <div class="comic-roi ${roiClass}">
-                            ROI: ${roi >= 0 ? '+' : ''}$${roi.toLocaleString()} after fees
-                        </div>
-
-                        <div class="verdict-badge ${verdictClass}">${verdictText}</div>
-
-                        <div class="comic-actions">
-                            <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
-                                List on eBay
-                            </button>
-                            <button class="action-btn" onclick="viewDetails(${comic.id})">
-                                View Details
-                            </button>
-                            <button class="action-btn danger" onclick="deleteComic(${comic.id})">
-                                🗑️ Delete
-                            </button>
-                        </div>
-
-                        <div class="comic-date">Added ${formatDate(comic.created_at)}</div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
 
         function formatDate(dateString) {
@@ -907,6 +1273,57 @@
             if (diffDays === 1) return 'Yesterday';
             if (diffDays < 7) return `${diffDays} days ago`;
             return date.toLocaleDateString();
+        }
+
+        async function updateMyValuation(comicId, valueStr) {
+            // Parse the value - remove $ and commas
+            const cleaned = valueStr.replace(/[$,]/g, '').trim();
+            if (!cleaned) {
+                // Empty value - clear my_valuation
+                const value = null;
+                await saveMyValuation(comicId, value);
+                return;
+            }
+
+            const value = parseFloat(cleaned);
+            if (isNaN(value)) {
+                alert('Please enter a valid dollar amount');
+                return;
+            }
+
+            await saveMyValuation(comicId, value);
+        }
+
+        async function saveMyValuation(comicId, value) {
+            try {
+                const token = localStorage.getItem('cc_token');
+                const response = await fetch(`${API_URL}/api/collection/${comicId}/valuation`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ my_valuation: value })
+                });
+
+                if (response.ok) {
+                    // Update local data
+                    const comic = collection.find(c => c.id == comicId);
+                    if (comic) {
+                        comic.my_valuation = value;
+                    }
+                    const filteredComic = filteredCollection.find(c => c.id == comicId);
+                    if (filteredComic) {
+                        filteredComic.my_valuation = value;
+                    }
+                    console.log('My valuation saved:', value);
+                } else {
+                    alert('Failed to save valuation');
+                }
+            } catch (error) {
+                console.error('Error saving valuation:', error);
+                alert('Error saving valuation');
+            }
         }
 
         async function deleteComic(comicId) {
@@ -946,6 +1363,70 @@
 
         function listOnEbay(comicId) {
             openEbayListingModal(comicId);
+        }
+
+        function toggleGalleryExpand(comicId) {
+            const frame = document.querySelector(`.comic-frame[data-id="${comicId}"]`);
+            if (!frame) return;
+
+            // Close all other expanded frames first
+            document.querySelectorAll('.comic-frame.expanded').forEach(f => {
+                if (f !== frame) {
+                    f.classList.remove('expanded');
+                }
+            });
+
+            // Toggle this frame
+            frame.classList.toggle('expanded');
+        }
+
+        async function exportGalleryImage() {
+            const container = document.getElementById('comicsContainer');
+            if (!container) return;
+
+            try {
+                // Temporarily collapse all expanded items for clean export
+                const expandedFrames = document.querySelectorAll('.comic-frame.expanded');
+                expandedFrames.forEach(f => f.classList.remove('expanded'));
+
+                // Import html2canvas if not already loaded
+                if (typeof html2canvas === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                    document.head.appendChild(script);
+                    await new Promise(resolve => script.onload = resolve);
+                }
+
+                // Capture the gallery
+                const canvas = await html2canvas(container, {
+                    backgroundColor: '#0f0f1a',
+                    scale: 2, // Higher quality
+                    logging: false,
+                    width: 1200,
+                    height: 1200
+                });
+
+                // Add watermark
+                const ctx = canvas.getContext('2d');
+                ctx.font = '12px Inter';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.textAlign = 'right';
+                ctx.fillText('Created with Slab Worthy™', canvas.width - 12, canvas.height - 12);
+
+                // Download
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = 'my-collection.png';
+                    link.href = url;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export gallery. Please try again.');
+            }
         }
 
         function exportSelected() {
