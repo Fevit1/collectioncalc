@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.2.1 (February 2, 2026)
+## Current Version: 4.3.5 (February 10, 2026)
 
 ### 🎉 PATENT PENDING
 Provisional patent filed for multi-angle comic grading system.
@@ -56,21 +56,26 @@ Provisional patent filed for multi-angle comic grading system.
 
 **Note:** Landing page promises "Whatnot integration coming soon!" - need timeline
 
-### My Collection Feature
+### My Collection Feature ✅ COMPLETED (Sessions 38-39)
 **Goal:** Users can save, view, and manage their graded comics
 
-**Desktop (easier):**
-- [ ] Collection grid/list view
-- [ ] Filter by grade, title, value
-- [ ] Sort options
-- [ ] Total collection value
-- [ ] Export to CSV
+**Desktop:**
+- [x] Collection grid/list view - Dual view system (List default, Gallery view)
+- [x] Gallery view - Framed covers with expand-in-place details
+- [x] Filter by grade, title, value, era
+- [x] Sort options - Series & Issue, Value, Grade, Recently Added
+- [x] Total collection value - Summary stats in header
+- [x] Export to CSV - Plus gallery export (1200×1200 Facebook/Instagram image)
+- [x] Era filter - Golden, Silver, Bronze, Copper, Modern Age
+- [x] My Valuation - Editable custom pricing per comic
+- [x] Defects on hover - Grade tooltip shows detected defects
+- [x] Delete functionality - Red danger button with confirmation
 
-**Mobile (harder - limited real estate):**
-- [ ] Compact card view
-- [ ] Swipe actions
-- [ ] Quick filters
-- [ ] Consider bottom sheet for details
+**Mobile:**
+- [x] Responsive gallery grid - Same column count, smaller covers
+- [ ] Swipe actions - Future enhancement
+- [ ] Quick filters - Future enhancement
+- [ ] Bottom sheet for details - Using expand-in-place instead
 
 ### Mobile UX: Better Image Picker
 **Problem:** Standard file picker shows tiny thumbnails
@@ -142,7 +147,7 @@ Email → Resend webhook → API → Claude → auto-respond or escalate
 
 ### Branding Consistency
 - [x] Update email templates - now say "Slab Worthy"
-- [ ] Decide: Should collectioncalc.com show CollectionCalc or Slab Worthy branding?
+- [x] CollectionCalc.com placeholder - Coming soon page with professional branding (Session 39)
 - [ ] Update Chrome extensions to reference Slab Worthy
 - [ ] Consider more playful tone - "Slab Worthy" is casual phrase
 
@@ -190,6 +195,27 @@ Consider:
 ---
 
 ## Recently Completed
+
+### Session 39 - Gallery View & Export (February 10, 2026)
+- [x] Gallery view with framed covers - Replaced grid view
+- [x] Expand-in-place details - Click cover to show info below
+- [x] Export gallery feature - 1200×1200 Facebook/Instagram image with watermark
+- [x] Era filter - Golden, Silver, Bronze, Copper, Modern Age (1938-2026)
+- [x] Enhanced sort options - Series & Issue (groups by title), Value, Grade, Recently Added
+- [x] List view as default - Table layout shows first instead of grid
+- [x] My Valuation column - Editable input with auto-save between FMV and Actions
+- [x] Defects on hover - Grade badge shows tooltip with detected defects
+- [x] Actions column repositioned - Widened to 3fr, delete button at far right
+- [x] CollectionCalc placeholder - Coming soon page with Tony Stark quote
+- [x] Cloudflare redirects - Routes collectioncalc.com to placeholder
+
+### Session 38 - Collection Display Fix (February 10, 2026)
+- [x] Fixed backend/frontend data mismatch - Changed data.collection to data.items
+- [x] Table layout for list view - 7-column grid with headers
+- [x] Photo display structure - front/spine/back/centerfold priority
+- [x] Delete button styling - Red danger class with hover effect
+- [x] Dual-view system - Both grid and list views working
+- [x] Summary stats - Total comics, raw value, slabbed value, potential profit
 
 ### Session 35 - Mobile Polish & FAQ (February 9, 2026)
 - [x] Created comprehensive FAQ page (18 questions, 5 categories)
@@ -244,6 +270,7 @@ Consider:
 
 ## Known Bugs
 
+- [ ] 🔴 **Cover not displaying** - Iron Man #200 added to collection but cover doesn't show in list or gallery views. Photo URLs not being saved correctly during grading flow. (Session 39, Feb 10 2026) **HIGH PRIORITY**
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
 - [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API, so grading shows "Unknown #Unknown" instead of comic title/issue. Need to add extraction step after Front upload with loading state. (Session 32, Feb 6 2026)
@@ -253,6 +280,12 @@ Consider:
 ## Backlog
 
 ### Features
+- [ ] **Price trend sparklines** - Inline 30-day price history charts (Session 39)
+  - Status: Awaiting data density (need 5+ sales per comic in 30-day window)
+  - Current: 30k total sales, ~3k/day added, but spread across thousands of titles
+  - Implementation: Weekly bucketing, rolling average, outlier filtering
+  - Timeline: Re-evaluate in 3-6 months when 50%+ of collection has sufficient data
+  - Placement: Between FMV and My Valuation columns
 - [ ] Two-factor authentication (TOTP)
 - [ ] AI-powered support inbox
 - [ ] Grade report sharing/export (PDF, image)
