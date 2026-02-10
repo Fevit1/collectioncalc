@@ -60,21 +60,21 @@ def generate_description(title: str, issue: str, grade: str, price: float,
         
         grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
         
-        prompt = f"""Generate a 300 character eBay listing description for this comic book.
+        prompt = f"""Generate an eBay listing description for this comic book.
 
 Comic: {comic_info}
 
-TARGET: Exactly 250-300 characters. This is critical for eBay mobile display.
+TARGET: Exactly 235-245 characters. A verification URL (~55 chars) will be appended, bringing total to ~300 characters for optimal eBay mobile display.
 
-Example (248 characters):
-"Copper Age. KEY ISSUE: First appearance of Blue Devil (Dan Cassidy). Created by Dan Mishkin, Gary Cohn, and Paris Cullins. A must-have for Bronze Age DC collectors and fans of supernatural superhero comics."
+Example (238 characters):
+"Copper Age. KEY ISSUE: First full appearance of Blue Devil (Dan Cassidy). The definitive origin story. Created by Dan Mishkin, Gary Cohn, and Paris Cullins. Essential for Bronze Age DC collectors and fans of supernatural superhero comics."
 
 Include ONLY:
 - Era (Golden/Silver/Bronze/Copper/Modern Age)
 - KEY ISSUE status if applicable (first appearance, origin, death, major event) - call this out explicitly
 - Key characters introduced or featured
 - Creators (writer/artist) if notable
-- Why it's collectible (1 short phrase)
+- Why it's collectible (1-2 short phrases)
 
 Do NOT include:
 - Title, publisher, or year (already shown in eBay listing fields)
