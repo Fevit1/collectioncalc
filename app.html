@@ -2107,7 +2107,7 @@ Return ONLY valid JSON, no markdown, no nested objects.`
             
             try {
                 // Gather all the data
-                const saveData = {
+                const itemData = {
                     title: window.gradingState.extractedData?.title || 'Unknown',
                     issue: window.gradingState.extractedData?.issue || '?',
                     publisher: window.gradingState.extractedData?.publisher || null,
@@ -2130,7 +2130,13 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                     raw_value: window.gradingState.finalGrade.raw_value || null,
                     slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
                     roi: window.gradingState.finalGrade.roi || null,
-                    verdict: window.gradingState.finalGrade.verdict || null
+                    verdict: window.gradingState.finalGrade.verdict || null,
+                    grading_id: `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                };
+                
+                // Wrap in items array as backend expects
+                const saveData = {
+                    items: [itemData]
                 };
                 
                 // Send to API
