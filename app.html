@@ -115,12 +115,14 @@
             font-size: 0.9rem;
             font-weight: 600;
             transition: color 0.3s;
+            cursor: pointer;
         }
         
         .mode-toggle-label.active {
             color: #facc15;
         }
         
+        /* Toggle switch - hide on mobile */
         .mode-toggle-switch {
             position: relative;
             width: 50px;
@@ -129,6 +131,27 @@
             border-radius: 13px;
             cursor: pointer;
             transition: background 0.3s;
+        }
+        
+        @media (max-width: 767px) {
+            .mode-toggle-switch {
+                display: none;
+            }
+            
+            .photo-mode-toggle {
+                gap: 24px;
+            }
+            
+            .mode-toggle-label {
+                padding: 8px 16px;
+                border-radius: 8px;
+                transition: all 0.3s;
+            }
+            
+            .mode-toggle-label.active {
+                background: rgba(250, 204, 21, 0.15);
+                color: #facc15;
+            }
         }
         
         .mode-toggle-switch.active {
@@ -811,11 +834,11 @@
                         
                         <!-- Camera/Upload Mode Toggle -->
                         <div class="photo-mode-toggle">
-                            <span class="mode-toggle-label" id="cameraModeLabel">📷 Camera</span>
+                            <span class="mode-toggle-label" id="cameraModeLabel" onclick="togglePhotoInputMode()">📷 Camera</span>
                             <div class="mode-toggle-switch" id="photoModeToggle" onclick="togglePhotoInputMode()">
                                 <div class="mode-toggle-slider"></div>
                             </div>
-                            <span class="mode-toggle-label active" id="uploadModeLabel">📁 Upload</span>
+                            <span class="mode-toggle-label active" id="uploadModeLabel" onclick="togglePhotoInputMode()">📁 Upload</span>
                         </div>
                         
                         <!-- Interactive Photo Diagram -->
