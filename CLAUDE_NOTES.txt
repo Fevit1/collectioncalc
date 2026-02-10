@@ -10,7 +10,12 @@
 
 **Working Style Preference:** Mike prefers natural, collaborative conversation over formal business consultant mode. Keep it friendly and conversational - avoid getting too structured/professional even when reviewing project documentation. Think "working on cool stuff together" rather than "client presentation." **IMPORTANT:** When making code changes, explain the plan first and get Mike's approval before writing any code.
 
-**Current State (v4.3.1 - February 8, 2026):**
+**Current State (v4.3.3 - February 10, 2026):**
+- **🐛 ACTIVE BUG** - "Unexpected token '<'" JSON error on save to collection - needs backend debugging (Session 36) 🔴
+- **📦 eBay Integration Modal** - Complete listing creator with AI descriptions, photo upload, OAuth support (Session 36) ⭐
+- **💰 My Valuation Feature** - Custom pricing overrides FMV in eBay listings (Session 36) ⭐
+- **🗄️ Database Migration** - Collections table expanded to store full grading data (Session 36) ⭐
+- **❓ FAQ Page Complete** - 18 questions, brand voice, mobile-optimized (Session 35) ⭐
 - **📱 Mobile UX Improvements** - EXIF photo rotation, edit extraction UI, purple defect pills, sticky nav (Session 34) ⭐
 - **✨ UI Polish Complete** - Purple defect pills (was red), animated ellipsis, purple borders, sentence case capitalization (Sessions 33-34) ⭐
 - **📚 826-Message Thinking Library** - Massive expansion with comic/tech crossover focus, serious-first logic (30s timer), π second intervals (Session 33) ⭐
@@ -30,6 +35,18 @@
 ---
 
 ## 🚨 IMMEDIATE ACTION ITEMS
+
+### CRITICAL - Save to Collection Bug 🔴
+- **Status:** BLOCKING - Cannot save graded comics to collection
+- **Error:** "Unexpected token '<', "<!doctype "... is not valid JSON"
+- **What This Means:** API returning HTML (error page) instead of JSON
+- **Next Steps:**
+  1. Check backend logs for errors on `/api/collection/save`
+  2. Verify collection blueprint registered in wsgi.py: `app.register_blueprint(collection_bp)`
+  3. Test endpoint with curl/Postman to see actual response
+  4. Confirm backend restarted after code deploy
+  5. Check browser console for CORS errors
+- **Context:** Session 36 - Fixed data format issues, database schema expanded, but getting HTML response
 
 ### Pre-Beta MUST-HAVES
 - [x] **Content moderation system** - Amazon Rekognition integration ✅ (v4.2.2, Session 28)
@@ -1407,7 +1424,313 @@ This worked great - caught all major mobile UX issues!
 
 ---
 
-*Last updated: February 9, 2026 (Session 35)*
-*Version: 4.3.2 - Mobile Polish & FAQ Launch*
+## Session 36 - February 10, 2026
+**Focus:** eBay Integration Modal, My Collection Bug Fixes, Backend Schema Migration
+
+### Context: My Collection & eBay Listing Feature
+
+User wanted to test the My Collection page (collection.html) that was created in a previous session. When testing the full grading → save → collection flow, discovered multiple bugs preventing saves.
+
+### Issues Discovered & Fixed
+
+**Issue #1: "No Grade Data to Save" Error**
+- **Problem:** After grading a comic, clicking "Save to Collection" showed error
+- **Root Cause:** Missing `calculateGradingRecommendation()` function
+- **What Was Missing:** 
+  - Grading flow got grade (8.5, VF+, defects) ✅
+  - But never called `/api/sales/fmv` to get market values ❌
+  - Save function checked for FMV data (raw_value, slabbed_value, roi, verdict)
+  - Since FMV missing, threw "No Grade Data" error
+- **Fix:** Added `calculateGradingRecommendation()` function to app.html
+  - Calls `/api/sales/fmv?title={title}&issue={issue}&grade={grade}`
+  - Calculates ROI (slabbed - raw - grading_cost)
+  - Determines verdict ("worth" or "keep-raw")
+  - Updates `gradingState.finalGrade` with values
+  - Updates UI with verdict display
+
+**Issue #2: "No items to save" Error**
+- **Problem:** Backend returned 400 error after Issue #1 was fixed
+- **Root Cause:** Data format mismatch between frontend and backend
+- **Backend Expected:**
+  ```python
+  {
+    "items": [  # Array wrapper
+      { "title": "...", "issue": "...", "grade": "...", "value": "..." }
+    ]
+  }
+  ```
+- **Frontend Was Sending:**
+  ```javascript
+  {
+    "title": "...",  # Flat object, not wrapped
+    "issue": "...",
+    // ...
+  }
+  ```
+- **Fix:** Updated `saveToCollection()` to wrap data in `items: [...]` array
+
+**Issue #3: Database Schema Too Narrow**
+- **Problem:** Backend database only stored 4 fields:
+  - `title`, `issue`, `grade`, `value`
+- **Need:** Full grading assessment data:
+  - Photos (4 images), defects (front/spine/back/interior)
+  - Publisher, year, grade_label, confidence
+  - raw_value, slabbed_value, roi, verdict
+  - my_valuation (custom user pricing)
+  - grading_id (unique identifier for verification)
+- **Fix:** Created database migration with all new columns
+
+**Issue #4: "Unexpected token '<', "<!doctype"... is not valid JSON"**
+- **Problem:** API returning HTML instead of JSON
+- **Status:** ⚠️ UNRESOLVED - User had to leave
+- **Likely Causes:**
+  1. Backend route not registered (404 HTML page)
+  2. Backend error returning error page
+  3. Authentication redirect to login page
+  4. CORS issue
+- **Next Steps:** 
+  - Check backend logs for errors
+  - Verify `/api/collection/save` route is registered
+  - Test with Postman/curl to see actual response
+  - Check if collection blueprint is imported in main app
+
+### eBay Listing Modal Development
+
+Created complete eBay listing modal with AI description generation and OAuth support.
+
+**Design Decisions:**
+- Modular component (can be included in any page)
+- Self-contained CSS and JavaScript
+- Mobile-first responsive design
+- Purple/gold brand colors matching Slab Worthy™
+
+**Features Implemented:**
+
+1. **Connection Status Check**
+   - Calls `GET /api/ebay/status` on modal open
+   - Green pulse = connected, Red = disconnected
+   - "Connect eBay" button if not authenticated
+   - Publish button disabled until connected
+
+2. **Comic Preview Card**
+   - Thumbnail image
+   - Title, issue, publisher, year
+   - Grade badge (VF+, NM, etc.)
+
+3. **Auto-populated Form Fields**
+   - **Title:** Auto-generated from comic data (80 char max)
+   - **Price:** Uses `my_valuation` if set, otherwise FMV
+   - **Description:** AI-generated via `/api/ebay/generate-description`
+   - **Grading ID:** Read-only display field
+
+4. **AI Description Generation**
+   - Shows status: Generating → Success/Error
+   - Target: 235-245 characters (+ 55 char URL = ~300 total)
+   - Appends verification URL: `slabworthy.com/verify/{grading_id}`
+   - Fallback to template if AI fails
+   - Character counter (0/4000, warning at 3500+)
+
+5. **Photo Upload Status**
+   - 4-photo grid: Front/Spine/Back/Center
+   - Status indicators: ⏳ Pending → ✓ Success / ✗ Error
+   - Uploads to eBay Picture Services via `POST /api/ebay/upload-image`
+
+6. **Publish Options**
+   - "Save as Draft" button (publish=false)
+   - "Publish Now" button (publish=true)
+   - Disabled until eBay connected
+   - Shows progress during upload/creation
+
+**my_valuation Feature:**
+- Allows users to set custom target selling price
+- Overrides FMV when creating eBay listings
+- **Priority logic:**
+  ```javascript
+  if (my_valuation > 0) {
+    use my_valuation
+    show "Your Price: $850"
+  } else {
+    use FMV (slabbed_value or raw_value)
+    show "FMV: $780"
+  }
+  ```
+- Help text shows both: "Using your custom valuation. FMV: $780"
+
+**Description Format Changes:**
+- **Before:** 
+  ```
+  [AI description ~180 chars]
+  
+  Slab Worthy™ Assessment ID: SW-ABC123
+  Verify at: slabworthy.com/verify/SW-ABC123
+  ```
+- **After:**
+  ```
+  [AI description ~240 chars - more verbose]
+  
+  Verify assessment: slabworthy.com/verify/SW-ABC123
+  ```
+- Saves character count (~45 chars saved)
+- Cleaner, more professional
+
+### Files Created/Updated
+
+**Frontend:**
+- ✅ `app.html` - Added FMV calculation, save to collection fixes
+- ✅ `collection.html` - My Collection page with embedded eBay modal
+- ✅ `modal-ebay-listing.html` - Standalone modal component
+- ✅ `ebay-modal-demo.html` - Local testing demo (not for production)
+
+**Backend:**
+- ✅ `collection.py` - Updated endpoints to support full schema
+  - Accepts both `{items: [...]}` and single item format
+  - Stores full grading data (defects, photos, ROI, etc.)
+  - Added `PATCH /api/collection/{id}/valuation` endpoint
+  - Handles JSONB fields properly
+- ✅ `ebay_description.py` - Updated AI prompt (235-245 chars target)
+
+**Database:**
+- ✅ `migration_collections_full_schema.sql` - Run in DBeaver
+  - Added 12 new columns to `collections` table
+  - Created indexes for performance
+  - Added `updated_at` trigger
+  - Migration ran successfully (minor warnings OK)
+
+**Documentation:**
+- ✅ `MY_VALUATION_IMPLEMENTATION.md` - Complete implementation guide
+  - Database schema
+  - API updates needed
+  - Frontend logic
+  - User stories
+  - Testing checklist
+  - Migration path (Phase 2 complete)
+
+### Backend Integration Notes
+
+**eBay API Routes (from ROUTE_MAPPING.md):**
+```
+POST /api/ebay/account-deletion     → GDPR compliance
+GET  /api/ebay/auth                 → Start OAuth flow
+GET  /api/ebay/callback             → OAuth redirect
+GET  /api/ebay/status               → Check connection
+POST /api/ebay/generate-description → AI description
+POST /api/ebay/upload-image         → Upload to eBay Picture Services
+POST /api/ebay/list                 → CREATE LISTING ⭐
+```
+
+**ebay_listing.py create_listing() Parameters:**
+```python
+def create_listing(
+    user_id: str,
+    title: str,
+    issue: str,
+    price: float,
+    grade: str,
+    publisher: str = None,
+    year: int = None,
+    description: str = None,
+    image_urls: list = None,
+    publish: bool = False  # True=live, False=draft
+)
+```
+
+**Missing:** Backend doesn't accept `grading_id` parameter yet (add in future)
+
+**eBay Backend Process:**
+1. Creates inventory item (SKU)
+2. Gets/creates merchant location
+3. Gets/creates business policies (shipping, payment, returns)
+4. Creates offer
+5. Publishes if `publish=True`
+
+### Deployment History
+
+**Completed:**
+1. ✅ Database migration run in DBeaver
+2. ✅ Backend `collection.py` updated and deployed
+3. ✅ Frontend `app.html` committed, pushed, purged
+4. ✅ Backend deployed
+
+**Current State:**
+- ⚠️ Getting JSON parse error: "Unexpected token '<', "<!doctype"..."
+- This means API is returning HTML (error page) instead of JSON
+- User had to leave before debugging
+
+### Next Session TODO
+
+**CRITICAL - Debug Save to Collection:**
+1. Check backend logs for errors on `/api/collection/save`
+2. Verify collection blueprint is imported in main wsgi.py/app.py:
+   ```python
+   from routes.collection import collection_bp
+   app.register_blueprint(collection_bp)
+   ```
+3. Test endpoint directly with curl/Postman:
+   ```bash
+   curl -X POST https://api.slabworthy.com/api/collection/save \
+     -H "Authorization: Bearer {token}" \
+     -H "Content-Type: application/json" \
+     -d '{"items": [{"title": "Test", "issue": "1", "grade": 8.5, "value": 100}]}'
+   ```
+4. Check if backend restarted after code deploy
+5. Look for CORS errors in browser console
+
+**After Save Works:**
+1. Test full flow: Grade → Save → View Collection
+2. Test eBay modal: Click "List on eBay" from collection
+3. Connect eBay OAuth (if needed)
+4. Test AI description generation
+5. Verify my_valuation priority logic
+
+**Future Enhancements (Lower Priority):**
+- Public grading ID verification page: `slabworthy.com/verify/{grading_id}`
+- Collection UI for editing my_valuation
+- Batch eBay listing
+- Whatnot integration
+
+### Key Learnings
+
+**API Debugging Pattern:**
+- When getting "is not valid JSON" error, actual response is HTML
+- Check: 404s, 500s, auth redirects, CORS
+- Use Network tab to see actual response body
+- Backend logs critical for troubleshooting
+
+**Data Format Mismatches:**
+- Always verify backend expects same structure frontend sends
+- Wrapping in array vs single object is common mismatch
+- Print/log request body before sending to catch early
+
+**Database Migrations:**
+- DBeaver perfect for running SQL migrations
+- "already exists, skipping" warnings are OK
+- "does not exist, skipping" on DROP also OK
+- Always verify columns added with `\d table` or schema query
+
+**Modular Design Benefits:**
+- eBay modal as standalone component = reusable
+- Can test independently with demo file
+- Easy to integrate into any page
+- Self-contained CSS prevents conflicts
+
+### Technical Debt
+
+**Immediate:**
+- Fix JSON parse error (blocking save to collection)
+
+**Short-term:**
+- Add `grading_id` parameter to backend eBay listing API
+- Generate proper grading IDs (currently using timestamp+random)
+- Add UI for editing `my_valuation` in collection view
+
+**Long-term:**
+- Implement public verification page
+- Add batch operations (save multiple, list multiple)
+- Consider storing eBay OAuth tokens in database vs file
+
+---
+
+*Last updated: February 10, 2026 (Session 36)*
+*Version: 4.3.3 - eBay Integration & Collection Bug Fixes (IN PROGRESS)*
 *Patent Pending: Multi-angle comic grading system*
 
