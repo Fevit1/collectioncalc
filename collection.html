@@ -1274,7 +1274,10 @@
 <script>
 // eBay Listing Modal Logic
 let currentComic = null;
-let ebayConnected = false;
+// Use existing ebayConnected from auth.js, or create if it doesn't exist
+if (typeof ebayConnected === 'undefined') {
+    var ebayConnected = false;
+}
 let uploadedImageUrls = [];
 
 async function openEbayListingModal(comicId) {
@@ -1368,17 +1371,10 @@ function populateListingForm() {
     document.getElementById('listingTitle').value = title.substring(0, 80);
     updateCharCounter('title');
     
-    // Price - use my_valuation if set, otherwise FMV
-    let suggestedPrice, priceSource;
-    if (currentComic.my_valuation && currentComic.my_valuation > 0) {
-        suggestedPrice = currentComic.my_valuation;
-        priceSource = 'Your Price';
-    } else {
-        suggestedPrice = currentComic.slabbed_value || currentComic.raw_value || 9.99;
-        priceSource = 'FMV';
-    }
+    // Price - suggest FMV or slightly below
+    const suggestedPrice = currentComic.slabbed_value || currentComic.raw_value || 9.99;
     document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
-    document.getElementById('priceSuggestion').textContent = `${priceSource}: $${suggestedPrice.toFixed(2)}`;
+    document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
     
     // Grading ID
     const gradingId = currentComic.grading_id || 'SW-' + currentComic.id;
@@ -1417,7 +1413,7 @@ async function generateDescription() {
             // Add grading ID to description
             const gradingId = document.getElementById('gradingIdDisplay').value;
             const fullDescription = data.description + 
-                `\n\nVerify assessment: slabworthy.com/verify/${gradingId}`;
+                `\n\nSlab Worthy™ Assessment ID: ${gradingId}\nVerify at: slabworthy.com/verify/${gradingId}`;
             
             descriptionField.value = fullDescription;
             updateCharCounter('desc');
@@ -1435,7 +1431,7 @@ async function generateDescription() {
         
         // Fallback description
         const gradingId = document.getElementById('gradingIdDisplay').value;
-        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nVerify assessment: slabworthy.com/verify/${gradingId}`;
+        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nSlab Worthy™ Assessment ID: ${gradingId}\nVerify at: slabworthy.com/verify/${gradingId}`;
         updateCharCounter('desc');
     }
 }
