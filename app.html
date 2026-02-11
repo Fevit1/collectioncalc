@@ -2128,15 +2128,48 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 alert('No grade data to save. Please complete the grading process first.');
                 return;
             }
-            
+
             const token = localStorage.getItem('cc_token');
             if (!token) {
                 alert('Please log in to save to your collection.');
                 window.location.href = '/login.html';
                 return;
             }
-            
+
             try {
+                // Generate a unique grading ID for this submission
+                const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                // Upload photos to R2 before saving
+                const photoMap = { 1: 'front', 2: 'spine', 3: 'back', 4: 'centerfold' };
+                const photoUrls = { front: null, spine: null, back: null, centerfold: null };
+
+                for (const [num, type] of Object.entries(photoMap)) {
+                    const photo = window.gradingState.photos[num];
+                    if (photo && photo.base64) {
+                        try {
+                            const uploadResp = await fetch(`${API_URL}/api/images/submission`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    image: photo.base64,
+                                    submission_id: gradingId,
+                                    type: type
+                                })
+                            });
+                            const uploadResult = await uploadResp.json();
+                            if (uploadResult.success && uploadResult.url) {
+                                photoUrls[type] = uploadResult.url;
+                            }
+                        } catch (uploadErr) {
+                            console.warn(`Photo upload failed for ${type}:`, uploadErr);
+                        }
+                    }
+                }
+
                 // Gather all the data
                 const itemData = {
                     title: window.gradingState.extractedData?.title || 'Unknown',
@@ -2152,17 +2185,12 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                         back: window.gradingState.finalGrade.back_defects || [],
                         interior: window.gradingState.finalGrade.interior_defects || []
                     },
-                    photos: {
-                        front: window.gradingState.photos[1]?.imageUrl || null,
-                        spine: window.gradingState.photos[2]?.imageUrl || null,
-                        back: window.gradingState.photos[3]?.imageUrl || null,
-                        centerfold: window.gradingState.photos[4]?.imageUrl || null
-                    },
+                    photos: photoUrls,
                     raw_value: window.gradingState.finalGrade.raw_value || null,
                     slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
                     roi: window.gradingState.finalGrade.roi || null,
                     verdict: window.gradingState.finalGrade.verdict || null,
-                    grading_id: `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                    grading_id: gradingId
                 };
                 
                 // Wrap in items array as backend expects
