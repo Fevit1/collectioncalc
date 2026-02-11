@@ -232,6 +232,60 @@
             display: none;
         }
         
+        /* Slab Worthy? - Vertical calculation flow */
+        .slab-calc-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: var(--bg-primary, #0f0f1a);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .calc-label {
+            font-size: 0.95rem;
+            color: var(--text-primary, #fff);
+            font-weight: 600;
+        }
+        .calc-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary, #fff);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .calc-row.calc-modifier {
+            padding: 4px 0 4px 12px;
+        }
+        .calc-row.calc-modifier .calc-label {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-secondary, #94a3b8);
+        }
+        .calc-row.calc-modifier .calc-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .calc-divider {
+            height: 2px;
+            background: linear-gradient(90deg, var(--brand-indigo, #4f46e5), var(--brand-purple, #7c3aed));
+            margin: 6px 0;
+            border-radius: 1px;
+        }
+        .calc-row.calc-total .calc-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .calc-row.calc-total .calc-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
         /* Photo diagram container */
         .photo-diagram-container {
             margin-top: 1rem;
@@ -1994,23 +2048,33 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 const verdictSection = document.getElementById('recommendationVerdict');
                 
                 if (valuesSection && verdictSection) {
-                    // Show market values in styled 2x2 grid
+                    // Calculate slab premium
+                    const slabPremium = slabbed_value - raw_value;
+
+                    // Show market values as vertical linear flow
                     valuesSection.innerHTML = `
-                        <div class="recommendation-value">
-                            <div class="label">Raw Value</div>
-                            <div class="amount">$${raw_value.toFixed(2)}</div>
-                        </div>
-                        <div class="recommendation-value">
-                            <div class="label">Slabbed Value</div>
-                            <div class="amount">$${slabbed_value.toFixed(2)}</div>
-                        </div>
-                        <div class="recommendation-value">
-                            <div class="label">Grading Cost</div>
-                            <div class="amount">-$${grading_cost.toFixed(2)}</div>
-                        </div>
-                        <div class="recommendation-value">
-                            <div class="label">ROI</div>
-                            <div class="amount" style="color: ${roi > 0 ? 'var(--status-success)' : 'var(--status-warning)'}">${roi > 0 ? '+' : ''}$${roi.toFixed(2)}</div>
+                        <div class="slab-calc-flow">
+                            <div class="calc-row">
+                                <span class="calc-label">Raw Value</span>
+                                <span class="calc-value">$${raw_value.toFixed(2)}</span>
+                            </div>
+                            <div class="calc-row calc-modifier">
+                                <span class="calc-label">+ Slab Premium</span>
+                                <span class="calc-value" style="color: var(--status-success);">+$${slabPremium.toFixed(2)}</span>
+                            </div>
+                            <div class="calc-row">
+                                <span class="calc-label">Slabbed Value</span>
+                                <span class="calc-value">$${slabbed_value.toFixed(2)}</span>
+                            </div>
+                            <div class="calc-row calc-modifier">
+                                <span class="calc-label">− Grading Cost</span>
+                                <span class="calc-value" style="color: var(--status-error, #ef4444);">−$${grading_cost.toFixed(2)}</span>
+                            </div>
+                            <div class="calc-divider"></div>
+                            <div class="calc-row calc-total">
+                                <span class="calc-label">ROI</span>
+                                <span class="calc-value" style="color: ${roi > 0 ? 'var(--status-success)' : 'var(--status-warning)'};">${roi > 0 ? '+' : ''}$${roi.toFixed(2)}</span>
+                            </div>
                         </div>
                     `;
 
