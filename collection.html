@@ -382,7 +382,7 @@
 
         .comics-list .comic-card {
             display: grid;
-            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 2fr;
+            grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1fr 2fr;
             gap: 1rem;
             align-items: center;
             padding: 0.75rem 1rem;
@@ -597,7 +597,7 @@
         /* Table Headers */
         .table-headers {
             display: grid;
-            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 3fr;
+            grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1fr 3fr;
             gap: 1rem;
             padding: 0.75rem 1rem;
             background: var(--bg-primary);
@@ -739,7 +739,7 @@
 
         /* Update Actions column width in list view */
         .comics-list .comic-card {
-            grid-template-columns: 80px 3fr 1fr 1.2fr 1fr 1fr 3fr;
+            grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1fr 3fr;
         }
 
         .comics-list .comic-actions {
@@ -898,6 +898,7 @@
         <div class="table-headers" id="tableHeaders" style="display: none;">
             <div>Cover</div>
             <div>Title</div>
+            <div style="text-align: center;">Year</div>
             <div style="text-align: center;">Issue</div>
             <div style="text-align: center;">Grade</div>
             <div style="text-align: right; padding-right: 0.5rem;">FMV</div>
@@ -1012,9 +1013,9 @@
             const worthSlabbing = collection.filter(c => c.verdict === 'worth-it').length;
 
             document.getElementById('totalComics').textContent = totalComics;
-            document.getElementById('rawValue').textContent = `$${rawValue.toLocaleString()}`;
-            document.getElementById('slabbedValue').textContent = `$${slabbedValue.toLocaleString()}`;
-            document.getElementById('potentialProfit').textContent = `${potentialProfit >= 0 ? '+' : ''}$${potentialProfit.toLocaleString()}`;
+            document.getElementById('rawValue').textContent = `$${rawValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('slabbedValue').textContent = `$${slabbedValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('potentialProfit').textContent = `${potentialProfit >= 0 ? '+' : ''}$${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('worthSlabbingCount').textContent = `${worthSlabbing} worth slabbing`;
 
             // Show/hide empty state
@@ -1164,6 +1165,7 @@
                             ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
                         </div>
                         <div class="comic-title">${comic.title}</div>
+                        <div class="comic-issue">${comic.year || '—'}</div>
                         <div class="comic-issue">#${comic.issue}</div>
                         <div class="comic-grade">
                             ${comic.grade} ${comic.grade_label || ''}
