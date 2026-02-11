@@ -538,7 +538,59 @@ def api_sales_fmv():
                     'count': len(prices),
                     'grades': tier_labels[tier]
                 }
-        
+
+        # Calculate raw_fmv and slabbed_fmv from tier data based on user's grade
+        grade_param = request.args.get('grade', 5.0, type=float)
+
+        # Determine which tier the user's grade falls into
+        if grade_param >= 9.0:
+            user_tier = 'top'
+        elif grade_param >= 8.0:
+            user_tier = 'high'
+        elif grade_param >= 4.5:
+            user_tier = 'mid'
+        else:
+            user_tier = 'low'
+
+        # Get raw FMV from the user's tier, or fall back to nearest available tier
+        tier_priority = {
+            'top': ['top', 'high', 'mid', 'low'],
+            'high': ['high', 'mid', 'top', 'low'],
+            'mid': ['mid', 'high', 'low', 'top'],
+            'low': ['low', 'mid', 'high', 'top']
+        }
+
+        raw_fmv = 0
+        for t in tier_priority.get(user_tier, ['mid']):
+            if t in result_tiers:
+                raw_fmv = result_tiers[t]['avg']
+                break
+
+        # Slabbed FMV: use the next tier up if available, otherwise apply 1.5x premium
+        slabbed_fmv = raw_fmv * 1.5  # Default: 50% slab premium
+        tier_order = ['low', 'mid', 'high', 'top']
+        user_tier_idx = tier_order.index(user_tier) if user_tier in tier_order else 1
+        for i in range(user_tier_idx + 1, len(tier_order)):
+            higher_tier = tier_order[i]
+            if higher_tier in result_tiers:
+                slabbed_fmv = result_tiers[higher_tier]['avg']
+                break
+
+        # Ensure slabbed is always >= raw
+        if slabbed_fmv < raw_fmv:
+            slabbed_fmv = raw_fmv * 1.5
+
+        grading_cost = 30
+        if raw_fmv >= 1000:
+            grading_cost = 150
+        elif raw_fmv >= 400:
+            grading_cost = 85
+        elif raw_fmv >= 200:
+            grading_cost = 50
+
+        raw_fmv = round(raw_fmv, 2)
+        slabbed_fmv = round(slabbed_fmv, 2)
+
         return jsonify({
             'success': True,
             'title': title,
@@ -548,7 +600,10 @@ def api_sales_fmv():
                 'whatnot': whatnot_count,
                 'ebay': ebay_count
             },
-            'tiers': result_tiers if result_tiers else None
+            'tiers': result_tiers if result_tiers else None,
+            'raw_fmv': raw_fmv,
+            'slabbed_fmv': slabbed_fmv,
+            'grading_cost': grading_cost
         })
         
     except Exception as e:
