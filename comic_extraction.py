@@ -192,7 +192,7 @@ IDENTIFICATION FIELDS:
   * "Special Edition" → "Special Edition"
   * None found → "Regular"
 - publisher: Publisher name (Marvel, DC, Image, etc.)
-- year: Publication year from copyright/indicia, or null if not visible
+- year: Publication year. Check copyright/indicia first. If not visible, use your knowledge of comic publication history to determine the year. Only return null if you truly cannot determine it.
 - writer: Writer credits on cover ("Written by NAME", "WRITER: NAME"). Empty string if not found.
 - artist: Artist credits on cover ("Art by NAME", "ARTIST: NAME", "PENCILS"). Empty string if not found.
 - edition: Check BOTTOM-LEFT CORNER. UPC BARCODE = "newsstand". ARTWORK/LOGO = "direct". Unclear = "unknown".
