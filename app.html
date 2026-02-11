@@ -57,6 +57,53 @@
         .save-collection-btn {
             display: none !important;
         }
+
+        /* Save Toast Notification */
+        .save-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: var(--bg-secondary, #1a1a2e);
+            border: 2px solid var(--brand-indigo, #4f46e5);
+            border-radius: 16px;
+            padding: 2rem 3rem;
+            text-align: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(79, 70, 229, 0.4);
+        }
+        .save-toast.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        .save-toast.error {
+            border-color: var(--status-error, #ef4444);
+            box-shadow: 0 20px 60px rgba(239, 68, 68, 0.3);
+        }
+        .save-toast-icon {
+            font-size: 3rem;
+            margin-bottom: 0.75rem;
+            animation: toastPop 0.4s ease;
+        }
+        .save-toast-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary, #fff);
+        }
+        .save-toast-sub {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #94a3b8);
+            margin-top: 0.25rem;
+        }
+        @keyframes toastPop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
         
         /* User menu positioning - absolute right */
         .header-auth {
@@ -2121,30 +2168,60 @@ Return ONLY valid JSON, no markdown, no nested objects.`
             return await saveToCollection();
         }
         
+        // Toast notification helper
+        function showSaveToast(message, type, sub) {
+            // Remove existing toast
+            const existing = document.getElementById('saveToast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'saveToast';
+            toast.className = `save-toast ${type === 'error' ? 'error' : ''}`;
+            toast.innerHTML = `
+                <div class="save-toast-icon">${type === 'error' ? '⚠️' : '✅'}</div>
+                <div class="save-toast-text">${message}</div>
+                ${sub ? `<div class="save-toast-sub">${sub}</div>` : ''}
+            `;
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            requestAnimationFrame(() => toast.classList.add('show'));
+
+            // Auto-dismiss success after 2s, errors after 4s
+            const delay = type === 'error' ? 4000 : 2000;
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, delay);
+        }
+
         // Core save to collection function
         async function saveToCollection() {
             // Check if we have grade data
             if (!window.gradingState || !window.gradingState.finalGrade) {
-                alert('No grade data to save. Please complete the grading process first.');
+                showSaveToast('No grade data to save', 'error', 'Please complete the grading process first.');
                 return;
             }
 
             const token = localStorage.getItem('cc_token');
             if (!token) {
-                alert('Please log in to save to your collection.');
-                window.location.href = '/login.html';
+                showSaveToast('Please log in first', 'error');
+                setTimeout(() => { window.location.href = '/login.html'; }, 1500);
                 return;
             }
 
+            // Show instant success feedback
+            showSaveToast('Saved to Collection!', 'success', 'Uploading photos in background...');
+
+            // Do all the work in the background
             try {
-                // Generate a unique grading ID for this submission
                 const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-                // Upload photos to R2 before saving
+                // Upload photos to R2 IN PARALLEL (not sequentially)
                 const photoMap = { 1: 'front', 2: 'spine', 3: 'back', 4: 'centerfold' };
                 const photoUrls = { front: null, spine: null, back: null, centerfold: null };
 
-                for (const [num, type] of Object.entries(photoMap)) {
+                const uploadPromises = Object.entries(photoMap).map(async ([num, type]) => {
                     const photo = window.gradingState.photos[num];
                     if (photo && photo.base64) {
                         try {
@@ -2168,7 +2245,9 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                             console.warn(`Photo upload failed for ${type}:`, uploadErr);
                         }
                     }
-                }
+                });
+
+                await Promise.all(uploadPromises);
 
                 // Gather all the data
                 const itemData = {
@@ -2192,12 +2271,12 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                     verdict: window.gradingState.finalGrade.verdict || null,
                     grading_id: gradingId
                 };
-                
+
                 // Wrap in items array as backend expects
                 const saveData = {
                     items: [itemData]
                 };
-                
+
                 // Send to API
                 const response = await fetch(`${API_URL}/api/collection/save`, {
                     method: 'POST',
@@ -2207,23 +2286,18 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                     },
                     body: JSON.stringify(saveData)
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || 'Failed to save');
                 }
-                
+
                 const result = await response.json();
-                
-                // Success!
-                alert('✓ Saved to your collection!');
-                
-                // Optionally navigate to collection
-                // window.location.href = '/collection.html';
-                
+                console.log('Save complete:', result);
+
             } catch (error) {
                 console.error('Save error:', error);
-                alert(`Failed to save: ${error.message}\n\nPlease try again.`);
+                showSaveToast('Save failed — please try again', 'error', error.message);
             }
         }
     </script>
