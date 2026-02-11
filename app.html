@@ -1609,23 +1609,17 @@
                 const publisher = data.extracted.publisher || '';
                 const year = data.extracted.year || '';
                 
-                // Create display with edit button
+                // Create display with inline edit icon next to title
                 progressText.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <span id="extractedDisplay">✓ Identified: ${title} #${issue}</span>
-                        <button type="button" id="editExtractedBtn" onclick="showEditForm()" style="
-                            background: rgba(139, 92, 246, 0.1);
-                            border: 1px solid rgba(139, 92, 246, 0.3);
+                        <span onclick="showEditForm()" title="Edit details" style="
                             color: var(--brand-purple);
-                            border-radius: 4px;
-                            padding: 4px 8px;
-                            font-size: 12px;
                             cursor: pointer;
-                            display: flex;
-                            align-items: center;
-                            gap: 4px;
-                            min-height: 32px;
-                        ">✏️ Edit</button>
+                            font-size: 11px;
+                            opacity: 0.7;
+                            transition: opacity 0.2s;
+                        " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✏️</span>
                     </div>
                     <div id="editExtractedForm" style="display: none; margin-top: 12px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
                         <div style="margin-bottom: 8px;">
