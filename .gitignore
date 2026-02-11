@@ -21,6 +21,10 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+~$*.docx
+
+# Cleanup trash (safe to delete)
+_cleanup_trash/
 
 # Logs
 *.log
