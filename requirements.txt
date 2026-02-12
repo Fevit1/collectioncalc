@@ -19,3 +19,4 @@ boto3>=1.28.0
 pyzbar>=0.1.9
 Pillow>=9.0.0
 boto3
+rapidfuzz>=3.0.0

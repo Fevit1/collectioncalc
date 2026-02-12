@@ -79,7 +79,7 @@ cc/v2/
 ├── ─────────── FRONTEND (Cloudflare Pages) ───────────
 ├── index.html           # Homepage (slabworthy.com redirects here)
 ├── login.html           # Auth gate (Session 30)
-├── app.html             # Main app - Single-page upload flow (1,525 lines)
+├── app.html             # Main app - Single-page upload flow (~1,525 lines, toast UI, parallel uploads)
 ├── admin.html           # Admin dashboard
 ├── signatures.html      # Signature reference admin
 ├── styles.css           # All CSS (+ grading styles appended)
@@ -113,8 +113,9 @@ cc/v2/
 ├── ebay_oauth.py        # eBay OAuth flow
 ├── ebay_listing.py      # eBay Inventory API
 ├── ebay_description.py  # AI description generation
-├── comic_extraction.py  # Backend Claude Vision extraction + barcode scanning
+├── comic_extraction.py  # Backend Claude Vision extraction + barcode scanning (smart year extraction)
 ├── r2_storage.py        # Cloudflare R2 integration
+├── db_migrate_backfill_years.py  # One-time migration: backfill year data for existing comics
 ├── requirements.txt     # Python dependencies (includes pyzbar)
 │
 ├── ─────────── CHROME EXTENSIONS ───────────
@@ -423,7 +424,7 @@ users (id, email, password_hash, is_verified, is_approved, is_admin, created_at)
 beta_codes (id, code, max_uses, current_uses, created_by, created_at)
 
 -- Collections
-collections (id, user_id, title, issue, grade, purchase_price, notes, created_at)
+collections (id, user_id, title, issue, year, grade, purchase_price, notes, created_at)
 
 -- Market Data
 market_sales (id, title, issue, grade, price, platform, sold_date, created_at)
@@ -580,6 +581,25 @@ collectioncalc-images/
 
 ## Recent Updates
 
+### v4.4.0 - Year Column & Performance (Session 41 - Feb 11, 2026)
+- Added Year column to My Collection (between Title and Issue)
+- Parallelized R2 photo uploads with Promise.all() (~3x faster saves)
+- Added optimistic UI toast for instant save feedback (branded indigo/purple)
+- Moved edit button to inline pencil icon next to comic title
+- Removed Photo Tips section (users reference FAQ instead)
+- Fixed Year extraction: Claude now uses comic knowledge for publication dates
+- Fixed decimal formatting in collection summary (shows $XX.XX not $XX.X)
+- Created db_migrate_backfill_years.py for existing comics
+- Updated comic_extraction.py extraction prompt
+
+### v4.3.6 - Recovery & Pipeline Fix (Session 40 - Feb 11, 2026)
+- Fixed cover photo pipeline: photos now upload to R2 during save-to-collection
+- Fixed FMV API returning $0.00 (missing raw_fmv/slabbed_fmv in response)
+- Redesigned Slab Worthy? values as vertical calculation flow
+- Fixed 5 app.html issues (values layout, Grade Another, verdict emojis, footer)
+- Reorganized V2 folder (CCExtensions/, CCImages/, images/, js/)
+- First comic cover displayed in My Collection (The Invaders #13)
+
 ### v4.3.2 - Mobile Polish & FAQ (Session 35 - Feb 9, 2026)
 - Created comprehensive FAQ page with 18 questions across 5 categories
 - Fixed mobile header layout: logo left, avatar right (no overlap)
@@ -628,6 +648,6 @@ collectioncalc-images/
 
 ---
 
-*Last updated: February 9, 2026 (Session 35)*
+*Last updated: February 11, 2026 (Session 41)*
 *Patent Pending: Multi-angle comic grading system*
 
