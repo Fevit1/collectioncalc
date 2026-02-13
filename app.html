@@ -2399,8 +2399,8 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 console.log('Save complete:', result);
 
                 // Store comic ID for registration
-                if (result.comic_ids && result.comic_ids.length > 0) {
-                    window.lastSavedComicId = result.comic_ids[0];
+                if (result.ids && result.ids.length > 0) {
+                    window.lastSavedComicId = result.ids[0];
 
                     // Show theft protection section
                     const protectionSection = document.getElementById('gradeReportProtection');
