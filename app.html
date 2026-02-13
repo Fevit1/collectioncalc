@@ -2316,6 +2316,18 @@ Return ONLY valid JSON, no markdown, no nested objects.`
             // Show instant success feedback
             showSaveToast('Saved to Collection!', 'success', 'Uploading photos in background...');
 
+            // Show theft protection section immediately (optimistic UI)
+            const protectionSection = document.getElementById('gradeReportProtection');
+            const registerBtn = document.getElementById('registerBtn');
+            if (protectionSection) {
+                protectionSection.style.display = 'block';
+                // Keep button disabled until save completes
+                if (registerBtn) {
+                    registerBtn.disabled = true;
+                    registerBtn.textContent = '⏳ Waiting for save...';
+                }
+            }
+
             // Do all the work in the background
             try {
                 const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2402,16 +2414,23 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 if (result.ids && result.ids.length > 0) {
                     window.lastSavedComicId = result.ids[0];
 
-                    // Show theft protection section
-                    const protectionSection = document.getElementById('gradeReportProtection');
-                    if (protectionSection) {
-                        protectionSection.style.display = 'block';
+                    // Enable the register button now that we have the comic ID
+                    const registerBtn = document.getElementById('registerBtn');
+                    if (registerBtn) {
+                        registerBtn.disabled = false;
+                        registerBtn.textContent = '🔒 Register This Comic';
                     }
                 }
 
             } catch (error) {
                 console.error('Save error:', error);
                 showSaveToast('Save failed — please try again', 'error', error.message);
+
+                // Hide theft protection section if save failed
+                const protectionSection = document.getElementById('gradeReportProtection');
+                if (protectionSection) {
+                    protectionSection.style.display = 'none';
+                }
             }
         }
     </script>
