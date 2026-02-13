@@ -839,6 +839,49 @@
                 font-size: 0.85rem;
             }
         }
+
+        /* Theft Protection Section */
+        .grade-report-protection {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .grade-report-protection h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
+        }
+
+        .btn-register:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -1075,7 +1118,21 @@
                                 <!-- Signature analysis -->
                             </div>
                         </div>
-                        
+
+                        <!-- Theft Protection -->
+                        <div class="grade-report-protection" id="gradeReportProtection" style="display: none;">
+                            <h4>🛡️ Theft Protection</h4>
+                            <p style="color: var(--text-muted); font-size: 14px; margin: 8px 0 12px 0;">
+                                Register this comic to enable theft recovery monitoring across eBay, Whatnot, and other marketplaces. <strong>Patent pending.</strong>
+                            </p>
+                            <button type="button" class="btn-register" onclick="registerComic()" id="registerBtn">
+                                🔒 Register This Comic
+                            </button>
+                            <div id="registrationStatus" style="display: none; margin-top: 12px; padding: 12px; background: var(--success-bg, #d4edda); border: 1px solid var(--success-border, #c3e6cb); border-radius: 8px;">
+                                <!-- Shows registration confirmation with serial number -->
+                            </div>
+                        </div>
+
                         <!-- Actions -->
                         <div class="grading-actions">
                             <button type="button" class="btn-secondary" onclick="window.location.href='/app'">← Grade Another</button>
@@ -2148,7 +2205,72 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         async function saveAllToCollection() {
             return await saveToCollection();
         }
-        
+
+        // Register comic for theft protection
+        async function registerComic() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                showSaveToast('Please log in first', 'error');
+                setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                return;
+            }
+
+            // Get the saved comic ID (from most recent save or window.gradingState)
+            const comicId = window.lastSavedComicId;
+            if (!comicId) {
+                showSaveToast('Please save to collection first', 'error', 'Comics must be saved before registration.');
+                return;
+            }
+
+            const registerBtn = document.getElementById('registerBtn');
+            const registrationStatus = document.getElementById('registrationStatus');
+
+            try {
+                // Disable button and show loading
+                registerBtn.disabled = true;
+                registerBtn.textContent = '🔄 Registering...';
+
+                const response = await fetch(`${API_URL}/api/registry/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ comic_id: comicId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success
+                    registerBtn.style.display = 'none';
+                    registrationStatus.style.display = 'block';
+                    registrationStatus.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 2rem;">✅</span>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">
+                                    Registered as <strong style="color: #6366f1;">${result.serial_number}</strong>
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 4px;">
+                                    Monitoring enabled for theft recovery
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    showSaveToast('Comic Registered!', 'success', `Serial: ${result.serial_number}`);
+                } else {
+                    throw new Error(result.error || 'Registration failed');
+                }
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                showSaveToast('Registration Failed', 'error', error.message);
+                registerBtn.disabled = false;
+                registerBtn.textContent = '🔒 Register This Comic';
+            }
+        }
+
         // Toast notification helper
         function showSaveToast(message, type, sub) {
             // Remove existing toast
@@ -2275,6 +2397,17 @@ Return ONLY valid JSON, no markdown, no nested objects.`
 
                 const result = await response.json();
                 console.log('Save complete:', result);
+
+                // Store comic ID for registration
+                if (result.comic_ids && result.comic_ids.length > 0) {
+                    window.lastSavedComicId = result.comic_ids[0];
+
+                    // Show theft protection section
+                    const protectionSection = document.getElementById('gradeReportProtection');
+                    if (protectionSection) {
+                        protectionSection.style.display = 'block';
+                    }
+                }
 
             } catch (error) {
                 console.error('Save error:', error);

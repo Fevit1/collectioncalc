@@ -224,6 +224,16 @@ from routes.images import images_bp, init_modules as images_init_modules
 from routes.barcodes import barcodes_bp
 from routes.ebay import ebay_bp, init_modules as ebay_init_modules
 from routes.collection import collection_bp
+from routes.registry import registry_bp, init_modules as registry_init_modules
+
+# Import imagehash for fingerprinting
+try:
+    import imagehash
+    IMAGEHASH_AVAILABLE = True
+except ImportError:
+    print("⚠️ imagehash not available - comic fingerprinting disabled")
+    imagehash = None
+    IMAGEHASH_AVAILABLE = False
 
 # Initialize blueprint modules with global variables
 utils_init_globals(BARCODE_AVAILABLE, MODERATION_AVAILABLE)
@@ -246,6 +256,7 @@ ebay_init_modules(
     get_auth_url, exchange_code_for_token, get_user_token, is_user_connected,
     create_listing, upload_image_to_ebay, generate_description
 )
+registry_init_modules(imagehash, Image if 'Image' in dir() else None)
 
 # Register all blueprints
 app.register_blueprint(utils_bp)       # /, /health, /api/debug/*, /api/beta/validate
@@ -257,6 +268,7 @@ app.register_blueprint(images_bp)      # /api/images/*
 app.register_blueprint(barcodes_bp)    # /api/barcode-*
 app.register_blueprint(ebay_bp)        # /api/ebay/*
 app.register_blueprint(collection_bp)  # /api/collection/*
+app.register_blueprint(registry_bp)    # /api/registry/*
 
 print("✅ All blueprints registered successfully!")
 

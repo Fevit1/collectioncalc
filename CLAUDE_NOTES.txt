@@ -1,7 +1,7 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
 **Last Updated:** February 12, 2026 (Session 43)
-**Founder:** Don Michael Berry II (Don Berry)
+**Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
 
@@ -87,7 +87,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 ### What Happened
 **COMIC FINGERPRINTING PATENT FILED!** 🎉
 
-1. **Origin:** Don asked about ownership verification after comic store robbery
+1. **Origin:** Mike asked about ownership verification after comic store robbery
 2. **Concept:** Every comic has unique defect patterns (spine ticks, color breaks, etc.) that act like fingerprints
 3. **Proof-of-Concept:** Tested 2 copies of Iron Man #200 (8 photos total)
 4. **Results:** 27 bits average difference - DISTINCT fingerprints confirmed
@@ -141,7 +141,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Updated `ROADMAP.txt` with fingerprinting roadmap
 
 ### Key Quote
-Don: "DONE!!!! AND PAID FOR!!!!!"
+Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ---
 
