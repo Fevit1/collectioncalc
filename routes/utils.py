@@ -1,8 +1,9 @@
 """
 Utils Blueprint - Health checks, debug routes, and utility endpoints
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory
 from auth import validate_beta_code
+import os
 
 # Create blueprint
 utils_bp = Blueprint('utils', __name__)
@@ -48,3 +49,11 @@ def api_validate_beta():
     code = data.get('code', '')
     result = validate_beta_code(code)
     return jsonify(result)
+
+
+@utils_bp.route('/verify')
+def serve_verify():
+    """Serve the public verify page"""
+    # Get the directory where this file is located, then go up one level to project root
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return send_from_directory(base_dir, 'verify.html')

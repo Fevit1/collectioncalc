@@ -112,7 +112,7 @@ except ImportError:
 try:
     from pyzbar import pyzbar
     from pyzbar.pyzbar import ZBarSymbol
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageFont
     import io
     BARCODE_AVAILABLE = True
 except ImportError:
@@ -225,6 +225,7 @@ from routes.barcodes import barcodes_bp
 from routes.ebay import ebay_bp, init_modules as ebay_init_modules
 from routes.collection import collection_bp
 from routes.registry import registry_bp, init_modules as registry_init_modules
+from routes.verify import verify_bp, init_modules as verify_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -257,6 +258,12 @@ ebay_init_modules(
     create_listing, upload_image_to_ebay, generate_description
 )
 registry_init_modules(imagehash, Image if 'Image' in dir() else None)
+verify_init_modules(
+    imagehash,
+    Image if 'Image' in dir() else None,
+    ImageDraw if 'ImageDraw' in dir() else None,
+    ImageFont if 'ImageFont' in dir() else None
+)
 
 # Register all blueprints
 app.register_blueprint(utils_bp)       # /, /health, /api/debug/*, /api/beta/validate
@@ -269,6 +276,7 @@ app.register_blueprint(barcodes_bp)    # /api/barcode-*
 app.register_blueprint(ebay_bp)        # /api/ebay/*
 app.register_blueprint(collection_bp)  # /api/collection/*
 app.register_blueprint(registry_bp)    # /api/registry/*
+app.register_blueprint(verify_bp)      # /api/verify/*
 
 print("✅ All blueprints registered successfully!")
 

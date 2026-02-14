@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Comic - SlabWorthy Theft Protection</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+    <!-- Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --border: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .input-hint {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-card {
+            display: none;
+            margin-top: 32px;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card.show {
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-stolen {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .status-recovered {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .comic-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .comic-details {
+            margin-top: 24px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .info-section {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .info-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .info-section p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .patent-notice {
+            text-align: center;
+            color: white;
+            font-size: 0.875rem;
+            margin-top: 24px;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .turnstile-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Verify Comic</h1>
+            <p>SlabWorthy Theft Protection System</p>
+        </div>
+
+        <div class="card">
+            <div class="input-group">
+                <label for="serialInput">Enter Serial Number</label>
+                <input
+                    type="text"
+                    id="serialInput"
+                    placeholder="SW-2026-000001"
+                    maxlength="17"
+                    autocomplete="off"
+                >
+                <div class="input-hint">Format: SW-YYYY-NNNNNN</div>
+            </div>
+
+            <!-- Cloudflare Turnstile -->
+            <div class="turnstile-container">
+                <div class="cf-turnstile"
+                     data-sitekey="YOUR_SITE_KEY_HERE"
+                     data-callback="onTurnstileSuccess">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="verifyBtn" onclick="verifySerial()" disabled>
+                Verify Comic
+            </button>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="result-card" id="resultCard">
+                <div id="statusBadge"></div>
+                <img id="comicImage" class="comic-image" alt="Comic cover" style="display: none;">
+
+                <div class="comic-details" id="comicDetails"></div>
+            </div>
+        </div>
+
+        <div class="card info-section">
+            <h3>What is this?</h3>
+            <p>
+                SlabWorthy's theft protection system uses advanced fingerprinting technology to track
+                and recover stolen comics. Each registered comic receives a unique serial number that
+                can be verified by potential buyers before purchase.
+            </p>
+            <p style="margin-top: 12px;">
+                <strong>For buyers:</strong> Always verify the serial number before purchasing a high-value comic.
+                If the status shows "Reported Stolen", do not purchase and report to authorities.
+            </p>
+        </div>
+
+        <div class="patent-notice">
+            Patent Pending • SlabWorthy.com
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:5000'
+            : 'https://collectioncalc-docker.onrender.com';
+
+        let turnstileToken = null;
+
+        // Turnstile callback
+        function onTurnstileSuccess(token) {
+            turnstileToken = token;
+            document.getElementById('verifyBtn').disabled = false;
+        }
+
+        // Auto-format serial number input
+        document.getElementById('serialInput').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+            e.target.value = value;
+        });
+
+        // Allow Enter key to verify
+        document.getElementById('serialInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !document.getElementById('verifyBtn').disabled) {
+                verifySerial();
+            }
+        });
+
+        async function verifySerial() {
+            const serialNumber = document.getElementById('serialInput').value.trim();
+            const errorMsg = document.getElementById('errorMessage');
+            const resultCard = document.getElementById('resultCard');
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            // Hide previous results
+            errorMsg.classList.remove('show');
+            resultCard.classList.remove('show');
+
+            // Validate input
+            if (!serialNumber) {
+                showError('Please enter a serial number');
+                return;
+            }
+
+            if (!serialNumber.match(/^SW-\d{4}-\d{6}$/)) {
+                showError('Invalid serial number format. Expected: SW-YYYY-NNNNNN');
+                return;
+            }
+
+            // Show loading
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<div class="spinner"></div> Verifying...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || 'Serial number not found');
+                    return;
+                }
+
+                // Display results
+                displayResult(data);
+
+            } catch (error) {
+                console.error('Verification error:', error);
+                showError('Failed to verify serial number. Please try again.');
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Comic';
+            }
+        }
+
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = message;
+            errorMsg.classList.add('show');
+        }
+
+        function displayResult(data) {
+            const resultCard = document.getElementById('resultCard');
+            const statusBadge = document.getElementById('statusBadge');
+            const comicImage = document.getElementById('comicImage');
+            const comicDetails = document.getElementById('comicDetails');
+
+            // Status badge
+            let statusClass = 'status-active';
+            let statusText = '✅ Active';
+
+            if (data.status === 'reported_stolen') {
+                statusClass = 'status-stolen';
+                statusText = '⚠️ REPORTED STOLEN';
+            } else if (data.status === 'recovered') {
+                statusClass = 'status-recovered';
+                statusText = '🔄 Recovered';
+            }
+
+            statusBadge.className = `status-badge ${statusClass}`;
+            statusBadge.textContent = statusText;
+
+            // Comic image (watermarked)
+            if (data.comic.watermarked_url) {
+                comicImage.src = `${API_URL}${data.comic.watermarked_url}`;
+                comicImage.style.display = 'block';
+            } else {
+                comicImage.style.display = 'none';
+            }
+
+            // Comic details
+            let detailsHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">Serial Number</span>
+                    <span class="detail-value">${data.serial_number}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Title</span>
+                    <span class="detail-value">${data.comic.title || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Issue</span>
+                    <span class="detail-value">#${data.comic.issue_number || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Publisher</span>
+                    <span class="detail-value">${data.comic.publisher || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Year</span>
+                    <span class="detail-value">${data.comic.publication_year || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Grade</span>
+                    <span class="detail-value">${data.comic.grade || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Registered By</span>
+                    <span class="detail-value">${data.owner.display_name}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Registration Date</span>
+                    <span class="detail-value">${new Date(data.registration_date).toLocaleDateString()}</span>
+                </div>
+            `;
+
+            if (data.status === 'reported_stolen' && data.stolen_date) {
+                detailsHTML += `
+                    <div class="detail-row">
+                        <span class="detail-label">Reported Stolen</span>
+                        <span class="detail-value" style="color: var(--danger);">
+                            ${new Date(data.stolen_date).toLocaleDateString()}
+                        </span>
+                    </div>
+                `;
+            }
+
+            comicDetails.innerHTML = detailsHTML;
+            resultCard.classList.add('show');
+        }
+    </script>
+</body>
+</html>

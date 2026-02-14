@@ -23,6 +23,53 @@ Provisional patent filed for multi-angle comic grading system.
 
 ---
 
+## 🛡️ Slab Guard™ - Theft Protection System (IN PROGRESS - Session 67)
+
+**Goal:** Patent-pending theft recovery system using perceptual hashing fingerprints
+
+**Phase 1: Core Registration (Session 67)** ✅
+- [x] Database schema (`comic_registry` table)
+- [x] pHash fingerprinting (imagehash library)
+- [x] Serial number generation (SW-YYYY-NNNNNN format)
+- [x] Registration API endpoint (`/api/registry/register`)
+- [x] Custom shield icon with brand gradient + glow animation
+- [x] Optimistic UI (button appears instantly on save)
+- [x] UI improvements (inline defects, cleaner layout)
+
+**Phase 1: Public Verification (READY TO DEPLOY)**
+- [x] Public lookup endpoint (`/api/verify/lookup/:serial_number`)
+- [x] Watermarked cover images (serial number + domain overlay)
+- [x] Privacy protection (email hashing: m***e@g***l.com)
+- [x] Theft status display (Active/Reported Stolen/Recovered)
+- [x] Cloudflare Turnstile bot protection
+- [x] Beautiful verify page (slabworthy.com/verify)
+- [ ] Get Cloudflare Turnstile site key (5 min task)
+- [ ] Deploy verify page
+
+**Phase 2: Marketplace Monitoring**
+- [ ] eBay API integration for listing scraping
+- [ ] Whatnot monitoring (if API available)
+- [ ] pHash matching against registered comics
+- [ ] Email alerts on potential matches
+- [ ] Admin dashboard for reviewing matches
+
+**Phase 3: Reporting & Recovery**
+- [ ] "Report Stolen" button (owner verification required)
+- [ ] Police report number field
+- [ ] Recovery workflow (mark as recovered)
+- [ ] Generate theft report PDF
+- [ ] Integration with law enforcement databases (future)
+
+**Phase 4: eBay Integration**
+- [ ] Auto-include serial number in eBay listing descriptions
+- [ ] Upload watermarked cover to eBay listings
+- [ ] Template text for eBay descriptions
+- [ ] "Verify on SlabWorthy" call-to-action
+
+**Patent Status:** Provisional filed Feb 12, 2026
+
+---
+
 ## High Priority
 
 ### Content Moderation (Pre-Beta MUST-HAVE)
@@ -55,6 +102,56 @@ Provisional patent filed for multi-angle comic grading system.
 - [ ] "List to Whatnot" button in grade report
 
 **Note:** Landing page promises "Whatnot integration coming soon!" - need timeline
+
+### CSV Collection Import 🆕 HIGH PRIORITY
+**Goal:** Remove switching barrier from competitor apps (CLZ Comics, ComicBase, League of Comic Geeks)
+
+**Why This Matters:**
+- Users with 10k+ comics in other apps won't manually re-enter
+- Switching cost = massive barrier to trying SlabWorthy
+- "Try us without losing your data" is powerful pitch
+- Competitive advantage (most apps don't make this easy)
+
+**Phase 1: Basic CSV Import**
+- [ ] Upload CSV interface (drag/drop + file picker)
+- [ ] Auto-detect common formats (CLZ Comics, ComicBase)
+- [ ] Column mapping UI - Manual: "Their 'Title' → Our 'title'"
+- [ ] Data preview (first 10 rows)
+- [ ] Validation & error flagging
+- [ ] Duplicate detection
+- [ ] Bulk insert to `graded_comics` table
+- [ ] Background job with progress bar (don't block UI for 10k rows)
+- [ ] Import summary report (X imported, Y had issues)
+
+**Phase 2: Enhanced Import**
+- [ ] Platform-specific importers (auto-detect CLZ vs ComicBase format)
+- [ ] Handle photos (if URLs provided in CSV)
+- [ ] Smart field mapping (fuzzy match column names)
+- [ ] Import history/audit log
+- [ ] "Re-grade imported comics" feature (bulk upload photos)
+
+**Supported Competitors:**
+- CLZ Comics (CSV export) - Primary target
+- ComicBase (CSV export)
+- League of Comic Geeks (CSV download)
+- Generic CSV (manual mapping)
+
+**Data Mapping:**
+```
+CLZ Comics → SlabWorthy
+Title → title
+Issue # → issue_number
+Publisher → publisher
+Year → publication_year
+Grade → grade (map text to numeric)
+Purchase Price → (custom field, future)
+Notes → notes
+```
+
+**Success Metrics:**
+- X% of new users import existing collections
+- Average import size (how many comics)
+- Conversion rate: import → first grade → subscribe
 
 ### My Collection Feature ✅ COMPLETED (Sessions 38-39)
 **Goal:** Users can save, view, and manage their graded comics
