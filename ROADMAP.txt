@@ -144,14 +144,80 @@ Issue # → issue_number
 Publisher → publisher
 Year → publication_year
 Grade → grade (map text to numeric)
-Purchase Price → (custom field, future)
-Notes → notes
+Purchase Price → purchase_price (custom field)
+Purchase Date → purchase_date (custom field)
+Purchase Location → purchase_location (custom field)
+Storage Location → storage_location (custom field)
+Signed By → signed_by (custom field)
+Notes → custom_notes (custom field)
 ```
+
+**Note:** Import depends on Custom Fields feature being built first.
 
 **Success Metrics:**
 - X% of new users import existing collections
 - Average import size (how many comics)
 - Conversion rate: import → first grade → subscribe
+
+### Custom Fields & Enhanced Metadata 🆕 HIGH PRIORITY
+**Goal:** Feature parity with CLZ Comics - don't lose capabilities when switching
+
+**Why This Matters:**
+- CLZ users track purchase price, storage, signatures, etc.
+- If we don't support these, it's a dealbreaker for switchers
+- "Custom fields" is CLZ's main 2026 feature (Feb release)
+- We need this BEFORE users import 10k comics
+
+**Phase 1: Standard Custom Fields**
+- [ ] Purchase price (decimal)
+- [ ] Purchase date (date picker)
+- [ ] Purchase location/store (text)
+- [ ] Storage location (text - "Box 3, Row 2")
+- [ ] Personal notes (textarea)
+- [ ] Signed by (text - comma-separated)
+- [ ] Certificate of Authenticity (boolean + file upload)
+- [ ] Grading company (dropdown: CGC, CBCS, PGX, None)
+- [ ] Slab serial number (text - for CGC/CBCS certs)
+
+**Phase 2: Advanced Custom Fields**
+- [ ] User-defined custom fields (like Notion properties)
+- [ ] Field types: text, number, date, dropdown, checkbox, file
+- [ ] Conditional fields (show "Slab Serial" only if graded)
+- [ ] Bulk edit (update multiple comics at once)
+
+**UI/UX:**
+- Edit custom fields in collection view (inline editing)
+- Show custom fields in expanded comic details
+- Filter by custom fields (e.g., "Show comics in Box 3")
+- Sort by custom fields (e.g., "Most expensive purchases")
+
+### Slab Frame Visualization 🆕 PRIORITY
+**Goal:** Visual distinction for slabbed vs raw comics (like CLZ's Jan 2026 update)
+
+**Why This Matters:**
+- CLZ just added "slab frames" targeting slab collectors
+- Visual representation helps users quickly identify slabbed comics
+- Premium feel for graded comics
+- Shows grading company branding (CGC/CBCS)
+
+**Phase 1: Basic Slab Frames**
+- [ ] Detect if comic is slabbed (grading_company field not null)
+- [ ] Apply slab border/frame in gallery view
+- [ ] Show grading company logo (CGC/CBCS/PGX)
+- [ ] Display slab serial number overlay
+- [ ] Different styling for raw vs slabbed comics
+
+**Phase 2: Enhanced Visuals**
+- [ ] Realistic slab case rendering (3D effect)
+- [ ] Grading label replica (like actual CGC label)
+- [ ] Hover animation (tilt effect like real slab)
+- [ ] Filter: "Slabbed only" / "Raw only"
+- [ ] Stats: "X slabbed, Y raw, Z slab worthy"
+
+**Grading Company Colors:**
+- CGC: Blue/Gold gradient
+- CBCS: Green/Silver
+- PGX: Red/White
 
 ### My Collection Feature ✅ COMPLETED (Sessions 38-39)
 **Goal:** Users can save, view, and manage their graded comics
