@@ -72,6 +72,13 @@
   - Replace `YOUR_SITE_KEY_HERE` in verify.html line 121
   - Redeploy
 
+- [ ] **Test pHash false positive rate** 🧪
+  - Mike will upload photos of:
+    - Same physical comic (2 photos) - Should match ✅
+    - Different copies of same issue - Should NOT match ❌
+  - Test if fingerprinting can distinguish individual comics
+  - Critical for theft detection accuracy
+
 ### Phase 2: Feature Parity (Next 2-3 Weeks)
 1. **Custom Fields** (1 week)
    - Database columns for purchase price, storage, etc.
@@ -115,13 +122,15 @@
 ```
 app.html                     - Bug fix, optimistic UI, custom icon, UI improvements
 routes/verify.py             - NEW - Public lookup + watermarking API
-verify.html                  - NEW - Public verify page
+verify.html                  - NEW - Public verify page (updated with Slab Guard branding + icon)
 wsgi.py                      - Registered verify blueprint
 routes/utils.py              - Added /verify route
 ROADMAP.txt                  - Added CSV import, Custom Fields, Slab Frame viz
 slab-guard-icon.html         - NEW - Icon demo page
 WHERE_WE_LEFT_OFF.md         - This file
 ```
+
+**Post-session update:** verify.html updated with Slab Guard™ branding and custom shield icon (needs deployment)
 
 ---
 
