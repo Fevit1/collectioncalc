@@ -287,6 +287,17 @@
             animation: slab-guard-glow 2s ease-in-out infinite;
             vertical-align: middle;
             margin-right: 12px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .slab-guard-icon img {
+            width: 22px;
+            height: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -52%);
         }
     </style>
     <!-- PWA -->
@@ -311,12 +322,15 @@
     <div class="container">
         <div class="header">
             <h1>
-                <svg class="slab-guard-icon" width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"
-                          fill="none"
-                          stroke="url(#slabGuardGradWhite)"
-                          stroke-width="2"/>
-                </svg>
+                <span class="slab-guard-icon" style="width: 48px; height: 48px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style="position: absolute; top: 0; left: 0;">
+                        <path d="M12 2L4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"
+                              fill="none"
+                              stroke="url(#slabGuardGradWhite)"
+                              stroke-width="2"/>
+                    </svg>
+                    <img src="/images/fingerprint-gold.png" alt="Fingerprint">
+                </span>
                 Verify Comic
             </h1>
             <p>SlabWorthy Slab Guard™</p>
