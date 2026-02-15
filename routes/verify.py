@@ -4,9 +4,13 @@ Routes: /api/verify/lookup/:serial_number, /api/verify/watermark/:serial_number
 """
 import os
 import io
+import json
+import requests as http_requests
 import psycopg2
 from flask import Blueprint, jsonify, request, send_file
 from datetime import datetime
+
+TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
 
 # Create blueprint (no auth required - this is public)
 verify_bp = Blueprint('verify', __name__, url_prefix='/api/verify')
@@ -116,13 +120,43 @@ def watermark_image(image_url, serial_number):
 
     return watermarked.convert('RGB')
 
-@verify_bp.route('/lookup/<serial_number>', methods=['GET'])
+@verify_bp.route('/lookup/<serial_number>', methods=['GET', 'POST'])
 def lookup_serial(serial_number):
     """
     Public lookup of serial number
     Returns comic details without PII
+    Requires Cloudflare Turnstile verification (POST with turnstile_token)
     """
     try:
+        # Verify Turnstile token (required for POST, skip if GET for backward compat)
+        if request.method == 'POST' and TURNSTILE_SECRET:
+            body = request.get_json(silent=True) or {}
+            turnstile_token = body.get('turnstile_token', '')
+
+            if not turnstile_token:
+                return jsonify({
+                    'success': False,
+                    'error': 'Security check required. Please complete the verification.'
+                }), 403
+
+            # Verify with Cloudflare
+            verify_response = http_requests.post(
+                'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+                data={
+                    'secret': TURNSTILE_SECRET,
+                    'response': turnstile_token,
+                    'remoteip': request.remote_addr
+                },
+                timeout=5
+            )
+            verify_result = verify_response.json()
+
+            if not verify_result.get('success'):
+                return jsonify({
+                    'success': False,
+                    'error': 'Security verification failed. Please try again.'
+                }), 403
+
         # Validate serial number format (SW-YYYY-NNNNNN)
         if not serial_number or not serial_number.startswith('SW-'):
             return jsonify({

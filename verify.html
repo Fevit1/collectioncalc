@@ -331,7 +331,7 @@
             <!-- Cloudflare Turnstile -->
             <div class="turnstile-container">
                 <div class="cf-turnstile"
-                     data-sitekey="YOUR_SITE_KEY_HERE"
+                     data-sitekey="0x4AAAAAACdOGsvR1ei9aXB7"
                      data-callback="onTurnstileSuccess">
                 </div>
             </div>
@@ -419,8 +419,19 @@
             verifyBtn.disabled = true;
             verifyBtn.innerHTML = '<div class="spinner"></div> Verifying...';
 
+            if (!turnstileToken) {
+                showError('Please complete the security check');
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Comic';
+                return;
+            }
+
             try {
-                const response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`);
+                const response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ turnstile_token: turnstileToken })
+                });
                 const data = await response.json();
 
                 if (!data.success) {
@@ -437,6 +448,12 @@
             } finally {
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify Comic';
+                // Reset turnstile for next verification
+                turnstileToken = null;
+                if (window.turnstile) {
+                    turnstile.reset();
+                    verifyBtn.disabled = true;
+                }
             }
         }
 
