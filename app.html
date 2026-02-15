@@ -905,6 +905,13 @@
             transform: none;
         }
     </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
 <body>
     <div class="container">
@@ -2477,5 +2484,11 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         <div>☕ Powered by <a href="https://collectioncalc.com" style="color: var(--primary); text-decoration: none;">CollectionCalc</a></div>
     </footer>
 
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
 </body>
 </html> 
