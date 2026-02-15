@@ -69,9 +69,9 @@ PLANS = {
     'pro': {
         'name': 'Pro',
         'monthly_price': 499,   # cents
-        'annual_price': 4788,   # cents
-        'stripe_monthly_price_id': os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', ''),
-        'stripe_annual_price_id': os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', ''),
+        'annual_price': 4999,   # cents
+        'stripe_monthly_price_id': os.environ.get('STRIPE_PRO_MONTHLY_PRICE'),
+        'stripe_annual_price_id': os.environ.get('STRIPE_PRO_ANNUAL_PRICE'),
         'valuations_per_month': -1,  # unlimited
         'slab_guard_registrations': 25,
         'marketplace_monitoring': False,
@@ -86,9 +86,9 @@ PLANS = {
     'guard': {
         'name': 'Collector + Guard',
         'monthly_price': 999,
-        'annual_price': 9588,
-        'stripe_monthly_price_id': os.environ.get('STRIPE_GUARD_MONTHLY_PRICE_ID', ''),
-        'stripe_annual_price_id': os.environ.get('STRIPE_GUARD_ANNUAL_PRICE_ID', ''),
+        'annual_price': 8999,
+        'stripe_monthly_price_id': os.environ.get('STRIPE_GUARD_MONTHLY_PRICE'),
+        'stripe_annual_price_id': os.environ.get('STRIPE_GUARD_ANNUAL_PRICE'),
         'valuations_per_month': -1,
         'slab_guard_registrations': -1,  # unlimited
         'marketplace_monitoring': True,
@@ -103,9 +103,9 @@ PLANS = {
     'dealer': {
         'name': 'Dealer',
         'monthly_price': 2499,
-        'annual_price': 23988,
-        'stripe_monthly_price_id': os.environ.get('STRIPE_DEALER_MONTHLY_PRICE_ID', ''),
-        'stripe_annual_price_id': os.environ.get('STRIPE_DEALER_ANNUAL_PRICE_ID', ''),
+        'annual_price': 23999,
+        'stripe_monthly_price_id': os.environ.get('STRIPE_DEALER_MONTHLY_PRICE'),
+        'stripe_annual_price_id': os.environ.get('STRIPE_DEALER_ANNUAL_PRICE'),
         'valuations_per_month': -1,
         'slab_guard_registrations': -1,
         'marketplace_monitoring': True,
