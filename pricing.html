@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pricing - Slab Worthy™</title>
-    <meta name="description" content="Slab Worthy pricing - coming soon.">
+    <meta name="description" content="Slab Worthy pricing plans. AI-powered comic grading, valuation, and Slab Guard theft protection.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,7 +48,7 @@
         }
 
         .header-content {
-            max-width: 800px;
+            max-width: 1100px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -75,98 +75,428 @@
             color: var(--purple-light);
         }
 
-        /* Main Content */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        /* Hero */
+        .pricing-hero {
             text-align: center;
-            padding: 3rem 1.5rem;
+            padding: 3rem 1.5rem 1.5rem;
         }
 
-        .logo-container {
-            margin-bottom: 1.5rem;
-        }
-
-        .main-logo {
-            font-family: 'Bangers', cursive;
-            font-size: clamp(2.5rem, 10vw, 4rem);
-            letter-spacing: 2px;
-            color: #facc15;
-            text-shadow: 2px 2px 0 #7c3aed, 4px 4px 0 #1e1b4b;
-        }
-
-        .coming-soon-icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .page-title {
-            font-size: clamp(2rem, 6vw, 3rem);
+        .pricing-hero h1 {
+            font-size: clamp(2rem, 6vw, 2.8rem);
             font-weight: 700;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .page-subtitle {
+        .pricing-hero p {
             color: var(--text-secondary);
-            font-size: 1.1rem;
-            max-width: 400px;
-            margin-bottom: 2rem;
+            font-size: 1.05rem;
+            max-width: 500px;
+            margin: 0 auto;
         }
 
-        .beta-note {
-            background: var(--bg-card);
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            border-radius: 12px;
-            padding: 1.5rem 2rem;
-            max-width: 400px;
+        /* Toggle */
+        .billing-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin: 1.5rem auto 0;
         }
 
-        .beta-note-title {
+        .billing-toggle span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .billing-toggle span.active {
+            color: var(--text-primary);
             font-weight: 600;
-            margin-bottom: 0.5rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--purple-mid);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.annual::after {
+            transform: translateX(22px);
+        }
+
+        .toggle-switch.annual {
+            background: var(--purple-brand);
+        }
+
+        .save-badge {
+            background: var(--green);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        /* Pricing Grid */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            align-items: start;
+        }
+
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.15);
+            border-radius: 16px;
+            padding: 1.75rem 1.5rem;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(124, 58, 237, 0.4);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--purple-brand);
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 1rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-desc {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 1.25rem;
+            min-height: 2.4rem;
+        }
+
+        .card-price {
+            margin-bottom: 1.25rem;
+        }
+
+        .price-amount {
+            font-size: 2.25rem;
+            font-weight: 700;
+        }
+
+        .price-amount .dollar {
+            font-size: 1.25rem;
+            vertical-align: top;
+            position: relative;
+            top: 0.3rem;
+        }
+
+        .price-period {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .price-annual {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-top: 0.15rem;
+            display: none;
+        }
+
+        .price-annual.show {
+            display: block;
+        }
+
+        .card-cta {
+            display: block;
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-cta:hover {
+            transform: translateY(-1px);
+        }
+
+        .cta-free {
+            background: transparent;
+            border: 1px solid rgba(124, 58, 237, 0.4);
             color: var(--purple-light);
         }
 
-        .beta-note-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+        .cta-free:hover {
+            border-color: var(--purple-brand);
+            background: rgba(124, 58, 237, 0.1);
         }
 
-        .cta-button {
-            display: inline-block;
+        .cta-primary {
             background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
             color: var(--purple-dark);
-            border: none;
-            padding: 0.8rem 1.5rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            box-shadow: 2px 2px 0px var(--purple-brand);
+        }
+
+        .cta-primary:hover {
             box-shadow: 3px 3px 0px var(--purple-brand);
-            text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 1.5rem;
         }
 
-        .cta-button:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: 5px 5px 0px var(--purple-brand);
+        .cta-popular {
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            color: white;
+            box-shadow: 2px 2px 0px rgba(124, 58, 237, 0.5);
         }
 
-        /* Footer - Matching index.html */
+        .cta-dealer {
+            background: transparent;
+            border: 1px solid var(--gold-dark);
+            color: var(--gold-mid);
+        }
+
+        .cta-dealer:hover {
+            background: rgba(202, 138, 4, 0.1);
+        }
+
+        /* Features */
+        .features-divider {
+            height: 1px;
+            background: rgba(124, 58, 237, 0.15);
+            margin-bottom: 1rem;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.6rem;
+            line-height: 1.4;
+        }
+
+        .feature-list li .check {
+            color: var(--green);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .feature-list li.highlight {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .feature-list li.guard-feature .check {
+            color: var(--purple-light);
+        }
+
+        /* Slab Guard callout */
+        .guard-section {
+            max-width: 1100px;
+            margin: 1rem auto 2.5rem;
+            padding: 0 1.5rem;
+        }
+
+        .guard-banner {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(168, 85, 247, 0.08));
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 16px;
+            padding: 2rem 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .guard-banner-icon {
+            font-size: 3rem;
+            flex-shrink: 0;
+        }
+
+        .guard-banner h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .guard-banner h3 span {
+            color: var(--purple-light);
+        }
+
+        .guard-banner p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            max-width: 600px;
+        }
+
+        /* Comparison Table */
+        .compare-section {
+            max-width: 1100px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
+
+        .compare-section h2 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .compare-table th,
+        .compare-table td {
+            padding: 0.65rem 0.75rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+        }
+
+        .compare-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .compare-table th:first-child,
+        .compare-table td:first-child {
+            text-align: left;
+            color: var(--text-secondary);
+        }
+
+        .compare-table td:first-child {
+            font-weight: 500;
+        }
+
+        .compare-table .yes {
+            color: var(--green);
+        }
+
+        .compare-table .no {
+            color: #475569;
+        }
+
+        .compare-table .limit {
+            color: var(--gold-mid);
+            font-size: 0.75rem;
+        }
+
+        /* FAQ */
+        .faq-section {
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
+
+        .faq-section h2 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+            padding: 1rem 0;
+        }
+
+        .faq-q {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-q::after {
+            content: '+';
+            color: var(--purple-light);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+
+        .faq-item.open .faq-q::after {
+            content: '-';
+        }
+
+        .faq-a {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 200px;
+        }
+
+        /* Footer */
         .footer {
             padding: 2rem 1.5rem;
             background: var(--purple-dark);
             border-top: 1px solid rgba(124, 58, 237, 0.2);
+            margin-top: auto;
         }
 
         .footer-cta {
@@ -175,9 +505,25 @@
         }
 
         .footer-cta .cta-button {
-            font-size: 0.85rem;
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
             padding: 0.75rem 1.5rem;
-            margin-top: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0px var(--purple-brand);
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .footer-cta .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--purple-brand);
         }
 
         .footer-content {
@@ -230,8 +576,24 @@
             font-size: 0.65rem;
         }
 
-        /* Mobile */
-        @media (max-width: 600px) {
+        /* Responsive */
+        @media (max-width: 900px) {
+            .pricing-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .guard-banner {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 380px;
+            }
             .header-nav a {
                 margin-left: 1rem;
                 font-size: 0.8rem;
@@ -244,24 +606,254 @@
         <div class="header-content">
             <a href="/" class="header-logo">SLAB WORTHY</a>
             <nav class="header-nav">
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/faq.html">FAQ</a>
                 <a href="/login.html">Log In</a>
             </nav>
         </div>
     </header>
 
-    <main class="main">
-        <div class="coming-soon-icon">💰</div>
-        <h1 class="page-title">Pricing</h1>
-        <p class="page-subtitle">We're finalizing our pricing plans. Check back soon!</p>
-        
-        <div class="beta-note">
-            <div class="beta-note-title">🎉 Beta Access</div>
-            <div class="beta-note-text">During private beta, Slab Worthy is free for approved testers. Have a beta code? Get started now.</div>
+    <!-- Hero -->
+    <section class="pricing-hero">
+        <h1>Simple, Honest Pricing</h1>
+        <p>Start free. Upgrade when your collection demands it.</p>
+
+        <div class="billing-toggle">
+            <span class="active" id="monthlyLabel">Monthly</span>
+            <div class="toggle-switch" id="billingToggle" role="button" tabindex="0" aria-label="Toggle annual billing"></div>
+            <span id="annualLabel">Annual</span>
+            <span class="save-badge">Save up to 25%</span>
+        </div>
+    </section>
+
+    <!-- Pricing Cards -->
+    <div class="pricing-grid">
+
+        <!-- FREE -->
+        <div class="pricing-card">
+            <div class="card-icon">🆓</div>
+            <div class="card-name">Free</div>
+            <div class="card-desc">Try everything. No credit card needed.</div>
+            <div class="card-price">
+                <div class="price-amount"><span class="dollar">$</span>0</div>
+                <div class="price-period">forever</div>
+            </div>
+            <a href="/login.html" class="card-cta cta-free" data-plan="free">Get Started</a>
+            <div class="features-divider"></div>
+            <ul class="feature-list">
+                <li><span class="check">✓</span> 10 valuations per month</li>
+                <li><span class="check">✓</span> AI grading estimates</li>
+                <li><span class="check">✓</span> "Should I Slab?" ROI analysis</li>
+                <li class="guard-feature"><span class="check">✓</span> Register 3 comics in Slab Guard</li>
+                <li><span class="check">✓</span> Basic collection tracking</li>
+            </ul>
         </div>
 
-        <a href="/login.html" class="cta-button">Join the Beta</a>
-    </main>
+        <!-- PRO -->
+        <div class="pricing-card">
+            <div class="card-icon">⚡</div>
+            <div class="card-name">Pro</div>
+            <div class="card-desc">For serious collectors who want the full picture.</div>
+            <div class="card-price">
+                <div class="price-amount" data-monthly="4.99" data-annual="4.17"><span class="dollar">$</span><span class="price-value">4.99</span></div>
+                <div class="price-period">/month</div>
+                <div class="price-annual" id="proAnnual">Billed $49.99/year</div>
+            </div>
+            <a href="#" class="card-cta cta-primary" data-plan="pro" onclick="startCheckout('pro')">Start Free Trial</a>
+            <div class="features-divider"></div>
+            <ul class="feature-list">
+                <li class="highlight"><span class="check">✓</span> Unlimited valuations</li>
+                <li><span class="check">✓</span> Everything in Free</li>
+                <li><span class="check">✓</span> Multi-photo grading (4 angles)</li>
+                <li><span class="check">✓</span> Excel/CSV export</li>
+                <li><span class="check">✓</span> Personal adjustments</li>
+                <li class="guard-feature"><span class="check">✓</span> Register 25 comics in Slab Guard</li>
+            </ul>
+        </div>
 
+        <!-- GUARD (Popular) -->
+        <div class="pricing-card popular">
+            <div class="popular-badge">Most Popular</div>
+            <div class="card-icon">🛡️</div>
+            <div class="card-name">Collector + Guard</div>
+            <div class="card-desc">Full protection for your collection.</div>
+            <div class="card-price">
+                <div class="price-amount" data-monthly="9.99" data-annual="7.50"><span class="dollar">$</span><span class="price-value">9.99</span></div>
+                <div class="price-period">/month</div>
+                <div class="price-annual" id="guardAnnual">Billed $89.99/year</div>
+            </div>
+            <a href="#" class="card-cta cta-popular" data-plan="guard" onclick="startCheckout('guard')">Start Free Trial</a>
+            <div class="features-divider"></div>
+            <ul class="feature-list">
+                <li class="highlight"><span class="check">✓</span> Everything in Pro</li>
+                <li class="highlight guard-feature"><span class="check">✓</span> Unlimited Slab Guard registrations</li>
+                <li class="guard-feature"><span class="check">✓</span> Marketplace monitoring alerts</li>
+                <li class="guard-feature"><span class="check">✓</span> Chrome extension auto-scan</li>
+                <li class="guard-feature"><span class="check">✓</span> Verified ownership certificates</li>
+                <li><span class="check">✓</span> Priority support</li>
+            </ul>
+        </div>
+
+        <!-- DEALER -->
+        <div class="pricing-card">
+            <div class="card-icon">🏪</div>
+            <div class="card-name">Dealer</div>
+            <div class="card-desc">Built for shops and high-volume sellers.</div>
+            <div class="card-price">
+                <div class="price-amount" data-monthly="24.99" data-annual="20.00"><span class="dollar">$</span><span class="price-value">24.99</span></div>
+                <div class="price-period">/month</div>
+                <div class="price-annual" id="dealerAnnual">Billed $239.99/year</div>
+            </div>
+            <a href="#" class="card-cta cta-dealer" data-plan="dealer" onclick="startCheckout('dealer')">Start Free Trial</a>
+            <div class="features-divider"></div>
+            <ul class="feature-list">
+                <li class="highlight"><span class="check">✓</span> Everything in Guard</li>
+                <li><span class="check">✓</span> API access</li>
+                <li><span class="check">✓</span> Bulk operations</li>
+                <li class="guard-feature"><span class="check">✓</span> Serial verification tools</li>
+                <li class="guard-feature"><span class="check">✓</span> Law enforcement contact portal</li>
+                <li><span class="check">✓</span> White-label options</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Slab Guard Banner -->
+    <section class="guard-section">
+        <div class="guard-banner">
+            <div class="guard-banner-icon">🛡️</div>
+            <div>
+                <h3>What is <span>Slab Guard</span>?</h3>
+                <p>Slab Guard is our comic theft protection system. Register your comics with a unique digital fingerprint, and our Chrome extension monitors eBay listings in real time to alert you if a match appears. It's like a security system for your collection — and no one else offers it.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature Comparison -->
+    <section class="compare-section">
+        <h2>Compare Plans</h2>
+        <table class="compare-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Free</th>
+                    <th>Pro</th>
+                    <th>Guard</th>
+                    <th>Dealer</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Valuations</td>
+                    <td class="limit">10/mo</td>
+                    <td class="yes">Unlimited</td>
+                    <td class="yes">Unlimited</td>
+                    <td class="yes">Unlimited</td>
+                </tr>
+                <tr>
+                    <td>AI Grading</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>"Should I Slab?" ROI</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Multi-Photo Grading</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Export (Excel/CSV)</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Slab Guard Registrations</td>
+                    <td class="limit">3</td>
+                    <td class="limit">25</td>
+                    <td class="yes">Unlimited</td>
+                    <td class="yes">Unlimited</td>
+                </tr>
+                <tr>
+                    <td>Marketplace Monitoring</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Chrome Extension</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Ownership Certificates</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>API Access</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td>Bulk Operations</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="no">—</td>
+                    <td class="yes">✓</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Pricing FAQ -->
+    <section class="faq-section">
+        <h2>Questions?</h2>
+
+        <div class="faq-item">
+            <div class="faq-q">Is there a free trial?</div>
+            <div class="faq-a">Yes! Pro, Guard, and Dealer plans all come with a 14-day free trial. No credit card required to start.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Can I change plans anytime?</div>
+            <div class="faq-a">Absolutely. Upgrade, downgrade, or cancel at any time. If you downgrade, you'll keep your current plan features until the end of your billing period.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">What happens to my Slab Guard registrations if I downgrade?</div>
+            <div class="faq-a">Your registered comics stay in the system — we never delete them. If you exceed your new plan's limit, you won't be able to register new comics until you upgrade or remove some. Monitoring alerts will pause on the free plan.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Do you offer refunds?</div>
+            <div class="faq-a">Yes. If you're not happy within the first 30 days of a paid plan, we'll refund you in full — no questions asked.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">I run a comic shop. Is the Dealer plan right for me?</div>
+            <div class="faq-a">If you buy/sell comics regularly and want to verify ownership before purchasing, the Dealer plan gives you the tools. The serial verification feature lets you check any Slab Guard serial instantly. Need a custom setup? Email us.</div>
+        </div>
+    </section>
+
+    <!-- Footer -->
     <footer class="footer">
         <div class="footer-cta">
             <a href="/login.html" class="cta-button">Check a Comic</a>
@@ -301,5 +893,127 @@
             <p style="margin-top: 0.3rem; font-size: 0.55rem;">CGC® and CBCS® are registered trademarks of their respective owners.</p>
         </div>
     </footer>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'https://collectioncalc-docker.onrender.com';
+
+        // Billing toggle
+        const toggle = document.getElementById('billingToggle');
+        const monthlyLabel = document.getElementById('monthlyLabel');
+        const annualLabel = document.getElementById('annualLabel');
+        let isAnnual = false;
+
+        toggle.addEventListener('click', () => {
+            isAnnual = !isAnnual;
+            toggle.classList.toggle('annual', isAnnual);
+            monthlyLabel.classList.toggle('active', !isAnnual);
+            annualLabel.classList.toggle('active', isAnnual);
+
+            document.querySelectorAll('.price-amount[data-monthly]').forEach(el => {
+                const val = isAnnual ? el.dataset.annual : el.dataset.monthly;
+                el.querySelector('.price-value').textContent = val;
+            });
+
+            document.querySelectorAll('.price-annual').forEach(el => {
+                el.classList.toggle('show', isAnnual);
+            });
+        });
+
+        toggle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle.click();
+            }
+        });
+
+        // FAQ accordion
+        document.querySelectorAll('.faq-q').forEach(q => {
+            q.addEventListener('click', () => {
+                q.parentElement.classList.toggle('open');
+            });
+        });
+
+        // Stripe checkout
+        function getToken() {
+            return localStorage.getItem('jwt_token');
+        }
+
+        async function startCheckout(plan) {
+            event.preventDefault();
+
+            const token = getToken();
+            if (!token) {
+                // Not logged in — save intended plan, redirect to login
+                sessionStorage.setItem('pending_plan', plan);
+                sessionStorage.setItem('pending_billing', isAnnual ? 'annual' : 'monthly');
+                window.location.href = '/login.html?redirect=pricing&plan=' + plan;
+                return;
+            }
+
+            // Show loading state on the button
+            const btn = document.querySelector(`[data-plan="${plan}"]`);
+            const originalText = btn.textContent;
+            btn.textContent = 'Loading...';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/billing/create-checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        plan: plan,
+                        billing_period: isAnnual ? 'annual' : 'monthly'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.checkout_url) {
+                    // Redirect to Stripe Checkout
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert(data.error || 'Unable to start checkout. Please try again.');
+                    btn.textContent = originalText;
+                    btn.style.pointerEvents = 'auto';
+                }
+            } catch (err) {
+                console.error('Checkout error:', err);
+                alert('Connection error. Please try again.');
+                btn.textContent = originalText;
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        // Check if returning from login with a pending plan
+        document.addEventListener('DOMContentLoaded', () => {
+            const pendingPlan = sessionStorage.getItem('pending_plan');
+            const token = getToken();
+            if (pendingPlan && token) {
+                sessionStorage.removeItem('pending_plan');
+                const billing = sessionStorage.getItem('pending_billing') || 'monthly';
+                sessionStorage.removeItem('pending_billing');
+                if (billing === 'annual') {
+                    isAnnual = true;
+                    toggle.classList.add('annual');
+                    monthlyLabel.classList.remove('active');
+                    annualLabel.classList.add('active');
+                }
+                // Auto-start checkout for the plan they wanted
+                startCheckout(pendingPlan);
+            }
+
+            // Show success message if returning from Stripe
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('status') === 'cancelled') {
+                // Could show a "checkout cancelled" toast here
+                console.log('Checkout cancelled');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -226,6 +226,8 @@ from routes.ebay import ebay_bp, init_modules as ebay_init_modules
 from routes.collection import collection_bp
 from routes.registry import registry_bp, init_modules as registry_init_modules
 from routes.verify import verify_bp, init_modules as verify_init_modules
+from routes.monitor import monitor_bp, init_modules as monitor_init_modules
+from routes.billing import billing_bp, init_modules as billing_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -258,6 +260,8 @@ ebay_init_modules(
     create_listing, upload_image_to_ebay, generate_description
 )
 registry_init_modules(imagehash, Image if 'Image' in dir() else None)
+monitor_init_modules(imagehash, Image if 'Image' in dir() else None)
+billing_init_modules()
 verify_init_modules(
     imagehash,
     Image if 'Image' in dir() else None,
@@ -277,6 +281,8 @@ app.register_blueprint(ebay_bp)        # /api/ebay/*
 app.register_blueprint(collection_bp)  # /api/collection/*
 app.register_blueprint(registry_bp)    # /api/registry/*
 app.register_blueprint(verify_bp)      # /api/verify/*
+app.register_blueprint(monitor_bp)     # /api/monitor/*
+app.register_blueprint(billing_bp)     # /api/billing/*
 
 print("✅ All blueprints registered successfully!")
 

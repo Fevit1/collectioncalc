@@ -288,11 +288,18 @@
 
     <div class="container">
         <h1>Terms of Service</h1>
-        <p class="last-updated">Last Updated: February 3, 2026</p>
+        <p class="last-updated">Last Updated: February 16, 2026</p>
 
         <div class="content-card">
             <h2>Agreement to Terms</h2>
             <p>By accessing or using Slab Worthy (slabworthy.com), a service provided by CollectionCalc, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.</p>
+            <p>These Terms of Service, together with our <a href="/privacy.html">Privacy Policy</a>, form the complete agreement between you and Slab Worthy regarding your use of the service.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Eligibility</h2>
+            <p>You must be at least <span class="highlight">16 years of age</span> to use Slab Worthy. By creating an account, you represent that you are at least 16 years old. If you are under 18, you represent that your parent or legal guardian has reviewed and agrees to these Terms on your behalf.</p>
+            <p>If we learn that a user is under 16, we will terminate their account and delete their data promptly.</p>
         </div>
 
         <div class="content-card">
@@ -303,9 +310,25 @@
                 <li>Calculate fair market value based on recent sales data</li>
                 <li>Determine whether professional grading (CGC®, CBCS®) makes financial sense</li>
                 <li>Generate auction listings for platforms like eBay and Whatnot</li>
+                <li>Register comics with Slab Guard for theft protection and marketplace monitoring</li>
             </ul>
             <div class="important-box">
                 <p><span class="highlight">Important:</span> Our "Slab Worthy?" feature is patent pending.</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2>Slab Guard: Theft Protection Service</h2>
+            <p>Slab Guard is a comic registration and marketplace monitoring feature. By using Slab Guard, you understand and agree that:</p>
+            <ul>
+                <li><span class="highlight">Slab Guard is a monitoring tool, not insurance.</span> We do not insure your comics or guarantee recovery of stolen property. We provide alerts when potential matches are detected on supported marketplaces.</li>
+                <li><span class="highlight">We do not guarantee detection of all listings.</span> Marketplace scanning depends on available listing data, image quality, and matching algorithms. Some listings may not be scanned or may not trigger a match.</li>
+                <li><span class="highlight">Match notifications are not legal proof of theft.</span> A match indicates visual similarity between a registered comic and a marketplace listing. It does not constitute legal evidence of ownership or theft. You are responsible for verifying matches and contacting law enforcement if appropriate.</li>
+                <li><span class="highlight">Registrations are based on the information you provide.</span> You represent that you are the lawful owner of any comic you register with Slab Guard. Filing false registrations or attempting to use Slab Guard to harass sellers, interfere with legitimate sales, or make fraudulent claims is a violation of these terms and may result in immediate account termination and referral to law enforcement.</li>
+                <li><span class="highlight">Marketplace coverage is limited.</span> We currently monitor eBay. Additional marketplaces may be added over time. We do not guarantee coverage of any specific marketplace.</li>
+            </ul>
+            <div class="important-box">
+                <p><span class="highlight">Slab Guard is not a substitute for homeowners or renters insurance.</span> We strongly recommend insuring high-value comics through your insurance provider. Slab Guard is an additional layer of protection, not a replacement for insurance coverage.</p>
             </div>
         </div>
 
@@ -318,6 +341,17 @@
                 <li><span class="highlight">We are NOT a marketplace.</span> We do not buy, sell, or facilitate transactions of comics.</li>
                 <li><span class="highlight">We do NOT provide financial advice.</span> Our valuations are for informational purposes only.</li>
             </ul>
+        </div>
+
+        <div class="content-card">
+            <h2>How We Process Your Images</h2>
+            <p>When you upload comic images to Slab Worthy, those images are processed using a combination of our own systems and third-party cloud services, including:</p>
+            <ul>
+                <li><span class="highlight">AI Analysis (Anthropic Claude):</span> Your images are sent to Anthropic's AI to identify the comic, assess condition, and generate grading estimates.</li>
+                <li><span class="highlight">Content Safety Screening (AWS Rekognition):</span> All uploaded images are automatically screened using Amazon Web Services' image analysis technology to detect prohibited content, including explicit material, violence, and other content that violates our Prohibited Content policy. This screening helps us maintain a safe platform and comply with our legal obligations.</li>
+                <li><span class="highlight">Fingerprint Generation:</span> For Slab Guard registrations, a perceptual hash (digital fingerprint) is generated from your comic's image. This fingerprint is a mathematical representation of the image — it cannot be used to reconstruct the original photo, but it can be compared against other images to detect visual matches.</li>
+            </ul>
+            <p>By uploading images, you consent to this processing. For full details on how your image data is handled, stored, and retained, see our <a href="/privacy.html">Privacy Policy</a>.</p>
         </div>
 
         <div class="content-card">
@@ -344,6 +378,24 @@
                 <li>Interfere with or disrupt the service</li>
                 <li>Use automated tools to access the service beyond normal usage</li>
             </ul>
+        </div>
+
+        <div class="content-card">
+            <h2>Subscriptions and Payments</h2>
+            <p><span class="highlight">Free Tier:</span> Slab Worthy offers a free tier with limited features. No credit card is required to use the free tier.</p>
+            <p><span class="highlight">Paid Plans:</span> Paid subscriptions (Pro, Collector + Guard, Dealer) are billed on a monthly or annual basis, as selected during checkout. All paid plans include a 14-day free trial.</p>
+            <p><span class="highlight">Auto-Renewal:</span> Subscriptions automatically renew at the end of each billing period unless you cancel before the renewal date. You can cancel at any time through your account settings or the Stripe customer portal.</p>
+            <p><span class="highlight">Refunds:</span> If you are not satisfied with a paid plan within the first 30 days, contact us for a full refund. After 30 days, refunds are not available, but you may cancel to prevent future charges.</p>
+            <p><span class="highlight">Price Changes:</span> We may change subscription pricing with at least 30 days' notice. Price changes will take effect at the start of your next billing period. If you do not agree with a price change, you may cancel your subscription before the new price takes effect.</p>
+            <p><span class="highlight">Failed Payments:</span> If a payment fails, we will attempt to process it again. If payment continues to fail, your account may be downgraded to the free tier. Your data, including Slab Guard registrations, will be retained.</p>
+            <p><span class="highlight">Payment Processing:</span> All payments are processed securely by Stripe. We never see, store, or have access to your full credit card number. Stripe's privacy policy governs the handling of your payment information.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Feature Limits and Fair Use</h2>
+            <p>Each subscription tier includes specific usage limits (valuations per month, Slab Guard registration limits, etc.) as described on our <a href="/pricing.html">pricing page</a>. These limits are enforced automatically.</p>
+            <p>If you downgrade your plan, your existing data (including Slab Guard registrations) will be retained, but you may not be able to add new registrations or access premium features until you upgrade. Marketplace monitoring alerts will pause if your plan does not include that feature.</p>
+            <p>We reserve the right to enforce fair use limits on any feature to prevent abuse, excessive automated access, or activity that degrades the service for other users.</p>
         </div>
 
         <div class="content-card">
@@ -405,17 +457,20 @@
             <h2>Service Changes</h2>
             <p>We reserve the right to:</p>
             <ul>
-                <li>Modify or discontinue features at any time</li>
-                <li>Change pricing or introduce paid features</li>
+                <li>Modify, add, or discontinue features at any time</li>
+                <li>Change subscription pricing with 30 days' notice</li>
                 <li>Update these Terms of Service</li>
+                <li>Change which marketplaces Slab Guard monitors</li>
             </ul>
-            <p>We will provide reasonable notice of significant changes when possible.</p>
+            <p>If we make changes that significantly alter your rights or obligations, we will notify you by email and/or a notice on the service at least 14 days before the changes take effect. Continued use after the effective date constitutes acceptance. If you do not agree, you may cancel your subscription and delete your account.</p>
         </div>
 
         <div class="content-card">
             <h2>Termination</h2>
-            <p>You may stop using Slab Worthy at any time. We may suspend or terminate your access if you violate these terms or for any other reason at our discretion.</p>
-            <p>Upon termination, your right to use the service ceases immediately. Sections regarding intellectual property, disclaimers, limitations of liability, and indemnification survive termination.</p>
+            <p>You may stop using Slab Worthy at any time by canceling your subscription and/or deleting your account. We may suspend or terminate your access if you violate these terms, engage in fraudulent activity, or for any other reason at our discretion.</p>
+            <p><span class="highlight">What happens to your data:</span> If you delete your account, we will retain your Slab Guard registrations in our monitoring database for 90 days in case you return. After 90 days, registrations are permanently removed. You may request immediate deletion of all data by emailing us. We also offer data export before account deletion — contact <a href="mailto:support@slabworthy.com">support@slabworthy.com</a> to request an export.</p>
+            <p><span class="highlight">Immediate termination:</span> We reserve the right to immediately terminate accounts without notice for: uploading prohibited content, filing fraudulent Slab Guard registrations, attempting to interfere with legitimate marketplace sales, reverse-engineering our systems, or any activity that we believe may expose us or other users to legal liability.</p>
+            <p>Upon termination, your right to use the service ceases immediately. Sections regarding intellectual property, disclaimers, limitations of liability, indemnification, and Slab Guard disclaimers survive termination.</p>
         </div>
 
         <div class="content-card">

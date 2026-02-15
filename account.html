@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Slab Worthy™</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+            text-decoration: none;
+        }
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover { color: var(--purple-light); }
+
+        .main {
+            flex: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Plan Card */
+        .plan-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .plan-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .plan-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.75rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .badge-trialing {
+            background: rgba(124, 58, 237, 0.15);
+            color: var(--purple-light);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+        .badge-past-due {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .badge-free {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .plan-details {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .plan-details span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Usage Bars */
+        .usage-section {
+            margin-bottom: 1.5rem;
+        }
+        .usage-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .usage-item {
+            margin-bottom: 1rem;
+        }
+        .usage-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+        .usage-label .count { color: var(--text-secondary); }
+
+        .usage-bar {
+            height: 8px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .usage-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .fill-green { background: var(--green); }
+        .fill-purple { background: var(--purple-brand); }
+        .fill-orange { background: var(--orange); }
+        .fill-red { background: var(--red); }
+
+        /* Feature Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .feature-item .icon-yes { color: var(--green); }
+        .feature-item .icon-no { color: #475569; }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.15s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+
+        .btn-primary {
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            box-shadow: 2px 2px 0px var(--purple-brand);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            color: var(--purple-light);
+        }
+        .btn-danger {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--red);
+            font-size: 0.8rem;
+        }
+
+        /* Success Banner */
+        .success-banner {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+        .success-banner.show { display: block; }
+        .success-banner strong { color: var(--green); }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 0.5rem; }
+        .footer-col ul { list-style: none; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a { color: var(--text-primary); text-decoration: none; font-size: 0.75rem; }
+        .footer-col a:hover { color: var(--purple-light); }
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        @media (max-width: 550px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">SLAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="#" id="logoutLink">Log Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <h1>My Account</h1>
+
+        <div class="success-banner" id="successBanner">
+            <strong>Welcome!</strong> Your subscription is now active. Time to protect your collection.
+        </div>
+
+        <div class="loading" id="loadingState">Loading your account...</div>
+
+        <div id="accountContent" style="display: none;">
+            <!-- Plan Card -->
+            <div class="plan-card">
+                <div class="plan-header">
+                    <div class="plan-name" id="planName">Free</div>
+                    <div class="plan-badge badge-free" id="planBadge">Free</div>
+                </div>
+
+                <div class="plan-details" id="planDetails"></div>
+
+                <!-- Usage -->
+                <div class="usage-section">
+                    <h3>Usage This Month</h3>
+
+                    <div class="usage-item" id="valuationUsage">
+                        <div class="usage-label">
+                            <span>Valuations</span>
+                            <span class="count" id="valuationCount">0 / 10</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill fill-green" id="valuationBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="usage-item" id="registrationUsage">
+                        <div class="usage-label">
+                            <span>Slab Guard Registrations</span>
+                            <span class="count" id="registrationCount">0 / 3</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill fill-purple" id="registrationBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="features-grid" id="featuresGrid"></div>
+
+                <!-- Actions -->
+                <div class="actions" id="actionButtons"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">SLAB WORTHY</div>
+                <p class="footer-tagline">Powered by CollectionCalc™</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="/#how-it-works">How It Works</a></li>
+                        <li><a href="/pricing.html">Pricing</a></li>
+                        <li><a href="/faq.html">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="/about.html">About</a></li>
+                        <li><a href="mailto:support@slabworthy.com">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/privacy.html">Privacy</a></li>
+                        <li><a href="/terms.html">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Slab Worthy. Patent Pending.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'https://collectioncalc-docker.onrender.com';
+
+        function getToken() {
+            return localStorage.getItem('jwt_token');
+        }
+
+        // Redirect if not logged in
+        const token = getToken();
+        if (!token) {
+            window.location.href = '/login.html?redirect=account';
+        }
+
+        // Check for success return from Stripe
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('status') === 'success') {
+            document.getElementById('successBanner').classList.add('show');
+            // Clean URL
+            window.history.replaceState({}, '', '/account.html');
+        }
+
+        // Load account data
+        async function loadAccount() {
+            try {
+                const res = await fetch(`${API_BASE}/api/billing/my-plan`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        localStorage.removeItem('jwt_token');
+                        window.location.href = '/login.html?redirect=account';
+                        return;
+                    }
+                    throw new Error('Failed to load account');
+                }
+
+                const data = await res.json();
+                renderAccount(data);
+            } catch (err) {
+                console.error('Account load error:', err);
+                document.getElementById('loadingState').textContent =
+                    'Unable to load account info. Please try again.';
+            }
+        }
+
+        function renderAccount(data) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('accountContent').style.display = 'block';
+
+            // Plan name
+            const planNames = {
+                free: 'Free', pro: 'Pro',
+                guard: 'Collector + Guard', dealer: 'Dealer'
+            };
+            document.getElementById('planName').textContent = planNames[data.plan] || 'Free';
+
+            // Badge
+            const badge = document.getElementById('planBadge');
+            const status = data.subscription_status || 'none';
+            if (data.plan === 'free') {
+                badge.textContent = 'Free';
+                badge.className = 'plan-badge badge-free';
+            } else if (status === 'trialing') {
+                badge.textContent = 'Trial';
+                badge.className = 'plan-badge badge-trialing';
+            } else if (status === 'active') {
+                badge.textContent = 'Active';
+                badge.className = 'plan-badge badge-active';
+            } else if (status === 'past_due') {
+                badge.textContent = 'Past Due';
+                badge.className = 'plan-badge badge-past-due';
+            } else {
+                badge.textContent = status;
+                badge.className = 'plan-badge badge-free';
+            }
+
+            // Details
+            const details = document.getElementById('planDetails');
+            if (data.plan !== 'free' && data.current_period_end) {
+                const endDate = new Date(data.current_period_end).toLocaleDateString();
+                const period = data.billing_period === 'annual' ? 'annually' : 'monthly';
+                details.innerHTML = `Billed <span>${period}</span> · Next billing date: <span>${endDate}</span>`;
+            } else if (data.plan === 'free') {
+                details.textContent = 'Upgrade to unlock unlimited valuations and Slab Guard protection.';
+            }
+
+            // Valuations usage
+            const vUsed = data.usage.valuations_used || 0;
+            const vLimit = data.usage.valuations_limit;
+            const vUnlimited = vLimit === -1;
+            document.getElementById('valuationCount').textContent =
+                vUnlimited ? `${vUsed} (Unlimited)` : `${vUsed} / ${vLimit}`;
+            const vPct = vUnlimited ? Math.min(vUsed * 2, 100) : Math.min((vUsed / vLimit) * 100, 100);
+            const vBar = document.getElementById('valuationBar');
+            vBar.style.width = vPct + '%';
+            vBar.className = 'usage-fill ' + (vPct > 90 ? 'fill-red' : vPct > 70 ? 'fill-orange' : 'fill-green');
+
+            // Registrations usage
+            const rUsed = data.usage.registrations_used || 0;
+            const rLimit = data.usage.registrations_limit;
+            const rUnlimited = rLimit === -1;
+            document.getElementById('registrationCount').textContent =
+                rUnlimited ? `${rUsed} (Unlimited)` : `${rUsed} / ${rLimit}`;
+            const rPct = rUnlimited ? Math.min(rUsed, 100) : Math.min((rUsed / rLimit) * 100, 100);
+            const rBar = document.getElementById('registrationBar');
+            rBar.style.width = rPct + '%';
+            rBar.className = 'usage-fill ' + (rPct > 90 ? 'fill-red' : rPct > 70 ? 'fill-orange' : 'fill-purple');
+
+            // Features grid
+            const features = data.features || {};
+            const featureLabels = {
+                marketplace_monitoring: 'Marketplace Monitoring',
+                chrome_extension: 'Chrome Extension',
+                api_access: 'API Access',
+                export: 'Excel/CSV Export',
+                multi_photo: 'Multi-Photo Grading',
+                ownership_certificates: 'Ownership Certificates',
+                priority_support: 'Priority Support'
+            };
+            const grid = document.getElementById('featuresGrid');
+            grid.innerHTML = '';
+            for (const [key, label] of Object.entries(featureLabels)) {
+                const enabled = features[key];
+                grid.innerHTML += `
+                    <div class="feature-item">
+                        <span class="${enabled ? 'icon-yes' : 'icon-no'}">${enabled ? '✓' : '—'}</span>
+                        ${label}
+                    </div>`;
+            }
+
+            // Action buttons
+            const actions = document.getElementById('actionButtons');
+            actions.innerHTML = '';
+            if (data.plan === 'free') {
+                actions.innerHTML = `<a href="/pricing.html" class="btn btn-primary">Upgrade Plan</a>`;
+            } else {
+                actions.innerHTML = `
+                    <button class="btn btn-secondary" onclick="openPortal()">Manage Billing</button>
+                    <a href="/pricing.html" class="btn btn-secondary">Change Plan</a>`;
+            }
+        }
+
+        async function openPortal() {
+            try {
+                const res = await fetch(`${API_BASE}/api/billing/customer-portal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.portal_url) {
+                    window.location.href = data.portal_url;
+                } else {
+                    alert(data.error || 'Unable to open billing portal.');
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('jwt_token');
+            window.location.href = '/login.html';
+        });
+
+        // Load
+        loadAccount();
+    </script>
+</body>
+</html>

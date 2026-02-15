@@ -72,6 +72,20 @@ def generate_fingerprint(photo_url):
 @require_approved
 def register_comic():
     """Register a comic for theft protection"""
+    # Check plan registration limit
+    try:
+        from routes.billing import check_feature_access
+        allowed, message = check_feature_access(g.user_id, 'slab_guard_registrations')
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'error': message,
+                'upgrade_required': True,
+                'upgrade_url': '/pricing.html'
+            }), 403
+    except ImportError:
+        pass  # Billing module not available, allow registration
+
     data = request.get_json() or {}
     comic_id = data.get('comic_id')
 

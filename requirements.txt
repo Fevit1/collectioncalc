@@ -22,3 +22,5 @@ boto3
 rapidfuzz>=3.0.0
 # Comic Fingerprinting (pHash for theft recovery)
 imagehash>=4.3.0
+# Stripe payments
+stripe>=7.0.0
