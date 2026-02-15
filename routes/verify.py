@@ -181,8 +181,7 @@ def lookup_serial(serial_number):
                 gc.year,
                 gc.grade,
                 gc.photos,
-                u.email,
-                u.username
+                u.email
             FROM comic_registry cr
             JOIN graded_comics gc ON cr.comic_id = gc.id
             JOIN users u ON cr.user_id = u.id
@@ -202,7 +201,7 @@ def lookup_serial(serial_number):
         # Parse result
         (serial, status, reg_date, stolen_date, recovery_date,
          title, issue, publisher, pub_year, grade, photos,
-         email, username) = result
+         email) = result
 
         # Parse photos JSON
         import json
@@ -225,7 +224,7 @@ def lookup_serial(serial_number):
                 'watermarked_url': f'/api/verify/watermark/{serial_number}' if cover_url else None
             },
             'owner': {
-                'display_name': hash_email(email) if email else f"User #{username[:8]}" if username else "Anonymous"
+                'display_name': hash_email(email) if email else "Anonymous"
             }
         }
 
