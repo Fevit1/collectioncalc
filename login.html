@@ -583,6 +583,21 @@
     <script>
         const API_BASE = 'https://collectioncalc-docker.onrender.com';
         let resetToken = null;
+
+        // Check if user should be redirected back to pricing for checkout
+        function getRedirectUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const redirect = params.get('redirect');
+            if (redirect === 'pricing') {
+                const plan = params.get('plan') || '';
+                return '/pricing.html' + (plan ? '?plan=' + plan : '');
+            }
+            // Also check sessionStorage for pending plan
+            if (sessionStorage.getItem('pending_plan')) {
+                return '/pricing.html';
+            }
+            return '/app.html';
+        }
         
         // Check if already logged in
         document.addEventListener('DOMContentLoaded', () => {
@@ -631,7 +646,7 @@
                 
                 if (data.success && data.user.is_approved) {
                     // Redirect to main app
-                    window.location.href = '/app.html';
+                    window.location.href = getRedirectUrl();
                 }
             } catch (e) {
                 localStorage.removeItem('cc_token');
@@ -750,7 +765,7 @@
                     localStorage.setItem('cc_user', JSON.stringify(data.user));
                     
                     if (data.user.is_approved || data.user.is_admin) {
-                        window.location.href = '/app.html';
+                        window.location.href = getRedirectUrl();
                     } else {
                         showPanel('pendingPanel');
                     }
@@ -780,7 +795,7 @@
                         // User is approved, log them in
                         localStorage.setItem('cc_token', data.token);
                         localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = '/app.html';
+                        window.location.href = getRedirectUrl();
                     } else if (data.pending_approval) {
                         showPanel('pendingPanel');
                     }
@@ -855,7 +870,7 @@
                     if (data.token) {
                         localStorage.setItem('cc_token', data.token);
                         localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = '/app.html';
+                        window.location.href = getRedirectUrl();
                     } else {
                         showMessage('resetMessage', 'Password reset! You can now log in.', false);
                         setTimeout(() => showPanel('loginPanel'), 2000);

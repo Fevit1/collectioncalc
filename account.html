@@ -403,7 +403,7 @@
             : 'https://collectioncalc-docker.onrender.com';
 
         function getToken() {
-            return localStorage.getItem('jwt_token');
+            return localStorage.getItem('cc_token');
         }
 
         // Redirect if not logged in
@@ -429,7 +429,7 @@
 
                 if (!res.ok) {
                     if (res.status === 401) {
-                        localStorage.removeItem('jwt_token');
+                        localStorage.removeItem('cc_token');
                         window.location.href = '/login.html?redirect=account';
                         return;
                     }
@@ -565,7 +565,7 @@
         // Logout
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
-            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('cc_token');
             window.location.href = '/login.html';
         });
 
