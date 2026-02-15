@@ -528,25 +528,15 @@
         }
 
         .guard-icon {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
             margin: 0 auto 1rem;
-            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
         }
 
-        .guard-icon svg {
-            width: 32px;
-            height: 32px;
-            fill: none;
-            stroke: white;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+        .guard-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .guard-title {
@@ -836,7 +826,7 @@
         <div class="guard-container">
             <div class="guard-card">
                 <div class="guard-icon">
-                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <img src="/images/shield-fingerprint.png" alt="Shield with fingerprint">
                 </div>
                 <h3 class="guard-title">Every Comic Gets a Fingerprint</h3>
                 <p class="guard-desc">Our AI generates a unique visual fingerprint for each comic — tied to the physical copy, not just the title. Buyers can verify authenticity instantly, no login required.</p>
