@@ -149,11 +149,11 @@
         }
 
         .save-badge {
-            background: var(--green);
-            color: white;
-            font-size: 0.7rem;
+            background: var(--gold-mid);
+            color: var(--purple-dark);
+            font-size: 0.75rem;
             font-weight: 700;
-            padding: 0.15rem 0.5rem;
+            padding: 0.2rem 0.65rem;
             border-radius: 10px;
         }
 
@@ -655,9 +655,9 @@
             <div class="card-name">Pro</div>
             <div class="card-desc">For serious collectors who want the full picture.</div>
             <div class="card-price">
-                <div class="price-amount" data-monthly="4.99" data-annual="4.17"><span class="dollar">$</span><span class="price-value">4.99</span></div>
-                <div class="price-period">/month</div>
-                <div class="price-annual" id="proAnnual">Billed $49.99/year</div>
+                <div class="price-amount" data-monthly="4.99" data-annual="49.99"><span class="dollar">$</span><span class="price-value">4.99</span></div>
+                <div class="price-period" data-monthly-label="/month" data-annual-label="/year">/month</div>
+                <div class="price-annual" id="proAnnual"><strong>Save $9.89</strong> vs. monthly</div>
             </div>
             <a href="#" class="card-cta cta-primary" data-plan="pro" onclick="startCheckout('pro')">Start Free Trial</a>
             <div class="features-divider"></div>
@@ -678,9 +678,9 @@
             <div class="card-name">Collector + Guard</div>
             <div class="card-desc">Full protection for your collection.</div>
             <div class="card-price">
-                <div class="price-amount" data-monthly="9.99" data-annual="7.50"><span class="dollar">$</span><span class="price-value">9.99</span></div>
-                <div class="price-period">/month</div>
-                <div class="price-annual" id="guardAnnual">Billed $89.99/year</div>
+                <div class="price-amount" data-monthly="9.99" data-annual="89.99"><span class="dollar">$</span><span class="price-value">9.99</span></div>
+                <div class="price-period" data-monthly-label="/month" data-annual-label="/year">/month</div>
+                <div class="price-annual" id="guardAnnual"><strong>Save $29.89</strong> vs. monthly</div>
             </div>
             <a href="#" class="card-cta cta-popular" data-plan="guard" onclick="startCheckout('guard')">Start Free Trial</a>
             <div class="features-divider"></div>
@@ -700,9 +700,9 @@
             <div class="card-name">Dealer</div>
             <div class="card-desc">Built for shops and high-volume sellers.</div>
             <div class="card-price">
-                <div class="price-amount" data-monthly="24.99" data-annual="20.00"><span class="dollar">$</span><span class="price-value">24.99</span></div>
-                <div class="price-period">/month</div>
-                <div class="price-annual" id="dealerAnnual">Billed $239.99/year</div>
+                <div class="price-amount" data-monthly="24.99" data-annual="239.99"><span class="dollar">$</span><span class="price-value">24.99</span></div>
+                <div class="price-period" data-monthly-label="/month" data-annual-label="/year">/month</div>
+                <div class="price-annual" id="dealerAnnual"><strong>Save $59.89</strong> vs. monthly</div>
             </div>
             <a href="#" class="card-cta cta-dealer" data-plan="dealer" onclick="startCheckout('dealer')">Start Free Trial</a>
             <div class="features-divider"></div>
@@ -914,6 +914,10 @@
             document.querySelectorAll('.price-amount[data-monthly]').forEach(el => {
                 const val = isAnnual ? el.dataset.annual : el.dataset.monthly;
                 el.querySelector('.price-value').textContent = val;
+            });
+
+            document.querySelectorAll('.price-period[data-monthly-label]').forEach(el => {
+                el.textContent = isAnnual ? el.dataset.annualLabel : el.dataset.monthlyLabel;
             });
 
             document.querySelectorAll('.price-annual').forEach(el => {
