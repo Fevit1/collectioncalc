@@ -1,25 +1,30 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.3.5 (February 10, 2026)
+## Current Version: 4.5.0 (February 15, 2026)
 
-### 🎉 PATENT PENDING
-Provisional patent filed for multi-angle comic grading system.
+### 🎉 PATENTS PENDING
+1. Multi-angle comic grading system (Filed Jan 27, 2026)
+2. Comic fingerprinting theft recovery (Filed Feb 12, 2026)
 
 ---
 
 ## 🚨 Immediate Priorities
 
-### Pre-Beta MUST-HAVES
-- [x] **Privacy Policy** - Deployed at slabworthy.com/privacy.html
-- [x] **Terms of Service** - Deployed at slabworthy.com/terms.html
+### Pre-Beta MUST-HAVES (COMPLETE)
+- [x] **Privacy Policy** - Updated Feb 15 with Stripe, AWS Rekognition, data retention
+- [x] **Terms of Service** - Updated Feb 15 with 6 new sections
 - [x] **Email system** - Resend configured for slabworthy.com
 - [x] **Support email** - support@slabworthy.com forwarding to Yahoo
 - [x] **Forgot password flow** - Working with Slab Worthy branding
-- [ ] **Content moderation system** - Amazon Rekognition integration (see below)
+- [x] **Content moderation system** - AWS Rekognition integration
+- [x] **Stripe Billing** - 4-tier pricing, checkout, customer portal, webhooks
+- [x] **Bot Protection** - Cloudflare Turnstile on verify page
+- [x] **PWA Support** - Installable on mobile devices
 
-### Testing
-- [ ] **Mobile testing** - Full Slab Worthy flow on phone
-- [ ] **Comic-shaped upload boxes** - Verify on small screens
+### Phase 2 Testing
+- [ ] **Mobile testing** - Pricing page, verify page, full app flow
+- [ ] **Fingerprint testing** - Same comic different photos vs different copies
+- [ ] **PWA testing** - Android and iOS devices
 
 ---
 
@@ -36,15 +41,15 @@ Provisional patent filed for multi-angle comic grading system.
 - [x] Optimistic UI (button appears instantly on save)
 - [x] UI improvements (inline defects, cleaner layout)
 
-**Phase 1: Public Verification (READY TO DEPLOY)**
+**Phase 1: Public Verification (COMPLETE - Session 44)**
 - [x] Public lookup endpoint (`/api/verify/lookup/:serial_number`)
 - [x] Watermarked cover images (serial number + domain overlay)
 - [x] Privacy protection (email hashing: m***e@g***l.com)
 - [x] Theft status display (Active/Reported Stolen/Recovered)
-- [x] Cloudflare Turnstile bot protection
+- [x] Cloudflare Turnstile bot protection (site key: 0x4AAAAAACdOGsvR1ei9aXB7)
 - [x] Beautiful verify page (slabworthy.com/verify)
-- [ ] Get Cloudflare Turnstile site key (5 min task)
-- [ ] Deploy verify page
+- [x] Deploy verify page (live Feb 15)
+- [x] Fixed column mismatches (publication_year→year, removed username)
 
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping
@@ -72,20 +77,31 @@ Provisional patent filed for multi-angle comic grading system.
 
 ## High Priority
 
-### Content Moderation (Pre-Beta MUST-HAVE)
+### Stripe Billing & Plan Enforcement (COMPLETE - Session 44)
 
-**Why This Matters:**
-- Legal obligation to report CSAM to NCMEC (18 U.S.C. § 2258A)
-- Protect platform from abuse
-- Zero tolerance for illegal/explicit content
+**What's Deployed:**
+- [x] 4-tier pricing: Free, Pro ($4.99/mo | $49.99/yr), Guard ($9.99/mo | $89.99/yr), Dealer ($24.99/mo | $239.99/yr)
+- [x] Stripe Checkout Sessions (hosted payment page)
+- [x] Customer Portal (manage subscriptions)
+- [x] Webhook handling (5 events)
+- [x] Plan enforcement via check_feature_access()
+- [x] Pricing page redesign (monthly/annual toggle, comparison table, FAQ)
+- [x] 14-day free trial on all paid tiers
+- [x] 30-day refund policy
+- [x] Database: 8 new billing columns on users table
+- [x] Annual pricing shows transparent savings (Pro 17%, Guard 25%, Dealer 20%)
+- [x] Test purchase completed, webhooks verified
 
-**Phase 1: MVP (Before Private Beta)**
-- [ ] Integrate Amazon Rekognition for explicit content detection
-- [ ] Block uploads that fail moderation check
-- [ ] Create `content_incidents` table for logging flagged content
-- [ ] Build basic admin view for reviewing flags
+### Content Moderation (COMPLETE - Pre-Beta)
 
-**Phase 2: Enhanced Protection**
+**Status:** AWS Rekognition integrated
+- [x] Blocks uploads > 75% confidence for explicit content
+- [x] Warns on suggestive content (50-75%)
+- [x] Moderation incident logging
+- [x] Admin dashboard for monitoring
+- [x] Protects /api/extract, /api/messages, /api/images/submission
+
+**Phase 2: Enhanced Protection (Future)**
 - [ ] Register for NCMEC CyberTipline ESP account (~1 week approval)
 - [ ] Apply for Microsoft PhotoDNA access (~2-4 weeks)
 - [ ] Integrate PhotoDNA for CSAM hash matching
@@ -359,6 +375,17 @@ Consider:
 
 ## Recently Completed
 
+### Session 44 - Stripe Billing & PWA (February 15, 2026)
+- [x] Stripe billing system (4-tier pricing)
+- [x] Plan enforcement (check_feature_access())
+- [x] Pricing page redesign (monthly/annual toggle)
+- [x] Cloudflare Turnstile bot protection (verify page)
+- [x] PWA support (manifest, service worker, icons)
+- [x] Legal docs updated (Terms, Privacy)
+- [x] Bug fixes: token naming, login redirect, env vars, column mismatches
+- [x] Stripe setup guide completed by Mike
+- [x] Database migrations (billing columns, match_reports table)
+
 ### Session 39 - Gallery View & Export (February 10, 2026)
 - [x] Gallery view with framed covers - Replaced grid view
 - [x] Expand-in-place details - Click cover to show info below
@@ -433,10 +460,17 @@ Consider:
 
 ## Known Bugs
 
+**Active:**
 - [ ] 🔴 **Cover not displaying** - Iron Man #200 added to collection but cover doesn't show in list or gallery views. Photo URLs not being saved correctly during grading flow. (Session 39, Feb 10 2026) **HIGH PRIORITY**
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
-- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API, so grading shows "Unknown #Unknown" instead of comic title/issue. Need to add extraction step after Front upload with loading state. (Session 32, Feb 6 2026)
+- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API, so grading shows "Unknown #Unknown" instead of comic title/issue. (Session 32, Feb 6 2026)
+
+**Fixed in Session 44:**
+- [x] ✅ **Token name mismatch** - pricing.html and account.html used jwt_token, but login stored cc_token
+- [x] ✅ **Login redirect inconsistency** - 4 different locations with different implementations
+- [x] ✅ **Stripe env var naming** - Code expected _PRICE_ID but Render had _PRICE
+- [x] ✅ **verify.py column mismatches** - publication_year→year, removed username field
 
 ---
 
@@ -493,15 +527,25 @@ Consider:
 
 ## Finance & Fundraising
 
-### Current State
-- Bootstrapped, low burn (~$20-50/mo infrastructure)
+### Current State (Feb 15, 2026)
+- Bootstrapped, low burn (~$35-70/mo infrastructure)
 - Single founder (Mike)
-- Pre-revenue, building toward private beta
+- Pricing tiers LIVE (Stripe test mode)
+- Building toward private beta with paying users
+- Collecting recurring revenue metrics for Series A pitch
 
-### Next Steps
-- [ ] Update investor pitch deck with traction
-- [ ] Financial model spreadsheet
-- [ ] Define pricing tiers
+### Pricing Tiers LIVE
+- **Free:** $0 (14-day trial, then limited features)
+- **Pro:** $4.99/mo ($49.99/yr, 17% off)
+- **Guard:** $9.99/mo ($89.99/yr, 25% off)
+- **Dealer:** $24.99/mo ($239.99/yr, 20% off)
+
+### Financial Model (To Complete)
+- [ ] Projected revenue by tier (assume % conversions)
+- [ ] Customer acquisition cost (CAC)
+- [ ] Lifetime value (LTV)
+- [ ] Break-even timeline
+- [ ] Fundraising ask (Series A targets)
 
 ---
 
@@ -518,6 +562,8 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 4.5.0 | Feb 15, 2026 | Stripe billing, PWA, bot protection, legal docs updated |
+| 4.4.0 | Feb 11, 2026 | Year column, performance optimization |
 | 4.3.2 | Feb 9, 2026 | Mobile polish, FAQ page, brand alignment |
 | 4.3.1 | Feb 8, 2026 | Mobile UX improvements |
 | 4.3.0 | Feb 6, 2026 | Blueprint refactor (wsgi.py split) |
@@ -620,10 +666,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Added: February 4, 2026 (Session 26)*
-
-
-
----
-
-*Last updated: February 9, 2026 (Session 35)*
+*Last updated: February 15, 2026 (Session 44)*

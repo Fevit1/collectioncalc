@@ -104,11 +104,13 @@ cc/v2/
 │   ├── images.py        # R2 uploads (191 lines)
 │   ├── barcodes.py      # Barcode scanning (151 lines)
 │   ├── ebay.py          # eBay OAuth, listings (188 lines)
-│   └── collection.py    # User collections (88 lines)
+│   ├── collection.py    # User collections (88 lines)
+│   ├── billing.py       # Stripe payments, plan enforcement (450 lines) [NEW - Session 44]
+│   └── verify.py        # Public verification lookup (watermarking) [NEW - Session 44]
 │
 ├── auth.py              # Authentication (JWT, signup, login, reset)
 ├── admin.py             # Admin functions, NLQ, moderation logging
-├── content_moderation.py# AWS Rekognition image moderation (NEW)
+├── content_moderation.py# AWS Rekognition image moderation
 ├── ebay_valuation.py    # Valuation logic, caching
 ├── ebay_oauth.py        # eBay OAuth flow
 ├── ebay_listing.py      # eBay Inventory API
@@ -116,7 +118,22 @@ cc/v2/
 ├── comic_extraction.py  # Backend Claude Vision extraction + barcode scanning (smart year extraction)
 ├── r2_storage.py        # Cloudflare R2 integration
 ├── db_migrate_backfill_years.py  # One-time migration: backfill year data for existing comics
-├── requirements.txt     # Python dependencies (includes pyzbar)
+├── db_migrate_billing.py # Migration: Add billing columns to users table [NEW - Session 44]
+├── db_migrate_match_reports.py # Migration: Create match_reports table [NEW - Session 44]
+├── requirements.txt     # Python dependencies (includes pyzbar, stripe>=7.0.0)
+│
+├── ─────────── PWA FILES ───────────
+├── manifest.json        # Progressive Web App manifest (app name, colors, icons) [NEW - Session 44]
+├── sw.js                # Service worker (network-first caching, offline) [NEW - Session 44]
+├── icons/               # PWA icons (72px to 512px, purple + gold)
+│   ├── icon-72x72.png
+│   ├── icon-96x96.png
+│   ├── icon-128x128.png
+│   ├── icon-144x144.png
+│   ├── icon-152x152.png
+│   ├── icon-192x192.png
+│   ├── icon-384x384.png
+│   └── icon-512x512.png
 │
 ├── ─────────── CHROME EXTENSIONS ───────────
 ├── whatnot-valuator/    # Whatnot live stream valuations (v2.41.2)
@@ -420,7 +437,13 @@ User browses eBay sold listings
 
 ```sql
 -- Users & Auth
-users (id, email, password_hash, is_verified, is_approved, is_admin, created_at)
+users (
+    id, email, password_hash, is_verified, is_approved, is_admin, created_at,
+    -- BILLING COLUMNS [NEW - Session 44]
+    plan, stripe_customer_id, stripe_subscription_id, subscription_status,
+    billing_period, current_period_end, valuations_this_month, valuations_reset_date
+)
+[Index on stripe_customer_id for webhook lookups]
 beta_codes (id, code, max_uses, current_uses, created_by, created_at)
 
 -- Collections
@@ -454,6 +477,12 @@ ebay_sales (
 
 -- View for Fair Market Value calculations
 comic_fmv (view) - 90-day rolling FMV by title/issue
+
+-- Slab Guard™ Registry
+comic_registry (id, user_id, serial_number, title, issue, year, phash, photos, created_at)
+
+-- Theft Matching Reports [NEW - Session 44]
+match_reports (id, registry_id, potential_match_id, similarity_score, marketplace, listing_url, status, created_at)
 
 -- Signatures
 creator_signatures (id, creator_name, signature_url, signature_type, notes)
@@ -535,11 +564,13 @@ User uploads image
 | Service | Purpose | Auth |
 |---------|---------|------|
 | Anthropic Claude | Vision extraction, valuations, descriptions | API Key |
+| Stripe | Payment processing, billing, subscriptions [NEW - Session 44] | Secret Key + Webhook Secret |
+| Cloudflare Turnstile | Bot protection on verify page [NEW - Session 44] | Site Key + Secret Key |
 | eBay Browse API | Market data, completed listings | OAuth |
 | eBay Inventory API | Create draft listings | OAuth |
 | Cloudflare R2 | Image storage (sales + eBay covers) | Access Key |
-| Resend | Transactional email (NEW - Session 29) | API Key |
-| AWS Rekognition | Content moderation (NEW - Session 28) | IAM Access Key |
+| Resend | Transactional email | API Key |
+| AWS Rekognition | Content moderation | IAM Access Key |
 
 ## R2 Storage Structure
 
@@ -567,6 +598,10 @@ collectioncalc-images/
 - **CORS** restricted to collectioncalc.com + onrender.com
 - **Rate limiting** on API endpoints
 - **Passwords** hashed with bcrypt
+- **Cloudflare Turnstile** bot protection (verify page) [NEW - Session 44]
+- **Content Moderation** AWS Rekognition blocks explicit content
+- **Stripe Webhooks** signature verification for payment events
+- **Plan Enforcement** check_feature_access() prevents overage usage
 
 ## Deployment
 
@@ -580,6 +615,24 @@ collectioncalc-images/
 **Note:** Auto-deploy is DISABLED. Always run `deploy` command after pushing backend changes.
 
 ## Recent Updates
+
+### v4.5.0 - Stripe Billing & PWA (Session 44 - Feb 15, 2026)
+- Added Stripe billing system with 4-tier pricing
+- Implemented plan enforcement (Free, Pro, Guard, Dealer)
+- Created pricing page redesign with monthly/annual toggle
+- Transparent annual pricing (no misleading per-month equivalents)
+- Added Cloudflare Turnstile bot protection (verify page)
+- Fixed token naming mismatch (jwt_token vs cc_token)
+- Fixed login redirect inconsistency across 4 locations
+- Fixed Stripe env var naming (_PRICE_ID vs _PRICE)
+- Fixed verify.py column mismatches (publication_year→year, removed username)
+- Added PWA support (manifest.json, service worker, 8 icon sizes)
+- PWA meta tags added to all 11 user-facing HTML pages
+- Created db_migrate_billing.py (8 new columns on users table)
+- Created db_migrate_match_reports.py (new table for theft matching)
+- Updated Terms of Service (6 new sections: eligibility, Slab Guard disclaimers, image processing, subscriptions, feature limits, termination)
+- Updated Privacy Policy (Stripe payment info, AWS Rekognition disclosure, data retention: 90d Slab Guard/7y payments/12m moderation)
+- Created Stripe_Setup_Guide.docx (8-step setup process)
 
 ### v4.4.0 - Year Column & Performance (Session 41 - Feb 11, 2026)
 - Added Year column to My Collection (between Title and Issue)
@@ -648,6 +701,6 @@ collectioncalc-images/
 
 ---
 
-*Last updated: February 11, 2026 (Session 41)*
-*Patent Pending: Multi-angle comic grading system*
+*Last updated: February 15, 2026 (Session 44)*
+*Patents Pending: Multi-angle comic grading system + Comic fingerprinting theft recovery*
 

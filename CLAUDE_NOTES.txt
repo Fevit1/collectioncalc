@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 12, 2026 (Session 43)
+**Last Updated:** February 15, 2026 (Session 44)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -37,14 +37,41 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Revenue:** $0 (pre-revenue, building toward private beta)
 
 ### Current Priorities
-1. **Content moderation** - Amazon Rekognition integration (pre-beta must-have)
-2. **Fingerprinting MVP** - Registry feature, certificate generation (Weeks 3-4)
-3. **Whatnot integration** - Create auctions from graded comics
-4. **Private beta launch** - Q1 2026 target
+1. **Stripe Billing** - ✅ COMPLETE (4-tier pricing, payment processing live)
+2. **Bot Protection** - ✅ COMPLETE (Cloudflare Turnstile on verify page)
+3. **PWA Support** - ✅ COMPLETE (installable on mobile devices)
+4. **Mobile Testing** - Phase 2 (pricing page, verify page, full app flow)
+5. **Fingerprint Testing** - Phase 2 (same comic different photos vs different copies)
 
 ---
 
 ## RECENT MAJOR MILESTONES
+
+### ✅ Stripe Billing Integration Complete (Feb 15, 2026)
+- **4-tier pricing:** Free ($0), Pro ($4.99/mo or $49.99/yr), Guard ($9.99/mo or $89.99/yr), Dealer ($24.99/mo or $239.99/yr)
+- **Stripe Live:** Test mode - checkout, customer portal, webhooks verified
+- **Plan Enforcement:** check_feature_access() blocks overage features
+- **Features:** 14-day free trial, 30-day refund policy, annual pricing transparent (no misleading per-month numbers)
+- **Database:** 8 new billing columns on users table + stripe_customer_id index
+- **API Endpoints:** 7 endpoints (plans, my-plan, check-feature, create-checkout, customer-portal, webhook, record-valuation)
+- **Pricing Page:** Complete rewrite with monthly/annual toggle, comparison table, FAQ
+- **Annual Savings:** Pro 17% off ($49.99), Guard 25% off ($89.99), Dealer 20% off ($239.99)
+
+### ✅ Cloudflare Turnstile Integration (Feb 15, 2026)
+- **Bot Protection:** Site key 0x4AAAAAACdOGsvR1ei9aXB7 deployed on verify page
+- **Verify Page:** Fixed publication_year column mismatch, removed username field, token validation
+- **Verified:** Working end-to-end with backend verification
+
+### ✅ PWA Support Added (Feb 15, 2026)
+- **manifest.json:** App name, colors, 8 icon sizes (72px to 512px)
+- **Service Worker:** sw.js with network-first caching, offline fallback
+- **Icons:** Purple background with gold "SW" logo
+- **Coverage:** Meta tags added to all 11 user-facing HTML pages
+- **User Ability:** "Add to Home Screen" on Android and iOS
+
+### ✅ Legal Documents Updated (Feb 15, 2026)
+- **Terms of Service:** 6 new sections (eligibility, Slab Guard disclaimers, image processing, subscriptions, feature limits, termination)
+- **Privacy Policy:** Payment info (Stripe), Slab Guard registration, image processing (explicitly names AWS Rekognition to deter bad actors), third-party services, data retention (90 days Slab Guard, 7 years payments, 12 months moderation), children's privacy changed 13→16
 
 ### ✅ Patent #2 Filed (Feb 12, 2026)
 - **Title:** System and Method for Identifying and Recovering Stolen Collectibles Using Photographic Defect Pattern Analysis
@@ -82,10 +109,62 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 43) - Feb 12, 2026
+## CURRENT SESSION (SESSION 44) - Feb 15, 2026
 
 ### What Happened
-**COMIC FINGERPRINTING PATENT FILED!** 🎉
+**BILLING, BOT PROTECTION, & PWA LAUNCH COMPLETE!**
+
+**Stripe Billing System:**
+1. Four-tier pricing finalized (Free/Pro/Guard/Dealer)
+2. Created routes/billing.py (450 lines) with 7 API endpoints
+3. Modified wsgi.py to register billing blueprint
+4. Added stripe requirement to requirements.txt (>=7.0.0)
+5. Stripe Checkout Sessions (hosted payment page)
+6. Customer Portal for subscription management
+7. Webhook handling (5 events: customer.created, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, charge.succeeded)
+8. Plan enforcement via check_feature_access() - blocks features for unpaid tiers
+9. Test purchase completed, webhooks verified working
+10. Pricing page redesigned with monthly/annual toggle
+11. Annual prices show transparent savings (Pro 17%, Guard 25%, Dealer 20%)
+12. Database: Added 8 billing columns (plan, stripe_customer_id, stripe_subscription_id, subscription_status, billing_period, current_period_end, valuations_this_month, valuations_reset_date)
+
+**Cloudflare Turnstile Bot Protection:**
+1. Site key obtained: 0x4AAAAAACdOGsvR1ei9aXB7
+2. verify.html: Turnstile widget + token validation
+3. routes/verify.py: Backend verification with Cloudflare API
+4. Fixed column mismatches (publication_year→year, removed username)
+5. End-to-end tested and verified working
+
+**PWA (Progressive Web App):**
+1. manifest.json: App name, display mode, colors, 8 icon sizes
+2. sw.js service worker: Network-first caching, offline fallback
+3. 8 PNG icons (72px to 512px): Purple background, gold "SW" logo
+4. Meta tags added to all 11 user-facing HTML pages
+5. Users can "Add to Home Screen" on mobile devices
+
+**Bug Fixes (Session 44):**
+1. Token name mismatch: pricing.html and account.html used jwt_token, but login stored cc_token - FIXED
+2. Login redirect: Added getRedirectUrl() to login.html, updated all 4 redirect locations
+3. Stripe env var naming: Code expected _PRICE_ID but Render had _PRICE - FIXED in billing.py
+4. Annual prices in cents: Updated billing.py (4999, 8999, 23999)
+5. verify.py: publication_year column doesn't exist - FIXED to year
+6. verify.py: username column doesn't exist - REMOVED from query
+7. Git lock files from shared folder - RESOLVED, won't commit from Claude going forward
+
+**Stripe Setup (Mike completed all steps):**
+- Account created with proper tax setup
+- 4 products created with pricing
+- API keys obtained and added to Render
+- Webhook configured and tested
+- Environment variables set in Render
+- Migration script run successfully
+
+---
+
+## PREVIOUS SESSION (SESSION 43) - Feb 12, 2026
+
+### What Happened
+**COMIC FINGERPRINTING PATENT FILED!**
 
 1. **Origin:** Mike asked about ownership verification after comic store robbery
 2. **Concept:** Every comic has unique defect patterns (spine ticks, color breaks, etc.) that act like fingerprints
@@ -148,10 +227,11 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 ## ARCHITECTURE OVERVIEW
 
 ### Backend (Flask/Python)
-- **wsgi.py** - Main app (~1,900 lines, will refactor at 2,500)
-- **Blueprints:** auth_routes.py, admin_routes.py, sales.py
+- **wsgi.py** - Main app (~305 lines after v4.3.0 refactor)
+- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py
+- **Services:** billing.py (Stripe), content_moderation.py (AWS Rekognition), ebay_oauth.py, ebay_valuation.py, ebay_listing.py, comic_extraction.py, r2_storage.py
 - **Database:** PostgreSQL on Render
-- **APIs:** Claude API (grading), Cloudflare R2 (images), Resend (email)
+- **External APIs:** Claude API (grading), Stripe (payments), Cloudflare R2 (images), Resend (email), AWS Rekognition (content moderation), Cloudflare Turnstile (bot protection)
 
 ### Frontend
 - **HTML/CSS/JS** - Custom responsive design
@@ -177,13 +257,14 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 ## DATABASE STRUCTURE
 
 ### Key Tables
-- `users` - Authentication, email verification
+- `users` - Authentication, email verification, **8 NEW billing columns** (plan, stripe_customer_id, stripe_subscription_id, subscription_status, billing_period, current_period_end, valuations_this_month, valuations_reset_date)
 - `graded_comics` - User's graded comics with photos
 - `market_sales` - Historical sales data (generic)
 - `ebay_sales` - eBay sold listings with normalization
 - `ebay_sales_staging` - Raw eBay data before normalization
 - `whatnot_sales` - Whatnot auction results
-- `comic_registry` - 🆕 Coming soon (fingerprint registry)
+- `comic_registry` - Fingerprint registry (pHash, serial numbers)
+- `match_reports` - ✅ NEW (Session 44) - Stolen comics matching reports
 
 ### Normalization Fields (ebay_sales)
 - `canonical_title` - Standardized series name
@@ -207,19 +288,25 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 - Export to CSV and Instagram gallery
 - Era filters (Golden, Silver, Bronze, Copper, Modern)
 - My Valuation column (editable pricing)
-- Privacy policy + Terms of Service
+- Privacy policy + Terms of Service (updated Feb 15)
 - Email system (Resend + support@slabworthy.com)
 - Forgot password flow
 - eBay + Whatnot Chrome extensions
 - Title normalization (24,366 sales processed)
 - Barcode scanning (UPC detection)
 - Reprint filtering
+- **Stripe Billing System** (4-tier pricing, checkout, customer portal, webhooks)
+- **Plan Enforcement** (check_feature_access() blocks overages)
+- **Pricing Page Redesign** (monthly/annual toggle, comparison table, FAQ)
+- **Cloudflare Turnstile** (bot protection on verify page)
+- **PWA Support** (manifest, service worker, installable on mobile)
+- **Content Moderation** (AWS Rekognition integration)
+- **Slab Guard™ Registration** (fingerprinting, serial generation)
 
-### 🚨 High Priority (Must-Have for Beta)
-- **Content moderation** - Amazon Rekognition integration
-- **Fingerprinting MVP** - Registry feature (Weeks 3-4)
-- **Whatnot integration** - Create auctions from grades
-- **Mobile testing** - Full flow on phone
+### 🚨 High Priority (Testing Phase)
+- **Mobile testing** - Pricing page, verify page, full app flow
+- **Fingerprint testing** - Same comic different photos vs different copies (false positive rate)
+- **PWA testing** - Actual devices (Android, iOS)
 
 ### 📋 Backlog
 - Two-factor authentication (TOTP)
@@ -238,35 +325,51 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 2. **🐛 Auto-rotation steps 2-4** - Code added but not working
 3. **🐛 Single-page upload missing extraction** - Front photo doesn't call extraction API
 
+**Session 44 Fixes:**
+- ✅ Token name mismatch (jwt_token vs cc_token)
+- ✅ Login redirect inconsistency (4 locations)
+- ✅ Stripe env var naming (_PRICE_ID vs _PRICE)
+- ✅ verify.py column mismatches (publication_year, username)
+
 ---
 
-## BUSINESS MODEL (FUTURE)
+## BUSINESS MODEL (LIVE - Stripe Pricing)
 
-### Free Tier
-- Grade up to 10 comics
+### Free Tier ($0)
+- Grade up to unlimited comics (no paywall during free trial)
 - Basic FMV lookup
-- Register up to 10 comics (fingerprinting)
+- Register up to 10 comics per month (fingerprinting)
+- 14-day free trial for premium features
 
-### Pro Tier ($10/month)
+### Pro Tier ($4.99/month or $49.99/year)
 - Unlimited grading
 - Full collection management
 - Unlimited fingerprint registration
-- Auto-monitoring for stolen comics
-- Email/SMS alerts
+- Auto-monitoring for stolen comics (coming Phase 2)
+- Email alerts
 - NLQ database queries (50/month)
 
-### Store Tier ($50/month)
-- Bulk upload (unlimited inventory)
-- API access for POS integration
-- Police report generation
-- White-label certificates
+### Guard Tier ($9.99/month or $89.99/year)
+- Everything in Pro
 - Priority support
+- Advanced matching (Phase 2)
+- Police report generation
+- White-label certificates (future)
 
-### Enterprise (Custom)
-- Insurance company partnerships
-- Grading company integrations
-- Platform partnerships (eBay, Whatnot)
-- Custom features
+### Dealer Tier ($24.99/month or $239.99/year)
+- Everything in Guard
+- Bulk upload (unlimited inventory)
+- API access for marketplace integrations
+- Whatnot listing creation (coming)
+- Custom integrations
+- Dedicated support
+
+**Annual Pricing (Live):**
+- Pro: $49.99/year (17% off monthly)
+- Guard: $89.99/year (25% off monthly)
+- Dealer: $239.99/year (20% off monthly)
+- 30-day refund policy
+- 14-day free trial on all paid tiers
 
 ---
 
@@ -281,11 +384,14 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## NEXT SESSION PRIORITIES
 
-1. **Await USPTO filing receipt** (serial number)
-2. **Test baseball cards** - Validate holder scratches unique
-3. **Design `comic_registry` schema** - Database table for fingerprints
-4. **Build fingerprint generation** - pHash on upload
-5. **Consider LinkedIn post** - After building MVP registry feature
+1. **Mobile Testing** - Test pricing page, verify page, full app on real devices
+2. **Fingerprint Testing** - Upload same comic (different photos) vs different copies (same issue)
+   - Validate false positive rate
+   - Test if pHash can distinguish individual comics
+3. **PWA Testing** - Add to home screen on Android and iOS
+4. **Marketplace Monitoring Phase 2** - eBay/Whatnot monitoring, email alerts
+5. **Custom Fields Feature** - Purchase price, storage location, etc. (enables CSV import)
+6. **CSV Import Feature** - Support CLZ Comics, ComicBase, League of Comic Geeks formats
 
 ---
 
