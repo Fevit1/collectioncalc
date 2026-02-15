@@ -73,9 +73,7 @@
             z-index: 1;
             margin-bottom: 1.5rem;
             display: inline-block;
-            width: 100%;
-            max-width: none;
-            padding: 0 1rem 12px 1rem;
+            padding: 0 1.5rem 12px 1rem;
             overflow: visible;
         }
 
@@ -741,7 +739,7 @@
     <section class="how-it-works" id="how-it-works">
         <div class="section-header">
             <h2 class="section-title">How It Works</h2>
-            <p class="section-subtitle">Four photos. Real data. A straight answer.</p>
+            <p class="section-subtitle">Snap. Scan. Know.</p>
         </div>
 
         <div class="flow-container">
@@ -774,59 +772,27 @@
             <div class="flow-step">
                 <div class="flow-content">
                     <div class="step-number">Step 02</div>
-                    <h3 class="step-title">AI Spots Defects</h3>
-                    <p class="step-desc">Spine ticks, corner wear, color breaks, staple rust, and more.</p>
+                    <h3 class="step-title">Get Your Results</h3>
+                    <p class="step-desc">AI scans for defects, estimates the grade, and tells you if it's worth the slab.</p>
                 </div>
-                <div class="flow-visual">
-                    <div class="ai-inspection">
-                        <div class="ai-magnify">
-                            <div class="lens"></div>
-                            <div class="handle"></div>
+                <div class="flow-visual" style="flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="ai-inspection" style="width: 50px; height: 50px;">
+                            <div class="ai-magnify" style="width: 35px; height: 35px;">
+                                <div class="lens" style="width: 24px; height: 24px; border-width: 4px;"></div>
+                                <div class="handle" style="width: 3px; height: 16px; bottom: -14px;"></div>
+                            </div>
+                        </div>
+                        <div class="grade-display">
+                            <div class="grade-number" style="font-size: 1.5rem;">8.5</div>
+                            <div class="grade-label" style="font-size: 0.7rem;">VF+</div>
+                        </div>
+                        <div class="verdict-display">
+                            <div class="verdict-icon" style="font-size: 1.3rem; margin-bottom: 0;">&#10003;</div>
+                            <div class="verdict-text" style="font-size: 0.75rem;">Worth It</div>
+                            <div class="roi-preview" style="font-size: 0.6rem;">+$47</div>
                         </div>
                     </div>
-                </div>
-                <div class="flow-connector">
-                    <div class="connector-line"></div>
-                    <div class="connector-arrow"></div>
-                </div>
-            </div>
-
-            <!-- Step 3 -->
-            <div class="flow-step">
-                <div class="flow-content">
-                    <div class="step-number">Step 03</div>
-                    <h3 class="step-title">Get a Grade Estimate</h3>
-                    <p class="step-desc">We estimate the likely grade range based on what we find.</p>
-                </div>
-                <div class="flow-visual">
-                    <div class="grade-display">
-                        <div class="grade-number">8.5</div>
-                        <div class="grade-label">VF+</div>
-                    </div>
-                </div>
-                <div class="flow-connector">
-                    <div class="connector-line"></div>
-                    <div class="connector-arrow"></div>
-                </div>
-            </div>
-
-            <!-- Step 4 -->
-            <div class="flow-step">
-                <div class="flow-content">
-                    <div class="step-number">Step 04</div>
-                    <h3 class="step-title">The Verdict</h3>
-                    <p class="step-desc">Grading costs vs. expected value. A straight answer.</p>
-                </div>
-                <div class="flow-visual">
-                    <div class="verdict-display">
-                        <div class="verdict-icon">✓</div>
-                        <div class="verdict-text">Worth the Slab</div>
-                        <div class="roi-preview">+$47 after grading fees</div>
-                    </div>
-                </div>
-                <div class="flow-connector">
-                    <div class="connector-line"></div>
-                    <div class="connector-arrow"></div>
                 </div>
             </div>
         </div>
