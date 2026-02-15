@@ -178,7 +178,7 @@ def lookup_serial(serial_number):
                 gc.title,
                 gc.issue_number,
                 gc.publisher,
-                gc.publication_year,
+                gc.year,
                 gc.grade,
                 gc.photos,
                 u.email,
