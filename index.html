@@ -109,7 +109,7 @@
         .tagline {
             font-size: clamp(1rem, 3vw, 1.5rem);
             color: var(--text-secondary);
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             position: relative;
             z-index: 1;
             font-weight: 500;
@@ -141,7 +141,7 @@
 
         .scroll-hint {
             position: absolute;
-            bottom: 1.5rem;
+            bottom: 0.75rem;
             left: 50%;
             transform: translateX(-50%);
             color: var(--text-secondary);
@@ -426,6 +426,203 @@
         }
 
         /* ============================================
+           MY COLLECTION SECTION
+           ============================================ */
+        .my-collection {
+            padding: 3rem 1rem;
+            background: var(--bg-dark);
+        }
+
+        .collection-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .collection-content {
+            text-align: center;
+        }
+
+        .collection-image {
+            width: 100%;
+            max-width: 560px;
+            border-radius: 12px;
+            border: 2px solid rgba(124, 58, 237, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-bottom: 1.5rem;
+        }
+
+        .collection-desc {
+            color: var(--text-secondary);
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .collection-features {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .collection-stat {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .collection-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gold-mid);
+        }
+
+        .collection-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.15rem;
+        }
+
+        .collection-cta {
+            display: inline-block;
+            background: transparent;
+            color: var(--gold-mid);
+            border: 2px solid var(--gold-mid);
+            padding: 0.7rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .collection-cta:hover {
+            background: var(--gold-mid);
+            color: var(--purple-dark);
+        }
+
+        /* ============================================
+           SLAB GUARD SECTION
+           ============================================ */
+        .slab-guard {
+            padding: 3rem 1rem;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, var(--purple-dark) 100%);
+        }
+
+        .guard-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .guard-card {
+            background: var(--bg-card);
+            border: 2px solid rgba(124, 58, 237, 0.25);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .guard-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+        }
+
+        .guard-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .guard-title {
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .guard-subtitle {
+            font-size: clamp(0.85rem, 2.5vw, 1rem);
+            color: var(--gold-mid);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .guard-desc {
+            color: var(--text-secondary);
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .guard-features {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .guard-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-align: left;
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            color: var(--text-secondary);
+        }
+
+        .guard-feature-icon {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            background: rgba(124, 58, 237, 0.15);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .guard-cta {
+            display: inline-block;
+            background: transparent;
+            color: var(--purple-light);
+            border: 2px solid var(--purple-light);
+            padding: 0.7rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .guard-cta:hover {
+            background: var(--purple-brand);
+            border-color: var(--purple-brand);
+            color: white;
+        }
+
+        /* ============================================
            FOOTER
            ============================================ */
         .footer {
@@ -631,6 +828,68 @@
                     <div class="connector-line"></div>
                     <div class="connector-arrow"></div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MY COLLECTION -->
+    <section class="my-collection">
+        <div class="section-header">
+            <h2 class="section-title">Track Your Collection</h2>
+            <p class="section-subtitle">Every comic. Every grade. Every dollar.</p>
+        </div>
+        <div class="collection-container">
+            <div class="collection-content">
+                <img src="/images/collection-dashboard.png" alt="My Collection dashboard showing comics with grades and fair market values" class="collection-image">
+                <p class="collection-desc">Every comic you grade is saved to your personal collection with its grade estimate, defect report, and real-time fair market value. Watch your portfolio grow — and know exactly what it's worth.</p>
+                <div class="collection-features">
+                    <div class="collection-stat">
+                        <div class="collection-stat-value">FMV</div>
+                        <div class="collection-stat-label">Fair Market Values</div>
+                    </div>
+                    <div class="collection-stat">
+                        <div class="collection-stat-value">24/7</div>
+                        <div class="collection-stat-label">Access Anywhere</div>
+                    </div>
+                    <div class="collection-stat">
+                        <div class="collection-stat-value">PDF</div>
+                        <div class="collection-stat-label">Export Reports</div>
+                    </div>
+                </div>
+                <a href="/login.html" class="collection-cta">Start Your Collection</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLAB GUARD -->
+    <section class="slab-guard">
+        <div class="section-header">
+            <h2 class="section-title">Protect Your Collection</h2>
+            <p class="section-subtitle">Slab Guard&trade; — authentication powered by AI.</p>
+        </div>
+        <div class="guard-container">
+            <div class="guard-card">
+                <div class="guard-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3 class="guard-title">Every Comic Gets a Fingerprint</h3>
+                <p class="guard-subtitle">Unique. Immutable. Verifiable.</p>
+                <p class="guard-desc">When you grade a comic through Slab Worthy, our AI generates a unique visual fingerprint using Amazon Rekognition. That fingerprint is tied to your comic forever — so buyers can verify authenticity and ownership before money changes hands.</p>
+                <div class="guard-features">
+                    <div class="guard-feature">
+                        <span class="guard-feature-icon">&#128274;</span>
+                        <span>AI-generated fingerprint unique to each physical copy</span>
+                    </div>
+                    <div class="guard-feature">
+                        <span class="guard-feature-icon">&#128269;</span>
+                        <span>Instant public verification — no login required</span>
+                    </div>
+                    <div class="guard-feature">
+                        <span class="guard-feature-icon">&#128722;</span>
+                        <span>Build buyer confidence for private sales and trades</span>
+                    </div>
+                </div>
+                <a href="/verify.html" class="guard-cta">Verify a Comic</a>
             </div>
         </div>
     </section>
