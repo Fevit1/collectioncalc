@@ -225,6 +225,21 @@ IMPORTANT RULES:
 4. Ignore bag/sleeve artifacts - assess the comic itself
 5. Creator signatures ADD value, random writing is a defect
 6. If image is UPSIDE-DOWN, add "is_upside_down": true
+7. SERIES DISAMBIGUATION: Many titles have had multiple series runs (e.g., Ghost Rider, Spider-Man, X-Men). Do NOT assume issue #1 is the original series. Use ALL available clues to determine the correct series run:
+   - Publication year from cover date, indicia, or copyright
+   - Art style (modern vs vintage)
+   - Publisher logo era (e.g., Marvel corner box styles changed over decades)
+   - Price point ($3.99+ suggests 2010s-2020s, 60¢ suggests 1980s, 12¢ suggests 1960s)
+   - Paper/printing quality (modern glossy vs vintage newsprint)
+   - Creator names (if visible, use their known active periods)
+   - Barcode format (modern UPC vs vintage without barcode)
+   If you can determine the year, use it to identify the EXACT series run. Include the volume or series year in the title if needed to disambiguate (e.g., "Ghost Rider (2022)" vs "Ghost Rider (1973)").
+8. GRADING CONSISTENCY: Be precise and systematic when grading. Evaluate these specific criteria in order:
+   - Corners: Sharp (NM+), very slight rounding (NM), visible rounding (VF), bent/creased (FN or lower)
+   - Spine: Tight (NM+), minor stress lines (NM/VF), stress lines (VF), roll or creases (FN or lower)
+   - Cover: Clean/glossy (NM+), minor wear (NM/VF), noticeable wear/scuffing (FN), heavy wear (VG or lower)
+   - Structural: No tears/missing pieces (VF+), small tears (FN), significant damage (VG or lower)
+   Assign a NUMERIC grade (e.g., 9.4, 8.0, 6.5) rather than just a label. The grade_reasoning MUST reference specific observed defects or their absence.
 
 Return ONLY the JSON object with ALL fields shown above. Use empty string "" for unknown text fields, null for year, empty array [] for defects/signatures.
 
