@@ -2294,14 +2294,24 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                     `;
                     showSaveToast('Comic Registered!', 'success', `Serial: ${result.serial_number}`);
                 } else {
-                    throw new Error(result.error || 'Registration failed');
+                    const err = new Error(result.error || 'Registration failed');
+                    err.upgrade_required = result.upgrade_required || false;
+                    throw err;
                 }
 
             } catch (error) {
                 console.error('Registration error:', error);
-                showSaveToast('Registration Failed', 'error', error.message);
-                registerBtn.disabled = false;
-                registerBtn.textContent = '🔒 Register This Comic';
+                if (error.upgrade_required) {
+                    showSaveToast('Upgrade Required', 'error', 'Slab Guard is available on the Guard plan and above.');
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = '🔒 Register This Comic';
+                    registerBtn.onclick = () => { window.location.href = '/pricing.html'; };
+                    registerBtn.textContent = '⬆️ Upgrade to Slab Guard';
+                } else {
+                    showSaveToast('Registration Failed', 'error', error.message);
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = '🔒 Register This Comic';
+                }
             }
         }
 
