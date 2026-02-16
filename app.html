@@ -2304,7 +2304,14 @@ Return ONLY valid JSON, no markdown, no nested objects.`
 
             } catch (error) {
                 console.error('Registration error:', error);
-                showSaveToast('Registration Failed', 'error', 'Please save to your collection first, then try registering.');
+                const msg = error.message || 'Unknown error';
+                if (msg.includes('not found') || msg.includes('access denied')) {
+                    showSaveToast('Registration Failed', 'error', 'Please save to your collection first, then try registering.');
+                } else if (msg.includes('fingerprint')) {
+                    showSaveToast('Registration Failed', 'error', 'Could not generate fingerprint from photos. Please re-upload and save again.');
+                } else {
+                    showSaveToast('Registration Failed', 'error', msg);
+                }
                 registerBtn.disabled = false;
                 registerBtn.textContent = '🔒 Register This Comic';
             }
