@@ -1,6 +1,98 @@
-# Where We Left Off - Feb 15, 2026 (Evening)
+# Where We Left Off - Feb 16, 2026
 
-## 🎉 Session 44 Accomplishments
+## 🎉 Session 45 Accomplishments
+
+### ✅ Homepage Redesign (COMPLETE)
+
+**Hero & How It Works Section:**
+- Patent Pending badge repositioned (display:inline-block, removed width:100%)
+- Hero section reduced from 100vh to 70vh (How It Works shows above fold)
+- How It Works condensed: 4 steps → 2 steps (Snap 4 Photos → Get Your Results)
+- Removed "Step 01" and "Step 02" labels
+- Subtitle changed to "Snap. Scan. Know."
+
+**New "Track Your Collection" Section:**
+- Displays My Collection dashboard mockup (/images/collection-dashboard.png)
+- Highlights key stats: Fair Market Value, 24/7 Access, PDF Export
+- CTA button: "Start Your Collection"
+
+**New "Slab Guard - Protect Your Collection" Section:**
+- Shield icon with fingerprint description
+- Explains comic fingerprinting for theft recovery
+- CTA button: "Verify a Comic"
+
+**Footer Update:**
+- Removed "Check a Comic" CTA (streamlined - too many CTAs)
+
+**Homepage Flow:**
+Hero → How It Works (2 steps) → Track Your Collection → Protect Your Collection (Slab Guard) → Footer
+
+### ✅ Verify Page Updates (COMPLETE)
+
+**Header & Branding:**
+- Removed "Slab Worthy" from header - Now just "Slab Guard™"
+- Updated page title to "Verify Comic - Slab Guard™"
+
+**Copy Updates:**
+- Fixed 4 instances: "SlabWorthy" → "Slab Worthy" (proper spacing)
+- Changed: "Slab Guard™ uses..." (instead of "Slab Worthy's Slab Guard™...")
+- Updated: "Each comic registered with Slab Worthy receives..."
+
+### ✅ App.html Updates (COMPLETE)
+
+**Upload UI:**
+- Removed camera icons (📷) from all 4 upload boxes
+
+**Error Handling:**
+- upgrade_required: "Please upgrade to a paid account to register comics" with "Upgrade to Register" button
+- Generic catch: "Please save to your collection first, then try registering"
+
+### ✅ Registry Bug Fix (CRITICAL - COMPLETE)
+
+**The Bug:**
+- routes/registry.py was querying `graded_comics` table
+- But grading.py saves comics to `collections` table
+- Result: Comics could not be registered (lookup failed)
+
+**The Fix:**
+- Changed query from `graded_comics` to `collections`
+- Fixed column name: `issue_number` → `issue`
+- Registry now properly links saved comics
+
+**Impact:** Registration feature now works correctly. Needs Render deploy.
+
+### ✅ FAQ Updates (COMPLETE)
+
+**New "Slab Guard™" Category with 6 Questions:**
+1. What is Slab Guard™?
+2. How does the fingerprint work?
+3. How do I register a comic?
+4. How can buyers verify a comic?
+5. Is Slab Guard included in the free plan?
+6. What about stolen comics on eBay? (mentions Chrome extension)
+
+### 📋 New Files Created
+
+- `/images/collection-dashboard.png` - Generated dashboard mockup (used in homepage)
+- `/images/shield-fingerprint.png` - Attempted but reverted to clean SVG shield
+- `/images/fingerprint-white.png` - Created but unused
+- `/images/fingerprint-gold.png` - Created but unused
+
+### 📊 Known Bugs Discovered
+
+**AI Grading Inconsistency (NEW - Session 45):**
+- Same 4 images graded 3 times: 8.5 → 9.2 → 8.5
+- Suggests Claude Vision grades vary based on model state or temperature
+- Needs investigation
+
+**Comic Identification Inconsistency (NEW - Session 45):**
+- Ghost Rider reboot #1 sometimes identified as original series #1
+- Likely Claude Vision confusion between similar titles
+- Needs sample images to test
+
+---
+
+## 🎉 Session 44 Accomplishments (Previous)
 
 ### ✅ Stripe Billing System (COMPLETE)
 
@@ -191,24 +283,38 @@
 
 ## 📌 What's Pending
 
-### Phase 2 Testing (HIGH PRIORITY)
-- [ ] **Mobile testing** - Test on real devices:
-  - Pricing page (layout, toggle, checkout redirect)
-  - Verify page (Turnstile, lookup, watermark)
-  - Full app flow (upload, grade, save)
-  - PWA install/use
+### Phase 2 Testing & Bug Fixes (HIGH PRIORITY)
 
-- [ ] **Fingerprint testing** - Validate pHash accuracy:
-  - Same comic, different photos → Should match (high similarity)
-  - Different copies, same issue → Should NOT match (low similarity)
-  - Upload both to registry, check false positive rate
-  - Critical for theft detection reliability
+**Chrome Extension Testing:**
+- [ ] Test Slab Guard Monitor extension (CCExtensions/slab-guard-monitor/)
+- [ ] Load unpacked in Chrome dev mode
+- [ ] Verify marketplace monitoring works
 
-- [ ] **PWA testing** - Verify on Android/iOS:
-  - Install from home screen
-  - Use offline (see offline fallback)
-  - Caching works correctly
-  - Icons display properly
+**Mobile Testing (Started but incomplete):**
+- [ ] Pricing page (layout, toggle, checkout redirect)
+- [ ] Verify page (Turnstile, lookup, watermark)
+- [ ] Full app flow (upload, grade, save)
+- [ ] PWA install/use on real devices
+
+**AI Grading Consistency Investigation:**
+- [ ] Determine why same images give different grades (8.5 vs 9.2)
+- [ ] Check Claude Vision temperature/model state
+- [ ] Test with more image sets
+
+**Comic Identification Bug:**
+- [ ] Investigate Ghost Rider false positives
+- [ ] Test with reboot vs original series images
+- [ ] May need better extraction prompt
+
+**Fingerprint Testing:**
+- [ ] Same comic, different photos → Should match
+- [ ] Different copies, same issue → Should NOT match
+- [ ] Validate false positive rate
+
+**Git & Deployment:**
+- [ ] Push all Session 45 changes to git (Mike)
+- [ ] Deploy registry bug fix to Render (Mike)
+- [ ] Verify registration works in production
 
 ### Phase 3: Feature Parity (Roadmap Weeks 2-3)
 1. **Custom Fields** (1 week)
@@ -234,6 +340,39 @@
 - pHash matching against listings
 - Email alerts on potential matches
 - Admin dashboard for reviewing matches
+
+---
+
+## 📁 Files Modified (Session 45)
+
+**Modified HTML/Frontend:**
+```
+index.html                       - Homepage redesign: Hero 100vh→70vh, How It Works 4→2 steps, new sections
+verify.html                      - Header cleanup, updated copy references
+app.html                         - Removed camera icons, improved error messaging
+faq.html                         - Added new "Slab Guard™" category with 6 questions
+```
+
+**Modified Backend:**
+```
+routes/registry.py               - CRITICAL FIX: collections table vs graded_comics, issue_number→issue
+```
+
+**New Image Files:**
+```
+images/collection-dashboard.png  - Dashboard mockup (unused: shell assets for layout)
+images/shield-fingerprint.png    - Fingerprint icon (reverted to SVG)
+images/fingerprint-white.png     - White fingerprint variant (unused)
+images/fingerprint-gold.png      - Gold fingerprint variant (unused)
+```
+
+**Documentation:**
+```
+CLAUDE_NOTES.txt                 - Updated Session 45 notes, bugs, priorities
+WHERE_WE_LEFT_OFF.md             - This file
+ROADMAP.txt                      - Updated version, marked items
+ARCHITECTURE.txt                 - Added images/ folder, noted collections table usage
+```
 
 ---
 
@@ -325,10 +464,16 @@ WHERE_WE_LEFT_OFF.md                 - This file
 
 ---
 
-**Session Duration:** ~8 hours
-**Status:** All major systems working end-to-end
-**Next Blocker:** Mobile testing (need real devices)
+---
+
+**Session 45 Status:**
+- Homepage redesign complete and deployed
+- Registry bug fix critical - needs Render deploy
+- Multiple UI improvements (verify page, app.html, FAQ)
+- New bugs discovered during testing (AI inconsistency, comic ID confusion)
+- Mobile testing started but incomplete
+- Next: Deploy registry fix, investigate AI bugs, test Chrome extension
 
 ---
 
-Ready for Phase 2 testing! 🚀
+*Last updated: February 16, 2026 (Session 45)*

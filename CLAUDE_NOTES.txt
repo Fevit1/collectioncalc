@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 15, 2026 (Session 44)
+**Last Updated:** February 16, 2026 (Session 45)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -109,7 +109,59 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 44) - Feb 15, 2026
+## CURRENT SESSION (SESSION 45) - Feb 16, 2026
+
+### What Happened
+**HOMEPAGE REDESIGN, VERIFY PAGE UPDATES, REGISTRY BUG FIX, FAQ EXPANSION, APP FIXES!**
+
+**Homepage Redesign:**
+1. Patent Pending badge - Fixed positioning (display:inline-block, removed width:100%)
+2. Hero section shrunk from 100vh to 70vh (How It Works shows above fold)
+3. How It Works condensed: 4 steps → 2 steps (Snap 4 Photos → Get Your Results), removed Step 01/02 labels, subtitle changed to "Snap. Scan. Know."
+4. NEW section: "Track Your Collection" (My Collection) with dashboard mockup image, FMV/24-7/PDF stat highlights, "Start Your Collection" CTA
+5. NEW section: "Slab Guard - Protect Your Collection" with shield icon, fingerprint description, "Verify a Comic" CTA
+6. Removed footer "Check a Comic" CTA (too many CTAs)
+7. New homepage flow: Hero → How It Works → Track Your Collection → Protect Your Collection → Footer
+
+**Verify Page Updates:**
+1. Removed "Slab Worthy" from header - Now just "Slab Guard™"
+2. Updated page title to "Verify Comic - Slab Guard™"
+3. Fixed all 4 instances: "SlabWorthy" → "Slab Worthy" (spacing)
+4. Updated copy: "Slab Guard™ uses..." instead of "Slab Worthy's Slab Guard™..."
+5. Updated copy: "Each comic registered with Slab Worthy receives..."
+
+**App.html Updates:**
+1. Removed camera icons (📷) from all 4 upload boxes
+2. Fixed registration error handling: upgrade_required shows "Please upgrade to a paid account to register comics" with "Upgrade to Register" button
+3. Generic catch shows "Please save to your collection first, then try registering"
+
+**Registry Bug Fix (CRITICAL - backend):**
+1. registry.py was querying `graded_comics` table but save returns IDs from `collections` table → FIXED to query `collections`
+2. Fixed column name: `issue_number` → `issue` to match collections table
+
+**FAQ Updates:**
+1. Added new "Slab Guard™" category with 6 questions:
+   - What is Slab Guard™?
+   - How does the fingerprint work?
+   - How do I register a comic?
+   - How can buyers verify a comic?
+   - Is Slab Guard included in the free plan?
+   - What about stolen comics on eBay? (mentions Chrome extension)
+
+**New Files Created:**
+- /images/collection-dashboard.png (generated dashboard mockup)
+- /images/shield-fingerprint.png (attempted but reverted to clean SVG shield)
+- /images/fingerprint-white.png (created but unused)
+- /images/fingerprint-gold.png (created but unused)
+
+**Known Bugs Discovered:**
+1. AI grading inconsistency: Same 4 images gave 8.5, then 9.2, then 8.5 on different runs
+2. Comic identification inconsistency: Ghost Rider reboot #1 sometimes identified as original series #1
+3. Registration was broken due to collections vs graded_comics table mismatch (FIXED)
+
+---
+
+## PREVIOUS SESSION (SESSION 44) - Feb 15, 2026
 
 ### What Happened
 **BILLING, BOT PROTECTION, & PWA LAUNCH COMPLETE!**
@@ -324,6 +376,12 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 1. **🔴 Cover not displaying** - Iron Man #200 photos not showing in collection (HIGH PRIORITY)
 2. **🐛 Auto-rotation steps 2-4** - Code added but not working
 3. **🐛 Single-page upload missing extraction** - Front photo doesn't call extraction API
+4. **🔴 AI grading inconsistency** - Same 4 images: 8.5 → 9.2 → 8.5 (different runs)
+5. **🔴 Comic identification inconsistency** - Ghost Rider reboot #1 vs original #1
+
+**Session 45 Fixes:**
+- ✅ Registry bug: collections vs graded_comics table mismatch (was querying wrong table)
+- ✅ Registry column: issue_number → issue (to match collections table)
 
 **Session 44 Fixes:**
 - ✅ Token name mismatch (jwt_token vs cc_token)
@@ -384,14 +442,17 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## NEXT SESSION PRIORITIES
 
-1. **Mobile Testing** - Test pricing page, verify page, full app on real devices
-2. **Fingerprint Testing** - Upload same comic (different photos) vs different copies (same issue)
-   - Validate false positive rate
-   - Test if pHash can distinguish individual comics
-3. **PWA Testing** - Add to home screen on Android and iOS
-4. **Marketplace Monitoring Phase 2** - eBay/Whatnot monitoring, email alerts
-5. **Custom Fields Feature** - Purchase price, storage location, etc. (enables CSV import)
-6. **CSV Import Feature** - Support CLZ Comics, ComicBase, League of Comic Geeks formats
+1. **Test Slab Guard Monitor Chrome extension** - Load unpacked in Chrome dev mode (in CCExtensions/slab-guard-monitor/)
+2. **Mobile Testing** - Test on real devices (started but incomplete)
+   - Pricing page, verify page, full app flow
+3. **Fingerprint Testing** - Validate pHash accuracy
+   - Same comic different photos → Should match
+   - Different copies same issue → Should NOT match
+4. **AI Grading Consistency** - Investigate why same images give different grades
+5. **Fix comic identification bug** - Ghost Rider false positives
+6. **Custom Fields Feature** - Purchase price, storage location, etc. (enables CSV import)
+7. **CSV Import Feature** - Support CLZ Comics, ComicBase, League of Comic Geeks formats
+8. **Push all changes to git** - Mike runs git commands (registry bug fix needs Render deploy)
 
 ---
 

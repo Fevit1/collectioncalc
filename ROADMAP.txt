@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.5.0 (February 15, 2026)
+## Current Version: 4.6.0 (February 16, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -20,11 +20,17 @@
 - [x] **Stripe Billing** - 4-tier pricing, checkout, customer portal, webhooks
 - [x] **Bot Protection** - Cloudflare Turnstile on verify page
 - [x] **PWA Support** - Installable on mobile devices
+- [x] **Homepage Redesign** - Hero shrink, How It Works 2-step, Track Collection + Protect sections
+- [x] **Verify Page Updates** - Branding cleanup, copy updates
+- [x] **Registry Bug Fix** - Collections table mismatch resolved (critical)
 
-### Phase 2 Testing
-- [ ] **Mobile testing** - Pricing page, verify page, full app flow
+### Phase 2 Testing & Bug Fixes (IN PROGRESS)
+- [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
+- [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
+- [ ] **AI grading consistency** - Investigate 8.5→9.2→8.5 variance
+- [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
 - [ ] **Fingerprint testing** - Same comic different photos vs different copies
-- [ ] **PWA testing** - Android and iOS devices
+- [ ] **Git deployment** - Push Session 45 changes, Render deploy for registry fix
 
 ---
 
@@ -375,6 +381,16 @@ Consider:
 
 ## Recently Completed
 
+### Session 45 - Homepage Redesign & Registry Fix (February 16, 2026)
+- [x] Homepage redesign: Hero 100vh→70vh, How It Works 4→2 steps
+- [x] New "Track Your Collection" section with dashboard mockup
+- [x] New "Slab Guard - Protect" section with fingerprint description
+- [x] Verify page branding cleanup: "Slab Guard™" header
+- [x] App.html updates: removed camera icons, improved error messages
+- [x] Registry bug fix (CRITICAL): collections table vs graded_comics mismatch
+- [x] FAQ expanded: 6 new "Slab Guard™" questions
+- [x] Discovered AI grading inconsistency and comic ID bugs (logged for investigation)
+
 ### Session 44 - Stripe Billing & PWA (February 15, 2026)
 - [x] Stripe billing system (4-tier pricing)
 - [x] Plan enforcement (check_feature_access())
@@ -461,10 +477,15 @@ Consider:
 ## Known Bugs
 
 **Active:**
-- [ ] 🔴 **Cover not displaying** - Iron Man #200 added to collection but cover doesn't show in list or gallery views. Photo URLs not being saved correctly during grading flow. (Session 39, Feb 10 2026) **HIGH PRIORITY**
+- [ ] 🔴 **Cover not displaying** - Iron Man #200 photos not showing in collection (HIGH PRIORITY)
+- [ ] 🔴 **AI grading inconsistency** - Same 4 images: 8.5 → 9.2 → 8.5 (different runs)
+- [ ] 🔴 **Comic identification bug** - Ghost Rider reboot #1 vs original #1 confusion
 - [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
-- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API, so grading shows "Unknown #Unknown" instead of comic title/issue. (Session 32, Feb 6 2026)
+- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API
+
+**Fixed in Session 45:**
+- [x] ✅ **Registry bug (CRITICAL)** - Collections table mismatch, issue_number→issue column fix
 
 **Fixed in Session 44:**
 - [x] ✅ **Token name mismatch** - pricing.html and account.html used jwt_token, but login stored cc_token
@@ -562,6 +583,7 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 4.6.0 | Feb 16, 2026 | Homepage redesign, registry bug fix, verify page updates, FAQ expansion |
 | 4.5.0 | Feb 15, 2026 | Stripe billing, PWA, bot protection, legal docs updated |
 | 4.4.0 | Feb 11, 2026 | Year column, performance optimization |
 | 4.3.2 | Feb 9, 2026 | Mobile polish, FAQ page, brand alignment |
@@ -666,4 +688,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 15, 2026 (Session 44)*
+*Last updated: February 16, 2026 (Session 45)*

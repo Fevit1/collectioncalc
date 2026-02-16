@@ -77,12 +77,20 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ```
 cc/v2/
 ├── ─────────── FRONTEND (Cloudflare Pages) ───────────
-├── index.html           # Homepage (slabworthy.com redirects here)
+├── index.html           # Homepage (slabworthy.com redirects here) [Session 45: redesigned]
 ├── login.html           # Auth gate (Session 30)
-├── app.html             # Main app - Single-page upload flow (~1,525 lines, toast UI, parallel uploads)
+├── app.html             # Main app - Single-page upload flow (~1,525 lines, no camera icons) [Session 45: icon removal]
 ├── admin.html           # Admin dashboard
 ├── signatures.html      # Signature reference admin
+├── faq.html             # FAQ page [Session 45: added Slab Guard™ section]
+├── verify.html          # Public verification page [Session 45: branding cleanup]
 ├── styles.css           # All CSS (+ grading styles appended)
+│
+├── images/              # Static images [NEW - Session 45]
+│   ├── collection-dashboard.png  # Dashboard mockup for homepage
+│   ├── shield-fingerprint.png    # Fingerprint icon (unused)
+│   ├── fingerprint-white.png     # White variant (unused)
+│   └── fingerprint-gold.png      # Gold variant (unused)
 │
 ├── js/                  # JavaScript modules (split for maintainability)
 │   ├── utils.js         # Shared state, constants, API_URL → Docker backend
@@ -106,6 +114,7 @@ cc/v2/
 │   ├── ebay.py          # eBay OAuth, listings (188 lines)
 │   ├── collection.py    # User collections (88 lines)
 │   ├── billing.py       # Stripe payments, plan enforcement (450 lines) [NEW - Session 44]
+│   ├── registry.py      # Comic fingerprint registry [Session 45: critical collections table fix]
 │   └── verify.py        # Public verification lookup (watermarking) [NEW - Session 44]
 │
 ├── auth.py              # Authentication (JWT, signup, login, reset)
@@ -446,7 +455,7 @@ users (
 [Index on stripe_customer_id for webhook lookups]
 beta_codes (id, code, max_uses, current_uses, created_by, created_at)
 
--- Collections
+-- Collections [Session 45: Registry now queries this table correctly]
 collections (id, user_id, title, issue, year, grade, purchase_price, notes, created_at)
 
 -- Market Data
@@ -616,6 +625,22 @@ collectioncalc-images/
 
 ## Recent Updates
 
+### v4.6.0 - Homepage Redesign & Registry Fix (Session 45 - Feb 16, 2026)
+- Homepage hero section reduced from 100vh to 70vh
+- How It Works condensed from 4 steps to 2 steps (Snap 4 Photos → Get Your Results)
+- Removed step labels (Step 01, Step 02)
+- Added "Track Your Collection" section with dashboard mockup
+- Added "Slab Guard - Protect Your Collection" section with shield icon
+- Removed footer "Check a Comic" CTA
+- **CRITICAL FIX:** Registry now queries `collections` table (was `graded_comics`)
+- Fixed column reference: `issue_number` → `issue` in registry queries
+- Verify page header cleanup: Removed "Slab Worthy", now just "Slab Guard™"
+- App.html: Removed camera icons from all 4 upload boxes
+- Improved error messaging in registration (upgrade vs save first)
+- FAQ expanded: Added 6 new "Slab Guard™" questions
+- Added images/ folder with dashboard and fingerprint mockups
+- Discovered AI grading inconsistency (8.5 vs 9.2) and comic ID bugs (logged for investigation)
+
 ### v4.5.0 - Stripe Billing & PWA (Session 44 - Feb 15, 2026)
 - Added Stripe billing system with 4-tier pricing
 - Implemented plan enforcement (Free, Pro, Guard, Dealer)
@@ -701,6 +726,6 @@ collectioncalc-images/
 
 ---
 
-*Last updated: February 15, 2026 (Session 44)*
+*Last updated: February 16, 2026 (Session 45)*
 *Patents Pending: Multi-angle comic grading system + Comic fingerprinting theft recovery*
 
