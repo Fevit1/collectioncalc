@@ -101,8 +101,8 @@ def register_comic():
 
         # Check if comic exists and belongs to user
         cur.execute("""
-            SELECT id, title, issue_number, grade, photos
-            FROM graded_comics
+            SELECT id, title, issue, grade, photos
+            FROM collections
             WHERE id = %s AND user_id = %s
         """, (comic_id, g.user_id))
 

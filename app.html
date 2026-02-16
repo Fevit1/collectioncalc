@@ -2304,7 +2304,7 @@ Return ONLY valid JSON, no markdown, no nested objects.`
 
             } catch (error) {
                 console.error('Registration error:', error);
-                showSaveToast('Registration Failed', 'error', error.message);
+                showSaveToast('Registration Failed', 'error', 'Please save to your collection first, then try registering.');
                 registerBtn.disabled = false;
                 registerBtn.textContent = '🔒 Register This Comic';
             }
