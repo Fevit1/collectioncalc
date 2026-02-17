@@ -175,15 +175,15 @@ def lookup_serial(serial_number):
                 cr.registration_date,
                 cr.reported_stolen_date,
                 cr.recovery_date,
-                gc.title,
-                gc.issue_number,
-                gc.publisher,
-                gc.year,
-                gc.grade,
-                gc.photos,
+                c.title,
+                c.issue,
+                c.publisher,
+                c.year,
+                c.grade,
+                c.photos,
                 u.email
             FROM comic_registry cr
-            JOIN graded_comics gc ON cr.comic_id = gc.id
+            JOIN collections c ON cr.comic_id = c.id
             JOIN users u ON cr.user_id = u.id
             WHERE cr.serial_number = %s
         """, (serial_number,))
@@ -264,9 +264,9 @@ def get_watermarked_image(serial_number):
 
         # Get cover photo URL
         cur.execute("""
-            SELECT gc.photos
+            SELECT c.photos
             FROM comic_registry cr
-            JOIN graded_comics gc ON cr.comic_id = gc.id
+            JOIN collections c ON cr.comic_id = c.id
             WHERE cr.serial_number = %s
         """, (serial_number,))
 

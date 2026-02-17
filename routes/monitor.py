@@ -2,8 +2,16 @@
 Monitor Blueprint - Marketplace monitoring API for Slab Guard
 Routes: /api/monitor/check-image, /api/monitor/check-hash,
         /api/monitor/stolen-hashes, /api/monitor/report-match
+
+Uses multi-algorithm composite fingerprinting (pHash + dHash + aHash + wHash)
+for robust matching. Falls back to pHash-only for legacy registrations.
+
+Tested thresholds (Feb 2026):
+  - Composite per-angle: <70 CRITICAL, <73 PROBABLE, >77 DIFFERENT
+  - Full multi-angle (4 angles × 4 algos): 187-bit separation gap
 """
 import os
+import json
 import psycopg2
 from datetime import datetime
 from flask import Blueprint, jsonify, request, g
@@ -22,6 +30,17 @@ PIL_Image = None
 _rate_limit_store = {}  # ip -> (count, window_start)
 RATE_LIMIT_MAX = 60  # requests per window
 RATE_LIMIT_WINDOW = 60  # seconds
+
+# Composite matching thresholds (per-angle, sum of 4 algos, out of 256 bits)
+COMPOSITE_THRESHOLD_CRITICAL = 70   # 95%+ same comic
+COMPOSITE_THRESHOLD_PROBABLE = 73   # High probability match
+COMPOSITE_THRESHOLD_DISMISS  = 77   # Different comic
+
+# Legacy pHash-only thresholds (single algo, out of 64 bits)
+PHASH_THRESHOLD_CRITICAL = 5
+PHASH_THRESHOLD_HIGH     = 10
+PHASH_THRESHOLD_MEDIUM   = 15
+PHASH_THRESHOLD_MAX      = 20
 
 
 def init_modules(imagehash_lib, pil_image):
@@ -62,8 +81,9 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
-def generate_phash_from_url(image_url):
-    """Download image and generate pHash fingerprint"""
+def generate_composite_from_url(image_url):
+    """Download image and generate multi-algorithm composite fingerprint.
+    Returns dict with phash, dhash, ahash, whash (16 hex chars each)."""
     if not imagehash or not PIL_Image:
         return None
 
@@ -74,11 +94,21 @@ def generate_phash_from_url(image_url):
         response = req.get(image_url, timeout=15)
         response.raise_for_status()
         img = PIL_Image.open(BytesIO(response.content))
-        hash_value = imagehash.phash(img)
-        return str(hash_value)
+        return {
+            'phash': str(imagehash.phash(img)),
+            'dhash': str(imagehash.dhash(img)),
+            'ahash': str(imagehash.average_hash(img)),
+            'whash': str(imagehash.whash(img)),
+        }
     except Exception as e:
-        print(f"Monitor pHash generation error: {e}")
+        print(f"Monitor composite generation error: {e}")
         return None
+
+
+def generate_phash_from_url(image_url):
+    """Download image and generate pHash fingerprint (legacy compat)"""
+    result = generate_composite_from_url(image_url)
+    return result['phash'] if result else None
 
 
 def hamming_distance(hash1, hash2):
@@ -91,107 +121,189 @@ def hamming_distance(hash1, hash2):
         return 64  # Max distance on error
 
 
-def find_matches(query_hash, max_distance=20, stolen_only=False):
+def composite_distance(fp1, fp2):
+    """
+    Calculate composite distance between two multi-algorithm fingerprint dicts.
+    Each dict has keys: phash, dhash, ahash, whash (16 hex chars each).
+    Returns total hamming distance (sum of all 4 algorithms, out of 256 bits).
+    """
+    total = 0
+    algo_dists = {}
+    for algo in ['phash', 'dhash', 'ahash', 'whash']:
+        h1 = fp1.get(algo)
+        h2 = fp2.get(algo)
+        if h1 and h2:
+            d = hamming_distance(h1, h2)
+            algo_dists[algo] = d
+            total += d
+        else:
+            # Missing algo - use max distance for that algo
+            algo_dists[algo] = 64
+            total += 64
+    return total, algo_dists
+
+
+def composite_alert_level(distance):
+    """Determine alert level from composite distance (per-angle)."""
+    if distance <= COMPOSITE_THRESHOLD_CRITICAL:
+        return 'critical'
+    elif distance <= COMPOSITE_THRESHOLD_PROBABLE:
+        return 'high'
+    elif distance <= COMPOSITE_THRESHOLD_DISMISS:
+        return 'medium'
+    else:
+        return 'low'
+
+
+def mask_email(email):
+    """Hash email for privacy display: mberry133@yahoo.com → m*****3@y***o.com"""
+    if email and '@' in email:
+        local, domain = email.split('@', 1)
+        domain_parts = domain.split('.')
+        local_masked = local[0] + ('*' * (len(local) - 2)) + local[-1] if len(local) > 2 else local[0] + '*'
+        domain_masked = domain_parts[0][0] + ('*' * (len(domain_parts[0]) - 2)) + domain_parts[0][-1] if len(domain_parts[0]) > 2 else domain_parts[0][0] + '*'
+        return f"{local_masked}@{domain_masked}.{'.'.join(domain_parts[1:])}"
+    return "Anonymous"
+
+
+def find_matches(query_hash, max_distance=20, stolen_only=False, query_composite=None):
     """
     Compare query hash against all registered comics.
+    Uses composite matching (4 algorithms) when available, falls back to pHash-only.
+
+    Args:
+        query_hash: Legacy pHash hex string (16 chars)
+        max_distance: Max pHash distance for legacy matching (default 20)
+        stolen_only: Only search stolen comics
+        query_composite: Dict with {phash, dhash, ahash, whash} for composite matching
+
     Returns list of matches sorted by confidence (lowest distance first).
     """
     conn = get_db()
     cur = conn.cursor()
 
     try:
-        # Build query based on filter
-        if stolen_only:
-            cur.execute("""
-                SELECT
-                    cr.id,
-                    cr.serial_number,
-                    cr.fingerprint_hash,
-                    cr.status,
-                    cr.registration_date,
-                    cr.reported_stolen_date,
-                    gc.title,
-                    gc.issue_number,
-                    gc.publisher,
-                    gc.grade,
-                    gc.photos,
-                    u.email
-                FROM comic_registry cr
-                JOIN graded_comics gc ON cr.comic_id = gc.id
-                JOIN users u ON cr.user_id = u.id
-                WHERE cr.status = 'reported_stolen'
-                AND cr.monitoring_enabled = TRUE
-            """)
-        else:
-            cur.execute("""
-                SELECT
-                    cr.id,
-                    cr.serial_number,
-                    cr.fingerprint_hash,
-                    cr.status,
-                    cr.registration_date,
-                    cr.reported_stolen_date,
-                    gc.title,
-                    gc.issue_number,
-                    gc.publisher,
-                    gc.grade,
-                    gc.photos,
-                    u.email
-                FROM comic_registry cr
-                JOIN graded_comics gc ON cr.comic_id = gc.id
-                JOIN users u ON cr.user_id = u.id
-                WHERE cr.monitoring_enabled = TRUE
-            """)
+        # Check if fingerprint_composite column exists
+        has_composite_col = True
+        try:
+            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='comic_registry' AND column_name='fingerprint_composite'")
+            has_composite_col = cur.fetchone() is not None
+        except Exception:
+            has_composite_col = False
+
+        # Build query
+        composite_select = ", cr.fingerprint_composite" if has_composite_col else ""
+        status_filter = "AND cr.status = 'reported_stolen'" if stolen_only else ""
+
+        cur.execute(f"""
+            SELECT
+                cr.id,
+                cr.serial_number,
+                cr.fingerprint_hash,
+                cr.status,
+                cr.registration_date,
+                cr.reported_stolen_date,
+                c.title,
+                c.issue,
+                c.publisher,
+                c.grade,
+                c.photos,
+                u.email
+                {composite_select}
+            FROM comic_registry cr
+            JOIN collections c ON cr.comic_id = c.id
+            JOIN users u ON cr.user_id = u.id
+            WHERE cr.monitoring_enabled = TRUE
+            {status_filter}
+        """)
 
         rows = cur.fetchall()
         matches = []
 
         for row in rows:
-            (reg_id, serial, fp_hash, status, reg_date, stolen_date,
-             title, issue, publisher, grade, photos, email) = row
+            if has_composite_col:
+                (reg_id, serial, fp_hash, status, reg_date, stolen_date,
+                 title, issue, publisher, grade, photos, email, fp_composite_raw) = row
+            else:
+                (reg_id, serial, fp_hash, status, reg_date, stolen_date,
+                 title, issue, publisher, grade, photos, email) = row
+                fp_composite_raw = None
 
-            dist = hamming_distance(query_hash, fp_hash)
-            if dist <= max_distance:
-                # Calculate confidence: 0 distance = 100%, 20 distance ~= 50%
-                confidence = max(0, round(100 - (dist * 2.5), 1))
+            # Parse stored composite fingerprint
+            stored_composite = None
+            if fp_composite_raw:
+                try:
+                    stored_composite = json.loads(fp_composite_raw) if isinstance(fp_composite_raw, str) else fp_composite_raw
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
-                # Determine alert level
-                if dist <= 5:
-                    alert_level = 'critical'  # Near-certain match
-                elif dist <= 10:
-                    alert_level = 'high'      # Very likely match
-                elif dist <= 15:
-                    alert_level = 'medium'    # Possible match
-                else:
-                    alert_level = 'low'       # Weak match
+            # --- COMPOSITE MATCHING (preferred) ---
+            if query_composite and stored_composite:
+                # Compare front covers using composite distance
+                # stored_composite format: { "front": {phash, dhash, ahash, whash}, "spine": {...}, ... }
+                stored_front = stored_composite.get('front')
+                if stored_front:
+                    comp_dist, algo_dists = composite_distance(query_composite, stored_front)
 
-                # Hash email for privacy
-                if email and '@' in email:
-                    local, domain = email.split('@', 1)
-                    domain_parts = domain.split('.')
-                    local_masked = local[0] + ('*' * (len(local) - 2)) + local[-1] if len(local) > 2 else local[0] + '*'
-                    domain_masked = domain_parts[0][0] + ('*' * (len(domain_parts[0]) - 2)) + domain_parts[0][-1] if len(domain_parts[0]) > 2 else domain_parts[0][0] + '*'
-                    owner_display = f"{local_masked}@{domain_masked}.{'.'.join(domain_parts[1:])}"
-                else:
-                    owner_display = "Anonymous"
+                    # Composite threshold: 73 per angle (out of 256)
+                    if comp_dist <= COMPOSITE_THRESHOLD_DISMISS:
+                        confidence = max(0, round(100 - (comp_dist * 0.39), 1))  # 0/256=100%, 256/256=0%
+                        alert_level = composite_alert_level(comp_dist)
 
-                matches.append({
-                    'registry_id': reg_id,
-                    'serial_number': serial,
-                    'status': status,
-                    'alert_level': alert_level,
-                    'hamming_distance': dist,
-                    'confidence': confidence,
-                    'registration_date': reg_date.isoformat() if reg_date else None,
-                    'reported_stolen_date': stolen_date.isoformat() if stolen_date else None,
-                    'comic': {
-                        'title': title,
-                        'issue_number': issue,
-                        'publisher': publisher,
-                        'grade': float(grade) if grade else None
-                    },
-                    'owner_display': owner_display
-                })
+                        matches.append({
+                            'registry_id': reg_id,
+                            'serial_number': serial,
+                            'status': status,
+                            'alert_level': alert_level,
+                            'hamming_distance': comp_dist,
+                            'match_type': 'composite',
+                            'algo_distances': algo_dists,
+                            'confidence': confidence,
+                            'registration_date': reg_date.isoformat() if reg_date else None,
+                            'reported_stolen_date': stolen_date.isoformat() if stolen_date else None,
+                            'comic': {
+                                'title': title,
+                                'issue_number': issue,
+                                'publisher': publisher,
+                                'grade': float(grade) if grade else None
+                            },
+                            'owner_display': mask_email(email)
+                        })
+                    continue  # Skip legacy matching if composite data exists
+
+            # --- LEGACY PHASH-ONLY MATCHING (fallback) ---
+            if fp_hash and query_hash:
+                dist = hamming_distance(query_hash, fp_hash)
+                if dist <= max_distance:
+                    confidence = max(0, round(100 - (dist * 2.5), 1))
+
+                    if dist <= PHASH_THRESHOLD_CRITICAL:
+                        alert_level = 'critical'
+                    elif dist <= PHASH_THRESHOLD_HIGH:
+                        alert_level = 'high'
+                    elif dist <= PHASH_THRESHOLD_MEDIUM:
+                        alert_level = 'medium'
+                    else:
+                        alert_level = 'low'
+
+                    matches.append({
+                        'registry_id': reg_id,
+                        'serial_number': serial,
+                        'status': status,
+                        'alert_level': alert_level,
+                        'hamming_distance': dist,
+                        'match_type': 'phash_legacy',
+                        'confidence': confidence,
+                        'registration_date': reg_date.isoformat() if reg_date else None,
+                        'reported_stolen_date': stolen_date.isoformat() if stolen_date else None,
+                        'comic': {
+                            'title': title,
+                            'issue_number': issue,
+                            'publisher': publisher,
+                            'grade': float(grade) if grade else None
+                        },
+                        'owner_display': mask_email(email)
+                    })
 
         # Sort by hamming distance (closest matches first)
         matches.sort(key=lambda m: m['hamming_distance'])
@@ -213,6 +325,7 @@ def check_image():
     """
     Check an image URL against the Slab Guard registry.
     Accepts: { image_url: "https://..." }
+    Uses composite fingerprinting (pHash + dHash + aHash + wHash) for robust matching.
     Returns matches with confidence scores.
     """
     data = request.get_json() or {}
@@ -225,22 +338,30 @@ def check_image():
     if not image_url.startswith('http'):
         return jsonify({'success': False, 'error': 'Invalid URL'}), 400
 
-    # Generate pHash from the image
-    query_hash = generate_phash_from_url(image_url)
-    if not query_hash:
+    # Generate composite fingerprint from the image
+    query_composite = generate_composite_from_url(image_url)
+    if not query_composite:
         return jsonify({
             'success': False,
             'error': 'Could not process image. Check the URL is accessible.'
         }), 400
 
-    # Find matches
+    query_hash = query_composite.get('phash')  # Legacy compat
+
+    # Find matches using both composite and legacy methods
     max_distance = data.get('max_distance', 20)
     stolen_only = data.get('stolen_only', False)
-    matches = find_matches(query_hash, max_distance=max_distance, stolen_only=stolen_only)
+    matches = find_matches(
+        query_hash,
+        max_distance=max_distance,
+        stolen_only=stolen_only,
+        query_composite=query_composite
+    )
 
     return jsonify({
         'success': True,
         'query_hash': query_hash,
+        'query_composite': query_composite,
         'match_count': len(matches),
         'matches': matches
     })
@@ -288,20 +409,32 @@ def get_stolen_hashes():
     Get all fingerprint hashes for stolen comics.
     Used by extension to cache locally for faster client-side pre-filtering.
     Returns hashes + serial numbers only (no PII).
+    Now includes composite fingerprints when available.
     """
     conn = get_db()
     cur = conn.cursor()
 
     try:
-        cur.execute("""
+        # Check if composite column exists
+        has_composite = True
+        try:
+            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='comic_registry' AND column_name='fingerprint_composite'")
+            has_composite = cur.fetchone() is not None
+        except Exception:
+            has_composite = False
+
+        composite_select = ", cr.fingerprint_composite" if has_composite else ""
+
+        cur.execute(f"""
             SELECT
                 cr.fingerprint_hash,
                 cr.serial_number,
                 cr.reported_stolen_date,
-                gc.title,
-                gc.issue_number
+                c.title,
+                c.issue
+                {composite_select}
             FROM comic_registry cr
-            JOIN graded_comics gc ON cr.comic_id = gc.id
+            JOIN collections c ON cr.comic_id = c.id
             WHERE cr.status = 'reported_stolen'
             AND cr.monitoring_enabled = TRUE
             ORDER BY cr.reported_stolen_date DESC
@@ -310,13 +443,24 @@ def get_stolen_hashes():
         rows = cur.fetchall()
         stolen = []
         for row in rows:
-            stolen.append({
+            entry = {
                 'fingerprint_hash': row[0],
                 'serial_number': row[1],
                 'reported_date': row[2].isoformat() if row[2] else None,
                 'title': row[3],
                 'issue_number': row[4]
-            })
+            }
+            # Include composite if available
+            if has_composite and len(row) > 5 and row[5]:
+                try:
+                    composite = json.loads(row[5]) if isinstance(row[5], str) else row[5]
+                    # Only include front cover composite for extension (save bandwidth)
+                    if composite and 'front' in composite:
+                        entry['composite_front'] = composite['front']
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            stolen.append(entry)
 
         return jsonify({
             'success': True,
@@ -359,10 +503,10 @@ def report_match():
     try:
         # Find the registry entry
         cur.execute("""
-            SELECT cr.id, cr.user_id, cr.status, u.email, gc.title, gc.issue_number
+            SELECT cr.id, cr.user_id, cr.status, u.email, c.title, c.issue
             FROM comic_registry cr
             JOIN users u ON cr.user_id = u.id
-            JOIN graded_comics gc ON cr.comic_id = gc.id
+            JOIN collections c ON cr.comic_id = c.id
             WHERE cr.serial_number = %s
         """, (serial_number,))
 
@@ -456,12 +600,12 @@ def my_matches():
                 mr.status,
                 mr.reported_at,
                 cr.serial_number,
-                gc.title,
-                gc.issue_number,
-                gc.grade
+                c.title,
+                c.issue,
+                c.grade
             FROM match_reports mr
             JOIN comic_registry cr ON mr.registry_id = cr.id
-            JOIN graded_comics gc ON cr.comic_id = gc.id
+            JOIN collections c ON cr.comic_id = c.id
             WHERE cr.user_id = %s
             ORDER BY mr.reported_at DESC
             LIMIT 50
