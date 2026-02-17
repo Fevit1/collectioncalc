@@ -81,9 +81,61 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
+def preprocess_for_fingerprint(img):
+    """
+    Normalize image before fingerprinting. Must match registry.py preprocessing exactly.
+    Steps: grayscale → auto-crop → resize 256x256 → autocontrast → blur
+    """
+    from PIL import ImageFilter, ImageOps, ImageStat
+
+    img = img.convert('L')
+
+    # Auto-crop: estimate background from corners, find content bounding box
+    width, height = img.size
+    pixels = img.load()
+    corner_size = max(5, min(width, height) // 20)
+    corners = []
+    for region in [
+        (0, 0, corner_size, corner_size),
+        (width - corner_size, 0, width, corner_size),
+        (0, height - corner_size, corner_size, height),
+        (width - corner_size, height - corner_size, width, height)
+    ]:
+        corner_img = img.crop(region)
+        corner_stat = ImageStat.Stat(corner_img)
+        corners.append(corner_stat.mean[0])
+    bg_color = sum(corners) / len(corners)
+
+    left, top, right, bottom = width, height, 0, 0
+    for y in range(0, height, 2):
+        for x in range(0, width, 2):
+            if abs(pixels[x, y] - bg_color) > 30:
+                left = min(left, x)
+                top = min(top, y)
+                right = max(right, x)
+                bottom = max(bottom, y)
+
+    pad_x = max(5, int(width * 0.02))
+    pad_y = max(5, int(height * 0.02))
+    left = max(0, left - pad_x)
+    top = max(0, top - pad_y)
+    right = min(width, right + pad_x)
+    bottom = min(height, bottom + pad_y)
+
+    if right - left > width * 0.3 and bottom - top > height * 0.3:
+        img = img.crop((left, top, right, bottom))
+
+    img = img.resize((256, 256), PIL_Image.LANCZOS)
+    img = ImageOps.autocontrast(img, cutoff=2)
+    img = img.filter(ImageFilter.GaussianBlur(radius=1))
+
+    return img
+
+
 def generate_composite_from_url(image_url):
-    """Download image and generate multi-algorithm composite fingerprint.
-    Returns dict with phash, dhash, ahash, whash (16 hex chars each)."""
+    """Download image, preprocess, and generate multi-algorithm composite fingerprint.
+    Returns dict with phash, dhash, ahash, whash (16 hex chars each).
+    Preprocessing matches registry.py to ensure consistent comparison."""
     if not imagehash or not PIL_Image:
         return None
 
@@ -94,6 +146,10 @@ def generate_composite_from_url(image_url):
         response = req.get(image_url, timeout=15)
         response.raise_for_status()
         img = PIL_Image.open(BytesIO(response.content))
+
+        # Preprocess: grayscale, auto-crop, resize, normalize contrast, blur
+        img = preprocess_for_fingerprint(img)
+
         return {
             'phash': str(imagehash.phash(img)),
             'dhash': str(imagehash.dhash(img)),

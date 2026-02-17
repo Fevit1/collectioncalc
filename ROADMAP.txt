@@ -31,6 +31,7 @@
 - [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
 - [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
 - [ ] **Live Slab Guard test** - Register comic on production, verify composite matching works
+- [ ] **Slab Guard check UI** - User-facing page to upload a photo and check against registry (currently API-only, no frontend)
 - [ ] **Git deployment** - Push Session 45+46 changes, Render deploy
 
 ---
@@ -251,6 +252,107 @@ Notes → custom_notes (custom field)
 - CBCS: Green/Silver
 - PGX: Red/White
 
+### Gamification: Badges, Levels & Rewards 🆕
+**Goal:** Drive engagement, retention, and collection growth through achievements
+
+**Why This Matters:**
+- Collectors are natural completionists — badges tap into that mindset
+- Creates "one more upload" dopamine loops that increase engagement
+- Free month reward at high tiers converts free users to paid
+- Shareable badges = organic marketing ("I just hit Super Avenger on Slab Worthy!")
+- CLZ and competitors have nothing like this
+
+**Phase 1: Collector Badges**
+- [ ] Badge system infrastructure (badge_definitions + user_badges tables)
+- [ ] Upload milestones:
+  - Rookie Collector (1st comic graded)
+  - Rising Star (10 comics)
+  - Serious Collector (50 comics)
+  - Centurion (100 comics)
+  - Vault Keeper (500 comics)
+  - Super Avenger (1,000 comics) ← 1 free month of current plan
+  - Legendary Hoarder (5,000 comics) ← 1 free month + badge on profile
+- [ ] Badge notification toast on unlock ("You just earned Centurion!")
+- [ ] Badge display on account/profile page
+- [ ] Badge artwork (custom icons per tier)
+
+**Phase 2: Activity Badges**
+- [ ] Slab Guard badges:
+  - Guardian (1st comic registered)
+  - Shield Bearer (25 registered)
+  - Vault Master (100 registered)
+- [ ] Value badges:
+  - $1K Club (collection FMV hits $1,000)
+  - $10K Club, $50K Club, $100K Club
+- [ ] Streak badges:
+  - Weekly Grader (graded comics 7 days in a row)
+  - Monthly Maven (graded every week for a month)
+- [ ] Discovery badges:
+  - Golden Age Hunter (graded a Golden Age comic)
+  - Key Issue Finder (graded a key issue worth $500+)
+  - First Edition (graded a first printing)
+
+**Phase 3: Levels & Rewards**
+- [ ] XP system (points per grade, registration, collection action)
+- [ ] Collector levels (Bronze → Silver → Gold → Platinum → Diamond)
+- [ ] Level-up animations
+- [ ] Reward tiers:
+  - Level 5: 1 free week of Pro
+  - Level 10: 1 free month of Pro
+  - Level 20: 1 free month of Guard
+  - Level 50: Lifetime badge + featured collector spotlight
+- [ ] Leaderboard (opt-in, anonymized: "Top 50 collectors by volume")
+
+**Phase 4: Social & Sharing**
+- [ ] Share badges to social media (Instagram, Twitter/X)
+- [ ] Badge showcase on public profile (future)
+- [ ] "Flex your collection" shareable stats card
+- [ ] Referral badge: "Recruited 5 collectors"
+
+**Phase 5: UI/Visualization**
+- [ ] My Collection page badge display:
+  - Current level badge prominently shown (top of page or sidebar)
+  - Level-specific color theme and flourishes (border glow, background gradient)
+  - Progress bar to next level ("42 more comics to Gold!")
+  - Recently earned badges row with unlock animations
+- [ ] Level-based color themes:
+  - Bronze: Warm copper tones
+  - Silver: Cool metallic grays
+  - Gold: Rich gold/amber gradients
+  - Platinum: Sleek platinum/white
+  - Diamond: Prismatic/holographic effect
+- [ ] Collection page adapts to user's level (subtle theme changes, not overwhelming)
+- [ ] Badge showcase section on My Collection (grid of earned + locked badges)
+
+**Phase 6: FAQ & Education**
+- [ ] Gamification FAQ page explaining:
+  - All tiers and how to reach them
+  - Benefits at each level (free months, badges, spotlight)
+  - How XP is earned (grading, registering, streaks)
+  - What badges are available and how to unlock them
+- [ ] In-app tooltips for new users ("Grade your first comic to earn Rookie Collector!")
+- [ ] Level-up celebration modal with confetti animation
+
+**Phase 7: Lifecycle Marketing Integration**
+- [ ] Segment users by engagement level for targeted marketing:
+  - New users (0 comics): Onboarding drip campaign
+  - Casual (1-9 comics): "Upload 1 more to earn Rising Star!" nudges
+  - Active (10-49 comics): Feature education, upsell to Pro
+  - Power users (50-99 comics): Guard tier pitch, Slab Guard education
+  - Whales (100+ comics): Dealer tier, early access features, spotlight
+- [ ] Automated email triggers on badge unlocks ("Congrats! You just earned Centurion!")
+- [ ] Re-engagement campaigns based on streak breaks ("Your Weekly Grader streak is about to end!")
+- [ ] Different CTAs and landing pages per engagement tier
+- [ ] Track engagement level as key metric for conversion optimization
+- [ ] Note: Engagement level = proxy for user value, informs all marketing decisions
+
+**Technical Notes:**
+- Stripe credit system for free month rewards (apply credit to next billing cycle)
+- Badge checks run on save-to-collection and registration events
+- Store badge definitions in DB for easy updates without deploys
+- Badge images: SVG with brand colors (purple/gold/indigo)
+- Lifecycle marketing segments sync with email provider (Resend) tags
+
 ### My Collection Feature ✅ COMPLETED (Sessions 38-39)
 **Goal:** Users can save, view, and manage their graded comics
 
@@ -318,6 +420,23 @@ Notes → custom_notes (custom field)
 - Cache common queries to reduce API costs
 
 **Status:** Concept (noted Session 32, Feb 6 2026)
+
+### User Settings: Auto-Save & Auto-Register 🆕
+**Goal:** Power users can opt into automatic collection save and Slab Guard registration after every grading
+
+**Settings (all default to OFF):**
+- [ ] **Auto-save to My Collection** — After grading completes, automatically save to collection (skip the "Save" button)
+- [ ] **Auto-register with Slab Guard** — After save, automatically register with Slab Guard (skip the "Register" button). Requires Guard tier or higher.
+- [ ] Settings UI in account/settings page with toggle switches
+- [ ] Tooltip explaining what each toggle does
+- [ ] Plan-gate auto-register (only available on Guard/Dealer tiers)
+- [ ] Still show a brief toast notification when auto-actions fire ("Saved to collection" / "Registered with Slab Guard")
+
+**Why This Matters:**
+- Reduces friction for power users uploading many comics
+- Increases Slab Guard registration volume (more fingerprints = stronger network)
+- Feeds gamification — auto-save means faster badge progression
+- Keeps defaults off so new users aren't confused by things happening automatically
 
 ---
 
@@ -536,6 +655,40 @@ Consider:
 
 ---
 
+## Competitive Landscape
+
+### Direct Competitors (Collector-Focused)
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **CLZ Comics** | Collection management | ~$3/mo | HIGH | Largest user base, added slab frames Jan 2026, custom fields Feb 2026. No AI grading, no theft protection. |
+| **ComicBase** | Desktop collection DB | One-time $50-150 | MEDIUM | Legacy desktop software. Power users love it. No mobile, no AI. |
+| **League of Comic Geeks** | Social + collection | Free/Premium | MEDIUM | Strong community, weak on grading/valuation. |
+
+### Adjacent Competitors (Dealer/Inventory-Focused)
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **P.I.M. (pim-pro.com)** | Multi-channel inventory for comic shops | $40-400/mo | WATCH | Founded by Danny Haro (Kobra Comics, Whittier CA). Syncs eBay, Amazon, HipComic, Whatnot, Clover POS, Square POS. Claims AI grading with "99% accuracy." Currently dealer-focused but could expand to collectors. |
+| **HipComic** | Marketplace + inventory | Commission-based | LOW | More marketplace than tool. |
+
+### Slab Worthy Differentiators (What Nobody Else Has)
+1. **Patent-pending multi-angle AI grading** — No competitor does 4-angle composite grading
+2. **Slab Guard™ theft protection** — Fingerprinting, registration, marketplace monitoring. Completely unique.
+3. **Gamification system** — Badges, levels, rewards. No competitor has engagement loops.
+4. **FMV + AI grade in one flow** — Grade → Value → Protect in a single session
+
+### Competitive Strategy
+- **vs CLZ:** Win on AI intelligence (grading, valuation) + theft protection. They're a database; we're an AI assistant.
+- **vs P.I.M.:** Different lanes for now (collectors vs dealers). Monitor for expansion into collector market.
+- **vs All:** Slab Guard is the moat — nobody else has comic fingerprinting + theft recovery.
+
+### Potential Partnerships & Licensing
+- [ ] **P.I.M. / Slab Guard licensing** — Dealers using P.I.M. could benefit from Slab Guard theft protection for high-value inventory. Offer Slab Guard as a white-label API or integration partner. Their dealer base = our registration volume.
+- [ ] **Comic shops** — Slab Guard API for brick-and-mortar shops to register inventory on intake
+- [ ] **Grading companies (CGC/CBCS)** — Slab Guard integration at point of grading (long-term vision)
+- [ ] **Insurance companies** — Slab Guard registration as proof of ownership for collectibles insurance
+
+---
+
 ## Multi-Vertical Expansion
 
 ### "Worthy" Brand Family Vision
@@ -698,4 +851,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 16, 2026 (Session 45)*
+*Last updated: February 17, 2026 (Session 47)*

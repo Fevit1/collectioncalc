@@ -3,10 +3,12 @@ Registry Blueprint - Comic fingerprinting and theft recovery
 Routes: /api/registry/register, /api/registry/status
 
 Fingerprinting uses multi-algorithm composite (pHash + dHash + aHash + wHash)
-for robust matching. Testing showed:
+for robust matching with image preprocessing. Testing showed:
   - Single pHash: only 4-bit margin between same-comic re-photo and different copies
   - Composite (4 algos): 13-bit margin per angle, 187-bit margin full composite
   - Biggest risk factor: cropping (different framing between photos)
+  - With preprocessing: worst-case same-comic drops from 72/256 to 36/256 per angle
+  - Preprocessing: grayscale → auto-crop → resize 256x256 → autocontrast → blur
 """
 import os
 import json
@@ -53,15 +55,88 @@ def generate_serial_number():
     return f"SW-{year}-{next_num:06d}"
 
 
+def preprocess_for_fingerprint(img):
+    """
+    Normalize an image before fingerprinting to remove environmental noise.
+    Makes fingerprints robust to real-world photo variation:
+    - Different lighting conditions (autocontrast)
+    - Different backgrounds (auto-crop)
+    - Different phone distances (resize)
+    - Compression artifacts (blur)
+
+    Testing showed this cuts same-comic distances roughly in half:
+    - Raw worst case: 72/256 per angle
+    - Preprocessed worst case: 36/256 per angle
+    """
+    from PIL import ImageFilter, ImageOps, ImageStat
+
+    # 1. Convert to grayscale (removes color/white-balance variation)
+    img = img.convert('L')
+
+    # 2. Auto-crop: trim uniform borders (removes background variation)
+    width, height = img.size
+    pixels = img.load()
+
+    # Estimate background color from corners
+    corner_size = max(5, min(width, height) // 20)
+    corners = []
+    for region in [
+        (0, 0, corner_size, corner_size),
+        (width - corner_size, 0, width, corner_size),
+        (0, height - corner_size, corner_size, height),
+        (width - corner_size, height - corner_size, width, height)
+    ]:
+        corner_img = img.crop(region)
+        corner_stat = ImageStat.Stat(corner_img)
+        corners.append(corner_stat.mean[0])
+    bg_color = sum(corners) / len(corners)
+
+    # Find bounding box of content (pixels differing from background by 30+)
+    left, top, right, bottom = width, height, 0, 0
+    for y in range(0, height, 2):
+        for x in range(0, width, 2):
+            if abs(pixels[x, y] - bg_color) > 30:
+                left = min(left, x)
+                top = min(top, y)
+                right = max(right, x)
+                bottom = max(bottom, y)
+
+    # Add small padding and crop if content area is meaningful
+    pad_x = max(5, int(width * 0.02))
+    pad_y = max(5, int(height * 0.02))
+    left = max(0, left - pad_x)
+    top = max(0, top - pad_y)
+    right = min(width, right + pad_x)
+    bottom = min(height, bottom + pad_y)
+
+    if right - left > width * 0.3 and bottom - top > height * 0.3:
+        img = img.crop((left, top, right, bottom))
+
+    # 3. Resize to standard 256x256 (removes scale/distance variation)
+    img = img.resize((256, 256), PIL_Image.LANCZOS)
+
+    # 4. Normalize contrast (removes brightness/lighting variation)
+    img = ImageOps.autocontrast(img, cutoff=2)
+
+    # 5. Light Gaussian blur (removes noise/compression artifacts)
+    img = img.filter(ImageFilter.GaussianBlur(radius=1))
+
+    return img
+
+
 def generate_fingerprint(photo_url):
     """
     Generate multi-algorithm composite fingerprint from photo URL.
     Returns dict with phash, dhash, ahash, whash (16 hex chars each).
 
+    Images are preprocessed before hashing to normalize for real-world
+    photo variation (lighting, background, framing, compression).
+
     Composite approach tested Feb 2026:
     - pHash alone: 4-bit separation margin (fragile with cropping)
     - Composite 4-algo: 13-bit margin per angle (robust)
     - Full multi-angle composite: 187-bit margin (excellent)
+    - With preprocessing: worst-case same-comic 36/256 vs 72/256 raw
     """
     if not imagehash or not PIL_Image:
         return None
@@ -73,6 +148,9 @@ def generate_fingerprint(photo_url):
         # Download image
         response = requests.get(photo_url, timeout=10)
         img = PIL_Image.open(BytesIO(response.content))
+
+        # Preprocess: grayscale, auto-crop, resize, normalize contrast, blur
+        img = preprocess_for_fingerprint(img)
 
         # Generate all 4 hash algorithms
         fingerprints = {
@@ -228,7 +306,7 @@ def register_comic():
             fingerprint_hash,
             composite_json,
             serial_number,
-            'composite_v1',
+            'composite_v2_preprocessed',
             confidence_score,
             'active',
             True
