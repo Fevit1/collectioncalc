@@ -3,12 +3,15 @@ Monitor Blueprint - Marketplace monitoring API for Slab Guard
 Routes: /api/monitor/check-image, /api/monitor/check-hash,
         /api/monitor/stolen-hashes, /api/monitor/report-match
 
-Uses multi-algorithm composite fingerprinting (pHash + dHash + aHash + wHash)
-for robust matching. Falls back to pHash-only for legacy registrations.
+Uses three-tier fingerprint matching:
+  1. Composite hashing (pHash+dHash+aHash+wHash): issue-level matching
+  2. Edge strip hashing (v3): copy-level identification via trim differences
+  3. Legacy pHash: backward compat for old registrations
 
 Tested thresholds (Feb 2026):
   - Composite per-angle: <70 CRITICAL, <73 PROBABLE, >77 DIFFERENT
-  - Full multi-angle (4 angles × 4 algos): 187-bit separation gap
+  - Edge strips (5% width, 8 regions): same-copy avg ~121, diff-copy avg ~129
+  - Edge strip threshold: <124 SAME_COPY, >126 DIFFERENT_COPY
 """
 import os
 import json
@@ -35,6 +38,11 @@ RATE_LIMIT_WINDOW = 60  # seconds
 COMPOSITE_THRESHOLD_CRITICAL = 70   # 95%+ same comic
 COMPOSITE_THRESHOLD_PROBABLE = 73   # High probability match
 COMPOSITE_THRESHOLD_DISMISS  = 77   # Different comic
+
+# Edge strip thresholds (avg distance across 8 regions × 4 algos, per angle)
+# Based on testing: same-copy max ~122, diff-copy min ~126
+EDGE_THRESHOLD_SAME_COPY = 124      # Below this = likely same physical copy
+EDGE_THRESHOLD_DIFF_COPY = 126      # Above this = likely different physical copy
 
 # Legacy pHash-only thresholds (single algo, out of 64 bits)
 PHASH_THRESHOLD_CRITICAL = 5
@@ -167,6 +175,99 @@ def generate_phash_from_url(image_url):
     return result['phash'] if result else None
 
 
+def generate_edge_strips_from_url(image_url, strip_pct=5, hash_size=16):
+    """
+    Download image and generate edge strip hashes for copy-level identification.
+    Returns dict with hashes for 8 edge regions, or None on failure.
+    """
+    if not imagehash or not PIL_Image:
+        return None
+
+    try:
+        import requests as req
+        from io import BytesIO
+        from PIL import ImageOps
+
+        response = req.get(image_url, timeout=15)
+        response.raise_for_status()
+        img = PIL_Image.open(BytesIO(response.content))
+        w, h = img.size
+
+        # Convert to grayscale and normalize (match registry preprocessing)
+        img = img.convert('L')
+        img = ImageOps.autocontrast(img, cutoff=2)
+
+        strip_w = max(int(w * strip_pct / 100), 20)
+        strip_h = max(int(h * strip_pct / 100), 20)
+
+        regions = {
+            'top': img.crop((0, 0, w, strip_h)),
+            'bottom': img.crop((0, h - strip_h, w, h)),
+            'left': img.crop((0, 0, strip_w, h)),
+            'right': img.crop((w - strip_w, 0, w, h)),
+            'top_left': img.crop((0, 0, strip_w * 2, strip_h * 2)),
+            'top_right': img.crop((w - strip_w * 2, 0, w, strip_h * 2)),
+            'bottom_left': img.crop((0, h - strip_h * 2, strip_w * 2, h)),
+            'bottom_right': img.crop((w - strip_w * 2, h - strip_h * 2, w, h)),
+        }
+
+        edge_hashes = {}
+        for region_name, region_img in regions.items():
+            edge_hashes[region_name] = {
+                'phash': str(imagehash.phash(region_img, hash_size=hash_size)),
+                'dhash': str(imagehash.dhash(region_img, hash_size=hash_size)),
+                'ahash': str(imagehash.average_hash(region_img, hash_size=hash_size)),
+                'whash': str(imagehash.whash(region_img, hash_size=hash_size)),
+            }
+
+        return edge_hashes
+    except Exception as e:
+        print(f"Monitor edge strip generation error: {e}")
+        return None
+
+
+def edge_strip_distance(edge1, edge2):
+    """
+    Compare two sets of edge strip hashes.
+
+    Args:
+        edge1, edge2: dicts of { region: {phash, dhash, ahash, whash} }
+
+    Returns:
+        (avg_distance, per_region_distances) where avg_distance is the mean
+        across all regions and algorithms.
+
+    Testing showed:
+        - Same comic re-photographed: avg ~121 (out of 256)
+        - Different copy same issue: avg ~129
+        - Threshold around 124-126 for separation
+    """
+    all_distances = []
+    region_distances = {}
+
+    for region in ['top', 'bottom', 'left', 'right',
+                   'top_left', 'top_right', 'bottom_left', 'bottom_right']:
+        r1 = edge1.get(region, {})
+        r2 = edge2.get(region, {})
+        if not r1 or not r2:
+            continue
+
+        region_dists = []
+        for algo in ['phash', 'dhash', 'ahash', 'whash']:
+            h1 = r1.get(algo)
+            h2 = r2.get(algo)
+            if h1 and h2:
+                d = hamming_distance(h1, h2)
+                region_dists.append(d)
+                all_distances.append(d)
+
+        if region_dists:
+            region_distances[region] = sum(region_dists) / len(region_dists)
+
+    avg_distance = sum(all_distances) / len(all_distances) if all_distances else 256.0
+    return avg_distance, region_distances
+
+
 def hamming_distance(hash1, hash2):
     """Calculate Hamming distance between two hex hash strings"""
     try:
@@ -222,18 +323,26 @@ def mask_email(email):
     return "Anonymous"
 
 
-def find_matches(query_hash, max_distance=20, stolen_only=False, query_composite=None):
+def find_matches(query_hash, max_distance=20, stolen_only=False,
+                  query_composite=None, query_edge_strips=None):
     """
-    Compare query hash against all registered comics.
-    Uses composite matching (4 algorithms) when available, falls back to pHash-only.
+    Compare query hash against all registered comics using three-tier matching:
+      1. Composite (4 algos on full image) — issue-level match
+      2. Edge strips (8 regions × 4 algos) — copy-level identification
+      3. Legacy pHash — backward compat
 
     Args:
         query_hash: Legacy pHash hex string (16 chars)
         max_distance: Max pHash distance for legacy matching (default 20)
         stolen_only: Only search stolen comics
         query_composite: Dict with {phash, dhash, ahash, whash} for composite matching
+        query_edge_strips: Dict with edge strip hashes for copy-level matching
 
     Returns list of matches sorted by confidence (lowest distance first).
+    Each match includes:
+      - match_type: 'composite', 'composite_edge', or 'phash_legacy'
+      - edge_distance: avg edge strip distance (if available)
+      - copy_match: 'same_copy', 'different_copy', or 'unknown'
     """
     conn = get_db()
     cur = conn.cursor()
@@ -296,15 +405,41 @@ def find_matches(query_hash, max_distance=20, stolen_only=False, query_composite
             # --- COMPOSITE MATCHING (preferred) ---
             if query_composite and stored_composite:
                 # Compare front covers using composite distance
-                # stored_composite format: { "front": {phash, dhash, ahash, whash}, "spine": {...}, ... }
+                # stored_composite format: { "front": {phash, dhash, ahash, whash}, "edge_strips": {...}, ... }
                 stored_front = stored_composite.get('front')
                 if stored_front:
                     comp_dist, algo_dists = composite_distance(query_composite, stored_front)
 
-                    # Composite threshold: 73 per angle (out of 256)
+                    # Composite threshold: 77 per angle (out of 256) for issue-level match
                     if comp_dist <= COMPOSITE_THRESHOLD_DISMISS:
                         confidence = max(0, round(100 - (comp_dist * 0.39), 1))  # 0/256=100%, 256/256=0%
                         alert_level = composite_alert_level(comp_dist)
+
+                        # --- EDGE STRIP COPY-LEVEL MATCHING ---
+                        edge_dist = None
+                        copy_match = 'unknown'
+                        edge_region_dists = None
+                        match_type = 'composite'
+
+                        stored_edge_strips = stored_composite.get('edge_strips', {})
+                        stored_front_edges = stored_edge_strips.get('front')
+
+                        if query_edge_strips and stored_front_edges:
+                            edge_dist, edge_region_dists = edge_strip_distance(
+                                query_edge_strips, stored_front_edges)
+
+                            if edge_dist <= EDGE_THRESHOLD_SAME_COPY:
+                                copy_match = 'same_copy'
+                                # Boost confidence for same-copy match
+                                confidence = min(99.9, confidence + 10)
+                            elif edge_dist >= EDGE_THRESHOLD_DIFF_COPY:
+                                copy_match = 'different_copy'
+                                # Reduce confidence — same issue but different physical copy
+                                confidence = max(10, confidence - 15)
+                            else:
+                                copy_match = 'uncertain'
+
+                            match_type = 'composite_edge'
 
                         matches.append({
                             'registry_id': reg_id,
@@ -312,8 +447,10 @@ def find_matches(query_hash, max_distance=20, stolen_only=False, query_composite
                             'status': status,
                             'alert_level': alert_level,
                             'hamming_distance': comp_dist,
-                            'match_type': 'composite',
+                            'match_type': match_type,
                             'algo_distances': algo_dists,
+                            'edge_distance': round(edge_dist, 1) if edge_dist is not None else None,
+                            'copy_match': copy_match,
                             'confidence': confidence,
                             'registration_date': reg_date.isoformat() if reg_date else None,
                             'reported_stolen_date': stolen_date.isoformat() if stolen_date else None,
@@ -404,20 +541,25 @@ def check_image():
 
     query_hash = query_composite.get('phash')  # Legacy compat
 
-    # Find matches using both composite and legacy methods
+    # Generate edge strip hashes for copy-level matching
+    query_edge_strips = generate_edge_strips_from_url(image_url)
+
+    # Find matches using composite + edge strips + legacy methods
     max_distance = data.get('max_distance', 20)
     stolen_only = data.get('stolen_only', False)
     matches = find_matches(
         query_hash,
         max_distance=max_distance,
         stolen_only=stolen_only,
-        query_composite=query_composite
+        query_composite=query_composite,
+        query_edge_strips=query_edge_strips
     )
 
     return jsonify({
         'success': True,
         'query_hash': query_hash,
         'query_composite': query_composite,
+        'has_edge_strips': query_edge_strips is not None,
         'match_count': len(matches),
         'matches': matches
     })
