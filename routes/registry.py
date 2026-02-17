@@ -157,7 +157,6 @@ def register_comic():
 
         # Ensure photos is a dict (may come back as JSON string from DB)
         if photos and isinstance(photos, str):
-            import json
             try:
                 photos = json.loads(photos)
             except (json.JSONDecodeError, TypeError):

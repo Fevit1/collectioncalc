@@ -114,7 +114,8 @@ cc/v2/
 │   ├── ebay.py          # eBay OAuth, listings (188 lines)
 │   ├── collection.py    # User collections (88 lines)
 │   ├── billing.py       # Stripe payments, plan enforcement (450 lines) [NEW - Session 44]
-│   ├── registry.py      # Comic fingerprint registry [Session 45: critical collections table fix]
+│   ├── registry.py      # Comic fingerprint registry [Session 46: composite 4-algo fingerprinting]
+│   ├── monitor.py       # Marketplace monitoring, composite matching [Session 46: composite distance]
 │   └── verify.py        # Public verification lookup (watermarking) [NEW - Session 44]
 │
 ├── auth.py              # Authentication (JWT, signup, login, reset)
@@ -129,6 +130,7 @@ cc/v2/
 ├── db_migrate_backfill_years.py  # One-time migration: backfill year data for existing comics
 ├── db_migrate_billing.py # Migration: Add billing columns to users table [NEW - Session 44]
 ├── db_migrate_match_reports.py # Migration: Create match_reports table [NEW - Session 44]
+├── db_migrate_composite_fingerprints.py # Migration: fingerprint_composite JSONB column [NEW - Session 46]
 ├── requirements.txt     # Python dependencies (includes pyzbar, stripe>=7.0.0)
 │
 ├── ─────────── PWA FILES ───────────
@@ -487,11 +489,23 @@ ebay_sales (
 -- View for Fair Market Value calculations
 comic_fmv (view) - 90-day rolling FMV by title/issue
 
--- Slab Guard™ Registry
-comic_registry (id, user_id, serial_number, title, issue, year, phash, photos, created_at)
+-- Slab Guard™ Registry [Updated Session 46: composite fingerprinting]
+comic_registry (
+    id, user_id, comic_id, serial_number,
+    fingerprint_hash,           -- Legacy pHash (16 hex chars, backward compat)
+    fingerprint_composite,      -- NEW: JSONB with all 4 algos × all angles
+                                -- Format: {"front": {"phash":"...", "dhash":"...", "ahash":"...", "whash":"..."}, "spine": {...}, ...}
+    fingerprint_algorithm,      -- 'composite_v1' (new) or 'phash_legacy' (old)
+    confidence_score,           -- 70-95% based on number of angles
+    status,                     -- active/reported_stolen/recovered/archived
+    monitoring_enabled,
+    registration_date, reported_stolen_date, recovery_date,
+    police_report_number, certificate_url, alert_email, alert_phone
+)
+-- Indexes: fingerprint (btree), composite (GIN), user, status, serial, monitoring, stolen
 
 -- Theft Matching Reports [NEW - Session 44]
-match_reports (id, registry_id, potential_match_id, similarity_score, marketplace, listing_url, status, created_at)
+match_reports (id, registry_id, reporter_user_id, marketplace, listing_url, listing_item_id, listing_image_url, listing_fingerprint, hamming_distance, confidence_score, status, reported_at, reviewed_at, reviewer_notes)
 
 -- Signatures
 creator_signatures (id, creator_name, signature_url, signature_type, notes)
@@ -624,6 +638,21 @@ collectioncalc-images/
 **Note:** Auto-deploy is DISABLED. Always run `deploy` command after pushing backend changes.
 
 ## Recent Updates
+
+### v4.7.0 - Composite Fingerprinting Upgrade (Session 46 - Feb 17, 2026)
+- **Upgraded Slab Guard from single pHash to multi-algorithm composite fingerprinting**
+- Now uses pHash + dHash + aHash + wHash (4 algorithms, 256 bits per angle)
+- Full multi-angle composite: 1024 bits total across 4 photo angles
+- Tested: same comic re-photo = 99/1024 (MATCH), different copy = 408/1024 (NOT MATCH)
+- Marketplace scenario (front cover only): 83-bit separation — works with just 1 eBay photo
+- registry.py: Generates composite fingerprints for all angles, stores as JSONB
+- monitor.py: Composite matching with fallback to legacy pHash
+- New thresholds: CRITICAL <70, PROBABLE <73, DISMISS >77 (per-angle composite)
+- Database: Added fingerprint_composite JSONB column + GIN index (deployed)
+- Backward compatible: existing pHash-only registrations still matched via legacy fallback
+- Confidence score now scales with angle count (1 angle=70%, 4 angles=95%)
+- New file: db_migrate_composite_fingerprints.py
+- New file: COMPOSITE_FINGERPRINT_TEST_RESULTS.txt
 
 ### v4.6.0 - Homepage Redesign & Registry Fix (Session 45 - Feb 16, 2026)
 - Homepage hero section reduced from 100vh to 70vh

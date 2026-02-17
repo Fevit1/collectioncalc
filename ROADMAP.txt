@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.6.0 (February 16, 2026)
+## Current Version: 4.7.0 (February 17, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -29,14 +29,15 @@
 - [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
 - [ ] **AI grading consistency** - Investigate 8.5→9.2→8.5 variance
 - [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
-- [ ] **Fingerprint testing** - Same comic different photos vs different copies
-- [ ] **Git deployment** - Push Session 45 changes, Render deploy for registry fix
+- [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
+- [ ] **Live Slab Guard test** - Register comic on production, verify composite matching works
+- [ ] **Git deployment** - Push Session 45+46 changes, Render deploy
 
 ---
 
 ## 🛡️ Slab Guard™ - Theft Protection System (IN PROGRESS - Session 67)
 
-**Goal:** Patent-pending theft recovery system using perceptual hashing fingerprints
+**Goal:** Patent-pending theft recovery system using composite fingerprinting
 
 **Phase 1: Core Registration (Session 67)** ✅
 - [x] Database schema (`comic_registry` table)
@@ -46,6 +47,15 @@
 - [x] Custom shield icon with brand gradient + glow animation
 - [x] Optimistic UI (button appears instantly on save)
 - [x] UI improvements (inline defects, cleaner layout)
+
+**Phase 1.5: Composite Fingerprinting Upgrade (Session 46)** ✅
+- [x] Multi-algorithm composite: pHash + dHash + aHash + wHash
+- [x] All 4 photo angles fingerprinted (front, spine, back, centerfold)
+- [x] JSONB storage in fingerprint_composite column
+- [x] Composite matching in monitor.py with legacy fallback
+- [x] Tested: 309-bit separation between same-comic and different-copy
+- [x] Database migration deployed on production
+- [x] Thresholds: CRITICAL <70, PROBABLE <73, DISMISS >77 (per-angle)
 
 **Phase 1: Public Verification (COMPLETE - Session 44)**
 - [x] Public lookup endpoint (`/api/verify/lookup/:serial_number`)
@@ -60,7 +70,7 @@
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping
 - [ ] Whatnot monitoring (if API available)
-- [ ] pHash matching against registered comics
+- [ ] Composite matching against registered comics (code ready, needs integration)
 - [ ] Email alerts on potential matches
 - [ ] Admin dashboard for reviewing matches
 

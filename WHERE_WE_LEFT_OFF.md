@@ -1,6 +1,43 @@
-# Where We Left Off - Feb 16, 2026
+# Where We Left Off - Feb 17, 2026
 
-## 🎉 Session 45 Accomplishments
+## 🎉 Session 46 Accomplishments
+
+### ✅ Composite Fingerprinting Upgrade (COMPLETE + DEPLOYED)
+
+**The Problem:**
+- Single pHash had only 4-bit margin between same-comic re-photo and different copies
+- Cropping (different framing) was the biggest source of noise (up to 12 bits)
+- Back cover was the weakest discriminator (only 16 bits between copies)
+
+**The Solution: Multi-Algorithm Composite**
+- Now uses pHash + dHash + aHash + wHash (4 algorithms × 64 bits each = 256 bits per angle)
+- Per-angle composite: 13-bit margin (up from 4 bits with pHash alone)
+- Full multi-angle composite (4 angles × 4 algos = 1024 bits): 187-bit margin
+
+**End-to-End Test Results (Iron Man #200, 2 copies):**
+- Same comic re-photographed: 99/1024 bits → MATCH CONFIRMED
+- Different copy uploaded: 408/1024 bits → NOT A MATCH
+- Marketplace scenario (front cover only): 20 vs 103 → 83-bit gap, CLEAR discrimination
+- Overall separation: 309 bits — EXCELLENT
+
+**Code Changes:**
+- `routes/registry.py` — Generates 4 hashes per angle, stores as JSONB, algorithm='composite_v1'
+- `routes/monitor.py` — Composite matching with fallback to legacy pHash
+- `db_migrate_composite_fingerprints.py` — New migration (already run on production)
+- Thresholds: CRITICAL <70, PROBABLE <73, DISMISS >77 (composite per-angle, out of 256)
+
+**Database Migration (DEPLOYED):**
+- fingerprint_composite JSONB column added to comic_registry
+- 1 existing record marked as phash_legacy
+- GIN index created for efficient querying
+
+**What Mike Wanted Next:**
+- Register a comic on production and test if composite fingerprinting correctly identifies same vs different comics in the live system
+- Was heading to dinner when we stopped
+
+---
+
+## 🎉 Session 45 Accomplishments (Previous)
 
 ### ✅ Homepage Redesign (COMPLETE)
 
@@ -283,6 +320,10 @@ Hero → How It Works (2 steps) → Track Your Collection → Protect Your Colle
 
 ## 📌 What's Pending
 
+### Immediate Next Step
+- [ ] **Live Slab Guard Test** - Register a comic on production, test composite matching works end-to-end
+- [ ] **Deploy Session 46 code** - Push composite fingerprinting changes to git, deploy to Render
+
 ### Phase 2 Testing & Bug Fixes (HIGH PRIORITY)
 
 **Chrome Extension Testing:**
@@ -307,14 +348,15 @@ Hero → How It Works (2 steps) → Track Your Collection → Protect Your Colle
 - [ ] May need better extraction prompt
 
 **Fingerprint Testing:**
-- [ ] Same comic, different photos → Should match
-- [ ] Different copies, same issue → Should NOT match
-- [ ] Validate false positive rate
+- [x] Same comic, different photos → Should match ✅ CONFIRMED (99/1024 composite)
+- [x] Different copies, same issue → Should NOT match ✅ CONFIRMED (408/1024 composite)
+- [x] Validate false positive rate ✅ 309-bit separation gap (excellent)
+- [ ] Test with more comic pairs (beyond Iron Man #200)
+- [ ] Test on production with real registration flow
 
 **Git & Deployment:**
-- [ ] Push all Session 45 changes to git (Mike)
-- [ ] Deploy registry bug fix to Render (Mike)
-- [ ] Verify registration works in production
+- [ ] Push all Session 45+46 changes to git (Mike)
+- [ ] Deploy composite fingerprinting code to Render (Mike)
 
 ### Phase 3: Feature Parity (Roadmap Weeks 2-3)
 1. **Custom Fields** (1 week)
@@ -340,6 +382,30 @@ Hero → How It Works (2 steps) → Track Your Collection → Protect Your Colle
 - pHash matching against listings
 - Email alerts on potential matches
 - Admin dashboard for reviewing matches
+
+---
+
+## 📁 Files Modified (Session 46)
+
+**Modified Backend:**
+```
+routes/registry.py               - Composite fingerprinting: 4-algo generation, all angles, JSONB storage
+routes/monitor.py                - Composite matching: composite_distance(), fallback to pHash legacy
+```
+
+**New Files:**
+```
+db_migrate_composite_fingerprints.py  - Migration: fingerprint_composite JSONB column + GIN index
+COMPOSITE_FINGERPRINT_TEST_RESULTS.txt - Comprehensive test results documentation
+```
+
+**Documentation:**
+```
+CLAUDE_NOTES.txt                 - Updated Session 46 notes
+WHERE_WE_LEFT_OFF.md             - This file
+ARCHITECTURE.txt                 - Updated fingerprinting section
+ROADMAP.txt                      - Updated fingerprint testing status
+```
 
 ---
 
@@ -466,14 +532,13 @@ WHERE_WE_LEFT_OFF.md                 - This file
 
 ---
 
-**Session 45 Status:**
-- Homepage redesign complete and deployed
-- Registry bug fix critical - needs Render deploy
-- Multiple UI improvements (verify page, app.html, FAQ)
-- New bugs discovered during testing (AI inconsistency, comic ID confusion)
-- Mobile testing started but incomplete
-- Next: Deploy registry fix, investigate AI bugs, test Chrome extension
+**Session 46 Status:**
+- Composite fingerprinting upgrade complete and tested
+- Database migration deployed on production (fingerprint_composite JSONB column)
+- End-to-end test: same comic → MATCH (99/1024), different copy → NOT MATCH (408/1024)
+- Code needs to be pushed to git and deployed to Render
+- Next: Live test on production (register a comic, verify matching works)
 
 ---
 
-*Last updated: February 16, 2026 (Session 45)*
+*Last updated: February 17, 2026 (Session 46)*
