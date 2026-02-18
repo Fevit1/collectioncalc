@@ -10,10 +10,10 @@ Hybrid approach combining:
 Usage from monitor.py:
   from routes.slab_guard_cv import compare_covers, compare_covers_with_vision
 
-Session 48 test results (4/4 accuracy):
+Thresholds (Session 48 original, validated Session 49c with real phone photos):
   - edge_iou ≥ 0.025: SAME_COPY
   - edge_iou ≤ 0.010: DIFFERENT_COPY
-  - 0.010 < edge_iou < 0.025: UNCERTAIN → use Claude Vision
+  - 0.010 < edge_iou < 0.025: UNCERTAIN → Claude Vision resolves
 
 Dependencies: opencv-python-headless, numpy, anthropic (optional)
 """
@@ -36,7 +36,10 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
-# ── THRESHOLDS (tuned from Session 48 testing) ─────────────────────
+# ── THRESHOLDS (Session 48 original, validated Session 49c) ────────
+# 49c real-photo testing confirmed 0.010 for DIFF. Considered lowering SAME
+# to 0.018, but real data showed a different-copy pair at 0.023 — keeping 0.025.
+# The 0.010-0.025 uncertain band is intentionally wide; Vision resolves it.
 EDGE_IOU_SAME_COPY = 0.025     # Above = same physical copy
 EDGE_IOU_DIFF_COPY = 0.010     # Below = different physical copy
 MIN_SIFT_INLIERS = 50          # Minimum for reliable alignment
@@ -437,7 +440,7 @@ def compare_covers_with_vision(ref_url, test_url,
         # Build Claude Vision prompt
         metrics_text = (
             f"  avg_edge_iou:  {avg_iou:.4f}  "
-            f"({'→ SAME indicator' if avg_iou >= EDGE_IOU_SAME_COPY else '→ DIFF indicator' if avg_iou <= EDGE_IOU_DIFF_COPY else '→ UNCERTAIN'}\n"
+            f"({'→ SAME indicator (≥0.025)' if avg_iou >= EDGE_IOU_SAME_COPY else '→ DIFF indicator (≤0.010)' if avg_iou <= EDGE_IOU_DIFF_COPY else '→ BORDERLINE (your call)'})\n"
             f"  avg_edge_ssim: {avg_ssim:.4f}\n"
             f"  Per-edge IoU:  " + ", ".join(f"{k}={v['iou']:.4f}" for k, v in per_edge.items()) + "\n"
             f"  SIFT inliers:  {align_stats.get('inliers', 0)} ({align_stats.get('inlier_ratio', 0):.1%})"
@@ -448,17 +451,31 @@ def compare_covers_with_vision(ref_url, test_url,
             align_note = (f"NOTE: SIFT alignment quality is LOW ({align_stats.get('inliers')} inliers). "
                          "Metrics may be less reliable.")
 
-        prompt = f"""A computer vision system compared two comic book cover photos. Metrics:
+        prompt = f"""You are deciding whether two photos show the SAME physical comic book copy or DIFFERENT physical copies of the same issue.
 
+QUANTITATIVE METRICS (from SIFT alignment + Canny edge IoU):
 {metrics_text}
 
-INTERPRETATION: avg_edge_iou ≥ 0.025 → SAME copy, ≤ 0.010 → DIFFERENT copy
+THRESHOLDS: avg_edge_iou ≥ 0.025 → SAME copy, ≤ 0.010 → DIFFERENT copy, between → your call.
 {align_note}
 
-I'm showing: (1) original photos side by side, (2) edge residual heatmap after alignment (blue=identical, red=different).
+IMAGES PROVIDED:
+1. Side-by-side of both cover photos
+2. Edge residual heatmap (blue = edges match, red/orange = edges differ)
 
-Based on metrics + visual inspection, respond in JSON:
-{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences", "observations": ["list"]}}"""
+YOUR TASK — Look at the PHYSICAL EDGES (not printed artwork) for:
+- Corner wear patterns, dents, bends — do they appear in the same locations?
+- Spine stress lines, staple area — matching or different?
+- Edge chips, tears, color breaks — present in both or only one?
+- Paper foxing, browning patterns along edges — consistent or different?
+
+SAME physical copy = same defects in same locations (even if photo lighting/angle differs).
+DIFFERENT copies = defects in different locations, or one has defects the other doesn't.
+
+IMPORTANT: You MUST commit to SAME_COPY or DIFFERENT_COPY. Only use UNCERTAIN if you truly cannot see the edges clearly enough to judge (e.g., photos are too blurry or cropped). The metrics landed in the borderline zone, which is WHY you are being consulted — give a definitive answer.
+
+Respond in JSON:
+{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences explaining what physical features you compared", "observations": ["list of specific defects or features you noticed"]}}"""
 
         # Build message content with core images
         msg_content = [
@@ -508,7 +525,7 @@ Based on metrics + visual inspection, respond in JSON:
         response = client.messages.create(
             model=model,
             max_tokens=1000,
-            system="You are a forensic print authentication specialist interpreting CV system results.",
+            system="You are a forensic comic book authentication specialist. Your job is to determine if two photos show the SAME physical copy or DIFFERENT copies by examining physical wear patterns, defects, and edge condition. You always commit to a definitive verdict — UNCERTAIN is only for cases where image quality prevents analysis.",
             messages=[{"role": "user", "content": msg_content}],
         )
 

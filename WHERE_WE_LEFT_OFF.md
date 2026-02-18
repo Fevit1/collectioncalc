@@ -186,24 +186,74 @@ edge_top, edge_bottom, edge_left, edge_right, alternate_front, alternate_back, o
 
 ---
 
+## ✅ Session 49c: Production Deploy & Smoke Test
+
+Deployed to Render (https://collectioncalc-docker.onrender.com) — no errors.
+
+### Smoke Test Results (all passing)
+
+| Endpoint | Test | Result |
+|----------|------|--------|
+| `GET /api/billing/plans` | extra_photos_limit in all tiers | ✅ free=0, pro=4, guard=8, dealer=12 |
+| `GET /api/images/extra-types` | Returns 11 photo types | ✅ All types with descriptions |
+| `POST /api/images/upload-extra` | Rejects unauthenticated | ✅ 401 "Authentication required" |
+| `POST /api/images/delete-extra` | Rejects unauthenticated | ✅ 401 "Authentication required" |
+| `POST /api/monitor/compare-copies` | Identical images | ✅ same_copy, 2310 inliers, IoU=0.75 |
+| `POST /api/monitor/compare-copies` | Different images | ✅ uncertain, alignment failed (2 matches) |
+| `POST /api/monitor/compare-copies` | Same image, different resolution | ✅ same_copy, 790 inliers, IoU=0.15 |
+| `POST /api/monitor/check-image` | Full pipeline with test photo | ✅ sift_available=true, hash generated |
+| `GET /api/monitor/stolen-hashes` | Returns empty list | ✅ count=0 |
+
+**Key confirmation:** OpenCV (`sift_available: true`) and the full SIFT pipeline are working on the Render production server.
+
+**Not tested (needs fresh JWT):** upload-extra with real auth.
+
+### Real R2 Photo Comparison Results (Vision-enabled)
+
+Tested registered comics (Handbook #2) with `use_vision: true`:
+
+| Pair | Expected | Inliers | Edge IoU | SIFT | Vision | Final | ✓? |
+|------|----------|---------|----------|------|--------|-------|-----|
+| 006 vs 007 | SAME (A↔A) | 2141 | 0.015 | uncertain | uncertain | uncertain | ⚠️ |
+| 009 vs 005 | SAME (B↔B) | 2671 | 0.050 | same_copy | same_copy | same_copy | ✅ |
+| 006 vs 005 | DIFF (A↔B) | 2156 | 0.011 | uncertain | different_copy | different_copy | ✅ |
+| 007 vs 005 | DIFF (A↔B) | 2025 | 0.023 | uncertain | uncertain | uncertain | ⚠️ |
+| 009 vs 006 | DIFF (B↔A) | 2262 | 0.012 | uncertain | uncertain | uncertain | ⚠️ |
+| 001 vs 002 | SAME (A↔A) | 41 | — | uncertain | — | uncertain | ⚠️ align fail |
+| 001 vs 003 | SAME (A↔A) | 31 | — | uncertain | — | uncertain | ⚠️ align fail |
+| 003 vs 005 | DIFF (A↔B) | 28 | — | uncertain | — | uncertain | ⚠️ align fail |
+
+**Key findings:**
+- Newer registrations (005-009): 2000+ inliers, SIFT works well
+- Older registrations (001-003): ~30 inliers, alignment fails — photo quality issue
+- Same_copy threshold (≥0.025) too tight for real phone photos — 006 vs 007 (same copy) only got 0.015
+- 009 vs 005 (same copy B) clearly passed at 0.050 — photo consistency matters
+- Vision correctly resolved 006 vs 005 as different_copy, but couldn't break uncertain on 006 vs 007
+- **Threshold stays at 0.025:** Considered lowering to 0.018, but 007 vs 005 (different copies) had IoU=0.023, so lowering would cause false positives
+- **The 0.010-0.025 uncertain band is intentionally wide** — Vision resolves it
+- **Vision prompt rewritten (Session 49c):** Now demands definitive SAME/DIFFERENT verdict based on physical defect analysis (corners, spine, edges), not just metrics interpretation. Only allows UNCERTAIN when images are too blurry to judge.
+- **Photo quality gate needed:** reject photos that can't SIFT-align with minimum inliers
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate (Next Session)
 
-1. **Photo quality gate at registration**
+1. **Deploy + test improved Vision prompt**
+   - Thresholds kept at 0.025/0.010 (validated — lowering would cause false positives)
+   - Vision prompt rewritten to demand definitive verdicts based on physical defects
+   - Re-test 006 vs 007 (same copy) and 006 vs 005 (different copy) with new prompt
+
+2. **Photo quality gate at registration**
    - Reject photos with <100 SIFT keypoints (too blurry/small)
    - Warn about angled photos (check homography distortion)
    - Minimum resolution check
 
-2. **Broader testing**
+3. **Broader testing**
    - Test with more comic titles, conditions, and lighting scenarios
    - Tune edge_iou thresholds with more data
    - Test with marketplace listing photos (eBay, etc.)
-
-3. **Deploy & smoke test**
-   - Deploy updated code to Railway/production
-   - Run check-image against test registrations via API
-   - Verify SIFT comparison works end-to-end in production
 
 ### Short-Term
 
@@ -298,4 +348,4 @@ All are: The Official Handbook of the Marvel Universe #2
 
 ---
 
-*Last updated: February 18, 2026 (Session 49b)*
+*Last updated: February 18, 2026 (Session 49c — production smoke test + real photo testing)*
