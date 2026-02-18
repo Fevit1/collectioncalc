@@ -180,36 +180,76 @@ def _compute_edge_iou(ref, aligned, edge_width=EDGE_WIDTH_PX):
 
 
 def _generate_residual_heatmap(ref, aligned, edge_width=EDGE_WIDTH_PX):
-    """Generate edge-focused residual heatmap as JPEG bytes for Claude Vision."""
+    """
+    Generate Canny edge comparison heatmap as JPEG bytes for Claude Vision.
+
+    Shows actual edge structure overlap (the same signal used for IoU computation):
+      GREEN = Canny edges present in BOTH photos (matching physical features)
+      RED   = Canny edge in ONE photo only (mismatching physical features)
+      DARK  = No edges detected in either (background paper)
+
+    Only the border strip regions are shown (where physical wear lives).
+    """
     import base64
 
     h, w = ref.shape[:2]
-    ref_gray = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY).astype(float)
-    aligned_gray = cv2.cvtColor(aligned, cv2.COLOR_BGR2GRAY).astype(float)
-    residual = np.abs(ref_gray - aligned_gray)
-
-    # Amplify and apply colormap
-    res_norm = np.clip(residual * 3, 0, 255).astype(np.uint8)
-    heatmap = cv2.applyColorMap(res_norm, cv2.COLORMAP_JET)
-
-    # Edge mask
     ew = edge_width
+
+    # Build edge mask for border strips only
     edge_mask = np.zeros((h, w), dtype=np.uint8)
     edge_mask[:ew, :] = 255
     edge_mask[-ew:, :] = 255
     edge_mask[:, :ew] = 255
     edge_mask[:, -ew:] = 255
 
-    edge_heatmap = cv2.bitwise_and(heatmap, heatmap, mask=edge_mask)
+    # Compute Canny edges on the full images
+    ref_gray = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)
+    aligned_gray = cv2.cvtColor(aligned, cv2.COLOR_BGR2GRAY)
+    canny_ref = cv2.Canny(ref_gray, 50, 150)
+    canny_aligned = cv2.Canny(aligned_gray, 50, 150)
 
-    # Overlay on darkened reference
-    ref_dark = (ref.astype(float) * 0.4).astype(np.uint8)
-    overlay = cv2.addWeighted(ref_dark, 1.0, edge_heatmap, 0.8, 0)
+    # Mask to border strips only
+    canny_ref = cv2.bitwise_and(canny_ref, edge_mask)
+    canny_aligned = cv2.bitwise_and(canny_aligned, edge_mask)
 
-    cv2.putText(overlay, "Edge Residual (3x amp)", (10, 25),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    # Build color-coded overlay:
+    # GREEN channel = edges in BOTH (intersection = matching features)
+    # RED channel = edges in EITHER but not BOTH (XOR = mismatching features)
+    intersection = cv2.bitwise_and(canny_ref, canny_aligned)
+    xor_diff = cv2.bitwise_xor(canny_ref, canny_aligned)
 
-    _, buf = cv2.imencode('.jpg', overlay, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    # Create RGB overlay image
+    overlay = np.zeros((h, w, 3), dtype=np.uint8)
+    overlay[:, :, 1] = intersection  # Green = matching edges
+    overlay[:, :, 2] = xor_diff      # Red = mismatching edges
+
+    # Dilate for visibility (edges are 1px thin)
+    kernel = np.ones((3, 3), np.uint8)
+    overlay[:, :, 1] = cv2.dilate(overlay[:, :, 1], kernel, iterations=1)
+    overlay[:, :, 2] = cv2.dilate(overlay[:, :, 2], kernel, iterations=1)
+
+    # Composite: darkened reference + edge overlay in border strips
+    ref_dark = (ref.astype(float) * 0.3).astype(np.uint8)
+    # Only apply overlay in border strip regions
+    mask_3ch = cv2.merge([edge_mask, edge_mask, edge_mask])
+    result = np.where(mask_3ch > 0,
+                      cv2.addWeighted(ref_dark, 1.0, overlay, 1.0, 0),
+                      ref_dark)
+
+    # Count pixels for annotation
+    green_px = int(np.sum(intersection > 0))
+    red_px = int(np.sum(xor_diff > 0))
+    total_edge = green_px + red_px
+    match_pct = (green_px / total_edge * 100) if total_edge > 0 else 0
+
+    cv2.putText(result, f"Canny Edge Comparison — Border Strips Only", (10, 25),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+    cv2.putText(result, f"GREEN=matching edges  RED=mismatching edges", (10, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+    cv2.putText(result, f"Match: {match_pct:.1f}% ({green_px} green / {red_px} red)", (10, 75),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
+    _, buf = cv2.imencode('.jpg', result, [cv2.IMWRITE_JPEG_QUALITY, 90])
     return base64.standard_b64encode(buf).decode('utf-8')
 
 
@@ -459,36 +499,33 @@ METRICS (SIFT alignment + Canny edge IoU):
 Thresholds: ≥0.025 = SAME, ≤0.010 = DIFFERENT. This pair landed in the uncertain band.
 {align_note}
 
-IMAGES: (1) Side-by-side of both photos. (2) Edge residual heatmap after SIFT alignment.
+IMAGES: (1) Side-by-side of both photos. (2) Canny edge comparison of border strips.
 
-HOW TO READ THE HEATMAP — This is your PRIMARY evidence:
-The heatmap shows Canny edge differences in the border regions after aligning the printed artwork.
-- BLUE/DARK areas = edges that MATCH between the two photos (physical features overlap)
-- RED/ORANGE areas = edges that DIFFER (physical features don't overlap)
+HOW TO READ THE EDGE COMPARISON — This is your PRIMARY evidence:
+After SIFT-aligning the two photos on their printed artwork, we extracted Canny edges in the border strip regions (top/bottom/left/right 50px) and color-coded them:
+- GREEN pixels = Canny edges found in BOTH photos at the same position (physical features that overlap precisely)
+- RED pixels = Canny edges found in only ONE photo (physical features that DON'T match)
+- DARK areas = no edges detected (flat paper)
 
-CRITICAL REASONING:
-Two DIFFERENT copies of the same issue in similar grade will have similar TYPES of wear (corner rounding, spine stress, etc.) in similar GENERAL areas. This is NOT evidence of same copy — it's just similar condition.
+The image also shows the match percentage: green / (green + red).
 
-The SAME physical copy will show edge structures that PRECISELY overlay after alignment — the heatmap border strips will be predominantly BLUE/DARK because the exact same scratches, nicks, paper fibers, and wear marks line up pixel-by-pixel.
+INTERPRETATION:
+- High green, low red (>40% match) → SAME physical copy. The actual scratches, paper fiber tears, edge nicks, and wear marks overlap at the pixel level after alignment. This only happens with the same physical object.
+- High red, low green (<20% match) → DIFFERENT copies. They may have similar condition, but the specific marks are in different positions.
+- 20-40% match → Examine distribution. Are green pixels clustered (suggesting a shared feature) or scattered (suggesting noise)?
 
-DIFFERENT copies will show predominantly RED/ORANGE in the border strips because even though they have similar wear types, the exact positions of individual marks differ at the pixel level.
+CRITICAL: Do NOT be fooled by the side-by-side photos looking similar. Two different copies of the same issue in similar grade WILL look similar to the eye. The edge comparison heatmap reveals whether the micro-level physical structures actually overlap — that is what matters.
 
-DECISION PROCESS:
-1. Look at the heatmap border strips (top, bottom, left, right edges)
-2. Are they mostly blue/dark? → SAME_COPY (physical structures overlapping)
-3. Are they mostly red/orange? → DIFFERENT_COPY (similar wear, different exact positions)
-4. If the cover photos are too blurry or cropped to see edge details → UNCERTAIN
-
-Default assumption should be DIFFERENT_COPY — most comics in the world are different copies. Only call SAME_COPY if the heatmap provides positive evidence of matching edge structures.
+Default assumption: DIFFERENT_COPY. Only call SAME_COPY if you see clear green dominance in the border strips.
 
 Respond in JSON:
-{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences focusing on heatmap evidence in border regions", "observations": ["specific observations about heatmap colors in each border strip"]}}"""
+{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences referencing the green/red ratio and distribution", "observations": ["observation about each border strip: top, bottom, left, right"]}}"""
 
         # Build message content with core images
         msg_content = [
             {"type": "text", "text": "Original photos:"},
             {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": sbs_b64}},
-            {"type": "text", "text": "Edge residual heatmap:"},
+            {"type": "text", "text": "Canny edge comparison (border strips — green=match, red=mismatch):"},
             {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": heatmap_b64}},
         ]
 
@@ -532,7 +569,7 @@ Respond in JSON:
         response = client.messages.create(
             model=model,
             max_tokens=1000,
-            system="You are a forensic comic book authentication system. You analyze edge residual heatmaps to determine if two photos show the same physical copy. Blue/dark in border strips means matching edges (same copy). Red/orange means mismatching edges (different copies). Default assumption: DIFFERENT_COPY unless heatmap shows clear blue/dark border evidence.",
+            system="You are a forensic comic book authentication system. You analyze Canny edge comparison images where GREEN=matching edges and RED=mismatching edges in border strip regions. High green ratio means same physical copy; high red ratio means different copies. Default assumption: DIFFERENT_COPY unless green clearly dominates.",
             messages=[{"role": "user", "content": msg_content}],
         )
 
