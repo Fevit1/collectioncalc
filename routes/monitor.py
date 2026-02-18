@@ -455,14 +455,20 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
 
                             match_type = 'composite_edge'
 
-                        # Get front cover photo URL for SIFT comparison
+                        # Get front cover photo URL + extra photos for SIFT comparison
                         reg_photo_url = None
+                        reg_extra_photos = None
                         if photos:
                             try:
                                 photos_dict = json.loads(photos) if isinstance(photos, str) else photos
-                                reg_photo_url = photos_dict.get('front') if isinstance(photos_dict, dict) else None
+                                if isinstance(photos_dict, dict):
+                                    reg_photo_url = photos_dict.get('front')
+                                    reg_extra_photos = photos_dict.get('extra')
                             except (json.JSONDecodeError, TypeError):
                                 pass
+                        # Also check fingerprint_composite for extra_photos (stored at registration)
+                        if not reg_extra_photos and stored_composite:
+                            reg_extra_photos = stored_composite.get('extra_photos')
 
                         matches.append({
                             'registry_id': reg_id,
@@ -484,7 +490,10 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
                                 'grade': float(grade) if grade else None
                             },
                             'owner_display': mask_email(email),
-                            '_reg_photo_url': reg_photo_url,  # internal: for SIFT comparison
+                            'has_extra_photos': bool(reg_extra_photos),
+                            'extra_photo_count': len(reg_extra_photos) if reg_extra_photos else 0,
+                            '_reg_photo_url': reg_photo_url,          # internal: for SIFT comparison
+                            '_reg_extra_photos': reg_extra_photos,    # internal: for SIFT/Vision
                         })
                     continue  # Skip legacy matching if composite data exists
 
@@ -592,11 +601,14 @@ def check_image():
             if not reg_photo_url:
                 continue
 
+            extra_photos = match.get('_reg_extra_photos')
+
             try:
                 if use_vision:
                     cv_result = compare_covers_with_vision(
                         ref_url=reg_photo_url,
                         test_url=image_url,
+                        extra_ref_photos=extra_photos,
                     )
                     verdict_key = 'final_verdict'
                     conf_key = 'final_confidence'
@@ -604,6 +616,7 @@ def check_image():
                     cv_result = compare_covers(
                         ref_url=reg_photo_url,
                         test_url=image_url,
+                        extra_ref_photos=extra_photos,
                     )
                     verdict_key = 'verdict'
                     conf_key = 'confidence'
@@ -647,6 +660,7 @@ def check_image():
     # Strip internal fields before returning
     for match in matches:
         match.pop('_reg_photo_url', None)
+        match.pop('_reg_extra_photos', None)
 
     return jsonify({
         'success': True,

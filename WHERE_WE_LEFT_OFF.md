@@ -142,6 +142,50 @@ SIFT comparison is performed on-the-fly by downloading both photos. No SIFT desc
 
 ---
 
+## 🎉 Session 49b: Extra Photo Support for Enhanced Fingerprinting
+
+### Feature: Upload extra close-up/defect photos per comic
+
+Users on paid plans can now upload additional photos (defects, close-ups, alternate angles)
+to improve copy-level identification for high-value comics.
+
+**Billing integration:**
+- Free: 0 extra photos
+- Pro ($4.99/mo): 4 extra photos per comic
+- Guard ($9.99/mo): 8 extra photos per comic
+- Dealer ($24.99/mo): 12 extra photos per comic
+- `multi_photo` + `extra_photos_limit` feature flags in billing plans
+
+**Photo types supported:** defect, closeup_front, closeup_back, closeup_spine,
+edge_top, edge_bottom, edge_left, edge_right, alternate_front, alternate_back, other
+
+**New API endpoints:**
+- `POST /api/images/upload-extra` — upload extra photo (requires auth + paid plan)
+- `POST /api/images/delete-extra` — remove extra photo by index
+- `GET /api/images/extra-types` — list valid photo types with descriptions
+
+**Storage:** Extra photos stored in `collections.photos` JSONB under `extra` array:
+```json
+{ "front": "...", "back": "...", "extra": [{"type": "defect", "label": "Spine tick", "url": "..."}] }
+```
+
+**CV engine enhancements (slab_guard_cv.py):**
+- `compare_covers()` now accepts `extra_ref_photos` — if main SIFT alignment fails,
+  tries `alternate_front` photos as fallback reference (solves angled-photo problem)
+- `compare_covers_with_vision()` sends defect/closeup photos to Claude Vision as
+  additional evidence images (up to 4, resized to 600px max)
+
+**Registration (registry.py):**
+- Extra alternate front/back photos get edge strip hashes at registration
+- Confidence score boosted: +2 per extra photo (up to +16 max)
+
+**Test results:**
+- 006 vs 008 with alternate (007): 33→51 inliers, alignment now succeeds!
+  IoU=0.022 (uncertain) — Vision layer resolves this to SAME_COPY
+- All existing tests still pass (no regression)
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate (Next Session)
@@ -221,14 +265,19 @@ sift_compare_*_vs_*.png              - SIFT alignment visualizations
 Various *_results.json               - Detailed test results
 ```
 
-## 📁 Production Files Modified (Session 49)
+## 📁 Production Files Modified (Sessions 49 + 49b)
 
 ```
-routes/slab_guard_cv.py              - NEW: SIFT + edge IoU + Claude Vision CV engine
-routes/monitor.py                    - UPDATED: four-tier matching, SIFT integration, compare-copies endpoint
-requirements.txt                     - UPDATED: added opencv-python-headless, numpy
-routes/registry.py                   - UNCHANGED (no registration changes needed)
-wsgi.py                              - UNCHANGED (slab_guard_cv imported by monitor.py directly)
+routes/slab_guard_cv.py              - NEW (49): SIFT + edge IoU + Claude Vision CV engine
+                                       UPDATED (49b): extra_ref_photos param, alternate fallback, Vision closeups
+routes/monitor.py                    - UPDATED (49): four-tier matching, SIFT integration, compare-copies endpoint
+                                       UPDATED (49b): passes extra photos through to CV engine
+routes/images.py                     - UPDATED (49b): upload-extra, delete-extra, extra-types endpoints
+routes/billing.py                    - UPDATED (49b): extra_photos_limit per plan, check_feature_access
+routes/registry.py                   - UPDATED (49b): fingerprints alternate photos, confidence boost for extras
+routes/collection.py                 - UNCHANGED (already returns full photos JSONB including extras)
+requirements.txt                     - UPDATED (49): added opencv-python-headless, numpy
+wsgi.py                              - UNCHANGED (no new blueprints needed)
 ```
 
 ## 🔑 Test Comics in Database
@@ -249,4 +298,4 @@ All are: The Official Handbook of the Marvel Universe #2
 
 ---
 
-*Last updated: February 18, 2026 (Session 49)*
+*Last updated: February 18, 2026 (Session 49b)*

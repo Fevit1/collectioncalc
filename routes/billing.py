@@ -63,6 +63,7 @@ PLANS = {
         'bulk_operations': False,
         'export': False,
         'multi_photo': False,
+        'extra_photos_limit': 0,          # No extra photos on free plan
         'ownership_certificates': False,
         'priority_support': False,
     },
@@ -80,6 +81,7 @@ PLANS = {
         'bulk_operations': False,
         'export': True,
         'multi_photo': True,
+        'extra_photos_limit': 4,          # 4 extra photos per comic
         'ownership_certificates': False,
         'priority_support': False,
     },
@@ -97,6 +99,7 @@ PLANS = {
         'bulk_operations': False,
         'export': True,
         'multi_photo': True,
+        'extra_photos_limit': 8,          # 8 extra photos per comic
         'ownership_certificates': True,
         'priority_support': True,
     },
@@ -114,6 +117,7 @@ PLANS = {
         'bulk_operations': True,
         'export': True,
         'multi_photo': True,
+        'extra_photos_limit': 12,         # 12 extra photos per comic
         'ownership_certificates': True,
         'priority_support': True,
     }
@@ -251,6 +255,12 @@ def check_feature_access(user_id, feature):
         except:
             return True, "Unknown"
 
+    elif feature == 'extra_photos':
+        limit = plan.get('extra_photos_limit', 0)
+        if limit == 0:
+            return False, "Extra photos require a paid plan"
+        return True, f"Up to {limit} extra photos per comic"
+
     elif feature in plan:
         return plan[feature], "Included" if plan[feature] else "Upgrade required"
 
@@ -277,6 +287,7 @@ def get_plans():
             'api_access': plan['api_access'],
             'export': plan['export'],
             'multi_photo': plan['multi_photo'],
+            'extra_photos_limit': plan.get('extra_photos_limit', 0),
             'ownership_certificates': plan['ownership_certificates'],
         }
     return jsonify({'plans': public_plans})

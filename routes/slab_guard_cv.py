@@ -224,7 +224,7 @@ def _create_side_by_side(img_a, img_b, max_height=700):
     return base64.standard_b64encode(buf).decode('utf-8')
 
 
-def compare_covers(ref_url, test_url, timeout=15):
+def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
     """
     Compare two comic cover photos using SIFT alignment + edge IoU.
 
@@ -234,6 +234,9 @@ def compare_covers(ref_url, test_url, timeout=15):
     Args:
         ref_url: URL of registered (reference) cover photo
         test_url: URL of test/query cover photo
+        extra_ref_photos: Optional list of extra photo dicts from registration
+            [{'type': 'alternate_front', 'url': '...', 'label': '...'}]
+            If main alignment fails, alternate_front photos are tried as fallback.
         timeout: Download timeout in seconds
 
     Returns dict:
@@ -261,6 +264,26 @@ def compare_covers(ref_url, test_url, timeout=15):
         # SIFT align
         aligned, align_stats = _sift_align(ref_img, test_img)
 
+        # If alignment fails, try alternate front photos as fallback
+        used_alternate = False
+        if not align_stats.get('aligned') and extra_ref_photos:
+            alt_fronts = [p for p in extra_ref_photos
+                          if p.get('type') in ('alternate_front',) and p.get('url')]
+            for alt in alt_fronts:
+                try:
+                    alt_img = _resize_standard(_download_image(alt['url'], timeout))
+                    alt_aligned, alt_stats = _sift_align(alt_img, test_img)
+                    if alt_stats.get('aligned'):
+                        # Use this alternate reference instead
+                        ref_img = alt_img
+                        aligned = alt_aligned
+                        align_stats = alt_stats
+                        align_stats['used_alternate'] = alt.get('label', alt['url'])
+                        used_alternate = True
+                        break
+                except Exception:
+                    continue
+
         if not align_stats.get('aligned'):
             return {
                 'success': True,
@@ -270,6 +293,8 @@ def compare_covers(ref_url, test_url, timeout=15):
                 'avg_edge_ssim': None,
                 'per_edge': None,
                 'alignment': align_stats,
+                'alternates_tried': len([p for p in (extra_ref_photos or [])
+                                         if p.get('type') == 'alternate_front']),
                 'note': 'Alignment failed — photo quality may be insufficient',
             }
 
@@ -287,7 +312,7 @@ def compare_covers(ref_url, test_url, timeout=15):
             verdict = 'uncertain'
             confidence = 0.5
 
-        return {
+        result = {
             'success': True,
             'verdict': verdict,
             'confidence': round(confidence, 3),
@@ -297,6 +322,9 @@ def compare_covers(ref_url, test_url, timeout=15):
                         for k, v in per_edge.items()},
             'alignment': align_stats,
         }
+        if used_alternate:
+            result['used_alternate_ref'] = True
+        return result
 
     except Exception as e:
         return {
@@ -307,6 +335,7 @@ def compare_covers(ref_url, test_url, timeout=15):
 
 
 def compare_covers_with_vision(ref_url, test_url,
+                                extra_ref_photos=None,
                                 anthropic_api_key=None,
                                 model="claude-sonnet-4-20250514",
                                 timeout=15):
@@ -320,6 +349,9 @@ def compare_covers_with_vision(ref_url, test_url,
     Args:
         ref_url: URL of registered cover photo
         test_url: URL of test/query cover photo
+        extra_ref_photos: Optional list of extra photo dicts from registration.
+            Alternate fronts used as SIFT fallback. Defect/closeup photos sent
+            to Claude Vision as additional evidence.
         anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env var)
         model: Claude model to use
         timeout: Download timeout
@@ -343,7 +375,7 @@ def compare_covers_with_vision(ref_url, test_url,
     api_key = anthropic_api_key or os.environ.get('ANTHROPIC_API_KEY')
     if not api_key or not ANTHROPIC_AVAILABLE:
         # Fall back to quantitative-only
-        result = compare_covers(ref_url, test_url, timeout)
+        result = compare_covers(ref_url, test_url, extra_ref_photos, timeout)
         result['vision_available'] = False
         result['final_verdict'] = result.get('verdict')
         result['final_confidence'] = result.get('confidence')
@@ -351,13 +383,30 @@ def compare_covers_with_vision(ref_url, test_url,
 
     try:
         import json as json_mod
+        import base64
 
         # Download and resize
         ref_img = _resize_standard(_download_image(ref_url, timeout))
         test_img = _resize_standard(_download_image(test_url, timeout))
 
-        # SIFT align
+        # SIFT align (with alternate fallback)
         aligned, align_stats = _sift_align(ref_img, test_img)
+
+        if not align_stats.get('aligned') and extra_ref_photos:
+            alt_fronts = [p for p in extra_ref_photos
+                          if p.get('type') in ('alternate_front',) and p.get('url')]
+            for alt in alt_fronts:
+                try:
+                    alt_img = _resize_standard(_download_image(alt['url'], timeout))
+                    alt_aligned, alt_stats = _sift_align(alt_img, test_img)
+                    if alt_stats.get('aligned'):
+                        ref_img = alt_img
+                        aligned = alt_aligned
+                        align_stats = alt_stats
+                        align_stats['used_alternate'] = alt.get('label', alt['url'])
+                        break
+                except Exception:
+                    continue
 
         if not align_stats.get('aligned'):
             return {
@@ -411,19 +460,56 @@ I'm showing: (1) original photos side by side, (2) edge residual heatmap after a
 Based on metrics + visual inspection, respond in JSON:
 {{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences", "observations": ["list"]}}"""
 
+        # Build message content with core images
+        msg_content = [
+            {"type": "text", "text": "Original photos:"},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": sbs_b64}},
+            {"type": "text", "text": "Edge residual heatmap:"},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": heatmap_b64}},
+        ]
+
+        # Add defect/closeup reference photos if available (up to 4 to stay under token limits)
+        extra_detail_types = ('defect', 'closeup_front', 'closeup_back', 'closeup_spine',
+                              'edge_top', 'edge_bottom', 'edge_left', 'edge_right')
+        extra_detail_photos = [p for p in (extra_ref_photos or [])
+                               if p.get('type') in extra_detail_types and p.get('url')][:4]
+
+        if extra_detail_photos:
+            labels = []
+            for ep in extra_detail_photos:
+                try:
+                    ep_img = _download_image(ep['url'], timeout=10)
+                    # Resize to max 600px on longest side to save tokens
+                    h, w = ep_img.shape[:2]
+                    scale = min(600 / max(h, w), 1.0)
+                    if scale < 1.0:
+                        ep_img = cv2.resize(ep_img, (int(w * scale), int(h * scale)))
+                    _, buf = cv2.imencode('.jpg', ep_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    ep_b64 = base64.standard_b64encode(buf).decode('utf-8')
+
+                    desc = ep.get('label') or ep.get('type', 'detail')
+                    labels.append(desc)
+                    msg_content.append({"type": "text", "text": f"Reference detail — {desc}:"})
+                    msg_content.append({"type": "image", "source": {
+                        "type": "base64", "media_type": "image/jpeg", "data": ep_b64}})
+                except Exception:
+                    continue
+
+            if labels:
+                prompt += (f"\n\nThe owner also provided {len(labels)} reference close-up(s): "
+                          f"{', '.join(labels)}. "
+                          "Use these to look for matching or missing physical features "
+                          "that would confirm whether this is the same physical copy.")
+
+        msg_content.append({"type": "text", "text": prompt})
+
         # Call Claude Vision
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model=model,
             max_tokens=1000,
             system="You are a forensic print authentication specialist interpreting CV system results.",
-            messages=[{"role": "user", "content": [
-                {"type": "text", "text": "Original photos:"},
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": sbs_b64}},
-                {"type": "text", "text": "Edge residual heatmap:"},
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": heatmap_b64}},
-                {"type": "text", "text": prompt},
-            ]}],
+            messages=[{"role": "user", "content": msg_content}],
         )
 
         raw = response.content[0].text

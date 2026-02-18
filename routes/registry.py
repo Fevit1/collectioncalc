@@ -285,6 +285,49 @@ def generate_all_fingerprints(photos_dict):
         all_fingerprints['edge_strips'] = edge_strips
         all_fingerprints['edge_version'] = 'v3_5pct'
 
+    # ── EXTRA PHOTOS (enhanced fingerprinting) ───────────────────
+    # Process alternate front/back photos for additional edge strip hashes.
+    # Close-ups and defect photos are stored as URLs for the CV engine
+    # to use at comparison time (no hashing needed — they're for Vision).
+    extra_photos = photos_dict.get('extra', [])
+    if extra_photos:
+        alt_edge_strips = {}
+        extra_urls = []
+
+        for i, extra in enumerate(extra_photos):
+            if not isinstance(extra, dict) or not extra.get('url'):
+                continue
+
+            url = extra['url']
+            ptype = extra.get('type', 'other')
+
+            # Fingerprint alternate front/back covers (useful for SIFT fallback)
+            if ptype in ('alternate_front', 'alternate_back'):
+                angle = 'front' if 'front' in ptype else 'back'
+                try:
+                    response = req.get(url, timeout=10)
+                    edge_fp = generate_edge_strip_hashes(response.content)
+                    if edge_fp:
+                        alt_edge_strips[f'{angle}_alt_{i}'] = edge_fp
+                except Exception as e:
+                    print(f"Edge strip generation failed for extra {i} ({ptype}): {e}")
+
+            # Store all extra photo URLs for the CV engine
+            extra_urls.append({
+                'type': ptype,
+                'label': extra.get('label', ''),
+                'url': url,
+            })
+
+        if alt_edge_strips:
+            edge_strips_data = all_fingerprints.get('edge_strips', {})
+            edge_strips_data.update(alt_edge_strips)
+            all_fingerprints['edge_strips'] = edge_strips_data
+
+        if extra_urls:
+            all_fingerprints['extra_photos'] = extra_urls
+            all_fingerprints['extra_count'] = len(extra_urls)
+
     return all_fingerprints if all_fingerprints else None
 
 
@@ -375,12 +418,16 @@ def register_comic():
                 'error': 'Could not generate fingerprint - photo may be missing or invalid'
             }), 400
 
-        # Calculate confidence based on angles + edge strip availability
-        num_angles = len([k for k in all_fingerprints if k not in ('edge_strips', 'edge_version')]) if all_fingerprints else 0
+        # Calculate confidence based on angles + edge strips + extra photos
+        non_meta_keys = ('edge_strips', 'edge_version', 'extra_photos', 'extra_count')
+        num_angles = len([k for k in all_fingerprints if k not in non_meta_keys]) if all_fingerprints else 0
         has_edge_strips = 'edge_strips' in all_fingerprints if all_fingerprints else False
+        num_extras = all_fingerprints.get('extra_count', 0) if all_fingerprints else 0
         # Base: 4 angles = 85, 3 = 78, 2 = 70, 1 = 62
         # +10 bonus for edge strips (copy-level ID capability)
-        confidence_score = min(95.0, 52.0 + (num_angles * 8.75) + (10.0 if has_edge_strips else 0.0))
+        # +2 per extra photo (up to +16 max) — more reference data = better matching
+        extra_bonus = min(16.0, num_extras * 2.0)
+        confidence_score = min(99.0, 52.0 + (num_angles * 8.75) + (10.0 if has_edge_strips else 0.0) + extra_bonus)
 
         # Generate serial number
         serial_number = generate_serial_number()
