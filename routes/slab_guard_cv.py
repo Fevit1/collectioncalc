@@ -10,10 +10,11 @@ Hybrid approach combining:
 Usage from monitor.py:
   from routes.slab_guard_cv import compare_covers, compare_covers_with_vision
 
-Thresholds (Session 48 original, validated Session 49c with real phone photos):
-  - edge_iou ≥ 0.025: SAME_COPY
-  - edge_iou ≤ 0.010: DIFFERENT_COPY
-  - 0.010 < edge_iou < 0.025: UNCERTAIN → Claude Vision resolves
+Thresholds (Session 48-49d, validated with real phone photos):
+  - strict edge_iou ≥ 0.025: SAME_COPY
+  - dilated edge_iou ≥ 0.13: SAME_COPY (3px tolerance for phone photo shifts)
+  - strict edge_iou ≤ 0.010: DIFFERENT_COPY
+  - otherwise: UNCERTAIN → Claude Vision resolves with zoomed edge crops
 
 Dependencies: opencv-python-headless, numpy, anthropic (optional)
 """
@@ -36,13 +37,15 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
-# ── THRESHOLDS (Session 48 original, validated Session 49c) ────────
-# 49c real-photo testing confirmed 0.010 for DIFF. Considered lowering SAME
-# to 0.018, but real data showed a different-copy pair at 0.023 — keeping 0.025.
-# The 0.010-0.025 uncertain band is intentionally wide; Vision resolves it.
+# ── THRESHOLDS (Session 48-49d, validated with real phone photos) ──
+# 49c: real-photo testing confirmed 0.010 for DIFF. Kept strict SAME at 0.025.
+# 49d: Dilated IoU (3px) separates same-copy (0.14-0.19) from diff (0.09-0.12).
+#   Threshold 0.13 correctly classifies all 5 test pairs.
+#   Vision with zoomed edge crops went 5/5 on diff-copy detection.
 EDGE_IOU_SAME_COPY = 0.025     # Strict IoU: above = same physical copy
 EDGE_IOU_DIFF_COPY = 0.010     # Strict IoU: below = different physical copy
-DILATED_IOU_SAME_COPY = 0.08   # Dilated IoU (3px tolerance): above = same copy
+DILATED_IOU_SAME_COPY = 0.13   # Dilated IoU (3px tolerance): above = same copy
+                                # Session 49d: same-copy pairs 0.140-0.189, diff pairs 0.088-0.119
 MIN_SIFT_INLIERS = 50          # Minimum for reliable alignment
 EDGE_WIDTH_PX = 50             # Edge strip width in pixels
 TARGET_SIZE = (800, 1200)      # Standard comparison size
