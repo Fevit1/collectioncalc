@@ -1,0 +1,63 @@
+{
+  "test": "hybrid_v3",
+  "accuracy": "4/4",
+  "total_cost": 0.057195,
+  "results": [
+    {
+      "pair": "006_vs_007",
+      "expected": "SAME",
+      "quant_verdict": "SAME_COPY",
+      "vision_verdict": "SAME_COPY",
+      "final_verdict": "SAME_COPY",
+      "final_confidence": 0.95,
+      "correct": true,
+      "marker": "\u2705",
+      "edge_iou": 0.04730191855116008,
+      "edge_ssim": 0.5531629240340066,
+      "cost": 0.013593000000000001,
+      "time": 10.37453579902649
+    },
+    {
+      "pair": "006_vs_009",
+      "expected": "DIFF",
+      "quant_verdict": "UNCERTAIN",
+      "vision_verdict": "DIFFERENT_COPY",
+      "final_verdict": "DIFFERENT_COPY",
+      "final_confidence": 0.95,
+      "correct": true,
+      "marker": "\u2705",
+      "edge_iou": 0.01018710267421297,
+      "edge_ssim": 0.4389975848607247,
+      "cost": 0.014714999999999999,
+      "time": 11.642499685287476
+    },
+    {
+      "pair": "007_vs_009",
+      "expected": "DIFF",
+      "quant_verdict": "DIFFERENT_COPY",
+      "vision_verdict": "DIFFERENT_COPY",
+      "final_verdict": "DIFFERENT_COPY",
+      "final_confidence": 0.95,
+      "correct": true,
+      "marker": "\u2705",
+      "edge_iou": 0.0016045764806563202,
+      "edge_ssim": 0.5271342821820033,
+      "cost": 0.015335999999999999,
+      "time": 11.952872037887573
+    },
+    {
+      "pair": "006_vs_008",
+      "expected": "SAME",
+      "quant_verdict": "SAME_COPY",
+      "vision_verdict": "SAME_COPY",
+      "final_verdict": "SAME_COPY",
+      "final_confidence": 0.85,
+      "correct": true,
+      "marker": "\u2705",
+      "edge_iou": 0.03089399943978417,
+      "edge_ssim": 0.5851412630938052,
+      "cost": 0.013551,
+      "time": 10.080211877822876
+    }
+  ]
+}

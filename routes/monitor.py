@@ -1,17 +1,23 @@
 """
 Monitor Blueprint - Marketplace monitoring API for Slab Guard
 Routes: /api/monitor/check-image, /api/monitor/check-hash,
-        /api/monitor/stolen-hashes, /api/monitor/report-match
+        /api/monitor/stolen-hashes, /api/monitor/report-match,
+        /api/monitor/compare-copies
 
-Uses three-tier fingerprint matching:
+Uses four-tier fingerprint matching:
   1. Composite hashing (pHash+dHash+aHash+wHash): issue-level matching
-  2. Edge strip hashing (v3): copy-level identification via trim differences
-  3. Legacy pHash: backward compat for old registrations
+  2. Edge strip hashing (v3): copy-level quick filter via trim differences
+  3. SIFT-aligned edge IoU (v4): copy-level identification via defect overlap
+  4. Claude Vision "Difference Finder" (optional): semantic confirmation
+
+Copy matching (Session 48 — SIFT + Edge IoU):
+  - edge_iou ≥ 0.025: SAME_COPY (same physical defects visible)
+  - edge_iou ≤ 0.010: DIFFERENT_COPY (no shared defects)
+  - 0.010 < edge_iou < 0.025: UNCERTAIN → optional Claude Vision
 
 Tested thresholds (Feb 2026):
   - Composite per-angle: <70 CRITICAL, <73 PROBABLE, >77 DIFFERENT
-  - Edge strips (5% width, 8 regions): same-copy avg ~121, diff-copy avg ~129
-  - Edge strip threshold: <124 SAME_COPY, >126 DIFFERENT_COPY
+  - SIFT edge IoU: SAME=[0.033-0.036], DIFF=[0.001-0.009], 7x ratio
 """
 import os
 import json
@@ -28,6 +34,14 @@ monitor_bp = Blueprint('monitor', __name__, url_prefix='/api/monitor')
 # These will be set by wsgi.py
 imagehash = None
 PIL_Image = None
+
+# SIFT + Edge IoU copy matching (Session 48 — best approach)
+try:
+    from routes.slab_guard_cv import compare_covers, compare_covers_with_vision, CV2_AVAILABLE
+    SIFT_CV_AVAILABLE = CV2_AVAILABLE
+except ImportError:
+    SIFT_CV_AVAILABLE = False
+    print("⚠️ slab_guard_cv not available — SIFT copy matching disabled")
 
 # Simple in-memory rate limiter
 _rate_limit_store = {}  # ip -> (count, window_start)
@@ -441,6 +455,15 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
 
                             match_type = 'composite_edge'
 
+                        # Get front cover photo URL for SIFT comparison
+                        reg_photo_url = None
+                        if photos:
+                            try:
+                                photos_dict = json.loads(photos) if isinstance(photos, str) else photos
+                                reg_photo_url = photos_dict.get('front') if isinstance(photos_dict, dict) else None
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+
                         matches.append({
                             'registry_id': reg_id,
                             'serial_number': serial,
@@ -460,7 +483,8 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
                                 'publisher': publisher,
                                 'grade': float(grade) if grade else None
                             },
-                            'owner_display': mask_email(email)
+                            'owner_display': mask_email(email),
+                            '_reg_photo_url': reg_photo_url,  # internal: for SIFT comparison
                         })
                     continue  # Skip legacy matching if composite data exists
 
@@ -547,6 +571,9 @@ def check_image():
     # Find matches using composite + edge strips + legacy methods
     max_distance = data.get('max_distance', 20)
     stolen_only = data.get('stolen_only', False)
+    use_sift = data.get('use_sift', True)       # SIFT+edge IoU (fast, default on)
+    use_vision = data.get('use_vision', False)   # Claude Vision (slower, $0.03/call)
+
     matches = find_matches(
         query_hash,
         max_distance=max_distance,
@@ -555,11 +582,80 @@ def check_image():
         query_edge_strips=query_edge_strips
     )
 
+    # ── SIFT + EDGE IoU COPY-LEVEL VERIFICATION ──────────────────
+    # For each issue-level match, run SIFT comparison to determine
+    # if query photo shows the SAME physical copy or a DIFFERENT one.
+    sift_results = {}
+    if use_sift and SIFT_CV_AVAILABLE and matches:
+        for match in matches:
+            reg_photo_url = match.get('_reg_photo_url')
+            if not reg_photo_url:
+                continue
+
+            try:
+                if use_vision:
+                    cv_result = compare_covers_with_vision(
+                        ref_url=reg_photo_url,
+                        test_url=image_url,
+                    )
+                    verdict_key = 'final_verdict'
+                    conf_key = 'final_confidence'
+                else:
+                    cv_result = compare_covers(
+                        ref_url=reg_photo_url,
+                        test_url=image_url,
+                    )
+                    verdict_key = 'verdict'
+                    conf_key = 'confidence'
+
+                if cv_result.get('success'):
+                    sift_verdict = cv_result.get(verdict_key, 'uncertain')
+                    sift_confidence = cv_result.get(conf_key, 0.5)
+
+                    # Override edge strip copy_match with SIFT result
+                    match['copy_match'] = sift_verdict
+                    match['match_type'] = 'sift_edge_iou' + ('_vision' if use_vision else '')
+                    match['sift_edge_iou'] = cv_result.get('avg_edge_iou')
+                    match['sift_alignment'] = cv_result.get('alignment')
+
+                    # Adjust confidence based on SIFT verdict
+                    if sift_verdict == 'same_copy':
+                        match['confidence'] = min(99.9, match['confidence'] + 15)
+                    elif sift_verdict == 'different_copy':
+                        match['confidence'] = max(10, match['confidence'] - 15)
+
+                    # Include vision details if available
+                    if use_vision and cv_result.get('vision_verdict'):
+                        match['vision_verdict'] = cv_result.get('vision_verdict')
+                        match['vision_reasoning'] = cv_result.get('vision_reasoning')
+                        match['vision_confidence'] = cv_result.get('vision_confidence')
+                        match['cost_usd'] = cv_result.get('cost_usd')
+
+                    sift_results[match['serial_number']] = {
+                        'verdict': sift_verdict,
+                        'edge_iou': cv_result.get('avg_edge_iou'),
+                    }
+                else:
+                    sift_results[match['serial_number']] = {
+                        'error': cv_result.get('error', 'unknown'),
+                    }
+
+            except Exception as e:
+                print(f"SIFT comparison error for {match.get('serial_number')}: {e}")
+                sift_results[match['serial_number']] = {'error': str(e)}
+
+    # Strip internal fields before returning
+    for match in matches:
+        match.pop('_reg_photo_url', None)
+
     return jsonify({
         'success': True,
         'query_hash': query_hash,
         'query_composite': query_composite,
         'has_edge_strips': query_edge_strips is not None,
+        'sift_available': SIFT_CV_AVAILABLE,
+        'sift_used': use_sift and SIFT_CV_AVAILABLE,
+        'vision_used': use_vision,
         'match_count': len(matches),
         'matches': matches
     })
@@ -841,3 +937,62 @@ def my_matches():
     finally:
         cur.close()
         conn.close()
+
+
+@monitor_bp.route('/compare-copies', methods=['POST'])
+@rate_limit
+def compare_copies():
+    """
+    Direct copy-level comparison between two comic cover photos.
+
+    Accepts:
+        ref_url: URL of registered (reference) cover photo
+        test_url: URL of test/query cover photo
+        use_vision: bool (default False) — include Claude Vision analysis
+
+    Returns SIFT alignment + edge IoU metrics + copy verdict.
+    This endpoint is useful for:
+      - Testing/debugging copy matching
+      - On-demand comparison without full registry search
+      - Claude Vision confirmation for high-value items
+    """
+    data = request.get_json() or {}
+    ref_url = data.get('ref_url')
+    test_url = data.get('test_url')
+    use_vision = data.get('use_vision', False)
+
+    if not ref_url or not test_url:
+        return jsonify({
+            'success': False,
+            'error': 'ref_url and test_url are required'
+        }), 400
+
+    if not SIFT_CV_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': 'SIFT copy matching not available (opencv not installed)',
+            'sift_available': False,
+        }), 503
+
+    try:
+        if use_vision:
+            result = compare_covers_with_vision(
+                ref_url=ref_url,
+                test_url=test_url,
+            )
+        else:
+            result = compare_covers(
+                ref_url=ref_url,
+                test_url=test_url,
+            )
+
+        return jsonify(result)
+
+    except Exception as e:
+        print(f"Compare copies error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
