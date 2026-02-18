@@ -451,31 +451,38 @@ def compare_covers_with_vision(ref_url, test_url,
             align_note = (f"NOTE: SIFT alignment quality is LOW ({align_stats.get('inliers')} inliers). "
                          "Metrics may be less reliable.")
 
-        prompt = f"""You are deciding whether two photos show the SAME physical comic book copy or DIFFERENT physical copies of the same issue.
+        prompt = f"""Two photos of the same comic book ISSUE were compared. Are they the SAME physical copy or DIFFERENT copies?
 
-QUANTITATIVE METRICS (from SIFT alignment + Canny edge IoU):
+METRICS (SIFT alignment + Canny edge IoU):
 {metrics_text}
 
-THRESHOLDS: avg_edge_iou ≥ 0.025 → SAME copy, ≤ 0.010 → DIFFERENT copy, between → your call.
+Thresholds: ≥0.025 = SAME, ≤0.010 = DIFFERENT. This pair landed in the uncertain band.
 {align_note}
 
-IMAGES PROVIDED:
-1. Side-by-side of both cover photos
-2. Edge residual heatmap (blue = edges match, red/orange = edges differ)
+IMAGES: (1) Side-by-side of both photos. (2) Edge residual heatmap after SIFT alignment.
 
-YOUR TASK — Look at the PHYSICAL EDGES (not printed artwork) for:
-- Corner wear patterns, dents, bends — do they appear in the same locations?
-- Spine stress lines, staple area — matching or different?
-- Edge chips, tears, color breaks — present in both or only one?
-- Paper foxing, browning patterns along edges — consistent or different?
+HOW TO READ THE HEATMAP — This is your PRIMARY evidence:
+The heatmap shows Canny edge differences in the border regions after aligning the printed artwork.
+- BLUE/DARK areas = edges that MATCH between the two photos (physical features overlap)
+- RED/ORANGE areas = edges that DIFFER (physical features don't overlap)
 
-SAME physical copy = same defects in same locations (even if photo lighting/angle differs).
-DIFFERENT copies = defects in different locations, or one has defects the other doesn't.
+CRITICAL REASONING:
+Two DIFFERENT copies of the same issue in similar grade will have similar TYPES of wear (corner rounding, spine stress, etc.) in similar GENERAL areas. This is NOT evidence of same copy — it's just similar condition.
 
-IMPORTANT: You MUST commit to SAME_COPY or DIFFERENT_COPY. Only use UNCERTAIN if you truly cannot see the edges clearly enough to judge (e.g., photos are too blurry or cropped). The metrics landed in the borderline zone, which is WHY you are being consulted — give a definitive answer.
+The SAME physical copy will show edge structures that PRECISELY overlay after alignment — the heatmap border strips will be predominantly BLUE/DARK because the exact same scratches, nicks, paper fibers, and wear marks line up pixel-by-pixel.
+
+DIFFERENT copies will show predominantly RED/ORANGE in the border strips because even though they have similar wear types, the exact positions of individual marks differ at the pixel level.
+
+DECISION PROCESS:
+1. Look at the heatmap border strips (top, bottom, left, right edges)
+2. Are they mostly blue/dark? → SAME_COPY (physical structures overlapping)
+3. Are they mostly red/orange? → DIFFERENT_COPY (similar wear, different exact positions)
+4. If the cover photos are too blurry or cropped to see edge details → UNCERTAIN
+
+Default assumption should be DIFFERENT_COPY — most comics in the world are different copies. Only call SAME_COPY if the heatmap provides positive evidence of matching edge structures.
 
 Respond in JSON:
-{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences explaining what physical features you compared", "observations": ["list of specific defects or features you noticed"]}}"""
+{{"verdict": "SAME_COPY"/"DIFFERENT_COPY"/"UNCERTAIN", "confidence": 0.0-1.0, "reasoning": "2-3 sentences focusing on heatmap evidence in border regions", "observations": ["specific observations about heatmap colors in each border strip"]}}"""
 
         # Build message content with core images
         msg_content = [
@@ -525,7 +532,7 @@ Respond in JSON:
         response = client.messages.create(
             model=model,
             max_tokens=1000,
-            system="You are a forensic comic book authentication specialist. Your job is to determine if two photos show the SAME physical copy or DIFFERENT copies by examining physical wear patterns, defects, and edge condition. You always commit to a definitive verdict — UNCERTAIN is only for cases where image quality prevents analysis.",
+            system="You are a forensic comic book authentication system. You analyze edge residual heatmaps to determine if two photos show the same physical copy. Blue/dark in border strips means matching edges (same copy). Red/orange means mismatching edges (different copies). Default assumption: DIFFERENT_COPY unless heatmap shows clear blue/dark border evidence.",
             messages=[{"role": "user", "content": msg_content}],
         )
 
