@@ -1,0 +1,62 @@
+[
+  {
+    "pair": "006_vs_007",
+    "expected": "SAME",
+    "quant_verdict": "same_copy",
+    "vision_verdict": "different_copy",
+    "final_verdict": "same_copy",
+    "final_confidence": 0.6,
+    "correct": true,
+    "iou": 0.0473,
+    "dilated_iou": 0.16746,
+    "elapsed": 14.990904808044434,
+    "cost": 0.02401,
+    "vision_reasoning": "Despite pixel-aligned printed artwork (expected after SIFT alignment), I cannot identify ANY specific physical defects\u2014no corner chips, no spine ticks at measurable positions, no foxing spots, no distinctive creases\u2014that match between the two images. The bottom-right corners show similar clean presentation with backing board, but absence of defects is not evidence of same copy. Without at least 2 matching physical wear patterns in precise positions, the default verdict is DIFFERENT_COPY.",
+    "vision_corners": {
+      "top_left": "REF shows printed artwork with no distinctive physical defects visible at corner edge. TEST shows identical printed artwork, also without distinctive corner defects. No matching physical damage to compare.",
+      "top_right": "REF shows corner with printed artwork visible. TEST image is predominantly black (likely cropping/lighting issue showing mostly background), making detailed corner comparison impossible for this corner.",
+      "bottom_left": "REF shows corner area with printed artwork, no clear physical defects visible at actual corner edge. TEST shows same printed content, no distinctive physical damage patterns visible. Clean corners without matching defects.",
+      "bottom_right": "REF shows corner with cream/tan backing board visible and clean edge profile. TEST shows very similar corner presentation with backing board and edge profile. However, no distinctive physical defects (chips, tears, specific bend patterns) are visible in either to confirm match."
+    }
+  },
+  {
+    "pair": "006_vs_009",
+    "expected": "DIFF",
+    "quant_verdict": "uncertain",
+    "vision_verdict": "different_copy",
+    "final_verdict": "different_copy",
+    "final_confidence": 0.75,
+    "correct": true,
+    "iou": 0.01019,
+    "dilated_iou": 0.08261,
+    "elapsed": 16.323792695999146,
+    "cost": 0.02491,
+    "vision_reasoning": "The bottom-right corner shows a small dark spot on the backing board in TEST that is absent from REF at the corresponding position, indicating different physical copies. Additionally, the complete absence of visible comic surface in TEST's top-right corner and extensive black voids in multiple TEST edge strips suggest different imaging conditions, but more critically, no matching physical defects were found across any corners or edges. The printed artwork matches because both are the same issue, but no individuating physical wear patterns align between the two copies.",
+    "vision_corners": {
+      "top_left": "REF shows printed artwork with fabric texture background. TEST shows the same printed content with identical blue-gray tones and vertical lines in the artwork. No distinctive physical defects visible in either image - no creases, tears, or chips that would differentiate copies.",
+      "top_right": "REF shows printed artwork area with fabric background. TEST image is predominantly black (likely cropping/scanning artifact showing no comic visible). Cannot compare physical defects when TEST shows no comic surface.",
+      "bottom_left": "REF shows printed artwork with blue-gray tones and character illustration. TEST shows identical printed content with same color distribution and artwork features. No unique physical defects (creases, tears, corner bends) visible in either image to distinguish copies.",
+      "bottom_right": "REF shows corner with tan/beige backing board visible and edge of printed area. TEST shows similar tan backing board with edge of printed area. The corner profiles appear clean in both. Small dark spot visible in TEST bottom portion of backing board (~2mm diameter) that is NOT present in REF at corresponding position."
+    }
+  },
+  {
+    "pair": "007_vs_009",
+    "expected": "DIFF",
+    "quant_verdict": "different_copy",
+    "vision_verdict": "different_copy",
+    "final_verdict": "different_copy",
+    "final_confidence": 0.85,
+    "correct": true,
+    "iou": 0.0016,
+    "dilated_iou": 0.02853,
+    "elapsed": 15.285079956054688,
+    "cost": 0.02483,
+    "vision_reasoning": "The bottom-right corner shows a small but distinct reddish-brown spot/stain on the beige printed area in TEST that is completely absent from REF at the same location. This physical defect (likely foxing or a surface stain) is a distinguishing feature. No other corners or edges show matching physical wear patterns that would indicate the same copy. The presence of a defect in one copy but not the other indicates these are different physical copies.",
+    "vision_corners": {
+      "top_left": "REF: No visible physical defects\u2014corner appears intact with uniform printed background pattern. TEST: No visible physical defects\u2014corner appears intact with same printed pattern. No distinguishing physical wear visible in either image.",
+      "top_right": "REF: Clean corner with printed beige/tan area meeting blue background, no tears or bends visible. TEST: Clean corner with identical printed transition, no physical defects visible. No distinguishing marks present.",
+      "bottom_left": "REF: No visible creases, tears, or corner damage\u2014printed artwork pattern shows clearly without physical interruption. TEST: No visible creases, tears, or corner damage\u2014same printed pattern without physical defects. No matching defects to compare.",
+      "bottom_right": "REF: Clean corner where beige printed area meets blue, no visible physical damage. TEST: Shows a distinct small reddish-brown spot/mark on the beige printed area near the corner edge\u2014this appears to be a physical stain or foxing spot not present in REF. This is a DISTINGUISHING difference."
+    }
+  }
+]

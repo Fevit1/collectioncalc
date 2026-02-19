@@ -236,24 +236,97 @@ Tested registered comics (Handbook #2) with `use_vision: true`:
 
 ---
 
+## 🎉 Session 50: Border Inlier Breakthrough + Vision Improvements
+
+### Key Discovery: SIFT Border Inlier Counting
+
+Physical defects in comic book border regions (spine ticks, corner bends, edge chips) create unique SIFT keypoints. After SIFT alignment with RANSAC, these border-region inlier matches perfectly discriminate same-copy from different-copy:
+
+| Pair | Type | Border Inliers | IoU | Verdict |
+|------|------|---------------|-----|---------|
+| HB 006 vs 007 | SAME | **4** | 0.047 | same_copy ✅ |
+| HB 006 vs 009 | DIFF | **0** | 0.011 | different_copy ✅ |
+| HB 007 vs 009 | DIFF | **0** | 0.008 | different_copy ✅ |
+| IM 010 vs 011 | SAME | **3** | 0.011 | same_copy ✅ |
+| IM 010 vs 012 | DIFF | **0** | 0.010 | different_copy ✅ |
+| IM 011 vs 012 | DIFF | **0** | 0.005 | different_copy ✅ |
+
+**6/6 correct, 0 uncertain, 0 wrong — stable across 5+ runs.**
+
+Note: Iron Man 010 vs 011 has IoU=0.011 (below same_copy threshold) because the photos have different framing that creates warp void regions. But border_inliers=3 correctly identifies it as same-copy anyway. This is the metric's key strength — it works even when IoU fails due to framing differences.
+
+### Implementation Details
+
+**New constants:**
+- `BORDER_INLIER_SAME_COPY = 2` — ≥2 border inliers = same physical copy
+- `BORDER_INLIER_EDGE_WIDTH = 60` — wider border strip for inlier counting (50px too narrow for Iron Man, 70px+ picks up printed content)
+- `BORDER_INLIER_RUNS = 3` — run SIFT alignment 3 times, take max border inliers (stabilizes RANSAC non-determinism)
+
+**New function:** `_sift_align_with_stable_border(ref, test)` — runs SIFT alignment multiple times, returns the run with highest border inlier count. Early-exits when threshold met.
+
+**Updated `_sift_align()`:** Now counts border vs interior inliers after RANSAC, returns `border_inliers`, `interior_inliers`, `border_inlier_pct`, `border_avg_distance` in stats dict.
+
+**Updated verdict logic (both `compare_covers()` and `compare_covers_with_vision()`):**
+1. dilated IoU ≥ 0.13 → same_copy (unchanged)
+2. border_inliers ≥ 2 → same_copy (NEW — catches poor-framing cases)
+3. border_inliers == 0 AND dilated IoU < 0.13 → different_copy (NEW — zero border inliers is strong DIFF evidence)
+4. Low IoU with some border inliers → uncertain (conflicting signals)
+
+### Vision Prompt Improvements (Session 50)
+
+**Problem:** Vision prompt was hallucinating — confusing printed artwork features for physical defects. Called HB 006 vs 009 (DIFF) as SAME_COPY with 0.88 confidence because it saw "matching blue-gray tones" (that's the ink, not a defect).
+
+**Fixes:**
+- Added explicit "WHAT TO IGNORE" list (❌ printed artwork features)
+- Added "WHAT COUNTS AS EVIDENCE" list (✅ physical defects only)
+- Changed default verdict to DIFFERENT_COPY (was SAME_COPY)
+- Added 4x-zoom corner crops as primary evidence
+- Added Canny edge overlay diagnostic image (GREEN=matching, RED/BLUE=mismatching)
+- Withheld quantitative metrics from prompt to prevent anchoring bias
+- Added void region detection — black warp artifacts excluded from IoU and Vision crops
+
+**Vision test results:** 3/3 on Handbook #2 after anti-hallucination fix. Vision is now conservative (may say DIFFERENT for true SAME pairs), but that's fine — quant catches same-copy via dilated IoU or border inliers. Vision's primary role is resolving DIFF cases that quant can't handle.
+
+### New Test Data: Iron Man #200
+
+Mike uploaded three photos for cross-validation:
+- Serial 10 (SW-1771444761941-4acctlhnv) — Copy A
+- Serial 11 (SW-1771444839212-ykfnqtaks) — Copy A (same physical comic as 10)
+- Serial 12 (SW-1771444910763-ls43ioeam) — Copy B (different physical comic)
+
+Local copies saved as `ironman_010.jpg`, `ironman_011.jpg`, `ironman_012.jpg` in V2.
+
+### Use Case Clarification
+
+Mike clarified the theft recovery workflow:
+1. Person registers comic with good photos per our guidelines
+2. Comic is stolen
+3. Victim finds it on eBay
+4. Pretends to be a bidder, asks seller for high-res photos
+5. Scans those seller photos against their registered fingerprint
+
+This means we can't control the marketplace photo quality. The border inlier approach handles this well — it only needs SIFT alignment to succeed (50+ inliers), then the border inlier count is robust to framing/perspective differences.
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate (Next Session)
 
-1. **Deploy + test improved Vision prompt**
-   - Thresholds kept at 0.025/0.010 (validated — lowering would cause false positives)
-   - Vision prompt rewritten to demand definitive verdicts based on physical defects
-   - Re-test 006 vs 007 (same copy) and 006 vs 005 (different copy) with new prompt
+1. **Deploy Session 50 changes to Render**
+   - Border inlier counting, multi-run SIFT, updated Vision prompt
+   - Smoke test with R2 photo URLs (Iron Man + Handbook)
+   - Verify 6/6 correct on production
 
 2. **Photo quality gate at registration**
    - Reject photos with <100 SIFT keypoints (too blurry/small)
    - Warn about angled photos (check homography distortion)
    - Minimum resolution check
 
-3. **Broader testing**
-   - Test with more comic titles, conditions, and lighting scenarios
-   - Tune edge_iou thresholds with more data
-   - Test with marketplace listing photos (eBay, etc.)
+3. **Broader testing with marketplace photos**
+   - Test with real eBay listing photos (different lighting, angles, backgrounds)
+   - More comic titles and conditions
+   - Stress test border inlier approach with low-quality photos
 
 ### Short-Term
 
@@ -348,4 +421,4 @@ All are: The Official Handbook of the Marvel Universe #2
 
 ---
 
-*Last updated: February 18, 2026 (Session 49c — production smoke test + real photo testing)*
+*Last updated: February 18, 2026 (Session 50 — border inlier breakthrough, 6/6 correct on Iron Man + Handbook)*

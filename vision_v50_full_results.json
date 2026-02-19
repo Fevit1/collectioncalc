@@ -1,0 +1,128 @@
+[
+  {
+    "desc": "Handbook#2: 006 vs 007 (A\u2194A)",
+    "expected": "SAME",
+    "quant": "same_copy",
+    "vision": "different_copy",
+    "final": "same_copy",
+    "conf": 0.6,
+    "correct": true,
+    "iou": 0.0473,
+    "dilated": 0.16746,
+    "inliers": 2122,
+    "elapsed": 16.55574631690979,
+    "cost": 0.02688,
+    "reasoning": "No distinctive matching physical defects were found in any corner, edge, or spine region. All visual similarities are attributable to identical printed content (expected after SIFT alignment). The Canny edge overlay shows only 5% edge match with minimal green overlap in border strips, indicating different physical edge structures. Without specific matching physical wear patterns\u2014creases, chips, spine ticks, or corner damage at identical positions\u2014the default verdict is DIFFERENT_COPY.",
+    "corners": {
+      "top_left": "REF shows printed artwork with no distinctive physical defects visible in the corner region\u2014no creases, tears, or bends. TEST shows the same printed artwork region, also without distinctive physical defects. No matching defects to compare; absence of defects is not evidence of same copy.",
+      "top_right": "SKIPPED - void region due to alignment",
+      "bottom_left": "REF shows printed artwork region with no clear physical defects\u2014no corner bends, tears, or creases visible. TEST shows similar printed content, also without distinctive physical damage. No unique physical markers present in either image to establish match.",
+      "bottom_right": "REF shows a clean corner with straight edges and no chips, tears, or rounding. TEST shows similarly clean corner with straight edges. Both corners appear in excellent condition with no distinctive physical defects. The lack of matching defects provides no evidence for same copy."
+    }
+  },
+  {
+    "desc": "Handbook#2: 006 vs 009 (A\u2194B)",
+    "expected": "DIFF",
+    "quant": "uncertain",
+    "vision": "different_copy",
+    "final": "different_copy",
+    "conf": 0.75,
+    "correct": true,
+    "iou": 0.01098,
+    "dilated": 0.08674,
+    "inliers": 2238,
+    "elapsed": 22.45014524459839,
+    "cost": 0.02807,
+    "reasoning": "The Canny edge overlay shows only 2% edge match with predominantly RED and BLUE (non-matching) edge structures in the border regions, indicating different physical edge characteristics. While some general stress patterns appear similar in the corners, no precise, definitive physical defects (specific chips, tears, distinctive creases, or foxing spots) were found at exactly matching positions across multiple regions. The small dark mark on the bottom-right tan area is suggestive but not conclusive given image resolution. The lack of matching physical edge structure in the diagnostic overlay, combined with absence of distinctive matching defects, supports the conclusion that these are different physical copies.",
+    "corners": {
+      "top_left": "REF shows vertical crease lines/stress marks running through the printed artwork in the upper region, particularly visible as subtle linear disruptions in the blue-gray background. TEST shows similar vertical linear stress patterns in approximately the same positions, though the image is slightly less sharp. The physical paper texture and stress pattern distribution appear consistent.",
+      "top_right": "SKIPPED - void region due to alignment",
+      "bottom_left": "REF shows some subtle surface texture and minor stress marks in the corner area. TEST shows similar general texture but the resolution and focus make precise defect matching difficult. No distinctive chips, tears, or sharp creases visible in either image at this corner that would serve as definitive markers.",
+      "bottom_right": "REF shows a clean corner with the tan/beige back cover visible and a small dark spot/mark on the tan area near the corner edge. TEST shows the same corner configuration with what appears to be a similar small dark mark on the tan back cover in approximately the same relative position. No significant chips or tears in either image."
+    }
+  },
+  {
+    "desc": "Handbook#2: 007 vs 009 (A\u2194B)",
+    "expected": "DIFF",
+    "quant": "different_copy",
+    "vision": "different_copy",
+    "final": "different_copy",
+    "conf": 0.85,
+    "correct": true,
+    "iou": 0.0016,
+    "dilated": 0.02853,
+    "inliers": 2035,
+    "elapsed": 14.776668310165405,
+    "cost": 0.02956,
+    "reasoning": "The bottom-right corner shows a small reddish-brown spot on the TEST image that is absent from the REF image at the same position\u2014a clear physical mismatch. The Canny edge overlay shows 0% edge match in border strips, indicating different physical edge structures. No matching unique physical defects were found across any corners or edges to establish these as the same physical copy.",
+    "corners": {
+      "top_left": "REF: No distinct physical defects visible, some general paper texture and minor surface variation. TEST: No distinct physical defects visible, similar paper texture. No matching unique defects to establish identity.",
+      "top_right": "REF: Corner shows clean edge with printed artwork visible, no significant wear or creases. TEST: Corner shows clean edge with printed artwork visible, no significant wear or creases. Absence of defects proves nothing\u2014two unhandled copies would look identical.",
+      "bottom_left": "REF: No distinct physical defects visible, general paper texture present. TEST: No distinct physical defects visible, similar general appearance. No matching unique physical markers.",
+      "bottom_right": "REF: Corner area shows clean edge transition, no visible chips or tears. TEST: Corner area shows a small reddish-brown spot on the tan/beige printed area (visible in lower portion). This spot is NOT present in REF at the same position. This is a MISMATCH\u2014a physical defect present in one copy but absent in the other."
+    }
+  },
+  {
+    "desc": "IronMan#200: 010 vs 011 (A\u2194A)",
+    "expected": "SAME",
+    "quant": "different_copy",
+    "vision": "different_copy",
+    "final": "different_copy",
+    "conf": 0.98,
+    "correct": false,
+    "iou": 0.00964,
+    "dilated": 0.0788,
+    "inliers": 1760,
+    "elapsed": 23.772730112075806,
+    "cost": 0.02886,
+    "reasoning": "Multiple definitive physical differences establish these as different copies: (1) The specific dark spot/mark on the bottom-right gray background area in REF is completely absent from TEST at the corresponding position\u2014this is a physical defect unique to REF. (2) The Canny edge overlay shows only 1% structural match with RED/BLUE dominance, indicating the physical edge topology and spine stress patterns are completely different between copies. (3) TEST shows extensive black void/crop areas where REF shows intact paper, suggesting different photographic framing or physical damage patterns. The printed artwork aligns perfectly (as expected post-SIFT), but the physical defect signatures do not match.",
+    "corners": {
+      "top_left": "REF: No visible physical defects\u2014corner appears intact with clean edges. TEST: Significant physical alteration\u2014large black void/crop area along entire top edge extending into corner region, indicating either severe damage or different framing. The TEST corner shows completely different physical structure.",
+      "top_right": "Skipped due to alignment void",
+      "bottom_left": "REF: Shows vertical creasing/stress lines in paper running through the corner area, visible as texture disruptions in the gray background. TEST: Large black void area occupies left side and corner region\u2014completely different physical presentation. Cannot compare defects due to TEST showing cropped/void area where REF shows paper surface.",
+      "bottom_right": "REF: Small dark mark/spot visible on gray background approximately 1cm from corner along bottom edge; printed blue border shows clean straight edge. TEST: Same printed content alignment but the specific dark spot present in REF is NOT visible in TEST at corresponding position. Paper surface texture appears similar but the diagnostic spot is absent."
+    }
+  },
+  {
+    "desc": "IronMan#200: 010 vs 012 (A\u2194B)",
+    "expected": "DIFF",
+    "quant": "different_copy",
+    "vision": "different_copy",
+    "final": "different_copy",
+    "conf": 0.85,
+    "correct": true,
+    "iou": 0.00828,
+    "dilated": 0.05072,
+    "inliers": 1935,
+    "elapsed": 15.647429704666138,
+    "cost": 0.02081,
+    "reasoning": "The Canny edge overlay reveals only 1% edge structure match in border strips, with predominantly red/blue regions indicating different physical edge patterns between the two copies. While both comics are in similar condition with clean corners and minimal visible defects, the absence of matching distinctive physical wear markers combined with the dramatically different edge structure detection strongly indicates these are two different physical copies of the same issue. No unique matching defects were found to overcome this evidence.",
+    "corners": {
+      "top_left": "SKIPPED \u2014 void region due to geometric alignment",
+      "top_right": "SKIPPED \u2014 void region due to geometric alignment",
+      "bottom_left": "SKIPPED \u2014 void region due to geometric alignment",
+      "bottom_right": "REF: Clean corner with minimal wear, slight edge softening at the very tip. TEST: Clean corner with similar slight edge softening at the tip. Both corners show nearly identical profile and condition with no distinctive defects like creases, chips, or tears that would serve as matching markers. The corner shape is generic for this grade."
+    }
+  },
+  {
+    "desc": "IronMan#200: 011 vs 012 (A\u2194B)",
+    "expected": "DIFF",
+    "quant": "different_copy",
+    "vision": "same_copy",
+    "final": "different_copy",
+    "conf": 0.6,
+    "correct": true,
+    "iou": 0.00612,
+    "dilated": 0.04958,
+    "inliers": 1513,
+    "elapsed": 18.912763833999634,
+    "cost": 0.02403,
+    "reasoning": "The bottom-left corner shows a distinctive vertical crease with intersecting horizontal stress lines at precisely matching positions in both images\u2014this crease breaks through the printed artwork in an identical pattern. The bottom-right corner exhibits matching wear profile and crease position. Spine stress patterns match at corresponding locations. These are physical defects in the paper substrate, not printed features, and their exact positional correspondence across multiple regions provides strong evidence of the same physical copy.",
+    "corners": {
+      "top_left": "Skipped (void region)",
+      "top_right": "Skipped (void region)",
+      "bottom_left": "REF: Vertical crease running through printed artwork approximately 15-20% from left edge, with paper fiber disruption visible. Multiple horizontal stress lines crossing the vertical crease. TEST: Same vertical crease at identical position with matching intersection pattern of horizontal stress lines. The crease breaks the printed pattern in the same manner and location.",
+      "bottom_right": "REF: Corner shows moderate rounding wear with specific curved profile. Horizontal crease line visible approximately 1cm from bottom edge. TEST: Corner exhibits identical rounding profile with same curved wear pattern. Same horizontal crease at matching position 1cm from bottom."
+    }
+  }
+]
