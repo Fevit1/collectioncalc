@@ -68,6 +68,36 @@
 - [x] Deploy verify page (live Feb 15)
 - [x] Fixed column mismatches (publication_year→year, removed username)
 
+**Phase 1.7: SIFT + Edge IoU Copy Matching (Sessions 48-50)** ✅
+- [x] SIFT-based image alignment (geometric correction)
+- [x] Edge IoU computation (strict + 3px dilated)
+- [x] Border inlier counting (SIFT matches on physical defects in border regions)
+- [x] Claude Vision "difference finder" (structured checklist prompt, zoomed crops)
+- [x] Canny edge overlay diagnostic image
+- [x] Void region detection (black warp artifacts excluded)
+- [x] 6/6 correct on same-camera test pairs
+
+**Phase 1.8: Cross-Camera / Marketplace Mode (Sessions 51-53)** ✅
+- [x] Auto-rotation (EXIF + aspect ratio heuristic for rotated phone photos)
+- [x] Marketplace mode: Vision as primary verdict (quant unreliable cross-camera)
+- [x] Cross-camera Vision prompt (environmental warnings, specific defect requirements)
+- [x] Canny overlay removed for marketplace mode (misleads Vision cross-camera)
+- [x] Institutional knowledge embedded in slab_guard_cv.py docstring (15+ failed approaches documented)
+- [x] Refactoring Phase 1: shared fingerprint_utils.py, bare except fix, duplicate boto3 removal
+
+**Phase 1.9: LPQ Texture Fingerprinting (Sessions 54-55)** ✅
+- [x] Tested 7 texture approaches: bandpass, phase correlation, Gabor, LPQ, DCT, gradient, difference RMS
+- [x] LPQ (Local Phase Quantization) identified as only metric with cross-camera separation
+- [x] Key insight: discriminative signal is BORDER WEAR, not paper fiber/halftone
+- [x] Border-only LPQ promoted to primary metric (4.7x stronger separation than full-image)
+- [x] LPQ integrated into compare_covers() and compare_covers_with_vision()
+- [x] LPQ override logic: prevents false same_copy from spurious border inliers
+- [x] Thresholds: border chi2 < 0.25 → SAME, > 0.40 → DIFF (observed: 0.12 vs 0.59-1.38)
+- [x] 6/6 test pairs correct or acceptable
+- [ ] Add marketplace_mode parameter to /compare-copies API endpoint
+- [ ] Collect more test data (only 1 same-copy pair validated)
+- [ ] Photo quality gate at registration
+
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping
 - [ ] Whatnot monitoring (if API available)
@@ -746,6 +776,9 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 4.9.0 | Feb 20, 2026 | LPQ texture fingerprinting: border-only LPQ as primary cross-camera metric |
+| 4.8.0 | Feb 18-20, 2026 | SIFT + Edge IoU copy matching, marketplace mode, Vision integration |
+| 4.7.0 | Feb 17, 2026 | Composite fingerprinting upgrade (pHash + dHash + aHash + wHash) |
 | 4.6.0 | Feb 16, 2026 | Homepage redesign, registry bug fix, verify page updates, FAQ expansion |
 | 4.5.0 | Feb 15, 2026 | Stripe billing, PWA, bot protection, legal docs updated |
 | 4.4.0 | Feb 11, 2026 | Year column, performance optimization |

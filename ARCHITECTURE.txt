@@ -639,6 +639,33 @@ collectioncalc-images/
 
 ## Recent Updates
 
+### v4.9.0 - LPQ Texture Fingerprinting (Sessions 54-55 - Feb 20, 2026)
+- **Added LPQ (Local Phase Quantization) as primary cross-camera copy-matching metric**
+- LPQ uses STFT phase — blur-invariant, works across different cameras/lighting/backgrounds
+- Key insight: discriminative signal lives in BORDER WEAR (corners, spine ticks, edge chips), not paper fiber or halftone dots
+- Border-only LPQ promoted to primary: 4.7x stronger separation than full-image LPQ
+  - Border-only: SAME=0.123, DIFF=0.586-1.375 (gap +0.463)
+  - Full-image:  SAME=0.055, DIFF=0.154-0.335 (gap +0.099)
+- Thresholds: border chi2 < 0.25 → SAME_COPY, > 0.40 → DIFFERENT_COPY
+- LPQ override logic: prevents false same_copy from spurious border inliers (background texture)
+- New functions in slab_guard_cv.py: _compute_lpq_histogram(), _compute_lpq_distance()
+- Integrated into both compare_covers() and compare_covers_with_vision()
+- In marketplace mode: LPQ serves as tiebreaker when Vision is uncertain
+- 7 texture approaches tested (bandpass, phase correlation, Gabor, LPQ, DCT, gradient, diff RMS) — only LPQ worked
+- 15+ failed approaches documented as institutional knowledge in slab_guard_cv.py docstring
+
+### v4.8.0 - SIFT Copy Matching & Marketplace Mode (Sessions 48-53 - Feb 18-20, 2026)
+- **4-tier matching pipeline:** Composite hashing → Edge strip hashing → SIFT-aligned edge IoU → Claude Vision
+- SIFT-based image alignment with FLANN matching + RANSAC homography
+- Edge IoU: strict (pixel-exact) + dilated (3px tolerance) on 4 border strips
+- Border inlier counting: SIFT inliers in border regions discriminate same-copy (3-4) from diff (0)
+- Claude Vision "difference finder": structured checklist prompt with zoomed corner/edge crops
+- Marketplace mode: Vision as primary verdict (quant metrics unreliable cross-camera)
+- Auto-rotation: EXIF transpose + aspect ratio heuristic for rotated phone photos
+- Void region detection: black warp artifacts excluded from IoU and Vision crops
+- New file: routes/slab_guard_cv.py (CV engine)
+- New file: routes/fingerprint_utils.py (shared auto-orient, preprocess)
+
 ### v4.7.0 - Composite Fingerprinting Upgrade (Session 46 - Feb 17, 2026)
 - **Upgraded Slab Guard from single pHash to multi-algorithm composite fingerprinting**
 - Now uses pHash + dHash + aHash + wHash (4 algorithms, 256 bits per angle)
@@ -755,6 +782,6 @@ collectioncalc-images/
 
 ---
 
-*Last updated: February 16, 2026 (Session 45)*
+*Last updated: February 20, 2026 (Session 55)*
 *Patents Pending: Multi-angle comic grading system + Comic fingerprinting theft recovery*
 
