@@ -25,6 +25,12 @@ Session 50 improvements:
   - Void region detection: black warp artifacts excluded from IoU and Vision crops
   - Canny edge overlay diagnostic image for Vision
 
+Session 51 improvements:
+  - Auto-rotation: EXIF orientation correction + aspect ratio heuristic
+    Phone photos taken sideways (landscape) are rotated to portrait orientation.
+    This fixes perceptual hash distances for rotated registration photos
+    (e.g., Iron Man #200: hash distance dropped from 113 to 62 after rotation).
+
 Dependencies: opencv-python-headless, numpy, anthropic (optional)
 """
 
@@ -67,8 +73,43 @@ EDGE_WIDTH_PX = 50             # Edge strip width for IoU computation
 TARGET_SIZE = (800, 1200)      # Standard comparison size
 
 
+def _auto_orient_image(img_pil):
+    """
+    Auto-orient a PIL image for consistent fingerprinting.
+
+    Two-step correction:
+      1. EXIF transpose — applies camera orientation metadata (handles phone
+         photos that embed rotation in EXIF rather than pixel data).
+      2. Aspect ratio heuristic — if the image is landscape (wider than tall),
+         rotate 90° CCW to portrait. Comic books are always taller than wide,
+         so a landscape image means the photo was taken sideways.
+
+    Session 51: This fixed hash distances for rotated Iron Man #200 registrations
+    (113 → 62 for IM-012, enabling it to pass the 77 composite threshold).
+    Also fixed same-copy detection for IM-010 vs IM-011 (dilated_iou 0.11 → 0.27).
+    """
+    from PIL import ImageOps
+
+    # Step 1: Apply EXIF orientation if present
+    try:
+        img_pil = ImageOps.exif_transpose(img_pil)
+    except Exception:
+        pass  # No EXIF or unsupported — continue with raw pixels
+
+    # Step 2: Aspect ratio heuristic — comics are portrait
+    w, h = img_pil.size
+    if w > h:
+        # Landscape → rotate 90° CW to portrait.
+        # PIL rotate(270) = 90° clockwise. This matches the most common phone
+        # landscape orientation (home button on right). Testing confirmed 270°
+        # gives correct right-side-up orientation (dist=60 vs 116 for 90° CCW).
+        img_pil = img_pil.rotate(270, expand=True)
+
+    return img_pil
+
+
 def _download_image(url, timeout=15):
-    """Download image from URL, return as cv2 BGR array."""
+    """Download image from URL, auto-orient, return as cv2 BGR array."""
     import requests
     from io import BytesIO
     from PIL import Image as PILImage
@@ -77,6 +118,7 @@ def _download_image(url, timeout=15):
     response.raise_for_status()
 
     img_pil = PILImage.open(BytesIO(response.content)).convert('RGB')
+    img_pil = _auto_orient_image(img_pil)
     img_np = np.array(img_pil)
     return cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 

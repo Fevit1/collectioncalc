@@ -103,12 +103,45 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
+def auto_orient_pil(img):
+    """
+    Auto-orient a PIL image for consistent fingerprinting.
+
+    Session 51: Perceptual hashes are NOT rotation-invariant. Phone photos taken
+    sideways had hash distances of 103-113 (blocked by 77 threshold). After
+    auto-rotation: distances drop to 62-88, enabling marketplace matching.
+
+    Steps:
+      1. EXIF transpose — applies camera orientation metadata
+      2. Aspect ratio heuristic — rotates landscape to portrait (comics are tall)
+
+    Must match registry.py auto_orient_pil() exactly.
+    """
+    from PIL import ImageOps
+
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        pass
+
+    w, h = img.size
+    if w > h:
+        # Landscape → rotate 90° CW to portrait.
+        # PIL rotate(270) = 90° clockwise. Matches most common phone orientation.
+        img = img.rotate(270, expand=True)
+
+    return img
+
+
 def preprocess_for_fingerprint(img):
     """
     Normalize image before fingerprinting. Must match registry.py preprocessing exactly.
-    Steps: grayscale → auto-crop → resize 256x256 → autocontrast → blur
+    Steps: auto-orient → grayscale → auto-crop → resize 256x256 → autocontrast → blur
     """
     from PIL import ImageFilter, ImageOps, ImageStat
+
+    # Auto-orient before any processing (Session 51)
+    img = auto_orient_pil(img)
 
     img = img.convert('L')
 
@@ -205,6 +238,10 @@ def generate_edge_strips_from_url(image_url, strip_pct=5, hash_size=16):
         response = req.get(image_url, timeout=15)
         response.raise_for_status()
         img = PIL_Image.open(BytesIO(response.content))
+
+        # Auto-orient before any processing (Session 51)
+        img = auto_orient_pil(img)
+
         w, h = img.size
 
         # Convert to grayscale and normalize (match registry preprocessing)

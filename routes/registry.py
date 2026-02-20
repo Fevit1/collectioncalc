@@ -61,6 +61,36 @@ def generate_serial_number():
     return f"SW-{year}-{next_num:06d}"
 
 
+def auto_orient_pil(img):
+    """
+    Auto-orient a PIL image for consistent fingerprinting.
+
+    Session 51: Perceptual hashes are NOT rotation-invariant. Phone photos taken
+    sideways had hash distances of 103-113 (blocked by 77 threshold). After
+    auto-rotation: distances drop to 62-88, enabling marketplace matching.
+
+    Steps:
+      1. EXIF transpose — applies camera orientation metadata
+      2. Aspect ratio heuristic — rotates landscape to portrait (comics are tall)
+
+    Must match monitor.py auto_orient_pil() exactly.
+    """
+    from PIL import ImageOps
+
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        pass
+
+    w, h = img.size
+    if w > h:
+        # Landscape → rotate 90° CW to portrait.
+        # PIL rotate(270) = 90° clockwise. Matches most common phone orientation.
+        img = img.rotate(270, expand=True)
+
+    return img
+
+
 def preprocess_for_fingerprint(img):
     """
     Normalize an image before fingerprinting to remove environmental noise.
@@ -69,12 +99,16 @@ def preprocess_for_fingerprint(img):
     - Different backgrounds (auto-crop)
     - Different phone distances (resize)
     - Compression artifacts (blur)
+    - Rotated phone photos (auto-orient, Session 51)
 
     Testing showed this cuts same-comic distances roughly in half:
     - Raw worst case: 72/256 per angle
     - Preprocessed worst case: 36/256 per angle
     """
     from PIL import ImageFilter, ImageOps, ImageStat
+
+    # 0. Auto-orient: EXIF transpose + landscape→portrait heuristic (Session 51)
+    img = auto_orient_pil(img)
 
     # 1. Convert to grayscale (removes color/white-balance variation)
     img = img.convert('L')
@@ -159,6 +193,10 @@ def generate_edge_strip_hashes(img_bytes, strip_pct=5, hash_size=16):
 
     try:
         img = PIL_Image.open(BytesIO(img_bytes))
+
+        # Auto-orient before any processing (Session 51)
+        img = auto_orient_pil(img)
+
         w, h = img.size
 
         # Convert to grayscale and normalize

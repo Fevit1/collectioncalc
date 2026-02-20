@@ -309,39 +309,129 @@ This means we can't control the marketplace photo quality. The border inlier app
 
 ---
 
+## 🎉 Session 51: IdeaByHuman Database + Marketplace Photo Reality Check
+
+### IdeaByHuman Database Deployed to Supabase
+
+New Supabase project created for IdeaByHuman:
+- URL: `https://pzfpthfiykhywirtoedr.supabase.co`
+- Schema deployed via SQL Editor (fixed bug: `CREATE POLICY enable_rls ON public.projects` referenced table before creation)
+- `.env.local` created with credentials (already in `.gitignore`)
+- Connection verified: 7 categories, 15 tags, 5 empty tables all accessible
+
+### Marketplace Photo Testing: eBay Iron Man #200
+
+Tested Slab Guard against a real eBay listing (VF condition Iron Man #200 in mylar bag, white background, properly oriented). Compared against three registered copies (010, 011, 012 — all rotated ~90° CCW on blanket background).
+
+**Two critical failures discovered:**
+
+**Problem 1 — Hash gate blocks comparison entirely:**
+| Pair | Composite Distance | Threshold | Result |
+|------|-------------------|-----------|--------|
+| eBay vs IM-010 | 113 | ≤77 | BLOCKED |
+| eBay vs IM-011 | 103 | ≤77 | BLOCKED |
+| eBay vs IM-012 | 108 | ≤77 | BLOCKED |
+
+Root cause: Perceptual hashes (pHash, dHash, aHash, wHash) are NOT rotation-invariant. Registered photos are rotated 90° from eBay photo.
+
+**Problem 2 — SIFT verdicts inverted (when hash gate bypassed):**
+| Pair | Expected | Got | Why Wrong |
+|------|----------|-----|-----------|
+| eBay vs IM-010 (diff copy) | different_copy | same_copy | dilated_iou=0.26, border_inliers=5 |
+| eBay vs IM-011 (diff copy) | different_copy | same_copy | dilated_iou=0.23, border_inliers=7 |
+| eBay vs IM-012 (diff copy) | different_copy | same_copy | dilated_iou=0.27, border_inliers=15 |
+| IM-010 vs IM-011 (same copy) | same_copy | different_copy | dilated_iou=0.11, border_inliers=0 |
+
+Root cause: Blanket texture, mylar bag edges, and lighting differences create false edge matches after SIFT alignment. Background noise dominates over physical comic defect signals.
+
+### Fix Attempts and Results
+
+**Auto-rotation (EXIF + aspect ratio heuristic):**
+- Partially fixes hash gate: IM-012 drops to 62 (PASS), IM-010 = 78 (barely fails), IM-011 = 88 (fails)
+- Fully fixes same-copy pair: IM-010 vs IM-011 now correctly returns same_copy (dilated_iou=0.27)
+- Auto-rotation is a proven win — should be added to production
+
+**CLAHE lighting normalization:**
+- Helps consistency but doesn't solve the core problem
+
+**Comic foreground masking:**
+- Attempted adaptive thresholding + contour detection to segment comic from blanket
+- Mask too aggressive on blanket photos (18% coverage) — edge IoU drops to 0.0
+- Comic fills the resized frame, so mask returns 100% when applied after resize
+
+**7x7 vs 3x3 dilation kernel:**
+- 7x7 makes dilated IoU too high for ALL pairs (0.25-0.45), eliminating discrimination
+- 3x3 (production default) separates camera conditions but not copy identity
+
+### Fundamental Finding
+
+After extensive testing, dilated IoU separates **camera conditions** (0.14-0.18 cross-camera vs 0.26-0.27 same-camera) but **cannot discriminate physical copy identity** for marketplace photos. This is because:
+
+1. **Printed content edges dominate:** After SIFT alignment, the same printed artwork aligns perfectly across ALL copies. Canny edge detection picks up these shared printed edges.
+2. **Background noise varies:** Different backgrounds (blanket vs white), mylar bag, lighting create camera-specific edge patterns that overwhelm the subtle physical defect signal.
+3. **Border inliers unreliable cross-camera:** SIFT keypoints on background objects (blanket texture, table edges) near the comic border falsely count as border inliers.
+
+The Session 50 border inlier breakthrough works perfectly for **same-camera** comparisons (registration vs re-verification with similar setup) but breaks down for **cross-camera** marketplace comparisons where everything about the photo environment differs.
+
+### IdeaByHuman Files
+
+```
+ideabyhuman/supabase/migrations/00001_initial_schema.sql  — deployed to Supabase
+ideabyhuman/.env.local                                     — credentials configured
+```
+
+### Test Files (working directory, not in V2)
+
+```
+test_supabase.py           — IdeaByHuman DB connection test
+test_slab_guard.py         — original eBay vs registered comparison (shows both problems)
+test_slab_guard_v2.py      — iterative fix attempts (auto-rotation, masking, CLAHE)
+ebay_ironman200.jpg        — downloaded eBay listing image
+```
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate (Next Session)
 
-1. **Deploy Session 50 changes to Render**
+1. **Add auto-rotation to production pipeline**
+   - `_auto_orient_comic()` in `slab_guard_cv.py` — EXIF correction + aspect ratio heuristic
+   - Apply before hashing in `monitor.py` (`generate_composite_from_url`)
+   - Apply at registration in `registry.py`
+   - Proven to fix same-camera comparisons and partially fix hash gate
+
+2. **Add marketplace mode with loose hash threshold**
+   - New constant `COMPOSITE_THRESHOLD_MARKETPLACE = 105` in `monitor.py`
+   - `marketplace_mode` parameter on `find_matches()` and `/check-image`
+   - Safety net for rotated/varied registration photos that auto-rotation doesn't fully fix
+
+3. **Claude Vision as primary verdict for marketplace comparisons**
+   - Current SIFT edge metrics fundamentally can't discriminate copy identity cross-camera
+   - Vision "difference finder" (Session 48-50) scored 3/4 on same-camera pairs
+   - For marketplace mode: skip SIFT verdict, go straight to Vision after alignment
+   - Vision prompt already handles physical vs photo differences well
+
+4. **Deploy Session 50 changes to Render** (still pending)
    - Border inlier counting, multi-run SIFT, updated Vision prompt
-   - Smoke test with R2 photo URLs (Iron Man + Handbook)
-   - Verify 6/6 correct on production
-
-2. **Photo quality gate at registration**
-   - Reject photos with <100 SIFT keypoints (too blurry/small)
-   - Warn about angled photos (check homography distortion)
-   - Minimum resolution check
-
-3. **Broader testing with marketplace photos**
-   - Test with real eBay listing photos (different lighting, angles, backgrounds)
-   - More comic titles and conditions
-   - Stress test border inlier approach with low-quality photos
+   - Smoke test with R2 photo URLs
 
 ### Short-Term
 
-4. **Perspective correction for angled photos**
-   - Use SIFT matches to warp angled photos to front-facing orientation
-   - Then apply edge IoU analysis on corrected images
-   - Improves handling of marketplace listing photos
+5. **Re-register Iron Man #200 with upright photos**
+   - Current registrations are all rotated 90° on blanket — poor quality
+   - New registrations with flat, upright, well-lit photos per guidelines
+   - Re-test eBay comparison after re-registration
 
-5. **Combine front + back cover scores**
-   - Currently only comparing front covers
-   - Back cover edge IoU would provide additional discrimination
+6. **Photo quality gate at registration**
+   - Reject photos with <100 SIFT keypoints (too blurry/small)
+   - Warn about rotated photos (EXIF says 90°/270°)
+   - Warn about cluttered backgrounds (blanket, table, etc.)
+   - Minimum resolution check
 
-6. **Performance optimization**
-   - Cache SIFT keypoints at registration time (avoid re-downloading + re-extracting)
-   - Limit SIFT comparison to top-N composite matches (avoid N² comparisons)
+7. **Performance optimization**
+   - Cache SIFT keypoints at registration time
+   - Limit SIFT comparison to top-N composite matches
 
 ---
 
@@ -421,4 +511,4 @@ All are: The Official Handbook of the Marvel Universe #2
 
 ---
 
-*Last updated: February 18, 2026 (Session 50 — border inlier breakthrough, 6/6 correct on Iron Man + Handbook)*
+*Last updated: February 19, 2026 (Session 51 — IdeaByHuman DB deployed, marketplace photo reality check, SIFT limitations identified for cross-camera comparisons)*
