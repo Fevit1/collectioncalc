@@ -959,17 +959,26 @@ def compare_copies():
         ref_url: URL of registered (reference) cover photo
         test_url: URL of test/query cover photo
         use_vision: bool (default False) — include Claude Vision analysis
+        marketplace_mode: bool (default False) — cross-camera mode for marketplace
+            photos (eBay listings vs registrations). Forces Vision on as PRIMARY
+            verdict, removes Canny overlay, adds cross-camera warnings to prompt.
+            Session 55: Also uses LPQ as tiebreaker when Vision is uncertain.
 
     Returns SIFT alignment + edge IoU metrics + copy verdict.
     This endpoint is useful for:
       - Testing/debugging copy matching
       - On-demand comparison without full registry search
       - Claude Vision confirmation for high-value items
+      - Marketplace theft detection (marketplace_mode=true)
     """
     data = request.get_json() or {}
     ref_url = data.get('ref_url')
     test_url = data.get('test_url')
     use_vision = data.get('use_vision', False)
+    marketplace_mode = data.get('marketplace_mode', False)
+
+    # Session 55: marketplace_mode forces Vision on (same as check-image endpoint)
+    effective_use_vision = use_vision or marketplace_mode
 
     if not ref_url or not test_url:
         return jsonify({
@@ -985,10 +994,11 @@ def compare_copies():
         }), 503
 
     try:
-        if use_vision:
+        if effective_use_vision:
             result = compare_covers_with_vision(
                 ref_url=ref_url,
                 test_url=test_url,
+                marketplace_mode=marketplace_mode,
             )
         else:
             result = compare_covers(
