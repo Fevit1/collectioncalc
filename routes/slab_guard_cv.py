@@ -383,19 +383,23 @@ BORDER_INLIER_RUNS = 3         # Run SIFT align N times, take max border inliers
 EDGE_WIDTH_PX = 50             # Edge strip width for IoU computation
 TARGET_SIZE = (800, 1200)      # Standard comparison size
 
-# ── LPQ THRESHOLDS (Session 54, validated on Iron Man #200 test set) ──
+# ── LPQ THRESHOLDS (Session 54-55, validated on Iron Man #200 test set) ──
 # LPQ (Local Phase Quantization) uses STFT phase — blur-invariant, works cross-camera.
-# Chi-squared distance on 256-bin LPQ histograms:
-#   SAME-COPY:  0.055 (1 pair tested)
-#   DIFF-COPY same-camera: 0.196-0.212
-#   DIFF-COPY cross-camera: 0.154-0.335
-# Gap: +0.099 — largest separation of any metric tested.
 # KEY INSIGHT: Signal lives in BORDER WEAR, not paper fiber/halftone.
 # Interior-only LPQ shows NO separation (printed content dominates).
+#
+# Session 55: BORDER-ONLY LPQ promoted to primary metric (was full-image).
+# Border-only computes LPQ on concatenated edge strips only (top+bottom+left+right).
+# This gives 4.7x stronger separation because it focuses on where the signal lives:
+#
+#   Full-image chi2:   SAME=0.055, DIFF=0.154-0.335  (gap +0.099)
+#   Border-only chi2:  SAME=0.123, DIFF=0.586-1.375  (gap +0.463)
+#
+# Thresholds set with generous margins (SAME 2x above observed, DIFF well below min):
 # ⚠️ Tiny sample size (1 same, 5 diff) — validate on more data.
-LPQ_SAME_COPY = 0.10          # chi2 < 0.10 → SAME_COPY
-LPQ_DIFF_COPY = 0.15          # chi2 > 0.15 → DIFFERENT_COPY
-                                # 0.10-0.15 → UNCERTAIN (Vision resolves)
+LPQ_SAME_COPY = 0.25          # border chi2 < 0.25 → SAME_COPY  (observed: 0.123)
+LPQ_DIFF_COPY = 0.40          # border chi2 > 0.40 → DIFFERENT_COPY  (observed: 0.586+)
+                                # 0.25-0.40 → UNCERTAIN (Vision resolves)
 LPQ_WIN_SIZE = 5               # STFT window size for LPQ computation
 
 
@@ -816,13 +820,13 @@ def _compute_lpq_distance(ref_img, aligned_img, win_size=LPQ_WIN_SIZE,
     """
     Compute LPQ chi-squared distance between reference and aligned images.
 
-    Computes both full-image and border-only LPQ distances. The border-only
-    variant may have better signal-to-noise since Session 54 showed the
-    discriminative power comes from border wear, not interior content.
+    Computes both full-image and border-only LPQ distances.
 
-    Session 54 thresholds (chi2 distance):
-      Full image:  SAME=0.055, DIFF=0.154-0.335, threshold 0.10/0.15
-      Border-only: Not yet validated — included for testing
+    Session 55: BORDER-ONLY is now the PRIMARY metric (was full-image).
+    Border-only gives 4.7x stronger separation because the discriminative
+    signal lives in border wear patterns, not interior printed content.
+      Full image:  SAME=0.055, DIFF=0.154-0.335  (gap +0.099)
+      Border-only: SAME=0.123, DIFF=0.586-1.375  (gap +0.463)
 
     Args:
         ref_img: Reference BGR image (standard size)
@@ -831,8 +835,8 @@ def _compute_lpq_distance(ref_img, aligned_img, win_size=LPQ_WIN_SIZE,
         edge_width: Border strip width for border-only computation
 
     Returns dict:
-        lpq_chi2: Full-image chi-squared distance (primary metric)
-        lpq_border_chi2: Border-only chi-squared distance (experimental)
+        lpq_chi2: Border-only chi-squared distance (PRIMARY metric, Session 55)
+        lpq_full_chi2: Full-image chi-squared distance (kept for diagnostics)
         lpq_verdict_hint: 'same_copy' | 'different_copy' | 'uncertain'
     """
     ref_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY)
@@ -877,17 +881,17 @@ def _compute_lpq_distance(ref_img, aligned_img, win_size=LPQ_WIN_SIZE,
     chi2_border = float(np.sum((ref_border_hist - aligned_border_hist) ** 2 /
                                 (ref_border_hist + aligned_border_hist + 1e-10)))
 
-    # Verdict hint based on full-image chi2 (the validated metric)
-    if chi2_full < LPQ_SAME_COPY:
+    # Verdict hint based on border chi2 (PRIMARY metric, Session 55)
+    if chi2_border < LPQ_SAME_COPY:
         verdict_hint = 'same_copy'
-    elif chi2_full > LPQ_DIFF_COPY:
+    elif chi2_border > LPQ_DIFF_COPY:
         verdict_hint = 'different_copy'
     else:
         verdict_hint = 'uncertain'
 
     return {
-        'lpq_chi2': round(chi2_full, 6),
-        'lpq_border_chi2': round(chi2_border, 6),
+        'lpq_chi2': round(chi2_border, 6),  # PRIMARY: border-only (Session 55)
+        'lpq_full_chi2': round(chi2_full, 6),  # kept for diagnostics
         'lpq_verdict_hint': verdict_hint,
     }
 
@@ -1283,7 +1287,7 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
                         for k, v in per_edge.items()},
             'alignment': align_stats,
             'lpq_chi2': lpq_result['lpq_chi2'],
-            'lpq_border_chi2': lpq_result['lpq_border_chi2'],
+            'lpq_full_chi2': lpq_result['lpq_full_chi2'],
             'lpq_verdict_hint': lpq_result['lpq_verdict_hint'],
         }
         if used_alternate:
@@ -1750,7 +1754,7 @@ Respond in JSON:
                         for k, v in per_edge.items()},
             'alignment': align_stats,
             'lpq_chi2': lpq_result['lpq_chi2'],
-            'lpq_border_chi2': lpq_result['lpq_border_chi2'],
+            'lpq_full_chi2': lpq_result['lpq_full_chi2'],
             'lpq_verdict_hint': lpq_result['lpq_verdict_hint'],
             'vision_verdict': vision_verdict,
             'vision_confidence': round(vision_confidence, 3),
