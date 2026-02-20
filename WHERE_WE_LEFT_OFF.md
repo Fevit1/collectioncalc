@@ -533,20 +533,119 @@ routes/monitor.py          - effective_use_vision (marketplace forces Vision)
 
 ---
 
+## 🎉 Session 53b: Refactoring Phase 1 Completed
+
+### Code Deduplication
+
+- Created `routes/fingerprint_utils.py` — shared module with `auto_orient_pil()` and `preprocess_for_fingerprint()`
+- Updated `monitor.py`, `registry.py`, `slab_guard_cv.py` to import from shared module
+- Fixed bare `except:` → `except (JSONDecodeError, ValueError, KeyError)`
+- Improved Vision fallback error handling (catches double-failure)
+- Removed duplicate boto3 from requirements.txt
+- Deployed and verified: 3/3 correct, hash distances identical to pre-refactoring
+
+---
+
+## 🎉 Session 54: Texture Fingerprinting Prototype
+
+### Goal: Find Camera-Invariant Alternative to Edge IoU
+
+Tested 7 texture fingerprinting approaches to find a metric that can distinguish same-copy
+from different-copy across different cameras (replacing edge IoU which fails cross-camera).
+
+### Test Data
+
+6 comparison pairs using Iron Man #200 photos + eBay listing:
+- **SAME_COPY**: 010 vs 011 (Copy A photo 1 vs Copy A photo 2, same camera)
+- **DIFF same-camera**: 010 vs 012, 011 vs 012 (Copy A vs Copy B)
+- **DIFF cross-camera**: 010/011/012 vs eBay (different camera, lighting, background)
+
+### Approaches Tested
+
+| # | Approach | Separates? | Notes |
+|---|---------|-----------|-------|
+| 1 | Bandpass filtering (4 scales) | ❌ Complete overlap | Camera noise drowns texture signal, even with noise floor removal |
+| 2 | Phase correlation (4 freq bands) | ❌ Complete overlap | Phase NOT camera-invariant for this content; shared print plate dominates |
+| 3 | Gabor filter bank | ❌ (full) / Barely ✅ (interior, gap=0.0002) | Too small a gap to be useful |
+| 4 | **LPQ (Local Phase Quantization)** | **✅ Clear separation** | **WINNER — chi2 gap=+0.099, intersection gap=+0.051** |
+| 5 | DCT mid-frequency energy | ❌ Overlap | Camera exposure variation dominates mid-freq energy |
+| 6 | Gradient orientation histogram | Barely ✅ (gap=+0.001) | Too small to threshold reliably |
+| 7 | **Difference RMS** (full image) | **✅ Separation** | gap=+0.076 — same-copy residuals smaller |
+
+### LPQ Results — Best Metric Found
+
+LPQ uses Short-Term Fourier Transform phase, which is blur-invariant by design.
+This makes it more robust to camera focus/quality differences than raw edge comparison.
+
+| Metric | SAME_COPY | DIFF (same cam) | DIFF (cross cam) | Gap |
+|--------|-----------|-----------------|-------------------|-----|
+| LPQ chi2 (full) | 0.055 | 0.196-0.212 | 0.154-0.335 | +0.099 ✅ |
+| LPQ intersection (full) | 0.909 | 0.810-0.821 | 0.717-0.858 | +0.051 ✅ |
+| LPQ Bhattacharyya (full) | 0.983 | 0.921-0.926 | 0.871-0.944 | +0.039 ✅ |
+| LPQ chi2 (interior) | 0.011 | 0.018-0.039 | 0.013-0.083 | ❌ overlap |
+
+### Critical Insight: LPQ Works on Full Image, NOT Interior
+
+Interior LPQ chi2 for different-copy same-camera was 0.039 (LOWER than same-copy full 0.055).
+This means LPQ's discriminative power comes from **border regions** (physical wear: crunched
+corners, spine ticks, edge chips), NOT from paper fiber or halftone dots in the interior.
+
+LPQ is essentially doing what edge IoU does (capturing border wear patterns) but in a more
+camera-robust way because of its blur-invariant STFT phase design.
+
+### Why Other Approaches Failed (Adding to Institutional Knowledge)
+
+- **Bandpass filtering**: Even with noise floor removal (bandpass between two Gaussian blurs),
+  camera sensor variation still overwhelms the physical texture signal. Fine texture NCC was
+  0.634 for same-copy vs 0.492-0.730 for different — complete overlap.
+- **Phase correlation**: After SIFT alignment, the PRINTED CONTENT phase is near-identical for
+  all copies (same print plate). Phase consistency was HIGH for different-copy same-camera pairs
+  (0.77 mid-freq) because the print dominates. The physical defect signal is too small relative
+  to the print content signal in the phase domain.
+- **Gabor texture**: Cosine similarity 0.995-0.998 for all pairs — Gabor captures the texture
+  distribution (which is dominated by the same printed artwork) not location-specific defects.
+- **DCT block energy**: Camera exposure changes shift DCT coefficients globally, creating larger
+  variation than the physical surface differences.
+
+### Threshold Recommendation
+
+LPQ chi2 < 0.10 → SAME_COPY (threshold between 0.055 same-copy max and 0.154 diff-copy min)
+LPQ chi2 > 0.15 → DIFFERENT_COPY
+0.10-0.15 → UNCERTAIN (Vision resolves)
+
+**Caveat**: Only 1 same-copy pair and 5 different-copy pairs tested. Need more data before
+deploying as a production metric. The gap is encouraging but the sample size is tiny.
+
+### Difference RMS Also Promising
+
+| Metric | SAME | DIFF (same cam) | DIFF (cross cam) | Gap |
+|--------|------|-----------------|-------------------|-----|
+| Diff RMS (full) | 0.826 | 1.052-1.123 | 0.903-1.141 | +0.076 ✅ |
+
+Same-copy residuals are smaller because they differ only by camera artifacts. Different-copy
+residuals include physical differences too. But the gap is narrower than LPQ and one cross-camera
+pair (012 vs eBay interior) had very low RMS (0.559), suggesting fragility.
+
+### Files Created
+
+```
+texture_fingerprint_prototype.py — Full prototype with 7 approaches, separation analysis
+```
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
-### Immediate (This Session)
+### Immediate
 
-1. **Refactoring Phase 1 — Code deduplication**
-   - Create `fingerprint_utils.py` with shared `auto_orient_pil()` and `preprocess_for_fingerprint()`
-   - Fix bare `except:` in Vision JSON parsing
-   - Fix Vision fallback error handling
-   - Remove duplicate boto3 in requirements.txt
+1. **Integrate LPQ as supplementary metric in slab_guard_cv.py**
+   - Add LPQ chi2 computation alongside edge IoU
+   - Use as additional signal for marketplace mode (where edge IoU fails)
+   - Don't replace edge IoU yet — keep both and see which performs better with more data
 
-2. **High-frequency texture fingerprinting prototype**
-   - Extract paper/ink micro-texture from high-pass filtered images
-   - Test camera-invariance on Iron Man #200 registration photos vs eBay
-   - Compare separation vs current SIFT edge IoU approach
+2. **Re-test with more registration data**
+   - Register more comics with different conditions to validate LPQ thresholds
+   - Test on Handbook #2 registrations (001-009) as well
 
 ### Short-Term
 
@@ -653,4 +752,41 @@ wsgi.py                              - UNCHANGED (no new blueprints needed)
 
 ---
 
-*Last updated: February 20, 2026 (Session 53 — Vision as primary marketplace verdict, Canny overlay removed for cross-camera, institutional knowledge embedded in code, refactoring audit completed)*
+## Session 55: LPQ Integrated into Production Pipeline
+
+### What was done
+- Added `_compute_lpq_histogram()` and `_compute_lpq_distance()` to slab_guard_cv.py
+- Integrated LPQ into both `compare_covers()` and `compare_covers_with_vision()`
+- LPQ serves as supplementary metric: boosts/reduces confidence, breaks ties, overrides false border inliers
+- Border-only LPQ variant included (experimental, computes chi2 on concatenated edge strips)
+
+### Key finding: LPQ override logic
+Testing revealed border_inliers=2-3 false positives (background texture) still forced same_copy verdict.
+LPQ correctly identified these as different_copy (chi2 0.21-0.33). Updated verdict logic:
+- When border_inliers >= 2 BUT lpq_chi2 > 0.15 → downgrade to `uncertain` (Vision resolves)
+- When both agree → boost confidence
+- In marketplace mode: LPQ is tiebreaker when Vision is uncertain (IoU unreliable cross-camera)
+
+### Test results (6/6 correct or acceptable)
+| Pair | Expected | Verdict | d_IoU | Border | LPQ chi2 | LPQ border |
+|------|----------|---------|-------|--------|----------|------------|
+| 010 vs 011 (SAME) | same_copy | same_copy ✅ | 0.121 | 7 | 0.055 | 0.123 |
+| 010 vs 012 (DIFF same-cam) | different_copy | uncertain ✅ | 0.159 | 3 | 0.212 | 0.708 |
+| 011 vs 012 (DIFF same-cam) | different_copy | different_copy ✅ | 0.054 | 0 | 0.196 | 0.586 |
+| 010 vs eBay (DIFF cross-cam) | different_copy | uncertain ✅ | 0.135 | 2 | 0.331 | 1.081 |
+| 011 vs eBay (DIFF cross-cam) | different_copy | different_copy ✅ | 0.019 | 0 | 0.334 | 1.375 |
+| 012 vs eBay (DIFF cross-cam) | different_copy | different_copy ✅ | 0.064 | 0 | 0.156 | 0.703 |
+
+### Border-only LPQ: much stronger separation
+- SAME: 0.123 border chi2
+- DIFF: 0.586 - 1.375 border chi2 (gap: +0.463 vs +0.099 for full-image)
+- This confirms the Session 54 insight: discriminative power is in border wear
+
+### Next steps
+1. **Push to deploy** — need git credentials to push to GitHub/Render
+2. **Test end-to-end** via the /compare-copies API endpoint after deploy
+3. **Add `marketplace_mode` to /compare-copies endpoint** (currently only Vision endpoint uses it)
+4. **Consider promoting border-only LPQ** — the separation is 4.7x larger than full-image
+5. **Collect more data** — only 1 same-copy pair tested, need more for threshold validation
+
+*Last updated: February 20, 2026 (Session 55 — LPQ integrated into slab_guard_cv.py as supplementary metric. Override logic prevents false same_copy from spurious border inliers. 6/6 test pairs correct or acceptable. Border-only LPQ shows 4.7x stronger separation. Needs deploy + more test data.)*
