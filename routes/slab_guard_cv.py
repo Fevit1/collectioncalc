@@ -1205,20 +1205,40 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
         border_inliers = align_stats.get('border_inliers', 0)
 
         if avg_dilated_iou >= DILATED_IOU_SAME_COPY:
-            verdict = 'same_copy'
-            confidence = min(0.95, 0.7 + (avg_dilated_iou - DILATED_IOU_SAME_COPY) * 5)
-            # LPQ can boost or reduce confidence
+            # High dilated IoU — strong SAME signal from edge structure
+            # Session 54: LPQ can validate or challenge this
             if lpq_chi2 < LPQ_SAME_COPY:
-                confidence = min(0.97, confidence + 0.05)  # LPQ agrees → boost
+                verdict = 'same_copy'
+                confidence = min(0.97, 0.75 + (avg_dilated_iou - DILATED_IOU_SAME_COPY) * 5)
             elif lpq_chi2 > LPQ_DIFF_COPY:
-                confidence = max(0.55, confidence - 0.15)  # LPQ disagrees → reduce
+                # LPQ disagrees — dilated IoU may be inflated by cross-camera noise
+                # Downgrade to uncertain, let Vision resolve
+                verdict = 'uncertain'
+                confidence = 0.55
+            else:
+                verdict = 'same_copy'
+                confidence = min(0.90, 0.7 + (avg_dilated_iou - DILATED_IOU_SAME_COPY) * 5)
         elif border_inliers >= BORDER_INLIER_SAME_COPY:
-            verdict = 'same_copy'
-            confidence = min(0.92, 0.70 + border_inliers * 0.05)
-            if lpq_chi2 < LPQ_SAME_COPY:
-                confidence = min(0.95, confidence + 0.05)
-            elif lpq_chi2 > LPQ_DIFF_COPY:
-                confidence = max(0.55, confidence - 0.15)
+            # Session 54: Border inliers can be FALSE POSITIVES from background
+            # texture (blanket fibers, table edges). LPQ is more reliable because
+            # it's blur-invariant and captures actual border wear patterns.
+            # When LPQ strongly disagrees (chi2 > LPQ_DIFF_COPY), downgrade to
+            # uncertain rather than trusting potentially spurious border inliers.
+            if lpq_chi2 > LPQ_DIFF_COPY:
+                # LPQ says DIFFERENT but border inliers say SAME — conflicting
+                # This pattern matches known false-positive scenarios:
+                # 010 vs 012 (border_inliers=3, lpq=0.209) and
+                # 010 vs eBay (border_inliers=2, lpq=0.327)
+                verdict = 'uncertain'
+                confidence = 0.50
+            elif lpq_chi2 < LPQ_SAME_COPY:
+                # Both LPQ and border inliers agree → strong SAME signal
+                verdict = 'same_copy'
+                confidence = min(0.95, 0.75 + border_inliers * 0.05)
+            else:
+                # LPQ in uncertain range, border inliers say same
+                verdict = 'same_copy'
+                confidence = min(0.85, 0.65 + border_inliers * 0.05)
         elif border_inliers == 0 and avg_dilated_iou < DILATED_IOU_SAME_COPY:
             verdict = 'different_copy'
             confidence = min(0.90, 0.65 + (DILATED_IOU_SAME_COPY - avg_dilated_iou) * 3)
