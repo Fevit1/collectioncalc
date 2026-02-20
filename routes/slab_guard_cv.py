@@ -791,7 +791,8 @@ def compare_covers_with_vision(ref_url, test_url,
                                 extra_ref_photos=None,
                                 anthropic_api_key=None,
                                 model="claude-sonnet-4-20250514",
-                                timeout=15):
+                                timeout=15,
+                                marketplace_mode=False):
     """
     Full hybrid comparison: SIFT + edge IoU + Claude Vision interpretation.
 
@@ -808,6 +809,12 @@ def compare_covers_with_vision(ref_url, test_url,
         anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env var)
         model: Claude model to use
         timeout: Download timeout
+        marketplace_mode: If True, Vision is the PRIMARY verdict. Cross-camera
+            marketplace photos (different lighting, backgrounds, angles) fool
+            the quantitative pipeline with spurious border inliers and false
+            edge matches. Vision handles this correctly by comparing physical
+            defects. Session 53: quant is still computed for diagnostics but
+            Vision verdict takes priority in marketplace mode.
 
     Returns dict with all fields from compare_covers() plus:
         vision_verdict: Claude's verdict
@@ -832,6 +839,12 @@ def compare_covers_with_vision(ref_url, test_url,
         result['vision_available'] = False
         result['final_verdict'] = result.get('verdict')
         result['final_confidence'] = result.get('confidence')
+        if marketplace_mode:
+            # Session 53: Warn that marketplace verdict is unreliable without Vision
+            result['marketplace_warning'] = (
+                'Vision API unavailable — marketplace verdict uses quantitative metrics only, '
+                'which are unreliable for cross-camera comparisons. Results may contain false positives.')
+            result['final_confidence'] = min(result.get('final_confidence', 0.5), 0.5)
         return result
 
     try:
@@ -1124,21 +1137,44 @@ Respond in JSON:
             if vision_edges:
                 observations.append(f"edges: {vision_edges}")
 
-        # Combined verdict: quant has priority, vision resolves uncertainty
-        if quant_verdict == vision_verdict:
-            final_verdict = quant_verdict
-            final_confidence = max(vision_confidence, 0.85)
-        elif quant_verdict == 'uncertain':
-            # Vision is the tiebreaker for uncertain cases — its primary role
-            final_verdict = vision_verdict
-            final_confidence = vision_confidence
-        elif vision_verdict == 'uncertain':
-            final_verdict = quant_verdict
-            final_confidence = 0.7
+        # Combined verdict logic
+        # Session 53: marketplace_mode flips priority — Vision is primary because
+        # cross-camera photos (different lighting, background, angle) generate
+        # spurious border inliers and false edge matches that fool quant metrics.
+        # Standard mode: quant has priority, Vision resolves uncertainty.
+        if marketplace_mode:
+            # ── MARKETPLACE MODE: Vision is PRIMARY ──
+            # Quant metrics are unreliable cross-camera (Session 51 finding:
+            # blanket texture creates false border inliers, dilated IoU separates
+            # camera conditions not copy identity). Trust Vision's physical defect
+            # analysis, which is robust to environmental differences.
+            if vision_verdict != 'uncertain':
+                final_verdict = vision_verdict
+                # Boost confidence if quant agrees
+                if quant_verdict == vision_verdict:
+                    final_confidence = max(vision_confidence, 0.90)
+                else:
+                    final_confidence = vision_confidence
+            else:
+                # Vision uncertain — fall back to quant but lower confidence
+                final_verdict = quant_verdict if quant_verdict != 'uncertain' else 'uncertain'
+                final_confidence = 0.5
         else:
-            # Disagreement: trust quantitative (it showed clean separation in testing)
-            final_verdict = quant_verdict
-            final_confidence = 0.6
+            # ── STANDARD MODE: Quant has priority ──
+            if quant_verdict == vision_verdict:
+                final_verdict = quant_verdict
+                final_confidence = max(vision_confidence, 0.85)
+            elif quant_verdict == 'uncertain':
+                # Vision is the tiebreaker for uncertain cases — its primary role
+                final_verdict = vision_verdict
+                final_confidence = vision_confidence
+            elif vision_verdict == 'uncertain':
+                final_verdict = quant_verdict
+                final_confidence = 0.7
+            else:
+                # Disagreement: trust quantitative (it showed clean separation in testing)
+                final_verdict = quant_verdict
+                final_confidence = 0.6
 
         return {
             'success': True,
@@ -1163,6 +1199,8 @@ Respond in JSON:
             'vision_edges': vision_edges,
             'final_verdict': final_verdict,
             'final_confidence': round(final_confidence, 3),
+            'marketplace_mode': marketplace_mode,
+            'verdict_source': 'vision_primary' if marketplace_mode else 'quant_primary',
             'cost_usd': round(cost, 5),
         }
 

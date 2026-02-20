@@ -642,6 +642,14 @@ def check_image():
     # ── SIFT + EDGE IoU COPY-LEVEL VERIFICATION ──────────────────
     # For each issue-level match, run SIFT comparison to determine
     # if query photo shows the SAME physical copy or a DIFFERENT one.
+    #
+    # Session 53: In marketplace mode, ALWAYS use Vision as primary verdict.
+    # Cross-camera photos (blanket vs white background, different lighting)
+    # generate spurious border inliers and false edge matches that fool the
+    # quantitative pipeline. Vision handles these differences correctly by
+    # focusing on physical defects rather than edge structure.
+    effective_use_vision = use_vision or marketplace_mode  # Session 53: marketplace forces Vision
+
     sift_results = {}
     if use_sift and SIFT_CV_AVAILABLE and matches:
         for match in matches:
@@ -652,11 +660,12 @@ def check_image():
             extra_photos = match.get('_reg_extra_photos')
 
             try:
-                if use_vision:
+                if effective_use_vision:
                     cv_result = compare_covers_with_vision(
                         ref_url=reg_photo_url,
                         test_url=image_url,
                         extra_ref_photos=extra_photos,
+                        marketplace_mode=marketplace_mode,
                     )
                     verdict_key = 'final_verdict'
                     conf_key = 'final_confidence'
@@ -675,9 +684,11 @@ def check_image():
 
                     # Override edge strip copy_match with SIFT result
                     match['copy_match'] = sift_verdict
-                    match['match_type'] = 'sift_edge_iou' + ('_vision' if use_vision else '')
+                    match['match_type'] = 'sift_edge_iou' + ('_vision' if effective_use_vision else '')
                     match['sift_edge_iou'] = cv_result.get('avg_edge_iou')
                     match['sift_alignment'] = cv_result.get('alignment')
+                    if cv_result.get('verdict_source'):
+                        match['verdict_source'] = cv_result.get('verdict_source')
 
                     # Adjust confidence based on SIFT verdict
                     if sift_verdict == 'same_copy':
@@ -686,7 +697,7 @@ def check_image():
                         match['confidence'] = max(10, match['confidence'] - 15)
 
                     # Include vision details if available
-                    if use_vision and cv_result.get('vision_verdict'):
+                    if effective_use_vision and cv_result.get('vision_verdict'):
                         match['vision_verdict'] = cv_result.get('vision_verdict')
                         match['vision_reasoning'] = cv_result.get('vision_reasoning')
                         match['vision_confidence'] = cv_result.get('vision_confidence')
@@ -717,7 +728,7 @@ def check_image():
         'has_edge_strips': query_edge_strips is not None,
         'sift_available': SIFT_CV_AVAILABLE,
         'sift_used': use_sift and SIFT_CV_AVAILABLE,
-        'vision_used': use_vision,
+        'vision_used': effective_use_vision,
         'marketplace_mode': marketplace_mode,
         'match_count': len(matches),
         'matches': matches
