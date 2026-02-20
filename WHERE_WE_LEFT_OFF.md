@@ -427,35 +427,143 @@ To address IM-010 and IM-011 being blocked by the standard 77 threshold:
 
 ---
 
+## 🎉 Session 53: Vision as Primary Marketplace Verdict + Institutional Knowledge
+
+### Marketplace Mode Test (Before Fix)
+
+Tested production marketplace mode with eBay Iron Man #200 listing:
+- Image: `https://i.ebayimg.com/images/g/cGUAAeSwW1Vpf7O4/s-l1600.jpg`
+- All 3 registrations passed hash gate with 105 marketplace threshold ✅
+- SIFT verdicts (quant-only, no Vision):
+
+| Serial | Expected | Quant Verdict | Border Inliers | Dilated IoU | Correct? |
+|--------|----------|---------------|----------------|-------------|----------|
+| SW-000012 (diff) | different_copy | different_copy | 0 | 0.0171 | ✅ |
+| SW-000011 (diff) | different_copy | different_copy | 0 | 0.0022 | ✅ |
+| SW-000010 (diff) | different_copy | **same_copy** | **2** | 0.0184 | ❌ |
+
+SW-000010 false positive caused by 2 spurious border inliers from background texture
+(blanket fibers), with high avg_distance 158 (indicating poor match quality).
+
+### Vision as Primary Verdict (First Attempt — Failed)
+
+Enabled Vision as primary verdict for marketplace mode. Vision went 1/3:
+- SW-000012: different_copy ✅
+- SW-000010: **same_copy** ❌ — "predominantly green matching along the spine"
+- SW-000011: **same_copy** ❌ — "strong GREEN overlap in border regions"
+
+**Root cause:** Vision was being fooled by the Canny edge overlay. Printed content edges
+match across ALL copies (same print plate), creating false green (matching) signal in the
+overlay. Vision cited the overlay as primary evidence in both wrong verdicts.
+
+### Vision Fix: Remove Canny Overlay + Cross-Camera Prompt
+
+Changes made:
+1. **Removed Canny overlay from marketplace mode** — not generated, not sent to Vision
+2. **Added cross-camera marketplace warning to prompt** — explicitly tells Vision:
+   - Photos come from different cameras/lighting/backgrounds
+   - Background textures (blanket, mylar, table) must be ignored
+   - General wear pattern similarity is NOT evidence (same-grade copies look similar)
+   - Must find SPECIFIC, LOCATABLE physical defects to call SAME_COPY
+   - Default verdict is DIFFERENT_COPY
+3. **Removed Step 4 (Canny overlay check)** from structured analysis
+4. **Tightened SAME_COPY decision rule** for marketplace mode
+
+### Vision Fix Results — 3/3 Correct ✅
+
+| Serial | Expected | Vision Verdict | Conf | Quant Verdict | Final | Correct? |
+|--------|----------|---------------|------|---------------|-------|----------|
+| SW-000012 (diff) | different_copy | different_copy | 0.85 | different_copy | different_copy | ✅ |
+| SW-000010 (diff) | different_copy | different_copy | 0.70 | same_copy | **different_copy** | ✅ |
+| SW-000011 (diff) | different_copy | different_copy | 0.80 | different_copy | different_copy | ✅ |
+
+Key: SW-000010 — quant still says same_copy (spurious border inliers), but Vision correctly
+overrides: *"I cannot identify any specific, uniquely positioned physical defects...
+Without distinctive matching defects, these appear to be different physical copies."*
+
+Cost: ~$0.014 per comparison (~$0.04 total for 3 matches).
+
+### Institutional Knowledge Embedded in Code
+
+Added comprehensive documentation directly in source code (not just session notes):
+- **slab_guard_cv.py file-level docstring**: All 12+ failed approaches from Sessions 48-53,
+  each with GOAL → RESULT → WHY IT DOESN'T WORK FOR THIS USE CASE format.
+  Explicitly notes that approaches may be valid for other problems.
+- **Function-level warnings**: `_sift_align_with_stable_border()`, `_compute_edge_iou()`,
+  `_create_canny_overlay()`, `BORDER_INLIER_SAME_COPY` constant — all have ⚠️ cross-camera
+  limitation warnings with specific examples.
+- **monitor.py docstring**: Marketplace mode behavior documented (hash gate, forced Vision,
+  no Canny overlay, stricter SAME_COPY criteria).
+- **Future research directions**: High-frequency texture fingerprinting, geometric distortion
+  signatures, deep contrastive learning (Siamese networks).
+
+### Research: Cross-Camera Copy Identification
+
+Researched state of the art for camera-invariant physical object authentication. Key findings:
+- Current SIFT+edge approach matches VISUAL APPEARANCE (camera-dependent)
+- Research community uses PHYSICAL CHARACTERISTICS (camera-invariant):
+  1. **Texture fingerprinting** — paper fiber patterns, halftone dot placement (currency auth)
+  2. **Geometric distortion signatures** — printing press alignment defects (positional, not photometric)
+  3. **Deep contrastive learning** — Siamese networks trained on cross-camera pairs (person re-ID)
+- PatchCore with fine-tuned backbone (not off-the-shelf ImageNet) might work
+- Spectral/multispectral analysis possible but requires specialized imaging
+
+### Refactoring Audit Completed
+
+Identified key issues for cleanup:
+- **CRITICAL**: `auto_orient_pil()` duplicated in 3 files, `preprocess_for_fingerprint()` in 2
+- **CRITICAL**: Bare `except:` in Vision JSON parsing
+- **MODERATE**: Missing `marketplace_mode` on `/compare-copies` endpoint
+- **MODERATE**: Scattered constants across files
+- Plan: Create shared `fingerprint_utils.py`, centralize constants, fix error handling
+
+### Files Modified (Session 53)
+
+```
+routes/slab_guard_cv.py    - Vision marketplace prompt (remove Canny, add cross-camera warning)
+                             Institutional knowledge docstring (failed approaches, limitations)
+                             Function-level ⚠️ warnings (border inliers, edge IoU, Canny overlay)
+                             marketplace_mode param on compare_covers_with_vision()
+                             Vision verdict priority logic (marketplace: Vision primary)
+routes/monitor.py          - effective_use_vision (marketplace forces Vision)
+                             marketplace_mode passed to compare_covers_with_vision()
+                             Module docstring updated with marketplace mode docs
+                             COMPOSITE_THRESHOLD_MARKETPLACE comment expanded
+```
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
-### Immediate (Next Session)
+### Immediate (This Session)
 
-1. **Test marketplace mode in production**
-   - Deploy current changes, test with `marketplace_mode: true`
-   - Verify all three Iron Man registrations now match against eBay photo
-   - Verify SIFT correctly returns `different_copy` for all three
+1. **Refactoring Phase 1 — Code deduplication**
+   - Create `fingerprint_utils.py` with shared `auto_orient_pil()` and `preprocess_for_fingerprint()`
+   - Fix bare `except:` in Vision JSON parsing
+   - Fix Vision fallback error handling
+   - Remove duplicate boto3 in requirements.txt
 
-2. **Claude Vision as primary verdict for marketplace comparisons**
-   - Current SIFT edge metrics fundamentally can't discriminate copy identity cross-camera
-   - Vision "difference finder" (Session 48-50) scored 3/4 on same-camera pairs
-   - For marketplace mode: skip SIFT verdict, go straight to Vision after alignment
-   - Vision prompt already handles physical vs photo differences well
+2. **High-frequency texture fingerprinting prototype**
+   - Extract paper/ink micro-texture from high-pass filtered images
+   - Test camera-invariance on Iron Man #200 registration photos vs eBay
+   - Compare separation vs current SIFT edge IoU approach
 
 ### Short-Term
 
-5. **Re-register Iron Man #200 with upright photos**
+3. **Add `marketplace_mode` to `/compare-copies` endpoint**
+
+4. **Re-register Iron Man #200 with upright photos**
    - Current registrations are all rotated 90° on blanket — poor quality
    - New registrations with flat, upright, well-lit photos per guidelines
    - Re-test eBay comparison after re-registration
 
-6. **Photo quality gate at registration**
+5. **Photo quality gate at registration**
    - Reject photos with <100 SIFT keypoints (too blurry/small)
    - Warn about rotated photos (EXIF says 90°/270°)
    - Warn about cluttered backgrounds (blanket, table, etc.)
    - Minimum resolution check
 
-7. **Performance optimization**
+6. **Performance optimization**
    - Cache SIFT keypoints at registration time
    - Limit SIFT comparison to top-N composite matches
 
@@ -545,4 +653,4 @@ wsgi.py                              - UNCHANGED (no new blueprints needed)
 
 ---
 
-*Last updated: February 20, 2026 (Session 52 — Auto-rotation deployed + DB re-fingerprinted, marketplace mode added with 105 threshold)*
+*Last updated: February 20, 2026 (Session 53 — Vision as primary marketplace verdict, Canny overlay removed for cross-camera, institutional knowledge embedded in code, refactoring audit completed)*

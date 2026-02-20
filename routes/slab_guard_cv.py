@@ -305,39 +305,8 @@ EDGE_WIDTH_PX = 50             # Edge strip width for IoU computation
 TARGET_SIZE = (800, 1200)      # Standard comparison size
 
 
-def _auto_orient_image(img_pil):
-    """
-    Auto-orient a PIL image for consistent fingerprinting.
-
-    Two-step correction:
-      1. EXIF transpose — applies camera orientation metadata (handles phone
-         photos that embed rotation in EXIF rather than pixel data).
-      2. Aspect ratio heuristic — if the image is landscape (wider than tall),
-         rotate 90° CCW to portrait. Comic books are always taller than wide,
-         so a landscape image means the photo was taken sideways.
-
-    Session 51: This fixed hash distances for rotated Iron Man #200 registrations
-    (113 → 62 for IM-012, enabling it to pass the 77 composite threshold).
-    Also fixed same-copy detection for IM-010 vs IM-011 (dilated_iou 0.11 → 0.27).
-    """
-    from PIL import ImageOps
-
-    # Step 1: Apply EXIF orientation if present
-    try:
-        img_pil = ImageOps.exif_transpose(img_pil)
-    except Exception:
-        pass  # No EXIF or unsupported — continue with raw pixels
-
-    # Step 2: Aspect ratio heuristic — comics are portrait
-    w, h = img_pil.size
-    if w > h:
-        # Landscape → rotate 90° CW to portrait.
-        # PIL rotate(270) = 90° clockwise. This matches the most common phone
-        # landscape orientation (home button on right). Testing confirmed 270°
-        # gives correct right-side-up orientation (dist=60 vs 116 for 90° CCW).
-        img_pil = img_pil.rotate(270, expand=True)
-
-    return img_pil
+# Session 53: Shared auto-orient — single source of truth in fingerprint_utils.py
+from routes.fingerprint_utils import auto_orient_pil as _auto_orient_image
 
 
 def _download_image(url, timeout=15):
@@ -1380,11 +1349,12 @@ Respond in JSON:
             if text.startswith('```'):
                 text = text.split('\n', 1)[1].rsplit('```', 1)[0]
             parsed = json_mod.loads(text)
-        except:
+        except (json_mod.JSONDecodeError, ValueError, KeyError) as parse_err:
             import re
             m = re.search(r'\{[\s\S]*\}', raw)
             parsed = json_mod.loads(m.group()) if m else {
-                'verdict': 'UNCERTAIN', 'confidence': 0.5, 'reasoning': 'parse error', 'observations': []}
+                'verdict': 'UNCERTAIN', 'confidence': 0.5,
+                'reasoning': f'JSON parse error: {str(parse_err)[:100]}', 'observations': []}
 
         vision_verdict = parsed.get('verdict', 'UNCERTAIN').lower()
         # Normalize to our format
@@ -1482,8 +1452,22 @@ Respond in JSON:
         import traceback
         traceback.print_exc()
         # Fall back to quantitative only
-        result = compare_covers(ref_url, test_url, timeout)
-        result['vision_error'] = str(e)
+        try:
+            result = compare_covers(ref_url, test_url, extra_ref_photos, timeout)
+        except Exception as fallback_err:
+            return {
+                'success': False,
+                'verdict': 'error',
+                'final_verdict': 'error',
+                'error': (f'Vision failed: {e.__class__.__name__}: {str(e)[:150]}. '
+                          f'Quant fallback also failed: {str(fallback_err)[:150]}'),
+            }
+        result['vision_error'] = f'{e.__class__.__name__}: {str(e)[:200]}'
         result['final_verdict'] = result.get('verdict')
         result['final_confidence'] = result.get('confidence')
+        if marketplace_mode:
+            result['marketplace_warning'] = (
+                'Vision failed — marketplace verdict uses quantitative metrics only, '
+                'which are unreliable for cross-camera comparisons.')
+            result['final_confidence'] = min(result.get('final_confidence', 0.5), 0.5)
         return result

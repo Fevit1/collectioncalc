@@ -121,88 +121,9 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
-def auto_orient_pil(img):
-    """
-    Auto-orient a PIL image for consistent fingerprinting.
-
-    Session 51: Perceptual hashes are NOT rotation-invariant. Phone photos taken
-    sideways had hash distances of 103-113 (blocked by 77 threshold). After
-    auto-rotation: distances drop to 62-88, enabling marketplace matching.
-
-    Steps:
-      1. EXIF transpose — applies camera orientation metadata
-      2. Aspect ratio heuristic — rotates landscape to portrait (comics are tall)
-
-    Must match registry.py auto_orient_pil() exactly.
-    """
-    from PIL import ImageOps
-
-    try:
-        img = ImageOps.exif_transpose(img)
-    except Exception:
-        pass
-
-    w, h = img.size
-    if w > h:
-        # Landscape → rotate 90° CW to portrait.
-        # PIL rotate(270) = 90° clockwise. Matches most common phone orientation.
-        img = img.rotate(270, expand=True)
-
-    return img
-
-
-def preprocess_for_fingerprint(img):
-    """
-    Normalize image before fingerprinting. Must match registry.py preprocessing exactly.
-    Steps: auto-orient → grayscale → auto-crop → resize 256x256 → autocontrast → blur
-    """
-    from PIL import ImageFilter, ImageOps, ImageStat
-
-    # Auto-orient before any processing (Session 51)
-    img = auto_orient_pil(img)
-
-    img = img.convert('L')
-
-    # Auto-crop: estimate background from corners, find content bounding box
-    width, height = img.size
-    pixels = img.load()
-    corner_size = max(5, min(width, height) // 20)
-    corners = []
-    for region in [
-        (0, 0, corner_size, corner_size),
-        (width - corner_size, 0, width, corner_size),
-        (0, height - corner_size, corner_size, height),
-        (width - corner_size, height - corner_size, width, height)
-    ]:
-        corner_img = img.crop(region)
-        corner_stat = ImageStat.Stat(corner_img)
-        corners.append(corner_stat.mean[0])
-    bg_color = sum(corners) / len(corners)
-
-    left, top, right, bottom = width, height, 0, 0
-    for y in range(0, height, 2):
-        for x in range(0, width, 2):
-            if abs(pixels[x, y] - bg_color) > 30:
-                left = min(left, x)
-                top = min(top, y)
-                right = max(right, x)
-                bottom = max(bottom, y)
-
-    pad_x = max(5, int(width * 0.02))
-    pad_y = max(5, int(height * 0.02))
-    left = max(0, left - pad_x)
-    top = max(0, top - pad_y)
-    right = min(width, right + pad_x)
-    bottom = min(height, bottom + pad_y)
-
-    if right - left > width * 0.3 and bottom - top > height * 0.3:
-        img = img.crop((left, top, right, bottom))
-
-    img = img.resize((256, 256), PIL_Image.LANCZOS)
-    img = ImageOps.autocontrast(img, cutoff=2)
-    img = img.filter(ImageFilter.GaussianBlur(radius=1))
-
-    return img
+# Session 53: Shared preprocessing — single source of truth in fingerprint_utils.py
+# Previously duplicated here and in registry.py with "must match exactly" comments.
+from routes.fingerprint_utils import auto_orient_pil, preprocess_for_fingerprint
 
 
 def generate_composite_from_url(image_url):
