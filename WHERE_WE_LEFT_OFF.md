@@ -391,30 +391,56 @@ ebay_ironman200.jpg        — downloaded eBay listing image
 
 ---
 
+## 🎉 Session 52: Auto-Rotation Deployed + Marketplace Mode
+
+### Auto-Rotation Added to All Three Files
+
+Added `auto_orient_pil()` / `_auto_orient_image()` to production pipeline:
+- `routes/slab_guard_cv.py` — `_auto_orient_image()` in `_download_image()` (SIFT comparisons)
+- `routes/monitor.py` — `auto_orient_pil()` in `preprocess_for_fingerprint()` and `generate_edge_strips_from_url()` (hash generation)
+- `routes/registry.py` — `auto_orient_pil()` in `preprocess_for_fingerprint()` and `generate_edge_strip_hashes()` (registration)
+
+**Implementation:** EXIF transpose → aspect ratio heuristic (landscape→portrait via 270° CW rotation).
+
+### Database Re-Fingerprinting
+
+After deploying auto-rotation, stored hashes were still computed from rotated photos. Generated SQL UPDATE statements to recompute front cover hashes and edge strip hashes for all three Iron Man registrations (SW-2026-000010, 000011, 000012). User ran in DBeaver.
+
+### Production Test Results
+
+After DB update, `check-image` with eBay Iron Man #200 URL:
+
+| Registration | Composite Distance | Threshold (77) | SIFT Verdict | Correct? |
+|---|---|---|---|---|
+| SW-2026-000012 (diff copy) | 60 | ✅ PASS | different_copy | ✅ |
+| SW-2026-000010 (diff copy) | 80 | ❌ blocked | — | — |
+| SW-2026-000011 (diff copy) | 90 | ❌ blocked | — | — |
+
+### Marketplace Mode Added
+
+To address IM-010 and IM-011 being blocked by the standard 77 threshold:
+- Added `COMPOSITE_THRESHOLD_MARKETPLACE = 105` constant
+- Added `marketplace_mode` parameter to `find_matches()` and `/check-image` endpoint
+- When `marketplace_mode=True`, hash gate uses 105 instead of 77
+- Allows SIFT to make final same/diff copy verdict on cross-camera marketplace photos
+- Request format: `{"image_url": "...", "marketplace_mode": true}`
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate (Next Session)
 
-1. **Add auto-rotation to production pipeline**
-   - `_auto_orient_comic()` in `slab_guard_cv.py` — EXIF correction + aspect ratio heuristic
-   - Apply before hashing in `monitor.py` (`generate_composite_from_url`)
-   - Apply at registration in `registry.py`
-   - Proven to fix same-camera comparisons and partially fix hash gate
+1. **Test marketplace mode in production**
+   - Deploy current changes, test with `marketplace_mode: true`
+   - Verify all three Iron Man registrations now match against eBay photo
+   - Verify SIFT correctly returns `different_copy` for all three
 
-2. **Add marketplace mode with loose hash threshold**
-   - New constant `COMPOSITE_THRESHOLD_MARKETPLACE = 105` in `monitor.py`
-   - `marketplace_mode` parameter on `find_matches()` and `/check-image`
-   - Safety net for rotated/varied registration photos that auto-rotation doesn't fully fix
-
-3. **Claude Vision as primary verdict for marketplace comparisons**
+2. **Claude Vision as primary verdict for marketplace comparisons**
    - Current SIFT edge metrics fundamentally can't discriminate copy identity cross-camera
    - Vision "difference finder" (Session 48-50) scored 3/4 on same-camera pairs
    - For marketplace mode: skip SIFT verdict, go straight to Vision after alignment
    - Vision prompt already handles physical vs photo differences well
-
-4. **Deploy Session 50 changes to Render** (still pending)
-   - Border inlier counting, multi-run SIFT, updated Vision prompt
-   - Smoke test with R2 photo URLs
 
 ### Short-Term
 
@@ -507,8 +533,16 @@ wsgi.py                              - UNCHANGED (no new blueprints needed)
 | SW-2026-000008 | Copy A | Angled | Composite v3_edge, same as 006 |
 | SW-2026-000009 | Copy B | Straight | Composite v3_edge, different physical copy |
 
-All are: The Official Handbook of the Marvel Universe #2
+001-009: The Official Handbook of the Marvel Universe #2
+
+| Serial | Physical Copy | Photo Type | Notes |
+|--------|--------------|------------|-------|
+| SW-2026-000010 | Copy A | Rotated (blanket) | Iron Man #200, re-fingerprinted with auto-orient |
+| SW-2026-000011 | Copy A | Rotated (blanket) | Iron Man #200, same physical comic as 010 |
+| SW-2026-000012 | Copy B | Rotated (blanket) | Iron Man #200, different physical copy |
+
+010-012: Iron Man #200
 
 ---
 
-*Last updated: February 19, 2026 (Session 51 — IdeaByHuman DB deployed, marketplace photo reality check, SIFT limitations identified for cross-camera comparisons)*
+*Last updated: February 20, 2026 (Session 52 — Auto-rotation deployed + DB re-fingerprinted, marketplace mode added with 105 threshold)*

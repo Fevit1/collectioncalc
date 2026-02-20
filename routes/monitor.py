@@ -52,6 +52,9 @@ RATE_LIMIT_WINDOW = 60  # seconds
 COMPOSITE_THRESHOLD_CRITICAL = 70   # 95%+ same comic
 COMPOSITE_THRESHOLD_PROBABLE = 73   # High probability match
 COMPOSITE_THRESHOLD_DISMISS  = 77   # Different comic
+COMPOSITE_THRESHOLD_MARKETPLACE = 105  # Session 52: Looser gate for cross-camera marketplace photos
+                                       # eBay vs registered: 60-90 range after auto-orient
+                                       # Allows SIFT to make the final same/diff copy verdict
 
 # Edge strip thresholds (avg distance across 8 regions × 4 algos, per angle)
 # Based on testing: same-copy max ~122, diff-copy min ~126
@@ -375,7 +378,8 @@ def mask_email(email):
 
 
 def find_matches(query_hash, max_distance=20, stolen_only=False,
-                  query_composite=None, query_edge_strips=None):
+                  query_composite=None, query_edge_strips=None,
+                  marketplace_mode=False):
     """
     Compare query hash against all registered comics using three-tier matching:
       1. Composite (4 algos on full image) — issue-level match
@@ -388,6 +392,9 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
         stolen_only: Only search stolen comics
         query_composite: Dict with {phash, dhash, ahash, whash} for composite matching
         query_edge_strips: Dict with edge strip hashes for copy-level matching
+        marketplace_mode: Use looser hash threshold (105 vs 77) for cross-camera
+                          marketplace photos. Lets SIFT make the final verdict.
+                          Session 52: eBay vs registered = 60-90 after auto-orient.
 
     Returns list of matches sorted by confidence (lowest distance first).
     Each match includes:
@@ -461,8 +468,10 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
                 if stored_front:
                     comp_dist, algo_dists = composite_distance(query_composite, stored_front)
 
-                    # Composite threshold: 77 per angle (out of 256) for issue-level match
-                    if comp_dist <= COMPOSITE_THRESHOLD_DISMISS:
+                    # Composite threshold: 77 standard, 105 marketplace mode
+                    # Marketplace mode uses looser gate to let SIFT make final verdict
+                    threshold = COMPOSITE_THRESHOLD_MARKETPLACE if marketplace_mode else COMPOSITE_THRESHOLD_DISMISS
+                    if comp_dist <= threshold:
                         confidence = max(0, round(100 - (comp_dist * 0.39), 1))  # 0/256=100%, 256/256=0%
                         alert_level = composite_alert_level(comp_dist)
 
@@ -619,13 +628,15 @@ def check_image():
     stolen_only = data.get('stolen_only', False)
     use_sift = data.get('use_sift', True)       # SIFT+edge IoU (fast, default on)
     use_vision = data.get('use_vision', False)   # Claude Vision (slower, $0.03/call)
+    marketplace_mode = data.get('marketplace_mode', False)  # Session 52: loose hash gate for eBay photos
 
     matches = find_matches(
         query_hash,
         max_distance=max_distance,
         stolen_only=stolen_only,
         query_composite=query_composite,
-        query_edge_strips=query_edge_strips
+        query_edge_strips=query_edge_strips,
+        marketplace_mode=marketplace_mode,
     )
 
     # ── SIFT + EDGE IoU COPY-LEVEL VERIFICATION ──────────────────
@@ -707,6 +718,7 @@ def check_image():
         'sift_available': SIFT_CV_AVAILABLE,
         'sift_used': use_sift and SIFT_CV_AVAILABLE,
         'vision_used': use_vision,
+        'marketplace_mode': marketplace_mode,
         'match_count': len(matches),
         'matches': matches
     })
