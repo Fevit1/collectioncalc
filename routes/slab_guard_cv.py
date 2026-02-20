@@ -16,6 +16,228 @@ Thresholds (Session 48-50, validated with real phone photos):
   - strict edge_iou ≤ 0.010 AND border_inliers == 0: DIFFERENT_COPY
   - otherwise: UNCERTAIN → Claude Vision resolves with zoomed edge + corner crops
 
+═══════════════════════════════════════════════════════════════════════
+⚠️  APPROACHES TESTED AND FAILED FOR COPY-LEVEL IDENTIFICATION
+═══════════════════════════════════════════════════════════════════════
+
+These were exhaustively tested in Sessions 48-53 (Feb 2026) on real phone photos
+of Handbook of the Marvel Universe #2 and Iron Man #200.
+
+Each entry follows the format:
+  APPROACH → GOAL → WHAT HAPPENED → WHY IT DOESN'T WORK FOR THIS USE CASE
+  (The approach itself may be valid for other problems — these notes are specific
+  to the problem of distinguishing same vs different physical comic book copies
+  from phone photos.)
+
+PIXEL/TEXTURE-BASED APPROACHES:
+  ❌ LBP (Local Binary Patterns) texture analysis
+     GOAL: Use local texture patterns to fingerprint physical paper surface.
+     RESULT: Same-copy and different-copy score distributions overlap completely.
+     WHY: LBP captures micro-texture, but phone photo variation (lighting angle,
+     camera sensor noise, white balance) creates larger texture differences between
+     two photos of the SAME comic than the physical differences between two
+     DIFFERENT comics. LBP might work with controlled imaging (e.g., scanner or
+     fixed camera rig) but not with casual phone photos.
+
+  ❌ Wavelet detail band analysis
+     GOAL: Extract high-frequency detail coefficients to detect physical defects.
+     RESULT: Complete overlap between same-copy and different-copy distributions.
+     WHY: High-frequency wavelet bands are dominated by camera sensor noise and
+     JPEG compression artifacts, not physical defects. The defect signal (a crease
+     or chip) is subtle relative to the noise floor of a phone camera. Might work
+     with RAW sensor data or high-end imaging, but not consumer phone JPEGs.
+
+  ❌ High-pass filtering / gradient magnitude
+     GOAL: Isolate edge/defect information by removing low-frequency (lighting).
+     RESULT: No separation between same and different copies.
+     WHY: Same fundamental problem as wavelets — camera sensor noise in the high-
+     frequency domain overwhelms the subtle physical defect signal. Additionally,
+     printed artwork has strong high-frequency content (halftone dots, fine lines)
+     that dominates over physical wear features.
+
+  ❌ PatchCore anomaly detection (Anomalib-style, using pretrained ImageNet backbone)
+     GOAL: Use deep CNN features to detect anomalous regions (physical defects) that
+     differ between copies. PatchCore is state-of-the-art for industrial surface
+     defect detection (scratches on metal, fabric flaws).
+     RESULT: Complete distribution overlap. PatchCore scored similar anomaly levels
+     for same-copy and different-copy pairs.
+     WHY: The ImageNet-pretrained backbone (e.g., WideResNet50) extracts SEMANTIC
+     features — it understands "comic book cover," "Iron Man helmet," "red and gold
+     color scheme." It does NOT encode physical paper properties like "crease at
+     position X" or "chip on left edge." The feature space simply doesn't represent
+     the signal we need. PatchCore excels at industrial QC where defects are visually
+     obvious against uniform surfaces; comic covers have complex printed artwork that
+     drowns the defect signal in the feature space. A PatchCore model fine-tuned on
+     comic book defect data might work, but off-the-shelf ImageNet features do not.
+
+  ❌ Self-referencing PatchCore (using one photo as its own reference distribution)
+     GOAL: Instead of building a PatchCore model from multiple reference images, use
+     the single registration photo as the reference and detect what's "anomalous"
+     in the test photo relative to it.
+     RESULT: Minimal separation (0.05 gap in edge correlation between same/diff).
+     WHY: Same backbone limitation as standard PatchCore — the features don't encode
+     physical surface properties. Additionally, using a single reference image gives
+     a very noisy baseline, making anomaly detection even less reliable.
+
+  ❌ Edge strip v3 perceptual hash thresholds (8 regions × 4 algorithms = 32 hashes)
+     GOAL: Compare perceptual hashes of edge strip regions (top, bottom, left, right,
+     corners) to detect manufacturing trim differences between copies.
+     RESULT: Session 47 found 14.5pt gap on initial test pair; Session 48 found only
+     1.5pt gap on new registrations with different photos. Not generalizable.
+     WHY: Perceptual hash distances in small regions are highly sensitive to photo
+     framing, rotation, and lighting. The 14.5pt gap was specific to two photos
+     taken under very similar conditions. New photos with slightly different framing
+     collapsed the gap. The approach might work with extremely standardized photo
+     conditions (same camera, same angle, same lighting) but not with casual photos.
+
+SIFT-BASED APPROACHES:
+  ❌ SIFT-aligned pixel residual (compute difference image after SIFT alignment)
+     GOAL: After aligning two photos using SIFT, compute pixel-level residual. Same
+     copy should have low residual (same defects), different copy higher residual.
+     RESULT: Counter-intuitive — DIFFERENT copies sometimes had LOWER residual than
+     SAME copies.
+     WHY: After SIFT alignment, the printed artwork aligns perfectly for ALL copies
+     (same issue, same print plate). The residual therefore mostly captures PHOTO
+     differences (lighting, camera response, color balance), not physical differences.
+     Two photos from different cameras of different copies can have lower residual
+     than two photos from the same camera of the same copy if the camera settings
+     happen to produce similar tonal response. The residual measures photography
+     consistency, not physical copy identity.
+
+CLAUDE VISION APPROACHES:
+  ❌ Vision defect annotation v1 (describe defects in each photo independently)
+     GOAL: Have Claude describe physical defects in Photo A, then separately in Photo
+     B, then compare the text descriptions to find matches.
+     RESULT: 2/4 correct. Same physical crease described as "horizontal" in one
+     analysis and "diagonal" or "vertical" in another.
+     WHY: Claude Vision doesn't have consistent spatial reference when analyzing
+     images independently. The same feature can be described differently depending
+     on what else is in the image, how it's oriented, and what Claude focuses on.
+     Text-based descriptions of physical features are inherently lossy and
+     inconsistent. Direct visual comparison (both images in same prompt) works
+     much better than independent description + text matching.
+
+  ❌ Vision defect annotation v2 (use printed artwork landmarks as reference points)
+     GOAL: Fix the inconsistency problem by asking Claude to describe defect positions
+     relative to specific printed artwork landmarks (e.g., "3cm below Iron Man's left
+     repulsor blast").
+     RESULT: 2/4 correct. Landmark-relative descriptions still varied.
+     WHY: Claude doesn't reliably estimate distances or positions relative to
+     landmarks across separate analyses. The same defect near Iron Man's knee was
+     described as "just below the knee" in one photo and "at mid-thigh level" in
+     another. Relative spatial reasoning from images is not precise enough for
+     forensic-level matching.
+
+  ❌ Vision direct side-by-side v1 (show both photos, ask "same or different copy?")
+     GOAL: Let Claude compare both photos directly in a single prompt without
+     structured analysis steps.
+     RESULT: Fixed SAME_COPY cases (correctly identified matching copies) but broke
+     DIFFERENT_COPY cases (called different copies "same").
+     WHY: Without a structured analysis framework, Claude defaults to "these look
+     very similar" for any two copies of the same ISSUE. Comics from the same print
+     run ARE visually near-identical — the differences are subtle physical wear, not
+     obvious visual differences. An unstructured prompt lets Claude focus on the
+     overwhelming printed content similarity instead of the subtle physical
+     differences. The "difference finder" structured prompt (✅ what works) solves
+     this by forcing region-by-region physical defect analysis.
+
+  ❌ Passing quantitative metrics to Vision prompt (IoU values, border inlier counts)
+     GOAL: Give Vision the SIFT metrics as context to help it make a better decision.
+     RESULT: Vision's verdicts became correlated with the metrics shown, even when
+     the metrics were wrong. For example, if we showed "dilated IoU: 0.18" (high),
+     Vision was more likely to say SAME_COPY regardless of what it saw in the images.
+     WHY: Anchoring bias — a well-documented cognitive bias where an initial number
+     influences subsequent judgment. By showing metrics first, Vision's independent
+     visual analysis was compromised. Metrics MUST be withheld so Vision makes a
+     genuinely independent assessment. We combine the two verdicts programmatically
+     after both have been computed independently.
+
+CONTOUR/GEOMETRY APPROACHES:
+  ❌ Corner-focused contour detection (detect comic outline quadrilateral, compare)
+     GOAL: Detect the comic book's rectangular outline via contour detection, then
+     compare corner geometry between photos to detect different physical copies.
+     RESULT: Results went in WRONG direction on some test pairs (same-copy scored
+     as more different than different-copy).
+     WHY: Contour detection (Canny + findContours + polygon approximation) produces
+     inconsistent quadrilaterals depending on the background. A comic on a dark
+     blanket gives a different contour than the same comic on a white table. The
+     detected "corners" jump around with background changes, making the geometry
+     comparison meaningless. Might work with background removal (chroma key) or
+     controlled imaging, but not with casual photos on varied surfaces.
+
+CROSS-CAMERA SPECIFIC FAILURES (Session 51-53):
+  ❌ Canny edge overlay as evidence for Vision (cross-camera marketplace photos)
+     GOAL: Show Vision a color-coded Canny edge comparison overlay (GREEN=matching
+     edges, RED/BLUE=mismatching) to help it assess physical defect similarity.
+     RESULT: Vision called different copies "same_copy" because the overlay showed
+     "predominantly green matching along the spine" and "strong GREEN overlap in
+     border regions." All 2 of 3 wrong verdicts cited the Canny overlay as evidence.
+     WHY: After SIFT alignment, PRINTED CONTENT edges align perfectly across ALL
+     copies of the same issue (same print plate = same edges). This creates false
+     green signal in the overlay. The overlay is dominated by printed artwork edges,
+     not physical defect edges. For same-camera comparisons, the relative difference
+     between green (matching) and red/blue (mismatching) is informative because
+     camera conditions are consistent. For cross-camera, the noise floor shifts and
+     the overlay becomes meaningless. REMOVED from marketplace mode in Session 53.
+
+═══════════════════════════════════════════════════════════════════════
+✅  WHAT WORKS (and critical limitations)
+═══════════════════════════════════════════════════════════════════════
+
+SAME-CAMERA comparisons (registration vs re-verification, similar setup):
+  ✅ SIFT-aligned edge IoU — 7x separation ratio, 6/6 correct on test set
+  ✅ Border inlier counting — 3-4 for SAME, 0 for DIFF, perfect discrimination
+  ✅ Claude Vision "difference finder" — 3/4 correct with structured checklist prompt
+  ✅ Canny edge overlay — reliable diagnostic for same-camera, helps Vision analysis
+
+CROSS-CAMERA / MARKETPLACE comparisons (eBay listing vs registration photo):
+  ⚠️ SIFT-aligned edge IoU — UNRELIABLE. Dilated IoU separates CAMERA CONDITIONS
+     (0.14-0.18 cross-camera vs 0.26-0.27 same-camera) but CANNOT discriminate
+     physical copy identity. Background noise (blanket, mylar bag, table) creates
+     false edge matches after alignment. (Session 51 finding)
+  ⚠️ Border inliers — UNRELIABLE CROSS-CAMERA. Background textures near comic edges
+     generate spurious SIFT keypoints that falsely count as border inliers. Example:
+     eBay Iron Man vs registration got 2 border inliers (false positive) with high
+     avg distance 158 (indicating poor quality matches). (Session 51-53 finding)
+  ⚠️ Canny edge overlay — MISLEADING CROSS-CAMERA. Printed content edges match
+     across all copies (same issue), creating false green (matching) signal. Vision
+     was fooled into calling different copies "same_copy" because overlay showed
+     "predominantly green." REMOVED from marketplace mode in Session 53.
+  ✅ Claude Vision "difference finder" WITH marketplace prompt — Vision is the PRIMARY
+     verdict in marketplace mode. Cross-camera prompt warns about environmental
+     differences, removes Canny overlay, requires specific locatable physical defects
+     (not general wear patterns). (Session 53)
+
+AUTO-ROTATION:
+  ✅ EXIF transpose + aspect ratio heuristic (landscape→portrait via 270° CW)
+     WHY 270° NOT 90°: Testing confirmed 270° CW (PIL rotate(270)) correctly orients
+     phone photos taken with home button on right. 90° CCW gave hash distance 116
+     vs 60 for 270° CW. This is the most common phone landscape orientation.
+     WHY THIS MATTERS: Perceptual hashes (pHash, dHash, aHash, wHash) are NOT
+     rotation-invariant. Without auto-rotation, a 90° rotated registration photo
+     gets hash distance 103-113 against the same comic (blocked by 77 threshold).
+     Auto-rotation dropped this to 60-88, enabling marketplace mode. (Session 51)
+
+═══════════════════════════════════════════════════════════════════════
+FUTURE RESEARCH DIRECTIONS (Session 53)
+═══════════════════════════════════════════════════════════════════════
+
+The fundamental limitation of the current approach is that SIFT + edge IoU matches
+VISUAL APPEARANCE, which is camera-dependent. The research literature points to
+camera-INVARIANT physical characteristics as the right signal:
+
+  1. High-frequency texture fingerprinting — paper fiber patterns and halftone dot
+     placement are physically unique per copy and more robust to camera changes than
+     edge structure. Used in currency/document authentication.
+  2. Geometric distortion signatures — printing press creates unique distortions in
+     color separation alignment. Positional (not photometric), so camera-invariant.
+  3. Deep contrastive learning (Siamese networks) — train on same-comic cross-camera
+     pairs to learn what's invariant. This is how person re-ID solved cross-camera.
+
+See WHERE_WE_LEFT_OFF.md for full session history and test results.
+
+═══════════════════════════════════════════════════════════════════════
+
 Session 50 improvements:
   - Border inlier counting: SIFT inliers in border strips discriminate same-copy
     (3-4 border inliers) from different-copy (0 border inliers) — 6/6 correct
@@ -30,6 +252,12 @@ Session 51 improvements:
     Phone photos taken sideways (landscape) are rotated to portrait orientation.
     This fixes perceptual hash distances for rotated registration photos
     (e.g., Iron Man #200: hash distance dropped from 113 to 62 after rotation).
+
+Session 53 improvements:
+  - Marketplace mode: Vision as primary verdict (quant unreliable cross-camera)
+  - Cross-camera Vision prompt: removes Canny overlay, adds environmental warnings,
+    requires specific locatable defects for SAME_COPY verdict
+  - Institutional knowledge embedded in code (this docstring)
 
 Dependencies: opencv-python-headless, numpy, anthropic (optional)
 """
@@ -65,8 +293,12 @@ MIN_SIFT_INLIERS = 50          # Minimum for reliable alignment
 BORDER_INLIER_SAME_COPY = 2   # Session 50: ≥2 border inliers = same physical copy
                                 # Same-copy pairs: 3-4 border inliers (defect features match)
                                 # Diff-copy pairs: 0 border inliers (no shared defects)
+                                # ⚠️ SAME-CAMERA ONLY. Cross-camera marketplace photos
+                                # generate false border inliers from background texture
+                                # (blanket fibers, table edges, mylar bag). Use Vision as
+                                # primary verdict in marketplace_mode. (Session 51-53)
 BORDER_INLIER_EDGE_WIDTH = 60  # Wider border for inlier counting (60px sweet spot)
-                                # 50px too narrow for Iron Man, 70px+ too noisy
+                                # 50px too narrow for Iron Man, 70px+ picks up printed content
 BORDER_INLIER_RUNS = 3         # Run SIFT align N times, take max border inliers
                                 # RANSAC non-determinism can drop 3→0; 3 runs stabilizes
 EDGE_WIDTH_PX = 50             # Edge strip width for IoU computation
@@ -238,6 +470,16 @@ def _sift_align_with_stable_border(ref, test, runs=BORDER_INLIER_RUNS):
     Uses BORDER_INLIER_EDGE_WIDTH (60px) for border inlier counting
     but returns the alignment from the best run (which uses EDGE_WIDTH_PX
     for the actual alignment).
+
+    ⚠️ CROSS-CAMERA LIMITATION (Session 51-53):
+    Border inliers are reliable ONLY for same-camera/same-background comparisons.
+    Cross-camera marketplace photos (e.g., eBay listing vs registration on blanket)
+    create FALSE border inliers from background texture (blanket fibers, table edges,
+    mylar bag reflections). The border_avg_distance metric can help flag these — real
+    defect matches have low distance (~50-80), while false matches from background
+    noise have high distance (~150+). However, the signal is not reliable enough for
+    automated thresholding. In marketplace_mode, use Vision as primary verdict instead
+    of trusting border inlier counts.
     """
     best_aligned = None
     best_stats = None
@@ -269,6 +511,14 @@ def _compute_edge_iou(ref, aligned, edge_width=EDGE_WIDTH_PX, dilate_px=3):
     Session 50: Edges where the aligned image is mostly black (warp void) are
     excluded from the averages to prevent misaligned framing from dragging down
     the score. Per-edge results still include them (marked void=True).
+
+    ⚠️ CROSS-CAMERA LIMITATION (Session 51):
+    Dilated IoU separates CAMERA CONDITIONS (0.14-0.18 cross-camera vs 0.26-0.27
+    same-camera) but CANNOT discriminate COPY IDENTITY for marketplace photos.
+    Background differences (blanket vs white) and lighting create camera-specific
+    edge patterns that overwhelm the subtle physical defect signal. Printed content
+    edges dominate after SIFT alignment, and those match across ALL copies of the
+    same issue. In marketplace_mode, use Vision as primary verdict.
 
     Returns:
         avg_iou: Average strict IoU across valid (non-void) edges
@@ -457,6 +707,15 @@ def _create_canny_overlay(ref, aligned, edge_width=EDGE_WIDTH_PX):
     This helps Vision distinguish physical defects (which produce edges)
     from smooth printed areas (which don't). Same-copy pairs should show
     mostly green edges in the border strips.
+
+    ⚠️ DO NOT USE FOR CROSS-CAMERA / MARKETPLACE COMPARISONS (Session 53):
+    When photos come from different cameras/lighting/backgrounds, the Canny overlay
+    is actively MISLEADING. Printed content edges match across ALL copies (same issue),
+    creating false green signal. Vision was fooled into calling different copies
+    "same_copy" because overlay showed "predominantly green matching along the spine."
+    The green was from PRINTED artwork edges, not physical defect edges.
+    In marketplace_mode, this function is skipped entirely — do not re-enable it
+    without solving the printed-content-edge-dominance problem.
     """
     import base64
 
@@ -903,9 +1162,15 @@ def compare_covers_with_vision(ref_url, test_url,
             quant_verdict = 'uncertain'
 
         # Generate visual aids for Claude: corner crops + edge crops + Canny overlay + overview
+        # Session 53: Skip Canny overlay in marketplace mode — cross-camera lighting/background
+        # differences create false green (matching) edges from printed content, misleading Vision
+        # into calling different copies "same_copy". Corner/edge crops are the reliable evidence.
         corner_crops, skipped_corners = _create_corner_crop_comparisons(ref_img, aligned)
         edge_crops, skipped_edges = _create_edge_crop_comparisons(ref_img, aligned)
-        canny_b64, canny_match_pct = _create_canny_overlay(ref_img, aligned)
+        if not marketplace_mode:
+            canny_b64, canny_match_pct = _create_canny_overlay(ref_img, aligned)
+        else:
+            canny_b64, canny_match_pct = None, 0.0
         sbs_b64 = _create_side_by_side(ref_img, test_img)
 
         # Build Claude Vision prompt — NO METRICS to prevent anchoring bias
@@ -925,9 +1190,30 @@ def compare_covers_with_vision(ref_url, test_url,
                 f"black void areas (the test photo didn't fully cover the reference frame). "
                 f"Skipped: {', '.join(all_skipped)}. Focus your analysis on the provided regions only.")
 
+        # Session 53: Marketplace-specific warning about cross-camera conditions
+        marketplace_note = ""
+        if marketplace_mode:
+            marketplace_note = """
+CRITICAL — CROSS-CAMERA MARKETPLACE COMPARISON:
+These two photos were taken with DIFFERENT cameras, lighting, and backgrounds (e.g., one on
+a blanket, one on white background for an eBay listing). This means:
+  - Overall edge structure, lighting gradients, and color tones WILL differ between REF and
+    TEST — this is NOT evidence of different copies, just different photography conditions.
+  - Background textures (blanket fibers, table surface, mylar bag reflections) may appear in
+    border regions — IGNORE these completely. They are not comic book features.
+  - Spine stress marks, paper texture patterns, and edge wear may LOOK different due to
+    lighting angle — a crease that catches light in one photo may be invisible in another.
+  - You MUST find SPECIFIC, LOCATABLE physical defects (a chip at a precise position, a
+    crease crossing specific artwork, a tear with a specific shape) that match in BOTH photos
+    to call SAME_COPY. General texture similarity or "consistent wear patterns" is NOT enough
+    because two copies in the same grade will show similar general wear.
+  - Your DEFAULT verdict should be DIFFERENT_COPY. Only override to SAME_COPY if you find
+    a specific physical defect that is uniquely identifiable in both images by its exact
+    position and shape relative to the printed artwork."""
+
         prompt = f"""You are comparing two photographs of the SAME comic book ISSUE to determine
 whether they show the SAME physical copy or two DIFFERENT physical copies.
-
+{marketplace_note}
 CRITICAL CONTEXT — READ CAREFULLY:
 Both images have been geometrically aligned using the printed artwork as anchor points.
 After alignment, ALL PRINTED CONTENT (artwork, text, colors, line art) is pixel-aligned
@@ -946,11 +1232,8 @@ IMAGES PROVIDED (examine in this order):
    Corners accumulate the most distinctive wear. These are your primary evidence.
 2. EDGE STRIP crops at 4x zoom — only non-void edges are included.
    Full border strips showing spine ticks, edge chips, color breaks.
-3. CANNY EDGE OVERLAY — a diagnostic image showing detected edge structure in border
-   strips only. GREEN = edges present in BOTH photos (matching physical structure),
-   RED = edges in REF only, BLUE = edges in TEST only. High green percentage suggests
-   the physical edge structure matches. Use this to SEE where physical features are.
-4. Overview side-by-side (small, for general orientation only).
+{"3. CANNY EDGE OVERLAY — a diagnostic image showing detected edge structure in border strips only. GREEN = edges present in BOTH photos (matching physical structure), RED = edges in REF only, BLUE = edges in TEST only. High green percentage suggests the physical edge structure matches. Use this to SEE where physical features are." if not marketplace_mode else ""}
+{"4" if not marketplace_mode else "3"}. Overview side-by-side (small, for general orientation only).
 
 WHAT TO IGNORE (these are NOT evidence):
   ❌ "Similar blue-gray tones" — that's the printed ink, not a physical feature
@@ -985,22 +1268,11 @@ STEP 3 — TOP & BOTTOM EDGE ANALYSIS:
   a) Any chips, tears, foxing spots along top/bottom edges in REF?
   b) Same in TEST? Matching positions or different?
 
-STEP 4 — CANNY EDGE OVERLAY CHECK:
-  Examine the Canny edge overlay image. This shows detected edge structure in the
-  border strips. Spine stress marks, creases, and paper texture create edge patterns.
-  a) Is the overlay mostly GREEN in areas where both photos have content? Green means
-     the physical edge structure matches between both photos.
-  b) Are there large RED or BLUE regions indicating edge structure that exists in only
-     one photo? That suggests different physical features.
-  c) Use this as SUPPORTING evidence — it helps you see subtle physical texture that
-     may not be obvious in the color photos.
+{"STEP 4 — CANNY EDGE OVERLAY CHECK:" + chr(10) + "  Examine the Canny edge overlay image. This shows detected edge structure in the" + chr(10) + "  border strips. Spine stress marks, creases, and paper texture create edge patterns." + chr(10) + "  a) Is the overlay mostly GREEN in areas where both photos have content? Green means" + chr(10) + "     the physical edge structure matches between both photos." + chr(10) + "  b) Are there large RED or BLUE regions indicating edge structure that exists in only" + chr(10) + "     one photo? That suggests different physical features." + chr(10) + "  c) Use this as SUPPORTING evidence — it helps you see subtle physical texture that" + chr(10) + "     may not be obvious in the color photos." if not marketplace_mode else ""}
 
 DECISION RULES:
 - SAME_COPY: You found specific physical defects (not printed features) that match in
-  precise position between REF and TEST. Physical texture patterns (spine stress marks,
-  paper creases, surface wear) matching across multiple regions also count — these are
-  physical features of the paper, not the print. The Canny overlay helps confirm this:
-  high green overlap in border strips supports same-copy.
+  precise position between REF and TEST.{" Physical texture patterns (spine stress marks, paper creases, surface wear) matching across multiple regions also count — these are physical features of the paper, not the print. The Canny overlay helps confirm this: high green overlap in border strips supports same-copy." if not marketplace_mode else " In a cross-camera marketplace comparison, ONLY call SAME_COPY if you found a SPECIFIC, UNIQUELY IDENTIFIABLE defect (not general wear) visible in both photos at the same position relative to the printed artwork."}
 - DIFFERENT_COPY: DEFAULT VERDICT when you cannot find matching physical defects OR
   when specific defects appear in different positions between REF and TEST. Two copies
   of the same issue are EXPECTED to look nearly identical in printed content. If you
@@ -1018,7 +1290,7 @@ Respond in JSON:
   }},
   "spine": "spine tick/stress mark findings and comparison",
   "edges": "top/bottom/right edge defect findings and comparison",
-  "canny_overlay": "what the edge overlay shows — mostly green (matching) or mixed?",
+  {"" if marketplace_mode else '"canny_overlay": "what the edge overlay shows — mostly green (matching) or mixed?",'}
   "verdict": "SAME_COPY" or "DIFFERENT_COPY" or "UNCERTAIN",
   "confidence": 0.0-1.0,
   "reasoning": "2-3 sentences citing the specific PHYSICAL DEFECTS (not artwork) that drove your verdict"
@@ -1042,9 +1314,11 @@ Respond in JSON:
                 "type": "base64", "media_type": "image/jpeg", "data": crop_b64}})
 
         # 3. Canny edge overlay — diagnostic image showing physical edge structure
-        msg_content.append({"type": "text", "text": f"CANNY EDGE OVERLAY (border strips only — GREEN=both, RED=REF only, BLUE=TEST only, edge match {canny_match_pct:.0f}%):"})
-        msg_content.append({"type": "image", "source": {
-            "type": "base64", "media_type": "image/jpeg", "data": canny_b64}})
+        # Session 53: Skip in marketplace mode — cross-camera noise makes overlay misleading
+        if not marketplace_mode and canny_b64:
+            msg_content.append({"type": "text", "text": f"CANNY EDGE OVERLAY (border strips only — GREEN=both, RED=REF only, BLUE=TEST only, edge match {canny_match_pct:.0f}%):"})
+            msg_content.append({"type": "image", "source": {
+                "type": "base64", "media_type": "image/jpeg", "data": canny_b64}})
 
         # 4. Compact overview (orientation only)
         msg_content.append({"type": "text", "text": "Overview (for general orientation):"})

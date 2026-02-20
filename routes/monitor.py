@@ -18,6 +18,17 @@ Copy matching (Session 48 — SIFT + Edge IoU):
 Tested thresholds (Feb 2026):
   - Composite per-angle: <70 CRITICAL, <73 PROBABLE, >77 DIFFERENT
   - SIFT edge IoU: SAME=[0.033-0.036], DIFF=[0.001-0.009], 7x ratio
+
+⚠️ MARKETPLACE MODE (Session 52-53):
+  Standard SIFT/edge IoU verdicts are UNRELIABLE for cross-camera marketplace
+  photos (e.g., eBay listing vs registration). Border inliers produce false
+  positives from background texture; dilated IoU separates camera conditions,
+  not copy identity. When marketplace_mode=True:
+    - Hash gate uses 105 threshold (vs 77 standard) to allow cross-camera matches
+    - Vision is AUTOMATICALLY enabled as PRIMARY verdict (overrides use_vision param)
+    - Canny edge overlay is NOT sent to Vision (misleading cross-camera)
+    - Vision prompt includes cross-camera warnings and stricter SAME_COPY criteria
+  See slab_guard_cv.py docstring for full list of failed approaches and rationale.
 """
 import os
 import json
@@ -54,7 +65,11 @@ COMPOSITE_THRESHOLD_PROBABLE = 73   # High probability match
 COMPOSITE_THRESHOLD_DISMISS  = 77   # Different comic
 COMPOSITE_THRESHOLD_MARKETPLACE = 105  # Session 52: Looser gate for cross-camera marketplace photos
                                        # eBay vs registered: 60-90 range after auto-orient
-                                       # Allows SIFT to make the final same/diff copy verdict
+                                       # Allows SIFT/Vision to make the final same/diff copy verdict
+                                       # ⚠️ WHY 105: Perceptual hashes are NOT rotation-invariant.
+                                       # Even after auto-rotation, cross-camera hash distances are
+                                       # 60-90 (vs 10-30 for same-camera). 77 blocks legitimate
+                                       # matches; 105 lets them through for SIFT/Vision analysis.
 
 # Edge strip thresholds (avg distance across 8 regions × 4 algos, per angle)
 # Based on testing: same-copy max ~122, diff-copy min ~126
