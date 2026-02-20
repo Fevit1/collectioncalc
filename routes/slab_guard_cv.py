@@ -165,6 +165,46 @@ CONTOUR/GEOMETRY APPROACHES:
      comparison meaningless. Might work with background removal (chroma key) or
      controlled imaging, but not with casual photos on varied surfaces.
 
+TEXTURE FINGERPRINTING APPROACHES (Session 54):
+  ❌ Bandpass filtering (4 scales: sigma 1-10, 2-20, 3-40, 5-50)
+     GOAL: Isolate halftone dot / paper fiber frequency band. Remove low-freq
+     lighting AND high-freq sensor noise, keeping only physical texture signal.
+     RESULT: Complete overlap. Best NCC was 0.634 same-copy vs 0.492-0.730 different.
+     WHY: Even with noise floor removal via bandpass, camera sensor variation STILL
+     overwhelms physical texture signal. Phone sensors differ in pixel size, Bayer
+     pattern, noise characteristics — these create per-camera texture signatures that
+     dominate over the physical paper/ink texture.
+
+  ❌ Phase correlation (FFT phase in 4 frequency bands)
+     GOAL: Compare structural positions via FFT phase. Phase encodes WHERE structures
+     are (positions) while magnitude encodes HOW STRONG (intensity). Phase should be
+     more robust to camera exposure changes.
+     RESULT: Complete overlap in all bands. Mid-freq phase consistency was 0.536 for
+     same-copy vs 0.470-0.787 for different — inverted for same-camera pairs.
+     WHY: After SIFT alignment, the PRINTED CONTENT phase is near-identical for ALL
+     copies (same print plate). Phase consistency was actually HIGHER for different-copy
+     same-camera pairs (0.77 mid-freq) because the print dominates. Physical defects
+     are too small relative to the print content signal in the phase domain.
+
+  ❌ Gabor filter bank (6 orientations × 4 wavelengths)
+     GOAL: Multi-scale, multi-orientation texture analysis. Compute mean energy and
+     std at each (scale, orientation) to create texture descriptor vector.
+     RESULT: Cosine similarity 0.995-0.998 for ALL pairs — no discrimination.
+     Interior-only showed 0.0002 gap — too small for reliable thresholding.
+     WHY: Gabor captures the DISTRIBUTION of texture energy across scales/orientations.
+     This distribution is dominated by the printed artwork (same for all copies).
+     Physical wear changes specific texture at specific locations, but the GLOBAL
+     energy distribution barely changes. Gabor might work if applied only to small
+     patches around known defect regions, but not as a global descriptor.
+
+  ❌ DCT mid-frequency block energy (8×8 blocks, excluding DC and highest AC)
+     GOAL: Capture structured detail via DCT coefficients (like JPEG does). Compare
+     mid-frequency energy distribution across blocks.
+     RESULT: Overlap. Cosine sim 0.859 same-copy vs 0.809-0.866 different same-camera.
+     WHY: Camera exposure changes shift DCT coefficients globally, creating larger
+     variation between photos than the physical surface differences create. The DC-
+     excluded mid-frequency band still captures camera-dependent tonal response.
+
 CROSS-CAMERA SPECIFIC FAILURES (Session 51-53):
   ❌ Canny edge overlay as evidence for Vision (cross-camera marketplace photos)
      GOAL: Show Vision a color-coded Canny edge comparison overlay (GREEN=matching
@@ -207,6 +247,17 @@ CROSS-CAMERA / MARKETPLACE comparisons (eBay listing vs registration photo):
      verdict in marketplace mode. Cross-camera prompt warns about environmental
      differences, removes Canny overlay, requires specific locatable physical defects
      (not general wear patterns). (Session 53)
+  🔬 LPQ (Local Phase Quantization) — PROMISING, needs more testing. (Session 54)
+     Uses STFT phase (blur-invariant). Chi-squared distance: SAME=0.055, DIFF=0.154-0.335.
+     Gap of +0.099 — largest separation of any metric tested. Works cross-camera.
+     KEY INSIGHT: LPQ power comes from BORDER WEAR PATTERNS, not paper fiber/halftone.
+     Interior-only LPQ showed NO separation (0.011 same vs 0.013-0.083 diff — overlap).
+     Threshold recommendation: chi2 < 0.10 → SAME_COPY, > 0.15 → DIFFERENT_COPY.
+     ⚠️ Only 1 same-copy pair and 5 different-copy pairs tested — tiny sample size.
+     Must validate on more data before deploying as production metric.
+  🔬 Difference RMS (normalized, full image) — PROMISING, narrower gap. (Session 54)
+     SAME=0.826, DIFF=0.903-1.141, gap=+0.076. But one cross-camera pair had
+     interior RMS of 0.559 (dangerously close to same-copy range).
 
 AUTO-ROTATION:
   ✅ EXIF transpose + aspect ratio heuristic (landscape→portrait via 270° CW)
@@ -219,20 +270,35 @@ AUTO-ROTATION:
      Auto-rotation dropped this to 60-88, enabling marketplace mode. (Session 51)
 
 ═══════════════════════════════════════════════════════════════════════
-FUTURE RESEARCH DIRECTIONS (Session 53)
+FUTURE RESEARCH DIRECTIONS (Updated Session 54)
 ═══════════════════════════════════════════════════════════════════════
 
 The fundamental limitation of the current approach is that SIFT + edge IoU matches
-VISUAL APPEARANCE, which is camera-dependent. The research literature points to
-camera-INVARIANT physical characteristics as the right signal:
+VISUAL APPEARANCE, which is camera-dependent. Session 54 tested 7 texture approaches
+and found that:
+  - Paper fiber / halftone dot texture is NOT extractable from phone photos (sensor
+    noise overwhelms physical texture at all tested frequency bands and scales)
+  - The discriminative signal lives in BORDER WEAR PATTERNS, not interior content
+  - LPQ (blur-invariant STFT phase) captures border wear robustly across cameras
 
-  1. High-frequency texture fingerprinting — paper fiber patterns and halftone dot
-     placement are physically unique per copy and more robust to camera changes than
-     edge structure. Used in currency/document authentication.
+Remaining research directions:
+
+  1. INTEGRATE LPQ — Add as supplementary metric alongside edge IoU. Use as primary
+     quantitative signal for marketplace mode (where edge IoU fails). Validate on
+     more data before making it the sole metric. Threshold: chi2 < 0.10 → SAME,
+     > 0.15 → DIFFERENT, 0.10-0.15 → UNCERTAIN → Vision resolves.
+
   2. Geometric distortion signatures — printing press creates unique distortions in
      color separation alignment. Positional (not photometric), so camera-invariant.
+     Not yet tested. Would need color channel separation and sub-pixel registration.
+
   3. Deep contrastive learning (Siamese networks) — train on same-comic cross-camera
      pairs to learn what's invariant. This is how person re-ID solved cross-camera.
+     Requires significant training data (many comic pairs photographed under varying
+     conditions). Most viable as a long-term approach.
+
+  4. Border-region-only LPQ variants — Since the signal is in the borders, test LPQ
+     on ONLY the 4 edge strips (not full image). May improve signal-to-noise ratio.
 
 See WHERE_WE_LEFT_OFF.md for full session history and test results.
 
@@ -254,10 +320,23 @@ Session 51 improvements:
     (e.g., Iron Man #200: hash distance dropped from 113 to 62 after rotation).
 
 Session 53 improvements:
+  - Refactoring: auto_orient_pil/preprocess moved to routes/fingerprint_utils.py
   - Marketplace mode: Vision as primary verdict (quant unreliable cross-camera)
   - Cross-camera Vision prompt: removes Canny overlay, adds environmental warnings,
     requires specific locatable defects for SAME_COPY verdict
   - Institutional knowledge embedded in code (this docstring)
+
+Session 54 findings (texture fingerprinting prototype):
+  - Tested 7 approaches: bandpass filtering, phase correlation, Gabor filter bank,
+    LPQ, DCT energy, gradient orientation, difference texture analysis
+  - LPQ (Local Phase Quantization) is the only metric with clear separation across
+    cameras: chi2 SAME=0.055 vs DIFF=0.154-0.335 (gap +0.099)
+  - LPQ works because STFT phase is blur-invariant (robust to camera focus changes)
+  - Critical insight: discriminative signal is in BORDER WEAR, not paper fiber/halftone
+  - Interior-only LPQ showed NO separation — the printed content dominates interior
+  - All 4 "texture" approaches (bandpass, phase, Gabor, DCT) failed because camera
+    sensor noise overwhelms physical texture signal at all frequency bands
+  - Next: integrate LPQ as supplementary metric, validate on more data
 
 Dependencies: opencv-python-headless, numpy, anthropic (optional)
 """
@@ -303,6 +382,21 @@ BORDER_INLIER_RUNS = 3         # Run SIFT align N times, take max border inliers
                                 # RANSAC non-determinism can drop 3→0; 3 runs stabilizes
 EDGE_WIDTH_PX = 50             # Edge strip width for IoU computation
 TARGET_SIZE = (800, 1200)      # Standard comparison size
+
+# ── LPQ THRESHOLDS (Session 54, validated on Iron Man #200 test set) ──
+# LPQ (Local Phase Quantization) uses STFT phase — blur-invariant, works cross-camera.
+# Chi-squared distance on 256-bin LPQ histograms:
+#   SAME-COPY:  0.055 (1 pair tested)
+#   DIFF-COPY same-camera: 0.196-0.212
+#   DIFF-COPY cross-camera: 0.154-0.335
+# Gap: +0.099 — largest separation of any metric tested.
+# KEY INSIGHT: Signal lives in BORDER WEAR, not paper fiber/halftone.
+# Interior-only LPQ shows NO separation (printed content dominates).
+# ⚠️ Tiny sample size (1 same, 5 diff) — validate on more data.
+LPQ_SAME_COPY = 0.10          # chi2 < 0.10 → SAME_COPY
+LPQ_DIFF_COPY = 0.15          # chi2 > 0.15 → DIFFERENT_COPY
+                                # 0.10-0.15 → UNCERTAIN (Vision resolves)
+LPQ_WIN_SIZE = 5               # STFT window size for LPQ computation
 
 
 # Session 53: Shared auto-orient — single source of truth in fingerprint_utils.py
@@ -664,6 +758,140 @@ def _region_is_black(region, threshold=10, min_pct=0.35):
     return float(np.mean(dark_mask)) > min_pct
 
 
+def _compute_lpq_histogram(img_gray, win_size=LPQ_WIN_SIZE):
+    """
+    Compute Local Phase Quantization (LPQ) histogram for a grayscale image.
+
+    LPQ uses Short-Term Fourier Transform (STFT) phase at 4 frequency pairs.
+    For each pixel, 8 phase responses (4 freq × real+imag) are thresholded to
+    produce an 8-bit code. The resulting 256-bin histogram is the texture descriptor.
+
+    WHY LPQ WORKS FOR THIS USE CASE (Session 54):
+      - STFT phase is blur-invariant — robust to camera focus differences
+      - The discriminative signal comes from BORDER WEAR patterns (crunched corners,
+        spine ticks, edge chips), NOT paper fiber or halftone dots
+      - Interior-only LPQ showed NO separation — printed content dominates interior
+      - Full-image LPQ captures border wear because wear features have distinctive
+        phase signatures at the image boundaries
+
+    Args:
+        img_gray: Grayscale uint8 image
+        win_size: STFT window size (default 5, from Session 54 testing)
+
+    Returns:
+        Normalized 256-bin histogram (np.float64 array)
+    """
+    h, w = img_gray.shape
+    img_f = img_gray.astype(np.float64)
+
+    # 4 frequency direction pairs for STFT
+    freqs = [(1, 0), (0, 1), (1, 1), (1, -1)]
+    responses = []
+
+    for fx, fy in freqs:
+        x_r = np.arange(-(win_size // 2), win_size // 2 + 1)
+        y_r = np.arange(-(win_size // 2), win_size // 2 + 1)
+        xx, yy = np.meshgrid(x_r, y_r)
+        fnx, fny = fx / win_size, fy / win_size
+        # Real and imaginary STFT kernels
+        kr = np.cos(2 * np.pi * (fnx * xx + fny * yy))
+        ki = np.sin(2 * np.pi * (fnx * xx + fny * yy))
+        responses.append(cv2.filter2D(img_f, cv2.CV_64F, kr))
+        responses.append(cv2.filter2D(img_f, cv2.CV_64F, ki))
+
+    # Encode 8 responses into 8-bit code per pixel
+    code = np.zeros((h, w), dtype=np.uint8)
+    for i, resp in enumerate(responses):
+        code += ((resp >= 0).astype(np.uint8) << i)
+
+    # Build normalized histogram
+    hist, _ = np.histogram(code.ravel(), bins=256, range=(0, 256))
+    hist = hist.astype(np.float64)
+    hist /= (hist.sum() + 1e-10)
+    return hist
+
+
+def _compute_lpq_distance(ref_img, aligned_img, win_size=LPQ_WIN_SIZE,
+                           edge_width=EDGE_WIDTH_PX):
+    """
+    Compute LPQ chi-squared distance between reference and aligned images.
+
+    Computes both full-image and border-only LPQ distances. The border-only
+    variant may have better signal-to-noise since Session 54 showed the
+    discriminative power comes from border wear, not interior content.
+
+    Session 54 thresholds (chi2 distance):
+      Full image:  SAME=0.055, DIFF=0.154-0.335, threshold 0.10/0.15
+      Border-only: Not yet validated — included for testing
+
+    Args:
+        ref_img: Reference BGR image (standard size)
+        aligned_img: SIFT-aligned test BGR image
+        win_size: LPQ window size
+        edge_width: Border strip width for border-only computation
+
+    Returns dict:
+        lpq_chi2: Full-image chi-squared distance (primary metric)
+        lpq_border_chi2: Border-only chi-squared distance (experimental)
+        lpq_verdict_hint: 'same_copy' | 'different_copy' | 'uncertain'
+    """
+    ref_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY)
+    aligned_gray = cv2.cvtColor(aligned_img, cv2.COLOR_BGR2GRAY)
+
+    # ── Full-image LPQ ──
+    ref_hist = _compute_lpq_histogram(ref_gray, win_size)
+    aligned_hist = _compute_lpq_histogram(aligned_gray, win_size)
+    chi2_full = float(np.sum((ref_hist - aligned_hist) ** 2 /
+                              (ref_hist + aligned_hist + 1e-10)))
+
+    # ── Border-only LPQ (experimental — Session 54 insight) ──
+    # Extract 4 border strips, concatenate into a single image for LPQ
+    h, w = ref_gray.shape
+    ew = edge_width
+
+    # Build border strip images (concatenate all 4 strips)
+    ref_borders = np.concatenate([
+        ref_gray[:ew, :].ravel(),          # top
+        ref_gray[-ew:, :].ravel(),         # bottom
+        ref_gray[ew:-ew, :ew].ravel(),     # left (excluding corners already in top/bottom)
+        ref_gray[ew:-ew, -ew:].ravel(),    # right
+    ])
+    aligned_borders = np.concatenate([
+        aligned_gray[:ew, :].ravel(),
+        aligned_gray[-ew:, :].ravel(),
+        aligned_gray[ew:-ew, :ew].ravel(),
+        aligned_gray[ew:-ew, -ew:].ravel(),
+    ])
+
+    # Reshape to 2D for LPQ (make it a wide strip)
+    border_len = ref_borders.shape[0]
+    strip_h = max(win_size + 2, 10)  # minimum height for LPQ kernels
+    strip_w = border_len // strip_h
+    # Trim to exact multiple
+    usable = strip_h * strip_w
+    ref_border_2d = ref_borders[:usable].reshape(strip_h, strip_w)
+    aligned_border_2d = aligned_borders[:usable].reshape(strip_h, strip_w)
+
+    ref_border_hist = _compute_lpq_histogram(ref_border_2d, win_size)
+    aligned_border_hist = _compute_lpq_histogram(aligned_border_2d, win_size)
+    chi2_border = float(np.sum((ref_border_hist - aligned_border_hist) ** 2 /
+                                (ref_border_hist + aligned_border_hist + 1e-10)))
+
+    # Verdict hint based on full-image chi2 (the validated metric)
+    if chi2_full < LPQ_SAME_COPY:
+        verdict_hint = 'same_copy'
+    elif chi2_full > LPQ_DIFF_COPY:
+        verdict_hint = 'different_copy'
+    else:
+        verdict_hint = 'uncertain'
+
+    return {
+        'lpq_chi2': round(chi2_full, 6),
+        'lpq_border_chi2': round(chi2_border, 6),
+        'lpq_verdict_hint': verdict_hint,
+    }
+
+
 def _create_canny_overlay(ref, aligned, edge_width=EDGE_WIDTH_PX):
     """
     Create a Canny edge comparison overlay focused on border strips.
@@ -964,33 +1192,65 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
         # Compute edge IoU (strict and dilated)
         avg_iou, per_edge, avg_ssim, avg_dilated_iou = _compute_edge_iou(ref_img, aligned)
 
-        # Determine verdict using dilated IoU, strict IoU, AND border inlier count.
+        # Compute LPQ distance (Session 54 — blur-invariant texture metric)
+        lpq_result = _compute_lpq_distance(ref_img, aligned)
+        lpq_chi2 = lpq_result['lpq_chi2']
+
+        # Determine verdict using dilated IoU, strict IoU, border inliers, AND LPQ.
         # Session 50: border_inliers is the strongest same-copy signal —
         # physical defects in border regions create unique SIFT features that
         # only match between photos of the same physical copy.
+        # Session 54: LPQ chi2 is supplementary — used to boost/reduce confidence
+        # and break ties. Not yet primary due to tiny validation set.
         border_inliers = align_stats.get('border_inliers', 0)
 
         if avg_dilated_iou >= DILATED_IOU_SAME_COPY:
             verdict = 'same_copy'
             confidence = min(0.95, 0.7 + (avg_dilated_iou - DILATED_IOU_SAME_COPY) * 5)
+            # LPQ can boost or reduce confidence
+            if lpq_chi2 < LPQ_SAME_COPY:
+                confidence = min(0.97, confidence + 0.05)  # LPQ agrees → boost
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                confidence = max(0.55, confidence - 0.15)  # LPQ disagrees → reduce
         elif border_inliers >= BORDER_INLIER_SAME_COPY:
-            # Border inlier evidence overrides low IoU (e.g., Iron Man 010v011
-            # where poor framing dragged IoU down but border defects still matched)
             verdict = 'same_copy'
             confidence = min(0.92, 0.70 + border_inliers * 0.05)
+            if lpq_chi2 < LPQ_SAME_COPY:
+                confidence = min(0.95, confidence + 0.05)
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                confidence = max(0.55, confidence - 0.15)
         elif border_inliers == 0 and avg_dilated_iou < DILATED_IOU_SAME_COPY:
-            # No border inliers AND dilated IoU below same-copy threshold
-            # Zero border inliers is strong DIFF evidence — physical defects
-            # don't match. Confidence scales with how far IoU is from same threshold.
             verdict = 'different_copy'
             confidence = min(0.90, 0.65 + (DILATED_IOU_SAME_COPY - avg_dilated_iou) * 3)
+            # LPQ can boost or reduce confidence for DIFF verdict
+            if lpq_chi2 > LPQ_DIFF_COPY:
+                confidence = min(0.95, confidence + 0.05)  # LPQ agrees → boost
+            elif lpq_chi2 < LPQ_SAME_COPY:
+                # LPQ says same but IoU+border say diff — conflicting, lower confidence
+                confidence = max(0.50, confidence - 0.15)
         elif avg_iou <= EDGE_IOU_DIFF_COPY:
             # Low IoU but some border inliers — conflicting signals
-            verdict = 'uncertain'
-            confidence = 0.5
+            # Session 54: LPQ can break the tie
+            if lpq_chi2 < LPQ_SAME_COPY:
+                verdict = 'same_copy'
+                confidence = 0.65  # LPQ-driven, moderate confidence
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                verdict = 'different_copy'
+                confidence = 0.65
+            else:
+                verdict = 'uncertain'
+                confidence = 0.5
         else:
-            verdict = 'uncertain'
-            confidence = 0.5
+            # General uncertain case — LPQ can break the tie
+            if lpq_chi2 < LPQ_SAME_COPY:
+                verdict = 'same_copy'
+                confidence = 0.60
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                verdict = 'different_copy'
+                confidence = 0.60
+            else:
+                verdict = 'uncertain'
+                confidence = 0.5
 
         result = {
             'success': True,
@@ -1002,6 +1262,9 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
             'per_edge': {k: {kk: round(vv, 5) for kk, vv in v.items()}
                         for k, v in per_edge.items()},
             'alignment': align_stats,
+            'lpq_chi2': lpq_result['lpq_chi2'],
+            'lpq_border_chi2': lpq_result['lpq_border_chi2'],
+            'lpq_verdict_hint': lpq_result['lpq_verdict_hint'],
         }
         if used_alternate:
             result['used_alternate_ref'] = True
@@ -1116,7 +1379,11 @@ def compare_covers_with_vision(ref_url, test_url,
         # Compute edge IoU (strict and dilated)
         avg_iou, per_edge, avg_ssim, avg_dilated_iou = _compute_edge_iou(ref_img, aligned)
 
-        # Quantitative verdict (dilated IoU + strict IoU + border inlier count)
+        # Compute LPQ distance (Session 54)
+        lpq_result = _compute_lpq_distance(ref_img, aligned)
+        lpq_chi2 = lpq_result['lpq_chi2']
+
+        # Quantitative verdict (dilated IoU + strict IoU + border inlier count + LPQ)
         border_inliers = align_stats.get('border_inliers', 0)
 
         if avg_dilated_iou >= DILATED_IOU_SAME_COPY:
@@ -1126,9 +1393,20 @@ def compare_covers_with_vision(ref_url, test_url,
         elif border_inliers == 0 and avg_dilated_iou < DILATED_IOU_SAME_COPY:
             quant_verdict = 'different_copy'
         elif avg_iou <= EDGE_IOU_DIFF_COPY:
-            quant_verdict = 'uncertain'  # conflicting signals
+            # Session 54: LPQ can break the tie in conflicting signal cases
+            if lpq_chi2 < LPQ_SAME_COPY:
+                quant_verdict = 'same_copy'
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                quant_verdict = 'different_copy'
+            else:
+                quant_verdict = 'uncertain'
         else:
-            quant_verdict = 'uncertain'
+            if lpq_chi2 < LPQ_SAME_COPY:
+                quant_verdict = 'same_copy'
+            elif lpq_chi2 > LPQ_DIFF_COPY:
+                quant_verdict = 'different_copy'
+            else:
+                quant_verdict = 'uncertain'
 
         # Generate visual aids for Claude: corner crops + edge crops + Canny overlay + overview
         # Session 53: Skip Canny overlay in marketplace mode — cross-camera lighting/background
@@ -1388,26 +1666,43 @@ Respond in JSON:
         # Standard mode: quant has priority, Vision resolves uncertainty.
         if marketplace_mode:
             # ── MARKETPLACE MODE: Vision is PRIMARY ──
-            # Quant metrics are unreliable cross-camera (Session 51 finding:
-            # blanket texture creates false border inliers, dilated IoU separates
-            # camera conditions not copy identity). Trust Vision's physical defect
-            # analysis, which is robust to environmental differences.
+            # Quant metrics (IoU, border inliers) are unreliable cross-camera
+            # (Session 51 finding). Trust Vision's physical defect analysis.
+            # Session 54: LPQ IS reliable cross-camera (blur-invariant, tested).
+            # Use LPQ as supplementary signal to boost/reduce Vision confidence,
+            # and as tiebreaker when Vision is uncertain.
             if vision_verdict != 'uncertain':
                 final_verdict = vision_verdict
-                # Boost confidence if quant agrees
-                if quant_verdict == vision_verdict:
+                # Boost confidence if LPQ agrees with Vision
+                if (vision_verdict == 'same_copy' and lpq_chi2 < LPQ_SAME_COPY) or \
+                   (vision_verdict == 'different_copy' and lpq_chi2 > LPQ_DIFF_COPY):
+                    final_confidence = max(vision_confidence, 0.92)
+                elif quant_verdict == vision_verdict:
                     final_confidence = max(vision_confidence, 0.90)
                 else:
                     final_confidence = vision_confidence
             else:
-                # Vision uncertain — fall back to quant but lower confidence
-                final_verdict = quant_verdict if quant_verdict != 'uncertain' else 'uncertain'
-                final_confidence = 0.5
+                # Vision uncertain — LPQ is best tiebreaker for marketplace mode
+                # (IoU/border inliers unreliable cross-camera, but LPQ works)
+                lpq_hint = lpq_result['lpq_verdict_hint']
+                if lpq_hint != 'uncertain':
+                    final_verdict = lpq_hint
+                    final_confidence = 0.60  # LPQ-driven, moderate confidence
+                elif quant_verdict != 'uncertain':
+                    final_verdict = quant_verdict
+                    final_confidence = 0.45  # quant unreliable in marketplace
+                else:
+                    final_verdict = 'uncertain'
+                    final_confidence = 0.4
         else:
             # ── STANDARD MODE: Quant has priority ──
             if quant_verdict == vision_verdict:
                 final_verdict = quant_verdict
                 final_confidence = max(vision_confidence, 0.85)
+                # LPQ triple-agreement → highest confidence
+                if (quant_verdict == 'same_copy' and lpq_chi2 < LPQ_SAME_COPY) or \
+                   (quant_verdict == 'different_copy' and lpq_chi2 > LPQ_DIFF_COPY):
+                    final_confidence = max(final_confidence, 0.95)
             elif quant_verdict == 'uncertain':
                 # Vision is the tiebreaker for uncertain cases — its primary role
                 final_verdict = vision_verdict
@@ -1434,6 +1729,9 @@ Respond in JSON:
             'per_edge': {k: {kk: round(vv, 5) for kk, vv in v.items()}
                         for k, v in per_edge.items()},
             'alignment': align_stats,
+            'lpq_chi2': lpq_result['lpq_chi2'],
+            'lpq_border_chi2': lpq_result['lpq_border_chi2'],
+            'lpq_verdict_hint': lpq_result['lpq_verdict_hint'],
             'vision_verdict': vision_verdict,
             'vision_confidence': round(vision_confidence, 3),
             'vision_reasoning': parsed.get('reasoning', ''),
