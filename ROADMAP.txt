@@ -132,7 +132,8 @@
 - [x] GET /api/registry/my-sightings — owner sees all reports for their comics
 - [x] POST /api/registry/sighting-response — owner responds (confirmed_mine / not_mine / investigating)
 - [x] Sighting alert cards with response buttons, unresponded badge count
-- [ ] Chrome extension: wire sighting/reporting flow into extension popup
+- [x] Chrome extension: "Report to Owner" button on match panel, sighting alerts in Owner tab
+- [x] Auth-based Turnstile bypass for extension users (verify.py)
 
 **UX: Single-Screen Slab Report (Mobile)**
 - [ ] Redesign slab report to fit grade + value on one mobile screen
@@ -140,10 +141,12 @@
 - [ ] Brand protection: eliminates ability to make Slab Worthy look inaccurate
 - [ ] Consider: condensed layout, combined grade/value section, or shareable report link
 
-**UX: Footer Standardization**
-- [ ] Audit all pages for inconsistent footers
-- [ ] Create shared footer component (patent notice, links, copyright)
-- [ ] Apply to all pages: app.html, verify.html, check.html, faq.html, account.html, etc.
+**UX: Footer Standardization** ✅ (Session 59)
+- [x] Audit all pages for inconsistent footers (17 files, 10 with footers, 7 without)
+- [x] Standardize footer across all main pages with: nav links, copyright, patent notice, trademark disclaimer
+- [x] Applied to: app.html, faq.html, login.html, check.html, verify.html, index.html, account.html
+- [x] Full footer already on: about.html, pricing.html, privacy.html, terms.html
+- [x] Fixed mailto links (support@slabworthy.com everywhere)
 
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping

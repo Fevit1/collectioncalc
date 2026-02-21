@@ -456,3 +456,9 @@ body {
   font-size: 10px;
   color: #9ca3af;
 }
+
+/* Sighting-specific */
+.li-badge.new {
+  background: #fffbeb;
+  color: #d97706;
+}

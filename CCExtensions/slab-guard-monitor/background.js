@@ -90,6 +90,40 @@ async function reportMatch(matchData) {
   }
 }
 
+async function reportSighting(sightingData) {
+  const headers = await getAuthHeaders();
+
+  try {
+    const response = await fetch(`${API_BASE}/api/verify/report-sighting`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(sightingData)
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (e) {
+    console.error('Slab Guard: report-sighting error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+async function getMySightings() {
+  const headers = await getAuthHeaders();
+
+  try {
+    const response = await fetch(`${API_BASE}/api/registry/my-sightings`, { headers });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (e) {
+    console.error('Slab Guard: my-sightings error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
 async function getMyMatches() {
   const headers = await getAuthHeaders();
 
@@ -157,6 +191,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'reportMatch':
       reportMatch(data)
+        .then(sendResponse);
+      return true;
+
+    case 'reportSighting':
+      reportSighting(data)
+        .then(sendResponse);
+      return true;
+
+    case 'getMySightings':
+      getMySightings()
         .then(sendResponse);
       return true;
 

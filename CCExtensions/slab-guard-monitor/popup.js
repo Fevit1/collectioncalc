@@ -60,6 +60,7 @@ function showMainScreen(settings) {
 
   // Load data for current tab
   loadOwnerData();
+  loadSightingAlerts();
   loadStolenCount();
 }
 
@@ -157,6 +158,66 @@ function renderMatchList(matches) {
         <div>
           <div class="li-title">${m.comic?.title || 'Unknown'} #${m.comic?.issue_number || '?'}</div>
           <div class="li-sub">${m.serial_number} \u{2022} ${m.confidence || 0}% \u{2022} ${date}</div>
+        </div>
+        <span class="li-badge ${badgeClass}">${badgeText}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// SIGHTING ALERTS (Owner tab)
+// ============================================================
+
+async function loadSightingAlerts() {
+  const result = await new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'getMySightings' }, resolve);
+  });
+
+  if (result.success) {
+    document.getElementById('sightingCount').textContent = result.unresponded || 0;
+    renderSightingList(result.sightings);
+  }
+}
+
+function renderSightingList(sightings) {
+  const list = document.getElementById('sightingList');
+
+  if (!sightings || sightings.length === 0) {
+    list.innerHTML = '<div class="empty-state">No sighting reports yet.</div>';
+    return;
+  }
+
+  list.innerHTML = sightings.slice(0, 8).map(s => {
+    const date = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+    const responded = !!s.owner_response;
+    const responseLabels = {
+      'confirmed_mine': 'Confirmed',
+      'not_mine': 'Not Mine',
+      'investigating': 'Checking'
+    };
+
+    let badgeClass, badgeText;
+    if (s.owner_response === 'confirmed_mine') {
+      badgeClass = 'stolen';
+      badgeText = 'Confirmed';
+    } else if (s.owner_response === 'not_mine') {
+      badgeClass = 'clear';
+      badgeText = 'Not Mine';
+    } else if (s.owner_response === 'investigating') {
+      badgeClass = 'match';
+      badgeText = 'Checking';
+    } else {
+      badgeClass = 'match';
+      badgeText = 'New';
+    }
+
+    return `
+      <div class="list-item" onclick="window.open('${s.listing_url}', '_blank')">
+        <span class="li-icon">${responded ? '\u{1F4CB}' : '\u{1F514}'}</span>
+        <div>
+          <div class="li-title">${s.title || 'Unknown'} #${s.issue || '?'}</div>
+          <div class="li-sub">${s.serial_number} \u{2022} ${date}</div>
         </div>
         <span class="li-badge ${badgeClass}">${badgeText}</span>
       </div>

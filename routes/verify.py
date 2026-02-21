@@ -11,6 +11,7 @@ import psycopg2
 import resend
 from flask import Blueprint, jsonify, request, send_file
 from datetime import datetime, timedelta
+from auth import verify_jwt
 
 TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
@@ -438,8 +439,17 @@ def report_sighting():
                 'error': 'A valid listing URL is required.'
             }), 400
 
-        # Turnstile verification
-        if not _verify_turnstile(turnstile_token, request.remote_addr):
+        # Authentication: accept either Turnstile token OR Bearer auth token
+        # (Chrome extension users are already authenticated, no Turnstile needed)
+        is_authenticated = False
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            jwt_token = auth_header.split(' ', 1)[1]
+            payload = verify_jwt(jwt_token)
+            if payload and payload.get('user_id'):
+                is_authenticated = True
+
+        if not is_authenticated and not _verify_turnstile(turnstile_token, request.remote_addr):
             return jsonify({
                 'success': False,
                 'error': 'Security verification failed. Please try again.'

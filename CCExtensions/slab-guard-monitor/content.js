@@ -432,15 +432,20 @@
         </div>
         ` : ''}
 
-        <div style="display: flex; gap: 8px;">
-          ${isStolen ? `
-          <button id="sg-report-btn" style="flex: 1; background: #dc2626; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
-            \u{1F6A8} Report This Match
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 8px;">
+            ${isStolen ? `
+            <button id="sg-report-btn" style="flex: 1; background: #dc2626; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
+              \u{1F6A8} Report This Match
+            </button>
+            ` : ''}
+            <a href="https://slabworthy.com/verify" target="_blank" style="flex: 1; display: block; text-align: center; background: #f3f4f6; color: #374151; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px;">
+              Verify on SlabWorthy
+            </a>
+          </div>
+          <button id="sg-sighting-btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
+            \u{1F4E8} Report to Owner
           </button>
-          ` : ''}
-          <a href="https://slabworthy.com/verify" target="_blank" style="flex: 1; display: block; text-align: center; background: #f3f4f6; color: #374151; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px;">
-            Verify on SlabWorthy
-          </a>
         </div>
       </div>
 
@@ -456,7 +461,7 @@
     // Close button
     document.getElementById('sg-close-panel').addEventListener('click', () => panel.remove());
 
-    // Report button
+    // Report button (internal match report for stolen comics)
     const reportBtn = document.getElementById('sg-report-btn');
     if (reportBtn) {
       reportBtn.addEventListener('click', async () => {
@@ -481,6 +486,38 @@
           reportBtn.textContent = 'Failed - try again';
           reportBtn.disabled = false;
           showToast(result.error || 'Report failed', 'error');
+        }
+      });
+    }
+
+    // Report to Owner button (sighting alert via email)
+    const sightingBtn = document.getElementById('sg-sighting-btn');
+    if (sightingBtn) {
+      sightingBtn.addEventListener('click', async () => {
+        sightingBtn.textContent = '\u{1F4E8} Sending alert...';
+        sightingBtn.disabled = true;
+        sightingBtn.style.opacity = '0.7';
+
+        const result = await sendMessage('reportSighting', {
+          serial_number: match.serial_number,
+          listing_url: window.location.href,
+          message: `Spotted on eBay: ${document.title}`
+        });
+
+        if (result.success) {
+          sightingBtn.textContent = '\u{2705} Owner notified!';
+          sightingBtn.style.background = '#16a34a';
+          showToast('The registered owner has been alerted about this listing.', 'success');
+        } else {
+          sightingBtn.textContent = '\u{274C} ' + (result.error || 'Failed');
+          sightingBtn.style.background = '#dc2626';
+          setTimeout(() => {
+            sightingBtn.textContent = '\u{1F4E8} Report to Owner';
+            sightingBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            sightingBtn.disabled = false;
+            sightingBtn.style.opacity = '1';
+          }, 3000);
+          showToast(result.error || 'Could not alert the owner. Please try again.', 'error');
         }
       });
     }

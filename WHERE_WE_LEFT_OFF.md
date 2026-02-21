@@ -87,6 +87,18 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
     - Reporter email partially obscured for privacy (m***@gmail.com)
     - Empty state message when no reports exist
 
+### Session 58 Addition: Chrome Extension Wiring
+
+12. **Chrome extension — Report to Owner flow** (all extension files updated):
+    - `verify.py`: Auth-based Turnstile bypass — extension users with Bearer token skip Turnstile verification
+    - `background.js`: New `reportSighting` and `getMySightings` message handlers
+    - `content.js`: "Report to Owner" button on match panel for ALL registered comics (not just stolen)
+      - Pre-fills listing URL from current eBay page, includes page title in message
+      - Success/error states with visual feedback
+    - `popup.html`: Owner tab now shows "Sightings" stat (unresponded count) + sighting alerts list
+    - `popup.js`: `loadSightingAlerts()` + `renderSightingList()` — shows recent sightings with response status
+    - `popup.css`: New badge style for sighting items
+
 ### Before you push:
 1. Migration already ran ✅
 2. Push code (all modified files)
@@ -96,13 +108,35 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
 6. Hit /api/admin/slab-guard-stats from admin panel to verify stats
 7. Go to slabworthy.com/account — confirm "Sighting Alerts" section appears
 8. If sighting reports exist, test the response buttons (confirmed_mine / not_mine / investigating)
+9. Load extension (chrome://extensions → Load unpacked), browse eBay, trigger a match, click "Report to Owner"
+10. Open extension popup → Owner tab should show sighting alerts with badge count
+
+### Session 59: Footer Standardization ✅
+
+**Problem:** Beta testers reporting inconsistent footers across pages — some had minimal inline-styled footers, some had full branded footers, some (verify.html) had no footer at all.
+
+**Audit results:** 17 HTML files total. 4 had full class-based branded footers (about, pricing, privacy, terms), 2 had partial class-based footers (index, account), 4 had minimal inline-styled footers (app, faq, login, check), and 7 had no footer (admin, collection, collectioncalc, modal-ebay-listing, signatures, slab-guard-icon, verify).
+
+**Standard footer elements applied to ALL main pages:**
+1. Navigation links: FAQ, Pricing/Verify Serial, About, Contact (mailto:support@slabworthy.com), Privacy, Terms
+2. Copyright: © 2026 Slab Worthy. Patent Pending.
+3. Trademark: Powered by CollectionCalc™ · CGC® and CBCS® are registered trademarks of their respective owners.
+
+**Files modified:**
+- `app.html` — replaced minimal inline footer with standard compact footer
+- `faq.html` — replaced minimal inline footer with standard compact footer
+- `login.html` — replaced minimal inline footer with standard compact footer (added FAQ, Pricing, About links)
+- `check.html` — expanded footer with About, Contact links + copyright + trademark disclaimer
+- `verify.html` — added footer CSS + footer HTML (had no footer before)
+- `index.html` — added "Powered by CollectionCalc™" to trademark line, fixed contact mailto
+- `account.html` — added CGC®/CBCS® trademark disclaimer line
+
+**Pages with no footer (intentional):** admin.html (internal), collection.html (embedded), collectioncalc.html (legacy), modal-ebay-listing.html (modal), signatures.html (tool), slab-guard-icon.html (asset)
 
 ### Next Steps (Session 59+)
-1. **Chrome extension** — detect matches and pre-fill Report to Owner form
-2. **Frontend quality warnings** — show photo quality warnings during registration
-3. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
-4. **Single-screen slab report** — mobile-friendly layout so grade+value fit one screenshot
-5. **Footer standardization** — consistent footer across all pages
+1. **Frontend quality warnings** — show photo quality warnings during registration
+2. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
+3. **Single-screen slab report** — mobile-friendly layout so grade+value fit one screenshot
 
 ---
 
