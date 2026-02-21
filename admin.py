@@ -343,6 +343,37 @@ Tables in the CollectionCalc database:
    - result (JSONB)
    - created_at (TIMESTAMPTZ)
    - expires_at (TIMESTAMPTZ)
+
+8. comic_registry (Slab Guard registrations)
+   - id (SERIAL PRIMARY KEY)
+   - user_id (INTEGER FK users.id) - the owner
+   - comic_id (INTEGER FK collections.id)
+   - serial_number (VARCHAR(20) UNIQUE) - format: SW-YYYY-XXXXXX (e.g. SW-2026-7K3M9X)
+   - status (VARCHAR(20)) - 'active', 'reported_stolen', 'recovered'
+   - fingerprint_hash (TEXT) - composite perceptual hash
+   - registration_date (TIMESTAMPTZ)
+   - reported_stolen_date (TIMESTAMPTZ)
+   - recovery_date (TIMESTAMPTZ)
+   - confidence_score (NUMERIC) - fingerprint quality confidence
+
+9. sighting_reports (Report to Owner — someone spotted a comic for sale)
+   - id (SERIAL PRIMARY KEY)
+   - serial_number (VARCHAR(20) FK comic_registry.serial_number)
+   - listing_url (TEXT) - marketplace URL (eBay, Mercari, etc.)
+   - reporter_email (VARCHAR(255)) - optional, so owner can respond
+   - message (TEXT) - optional note from reporter
+   - reporter_ip (VARCHAR(45))
+   - created_at (TIMESTAMP)
+   - owner_notified (BOOLEAN) - whether alert email was sent
+   - owner_response (VARCHAR(50)) - 'confirmed_mine', 'not_mine', 'investigating', NULL
+
+10. blocked_reporters (anti-abuse for sighting reports)
+    - id (SERIAL PRIMARY KEY)
+    - ip_address (VARCHAR(45) UNIQUE)
+    - reason (VARCHAR(100))
+    - blocked_at (TIMESTAMP)
+    - expires_at (TIMESTAMP) - NULL = permanent
+    - blocked_by (VARCHAR(50)) - 'system' (auto) or 'admin' (manual)
 """
 
 def natural_language_query(question, admin_id):

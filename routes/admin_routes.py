@@ -575,11 +575,177 @@ def api_barcode_stats():
             LIMIT 10
         """)
         stats['recent_barcodes'] = [dict(r) for r in cur.fetchall()]
-        
+
         return jsonify({'success': True, **stats})
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         if conn:
             conn.close()
+
+
+# ─── Slab Guard Stats (Session 57) ─────────────────────────────────────────
+
+@admin_bp.route('/slab-guard-stats', methods=['GET'])
+@require_admin_auth
+def api_slab_guard_stats():
+    """
+    Slab Guard operational dashboard — registrations, sightings, theft reports.
+    Admin only.
+    """
+    conn = None
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        stats = {}
+
+        # --- Registration totals by status ---
+        cur.execute("""
+            SELECT status, COUNT(*) as count
+            FROM comic_registry
+            GROUP BY status
+        """)
+        status_counts = {r['status']: r['count'] for r in cur.fetchall()}
+        stats['registrations'] = {
+            'total': sum(status_counts.values()),
+            'active': status_counts.get('active', 0),
+            'reported_stolen': status_counts.get('reported_stolen', 0),
+            'recovered': status_counts.get('recovered', 0),
+        }
+
+        # --- Registrations over time (last 30 days) ---
+        cur.execute("""
+            SELECT DATE(registration_date) as date, COUNT(*) as count
+            FROM comic_registry
+            WHERE registration_date > NOW() - INTERVAL '30 days'
+            GROUP BY DATE(registration_date)
+            ORDER BY date
+        """)
+        stats['registrations_by_day'] = [
+            {'date': str(r['date']), 'count': r['count']} for r in cur.fetchall()
+        ]
+
+        # --- Sighting reports ---
+        cur.execute("SELECT COUNT(*) as total FROM sighting_reports")
+        total_sightings = cur.fetchone()['total']
+
+        cur.execute("""
+            SELECT COUNT(*) as count FROM sighting_reports
+            WHERE created_at > NOW() - INTERVAL '7 days'
+        """)
+        sightings_week = cur.fetchone()['count']
+
+        cur.execute("""
+            SELECT COUNT(*) as count FROM sighting_reports
+            WHERE created_at > NOW() - INTERVAL '30 days'
+        """)
+        sightings_month = cur.fetchone()['count']
+
+        cur.execute("""
+            SELECT COUNT(*) as count FROM sighting_reports
+            WHERE owner_notified = TRUE
+        """)
+        notified = cur.fetchone()['count']
+
+        stats['sightings'] = {
+            'total': total_sightings,
+            'last_7_days': sightings_week,
+            'last_30_days': sightings_month,
+            'owner_notified': notified,
+        }
+
+        # --- Sightings by day (last 30 days) ---
+        cur.execute("""
+            SELECT DATE(created_at) as date, COUNT(*) as count
+            FROM sighting_reports
+            WHERE created_at > NOW() - INTERVAL '30 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+        """)
+        stats['sightings_by_day'] = [
+            {'date': str(r['date']), 'count': r['count']} for r in cur.fetchall()
+        ]
+
+        # --- Top reported serials ---
+        cur.execute("""
+            SELECT sr.serial_number, COUNT(*) as report_count,
+                   c.title, c.issue, cr.status
+            FROM sighting_reports sr
+            JOIN comic_registry cr ON sr.serial_number = cr.serial_number
+            JOIN collections c ON cr.comic_id = c.id
+            GROUP BY sr.serial_number, c.title, c.issue, cr.status
+            ORDER BY report_count DESC
+            LIMIT 10
+        """)
+        stats['top_reported'] = [dict(r) for r in cur.fetchall()]
+
+        # --- Recent sighting reports ---
+        cur.execute("""
+            SELECT sr.id, sr.serial_number, sr.listing_url,
+                   sr.reporter_email, sr.message, sr.created_at,
+                   sr.owner_notified, sr.owner_response,
+                   c.title, c.issue
+            FROM sighting_reports sr
+            JOIN comic_registry cr ON sr.serial_number = cr.serial_number
+            JOIN collections c ON cr.comic_id = c.id
+            ORDER BY sr.created_at DESC
+            LIMIT 20
+        """)
+        stats['recent_sightings'] = [
+            {**dict(r), 'created_at': str(r['created_at'])} for r in cur.fetchall()
+        ]
+
+        # --- Blocked reporters ---
+        cur.execute("""
+            SELECT COUNT(*) as count FROM blocked_reporters
+            WHERE expires_at IS NULL OR expires_at > NOW()
+        """)
+        stats['blocked_ips'] = cur.fetchone()['count']
+
+        # --- Owner response rates ---
+        cur.execute("""
+            SELECT owner_response, COUNT(*) as count
+            FROM sighting_reports
+            WHERE owner_response IS NOT NULL
+            GROUP BY owner_response
+        """)
+        stats['owner_responses'] = {r['owner_response']: r['count'] for r in cur.fetchall()}
+
+        # --- Match reports (from extension/API) ---
+        try:
+            cur.execute("SELECT COUNT(*) as total FROM match_reports")
+            total_matches = cur.fetchone()['total']
+
+            cur.execute("""
+                SELECT status, COUNT(*) as count
+                FROM match_reports
+                GROUP BY status
+            """)
+            match_statuses = {r['status']: r['count'] for r in cur.fetchall()}
+
+            stats['match_reports'] = {
+                'total': total_matches,
+                'pending': match_statuses.get('pending', 0),
+                'confirmed': match_statuses.get('confirmed', 0),
+                'dismissed': match_statuses.get('dismissed', 0),
+            }
+        except Exception:
+            # match_reports table may not exist yet
+            stats['match_reports'] = {'total': 0, 'note': 'table not yet created'}
+
+        cur.close()
+        return jsonify({'success': True, **stats})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass

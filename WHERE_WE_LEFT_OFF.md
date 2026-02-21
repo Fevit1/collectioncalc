@@ -59,12 +59,28 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
    - Vision disabled for unauthenticated users (no Claude API cost)
    - Turnstile on the page blocks automated form submissions
 
+9. **Admin stats endpoint** (`/api/admin/slab-guard-stats`):
+   - Registration totals by status (active, stolen, recovered)
+   - Registrations per day (30-day trend)
+   - Sighting report totals (7-day, 30-day, all-time)
+   - Sightings per day (30-day trend)
+   - Top reported serials (most sighting reports)
+   - 20 most recent sighting reports with details
+   - Blocked IPs count
+   - Owner response breakdown (confirmed_mine / not_mine / investigating)
+   - Match reports summary (pending / confirmed / dismissed)
+
+10. **NLQ schema update** (`admin.py`):
+    - Added comic_registry, sighting_reports, blocked_reporters tables to DB_SCHEMA
+    - NLQ can now answer questions like "how many comics reported stolen?" or "show recent sighting reports"
+
 ### Before you push:
-1. Run the migration: `DATABASE_URL=... python db_migrate_sightings.py`
-2. Push code (verify.py, verify.html, db_migrate_sightings.py, registry.py, popup.html, check.html, faq.html)
+1. Migration already ran ✅
+2. Push code (all modified files)
 3. Test: go to slabworthy.com/verify, look up an old serial (SW-2026-000014), click Report a Sighting
 4. Register a new comic and confirm it gets a random alphanumeric serial
 5. Go to slabworthy.com/check, upload a comic photo, confirm results appear
+6. Hit /api/admin/slab-guard-stats from admin panel to verify stats
 
 ### Next Steps (Session 58+)
 1. **Owner dashboard** — show sighting reports on account page, let owner respond (confirmed_mine / not_mine)
