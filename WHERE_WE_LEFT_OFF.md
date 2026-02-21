@@ -1,5 +1,110 @@
 # Where We Left Off - Feb 21, 2026
 
+## Session 59b Accomplishments (Feb 21, 2026)
+
+### Universal Footer System — Built!
+
+**Problem:** Beta tester (Mike) found footers inconsistent across pages — some missing Pricing/About links, some had "Check a Comic" CTA buttons that shouldn't be there, "SLAB WORTHY" missing ™ symbol, and two different footer styles existed (simple inline vs multi-column).
+
+**Solution:** Created `/footer.js` — a universal footer component loaded via a single `<script src="/footer.js"></script>` tag.
+
+**What was built:**
+
+1. **`footer.js`** — Self-contained JavaScript module that:
+   - Auto-injects the branded 3-column footer on any page
+   - Checks for `[data-no-universal-footer]` attribute to allow opt-out
+   - Injects CSS with fallback values for CSS variables (works on all pages regardless of stylesheet)
+   - Removes any existing `<footer>` tag before injecting
+   - Includes: SLAB WORTHY™ logo, "Powered by CollectionCalc™" tagline
+   - 3-column link layout: Product (How It Works, Pricing, FAQ) / Company (About, Contact) / Legal (Privacy, Terms)
+   - Copyright: © 2026 Slab Worthy. Patent Pending.
+   - Trademark line: Powered by CollectionCalc™ · CGC® and CBCS® are registered trademarks of their respective owners.
+   - Inserts before service worker script or at end of body
+
+2. **Replaced all inline footers** across 11 pages with `<script src="/footer.js"></script>`:
+   - index.html, about.html, pricing.html, privacy.html, terms.html
+   - app.html, faq.html, login.html, check.html, account.html, collection.html
+   - All existing `<footer>...</footer>` HTML removed from these pages
+
+3. **verify.html** kept its own simplified footer (non-logged-in context):
+   - Replaced "Check a Comic" link with `<a href="/">Slab Worthy™</a>` link to homepage
+   - Has `data-no-universal-footer` attribute so footer.js skips it
+
+4. **Turnstile UX fix** on verify.html:
+   - Widget now fades out after successful verification (0.3s opacity transition)
+   - Removed both `turnstile.reset()` calls — token stays valid for the session
+   - Fixes Mike's report of Turnstile repeatedly running on long-lived pages
+
+### Marketing Document — Expanded to Full Slab Worthy Business Overview
+
+**Problem:** Original marketing doc was Slab Guard-only. Mike's wife (the marketer) needed to understand the full business and "when we will be making money and how much."
+
+**What was built:**
+
+1. **Complete rewrite of `create_marketing_doc.js`** (~920 lines) generating a branded Word document:
+   - Title: "SLAB WORTHY — AI-Powered Grading, Valuation & Theft Recovery for Comics"
+   - Executive Summary with revenue projections
+   - Our Products (4 products: AI Grading, FMV Engine, My Collection, Slab Guard)
+   - Pricing & Business Model (full 4-tier comparison table)
+   - The Problems We Solve (4 problems with branded callout boxes)
+   - Why Slab Worthy Wins (9-row competitive comparison table)
+   - Target Audiences (7 audience cards including casual collectors)
+   - Market Sizing (TAM: $5.5B+ comic industry, $800M-$1.2B graded secondary market)
+   - Revenue Projections: 3 years × 3 scenarios (Conservative/Moderate/Upside)
+   - Marketing Channels & Messaging Framework
+   - "Worthy" Brand Family future vision (CardWorthy, CoinWorthy, SoleWorthy)
+
+2. **Revenue projections added:**
+   - Year 1: $36K–$84K ARR (100-300 subscribers, 1-2 shop partnerships)
+   - Year 2: $150K–$420K ARR (500-1,500 subscribers, FMV licensing revenue)
+   - Year 3: $500K–$1.2M ARR (2,000-5,000+ subscribers, B2B API deals)
+   - Revenue streams: B2C subscriptions, B2B-Lite (comic shops), FMV data licensing, B2B API
+
+3. **Output:** `Slab_Guard_Marketing_Overview.docx` (regenerated with full Slab Worthy scope)
+
+### Test Feedback Addressed
+
+From Mike's Session 59 test plan:
+- **about.html, pricing.html, privacy.html, terms.html**: Removed "Check a Comic" CTA button, added ™ to SLAB WORTHY
+- **verify.html**: Footer updated, Turnstile fixed
+- **app.html, faq.html, login.html**: Had correct links in local files (Mike's failures were from undeployed code)
+- **index.html, account.html**: Already passing ✅
+
+### Files Created/Modified
+
+```
+footer.js              — NEW: Universal footer component
+create_marketing_doc.js — REWRITTEN: Full Slab Worthy business overview generator
+Slab_Guard_Marketing_Overview.docx — REGENERATED: Full business & marketing overview
+
+index.html             — Replaced inline footer with <script src="/footer.js"></script>
+about.html             — Removed CTA, added ™, replaced footer with script tag
+pricing.html           — Same as about.html
+privacy.html           — Same as about.html
+terms.html             — Same as about.html
+app.html               — Replaced inline footer with script tag
+faq.html               — Replaced inline footer with script tag
+login.html             — Replaced inline footer with script tag
+check.html             — Replaced inline footer with script tag
+account.html           — Replaced inline footer with script tag
+collection.html        — Added script tag (had no footer before)
+verify.html            — Footer text updated, Turnstile hide-after-pass + no-reset fix
+```
+
+### Before you push:
+1. Push all modified files (footer.js + 13 HTML files + marketing doc)
+2. Test in incognito: every page should show the same branded footer
+3. Verify verify.html has its own simplified footer with "Slab Worthy™" link
+4. Verify Turnstile on verify.html: should fade out after passing, should NOT re-run
+5. Continue testing remaining Session 59 test plan items (Owner Dashboard, Chrome Extension, Sales Data Capture, Regression)
+
+### Pending
+- Wife's feedback on expanded marketing document
+- Remaining test plan items (only footers were tested so far)
+- Deploy to Render (code changes are local only)
+
+---
+
 ## Session 57 Accomplishments (Feb 21, 2026)
 
 ### Report to Owner — Built!
@@ -1155,4 +1260,4 @@ LPQ correctly identified these as different_copy (chi2 0.21-0.33). Updated verdi
 4. **Consider promoting border-only LPQ** — the separation is 4.7x larger than full-image
 5. **Collect more data** — only 1 same-copy pair tested, need more for threshold validation
 
-*Last updated: February 20, 2026 (Session 56 — marketplace_mode on /compare-copies, blind test WIN on Handbook #1 (3/3), photo quality gate added to registration, PM overview doc created. 13/15 total accuracy across 3 titles. Session 57 plan: "Report to Owner" feature to close the theft recovery loop.)*
+*Last updated: February 21, 2026 (Session 59b — Universal footer system (footer.js), marketing doc expanded to full Slab Worthy business overview with revenue projections, Turnstile UX fix on verify.html, footer fixes from tester feedback.)*
