@@ -33,21 +33,34 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
 5. **Random alphanumeric serial numbers** — `SW-2026-7K3M9X` instead of `SW-2026-000001`:
    - 887 million combinations per year (vs 999,999 before)
    - Unambiguous charset: no 0/O/1/I/L confusion
+   - Offensive content filter: blocks profanity, slurs, sensitive numbers (666, 69, 88, etc.)
    - Existing sequential serials (000001–000015) remain valid
    - Updated: registry.py generation, verify.html validation + placeholder, extension popup
 
+6. **Slab Guard Check UI** (`check.html`) — public page to upload a comic photo and search the registry:
+   - Dark brand theme (matches FAQ/main app: #0f0f1a bg, Bangers font, gold/purple)
+   - Upload area with drag/drop + preview
+   - Uploads to R2, then calls `/api/monitor/check-image` with marketplace_mode
+   - Displays match cards with confidence, copy verdict, stolen alerts
+   - "Verify Serial" and "Report Sighting" action buttons on each match
+   - Turnstile bot protection
+   - Fully responsive, no auth required
+   - FAQ updated with link to check page
+
 ### Before you push:
 1. Run the migration: `DATABASE_URL=... python db_migrate_sightings.py`
-2. Push code (verify.py, verify.html, db_migrate_sightings.py, registry.py, popup.html)
+2. Push code (verify.py, verify.html, db_migrate_sightings.py, registry.py, popup.html, check.html, faq.html)
 3. Test: go to slabworthy.com/verify, look up an old serial (SW-2026-000014), click Report a Sighting
 4. Register a new comic and confirm it gets a random alphanumeric serial
+5. Go to slabworthy.com/check, upload a comic photo, confirm results appear
 
 ### Next Steps (Session 58+)
 1. **Owner dashboard** — show sighting reports on account page, let owner respond (confirmed_mine / not_mine)
 2. **Chrome extension** — detect matches and pre-fill Report to Owner form
 3. **Frontend quality warnings** — show photo quality warnings during registration
-4. **Slab Guard check UI** — user-facing page to upload a photo and search the registry
-5. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
+4. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
+5. **Single-screen slab report** — mobile-friendly layout so grade+value fit one screenshot
+6. **Footer standardization** — consistent footer across all pages
 
 ---
 

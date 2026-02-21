@@ -123,6 +123,22 @@
 - [ ] Frontend: display photo quality warnings to user during registration
 - [ ] Collect more blind test data on additional titles
 
+**Phase 1.12: Slab Guard Check UI + Extension + Owner Dashboard (Session 58+)**
+- [ ] Slab Guard check UI: user-facing page to upload a photo and search the registry
+- [ ] Chrome extension: wire sighting/reporting flow into extension popup
+- [ ] Owner dashboard: show sighting reports on account page, let owner respond
+
+**UX: Single-Screen Slab Report (Mobile)**
+- [ ] Redesign slab report to fit grade + value on one mobile screen
+- [ ] Prevents partial-screenshot misrepresentation (e.g. showing 3.0 grade with 9.0 value)
+- [ ] Brand protection: eliminates ability to make Slab Worthy look inaccurate
+- [ ] Consider: condensed layout, combined grade/value section, or shareable report link
+
+**UX: Footer Standardization**
+- [ ] Audit all pages for inconsistent footers
+- [ ] Create shared footer component (patent notice, links, copyright)
+- [ ] Apply to all pages: app.html, verify.html, check.html, faq.html, account.html, etc.
+
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping
 - [ ] Whatnot monitoring (if API available)
