@@ -66,6 +66,194 @@ def generate_serial_number():
 from routes.fingerprint_utils import auto_orient_pil, preprocess_for_fingerprint
 
 
+# ─── Photo Quality Gate (Session 56) ───────────────────────────────────────
+# Thresholds calibrated against real phone photos from Sessions 48-55.
+# All test photos (4080x3072, good phone camera) scored well above these.
+# These thresholds target genuinely poor submissions: tiny screenshots,
+# blurry thumbnails, heavily cropped images.
+QUALITY_MIN_DIMENSION = 500       # Block: either side < 500px
+QUALITY_WARN_DIMENSION = 1000     # Warn: either side < 1000px
+QUALITY_MIN_BLUR = 100            # Block: Laplacian variance < 100 (extremely blurry)
+QUALITY_WARN_BLUR = 500           # Warn: Laplacian variance < 500
+QUALITY_MIN_SIFT_KPS = 500        # Block: fewer than 500 SIFT keypoints (at 800px resize)
+QUALITY_WARN_SIFT_KPS = 1500      # Warn: fewer than 1500 SIFT keypoints
+
+
+def assess_photo_quality(photo_url, timeout=10):
+    """
+    Assess photo quality for Slab Guard registration.
+
+    Checks resolution, sharpness (blur), and feature richness (SIFT keypoints).
+    Returns a quality report with pass/warn/fail status and actionable tips.
+
+    Session 56: Added to prevent registration of photos too poor for
+    reliable SIFT copy matching. Block truly bad photos, warn on marginal.
+
+    Args:
+        photo_url: URL of the photo to assess
+        timeout: Download timeout in seconds
+
+    Returns dict:
+        overall: 'pass' | 'warn' | 'fail'
+        checks: dict of individual check results
+        warnings: list of human-readable warning messages
+        tips: list of actionable improvement suggestions
+    """
+    import requests
+    from io import BytesIO
+    import numpy as np
+
+    try:
+        import cv2
+        cv_available = True
+    except ImportError:
+        cv_available = False
+
+    result = {
+        'overall': 'pass',
+        'checks': {},
+        'warnings': [],
+        'tips': [],
+        'exif_rotated': False,
+    }
+
+    try:
+        response = requests.get(photo_url, timeout=timeout)
+        response.raise_for_status()
+        img_bytes = response.content
+
+        img_pil = PIL_Image.open(BytesIO(img_bytes))
+
+        # Check EXIF rotation
+        exif = img_pil.getexif() if hasattr(img_pil, 'getexif') else {}
+        orientation = exif.get(274, 1)  # 274 = Orientation tag, 1 = normal
+        if orientation and orientation != 1:
+            result['exif_rotated'] = True
+            result['warnings'].append(
+                'Photo was rotated — auto-corrected. For best results, hold your phone upright when photographing.'
+            )
+
+        # Auto-orient
+        img_pil = auto_orient_pil(img_pil).convert('RGB')
+        width, height = img_pil.size
+
+        # ── Resolution check ──
+        min_side = min(width, height)
+        result['checks']['resolution'] = {
+            'width': width,
+            'height': height,
+            'min_side': min_side,
+        }
+        if min_side < QUALITY_MIN_DIMENSION:
+            result['checks']['resolution']['status'] = 'fail'
+            result['overall'] = 'fail'
+            result['warnings'].append(
+                f'Image too small ({width}×{height}). Minimum {QUALITY_MIN_DIMENSION}px on shortest side required.'
+            )
+            result['tips'].append('Use your phone camera at full resolution — avoid screenshots or thumbnails.')
+        elif min_side < QUALITY_WARN_DIMENSION:
+            result['checks']['resolution']['status'] = 'warn'
+            if result['overall'] == 'pass':
+                result['overall'] = 'warn'
+            result['warnings'].append(
+                f'Image is small ({width}×{height}). Higher resolution improves fingerprint reliability.'
+            )
+            result['tips'].append('Move closer or use a higher resolution camera setting.')
+        else:
+            result['checks']['resolution']['status'] = 'pass'
+
+        # Skip CV-dependent checks if OpenCV not available
+        if not cv_available:
+            result['checks']['blur'] = {'status': 'skipped', 'reason': 'OpenCV not available'}
+            result['checks']['sift_keypoints'] = {'status': 'skipped', 'reason': 'OpenCV not available'}
+            return result
+
+        # Convert to CV2 for blur and SIFT checks
+        img_np = np.array(img_pil)
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+
+        # Resize to standard analysis size (800px max side)
+        h, w = img_cv.shape[:2]
+        scale = 800 / max(h, w)
+        resized = cv2.resize(img_cv, (int(w * scale), int(h * scale)))
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+
+        # ── Blur check (Laplacian variance) ──
+        blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
+        result['checks']['blur'] = {
+            'score': round(blur_score, 1),
+        }
+        if blur_score < QUALITY_MIN_BLUR:
+            result['checks']['blur']['status'] = 'fail'
+            result['overall'] = 'fail'
+            result['warnings'].append(
+                f'Image is too blurry (sharpness score: {blur_score:.0f}, minimum: {QUALITY_MIN_BLUR}).'
+            )
+            result['tips'].append('Hold your phone steady and make sure the comic is in focus. Tap the screen to focus before shooting.')
+        elif blur_score < QUALITY_WARN_BLUR:
+            result['checks']['blur']['status'] = 'warn'
+            if result['overall'] == 'pass':
+                result['overall'] = 'warn'
+            result['warnings'].append(
+                f'Image could be sharper (score: {blur_score:.0f}). Sharper photos produce stronger fingerprints.'
+            )
+            result['tips'].append('Try better lighting and hold your phone steady.')
+        else:
+            result['checks']['blur']['status'] = 'pass'
+
+        # ── SIFT keypoints check ──
+        sift = cv2.SIFT_create(nfeatures=5000)
+        keypoints = sift.detect(gray, None)
+        kp_count = len(keypoints)
+
+        result['checks']['sift_keypoints'] = {
+            'count': kp_count,
+        }
+        if kp_count < QUALITY_MIN_SIFT_KPS:
+            result['checks']['sift_keypoints']['status'] = 'fail'
+            result['overall'] = 'fail'
+            result['warnings'].append(
+                f'Not enough visual detail detected ({kp_count} features, minimum: {QUALITY_MIN_SIFT_KPS}). '
+                'This photo cannot be reliably matched.'
+            )
+            result['tips'].append(
+                'Make sure the full comic cover is visible, well-lit, and against a clean background.'
+            )
+        elif kp_count < QUALITY_WARN_SIFT_KPS:
+            result['checks']['sift_keypoints']['status'] = 'warn'
+            if result['overall'] == 'pass':
+                result['overall'] = 'warn'
+            result['warnings'].append(
+                f'Low visual detail ({kp_count} features). Fingerprint may be less reliable for copy matching.'
+            )
+            result['tips'].append('Improve lighting and ensure the comic cover fills most of the frame.')
+        else:
+            result['checks']['sift_keypoints']['status'] = 'pass'
+
+        # Add general tips if any warnings
+        if result['overall'] == 'warn' and not result['tips']:
+            result['tips'].append('Retake with better lighting for a stronger fingerprint.')
+
+        return result
+
+    except requests.RequestException as e:
+        return {
+            'overall': 'error',
+            'checks': {},
+            'warnings': [f'Could not download photo: {str(e)}'],
+            'tips': ['Check that the photo URL is accessible.'],
+            'exif_rotated': False,
+        }
+    except Exception as e:
+        return {
+            'overall': 'error',
+            'checks': {},
+            'warnings': [f'Photo quality check failed: {str(e)}'],
+            'tips': [],
+            'exif_rotated': False,
+        }
+
+
 def generate_edge_strip_hashes(img_bytes, strip_pct=5, hash_size=16):
     """
     Generate perceptual hashes of thin edge strips around the comic cover.
@@ -339,6 +527,23 @@ def register_comic():
                 'registration_date': existing[1].isoformat()
             })
 
+        # ── Photo Quality Gate (Session 56) ──
+        # Check front cover quality before spending time on fingerprint generation.
+        # Block truly bad photos, warn on marginal, pass good ones.
+        photo_quality = None
+        if photos and isinstance(photos, dict):
+            front_url = photos.get('front')
+            if front_url:
+                photo_quality = assess_photo_quality(front_url)
+
+                if photo_quality['overall'] == 'fail':
+                    return jsonify({
+                        'success': False,
+                        'error': 'Photo quality too low for reliable fingerprinting',
+                        'photo_quality': photo_quality,
+                        'quality_failed': True,
+                    }), 400
+
         # Generate composite fingerprints from all available photos
         all_fingerprints = None
         fingerprint_hash = None  # Legacy pHash for backward compat
@@ -367,7 +572,9 @@ def register_comic():
         # +10 bonus for edge strips (copy-level ID capability)
         # +2 per extra photo (up to +16 max) — more reference data = better matching
         extra_bonus = min(16.0, num_extras * 2.0)
-        confidence_score = min(99.0, 52.0 + (num_angles * 8.75) + (10.0 if has_edge_strips else 0.0) + extra_bonus)
+        # Session 56: Reduce confidence if photo quality is marginal
+        quality_penalty = 5.0 if (photo_quality and photo_quality['overall'] == 'warn') else 0.0
+        confidence_score = min(99.0, 52.0 + (num_angles * 8.75) + (10.0 if has_edge_strips else 0.0) + extra_bonus - quality_penalty)
 
         # Generate serial number
         serial_number = generate_serial_number()
@@ -404,7 +611,7 @@ def register_comic():
         registry_id, registration_date = cur.fetchone()
         conn.commit()
 
-        return jsonify({
+        response_data = {
             'success': True,
             'serial_number': serial_number,
             'registration_date': registration_date.isoformat(),
@@ -416,7 +623,13 @@ def register_comic():
                 'issue': issue,
                 'grade': float(grade) if grade else None
             }
-        })
+        }
+
+        # Include photo quality warnings if any (Session 56)
+        if photo_quality and photo_quality['overall'] == 'warn':
+            response_data['photo_quality'] = photo_quality
+
+        return jsonify(response_data)
 
     except Exception as e:
         if conn:
