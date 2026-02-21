@@ -288,6 +288,105 @@
             vertical-align: middle;
             margin-right: 12px;
         }
+
+        /* Report a Sighting */
+        .sighting-section {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sighting-section.show {
+            display: block;
+        }
+
+        .btn-report {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-report:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+        }
+
+        .sighting-form {
+            display: none;
+            margin-top: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .sighting-form.show {
+            display: block;
+        }
+
+        .sighting-form .input-group {
+            margin-bottom: 16px;
+        }
+
+        .sighting-form .input-group input,
+        .sighting-form .input-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: inherit;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .sighting-form .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .sighting-form .input-group input:focus,
+        .sighting-form .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .sighting-success {
+            display: none;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+
+        .sighting-success.show {
+            display: block;
+        }
+
+        .sighting-error {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .sighting-error.show {
+            display: block;
+        }
+
+        .optional-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 4px;
+        }
     </style>
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -328,11 +427,11 @@
                 <input
                     type="text"
                     id="serialInput"
-                    placeholder="SW-2026-000001"
+                    placeholder="SW-2026-7K3M9X"
                     maxlength="17"
                     autocomplete="off"
                 >
-                <div class="input-hint">Format: SW-YYYY-NNNNNN</div>
+                <div class="input-hint">Format: SW-YYYY-XXXXXX</div>
             </div>
 
             <!-- Cloudflare Turnstile -->
@@ -354,6 +453,57 @@
                 <img id="comicImage" class="comic-image" alt="Comic cover" style="display: none;">
 
                 <div class="comic-details" id="comicDetails"></div>
+
+                <!-- Report a Sighting section -->
+                <div class="sighting-section" id="sightingSection">
+                    <button class="btn btn-report" id="reportBtn" onclick="toggleSightingForm()">
+                        &#128269; Report a Sighting
+                    </button>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
+                        Spotted this comic for sale online? Alert the registered owner.
+                    </p>
+
+                    <div class="sighting-form" id="sightingForm">
+                        <div class="input-group">
+                            <label for="listingUrl">Listing URL <span style="color: var(--danger);">*</span></label>
+                            <input
+                                type="url"
+                                id="listingUrl"
+                                placeholder="https://www.ebay.com/itm/..."
+                            >
+                            <div class="input-hint">Link to the marketplace listing (eBay, Mercari, etc.)</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reporterEmail">Your Email <span class="optional-label">(optional)</span></label>
+                            <input
+                                type="email"
+                                id="reporterEmail"
+                                placeholder="your@email.com"
+                            >
+                            <div class="input-hint">So the owner can thank you or ask follow-up questions</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reportMessage">Message <span class="optional-label">(optional)</span></label>
+                            <textarea
+                                id="reportMessage"
+                                placeholder="Saw this on eBay, looks like it could be your comic..."
+                                maxlength="1000"
+                            ></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" id="submitSightingBtn" onclick="submitSighting()">
+                            Send Alert to Owner
+                        </button>
+
+                        <div class="sighting-error" id="sightingError"></div>
+                    </div>
+
+                    <div class="sighting-success" id="sightingSuccess">
+                        &#9989; The owner has been notified. Thank you for helping protect collectors.
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -417,8 +567,8 @@
                 return;
             }
 
-            if (!serialNumber.match(/^SW-\d{4}-\d{6}$/)) {
-                showError('Invalid serial number format. Expected: SW-YYYY-NNNNNN');
+            if (!serialNumber.match(/^SW-\d{4}-[A-Z0-9]{6}$/)) {
+                showError('Invalid serial number format. Expected: SW-YYYY-XXXXXX');
                 return;
             }
 
@@ -548,6 +698,99 @@
 
             comicDetails.innerHTML = detailsHTML;
             resultCard.classList.add('show');
+
+            // Show "Report a Sighting" section for active or stolen comics
+            const sightingSection = document.getElementById('sightingSection');
+            if (data.status === 'active' || data.status === 'reported_stolen') {
+                sightingSection.classList.add('show');
+                // Store serial for the sighting form
+                sightingSection.dataset.serial = data.serial_number;
+            } else {
+                sightingSection.classList.remove('show');
+            }
+
+            // Reset sighting form state
+            document.getElementById('sightingForm').classList.remove('show');
+            document.getElementById('sightingSuccess').classList.remove('show');
+            document.getElementById('sightingError').classList.remove('show');
+            document.getElementById('reportBtn').style.display = '';
+        }
+
+        // --- Report a Sighting ---
+
+        function toggleSightingForm() {
+            const form = document.getElementById('sightingForm');
+            form.classList.toggle('show');
+        }
+
+        async function submitSighting() {
+            const serial = document.getElementById('sightingSection').dataset.serial;
+            const listingUrl = document.getElementById('listingUrl').value.trim();
+            const reporterEmail = document.getElementById('reporterEmail').value.trim();
+            const message = document.getElementById('reportMessage').value.trim();
+            const submitBtn = document.getElementById('submitSightingBtn');
+            const errorEl = document.getElementById('sightingError');
+            const successEl = document.getElementById('sightingSuccess');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+
+            // Validate
+            if (!listingUrl || !listingUrl.startsWith('http')) {
+                errorEl.textContent = 'Please enter a valid listing URL starting with http.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            // Need a fresh Turnstile token
+            if (!turnstileToken) {
+                errorEl.textContent = 'Please complete the security check above first.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/verify/report-sighting`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serial_number: serial,
+                        listing_url: listingUrl,
+                        reporter_email: reporterEmail || null,
+                        message: message || null,
+                        turnstile_token: turnstileToken,
+                    })
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    errorEl.textContent = data.error || 'Failed to submit report.';
+                    errorEl.classList.add('show');
+                    return;
+                }
+
+                // Success — hide form, show confirmation
+                document.getElementById('sightingForm').classList.remove('show');
+                document.getElementById('reportBtn').style.display = 'none';
+                successEl.classList.add('show');
+
+            } catch (error) {
+                console.error('Sighting report error:', error);
+                errorEl.textContent = 'Failed to send report. Please try again.';
+                errorEl.classList.add('show');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Alert to Owner';
+                // Reset turnstile
+                turnstileToken = null;
+                if (window.turnstile) {
+                    turnstile.reset();
+                    document.getElementById('verifyBtn').disabled = true;
+                }
+            }
         }
     </script>
     <!-- Service Worker -->

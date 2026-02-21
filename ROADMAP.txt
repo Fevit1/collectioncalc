@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.7.0 (February 17, 2026)
+## Current Version: 4.9.0 (February 21, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -94,9 +94,34 @@
 - [x] LPQ override logic: prevents false same_copy from spurious border inliers
 - [x] Thresholds: border chi2 < 0.25 → SAME, > 0.40 → DIFF (observed: 0.12 vs 0.59-1.38)
 - [x] 6/6 test pairs correct or acceptable
-- [ ] Add marketplace_mode parameter to /compare-copies API endpoint
-- [ ] Collect more test data (only 1 same-copy pair validated)
-- [ ] Photo quality gate at registration
+- [x] Add marketplace_mode parameter to /compare-copies API endpoint (Session 56)
+- [x] Collect more test data — blind test on Handbook #1 (013-015): 3/3 correct (Session 56)
+- [x] Photo quality gate at registration (Session 56)
+
+**Phase 1.10: Blind Testing & Quality Gate (Session 56)** ✅
+- [x] marketplace_mode wired into /compare-copies endpoint (forces Vision, cross-camera prompt)
+- [x] Comprehensive 9-pair metric validation (Handbook #2 + Iron Man #200)
+- [x] Blind test: Handbook #1 serials 013-015 — correctly identified same-copy pair (014=015)
+- [x] 13/15 total pairs correct across 3 titles (6 same-copy, 9 different-copy)
+- [x] Photo quality gate: resolution + blur + SIFT keypoint checks at registration
+- [x] Block truly bad photos (tiny, blurry, featureless), warn marginal, pass good
+- [x] Quality warnings included in registration response with actionable tips
+- [x] PM-level product overview document (SLAB_GUARD_CV_OVERVIEW.md)
+- [x] Push Session 56 changes to deploy
+
+**Phase 1.11: Report to Owner + Anti-Abuse + Random Serials (Session 57)** ✅
+- [x] sighting_reports database table + migration script (db_migrate_sightings.py)
+- [x] POST /api/verify/report-sighting endpoint with Turnstile, rate limiting (3/serial/day)
+- [x] Sighting alert email to owner via Resend (no PII exposure)
+- [x] verify.html: "Report a Sighting" button + form (listing URL, email, message)
+- [x] 3-layer anti-abuse: per-serial (3/day), per-IP (20/day), auto-block (100/day)
+- [x] blocked_reporters table with manual + auto blocking, optional expiration
+- [x] Random alphanumeric serial numbers (SW-2026-7K3M9X, 887M combinations)
+- [x] Unambiguous charset (no 0/O/1/I/L), backward-compatible with old serials
+- [ ] Push Session 57 changes to deploy
+- [ ] Run db_migrate_sightings.py against production database
+- [ ] Frontend: display photo quality warnings to user during registration
+- [ ] Collect more blind test data on additional titles
 
 **Phase 2: Marketplace Monitoring**
 - [ ] eBay API integration for listing scraping

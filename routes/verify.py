@@ -1,16 +1,30 @@
 """
 Verify Blueprint - Public serial number lookup for theft protection
-Routes: /api/verify/lookup/:serial_number, /api/verify/watermark/:serial_number
+Routes: /api/verify/lookup/:serial_number, /api/verify/watermark/:serial_number,
+        /api/verify/report-sighting
 """
 import os
 import io
 import json
 import requests as http_requests
 import psycopg2
+import resend
 from flask import Blueprint, jsonify, request, send_file
-from datetime import datetime
+from datetime import datetime, timedelta
 
 TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://slabworthy.com')
+
+# Initialize Resend for sighting alert emails
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+
+# Rate limits for sighting reports
+SIGHTING_RATE_PER_SERIAL = 3    # max reports per serial per 24h (prevent owner harassment)
+SIGHTING_RATE_PER_IP = 20       # max reports per IP per 24h (prevent bot abuse)
+SIGHTING_AUTO_BLOCK_IP = 100    # if an IP hits this in 24h, auto-block future reports
 
 # Create blueprint (no auth required - this is public)
 verify_bp = Blueprint('verify', __name__, url_prefix='/api/verify')
@@ -161,7 +175,7 @@ def lookup_serial(serial_number):
         if not serial_number or not serial_number.startswith('SW-'):
             return jsonify({
                 'success': False,
-                'error': 'Invalid serial number format. Expected: SW-YYYY-NNNNNN'
+                'error': 'Invalid serial number format. Expected: SW-YYYY-XXXXXX'
             }), 400
 
         conn = get_db()
@@ -302,4 +316,280 @@ def get_watermarked_image(serial_number):
         return jsonify({
             'success': False,
             'error': 'Failed to generate watermarked image'
+        }), 500
+
+
+def _verify_turnstile(token, remote_ip):
+    """Verify Cloudflare Turnstile token. Returns True if valid."""
+    if not TURNSTILE_SECRET:
+        return True  # Skip in dev mode
+    if not token:
+        return False
+    try:
+        resp = http_requests.post(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            data={
+                'secret': TURNSTILE_SECRET,
+                'response': token,
+                'remoteip': remote_ip,
+            },
+            timeout=5,
+        )
+        return resp.json().get('success', False)
+    except Exception:
+        return False
+
+
+def _send_sighting_email(owner_email, serial_number, title, issue, status,
+                         listing_url, reporter_email, message):
+    """Send sighting alert email to the comic's registered owner via Resend."""
+    reporter_display = reporter_email if reporter_email else "Anonymous"
+    message_display = message if message else "(no message)"
+    status_display = status.replace('_', ' ').title()
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #6366f1;">
+            <span style="font-size: 24px;">&#128737;</span> Slab Guard Alert
+        </h2>
+        <p>Someone found a comic that may match your Slab Guard registration.</p>
+
+        <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <p style="margin: 4px 0;"><strong>Registration:</strong> {serial_number}</p>
+            <p style="margin: 4px 0;"><strong>Title:</strong> {title} #{issue}</p>
+            <p style="margin: 4px 0;"><strong>Status:</strong> {status_display}</p>
+        </div>
+
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <p style="margin: 4px 0;"><strong>Listing URL:</strong>
+                <a href="{listing_url}" style="color: #6366f1;">{listing_url}</a>
+            </p>
+            <p style="margin: 4px 0;"><strong>Reporter's message:</strong> {message_display}</p>
+            <p style="margin: 4px 0;"><strong>Reporter's email:</strong> {reporter_display}</p>
+        </div>
+
+        <h3 style="color: #1f2937;">What to do next</h3>
+        <ul style="color: #4b5563; line-height: 1.8;">
+            <li>Review the listing to see if it's your comic</li>
+            <li>If you believe it's stolen, contact the marketplace directly</li>
+            <li>You can update your comic's status at
+                <a href="{FRONTEND_URL}" style="color: #6366f1;">slabworthy.com</a>
+            </li>
+        </ul>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+            This alert was sent by Slab Guard &mdash; Slab Worthy's theft recovery system.<br>
+            You received this because you registered {serial_number} with Slab Guard.
+        </p>
+    </div>
+    """
+
+    if not RESEND_API_KEY:
+        print(f"[DEV MODE] Sighting alert for {owner_email}: {listing_url}")
+        return True
+
+    try:
+        resend.Emails.send({
+            "from": f"Slab Guard <{RESEND_FROM_EMAIL}>",
+            "to": [owner_email],
+            "subject": f"Slab Guard Alert — Someone spotted your comic {serial_number}",
+            "html": html_body,
+        })
+        return True
+    except Exception as e:
+        print(f"Failed to send sighting email: {e}")
+        return False
+
+
+@verify_bp.route('/report-sighting', methods=['POST'])
+def report_sighting():
+    """
+    Report a sighting of a registered comic (e.g. on eBay).
+    Sends an alert email to the registered owner without exposing their email.
+
+    POST JSON body:
+        serial_number   (required) - e.g. "SW-2026-000014"
+        listing_url     (required) - marketplace listing URL
+        reporter_email  (optional) - so the owner can respond
+        message         (optional) - short note from the reporter
+        turnstile_token (required) - Cloudflare Turnstile verification
+
+    Rate limit: max 3 reports per serial number per 24 hours.
+    No authentication required — anyone can report.
+    """
+    try:
+        body = request.get_json(silent=True) or {}
+        serial_number = (body.get('serial_number') or '').strip().upper()
+        listing_url = (body.get('listing_url') or '').strip()
+        reporter_email = (body.get('reporter_email') or '').strip() or None
+        message = (body.get('message') or '').strip() or None
+        turnstile_token = body.get('turnstile_token', '')
+
+        # --- Validation ---
+        if not serial_number or not serial_number.startswith('SW-'):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid serial number format.'
+            }), 400
+
+        if not listing_url or not listing_url.startswith('http'):
+            return jsonify({
+                'success': False,
+                'error': 'A valid listing URL is required.'
+            }), 400
+
+        # Turnstile verification
+        if not _verify_turnstile(turnstile_token, request.remote_addr):
+            return jsonify({
+                'success': False,
+                'error': 'Security verification failed. Please try again.'
+            }), 403
+
+        # Sanitize inputs
+        if message and len(message) > 1000:
+            message = message[:1000]
+        if reporter_email and len(reporter_email) > 255:
+            reporter_email = reporter_email[:255]
+        if len(listing_url) > 2000:
+            return jsonify({
+                'success': False,
+                'error': 'Listing URL is too long.'
+            }), 400
+
+        conn = get_db()
+        cur = conn.cursor()
+        reporter_ip = request.remote_addr
+
+        # --- Check if IP is blocked ---
+        cur.execute("""
+            SELECT id FROM blocked_reporters
+            WHERE ip_address = %s
+              AND (expires_at IS NULL OR expires_at > NOW())
+        """, (reporter_ip,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Reporting is temporarily unavailable. Please try again later.'
+            }), 429
+
+        # --- Rate limit: per serial (prevent owner harassment) ---
+        cur.execute("""
+            SELECT COUNT(*) FROM sighting_reports
+            WHERE serial_number = %s
+              AND created_at > NOW() - INTERVAL '24 hours'
+        """, (serial_number,))
+        serial_count = cur.fetchone()[0]
+
+        if serial_count >= SIGHTING_RATE_PER_SERIAL:
+            cur.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'This comic has already been reported recently. Please try again later.'
+            }), 429
+
+        # --- Rate limit: per IP (prevent bot abuse) ---
+        cur.execute("""
+            SELECT COUNT(*) FROM sighting_reports
+            WHERE reporter_ip = %s
+              AND created_at > NOW() - INTERVAL '24 hours'
+        """, (reporter_ip,))
+        ip_count = cur.fetchone()[0]
+
+        if ip_count >= SIGHTING_RATE_PER_IP:
+            # Auto-block if they've hit the hard ceiling
+            if ip_count >= SIGHTING_AUTO_BLOCK_IP:
+                cur.execute("""
+                    INSERT INTO blocked_reporters (ip_address, reason, blocked_by)
+                    VALUES (%s, 'auto: exceeded 100 reports in 24h', 'system')
+                    ON CONFLICT (ip_address) DO NOTHING
+                """, (reporter_ip,))
+                conn.commit()
+                print(f"[SIGHTING] Auto-blocked IP {reporter_ip} — {ip_count} reports in 24h")
+            cur.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'You have submitted too many reports today. Please try again tomorrow.'
+            }), 429
+
+        # --- Look up the registration + owner email ---
+        cur.execute("""
+            SELECT
+                cr.serial_number,
+                cr.status,
+                c.title,
+                c.issue,
+                u.email
+            FROM comic_registry cr
+            JOIN collections c ON cr.comic_id = c.id
+            JOIN users u ON cr.user_id = u.id
+            WHERE cr.serial_number = %s
+        """, (serial_number,))
+
+        result = cur.fetchone()
+        if not result:
+            cur.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Serial number not found in the registry.'
+            }), 404
+
+        _, status, title, issue, owner_email = result
+
+        # --- Store the sighting report ---
+        cur.execute("""
+            INSERT INTO sighting_reports
+                (serial_number, listing_url, reporter_email, message, reporter_ip, owner_notified)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            serial_number,
+            listing_url,
+            reporter_email,
+            message,
+            reporter_ip,
+            False,
+        ))
+        report_id = cur.fetchone()[0]
+
+        # --- Send email to owner ---
+        email_sent = _send_sighting_email(
+            owner_email=owner_email,
+            serial_number=serial_number,
+            title=title,
+            issue=issue,
+            status=status,
+            listing_url=listing_url,
+            reporter_email=reporter_email,
+            message=message,
+        )
+
+        # Update owner_notified flag
+        if email_sent:
+            cur.execute("""
+                UPDATE sighting_reports SET owner_notified = TRUE WHERE id = %s
+            """, (report_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'The owner has been notified. Thank you for helping protect collectors.',
+            'report_id': report_id,
+            'owner_notified': email_sent,
+        })
+
+    except Exception as e:
+        print(f"Error in report_sighting: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to submit sighting report. Please try again.'
         }), 500

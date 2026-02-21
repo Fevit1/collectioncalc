@@ -37,28 +37,87 @@ def init_modules(imagehash_lib, pil_image):
     PIL_Image = pil_image
 
 
+def _contains_offensive(suffix):
+    """
+    Check if a serial number suffix contains offensive words or patterns.
+    Returns True if the suffix should be rejected.
+    """
+    s = suffix.upper()
+
+    # Profanity and slurs (check if any appear as substrings)
+    BAD_WORDS = [
+        'FUC', 'FUK', 'FKN', 'SHT', 'ASS', 'ARS', 'DMN', 'DAM',
+        'BTH', 'CKS', 'DCK', 'DCK', 'CNT', 'CUM', 'TIT', 'NUT',
+        'SUK', 'SUC', 'HOR', 'FAG', 'FAT', 'GAY', 'JEW', 'NIG',
+        'NGA', 'WET', 'WTF', 'STF', 'KKK', 'NAZ', 'KYS',
+        'SEX', 'XXX', 'DIK', 'DIE', 'KIL', 'RAP', 'PEN',
+    ]
+
+    # Offensive number patterns
+    BAD_NUMBERS = [
+        '666',   # devil / satanic
+        '69',    # sexual
+        '88',    # white supremacist
+        '14',    # white supremacist (when paired with 88)
+        '1488',  # white supremacist combo
+        '420',   # drug reference
+        '911',   # sensitive
+    ]
+
+    for word in BAD_WORDS:
+        if word in s:
+            return True
+
+    for num in BAD_NUMBERS:
+        if num in s:
+            return True
+
+    return False
+
+
 def generate_serial_number():
-    """Generate unique serial number: SW-YYYY-NNNNNN"""
+    """
+    Generate unique serial number: SW-YYYY-XXXXXX
+    where XXXXXX is a random 6-character alphanumeric suffix.
+
+    Uses an unambiguous character set (no 0/O/1/I/L) so serials are
+    easy to read on a slab label and hard for bots to guess.
+    ~887 million combinations per year.
+
+    Filters out offensive words, slurs, and sensitive number patterns.
+    """
+    import secrets
+
+    # Unambiguous alphanumeric: removed 0, O, 1, I, L
+    CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
     database_url = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(database_url)
     cur = conn.cursor()
 
     year = datetime.now().year
 
-    # Get max serial for current year
-    cur.execute("""
-        SELECT MAX(CAST(SUBSTRING(serial_number FROM 9) AS INTEGER))
-        FROM comic_registry
-        WHERE serial_number LIKE %s
-    """, (f"SW-{year}-%",))
+    # Generate random suffix, retry on collision or offensive content
+    for _ in range(50):
+        suffix = ''.join(secrets.choice(CHARSET) for _ in range(6))
 
-    result = cur.fetchone()[0]
-    next_num = (result or 0) + 1
+        if _contains_offensive(suffix):
+            continue
+
+        serial = f"SW-{year}-{suffix}"
+
+        cur.execute("""
+            SELECT 1 FROM comic_registry WHERE serial_number = %s
+        """, (serial,))
+
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return serial
 
     cur.close()
     conn.close()
-
-    return f"SW-{year}-{next_num:06d}"
+    raise Exception("Failed to generate unique serial number after 50 attempts")
 
 
 # Session 53: Shared preprocessing — single source of truth in fingerprint_utils.py

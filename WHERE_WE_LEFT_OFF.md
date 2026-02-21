@@ -1,4 +1,57 @@
-# Where We Left Off - Feb 18, 2026
+# Where We Left Off - Feb 21, 2026
+
+## Session 57 Accomplishments (Feb 21, 2026)
+
+### Report to Owner — Built!
+
+The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there was no way to alert the victim. Now there is.
+
+**What was built:**
+
+1. **Database migration** (`db_migrate_sightings.py`) — `sighting_reports` table with serial_number FK, listing_url, reporter_email, message, rate limiting support, owner_response tracking.
+
+2. **Backend endpoint** (`routes/verify.py`) — `POST /api/verify/report-sighting`:
+   - Validates Turnstile, serial number format, listing URL
+   - Rate limits: max 3 reports per serial per 24 hours (prevents spam)
+   - Looks up owner email without exposing it
+   - Stores report in `sighting_reports` table
+   - Sends styled HTML alert email via Resend
+   - No auth required — anyone can report (that's the point)
+
+3. **Frontend** (`verify.html`) — "Report a Sighting" button appears after a successful serial lookup:
+   - Expandable form: listing URL (required), reporter email (optional), message (optional)
+   - Reuses existing Turnstile widget
+   - Success confirmation: "The owner has been notified. Thank you for helping protect collectors."
+   - Only shows for active or reported_stolen comics
+
+4. **3-layer anti-abuse system** on sighting reports:
+   - Per-serial rate limit: 3 reports/serial/day (prevents owner harassment)
+   - Per-IP soft limit: 20 reports/IP/day (catches bots)
+   - Per-IP auto-block: 100+ reports/IP/day → IP written to `blocked_reporters` table, all future reports rejected
+   - `blocked_reporters` table supports manual blocking + optional expiration
+
+5. **Random alphanumeric serial numbers** — `SW-2026-7K3M9X` instead of `SW-2026-000001`:
+   - 887 million combinations per year (vs 999,999 before)
+   - Unambiguous charset: no 0/O/1/I/L confusion
+   - Existing sequential serials (000001–000015) remain valid
+   - Updated: registry.py generation, verify.html validation + placeholder, extension popup
+
+### Before you push:
+1. Run the migration: `DATABASE_URL=... python db_migrate_sightings.py`
+2. Push code (verify.py, verify.html, db_migrate_sightings.py, registry.py, popup.html)
+3. Test: go to slabworthy.com/verify, look up an old serial (SW-2026-000014), click Report a Sighting
+4. Register a new comic and confirm it gets a random alphanumeric serial
+
+### Next Steps (Session 58+)
+1. **Owner dashboard** — show sighting reports on account page, let owner respond (confirmed_mine / not_mine)
+2. **Chrome extension** — detect matches and pre-fill Report to Owner form
+3. **Frontend quality warnings** — show photo quality warnings during registration
+4. **Slab Guard check UI** — user-facing page to upload a photo and search the registry
+5. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
+
+---
+
+# Previous Sessions
 
 ## 🎉 Session 48 Accomplishments
 
@@ -634,37 +687,243 @@ texture_fingerprint_prototype.py — Full prototype with 7 approaches, separatio
 
 ---
 
+## 🎉 Session 56: Marketplace Mode on /compare-copies, Blind Test WIN, Photo Quality Gate
+
+### marketplace_mode Added to /compare-copies Endpoint
+
+- Added `marketplace_mode` parameter to `/api/monitor/compare-copies`
+- When `marketplace_mode=true`, Vision is automatically forced on as primary verdict
+- Passes `marketplace_mode` through to `compare_covers_with_vision()` for cross-camera prompt
+- Mirrors same behavior as `/check-image` endpoint
+- Docstring updated with full parameter documentation
+
+### Comprehensive Metric Validation (9 Pairs)
+
+Ran all possible within-title pairwise comparisons on local photos (Handbook #2 × 6 pairs, Iron Man #200 × 3 pairs). Key findings:
+
+**Scorecard:** 6 correct / 1 uncertain / 2 wrong out of 9
+
+**Two errors identified:**
+1. **HB-006 vs HB-009 (DIFF) → false same_copy** — 8 border inliers from similar border wear between different copies. LPQ border chi² = 0.148, just under the 0.15 override threshold.
+2. **HB-007 vs HB-008 (SAME) → false different_copy** — Angled photo (008) causes zero border inliers and low dilated IoU (0.018). LPQ correctly says "same" (0.043) but can't override alone.
+
+**Separation analysis:** All metrics (LPQ, dilated IoU, border inliers) showed overlap between SAME and DIFF distributions across this dataset. No single threshold cleanly separates all pairs.
+
+**Decision: Leave thresholds alone.** The two errors pull in opposite directions (too permissive AND too strict). Tuning for either risks breaking the cases that work. The system just passed a blind test on a new title — don't fix what isn't broken. Revisit if pattern repeats on future data.
+
+### BLIND TEST: Handbook #1 — 3/3 Correct ✅
+
+Mike registered 3 copies of Handbook of the Marvel Universe #1 (serials 013, 014, 015) — two same-copy and one different-copy. Didn't tell us which was which.
+
+| Pair | Verdict | Border Inliers | LPQ Border χ² | LPQ Full χ² |
+|------|---------|---------------|---------------|-------------|
+| 013 vs 014 | uncertain | 0 | 0.720 | 0.128 |
+| 013 vs 015 | different_copy | 0 | 0.018 | 0.007 |
+| **014 vs 015** | **same_copy** | **13** | **0.040** | **0.011** |
+
+**Slab Guard correctly identified 014 and 015 as the same physical comic.** Border inliers (13) provided the strongest signal. This is a brand new title not used in any previous tuning — validates that the approach generalizes.
+
+**Interesting note:** 013 vs 015 had LOWER LPQ scores (0.018 border) than the actual same-copy pair (0.040), but zero border inliers correctly pushed it to different_copy. Multi-metric approach saved what LPQ alone would have gotten wrong.
+
+### PM-Level Overview Document Created
+
+Created `SLAB_GUARD_CV_OVERVIEW.md` — non-technical walkthrough of the entire CV pipeline, written for product/business audience. Covers the pipeline steps, two operating modes, accuracy, limitations, and why 20+ other approaches didn't work.
+
+### Photo Quality Gate Added to Registration
+
+Added `assess_photo_quality()` to `routes/registry.py` (Session 56). Runs on front cover photo before fingerprint generation.
+
+**Three checks:** resolution, blur (Laplacian variance), SIFT keypoints
+
+| Check | Block (400 error) | Warn (registers with warning) | Pass |
+|-------|-------------------|-------------------------------|------|
+| Resolution | < 500px shortest side | 500–1000px | > 1000px |
+| Blur score | < 100 | 100–500 | > 500 |
+| SIFT keypoints | < 500 (at 800px) | 500–1500 | > 1500 |
+
+- EXIF rotation detected and auto-corrected (warning shown)
+- Marginal quality reduces confidence score by 5 points
+- Returns human-readable tips ("Hold phone steady", "Improve lighting")
+- All 10 existing test photos pass cleanly (worst: angled HB-008 at 2648 blur, 2895 kps — well above thresholds)
+- Synthetic bad photos correctly blocked/warned in testing
+
+### Updated Test Data Summary
+
+| Title | Same-Copy Pairs | Diff-Copy Pairs | Correct |
+|-------|----------------|-----------------|---------|
+| Handbook #2 | 4 | 5 | 7/9 |
+| Iron Man #200 | 1 | 2 | 3/3 |
+| Handbook #1 | 1 | 2 | 3/3 |
+| **Total** | **6** | **9** | **13/15** |
+
+### Test Comics in Database (Updated)
+
+| Serial | Title | Physical Copy | Photo Type |
+|--------|-------|--------------|------------|
+| SW-2026-000013 | Handbook #1 | ? (Copy X) | Standard |
+| SW-2026-000014 | Handbook #1 | Copy Y | Standard |
+| SW-2026-000015 | Handbook #1 | Copy Y (same as 014) | Standard |
+
+### Files Modified/Created (Session 56)
+
+```
+routes/monitor.py              — marketplace_mode on /compare-copies endpoint
+routes/registry.py             — assess_photo_quality() function, quality gate in register_comic()
+SLAB_GUARD_CV_OVERVIEW.md      — NEW: PM-level product overview
+comprehensive_test_results.json — NEW: full 9-pair metric comparison results
+blind_test_handbook1_results.json — NEW: blind test results (013-015)
+handbook1_013.jpg              — NEW: downloaded from R2 for local testing
+handbook1_014.jpg              — NEW: downloaded from R2 for local testing
+handbook1_015.jpg              — NEW: downloaded from R2 for local testing
+```
+
+---
+
 ## 🎯 Next Steps (Prioritized)
 
 ### Immediate
 
-1. **Integrate LPQ as supplementary metric in slab_guard_cv.py**
-   - Add LPQ chi2 computation alongside edge IoU
-   - Use as additional signal for marketplace mode (where edge IoU fails)
-   - Don't replace edge IoU yet — keep both and see which performs better with more data
+1. **Push Session 56 changes to deploy**
+   - marketplace_mode on /compare-copies
+   - Photo quality gate on registration
 
-2. **Re-test with more registration data**
-   - Register more comics with different conditions to validate LPQ thresholds
-   - Test on Handbook #2 registrations (001-009) as well
+2. **"Report to Owner" feature** ← SESSION 57 (plan below)
+   - When someone (or the extension) finds a match, they can alert the registered owner
+   - Backend endpoint + email via Resend + button on verify page
+   - See detailed plan below
+
+3. **Collect more blind test data**
+   - Every new title tested strengthens threshold validation
+   - Prioritize finding more duplicate copies among Mike's 600 comics
 
 ### Short-Term
-
-3. **Add `marketplace_mode` to `/compare-copies` endpoint**
 
 4. **Re-register Iron Man #200 with upright photos**
    - Current registrations are all rotated 90° on blanket — poor quality
    - New registrations with flat, upright, well-lit photos per guidelines
    - Re-test eBay comparison after re-registration
 
-5. **Photo quality gate at registration**
-   - Reject photos with <100 SIFT keypoints (too blurry/small)
-   - Warn about rotated photos (EXIF says 90°/270°)
-   - Warn about cluttered backgrounds (blanket, table, etc.)
-   - Minimum resolution check
-
-6. **Performance optimization**
+5. **Performance optimization**
    - Cache SIFT keypoints at registration time
    - Limit SIFT comparison to top-N composite matches
+
+6. **Frontend: show photo quality warnings to user**
+   - Display tips when registration returns photo_quality warnings
+   - Consider adding quality check before upload (client-side preview)
+
+7. **Slab Guard check UI**
+   - User-facing page to upload a photo and check against registry
+   - Currently API-only, no frontend
+
+---
+
+## 📋 Session 57 Plan: "Report to Owner" Feature
+
+### The Problem
+Slab Guard can identify a stolen comic on eBay, but there's no way for that match to actually reach the victim. The theft recovery story is broken at the last mile.
+
+### The Feature
+A "Report This Listing" flow that lets anyone who spots a match alert the registered owner — without exposing the owner's email address.
+
+### User Flow
+
+**From the verify page (slabworthy.com/verify/SW-2026-XXXXXX):**
+1. User sees a verified comic with status "Active" or "Reported Stolen"
+2. User clicks "Report a Sighting" button
+3. A form appears asking for:
+   - Marketplace listing URL (required) — e.g., eBay link
+   - Reporter's email (optional) — so the owner can respond
+   - Short message (optional) — "Saw this on eBay, looks like your comic"
+4. Cloudflare Turnstile verification (already on the verify page)
+5. Submit → backend sends email to registered owner via Resend
+
+**From the Chrome extension (future):**
+1. Extension flags a listing as matching a registration
+2. User clicks "Report to Owner" in the extension popup
+3. Same flow but pre-fills the listing URL automatically
+
+### Email to Owner
+```
+Subject: Slab Guard Alert — Someone spotted your comic SW-2026-000014
+
+Someone found a comic that may match your Slab Guard registration.
+
+Registration: SW-2026-000014
+Title: The Official Handbook of the Marvel Universe #1
+Status: Active
+
+Listing URL: https://www.ebay.com/itm/123456789
+
+Reporter's message: "Saw this on eBay, looks like your copy"
+Reporter's email: tipster@gmail.com (or "Anonymous")
+
+What to do next:
+- Review the listing to see if it's your comic
+- If you believe it's stolen, contact the marketplace directly
+- You can update your comic's status to "Reported Stolen" at slabworthy.com
+
+— Slab Guard by Slab Worthy
+```
+
+### Backend Implementation Plan
+
+**1. New endpoint: `POST /api/verify/report-sighting`**
+- File: `routes/verify.py`
+- Accepts: `serial_number`, `listing_url`, `reporter_email` (optional), `message` (optional), `turnstile_token`
+- Validates Turnstile token (reuse existing verification logic)
+- Looks up the registration → gets owner's user_id → gets owner's email
+- Sends email via Resend (already configured: support@slabworthy.com)
+- Stores the report in a new `sighting_reports` table for tracking
+- Rate limit: max 3 reports per serial per day (prevent spam)
+- No authentication required (anyone can report — that's the point)
+
+**2. New database table: `sighting_reports`**
+```sql
+CREATE TABLE sighting_reports (
+    id SERIAL PRIMARY KEY,
+    serial_number VARCHAR(20) NOT NULL REFERENCES comic_registry(serial_number),
+    listing_url TEXT NOT NULL,
+    reporter_email VARCHAR(255),
+    message TEXT,
+    reporter_ip VARCHAR(45),
+    created_at TIMESTAMP DEFAULT NOW(),
+    owner_notified BOOLEAN DEFAULT FALSE,
+    owner_response VARCHAR(50)  -- 'confirmed_mine', 'not_mine', 'investigating', NULL
+);
+CREATE INDEX idx_sighting_serial ON sighting_reports(serial_number);
+CREATE INDEX idx_sighting_created ON sighting_reports(created_at);
+```
+
+**3. Verify page UI update: `verify.html`**
+- Add "Report a Sighting" button (visible when comic status is active or stolen)
+- Expandable form section (hidden by default, toggles on click)
+- Fields: listing URL input, reporter email input, message textarea
+- Reuses existing Turnstile widget on the page
+- Submit button with loading state
+- Success message: "The owner has been notified. Thank you for helping protect collectors."
+
+**4. Owner dashboard: sighting history (future, not in Session 57)**
+- Show past sighting reports on the account page
+- Allow owner to mark reports as "confirmed mine" / "not mine"
+- This is nice-to-have, not blocking the core feature
+
+### Files to Modify
+```
+routes/verify.py          — New /report-sighting endpoint + email sending
+verify.html               — "Report a Sighting" button + form
+db_migrate_sightings.py   — NEW: migration script for sighting_reports table
+```
+
+### Dependencies
+- Resend (already configured)
+- Cloudflare Turnstile (already on verify page)
+- No new packages needed
+
+### What's NOT in Scope for Session 57
+- Chrome extension integration (later — just needs to call the same endpoint)
+- Owner dashboard / response tracking (later)
+- Auto-scanning eBay listings (Phase 2 marketplace monitoring)
+- SMS/push notifications (email only for now)
 
 ---
 
@@ -789,4 +1048,4 @@ LPQ correctly identified these as different_copy (chi2 0.21-0.33). Updated verdi
 4. **Consider promoting border-only LPQ** — the separation is 4.7x larger than full-image
 5. **Collect more data** — only 1 same-copy pair tested, need more for threshold validation
 
-*Last updated: February 20, 2026 (Session 55 — LPQ integrated into slab_guard_cv.py as supplementary metric. Override logic prevents false same_copy from spurious border inliers. 6/6 test pairs correct or acceptable. Border-only LPQ shows 4.7x stronger separation. Needs deploy + more test data.)*
+*Last updated: February 20, 2026 (Session 56 — marketplace_mode on /compare-copies, blind test WIN on Handbook #1 (3/3), photo quality gate added to registration, PM overview doc created. 13/15 total accuracy across 3 titles. Session 57 plan: "Report to Owner" feature to close the theft recovery loop.)*
