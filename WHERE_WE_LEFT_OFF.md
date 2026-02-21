@@ -40,12 +40,24 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
 6. **Slab Guard Check UI** (`check.html`) — public page to upload a comic photo and search the registry:
    - Dark brand theme (matches FAQ/main app: #0f0f1a bg, Bangers font, gold/purple)
    - Upload area with drag/drop + preview
-   - Uploads to R2, then calls `/api/monitor/check-image` with marketplace_mode
    - Displays match cards with confidence, copy verdict, stolen alerts
    - "Verify Serial" and "Report Sighting" action buttons on each match
    - Turnstile bot protection
-   - Fully responsive, no auth required
+   - Fully responsive
    - FAQ updated with link to check page
+
+7. **Tiered detection (free vs advanced)** on check page:
+   - **Not logged in:** SIFT-only fingerprint matching (free, no API cost)
+   - **Logged in:** SIFT + Claude Vision + marketplace_mode (advanced cross-camera matching)
+   - Upsell banner after results: "Want advanced detection? Sign in for AI-powered physical copy matching"
+   - Law enforcement note: "contact us for full access"
+   - "Advanced Detection Active" badge for logged-in users
+   - Auth status indicator below Check button
+
+8. **Cost protection** on check-image endpoint:
+   - Stricter rate limit: 10 requests per 5 minutes per IP (vs 60/min general)
+   - Vision disabled for unauthenticated users (no Claude API cost)
+   - Turnstile on the page blocks automated form submissions
 
 ### Before you push:
 1. Run the migration: `DATABASE_URL=... python db_migrate_sightings.py`

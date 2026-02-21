@@ -494,6 +494,8 @@
                 Check Against Registry
             </button>
 
+            <div id="authStatus" style="text-align: center; margin-top: 10px; font-size: 0.8rem;"></div>
+
             <div class="error-message" id="errorMessage"></div>
         </div>
 
@@ -535,6 +537,20 @@
 
         let turnstileToken = null;
         let uploadedImageUrl = null;
+
+        // Auth detection — logged-in users get Vision (advanced detection)
+        const authToken = localStorage.getItem('cc_token');
+        const isLoggedIn = !!authToken;
+
+        // Show auth status
+        window.addEventListener('DOMContentLoaded', function() {
+            const statusEl = document.getElementById('authStatus');
+            if (isLoggedIn) {
+                statusEl.innerHTML = '<span style="color: var(--success);">&#128737; Advanced detection active</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color: var(--text-muted);">Basic detection &bull; <a href="/login.html" style="color: var(--primary);">Sign in</a> for advanced AI matching</span>';
+            }
+        });
 
         function onTurnstileSuccess(token) {
             turnstileToken = token;
@@ -643,15 +659,22 @@
 
                 btn.innerHTML = '<span class="spinner"></span> Scanning registry...';
 
-                // Step 2: Check against registry (marketplace mode for cross-camera tolerance)
+                // Step 2: Check against registry
+                // Logged-in users get Vision + marketplace mode (advanced detection)
+                // Public users get SIFT only (free, still effective)
+                const headers = { 'Content-Type': 'application/json' };
+                if (isLoggedIn) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+
                 const resp = await fetch(`${API_URL}/api/monitor/check-image`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({
                         image_url: imageUrl,
                         use_sift: true,
-                        use_vision: false,
-                        marketplace_mode: true,
+                        use_vision: isLoggedIn,
+                        marketplace_mode: isLoggedIn,
                     })
                 });
                 const data = await resp.json();
@@ -683,6 +706,29 @@
             const resultsSection = document.getElementById('resultsSection');
             const content = document.getElementById('resultsContent');
 
+            // Upsell banner for non-logged-in users
+            const upsellHtml = !isLoggedIn ? `
+                <div style="background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(250,204,21,0.1));
+                            border: 1px solid rgba(124,58,237,0.3); border-radius: 12px;
+                            padding: 20px; margin-bottom: 16px; text-align: center;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+                        &#128737; Want advanced detection?
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 14px;">
+                        Sign in for AI-powered physical copy matching &mdash; identifies the exact same comic
+                        across different cameras, lighting, and backgrounds.
+                    </p>
+                    <a href="/login.html" class="btn btn-primary"
+                       style="display: inline-block; width: auto; padding: 10px 24px;
+                              text-decoration: none; font-size: 0.9rem;">
+                        Sign In for Advanced Check
+                    </a>
+                    <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 10px;">
+                        Free accounts available &bull; Law enforcement: <a href="mailto:support@slabworthy.com" style="color: var(--primary);">contact us</a> for full access
+                    </div>
+                </div>
+            ` : '';
+
             if (!data.matches || data.matches.length === 0) {
                 content.innerHTML = `
                     <div class="card no-match">
@@ -690,12 +736,20 @@
                         <h3>No Matches Found</h3>
                         <p>This comic does not match any registered or stolen comics in the Slab Guard registry.</p>
                     </div>
+                    ${upsellHtml}
                 `;
                 resultsSection.classList.add('show');
                 return;
             }
 
-            let html = `<div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px;">
+            // Detection mode indicator
+            const modeHtml = isLoggedIn
+                ? `<div style="display: inline-block; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+                              border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: var(--success);
+                              font-weight: 600; margin-bottom: 12px;">&#128737; Advanced Detection Active</div>`
+                : '';
+
+            let html = `${modeHtml}<div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px;">
                 Found ${data.matches.length} potential match${data.matches.length > 1 ? 'es' : ''}
             </div>`;
 
@@ -768,6 +822,9 @@
                     </div>
                 `;
             }
+
+            // Add upsell after match results for non-logged-in users
+            html += upsellHtml;
 
             content.innerHTML = html;
             resultsSection.classList.add('show');

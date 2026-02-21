@@ -56,8 +56,13 @@ except ImportError:
 
 # Simple in-memory rate limiter
 _rate_limit_store = {}  # ip -> (count, window_start)
-RATE_LIMIT_MAX = 60  # requests per window
+RATE_LIMIT_MAX = 60  # requests per window (authenticated users / extension)
 RATE_LIMIT_WINDOW = 60  # seconds
+
+# Stricter rate limit for expensive endpoints (check-image)
+_check_rate_store = {}  # ip -> (count, window_start)
+CHECK_RATE_LIMIT_MAX = 10   # max 10 checks per 5 minutes per IP
+CHECK_RATE_LIMIT_WINDOW = 300  # 5 minute window
 
 # Composite matching thresholds (per-angle, sum of 4 algos, out of 256 bits)
 COMPOSITE_THRESHOLD_CRITICAL = 70   # 95%+ same comic
@@ -111,6 +116,31 @@ def rate_limit(f):
                 _rate_limit_store[ip] = (count + 1, window_start)
         else:
             _rate_limit_store[ip] = (1, now)
+
+        return f(*args, **kwargs)
+    return decorated
+
+
+def check_rate_limit(f):
+    """Stricter rate limiter for expensive endpoints — 10 requests per 5 minutes per IP"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        ip = request.remote_addr or 'unknown'
+        now = time.time()
+
+        if ip in _check_rate_store:
+            count, window_start = _check_rate_store[ip]
+            if now - window_start > CHECK_RATE_LIMIT_WINDOW:
+                _check_rate_store[ip] = (1, now)
+            elif count >= CHECK_RATE_LIMIT_MAX:
+                return jsonify({
+                    'success': False,
+                    'error': 'Too many checks. Please wait a few minutes before trying again.'
+                }), 429
+            else:
+                _check_rate_store[ip] = (count + 1, window_start)
+        else:
+            _check_rate_store[ip] = (1, now)
 
         return f(*args, **kwargs)
     return decorated
@@ -529,6 +559,7 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
 
 @monitor_bp.route('/check-image', methods=['POST'])
 @rate_limit
+@check_rate_limit
 def check_image():
     """
     Check an image URL against the Slab Guard registry.
