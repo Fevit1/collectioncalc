@@ -548,10 +548,17 @@
 
         let turnstileToken = null;
 
-        // Turnstile callback
+        // Turnstile callback — hide widget after success so it doesn't re-run
         function onTurnstileSuccess(token) {
             turnstileToken = token;
             document.getElementById('verifyBtn').disabled = false;
+            // Hide the turnstile container once the user has passed
+            const container = document.querySelector('.turnstile-container');
+            if (container) {
+                container.style.transition = 'opacity 0.3s ease';
+                container.style.opacity = '0';
+                setTimeout(() => { container.style.display = 'none'; }, 300);
+            }
         }
 
         // Auto-format serial number input
@@ -621,12 +628,8 @@
             } finally {
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify Comic';
-                // Reset turnstile for next verification
-                turnstileToken = null;
-                if (window.turnstile) {
-                    turnstile.reset();
-                    verifyBtn.disabled = true;
-                }
+                // Keep turnstile token valid — don't reset after each verification.
+                // User already proved they're human; let them verify multiple serials.
             }
         }
 
@@ -800,20 +803,15 @@
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Send Alert to Owner';
-                // Reset turnstile
-                turnstileToken = null;
-                if (window.turnstile) {
-                    turnstile.reset();
-                    document.getElementById('verifyBtn').disabled = true;
-                }
+                // Keep turnstile token valid — user already proved they're human.
             }
         }
     </script>
     <!-- Footer -->
     <footer class="site-footer">
         <div style="margin-bottom: 10px;">
+            <a href="/">Slab Worthy™</a>
             <a href="/faq.html">FAQ</a>
-            <a href="/check.html">Check a Comic</a>
             <a href="/about.html">About</a>
             <a href="mailto:support@slabworthy.com">Contact</a>
             <a href="/privacy.html">Privacy</a>
