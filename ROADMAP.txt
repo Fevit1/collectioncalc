@@ -148,8 +148,16 @@
 - [x] Full footer already on: about.html, pricing.html, privacy.html, terms.html
 - [x] Fixed mailto links (support@slabworthy.com everywhere)
 
+**Extension: Sales Data Capture** ✅ (Session 59)
+- [x] DOM parser for eBay item pages (title, price, currency, bids, listing type, seller, condition, watchers)
+- [x] Quality filter: sold items always captured, auctions only with bids ≥ 1, zero-bid and active BIN skipped
+- [x] captureSale() in background.js (fire-and-forget), salesCaptureEnabled setting
+- [x] Backend: POST /api/monitor/capture-sale endpoint (inserts into ebay_sales, deduplicates by ebay_item_id, normalizes titles)
+- [x] No new table needed — reuses existing ebay_sales with ON CONFLICT DO NOTHING
+
 **Phase 2: Marketplace Monitoring**
-- [ ] eBay API integration for listing scraping
+- [x] eBay extension-based sales capture with bid filter (Session 59)
+- [ ] eBay API integration for listing scraping (server-side supplement)
 - [ ] Whatnot monitoring (if API available)
 - [ ] Composite matching against registered comics (code ready, needs integration)
 - [ ] Email alerts on potential matches

@@ -111,6 +111,29 @@ async function reportSighting(sightingData) {
   }
 }
 
+async function captureSale(listingData) {
+  const headers = await getAuthHeaders();
+
+  try {
+    const response = await fetch(`${API_BASE}/api/monitor/capture-sale`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(listingData)
+    });
+
+    if (!response.ok) {
+      // Silently fail — don't bother user with sales capture errors
+      console.log(`Slab Guard: Sale capture returned ${response.status}`);
+      return { success: false };
+    }
+    return await response.json();
+  } catch (e) {
+    // Fire-and-forget: log but don't propagate
+    console.log('Slab Guard: Sale capture failed (silent):', e.message);
+    return { success: false };
+  }
+}
+
 async function getMySightings() {
   const headers = await getAuthHeaders();
 
@@ -199,6 +222,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(sendResponse);
       return true;
 
+    case 'captureSale':
+      captureSale(data)
+        .then(sendResponse);
+      return true;
+
     case 'getMySightings':
       getMySightings()
         .then(sendResponse);
@@ -239,8 +267,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'getSettings':
       chrome.storage.local.get([
-        'autoScanEnabled', 'scanSensitivity', 'notificationsEnabled',
-        'soundAlerts', 'authToken', 'userEmail', 'userName', 'userRole'
+        'autoScanEnabled', 'salesCaptureEnabled', 'scanSensitivity',
+        'notificationsEnabled', 'soundAlerts',
+        'authToken', 'userEmail', 'userName', 'userRole'
       ]).then(sendResponse);
       return true;
 
@@ -269,6 +298,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Set defaults
   chrome.storage.local.set({
     autoScanEnabled: true,
+    salesCaptureEnabled: true, // silently capture qualified sales data
     scanSensitivity: 'medium', // low=5, medium=10, high=15
     notificationsEnabled: true,
     soundAlerts: false,

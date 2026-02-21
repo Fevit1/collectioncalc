@@ -573,6 +573,187 @@
   }
 
   // ============================================================
+  // SALES DATA CAPTURE (bid-filtered)
+  // ============================================================
+
+  /**
+   * Captures listing data from eBay item pages and sends to backend.
+   *
+   * Filter rules (based on eBay domain expertise):
+   * - Auctions: only capture if bids >= 1 (validates market price)
+   * - Buy It Now (BIN): only capture if item shows "Sold" status
+   * - Zero-bid auctions are skipped (wishful pricing, not real data)
+   * - Active unsold BIN listings are skipped (asking price ≠ market price)
+   */
+  async function captureListingData() {
+    // Only run on item pages
+    if (!isItemPage()) return;
+
+    // Check if sales capture is enabled in settings
+    const settings = await sendMessage('getSettings');
+    if (settings.salesCaptureEnabled === false) return;
+
+    try {
+      const listing = parseListingPage();
+      if (!listing) return;
+
+      // Apply the bid filter
+      if (!passesQualityFilter(listing)) {
+        console.log('Slab Guard: Listing skipped by quality filter', {
+          type: listing.listingType,
+          bids: listing.bidCount,
+          sold: listing.isSold
+        });
+        return;
+      }
+
+      console.log('Slab Guard: Capturing qualified sales data', {
+        type: listing.listingType,
+        price: listing.price,
+        bids: listing.bidCount
+      });
+
+      // Send to backend (fire-and-forget, don't block user)
+      sendMessage('captureSale', listing);
+
+    } catch (e) {
+      console.error('Slab Guard: Sales capture error:', e);
+    }
+  }
+
+  /**
+   * Parse eBay item page DOM for listing data.
+   * Returns null if critical fields can't be found.
+   */
+  function parseListingPage() {
+    const itemId = extractEbayItemId();
+    if (!itemId) return null;
+
+    // Title
+    const titleEl = document.querySelector('h1.x-item-title__mainTitle span')
+      || document.querySelector('h1[itemprop="name"]')
+      || document.querySelector('#itemTitle');
+    const title = titleEl ? titleEl.textContent.trim() : null;
+    if (!title) return null;
+
+    // Price - eBay uses various selectors
+    const priceEl = document.querySelector('.x-price-primary span.ux-textspans')
+      || document.querySelector('[itemprop="price"]')
+      || document.querySelector('#prcIsum')
+      || document.querySelector('.notranslate');
+    let price = null;
+    let currency = 'USD';
+    if (priceEl) {
+      const priceText = priceEl.textContent.trim();
+      // Extract numeric value: "$123.45" or "US $123.45" or "GBP 45.00"
+      const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+      if (priceMatch) {
+        price = parseFloat(priceMatch[0].replace(/,/g, ''));
+      }
+      if (priceText.includes('GBP') || priceText.includes('£')) currency = 'GBP';
+      if (priceText.includes('EUR') || priceText.includes('€')) currency = 'EUR';
+      if (priceText.includes('CAD') || priceText.includes('C $')) currency = 'CAD';
+    }
+    if (!price) return null;
+
+    // Bid count
+    let bidCount = 0;
+    const bidEl = document.querySelector('[data-testid="x-bid-count"] span')
+      || document.querySelector('#bidBtn span')
+      || document.querySelector('.vi-tm-borpowerful span');
+    if (bidEl) {
+      const bidMatch = bidEl.textContent.match(/(\d+)\s*bid/i);
+      if (bidMatch) bidCount = parseInt(bidMatch[1], 10);
+    }
+
+    // Listing type: auction vs BIN vs auction+BIN
+    let listingType = 'unknown';
+    const binBtnExists = !!document.querySelector('#binBtn, [data-testid="x-bin-action"] button, .vi-bin-max-buyItNow');
+    const bidBtnExists = !!document.querySelector('#bidBtn, [data-testid="x-bid-action"] button, .vi-tm-borpowerful');
+    const bestOfferExists = !!document.querySelector('[data-testid="x-best-offer"]');
+
+    if (bidBtnExists && binBtnExists) listingType = 'auction_bin';
+    else if (bidBtnExists) listingType = 'auction';
+    else if (binBtnExists) listingType = 'fixed_price';
+    else listingType = 'fixed_price'; // default for modern eBay layout
+
+    // Sold status - completed/sold listing
+    const isSold = !!(
+      document.querySelector('.vi-cvip-statusMessage--sold')
+      || document.querySelector('[data-testid="x-item-sold"]')
+      || document.querySelector('.soldMessageDiv')
+      || document.body.textContent.match(/This listing has ended|Winning bid|Sold for/i)
+    );
+
+    // Seller info
+    let seller = null;
+    const sellerEl = document.querySelector('.x-sellercard-atf__info__about-seller a span')
+      || document.querySelector('[data-testid="str-title"] a')
+      || document.querySelector('.si-inner .mbg-nw');
+    if (sellerEl) seller = sellerEl.textContent.trim();
+
+    // Condition
+    let condition = null;
+    const condEl = document.querySelector('[data-testid="x-item-condition"] .ux-textspans')
+      || document.querySelector('#vi-itm-cond');
+    if (condEl) condition = condEl.textContent.trim();
+
+    // End date (for completed listings)
+    let endDate = null;
+    const endEl = document.querySelector('.vi-tm-left')
+      || document.querySelector('[data-testid="x-timer"]');
+    if (endEl) endDate = endEl.textContent.trim();
+
+    // Number of watchers (signals demand)
+    let watchers = 0;
+    const watchEl = document.querySelector('[data-testid="x-watch-count"] span')
+      || document.querySelector('.vi-notify-new-bg span');
+    if (watchEl) {
+      const watchMatch = watchEl.textContent.match(/(\d+)/);
+      if (watchMatch) watchers = parseInt(watchMatch[1], 10);
+    }
+
+    return {
+      ebay_item_id: itemId,
+      title,
+      price,
+      currency,
+      bid_count: bidCount,
+      listing_type: listingType,
+      is_sold: isSold,
+      seller,
+      condition,
+      end_date: endDate,
+      watchers,
+      listing_url: window.location.href,
+      captured_at: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Quality filter: only capture data that's useful for pricing.
+   *
+   * Rules:
+   * 1. Sold listings → always capture (real transaction data, gold standard)
+   * 2. Auctions with bids >= 1 → capture (market-validated price)
+   * 3. Zero-bid auctions → skip (wishful thinking pricing)
+   * 4. Active BIN (not sold) → skip (asking price, not market price)
+   */
+  function passesQualityFilter(listing) {
+    // Rule 1: Sold items are always valuable
+    if (listing.is_sold) return true;
+
+    // Rule 2: Auctions with at least one bid
+    if ((listing.listing_type === 'auction' || listing.listing_type === 'auction_bin')
+        && listing.bid_count >= 1) {
+      return true;
+    }
+
+    // Rules 3 & 4: everything else is skipped
+    return false;
+  }
+
+  // ============================================================
   // HELPERS
   // ============================================================
 
@@ -597,6 +778,9 @@
     if (isItemPage()) {
       console.log('Slab Guard: Item page detected, injecting check button');
       injectCheckButton();
+
+      // Capture sales data (runs silently, bid-filtered)
+      captureListingData();
     }
   }
 

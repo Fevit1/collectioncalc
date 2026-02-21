@@ -133,6 +133,24 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
 
 **Pages with no footer (intentional):** admin.html (internal), collection.html (embedded), collectioncalc.html (legacy), modal-ebay-listing.html (modal), signatures.html (tool), slab-guard-icon.html (asset)
 
+### Session 59 Addition: Sales Data Capture with Bid Filter ✅
+
+**Problem:** The Chrome extension scans eBay listings for Slab Guard but wasn't capturing sales data for CollectionCalc's pricing engine. Users browsing for stolen comics see active auctions with fantasy prices — need to filter out bad data.
+
+**Solution — Quality filter based on eBay domain expertise:**
+- Sold listings (any type) → always capture (gold standard transaction data)
+- Auctions with bids ≥ 1 → capture (market-validated price)
+- Zero-bid auctions → skip (wishful thinking pricing)
+- Active unsold BIN listings → skip (asking price ≠ market price)
+
+**Files modified:**
+- `CCExtensions/slab-guard-monitor/content.js` — added `captureListingData()`, `parseListingPage()`, `passesQualityFilter()` functions. Parses eBay item page DOM for: title, price, currency, bid count, listing type (auction/BIN/hybrid), sold status, seller, condition, watchers, end date. Called silently on every item page visit.
+- `CCExtensions/slab-guard-monitor/background.js` — added `captureSale()` function (fire-and-forget POST to `/api/monitor/capture-sale`), message handler, `salesCaptureEnabled` setting default + included in getSettings
+
+**Backend endpoint:** `POST /api/monitor/capture-sale` ✅ — added to `routes/monitor.py`. Inserts into existing `ebay_sales` table with `ON CONFLICT (ebay_item_id) DO NOTHING` for deduplication. Runs title normalization via `normalize_title()` for FMV pipeline compatibility. Rate limited (60 req/min). No new table needed — reuses `ebay_sales`.
+
+**Privacy note:** `salesCaptureEnabled` defaults to `true`. Can be toggled off in settings. Extension description should disclose: "This extension also contributes anonymous market data to improve comic valuation accuracy."
+
 ### Next Steps (Session 59+)
 1. **Frontend quality warnings** — show photo quality warnings during registration
 2. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)

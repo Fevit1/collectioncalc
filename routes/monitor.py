@@ -2,7 +2,7 @@
 Monitor Blueprint - Marketplace monitoring API for Slab Guard
 Routes: /api/monitor/check-image, /api/monitor/check-hash,
         /api/monitor/stolen-hashes, /api/monitor/report-match,
-        /api/monitor/compare-copies
+        /api/monitor/compare-copies, /api/monitor/capture-sale
 
 Uses four-tier fingerprint matching:
   1. Composite hashing (pHash+dHash+aHash+wHash): issue-level matching
@@ -1047,3 +1047,116 @@ def compare_copies():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@monitor_bp.route('/capture-sale', methods=['POST'])
+@rate_limit
+def capture_sale():
+    """
+    Capture a single eBay listing's sales data from the extension.
+    Called silently by content.js on qualifying item pages.
+
+    Quality filter (applied in extension before sending):
+      - Sold listings → always sent (real transaction, gold standard)
+      - Auctions with bids >= 1 → sent (market-validated price)
+      - Zero-bid auctions → NOT sent (wishful pricing)
+      - Active unsold BIN → NOT sent (asking price ≠ market price)
+
+    Deduplicates by ebay_item_id (ON CONFLICT DO NOTHING).
+    Runs title normalization for FMV pipeline compatibility.
+    """
+    data = request.get_json() or {}
+
+    ebay_item_id = data.get('ebay_item_id')
+    title = data.get('title')
+    price = data.get('price')
+
+    if not ebay_item_id or not title or not price:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    # Validate price is a reasonable number
+    try:
+        price = float(price)
+        if price <= 0 or price > 1000000:
+            return jsonify({'success': False, 'error': 'Invalid price'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Invalid price format'}), 400
+
+    # Normalize title for FMV pipeline compatibility
+    normalized = {}
+    try:
+        from title_normalizer import normalize_title
+        normalized = normalize_title(title)
+    except Exception as e:
+        print(f"Capture-sale normalization failed for: {title} - {e}")
+
+    # Determine sale_date from data or use now
+    sale_date = data.get('end_date') or datetime.utcnow().strftime('%Y-%m-%d')
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO ebay_sales (
+                raw_title, parsed_title, sale_price, sale_date,
+                condition, listing_url, ebay_item_id,
+                content_hash,
+                canonical_title, issue_number, grade_from_title, grading_company,
+                is_facsimile, is_reprint, is_variant, is_signed, is_lot,
+                is_key_issue, key_issue_claim, creators, title_notes
+            ) VALUES (
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            )
+            ON CONFLICT (ebay_item_id) DO NOTHING
+        """, (
+            title,                                          # raw_title
+            title,                                          # parsed_title
+            price,                                          # sale_price
+            sale_date,                                      # sale_date
+            data.get('condition'),                          # condition
+            data.get('listing_url'),                        # listing_url
+            ebay_item_id,                                   # ebay_item_id
+            f"ext-{ebay_item_id}",                          # content_hash (unique per item)
+            normalized.get('canonical_title'),               # canonical_title
+            normalized.get('issue_number'),                  # issue_number
+            normalized.get('grade_from_title'),              # grade_from_title
+            normalized.get('grading_company'),               # grading_company
+            normalized.get('is_facsimile', False),           # is_facsimile
+            normalized.get('is_reprint', False),             # is_reprint
+            normalized.get('is_variant', False),             # is_variant
+            normalized.get('is_signed', False),              # is_signed
+            normalized.get('is_lot', False),                 # is_lot
+            normalized.get('is_key_issue', False),           # is_key_issue
+            normalized.get('key_issue_claim'),               # key_issue_claim
+            normalized.get('creators'),                      # creators
+            normalized.get('title_notes'),                   # title_notes
+        ))
+
+        was_new = cur.rowcount > 0
+        conn.commit()
+
+        # Log for monitoring (not verbose — this fires on every qualifying page view)
+        if was_new:
+            print(f"SALE CAPTURED: {ebay_item_id} - ${price} - {title[:60]}")
+
+        return jsonify({
+            'success': True,
+            'new': was_new,
+            'ebay_item_id': ebay_item_id
+        })
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Capture sale error: {e}")
+        return jsonify({'success': False, 'error': 'Server error'}), 500
+
+    finally:
+        cur.close()
+        conn.close()
