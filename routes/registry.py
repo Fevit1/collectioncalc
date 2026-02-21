@@ -702,6 +702,149 @@ def register_comic():
             conn.close()
 
 
+@registry_bp.route('/my-sightings', methods=['GET'])
+@require_auth
+def get_my_sightings():
+    """
+    Get all sighting reports for the authenticated user's registered comics.
+    Returns sightings grouped by serial number, newest first.
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                sr.id,
+                sr.serial_number,
+                sr.listing_url,
+                sr.reporter_email,
+                sr.message,
+                sr.created_at,
+                sr.owner_notified,
+                sr.owner_response,
+                c.title,
+                c.issue,
+                cr.status as registration_status
+            FROM sighting_reports sr
+            JOIN comic_registry cr ON sr.serial_number = cr.serial_number
+            JOIN collections c ON cr.comic_id = c.id
+            WHERE cr.user_id = %s
+            ORDER BY sr.created_at DESC
+        """, (g.user_id,))
+
+        columns = [
+            'id', 'serial_number', 'listing_url', 'reporter_email',
+            'message', 'created_at', 'owner_notified', 'owner_response',
+            'title', 'issue', 'registration_status'
+        ]
+        sightings = []
+        for row in cur.fetchall():
+            s = dict(zip(columns, row))
+            s['created_at'] = s['created_at'].isoformat() if s['created_at'] else None
+            # Obscure reporter email for privacy
+            if s['reporter_email']:
+                parts = s['reporter_email'].split('@')
+                if len(parts) == 2:
+                    local = parts[0]
+                    domain = parts[1]
+                    s['reporter_email'] = local[0] + '***@' + domain
+            sightings.append(s)
+
+        # Count unresponded sightings
+        unresponded = sum(1 for s in sightings if not s['owner_response'])
+
+        return jsonify({
+            'success': True,
+            'sightings': sightings,
+            'total': len(sightings),
+            'unresponded': unresponded,
+        })
+
+    except Exception as e:
+        print(f"Error fetching my sightings: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+
+@registry_bp.route('/sighting-response', methods=['POST'])
+@require_auth
+def respond_to_sighting():
+    """
+    Let an owner respond to a sighting report.
+    Body: { sighting_id: int, response: 'confirmed_mine' | 'not_mine' | 'investigating' }
+
+    Only the owner of the registered comic can respond.
+    """
+    data = request.get_json() or {}
+    sighting_id = data.get('sighting_id')
+    response_value = data.get('response', '').strip()
+
+    valid_responses = ('confirmed_mine', 'not_mine', 'investigating')
+    if not sighting_id or response_value not in valid_responses:
+        return jsonify({
+            'success': False,
+            'error': f'Valid sighting_id and response ({", ".join(valid_responses)}) required.'
+        }), 400
+
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+
+        # Verify this sighting belongs to a comic owned by the authenticated user
+        cur.execute("""
+            SELECT sr.id
+            FROM sighting_reports sr
+            JOIN comic_registry cr ON sr.serial_number = cr.serial_number
+            WHERE sr.id = %s AND cr.user_id = %s
+        """, (sighting_id, g.user_id))
+
+        if not cur.fetchone():
+            return jsonify({
+                'success': False,
+                'error': 'Sighting not found or access denied.'
+            }), 404
+
+        # Update the response
+        cur.execute("""
+            UPDATE sighting_reports
+            SET owner_response = %s
+            WHERE id = %s
+        """, (response_value, sighting_id))
+
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Response recorded.',
+            'sighting_id': sighting_id,
+            'response': response_value,
+        })
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error responding to sighting: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+
 @registry_bp.route('/status/<int:comic_id>', methods=['GET'])
 @require_auth
 @require_approved

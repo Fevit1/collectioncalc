@@ -74,6 +74,19 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
     - Added comic_registry, sighting_reports, blocked_reporters tables to DB_SCHEMA
     - NLQ can now answer questions like "how many comics reported stolen?" or "show recent sighting reports"
 
+### Session 58 Addition: Owner Dashboard
+
+11. **Owner sighting alerts** (`account.html` + `routes/registry.py`):
+    - `GET /api/registry/my-sightings` — returns all sighting reports for user's registered comics
+    - `POST /api/registry/sighting-response` — owner responds: `confirmed_mine`, `not_mine`, `investigating`
+    - Sighting Alerts section on account page with card UI
+    - Unresponded badge count (orange border on pending cards)
+    - Each card shows: comic title/issue, serial, listing URL, reporter message, date
+    - Three response buttons: "That's Mine" (red), "Not Mine" (green), "Investigating" (orange)
+    - Response tags replace buttons after responding
+    - Reporter email partially obscured for privacy (m***@gmail.com)
+    - Empty state message when no reports exist
+
 ### Before you push:
 1. Migration already ran ✅
 2. Push code (all modified files)
@@ -81,14 +94,15 @@ The "last mile" problem: Slab Guard can detect a stolen comic on eBay, but there
 4. Register a new comic and confirm it gets a random alphanumeric serial
 5. Go to slabworthy.com/check, upload a comic photo, confirm results appear
 6. Hit /api/admin/slab-guard-stats from admin panel to verify stats
+7. Go to slabworthy.com/account — confirm "Sighting Alerts" section appears
+8. If sighting reports exist, test the response buttons (confirmed_mine / not_mine / investigating)
 
-### Next Steps (Session 58+)
-1. **Owner dashboard** — show sighting reports on account page, let owner respond (confirmed_mine / not_mine)
-2. **Chrome extension** — detect matches and pre-fill Report to Owner form
-3. **Frontend quality warnings** — show photo quality warnings during registration
-4. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
-5. **Single-screen slab report** — mobile-friendly layout so grade+value fit one screenshot
-6. **Footer standardization** — consistent footer across all pages
+### Next Steps (Session 59+)
+1. **Chrome extension** — detect matches and pre-fill Report to Owner form
+2. **Frontend quality warnings** — show photo quality warnings during registration
+3. **SMS/text alerts** — Twilio integration for sighting notifications (needs phone on user profile)
+4. **Single-screen slab report** — mobile-friendly layout so grade+value fit one screenshot
+5. **Footer standardization** — consistent footer across all pages
 
 ---
 

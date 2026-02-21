@@ -228,6 +228,145 @@
             font-size: 0.8rem;
         }
 
+        /* Sighting Alerts */
+        .sighting-section {
+            margin-bottom: 1.5rem;
+        }
+        .sighting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .sighting-header h2 {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sighting-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.6rem;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .sighting-empty {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .sighting-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .sighting-card.unresponded {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .sighting-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        .sighting-comic {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .sighting-serial {
+            font-size: 0.75rem;
+            color: var(--purple-light);
+            font-family: monospace;
+        }
+        .sighting-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .sighting-url {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--gold-mid);
+            text-decoration: none;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        .sighting-url:hover { text-decoration: underline; }
+        .sighting-message {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            font-style: italic;
+        }
+        .sighting-reporter {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .sighting-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .sighting-btn {
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+        }
+        .sighting-btn:hover { opacity: 0.85; }
+        .sighting-btn.confirmed {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .sighting-btn.not-mine {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .sighting-btn.investigating {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .sighting-response-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+        }
+        .response-confirmed_mine {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+        }
+        .response-not_mine {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+        }
+        .response-investigating {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+        }
+
         /* Success Banner */
         .success-banner {
             background: rgba(16, 185, 129, 0.1);
@@ -364,6 +503,14 @@
 
                 <!-- Actions -->
                 <div class="actions" id="actionButtons"></div>
+            </div>
+
+            <!-- Sighting Alerts Section -->
+            <div class="sighting-section" id="sightingSection" style="display: none;">
+                <div class="sighting-header">
+                    <h2>Sighting Alerts <span class="sighting-badge" id="sightingBadge" style="display:none;">0</span></h2>
+                </div>
+                <div id="sightingList"></div>
             </div>
         </div>
     </main>
@@ -569,6 +716,144 @@
             }
         }
 
+        // ── Sighting Alerts ──────────────────────────────────────────
+        async function loadSightings() {
+            try {
+                const res = await fetch(`${API_BASE}/api/registry/my-sightings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) return;
+
+                const data = await res.json();
+                if (!data.success) return;
+
+                const section = document.getElementById('sightingSection');
+                const list = document.getElementById('sightingList');
+                const badge = document.getElementById('sightingBadge');
+
+                // Always show the section (even if empty, so users know it exists)
+                section.style.display = 'block';
+
+                if (data.sightings.length === 0) {
+                    list.innerHTML = `
+                        <div class="sighting-empty">
+                            No sighting reports yet. When someone spots one of your registered comics
+                            on a marketplace, it will appear here.
+                        </div>`;
+                    return;
+                }
+
+                // Show unresponded count badge
+                if (data.unresponded > 0) {
+                    badge.textContent = data.unresponded;
+                    badge.style.display = 'inline-block';
+                }
+
+                list.innerHTML = data.sightings.map(s => {
+                    const date = new Date(s.created_at).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                    const time = new Date(s.created_at).toLocaleTimeString('en-US', {
+                        hour: 'numeric', minute: '2-digit'
+                    });
+
+                    // Truncate URL for display
+                    let displayUrl = s.listing_url;
+                    try {
+                        const urlObj = new URL(s.listing_url);
+                        displayUrl = urlObj.hostname + urlObj.pathname.substring(0, 40) +
+                            (urlObj.pathname.length > 40 ? '...' : '');
+                    } catch {}
+
+                    // Response labels
+                    const responseLabels = {
+                        'confirmed_mine': 'Confirmed Mine',
+                        'not_mine': 'Not My Comic',
+                        'investigating': 'Investigating'
+                    };
+
+                    let actionsHtml = '';
+                    if (s.owner_response) {
+                        actionsHtml = `
+                            <span class="sighting-response-tag response-${s.owner_response}">
+                                ${responseLabels[s.owner_response] || s.owner_response}
+                            </span>`;
+                    } else {
+                        actionsHtml = `
+                            <div class="sighting-actions">
+                                <button class="sighting-btn confirmed" onclick="respondToSighting(${s.id}, 'confirmed_mine', this)">
+                                    That's Mine
+                                </button>
+                                <button class="sighting-btn not-mine" onclick="respondToSighting(${s.id}, 'not_mine', this)">
+                                    Not Mine
+                                </button>
+                                <button class="sighting-btn investigating" onclick="respondToSighting(${s.id}, 'investigating', this)">
+                                    Investigating
+                                </button>
+                            </div>`;
+                    }
+
+                    const messageHtml = s.message
+                        ? `<div class="sighting-message">"${s.message}"</div>`
+                        : '';
+
+                    return `
+                        <div class="sighting-card ${s.owner_response ? '' : 'unresponded'}">
+                            <div class="sighting-card-top">
+                                <div>
+                                    <div class="sighting-comic">${s.title} #${s.issue}</div>
+                                    <div class="sighting-serial">${s.serial_number}</div>
+                                </div>
+                                <div class="sighting-date">${date} ${time}</div>
+                            </div>
+                            <a href="${s.listing_url}" target="_blank" rel="noopener" class="sighting-url">${displayUrl}</a>
+                            ${messageHtml}
+                            <div class="sighting-reporter">
+                                Reported by: ${s.reporter_email || 'Anonymous'}
+                            </div>
+                            ${actionsHtml}
+                        </div>`;
+                }).join('');
+
+            } catch (err) {
+                console.error('Sighting load error:', err);
+            }
+        }
+
+        async function respondToSighting(sightingId, response, btn) {
+            // Disable all buttons in this card
+            const card = btn.closest('.sighting-card');
+            const buttons = card.querySelectorAll('.sighting-btn');
+            buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+            try {
+                const res = await fetch(`${API_BASE}/api/registry/sighting-response`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        sighting_id: sightingId,
+                        response: response
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    // Reload sightings to reflect the change
+                    loadSightings();
+                } else {
+                    alert(data.error || 'Failed to save response.');
+                    buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+                buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            }
+        }
+
         // Logout
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -578,6 +863,7 @@
 
         // Load
         loadAccount();
+        loadSightings();
     </script>
     <!-- Service Worker -->
     <script>

@@ -123,10 +123,16 @@
 - [ ] Frontend: display photo quality warnings to user during registration
 - [ ] Collect more blind test data on additional titles
 
-**Phase 1.12: Slab Guard Check UI + Extension + Owner Dashboard (Session 58+)**
-- [ ] Slab Guard check UI: user-facing page to upload a photo and search the registry
+**Phase 1.12: Check UI + Owner Dashboard (Session 58)** ✅
+- [x] Slab Guard check UI (check.html): upload photo, search registry, tiered detection
+- [x] Tiered access: SIFT-only (free) vs SIFT+Vision+marketplace (logged-in)
+- [x] Cost protection: 10 req/5min rate limit, Vision disabled for anon users
+- [x] Admin stats endpoint (/api/admin/slab-guard-stats) + NLQ schema update
+- [x] Owner dashboard: sighting alerts section on account page
+- [x] GET /api/registry/my-sightings — owner sees all reports for their comics
+- [x] POST /api/registry/sighting-response — owner responds (confirmed_mine / not_mine / investigating)
+- [x] Sighting alert cards with response buttons, unresponded badge count
 - [ ] Chrome extension: wire sighting/reporting flow into extension popup
-- [ ] Owner dashboard: show sighting reports on account page, let owner respond
 
 **UX: Single-Screen Slab Report (Mobile)**
 - [ ] Redesign slab report to fit grade + value on one mobile screen
