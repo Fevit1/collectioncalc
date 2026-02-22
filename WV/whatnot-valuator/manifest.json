@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Whatnot Comic Valuator",
+  "version": "2.41.1",
+  "description": "Real-time comic valuations for Whatnot auctions with multi-tab tracking",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://www.whatnot.com/*",
+    "https://collectioncalc.onrender.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Whatnot Valuator - Click for live feed"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.whatnot.com/live/*"],
+      "js": [
+        "data/keys.js",
+        "lib/normalizer.js",
+        "lib/valuator.js",
+        "lib/apollo-reader.js",
+        "lib/sale-tracker.js",
+        "lib/collectioncalc.js",
+        "lib/vision.js",
+        "lib/audio.js",
+        "content.js"
+      ],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://www.whatnot.com/*"]
+    }
+  ]
+}

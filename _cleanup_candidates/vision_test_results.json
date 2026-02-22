@@ -1,0 +1,69 @@
+{
+  "test": "slab_guard_vision_v1",
+  "session": 48,
+  "model": "claude-sonnet-4-20250514",
+  "accuracy": "2/4",
+  "total_cost": 0.044871,
+  "results": [
+    {
+      "pair": "006_vs_007",
+      "expected": "SAME",
+      "verdict": "SAME_COPY",
+      "confidence": 0.85,
+      "correct": true,
+      "physical_count": 0,
+      "photo_count": 3,
+      "ambiguous_count": 0,
+      "alignment_inliers": 2293,
+      "cost": 0.011124,
+      "time": 9.122010946273804,
+      "reasoning": "After careful examination of both the full images and corner close-ups, I found no physical differences that would indicate different copies. All observed differences appear to be photographic artifacts from different lighting or camera conditions. The corner conditions, edge wear patterns, and overall physical characteristics appear identical between both photos.",
+      "physical_diffs": []
+    },
+    {
+      "pair": "006_vs_009",
+      "expected": "DIFF",
+      "verdict": "SAME_COPY",
+      "confidence": 0.85,
+      "correct": false,
+      "physical_count": 0,
+      "photo_count": 3,
+      "ambiguous_count": 0,
+      "alignment_inliers": 2441,
+      "cost": 0.010478999999999999,
+      "time": 7.157163381576538,
+      "reasoning": "After careful examination of both images and corner close-ups, I found no physical differences between the two comics. All observable differences are photographic artifacts from different lighting conditions, exposure settings, and camera positioning. The corner wear patterns, edge conditions, and overall physical characteristics appear identical.",
+      "physical_diffs": []
+    },
+    {
+      "pair": "007_vs_009",
+      "expected": "DIFF",
+      "verdict": "SAME_COPY",
+      "confidence": 0.85,
+      "correct": false,
+      "physical_count": 0,
+      "photo_count": 5,
+      "ambiguous_count": 0,
+      "alignment_inliers": 2056,
+      "cost": 0.012339,
+      "time": 10.192620277404785,
+      "reasoning": "All observed differences are attributable to photographic conditions (lighting, angle, exposure). The corner damage patterns, edge wear, and overall physical condition appear identical between both images, indicating the same physical comic book photographed under different conditions.",
+      "physical_diffs": []
+    },
+    {
+      "pair": "006_vs_008",
+      "expected": "SAME",
+      "verdict": "SAME_COPY",
+      "confidence": 0.85,
+      "correct": true,
+      "physical_count": 0,
+      "photo_count": 3,
+      "ambiguous_count": 0,
+      "alignment_inliers": 1922,
+      "cost": 0.010929000000000001,
+      "time": 9.597643613815308,
+      "reasoning": "Despite different photographic conditions, I cannot identify any physical differences between the two copies. The corner shapes, edge conditions, and overall physical wear patterns appear identical in both images. All observed differences can be attributed to different camera angles, lighting, and photographic settings.",
+      "physical_diffs": []
+    }
+  ]
+}

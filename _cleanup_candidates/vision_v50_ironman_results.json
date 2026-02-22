@@ -1,0 +1,65 @@
+[
+  {
+    "pair": "010_vs_011",
+    "expected": "SAME",
+    "quant_verdict": "uncertain",
+    "vision_verdict": "different_copy",
+    "final_verdict": "different_copy",
+    "final_confidence": 0.75,
+    "correct": false,
+    "iou": 0.01253,
+    "dilated_iou": 0.08884,
+    "inliers": 1768,
+    "elapsed": 16.70765781402588,
+    "cost": 0.02417,
+    "vision_reasoning": "After systematic examination of all four corners and edge strips at 4x magnification, I found NO distinctive matching physical defects between REF and TEST. Both copies show the same printed artwork (expected after SIFT alignment) but lack the specific creases, chips, spine ticks, or corner damage at matching positions that would identify them as the same physical copy. The absence of distinguishing physical markers, combined with the default assumption for authentication work, leads to a DIFFERENT_COPY verdict.",
+    "vision_corners": {
+      "top_left": "REF shows printed artwork only, no distinctive physical defects visible. TEST shows printed artwork with same pattern. No matching physical defects to compare - both corners appear relatively clean with no creases, tears, or chips.",
+      "top_right": "REF shows relatively clean corner with printed background only. TEST shows completely different crop framing - mostly black background with minimal comic visible at bottom edge. Cannot compare physical defects between these misaligned views.",
+      "bottom_left": "REF shows printed artwork pattern with no distinctive physical defects - corner appears intact. TEST shows similar printed pattern, also without visible creases, tears or distinguishing damage. No matching defects identified.",
+      "bottom_right": "REF shows corner with blue border edge and printed artwork - no distinctive tears, chips or creases visible. TEST shows same printed elements in nearly identical positions. No distinguishing physical defects present in either image to serve as matching identifiers."
+    }
+  },
+  {
+    "pair": "010_vs_012",
+    "expected": "DIFF",
+    "quant_verdict": "different_copy",
+    "vision_verdict": "different_copy",
+    "final_verdict": "different_copy",
+    "final_confidence": 0.85,
+    "correct": true,
+    "iou": 0.00522,
+    "dilated_iou": 0.03161,
+    "inliers": 1976,
+    "elapsed": 17.650541305541992,
+    "cost": 0.02506,
+    "vision_reasoning": "The TEST image is severely cropped or improperly captured - approximately 70-80% of the image area is pure black with no comic visible at all. Only the bottom-left corner and bottom edge show any meaningful comic content. While the visible wrinkled paper texture in TEST's bottom region appears superficially similar to REF, no specific physical defects (chips, tears, spine ticks, foxing spots) can be identified and matched between the two images. The dramatic difference in image capture quality and the absence of verifiable matching defects leads to a DIFFERENT_COPY verdict by default, as I cannot confirm these are the same physical copy without distinctive matching wear patterns.",
+    "vision_corners": {
+      "top_left": "REF shows printed artwork with wrinkles/folds in the paper visible as texture distortions. TEST image is completely black - no comic visible at all. Cannot compare.",
+      "top_right": "REF shows relatively clean corner area with printed content visible, some subtle paper texture. TEST image is completely black - no comic visible. Cannot compare.",
+      "bottom_left": "REF shows corner with printed artwork and visible paper wrinkles/texture. TEST shows only a small portion of the corner visible (mostly black frame), but the visible portion shows similar wrinkled paper texture in approximately the same pattern. Partial match possible but TEST coverage insufficient.",
+      "bottom_right": "REF shows corner with blue border edge visible, some printed content. TEST shows similar corner with blue border edge - the edge profile and the small visible area appear consistent. However, no distinctive defects (chips, tears) visible in either to confirm match."
+    }
+  },
+  {
+    "pair": "011_vs_012",
+    "expected": "DIFF",
+    "quant_verdict": "different_copy",
+    "vision_verdict": "different_copy",
+    "final_verdict": "different_copy",
+    "final_confidence": 0.98,
+    "correct": true,
+    "iou": 0.00301,
+    "dilated_iou": 0.02513,
+    "inliers": 1452,
+    "elapsed": 18.400678396224976,
+    "cost": 0.02465,
+    "vision_reasoning": "The TEST image shows massive areas of black void where no comic book is present (entire top edge, right edge, most of top-left and top-right corners), while REF shows complete comic book coverage in these areas. The bottom-right and top-right corners in TEST show different physical edge geometries and corner angles compared to REF. These are not lighting differences - these are fundamentally different physical presentations indicating different copies or completely different photograph framing of different physical objects.",
+    "vision_corners": {
+      "top_left": "REF shows printed artwork with fiber texture visible. TEST shows complete black void - no comic book visible at all. Cannot compare.",
+      "top_right": "REF shows printed artwork with paper fiber texture. TEST shows mostly black void with only a small corner fragment visible at bottom showing different edge geometry than REF. The visible TEST fragment shows a sharp corner angle while REF shows the full corner area - these do not match.",
+      "bottom_left": "REF shows printed vertical line detail with paper texture. TEST shows similar printed content with lighter overall tone and similar fiber texture pattern. No distinctive physical defects visible in either image that can be matched.",
+      "bottom_right": "REF shows printed artwork with darker tonal areas and fiber texture. TEST shows a physical corner present with different edge geometry - the corner angle and paper edge position differ from REF. TEST corner appears more rounded/bent with edge visible against black background, while REF shows straight edge alignment."
+    }
+  }
+]

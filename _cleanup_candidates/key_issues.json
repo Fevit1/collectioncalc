@@ -1,0 +1,81 @@
+[
+  {"title": "Amazing Spider-Man", "issue": "1", "reason": "First issue of solo Spider-Man series"},
+  {"title": "Amazing Spider-Man", "issue": "129", "reason": "First appearance of Punisher"},
+  {"title": "Amazing Spider-Man", "issue": "194", "reason": "First appearance of Black Cat"},
+  {"title": "Amazing Spider-Man", "issue": "238", "reason": "First appearance of Hobgoblin"},
+  {"title": "Amazing Spider-Man", "issue": "252", "reason": "First appearance of black costume"},
+  {"title": "Amazing Spider-Man", "issue": "300", "reason": "First full appearance of Venom"},
+  {"title": "Amazing Spider-Man", "issue": "361", "reason": "First appearance of Carnage"},
+  
+  {"title": "Uncanny X-Men", "issue": "94", "reason": "New X-Men begin (Giant-Size X-Men team)"},
+  {"title": "Uncanny X-Men", "issue": "101", "reason": "First appearance of Phoenix"},
+  {"title": "Uncanny X-Men", "issue": "129", "reason": "First appearance of Kitty Pryde and Emma Frost"},
+  {"title": "Uncanny X-Men", "issue": "130", "reason": "First appearance of Dazzler"},
+  {"title": "Uncanny X-Men", "issue": "141", "reason": "Days of Future Past begins"},
+  {"title": "Uncanny X-Men", "issue": "221", "reason": "First appearance of Mister Sinister"},
+  {"title": "Uncanny X-Men", "issue": "266", "reason": "First full appearance of Gambit"},
+  
+  {"title": "New Mutants", "issue": "87", "reason": "First appearance of Cable"},
+  {"title": "New Mutants", "issue": "98", "reason": "First appearance of Deadpool"},
+  
+  {"title": "Incredible Hulk", "issue": "181", "reason": "First full appearance of Wolverine"},
+  
+  {"title": "Iron Man", "issue": "55", "reason": "First appearance of Thanos"},
+  
+  {"title": "Avengers", "issue": "4", "reason": "First Silver Age appearance of Captain America"},
+  {"title": "Avengers", "issue": "57", "reason": "First appearance of Vision"},
+  
+  {"title": "Fantastic Four", "issue": "5", "reason": "First appearance of Doctor Doom"},
+  {"title": "Fantastic Four", "issue": "48", "reason": "First appearance of Silver Surfer and Galactus"},
+  {"title": "Fantastic Four", "issue": "52", "reason": "First appearance of Black Panther"},
+  
+  {"title": "Batman", "issue": "232", "reason": "First appearance of Ra's al Ghul"},
+  {"title": "Batman", "issue": "357", "reason": "First appearance of Jason Todd"},
+  {"title": "Batman", "issue": "404", "reason": "Batman: Year One begins"},
+  {"title": "Batman", "issue": "423", "reason": "Classic Todd McFarlane cover"},
+  {"title": "Batman", "issue": "426", "reason": "A Death in the Family begins"},
+  {"title": "Batman", "issue": "428", "reason": "Death of Jason Todd"},
+  {"title": "Batman", "issue": "497", "reason": "Bane breaks Batman's back"},
+  
+  {"title": "Batman Adventures", "issue": "12", "reason": "First appearance of Harley Quinn"},
+  
+  {"title": "Detective Comics", "issue": "27", "reason": "First appearance of Batman"},
+  {"title": "Detective Comics", "issue": "38", "reason": "First appearance of Robin"},
+  {"title": "Detective Comics", "issue": "359", "reason": "First appearance of Batgirl"},
+  
+  {"title": "Action Comics", "issue": "1", "reason": "First appearance of Superman"},
+  {"title": "Action Comics", "issue": "252", "reason": "First appearance of Supergirl"},
+  
+  {"title": "Flash", "issue": "105", "reason": "First Silver Age Flash (Barry Allen)"},
+  {"title": "Flash", "issue": "123", "reason": "Flash of Two Worlds - first multiverse"},
+  
+  {"title": "Green Lantern", "issue": "76", "reason": "Green Lantern/Green Arrow begins"},
+  
+  {"title": "Walking Dead", "issue": "1", "reason": "First issue"},
+  {"title": "Walking Dead", "issue": "19", "reason": "First appearance of Michonne"},
+  {"title": "Walking Dead", "issue": "27", "reason": "First appearance of Governor"},
+  {"title": "Walking Dead", "issue": "100", "reason": "First appearance of Negan"},
+  
+  {"title": "Spawn", "issue": "1", "reason": "First appearance of Spawn"},
+  
+  {"title": "Invincible", "issue": "1", "reason": "First appearance of Invincible"},
+  
+  {"title": "Saga", "issue": "1", "reason": "First issue of acclaimed series"},
+  
+  {"title": "Teenage Mutant Ninja Turtles", "issue": "1", "reason": "First appearance of TMNT"},
+  
+  {"title": "G.I. Joe A Real American Hero", "issue": "21", "reason": "Silent issue - highly sought"},
+  
+  {"title": "Marvel Spotlight", "issue": "5", "reason": "First appearance of Ghost Rider"},
+  
+  {"title": "Thor", "issue": "337", "reason": "First appearance of Beta Ray Bill"},
+  
+  {"title": "Secret Wars", "issue": "8", "reason": "First appearance of symbiote costume"},
+  
+  {"title": "Swamp Thing", "issue": "37", "reason": "First appearance of John Constantine"},
+  
+  {"title": "Sandman", "issue": "1", "reason": "First appearance of Morpheus"},
+  
+  {"title": "Ms Marvel", "issue": "1", "reason": "First appearance of Ms Marvel (Carol Danvers)"},
+  {"title": "Ms Marvel", "issue": "18", "reason": "First appearance of Mystique"}
+]
