@@ -1,10 +1,9 @@
-/**
- * Universal Footer for Slab Worthy
- * Include via <script src="/footer.js"></script> before </body>
- * Automatically injects the standard branded footer.
- *
- * Skip: verify.html (has its own simplified footer)
- */
+// eslint-disable-next-line
+// Universal Footer for Slab Worthy
+// Include via <script src="/js/footer.js"></script> before </body>
+// Automatically injects the standard branded footer.
+// Skip: verify.html (has its own simplified footer)
+"use strict";
 (function() {
     // Don't inject if page already opted out
     if (document.querySelector('[data-no-universal-footer]')) return;
