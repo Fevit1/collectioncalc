@@ -32,3 +32,28 @@ _cleanup_trash/
 # Local config
 config.local.py
 secrets.py
+
+# API keys, tokens, passwords - catch any file with these in the name
+*API_KEY*
+*api_key*
+*api*token*
+*APIKey*
+*pwd*
+*password*
+*secret*
+*credential*
+*.pem
+*.key
+
+# Sensitive project files (by name)
+ComicBookImages/ANTHROPIC_API_KEY*
+ComicBookImages/RenderAPIKey*
+ComicBookImages/RenderR2Info*
+ComicBookImages/gocollect*
+ComicBookImages/supabase*
+ComicBookImages/CLaduePromptRestart*
+
+# Large binary folders - don't belong in git
+ComicBookImages/
+_cleanup_candidates/
+WV/
