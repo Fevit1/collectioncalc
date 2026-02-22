@@ -1,4 +1,66 @@
-# Where We Left Off - Feb 21, 2026
+# Where We Left Off - Feb 22, 2026
+
+## Session 60 Accomplishments (Feb 22, 2026)
+
+### Universal Footer v4-v5 — Deployed!
+
+**Problem:** Session 59b created the universal footer system (footer.js) and modified 13 HTML files, but the HTML changes were never committed to git. Only `deploy_manifest_results.json` was in the "Moving to universal footer v3" commit. The live site was still serving old pages with inline "Check a Comic" CTA buttons in the footer area.
+
+**Discovery process:**
+1. Ran verification agent to audit all 17 HTML pages for footer correctness
+2. Found 5 pages missing `<script src="/js/footer.js"></script>` entirely: admin.html, pricing.html, signatures.html, collectioncalc.html, slab-guard-icon.html
+3. Found verify.html missing `data-no-universal-footer` attribute (has its own custom footer by design)
+4. Committed and pushed fixes (v4) — but "Check a Comic" button still appeared on live site
+5. Investigated: discovered the Session 59b HTML changes (removing inline footers from about.html, privacy.html, terms.html, etc.) were NEVER committed — only existed locally
+6. Committed all outstanding HTML changes (v5) — this finally deployed the correct pages
+
+**Commits:**
+- `62a38b6` — Universal footer v4: added footer.js to 5 missing pages + verify.html opt-out attribute
+- User commit — Universal footer v5: committed all Session 59b HTML footer changes that were never pushed
+
+**Git Safety Incident — .gitignore Updated:**
+
+During deployment, `git add .` accidentally staged sensitive files that were sitting in the workspace:
+- `ComicBookImages/ANTHROPIC_API_KEY=sk-ant-api03-ywnz.txt`
+- `ComicBookImages/RenderAPIKey.txt`
+- `ComicBookImages/RenderR2Info.txt`
+- `ComicBookImages/gocollect-api token.txt`
+- `ComicBookImages/supabase pwd.txt`
+
+**These were NOT committed or pushed** (commit failed due to HEAD.lock). Crisis averted. But to prevent future incidents, `.gitignore` was updated with:
+
+1. **Broad credential patterns** — catches any file with `API_KEY`, `api_key`, `APIKey`, `api*token`, `pwd`, `password`, `secret`, `credential`, `.pem`, or `.key` in the name
+2. **Specific sensitive files** by name as a safety net
+3. **Large binary/test folders excluded** — `ComicBookImages/`, `_cleanup_candidates/`, `WV/` don't belong in git
+
+**IMPORTANT:** Always use `git add <specific files>` instead of `git add .` to avoid staging sensitive files. The `.gitignore` patterns are a safety net, not a replacement for careful staging.
+
+### Deploy Commands Reference
+```
+git add <files> ; git commit -m "message" ; git push ; purge ; deploy
+```
+- `purge` = Cloudflare CDN cache clear
+- `deploy` = Force Render redeploy
+- Frontend: Cloudflare Pages (auto-deploys on git push)
+- Backend: Render Docker (manual deploy command)
+
+### Files Modified
+```
+.gitignore              — Added credential patterns, sensitive file names, large binary folders
+admin.html              — Added footer.js script tag
+pricing.html            — Added footer.js script tag (before service worker)
+signatures.html         — Added footer.js script tag
+collectioncalc.html     — Added footer.js script tag
+slab-guard-icon.html    — Added footer.js script tag
+verify.html             — Added data-no-universal-footer attribute to <html> tag
+```
+
+### Pending
+- Verify live site: confirm "Check a Comic" CTA is gone from all footers after purge
+- Commit the .gitignore changes: `git add .gitignore ; git commit -m "Add gitignore rules for API keys, credentials, and large binary folders" ; git push`
+- Consider using BFG Repo Cleaner to scrub any sensitive files from git history (not urgent if repo is private)
+
+---
 
 ## Session 59b Accomplishments (Feb 21, 2026)
 
