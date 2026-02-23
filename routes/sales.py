@@ -382,6 +382,339 @@ def api_record_sale():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@sales_bp.route('/sales/valuation', methods=['GET'])
+def api_sales_valuation():
+    """
+    Enhanced valuation endpoint for the grading results page.
+    Returns grade-specific pricing with raw vs slabbed comparison and ROI.
+
+    Uses canonical_title for precise matching, falls back to LIKE matching.
+    Pulls from BOTH ebay_sales and market_sales for maximum coverage.
+
+    Query params:
+        title: Comic title (required) - matches against canonical_title first
+        issue: Issue number (optional)
+        grade: Numeric grade from AI grading (required, e.g. 9.6)
+        days: Lookback window in days (default 365 - wider window for more data)
+    """
+    import re
+    from decimal import Decimal
+
+    title = request.args.get('title', '').strip()
+    issue = request.args.get('issue', '').strip()
+    grade = request.args.get('grade', type=float)
+    days = request.args.get('days', 365, type=int)
+
+    if not title:
+        return jsonify({'success': False, 'error': 'Title is required'}), 400
+    if grade is None:
+        return jsonify({'success': False, 'error': 'Grade is required'}), 400
+
+    # Reject garbage
+    if len(title) < 3 or re.match(r'^[\d\s$#%.,]+$', title):
+        return jsonify({'success': False, 'error': 'Invalid title'}), 400
+
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        return jsonify({'success': False, 'error': 'Database not configured'}), 500
+
+    try:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+
+        # ---------- EBAY: graded sales for this title ----------
+        ebay_graded_query = """
+            SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source
+            FROM ebay_sales
+            WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
+              AND (is_reprint IS NULL OR is_reprint = false)
+              AND (is_lot IS NULL OR is_lot = false)
+              AND created_at > NOW() - INTERVAL '%s days'
+              AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
+              AND LOWER(raw_title) NOT LIKE '%%reprint%%'
+              AND LOWER(raw_title) NOT LIKE '%%lot of%%'
+              AND LOWER(raw_title) NOT LIKE '%%bundle%%'
+        """
+        ebay_graded_params = [days]
+
+        # Prefer canonical_title match, fall back to LIKE
+        ebay_graded_query += """
+              AND (
+                  LOWER(canonical_title) = LOWER(%s)
+                  OR LOWER(parsed_title) LIKE LOWER(%s)
+              )
+        """
+        ebay_graded_params.extend([title, f'%{title}%'])
+
+        if issue and issue not in ['null', 'undefined', 'None']:
+            ebay_graded_query += " AND issue_number = %s"
+            ebay_graded_params.append(str(issue))
+
+        cur.execute(ebay_graded_query, ebay_graded_params)
+        ebay_graded = cur.fetchall()
+
+        # ---------- EBAY: raw (ungraded) sales for this title ----------
+        ebay_raw_query = """
+            SELECT sale_price as price, sale_date as sold_date, 'ebay' as source
+            FROM ebay_sales
+            WHERE (graded = false OR graded IS NULL) AND sale_price > 2
+              AND (is_reprint IS NULL OR is_reprint = false)
+              AND (is_lot IS NULL OR is_lot = false)
+              AND created_at > NOW() - INTERVAL '%s days'
+              AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
+              AND LOWER(raw_title) NOT LIKE '%%reprint%%'
+              AND LOWER(raw_title) NOT LIKE '%%lot of%%'
+              AND LOWER(raw_title) NOT LIKE '%%bundle%%'
+              AND (
+                  LOWER(canonical_title) = LOWER(%s)
+                  OR LOWER(parsed_title) LIKE LOWER(%s)
+              )
+        """
+        ebay_raw_params = [days, title, f'%{title}%']
+
+        if issue and issue not in ['null', 'undefined', 'None']:
+            ebay_raw_query += " AND issue_number = %s"
+            ebay_raw_params.append(str(issue))
+
+        cur.execute(ebay_raw_query, ebay_raw_params)
+        ebay_raw = cur.fetchall()
+
+        # ---------- MARKET_SALES: graded ----------
+        market_graded_query = """
+            SELECT grade, price, sold_at as sold_date, 'whatnot' as source
+            FROM market_sales
+            WHERE grade IS NOT NULL AND price > 2
+              AND (is_reprint IS NULL OR is_reprint = false)
+              AND (is_lot IS NULL OR is_lot = false)
+              AND created_at > NOW() - INTERVAL '%s days'
+              AND (
+                  LOWER(canonical_title) = LOWER(%s)
+                  OR LOWER(title) LIKE LOWER(%s)
+                  OR LOWER(series) LIKE LOWER(%s)
+              )
+        """
+        market_graded_params = [days, title, f'%{title}%', f'%{title}%']
+
+        if issue and issue not in ['null', 'undefined', 'None']:
+            market_graded_query += " AND (issue = %s OR issue = %s)"
+            market_graded_params.extend([str(issue), issue])
+
+        cur.execute(market_graded_query, market_graded_params)
+        market_graded = cur.fetchall()
+
+        # ---------- MARKET_SALES: raw (ungraded) ----------
+        market_raw_query = """
+            SELECT price, sold_at as sold_date, 'whatnot' as source
+            FROM market_sales
+            WHERE (grade IS NULL) AND price > 1
+              AND (is_reprint IS NULL OR is_reprint = false)
+              AND (is_lot IS NULL OR is_lot = false)
+              AND created_at > NOW() - INTERVAL '%s days'
+              AND (
+                  LOWER(canonical_title) = LOWER(%s)
+                  OR LOWER(title) LIKE LOWER(%s)
+                  OR LOWER(series) LIKE LOWER(%s)
+              )
+        """
+        market_raw_params = [days, title, f'%{title}%', f'%{title}%']
+
+        if issue and issue not in ['null', 'undefined', 'None']:
+            market_raw_query += " AND (issue = %s OR issue = %s)"
+            market_raw_params.extend([str(issue), issue])
+
+        cur.execute(market_raw_query, market_raw_params)
+        market_raw = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        # ---------- Combine graded sales ----------
+        all_graded = list(ebay_graded) + list(market_graded)
+        all_raw = list(ebay_raw) + list(market_raw)
+
+        # Convert Decimal to float
+        def to_float(val):
+            if isinstance(val, Decimal):
+                return float(val)
+            return float(val) if val else 0.0
+
+        # ---------- Grade-specific analysis ----------
+        # Group graded sales by grade
+        grade_buckets = {}
+        for sale in all_graded:
+            g = to_float(sale.get('grade'))
+            p = to_float(sale.get('price'))
+            if g > 0 and p > 0:
+                if g not in grade_buckets:
+                    grade_buckets[g] = []
+                grade_buckets[g].append(p)
+
+        # 1. Exact grade match
+        exact_match = grade_buckets.get(grade)
+        exact_avg = None
+        exact_count = 0
+        if exact_match and len(exact_match) >= 1:
+            exact_avg = round(sum(exact_match) / len(exact_match), 2)
+            exact_count = len(exact_match)
+
+        # 2. Nearest grade interpolation if no exact match (or supplement thin data)
+        interpolated_avg = None
+        grades_below = sorted([g for g in grade_buckets if g < grade], reverse=True)
+        grades_above = sorted([g for g in grade_buckets if g > grade])
+
+        if grades_below and grades_above:
+            below_grade = grades_below[0]
+            above_grade = grades_above[0]
+            below_avg = sum(grade_buckets[below_grade]) / len(grade_buckets[below_grade])
+            above_avg = sum(grade_buckets[above_grade]) / len(grade_buckets[above_grade])
+
+            # Linear interpolation based on grade distance
+            total_dist = above_grade - below_grade
+            if total_dist > 0:
+                weight_above = (grade - below_grade) / total_dist
+                weight_below = 1 - weight_above
+                interpolated_avg = round(below_avg * weight_below + above_avg * weight_above, 2)
+        elif grades_below:
+            # Only data below - extrapolate conservatively
+            below_grade = grades_below[0]
+            below_avg = sum(grade_buckets[below_grade]) / len(grade_buckets[below_grade])
+            # Higher grade = higher price, add ~10% per half grade
+            grade_diff = grade - below_grade
+            interpolated_avg = round(below_avg * (1 + 0.2 * grade_diff), 2)
+        elif grades_above:
+            # Only data above - extrapolate conservatively
+            above_grade = grades_above[0]
+            above_avg = sum(grade_buckets[above_grade]) / len(grade_buckets[above_grade])
+            # Lower grade = lower price, subtract ~10% per half grade
+            grade_diff = above_grade - grade
+            interpolated_avg = round(above_avg * (1 - 0.2 * grade_diff), 2)
+            if interpolated_avg < 0:
+                interpolated_avg = round(above_avg * 0.25, 2)
+
+        # Pick the best graded FMV
+        if exact_avg and exact_count >= 3:
+            graded_fmv = exact_avg
+            fmv_method = 'exact'
+        elif exact_avg and interpolated_avg:
+            # Blend thin exact data with interpolation
+            weight = min(exact_count / 3.0, 1.0)
+            graded_fmv = round(exact_avg * weight + interpolated_avg * (1 - weight), 2)
+            fmv_method = 'blended'
+        elif exact_avg:
+            graded_fmv = exact_avg
+            fmv_method = 'exact_thin'
+        elif interpolated_avg:
+            graded_fmv = interpolated_avg
+            fmv_method = 'interpolated'
+        else:
+            graded_fmv = None
+            fmv_method = 'none'
+
+        # ---------- Raw FMV ----------
+        raw_prices = [to_float(s.get('price')) for s in all_raw if to_float(s.get('price')) > 0]
+        raw_fmv = round(sum(raw_prices) / len(raw_prices), 2) if raw_prices else None
+        raw_count = len(raw_prices)
+
+        # ---------- Grading cost (tiered by CGC schedule) ----------
+        base_value = graded_fmv or raw_fmv or 0
+        if base_value >= 1000:
+            grading_cost = 150
+        elif base_value >= 400:
+            grading_cost = 85
+        elif base_value >= 200:
+            grading_cost = 50
+        else:
+            grading_cost = 30
+
+        # ---------- ROI calculation ----------
+        slabbing_roi = None
+        roi_percentage = None
+        verdict = 'Insufficient data'
+
+        if graded_fmv and raw_fmv:
+            slabbing_roi = round(graded_fmv - raw_fmv - grading_cost, 2)
+            if raw_fmv > 0:
+                roi_percentage = round((slabbing_roi / raw_fmv) * 100, 1)
+
+            if slabbing_roi > 50:
+                verdict = 'Worth grading'
+            elif slabbing_roi > 0:
+                verdict = 'Marginal - consider volume'
+            else:
+                verdict = 'Probably not worth grading'
+        elif graded_fmv:
+            verdict = 'Limited raw data - compare manually'
+        elif raw_fmv:
+            verdict = 'No graded sales data - cannot calculate ROI'
+
+        # ---------- Confidence score ----------
+        total_graded = sum(len(v) for v in grade_buckets.values())
+        if exact_count >= 10:
+            confidence = 'high'
+        elif exact_count >= 3 or total_graded >= 10:
+            confidence = 'medium'
+        elif total_graded >= 3:
+            confidence = 'low'
+        else:
+            confidence = 'very_low'
+
+        # ---------- Build grade price curve (for chart display) ----------
+        price_curve = []
+        for g in sorted(grade_buckets.keys()):
+            prices = grade_buckets[g]
+            price_curve.append({
+                'grade': g,
+                'avg_price': round(sum(prices) / len(prices), 2),
+                'sales_count': len(prices),
+                'min_price': round(min(prices), 2),
+                'max_price': round(max(prices), 2)
+            })
+
+        # ---------- Source counts ----------
+        ebay_count = len(ebay_graded) + len(ebay_raw)
+        whatnot_count = len(market_graded) + len(market_raw)
+
+        return jsonify({
+            'success': True,
+            'title': title,
+            'issue': issue or None,
+            'grade': grade,
+
+            # Core valuation
+            'graded_fmv': graded_fmv,
+            'graded_sample_size': exact_count,
+            'graded_total_sales': total_graded,
+            'fmv_method': fmv_method,
+
+            'raw_fmv': raw_fmv,
+            'raw_sample_size': raw_count,
+
+            # ROI
+            'grading_cost': grading_cost,
+            'slabbing_roi': slabbing_roi,
+            'roi_percentage': roi_percentage,
+            'verdict': verdict,
+            'confidence': confidence,
+
+            # Grade price curve for charts
+            'price_curve': price_curve,
+
+            # Data sources
+            'sources': {
+                'ebay': ebay_count,
+                'whatnot': whatnot_count,
+                'total': ebay_count + whatnot_count
+            },
+
+            # Metadata
+            'lookback_days': days,
+            'estimated': fmv_method in ['interpolated', 'none']
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @sales_bp.route('/sales/count', methods=['GET'])
 def api_sales_count():
     """Get total count of sales in database"""
