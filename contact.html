@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - Slab Worthy™</title>
+    <meta name="description" content="Get in touch with the Slab Worthy team. Questions about grading, Slab Guard, or your account? We're here to help.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: var(--purple-light);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+        }
+
+        .page-title {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .content-section p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .content-section a {
+            color: var(--purple-light);
+            text-decoration: none;
+        }
+
+        .content-section a:hover {
+            text-decoration: underline;
+        }
+
+        /* Email card */
+        .contact-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .contact-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-value a {
+            color: var(--purple-light);
+            text-decoration: none;
+            font-size: 1.15rem;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .contact-value a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(76, 29, 149, 0.15));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .highlight-box p {
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin: 0;
+            line-height: 1.7;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .header-nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
+
+            .contact-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">SLAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/about.html">About</a>
+                <a href="/login.html">Log In</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <h1 class="page-title">Contact Us</h1>
+
+        <div class="content-section">
+            <p>Have a question about grading, Slab Guard, your account, or anything else? We'd love to hear from you.</p>
+        </div>
+
+        <div class="contact-card">
+            <div class="contact-icon">✉️</div>
+            <div class="contact-info">
+                <div class="contact-label">Email</div>
+                <div class="contact-value"><a href="mailto:support@slabworthy.com">support@slabworthy.com</a></div>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <p>We typically respond within 24 hours. For account-specific issues, please include the email address associated with your Slab Worthy account.</p>
+        </div>
+
+        <div class="content-section">
+            <h2 class="section-title">Common Topics</h2>
+            <p><strong>Grading questions</strong> — How our AI grading works, understanding your results, or when to submit for professional grading.</p>
+            <p><strong>Slab Guard</strong> — Registering comics, verifying serial numbers, or reporting sightings.</p>
+            <p><strong>Account & billing</strong> — Plan changes, subscription management, or login issues.</p>
+            <p><strong>Bug reports</strong> — Something not working right? Let us know what happened and we'll look into it.</p>
+        </div>
+    </main>
+
+    <script src="/js/footer.js"></script>
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

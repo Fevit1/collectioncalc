@@ -93,7 +93,7 @@
                     <h4>Company</h4>
                     <ul>
                         <li><a href="/about.html">About</a></li>
-                        <li><a href="mailto:support@slabworthy.com">Contact</a></li>
+                        <li><a href="/contact.html">Contact</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
