@@ -52,7 +52,7 @@
       <div class="valuator-header">
         <span>📊 Comic Valuator</span>
         <div class="valuator-header-buttons">
-          <button class="valuator-settings" title="API Settings">⚙️</button>
+          <button class="valuator-settings" title="Account Settings">⚙️</button>
           <button class="valuator-toggle" title="Minimize">−</button>
         </div>
       </div>
@@ -91,12 +91,11 @@
       <div class="valuator-footer">📈 <span class="sale-count">0</span> sales tracked</div>
       <div class="valuator-api-modal" style="display:none;">
         <div class="api-modal-content">
-          <h4>🔑 Anthropic API Key</h4>
-          <p>For Vision scanning (📷):</p>
-          <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+          <h4>🔐 Sign In Required</h4>
+          <p>Vision scanning requires a Slab Worthy account (Guard+ plan).</p>
+          <p style="margin-top:8px;font-size:12px;color:#aaa;">Right-click the extension icon → Options to sign in.</p>
           <div class="api-modal-buttons">
-            <button id="api-key-save">Save</button>
-            <button id="api-key-cancel">Cancel</button>
+            <button id="api-key-cancel">Close</button>
           </div>
         </div>
       </div>
@@ -114,9 +113,8 @@
     const scanBtn = overlayEl.querySelector('#vision-scan');
     scanBtn.addEventListener('click', handleVisionScan);
     
-    // API key modal
+    // Auth modal
     overlayEl.querySelector('.valuator-settings').addEventListener('click', showApiModal);
-    overlayEl.querySelector('#api-key-save').addEventListener('click', saveApiKey);
     overlayEl.querySelector('#api-key-cancel').addEventListener('click', hideApiModal);
   }
 
@@ -333,44 +331,15 @@
     lastVisionResult = null;
   }
 
-  // Show API key modal
+  // Show auth modal (directs user to extension Options for login)
   function showApiModal() {
     const modal = overlayEl.querySelector('.valuator-api-modal');
     modal.style.display = 'flex';
-    
-    // Load existing key (masked)
-    if (window.ComicVision) {
-      window.ComicVision.loadApiKey().then(key => {
-        if (key) {
-          overlayEl.querySelector('#api-key-input').placeholder = 'sk-ant-....' + key.slice(-4);
-        }
-      });
-    }
   }
 
-  // Hide API key modal
+  // Hide auth modal
   function hideApiModal() {
     overlayEl.querySelector('.valuator-api-modal').style.display = 'none';
-  }
-
-  // Save API key
-  async function saveApiKey() {
-    const input = overlayEl.querySelector('#api-key-input');
-    const key = input.value.trim();
-    
-    if (key && key.startsWith('sk-')) {
-      await window.ComicVision.saveApiKey(key);
-      input.value = '';
-      hideApiModal();
-      console.log('[Vision] 🔑 API key saved');
-      
-      const statusEl = overlayEl.querySelector('.scan-status');
-      statusEl.textContent = '🔑 Key saved!';
-      setTimeout(() => statusEl.textContent = '', 2000);
-    } else {
-      input.style.borderColor = '#f44336';
-      setTimeout(() => input.style.borderColor = '', 1000);
-    }
   }
 
   // Check if title is garbage (generic placeholder)

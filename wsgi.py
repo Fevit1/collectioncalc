@@ -227,7 +227,8 @@ from routes.collection import collection_bp
 from routes.registry import registry_bp, init_modules as registry_init_modules
 from routes.verify import verify_bp, init_modules as verify_init_modules
 from routes.monitor import monitor_bp, init_modules as monitor_init_modules
-from routes.billing import billing_bp, init_modules as billing_init_modules
+from routes.billing import billing_bp, init_modules as billing_init_modules, check_feature_access
+from routes.vision import vision_bp, init_modules as vision_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -262,6 +263,11 @@ ebay_init_modules(
 registry_init_modules(imagehash, Image if 'Image' in dir() else None)
 monitor_init_modules(imagehash, Image if 'Image' in dir() else None)
 billing_init_modules()
+vision_init_modules(
+    anthropic, ANTHROPIC_API_KEY, ANTHROPIC_AVAILABLE,
+    moderate_image, log_moderation_incident, get_image_hash,
+    check_feature_access
+)
 verify_init_modules(
     imagehash,
     Image if 'Image' in dir() else None,
@@ -283,6 +289,7 @@ app.register_blueprint(registry_bp)    # /api/registry/*
 app.register_blueprint(verify_bp)      # /api/verify/*
 app.register_blueprint(monitor_bp)     # /api/monitor/*
 app.register_blueprint(billing_bp)     # /api/billing/*
+app.register_blueprint(vision_bp)      # /api/vision/*
 
 print("✅ All blueprints registered successfully!")
 
