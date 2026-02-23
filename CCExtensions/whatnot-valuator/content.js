@@ -431,99 +431,61 @@
     return false;
   }
 
-  // Auto-scan when enabled (only when bidding starts, skip if DOM has good data)
+  // Auto-scan when enabled - scans immediately on new item detection
+  // Session 61: Removed bidding gate — scan as soon as item appears so user
+  // can identify the comic BEFORE deciding to bid. Fast auctions ($3 start)
+  // sell instantly, so waiting for bidding means missing the scan entirely.
   async function maybeAutoScan(listing) {
     if (!autoScanEnabled) return;
     if (!listing) return;
     if (isScanning) return;  // Already scanning
-    
+
     // Check if we already scanned this listing.id recently (regardless of title)
     if (listing.id === lastScannedListingId && Date.now() - lastScanTime < 30000) {
       console.log('[Valuator] Auto-scan skipped - already scanned listing', listing.id);
       return;
     }
-    
+
     // Make sure we're on a live auction page with video
     const video = document.querySelector('video');
     if (!video) {
       console.log('[Valuator] Auto-scan skipped - no video element (not a live auction?)');
       return;
     }
-    
+
     // Check scan cooldown (prevents duplicate scans when title updates mid-scan)
     if (Date.now() < scanCooldownUntil) {
       console.log('[Valuator] Auto-scan skipped - in cooldown period');
       return;
     }
-    
-    const scanKey = `${listing.id}-${listing.title}`;
-    
-    // Already scanned this item
-    if (scanKey === lastAutoScanId) return;
-    
-    // Check if DOM already has good data - DISABLED: always scan to capture images
-    // const parsed = window.ComicNormalizer ? 
-    //   window.ComicNormalizer.parse(listing.title, listing.subtitle) : {};
-    // 
-    // if (hasGoodDOMData(listing, parsed)) {
-    //   console.log('[Valuator] Auto-scan skipped - DOM has good data:', listing.title);
-    //   return;
-    // }
-    
-    // Check for API key
+
+    // Check for auth token
     if (window.ComicVision) {
       const hasKey = await window.ComicVision.hasApiKey();
       if (!hasKey) {
-        console.log('[Valuator] Auto-scan skipped - no API key');
+        console.log('[Valuator] Auto-scan skipped - not signed in');
         return;
       }
     }
-    
-    // Check if bidding has started
-    if (!isBiddingActive(listing)) {
-      // Mark this listing as pending - will scan when bidding starts
-      pendingAutoScanKey = scanKey;
-      const statusEl = overlayEl.querySelector('.scan-status');
-      statusEl.textContent = 'Preparing...';
-      console.log('[Valuator] 🕐 Auto-scan queued (waiting for bidding):', listing.title);
-      return;
-    }
-    
-    // Bidding is active - scan now!
-    lastAutoScanId = scanKey;
-    lastScannedListingId = listing.id;  // Track by ID
+
+    // Scan immediately - mark this listing as scanned
+    lastAutoScanId = `${listing.id}-${listing.title}`;
+    lastScannedListingId = listing.id;
     lastScanTime = Date.now();
+    scanCooldownUntil = Date.now() + 10000; // 10s cooldown prevents duplicate scans
     pendingAutoScanKey = null;
-    console.log('[Valuator] 🤖 Auto-scanning (bidding started, DOM is garbage):', listing.title);
-    
+    console.log('[Valuator] 🤖 Auto-scanning:', listing.title);
+
     // Small delay to let video stabilize on new item
     const statusEl = overlayEl.querySelector('.scan-status');
-    statusEl.textContent = 'Preparing...';
+    statusEl.textContent = 'Scanning...';
     await new Promise(r => setTimeout(r, 1500));
-    
+
     // Trigger scan
     handleVisionScan();
   }
   
-  // Check if pending scan should now trigger (bidding started)
-  function checkPendingAutoScan(listing) {
-    if (!autoScanEnabled) return;
-    if (!pendingAutoScanKey) return;
-    if (isScanning) return;  // Already scanning
-    
-    // Make sure we have a video element
-    const video = document.querySelector('video');
-    if (!video) return;
-    
-    const scanKey = `${listing.id}-${listing.title}`;
-    if (scanKey !== pendingAutoScanKey) return; // Different listing now
-    if (scanKey === lastAutoScanId) return; // Already scanned
-    
-    if (isBiddingActive(listing)) {
-      console.log('[Valuator] 🤖 Bidding started - triggering queued auto-scan');
-      maybeAutoScan(listing);
-    }
-  }
+  // checkPendingAutoScan removed in Session 61 — scans fire immediately now
 
   // Watch for auction changes
   let watchCount = 0;
@@ -562,13 +524,12 @@
           currentItemId = listingKey;
           currentListing = listing;
           
-          // Reset scan tracking for new item
-          lastAutoScanId = null;
-          pendingAutoScanKey = null;
-          isScanning = false;
-          
-          // Only reset listing ID tracking if the actual ID changed
+          // Reset scan tracking only when the actual listing ID changes
+          // (not on title fluctuations from Apollo cache updates)
           if (listingIdChanged) {
+            lastAutoScanId = null;
+            pendingAutoScanKey = null;
+            isScanning = false;
             lastScannedListingId = null;
             lastScanTime = 0;
           }
@@ -612,11 +573,6 @@
         
         // Check for sale
         checkForSale(listing);
-        
-        // Check if pending auto-scan should trigger (bidding started)
-        if (listing) {
-          checkPendingAutoScan(listing);
-        }
         
       } catch (e) {
         console.log('[Valuator] Watch error:', e.message);

@@ -53,15 +53,30 @@ def init_modules(anthropic_lib, anthropic_key, anthropic_avail,
 # PER-USER RATE LIMITING
 # ============================================
 
+# Per-minute burst rate limit (in-memory)
 _vision_rate_store = {}  # user_id -> (count, window_start)
 VISION_RATE_LIMIT_MAX = 30     # scans per window
 VISION_RATE_LIMIT_WINDOW = 60  # seconds
+
+# Daily scan caps by plan (in-memory, resets at midnight UTC)
+_daily_scan_store = {}  # user_id -> (count, date_str)
+DAILY_SCAN_CAPS = {
+    'free': 0,       # Free users can't scan (no chrome_extension feature anyway)
+    'pro': 0,        # Pro users can't scan (no chrome_extension feature anyway)
+    'guard': 200,    # 200 scans/day
+    'dealer': 500,   # 500 scans/day
+    'admin': -1,     # Unlimited (admins)
+}
 
 
 def rate_limit_per_user(f):
     """Rate limiter for Vision API - 30 calls/minute per user"""
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Admins bypass rate limiting
+        if g.admin_id:
+            return f(*args, **kwargs)
+
         user_id = g.user_id
         now = time.time()
 
@@ -78,6 +93,52 @@ def rate_limit_per_user(f):
                 _vision_rate_store[user_id] = (count + 1, window_start)
         else:
             _vision_rate_store[user_id] = (1, now)
+
+        return f(*args, **kwargs)
+    return decorated
+
+
+def daily_scan_cap(f):
+    """Daily scan cap per user by plan. Admins are unlimited."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Admins bypass daily cap
+        if g.admin_id:
+            return f(*args, **kwargs)
+
+        user_id = g.user_id
+        today = time.strftime('%Y-%m-%d', time.gmtime())
+
+        # Get user's plan for cap lookup
+        user_plan = 'guard'  # Default
+        if check_feature_access:
+            try:
+                from routes.billing import get_user_plan
+                plan_info = get_user_plan(user_id)
+                if plan_info:
+                    user_plan = plan_info.get('plan', 'guard')
+            except Exception:
+                pass
+
+        cap = DAILY_SCAN_CAPS.get(user_plan, 200)
+        if cap == -1:
+            return f(*args, **kwargs)  # Unlimited
+
+        # Check/update daily count
+        if user_id in _daily_scan_store:
+            count, date_str = _daily_scan_store[user_id]
+            if date_str != today:
+                # New day, reset
+                _daily_scan_store[user_id] = (1, today)
+            elif count >= cap:
+                return jsonify({
+                    'success': False,
+                    'error': f'Daily scan limit reached ({cap}/day). Resets at midnight UTC.'
+                }), 429
+            else:
+                _daily_scan_store[user_id] = (count + 1, date_str)
+        else:
+            _daily_scan_store[user_id] = (1, today)
 
         return f(*args, **kwargs)
     return decorated
@@ -143,6 +204,7 @@ If you cannot see a comic book clearly, respond with: {"error": "Cannot identify
 @require_auth
 @require_approved
 @rate_limit_per_user
+@daily_scan_cap
 def analyze_vision():
     """
     Analyze a comic book image using Claude Vision API.
