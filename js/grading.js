@@ -112,24 +112,22 @@ async function runQuickTest() {
     if (content5) content5.classList.add('active');
     gradingState.currentStep = 5;
     
-    // Populate grade display with mock data
-    const gradeReportComic = document.getElementById('gradeReportComic');
-    const gradeResultBig = document.getElementById('gradeResultBig');
-    const gradeResultLabel = document.getElementById('gradeResultLabel');
-    const gradePhotosUsed = document.getElementById('gradePhotosUsed');
-    const defectsList = document.getElementById('defectsList');
-    
-    if (gradeReportComic) gradeReportComic.innerHTML = `<div class="comic-title-big">Amazing Spider-Man #300</div>`;
-    if (gradeResultBig) gradeResultBig.textContent = '8.0';
-    if (gradeResultLabel) gradeResultLabel.textContent = 'VF (Very Fine)';
-    if (gradePhotosUsed) gradePhotosUsed.innerHTML = '🧪 <em>Dev mode — mock data (no photos)</em>';
-    if (defectsList) {
-        defectsList.innerHTML = mockGradeResult.defects
-            .map(d => `<li>${d}</li>`).join('');
+    // Populate grade display with mock data (new results screen IDs)
+    const resultComicTitle = document.getElementById('resultComicTitle');
+    const resultGradeNumber = document.getElementById('resultGradeNumber');
+    const resultGradeLabel = document.getElementById('resultGradeLabel');
+    const resultDefectsGrid = document.getElementById('resultDefectsGrid');
+
+    if (resultComicTitle) resultComicTitle.textContent = 'Amazing Spider-Man #300';
+    if (resultGradeNumber) resultGradeNumber.textContent = '8.0';
+    if (resultGradeLabel) resultGradeLabel.textContent = 'VF (Very Fine)';
+    if (resultDefectsGrid) {
+        resultDefectsGrid.innerHTML = mockGradeResult.defects
+            .map(d => `<div class="defect-item"><span class="defect-dot minor"></span><span>${d}</span></div>`).join('');
     }
-    
+
     // Scroll to report section
-    const reportSection = content5 || document.getElementById('recommendationVerdict');
+    const reportSection = content5 || document.getElementById('resultVerdictTagline');
     if (reportSection) {
         reportSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -2054,23 +2052,21 @@ async function generateGradeReport() {
     
     gradingState.currentStep = 5;
     
-    // Show loading state with progress steps (with null checks)
-    const gradeResultBig = document.getElementById('gradeResultBig');
-    const gradeResultLabel = document.getElementById('gradeResultLabel');
-    const gradePhotosUsed = document.getElementById('gradePhotosUsed');
-    const defectsList = document.getElementById('defectsList');
-    const recommendationValues = document.getElementById('recommendationValues');
-    const recommendationVerdict = document.getElementById('recommendationVerdict');
-    
+    // Show loading state with progress steps (new results screen IDs)
+    const gradeResultBig = document.getElementById('resultGradeNumber');
+    const gradeResultLabel = document.getElementById('resultGradeLabel');
+    const resultDefectsGrid = document.getElementById('resultDefectsGrid');
+    const resultVerdictBadge = document.getElementById('resultVerdictBadge');
+    const resultVerdictTagline = document.getElementById('resultVerdictTagline');
+
     if (gradeResultBig) gradeResultBig.textContent = '...';
     if (gradeResultLabel) {
         gradeResultLabel.textContent = 'Analyzing photos.';
         startDotsAnimation(gradeResultLabel, 'Analyzing photos');
     }
-    if (gradePhotosUsed) gradePhotosUsed.innerHTML = '<span style="color: var(--text-muted);">Processing images...</span>';
-    if (defectsList) defectsList.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
-    if (recommendationValues) recommendationValues.innerHTML = '';
-    if (recommendationVerdict) recommendationVerdict.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Calculating value...</p>';
+    if (resultDefectsGrid) resultDefectsGrid.innerHTML = '<span style="color: var(--text-muted);">Finding defects...</span>';
+    if (resultVerdictBadge) resultVerdictBadge.style.display = 'none';
+    if (resultVerdictTagline) resultVerdictTagline.innerHTML = '<span style="color: var(--text-muted);">Calculating value...</span>';
     
     // Build multi-image prompt
     const imageContent = [];
@@ -2191,8 +2187,8 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         }
         
         stopDotsAnimation();
-        const bigEl = document.getElementById('gradeResultBig');
-        const labelEl = document.getElementById('gradeResultLabel');
+        const bigEl = document.getElementById('resultGradeNumber');
+        const labelEl = document.getElementById('resultGradeLabel');
         if (bigEl) bigEl.textContent = 'Error';
         if (labelEl) labelEl.textContent = 'Failed to analyze. Please try again.';
     }
@@ -2202,17 +2198,17 @@ Return ONLY valid JSON, no markdown, no nested objects.`
 function renderGradeReport(result, confidence, photoLabels) {
     // Stop any running animations
     stopDotsAnimation();
-    
+
     // Handle both flat and nested response structures from Claude
     const comic = result['COMIC IDENTIFICATION'] || result;
     const grade = result['COMPREHENSIVE GRADE'] || result;
     const defects = result['DEFECTS BY AREA'] || result;
     const sig = result['SIGNATURE'] || result;
-    
+
     // Comic info - prefer user-edited data
     const displayTitle = gradingState.extractedData?.title || comic.title || 'Unknown';
     const displayIssue = gradingState.extractedData?.issue || comic.issue || '?';
-    
+
     // Helper function for safe element access
     const safeSet = (id, prop, value) => {
         const el = document.getElementById(id);
@@ -2225,79 +2221,86 @@ function renderGradeReport(result, confidence, photoLabels) {
         else if (prop === 'style.display') el.style.display = value;
         return true;
     };
-    
-    safeSet('gradeReportComic', 'innerHTML', `
-        <div class="comic-title-big">${displayTitle} #${displayIssue}</div>
-        <div class="comic-meta">${comic.publisher || ''} ${comic.year || ''}</div>
-    `);
-    
-    // Grade result
-    safeSet('gradeResultBig', 'textContent', grade.final_grade || '--');
-    safeSet('gradeResultLabel', 'textContent', grade.grade_label || 'Grade');
-    
+
+    // Comic ID strip — title + meta
+    safeSet('resultComicTitle', 'textContent', `${displayTitle} #${displayIssue}`);
+    const metaParts = [comic.publisher, comic.year].filter(Boolean);
+    safeSet('resultComicMeta', 'textContent', metaParts.join(' \u2022 '));
+
+    // Comic thumbnail — show user's front cover photo
+    const thumbEl = document.getElementById('resultComicThumb');
+    if (thumbEl && gradingState.photos[1]) {
+        const photo = gradingState.photos[1];
+        thumbEl.innerHTML = `<img src="data:${photo.mediaType};base64,${photo.base64}" alt="Cover">`;
+    }
+
+    // Grade circle
+    safeSet('resultGradeNumber', 'textContent', grade.final_grade || '--');
+    safeSet('resultGradeLabel', 'textContent', grade.grade_label || 'Grade');
+
     // Show quality warning only if confidence < 75%
     const warningEl = document.getElementById('gradeQualityWarning');
     if (warningEl) {
-        if (confidence < 75) {
-            warningEl.style.display = 'flex';
-        } else {
-            warningEl.style.display = 'none';
-        }
+        warningEl.style.display = confidence < 75 ? 'flex' : 'none';
     }
-    
-    // Photos used - simple count
-    const photosUsed = Object.values(gradingState.photos).filter(p => p !== null).length;
-    safeSet('gradePhotosUsed', 'innerHTML', `
-        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">
-            Based on ${photosUsed} photo${photosUsed !== 1 ? 's' : ''}
-        </div>
-    `);
-    
-    // Defects - handle both flat and nested structures
+
+    // Defects — 2x2 grid with colored severity dots
     const frontDefects = defects.front_defects || [];
     const spineDefects = defects.spine_defects || [];
     const backDefects = defects.back_defects || [];
     const interiorDefects = defects.interior_defects || [];
-    
-    const defectsHTML = [];
-    
-    if (frontDefects.length > 0) {
-        defectsHTML.push(`
+
+    // Helper: classify defect severity from text
+    const getSeverity = (text) => {
+        const lower = text.toLowerCase();
+        if (lower.includes('clean') || lower.includes('no defect') || lower.includes('attached') || lower.includes('intact')) return 'clean';
+        if (lower.includes('moderate') || lower.includes('significant') || lower.includes('heavy') || lower.includes('tanning')) return 'moderate';
+        if (lower.includes('major') || lower.includes('severe') || lower.includes('missing') || lower.includes('torn')) return 'major';
+        return 'minor'; // default for light, small, minor
+    };
+
+    const buildAreaHTML = (label, items) => {
+        if (items.length === 0) {
+            return `
+                <div class="defect-area">
+                    <div class="defect-area-label">${label}</div>
+                    <div class="defect-item"><span class="defect-dot clean"></span>Clean — no defects</div>
+                </div>
+            `;
+        }
+        return `
             <div class="defect-area">
-                <span class="defect-area-label">Front</span>
-                <div class="defect-area-items">${frontDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
+                <div class="defect-area-label">${label}</div>
+                ${items.map(d => `<div class="defect-item"><span class="defect-dot ${getSeverity(d)}"></span>${d}</div>`).join('')}
             </div>
-        `);
+        `;
+    };
+
+    const gridHTML = [
+        buildAreaHTML('Front Cover', frontDefects),
+        buildAreaHTML('Spine', spineDefects),
+        buildAreaHTML('Back Cover', backDefects),
+        buildAreaHTML('Interior', interiorDefects)
+    ].join('');
+
+    const defectsGrid = document.getElementById('resultDefectsGrid');
+    if (defectsGrid) {
+        const totalDefects = frontDefects.length + spineDefects.length + backDefects.length + interiorDefects.length;
+        if (totalDefects === 0) {
+            defectsGrid.innerHTML = '<div class="no-defects">No significant defects detected</div>';
+        } else {
+            defectsGrid.innerHTML = gridHTML;
+        }
     }
-    if (spineDefects.length > 0) {
-        defectsHTML.push(`
-            <div class="defect-area">
-                <span class="defect-area-label">Spine</span>
-                <div class="defect-area-items">${spineDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
-            </div>
-        `);
-    }
-    if (backDefects.length > 0) {
-        defectsHTML.push(`
-            <div class="defect-area">
-                <span class="defect-area-label">Back</span>
-                <div class="defect-area-items">${backDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
-            </div>
-        `);
-    }
-    if (interiorDefects.length > 0) {
-        defectsHTML.push(`
-            <div class="defect-area">
-                <span class="defect-area-label">Interior</span>
-                <div class="defect-area-items">${interiorDefects.map(d => `<span class="defect-item">${d}</span>`).join('')}</div>
-            </div>
-        `);
-    }
-    
-    safeSet('defectsList', 'innerHTML', defectsHTML.length > 0 
-        ? defectsHTML.join('') 
-        : '<div class="no-defects">✓ No significant defects detected</div>');
-    
+
+    // Store defects for save-to-collection
+    gradingState.defectsByArea = {
+        front: frontDefects,
+        spine: spineDefects,
+        back: backDefects,
+        interior: interiorDefects
+    };
+
     // Signature
     const sigDetected = sig.signature_detected || false;
     if (sigDetected) {
@@ -2309,7 +2312,7 @@ function renderGradeReport(result, confidence, photoLabels) {
                 ${sigInfo.ink_color || ''} ink, ${sigInfo.location || 'on cover'}
             </p>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-                ⚠️ For authenticated value, submit to CGC Signature Series or CBCS Verified
+                For authenticated value, submit to CGC Signature Series or CBCS Verified
             </p>
         `);
     } else {
@@ -2323,7 +2326,7 @@ async function calculateGradingRecommendation(gradeResult) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Start thinking animation for valuation
-    startThinkingAnimation('recommendationVerdict');
+    startThinkingAnimation('resultVerdictTagline');
     
     // Handle nested structure
     const comic = gradeResult['COMIC IDENTIFICATION'] || gradeResult;
@@ -2406,71 +2409,46 @@ async function calculateGradingRecommendation(gradeResult) {
         const netBenefit = valueIncrease - gradingCost;
         const roi = gradingCost > 0 ? ((netBenefit / gradingCost) * 100).toFixed(0) : 0;
         
-        // Render recommendation with CLEARER math
         const isWorthIt = netBenefit > 0;
-        
+
         // Stop thinking animation before showing results
         stopThinkingAnimation();
-        
-        document.getElementById('recommendationValues').innerHTML = `
-            <div class="recommendation-math">
-                <div class="math-row">
-                    <span class="math-label">Raw value (Fair Market):</span>
-                    <span class="math-value">$${rawValue.toFixed(2)}</span>
-                </div>
-                <div class="math-row">
-                    <span class="math-label">+ Slab premium:</span>
-                    <span class="math-value positive">+$${valueIncrease.toFixed(2)}</span>
-                </div>
-                <div class="math-row">
-                    <span class="math-label">= Slabbed value:</span>
-                    <span class="math-value">$${slabbedValue.toFixed(2)}</span>
-                </div>
-                <div class="math-divider"></div>
-                <div class="math-row">
-                    <span class="math-label">− Grading cost (CGC):</span>
-                    <span class="math-value negative">−$${gradingCost.toFixed(2)}</span>
-                </div>
-                <div class="math-divider"></div>
-                <div class="math-row math-total ${isWorthIt ? 'positive' : 'negative'}">
-                    <span class="math-label">Net ${isWorthIt ? 'profit' : 'loss'} from grading:</span>
-                    <span class="math-value">${isWorthIt ? '+' : ''}$${netBenefit.toFixed(2)}</span>
-                </div>
-            </div>
-        `;
-        
-        // Verdict
-        let verdictHTML;
-        if (netBenefit > gradingCost * 0.5) {
-            // Good ROI
-            verdictHTML = `
-                <div class="recommendation-verdict submit" style="border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
-                    <div class="verdict-icon">✅</div>
-                    <div class="verdict-text">SUBMIT FOR GRADING</div>
-                    <div class="verdict-reason">You'll make ~$${netBenefit.toFixed(2)} profit after grading costs</div>
-                </div>
-            `;
-        } else if (netBenefit > 0) {
-            // Marginal
-            verdictHTML = `
-                <div class="recommendation-verdict" style="background: rgba(99, 102, 241, 0.1); border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
-                    <div class="verdict-icon">🤔</div>
-                    <div class="verdict-text" style="color: var(--brand-indigo);">CONSIDER GRADING</div>
-                    <div class="verdict-reason">Small profit of $${netBenefit.toFixed(2)} - worth it if you want the slab for your collection</div>
-                </div>
-            `;
-        } else {
-            // Not worth it
-            verdictHTML = `
-                <div class="recommendation-verdict keep-raw" style="border: 2px solid var(--brand-purple); border-radius: 12px; padding: 1.5rem;">
-                    <div class="verdict-icon">📦</div>
-                    <div class="verdict-text">KEEP RAW</div>
-                    <div class="verdict-reason">You'd lose $${Math.abs(netBenefit).toFixed(2)} - grading costs more than the value increase</div>
-                </div>
-            `;
+
+        // Populate valuation triptych
+        const rawFmvEl = document.getElementById('resultRawFmv');
+        const slabbedFmvEl = document.getElementById('resultSlabbedFmv');
+        const netRoiEl = document.getElementById('resultNetRoi');
+
+        if (rawFmvEl) rawFmvEl.textContent = `$${Math.round(rawValue)}`;
+        if (slabbedFmvEl) slabbedFmvEl.textContent = `$${Math.round(slabbedValue)}`;
+        if (netRoiEl) {
+            netRoiEl.textContent = `${isWorthIt ? '+' : '\u2212'}$${Math.abs(Math.round(netBenefit))}`;
+            netRoiEl.className = `val-amount ${isWorthIt ? 'roi-positive' : 'roi-negative'}`;
         }
-        
-        document.getElementById('recommendationVerdict').innerHTML = verdictHTML;
+
+        // Populate verdict badge + tagline
+        const verdictBadge = document.getElementById('resultVerdictBadge');
+        const verdictTagline = document.getElementById('resultVerdictTagline');
+
+        if (verdictBadge) {
+            if (isWorthIt) {
+                verdictBadge.textContent = 'WORTH THE SLAB';
+                verdictBadge.className = 'verdict-badge worth';
+            } else {
+                verdictBadge.textContent = 'KEEP IT RAW';
+                verdictBadge.className = 'verdict-badge not-worth';
+            }
+        }
+
+        if (verdictTagline) {
+            if (netBenefit > gradingCost * 0.5) {
+                verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(netBenefit)}</strong> after grading fees. Strong ROI at this grade.`;
+            } else if (netBenefit > 0) {
+                verdictTagline.innerHTML = `Small gain of <strong style="color: var(--status-success);">$${Math.round(netBenefit)}</strong> after fees. Worth it if you want the slab for your collection.`;
+            } else {
+                verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase. Better to enjoy it unslabbed.`;
+            }
+        }
         
         // Set favicon to complete state
         if (typeof FaviconManager !== 'undefined') {
@@ -2494,10 +2472,18 @@ async function calculateGradingRecommendation(gradeResult) {
         }
         
         stopThinkingAnimation();
-        document.getElementById('recommendationValues').innerHTML = `
-            <p style="color: var(--text-muted); text-align: center;">Could not retrieve market values</p>
-        `;
-        document.getElementById('recommendationVerdict').innerHTML = '';
+        // Show error state in valuation cards
+        const rawEl = document.getElementById('resultRawFmv');
+        const slabEl = document.getElementById('resultSlabbedFmv');
+        const roiEl = document.getElementById('resultNetRoi');
+        if (rawEl) rawEl.textContent = '--';
+        if (slabEl) slabEl.textContent = '--';
+        if (roiEl) { roiEl.textContent = '--'; roiEl.className = 'val-amount'; }
+        // Show error in verdict
+        const badge = document.getElementById('resultVerdictBadge');
+        const tagline = document.getElementById('resultVerdictTagline');
+        if (badge) { badge.textContent = 'NO DATA'; badge.className = 'verdict-badge'; }
+        if (tagline) tagline.textContent = 'Could not retrieve market values for this comic.';
         
         // Hide cache warning even on error
         hideCacheWarning();
@@ -2657,8 +2643,8 @@ function showCacheWarning() {
             </div>
         `;
         
-        // Insert before the recommendation verdict section
-        const verdictSection = document.getElementById('recommendationVerdict');
+        // Insert before the verdict tagline section
+        const verdictSection = document.getElementById('resultVerdictTagline');
         if (verdictSection && verdictSection.parentNode) {
             verdictSection.parentNode.insertBefore(warningEl, verdictSection);
         } else {

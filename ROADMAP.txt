@@ -559,6 +559,21 @@ Notes → custom_notes (custom field)
 
 ## Medium Priority
 
+### Defect Image Linking (Results Page)
+**Goal:** Each detected defect links to a cropped/annotated region of the user's cover photo
+**Why This Matters:**
+- Builds trust in the AI grade — users can see *exactly* what was found
+- Strong booth demo feature ("Look, it found this corner crease")
+- Differentiator — no competitor shows visual proof of defects
+
+**Implementation:**
+- [ ] Vision API returns location data (coordinates or quadrant) for each defect
+- [ ] Crop or annotate the original cover photo at each defect location
+- [ ] Store defect images alongside grading results (Supabase storage or R2)
+- [ ] Tappable defect items in results UI — opens overlay/bottom sheet with zoomed image
+- [ ] Bounding box or highlight overlay on the defect region
+- [ ] Fallback: quadrant-based crop if Vision only returns text like "top-right"
+
 ### Two-Factor Authentication (Backlog)
 **Recommendation:** TOTP (authenticator app) - best security/simplicity balance
 
