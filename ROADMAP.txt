@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 5.2.0 (February 24, 2026)
+## Current Version: 5.3.0 (February 24, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -36,8 +36,8 @@
 - [x] **Grading flow polish** - Mobile-first results screen wired to live site (Session 62)
 - [x] **Results page with valuation** - Grade + value + ROI on one screen, mobile + desktop (Session 62)
 - [x] **Google Play Store (TWA)** - Live on Internal Testing, promote to production pre-Oakland (Session 62)
-- [ ] **Sign-up/onboarding** - Under 60 seconds at the booth (name/phone/marketing fields added Session 62, run DB migration)
-- [ ] **Photo quality gate** - Friendly "try again" for bad photos
+- [x] **Sign-up/onboarding** - Name/phone/marketing fields live, DB migration run, booth codes generated (OAKLAND2026 x200, 50 single-use backups) (Session 62)
+- [x] **Photo quality gate** - Resolution + blur check before Claude calls; friendly "retake" message in UI (Session 63)
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
 
 **Nice-to-Have:**
@@ -879,6 +879,7 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 5.3.0 | Feb 24, 2026 | Google Play Store live (Internal Testing), booth codes generated (OAKLAND2026), Play Console account created |
 | 5.2.0 | Feb 24, 2026 | Results screen wired to live site, signup fields (name/phone/marketing), TWA for Google Play, Digital Asset Links |
 | 5.0.0 | Feb 23, 2026 | Vision API backend proxy, contact form, valuation endpoint, Oakland alpha planning |
 | 4.9.0 | Feb 20, 2026 | LPQ texture fingerprinting: border-only LPQ as primary cross-camera metric |
@@ -989,4 +990,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 24, 2026 (Session 62)*
+*Last updated: February 24, 2026 (Session 63)*

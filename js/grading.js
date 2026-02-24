@@ -1398,10 +1398,10 @@ async function handleGradingPhoto(step, files) {
             }
             
             if (result.quality_issue) {
-                // Quality problem - show feedback, allow retry
+                // Quality problem - show feedback with tip, allow retry
                 stopDotsAnimation();
                 feedback.className = 'grading-feedback';
-                feedbackText.textContent = result.quality_message;
+                feedbackText.innerHTML = `📷 ${result.quality_message}${result.tip ? `<br><span style="font-size:0.85em;opacity:0.75;">${result.tip}</span>` : ''}`;
                 feedback.style.display = 'flex';
                 preview.style.display = 'block';
                 nextBtn.disabled = false; // Let them continue anyway
@@ -1574,15 +1574,19 @@ async function analyzeGradingPhoto(step, processed) {
             })
         });
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error:', response.status, errorText.substring(0, 500));
-            throw new Error('API returned ' + response.status);
-        }
-        
         const data = await response.json();
-        
-        if (!data.success) {
+
+        // Photo quality gate — surface the quality message instead of a generic error
+        if (!data.success && data.quality_issue) {
+            return {
+                quality_issue: true,
+                quality_message: data.quality_message || data.error || 'Photo quality too low.',
+                tip: data.tip || 'Please retake with better lighting and focus.'
+            };
+        }
+
+        if (!response.ok || !data.success) {
+            console.error('API Error:', response.status, data.error);
             throw new Error(data.error || 'Extraction failed');
         }
         
@@ -2160,9 +2164,35 @@ Return ONLY valid JSON, no markdown, no nested objects.`
         });
         
         const data = await response.json();
-        
+
+        // Photo quality gate — bad photo, send user back to retake
+        if (data.quality_fail) {
+            stopDotsAnimation();
+            if (typeof FaviconManager !== 'undefined') FaviconManager.setState('idle');
+            // Navigate back to the photo step so they can retake
+            const content5 = document.getElementById('gradingContent5');
+            const step5 = document.getElementById('gradingStep5');
+            const content4 = document.getElementById('gradingContent4');
+            const step4 = document.getElementById('gradingStep4');
+            if (content5) content5.classList.remove('active');
+            if (step5) { step5.classList.remove('active'); step5.classList.remove('completed'); }
+            if (content4) content4.classList.add('active');
+            if (step4) { step4.classList.add('active'); step4.classList.remove('completed'); }
+            gradingState.currentStep = 4;
+            // Show quality error banner on the photo step
+            const feedback4 = document.getElementById('gradingFeedback4');
+            if (feedback4) {
+                feedback4.innerHTML = `<div style="background:#2d1b1b;border:1px solid #c0392b;border-radius:8px;padding:12px 14px;color:#e74c3c;font-size:0.9em;">
+                    <strong>📷 Photo issue:</strong> ${data.error || 'Photo quality too low.'}<br>
+                    <span style="color:#aaa;font-size:0.85em;">${data.tip || 'Please retake with better lighting and focus.'}</span>
+                </div>`;
+                feedback4.style.display = 'block';
+            }
+            return;
+        }
+
         if (data.error) {
-            throw new Error(data.error.message || 'API error');
+            throw new Error(data.error.message || data.error || 'API error');
         }
         
         let resultText = data.content[0].text;

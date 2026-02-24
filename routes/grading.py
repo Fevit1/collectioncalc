@@ -141,20 +141,32 @@ def api_extract():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
     
+    # Photo quality gate — catch blurry/tiny photos before Claude API call
+    from routes.fingerprint_utils import check_photo_quality_base64
+    quality = check_photo_quality_base64(image_data)
+    if not quality['ok']:
+        return jsonify({
+            'success': False,
+            'quality_issue': True,
+            'quality_message': quality['message'],
+            'tip': quality['tip'],
+            'error': quality['message']
+        }), 400
+
     # Content moderation check BEFORE processing
     if moderate_image:
         mod_result = moderate_image(image_data)
         if mod_result.get('blocked'):
             log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
             return jsonify({
-                'success': False, 
+                'success': False,
                 'error': 'Image rejected: inappropriate content detected.',
                 'moderation': True
             }), 400
         # Log warnings (but allow through)
         if mod_result.get('warnings'):
             log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
-    
+
     media_type = data.get('media_type', 'image/jpeg')
     result = extract_from_base64(image_data, media_type)
     
@@ -175,6 +187,25 @@ def api_messages():
     
     data = request.get_json() or {}
     
+    # Photo quality gate — check images before expensive Claude grading call
+    from routes.fingerprint_utils import check_photo_quality_base64
+    for msg in data.get('messages', []):
+        content = msg.get('content', [])
+        if isinstance(content, list):
+            for block in content:
+                if block.get('type') == 'image' and block.get('source', {}).get('type') == 'base64':
+                    image_data = block['source'].get('data', '')
+                    if image_data:
+                        quality = check_photo_quality_base64(image_data)
+                        if not quality['ok']:
+                            return jsonify({
+                                'error': quality['message'],
+                                'quality_fail': True,
+                                'tip': quality['tip']
+                            }), 400
+                        break  # Only check first image — rest are same session photos
+            break  # Only need to check first message block
+
     # Content moderation: check any images in the messages
     if moderate_image:
         for msg in data.get('messages', []):

@@ -138,3 +138,68 @@ def preprocess_for_fingerprint(img):
     img = img.filter(ImageFilter.GaussianBlur(radius=1))
 
     return img
+
+
+# ─── Grading Photo Quality Check ────────────────────────────────────────────
+# Used by /api/extract and /api/messages to catch bad photos before
+# expensive Claude API calls. Checks resolution and blur only — no SIFT
+# (faster, and SIFT isn't needed for grading, only Slab Guard matching).
+#
+# Thresholds are intentionally lenient — we want to catch truly unusable
+# photos (screenshot thumbnails, shaky blurs) without rejecting imperfect
+# convention-floor shots. When in doubt, let Claude try.
+
+GRADE_QUALITY_MIN_DIMENSION = 400   # Block: smaller than 400px on shortest side
+GRADE_QUALITY_MIN_BLUR = 60         # Block: Laplacian variance < 60 (extremely blurry)
+
+
+def check_photo_quality_base64(base64_data):
+    """
+    Quick technical quality check for grading photos (base64 input).
+    Checks resolution and blur before sending to Claude Vision.
+
+    Returns dict:
+        ok (bool): True if photo is usable, False if it should be retaken
+        message (str): User-facing problem description (empty if ok)
+        tip (str): Actionable advice for retaking (empty if ok)
+    """
+    import base64 as b64lib
+    from io import BytesIO
+
+    # Never block grading on a check error — fail open
+    try:
+        img_bytes = b64lib.b64decode(base64_data)
+        img_pil = Image.open(BytesIO(img_bytes)).convert('RGB')
+        img_pil = auto_orient_pil(img_pil)
+        width, height = img_pil.size
+
+        # ── Resolution check ──
+        if min(width, height) < GRADE_QUALITY_MIN_DIMENSION:
+            return {
+                'ok': False,
+                'message': f'Photo is too small ({width}×{height}px) — the AI needs more detail to grade accurately.',
+                'tip': 'Use your phone camera at full resolution. Avoid screenshots or cropped thumbnails.'
+            }
+
+        # ── Blur check (Laplacian variance via OpenCV) ──
+        try:
+            import cv2
+            import numpy as np
+            img_np = np.array(img_pil)
+            gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+            scale = 800 / max(height, width)
+            resized = cv2.resize(gray, (int(width * scale), int(height * scale)))
+            blur_score = cv2.Laplacian(resized, cv2.CV_64F).var()
+            if blur_score < GRADE_QUALITY_MIN_BLUR:
+                return {
+                    'ok': False,
+                    'message': 'Photo is too blurry — defects may not be visible to the AI.',
+                    'tip': 'Hold your phone steady, tap the cover to focus, and make sure the lighting is good.'
+                }
+        except ImportError:
+            pass  # OpenCV not available — skip blur check, fail open
+
+        return {'ok': True, 'message': '', 'tip': ''}
+
+    except Exception:
+        return {'ok': True, 'message': '', 'tip': ''}  # Fail open on any error
