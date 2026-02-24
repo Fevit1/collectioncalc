@@ -227,25 +227,28 @@ async function handleLogin(e) {
 async function handleSignup(e) {
     e.preventDefault();
     clearAuthMessages();
-    
+
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const confirm = document.getElementById('signupPasswordConfirm').value;
+    const displayName = document.getElementById('signupDisplayName')?.value || '';
+    const phone = document.getElementById('signupPhone')?.value || '';
+    const marketingConsent = document.getElementById('signupMarketing')?.checked || false;
     const btn = document.getElementById('signupBtn');
-    
+
     if (password !== confirm) {
         showAuthError('Passwords do not match');
         return;
     }
-    
+
     btn.disabled = true;
     btn.textContent = 'Creating account...';
-    
+
     try {
         const response = await fetch(`${API_URL}/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, display_name: displayName, phone, marketing_consent: marketingConsent })
         });
         
         const data = await response.json();

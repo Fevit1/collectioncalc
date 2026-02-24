@@ -1,4 +1,136 @@
-# Where We Left Off - Feb 22, 2026
+# Where We Left Off - Feb 24, 2026
+
+## Session 62 Accomplishments (Feb 24, 2026)
+
+### eBay Collector — Sound Removed
+Removed `playDoneSound()` notification from content.js per Mike's request. Sync now completes silently with banner update only.
+
+**File modified:** `CCExtensions/ebay-collector/content.js`
+
+### Title Normalizer — Backfill Endpoint Built
+Diagnosed 369 records with NULL canonical_title. Found 336 were legacy (Jan 12, pre-normalizer) and only 5 from current session (edge cases). The normalizer IS working for new records — zero failures from today's collection session.
+
+Built `POST /api/ebay-sales/backfill-titles` endpoint in `routes/sales.py` that:
+- Fetches all ebay_sales with NULL canonical_title
+- Re-runs `title_normalizer.py` against each raw_title
+- Updates all normalized fields (canonical_title, grade_from_title, grading_company, flags, etc.)
+- Returns report: total_null, updated, still_null, sample_failures
+
+**File modified:** `routes/sales.py` — Added backfill-titles endpoint (~70 lines)
+
+### eBay Sales Collection — ~1,263 New Records
+Mike ran collection sessions bringing total to ~19,632 records. ~50% dupe rate on established titles — need to focus collection on underrepresented titles going forward.
+
+### Grading Flow Audit — Complete
+Full audit of the grading flow (app.html, js/grading.js, routes/grading.py) for Oakland booth readiness. Key findings:
+- **Too slow:** 20-30 second wait with forced 2-sec delay + random thinking messages
+- **No instructions:** Steps don't explain what photo to take
+- **Auth wall:** Redirects to login immediately, no guest/demo mode
+- **No offline fallback:** Convention WiFi unreliable, Render dependency
+- **No valuation on results screen:** Grade and value not shown together
+- **No "Grade Next" reset:** Can't quickly start over for next person in line
+
+### Oakland Nice-to-Have List Updated
+Added **Signature Identification** to nice-to-have list (not required for Oakland). Mike plans to collect creator signature samples this week by searching for their artwork/signatures online.
+
+### Pending
+- **Run backfill:** Deploy then `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULLs
+- **Grading flow polish:** Implementation needed based on audit findings
+- **Oakland 10-week sprint plan:** Discussed outline but not formalized
+- **Sign-up/onboarding flow:** Under 60 seconds for booth
+- **Results page with valuation:** Wire valuation endpoint into grading results
+
+---
+
+## Session 61 Accomplishments (Feb 23, 2026)
+
+### Vision API Backend Proxy — Deployed!
+Moved Anthropic Claude Vision API calls from the Chrome extension (client-side, API key exposed) to the Flask backend. New `routes/vision.py` blueprint proxies requests with JWT auth, plan gating, and daily scan caps (guard:200, dealer:500, admin:unlimited).
+
+**Files created/modified:**
+- `routes/vision.py` — New backend proxy endpoint
+- `CCExtensions/whatnot-valuator/lib/vision.js` — Rewritten to call backend proxy
+- `CCExtensions/whatnot-valuator/settings.html` + `settings.js` — New extension auth settings page
+- `CCExtensions/whatnot-valuator/content.js` — Auto-scan fires immediately on new item (removed bidding gate)
+- `CCExtensions/whatnot-valuator/manifest.json` — Bumped to v2.42.0
+- `wsgi.py` — Registered vision blueprint
+- `docs/technical/TROUBLESHOOTING.md` — Added Cloudflare Pages section (20k file limit gotcha)
+
+### Contact Page — Built & Deployed!
+Converted the footer Contact mailto link into a full contact form page.
+
+**Contact form features:**
+- Topic picker: Grading Questions, Slab Guard, Account & Billing, Bug Report, Other
+- Subject line field
+- Cloudflare Turnstile spam protection
+- Backend: `routes/contact.py` — POST /api/contact with Turnstile verification, rate limiting (5/IP/hour), sends via Resend with reply-to
+- Email subject prefixed with topic label: `[Bug Report] User's subject line`
+
+**Files created/modified:**
+- `contact.html` — New branded contact form page
+- `routes/contact.py` — New Flask blueprint for contact form processing
+- `wsgi.py` — Registered contact_bp
+- `js/footer.js` — Changed Contact link from mailto to /contact.html
+- `footer.js` (root copy) — Same change
+- `verify.html` — Same change in standalone footer
+
+### Valuation Endpoint — Built! (Testing Pending)
+New `/api/sales/valuation` endpoint for grade-specific pricing with slabbing ROI calculation. Purpose-built for the Oakland Comic Con alpha launch demo.
+
+**How it works:**
+1. Exact grade match first (e.g., "Batman 9.6 has 15 sales averaging $153")
+2. If no exact match, linear interpolation between nearest grades above/below
+3. Blends thin exact data with interpolation for stability
+4. Always pulls raw (ungraded) average for comparison
+5. Calculates slabbing ROI: graded_fmv - raw_fmv - grading_cost
+6. Returns verdict: "Worth grading" / "Marginal" / "Probably not worth grading"
+7. Confidence score based on sample size
+8. Full price_curve array for chart rendering
+
+**Response fields:** graded_fmv, raw_fmv, fmv_method (exact/blended/interpolated), slabbing_roi, roi_percentage, verdict, confidence, price_curve, sources
+
+**Files modified:**
+- `routes/sales.py` — Added `/api/sales/valuation` endpoint (~330 lines)
+
+**Test plan:** `Valuation_Endpoint_Test_Plan.docx` — 12 test cases with clickable live URLs
+
+### Oakland Comic Con Alpha Launch — Planning Started!
+**Event:** Comic Con Oakland, May 9-10, 2026, Oakland Convention Center
+**Type:** Alpha launch (underpromise, overdeliver)
+**Exhibitor application:** Submitted Feb 23, 2026
+
+**Key decisions made:**
+- Pivoted from SDCC (July 23, too big/expensive) to Oakland (May 9-10, local, comic-focused, right audience)
+- Also considered BayCon (sci-fi/fantasy, wrong audience) and GalaxyCon San Jose (Aug 21-23, backup option)
+- Core demo loop: grade a comic live + show slabbing ROI with real market data
+- Valuation is critical — "is it worth slabbing?" is the killer feature
+- Data analysis: ~25k sales records, ~1,890 graded records across 70+ titles with grade-specific pricing
+- No third-party data services (CovrPrice, GPA) — both ToS prohibit redistribution
+
+**SDCC Launch Roadmap:** `SDCC_Launch_Roadmap.docx` created but may be superseded by Oakland-focused sprint plan
+
+### Data Analysis Results
+Ran diagnostic queries against production database:
+- **70+ titles** have grade-specific pricing data (3+ sales per grade tier)
+- **792 records at 9.8** alone — strong coverage for high-grade modern books
+- **Deep coverage** on key titles: Batman (4 grade tiers), Amazing Spider-Man (7 tiers), New Mutants (4 tiers), Dark Knight Returns (4 tiers)
+- **Clear slabbing premium** visible: Batman raw $46 vs graded $174 (3.7x), ASM raw $140 vs graded $625 (4.5x)
+- **Existing /api/sales/fmv** endpoint left untouched — extensions continue using it
+
+### Commits
+- Vision API backend proxy + extension auth settings + auto-scan changes
+- Contact page + backend endpoint + footer link updates
+- Valuation endpoint (routes/sales.py)
+
+### Pending
+- **Test valuation endpoint** — 12-test plan in `Valuation_Endpoint_Test_Plan.docx`, Render deploying
+- **Build Oakland 10-week sprint plan** — detailed week-by-week milestones
+- **Session 59 test plan** — ~40 of 47 tests still formally untested (see `Session59_Test_Plan_From_Mike_Footer_Issues.docx`)
+- **Ramp up eBay sales collector** — more data = better valuations for Oakland
+- **Consider eBay Browse API** for real-time sold price lookups (supplements owned data)
+- **GalaxyCon San Jose (Aug 21-23)** — potential polished 1.0 launch after Oakland alpha
+
+---
 
 ## Session 60 Accomplishments (Feb 22, 2026)
 

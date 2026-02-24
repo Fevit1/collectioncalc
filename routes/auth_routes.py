@@ -18,7 +18,14 @@ from auth import (
 def api_signup():
     """User signup"""
     data = request.get_json() or {}
-    result = signup(data.get('email', ''), data.get('password', ''), data.get('beta_code'))
+    result = signup(
+        data.get('email', ''),
+        data.get('password', ''),
+        beta_code=data.get('beta_code'),
+        display_name=data.get('display_name'),
+        phone=data.get('phone'),
+        marketing_consent=data.get('marketing_consent', False)
+    )
     return jsonify(result)
 
 

@@ -527,13 +527,19 @@ def send_rejection_email(email, reason=None):
 # AUTH FUNCTIONS
 # ============================================
 
-def signup(email, password, beta_code=None):
+def signup(email, password, beta_code=None, display_name=None, phone=None, marketing_consent=False):
     """
     Create a new user account.
     Requires valid beta code during beta period.
     Returns: dict with success status and user info or error
     """
     email = email.lower().strip()
+
+    # Sanitize optional profile fields
+    if display_name:
+        display_name = display_name.strip()[:100]
+    if phone:
+        phone = phone.strip()[:20]
     
     # Validate email format (basic check)
     if not email or '@' not in email or '.' not in email:
@@ -566,14 +572,16 @@ def signup(email, password, beta_code=None):
     try:
         cur.execute("""
             INSERT INTO users (
-                email, password_hash, email_verification_token, 
+                email, password_hash, email_verification_token,
                 email_verification_expires, email_verified,
-                is_approved, is_admin, beta_code_used
+                is_approved, is_admin, beta_code_used,
+                display_name, phone, marketing_consent
             )
-            VALUES (%s, %s, %s, %s, FALSE, FALSE, FALSE, %s)
+            VALUES (%s, %s, %s, %s, FALSE, FALSE, FALSE, %s, %s, %s, %s)
             RETURNING id
-        """, (email, password_hash, verification_token, verification_expires, 
-              beta_code.upper().strip() if beta_code else None))
+        """, (email, password_hash, verification_token, verification_expires,
+              beta_code.upper().strip() if beta_code else None,
+              display_name, phone, bool(marketing_consent)))
         
         user_id = cur.fetchone()['id']
         conn.commit()

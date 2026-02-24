@@ -42,9 +42,10 @@
   .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 12px 16px 8px;
     flex-shrink: 0;
+    text-align: center;
   }
   .header-brand h1 {
     font-family: 'Bangers', cursive;
@@ -53,6 +54,12 @@
     color: var(--brand-gold);
     text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
     line-height: 1;
+  }
+  .header-brand .tm {
+    font-size: 0.5em;
+    vertical-align: super;
+    color: var(--brand-gold);
+    opacity: 0.7;
   }
   .header-brand .subtitle {
     color: rgba(255,255,255,0.5);
@@ -326,50 +333,18 @@
     padding-top: 4px;
   }
 
-  /* ===== VARIANT TOGGLE (small, top-right corner for preview) ===== */
-  .preview-toggle {
-    position: fixed;
-    top: 8px;
-    right: 8px;
-    z-index: 100;
-    display: flex;
-    gap: 4px;
-  }
-  .preview-toggle button {
-    padding: 4px 10px;
-    border: 1px solid rgba(79, 70, 229, 0.4);
-    background: rgba(15, 15, 26, 0.9);
-    color: var(--text-muted);
-    border-radius: 6px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.6rem;
-    cursor: pointer;
-    backdrop-filter: blur(8px);
-  }
-  .preview-toggle button.active {
-    background: var(--brand-gradient);
-    color: white;
-    border-color: transparent;
-  }
-
   /* Hide variant */
   .variant.hidden { display: none; }
 </style>
 </head>
 <body>
 
-<!-- Small toggle for switching between examples -->
-<div class="preview-toggle">
-  <button class="active" onclick="toggle('worth')">Worth</button>
-  <button onclick="toggle('raw')">Raw</button>
-</div>
-
 <!-- ===== VARIANT 1: WORTH THE SLAB ===== -->
 <div class="variant" id="v-worth">
 
   <div class="header">
     <div class="header-brand">
-      <h1>SLAB WORTHY</h1>
+      <h1>SLAB WORTHY<span class="tm">&trade;</span></h1>
       <div class="subtitle">AI-Powered Grading &bull; Patent Pending</div>
     </div>
   </div>
@@ -403,7 +378,7 @@
       <div class="val-card">
         <div class="val-label">Raw FMV</div>
         <div class="val-amount raw">$140</div>
-        <div class="val-sub">15 recent sales</div>
+        <div class="val-sub">based on recent sales</div>
       </div>
       <div class="val-card">
         <div class="val-label">Slabbed FMV</div>
@@ -413,14 +388,13 @@
       <div class="val-card">
         <div class="val-label">Net ROI</div>
         <div class="val-amount roi-positive">+$481</div>
-        <div class="val-sub">&minus;$4 grading fee</div>
+        <div class="val-sub">minus grading fee</div>
       </div>
     </div>
 
     <div class="defects-section">
       <div class="defects-header">
         <div class="defects-title">Defects Found</div>
-        <div class="defects-count">5 detected</div>
       </div>
       <div class="defects-grid">
         <div class="defect-area">
@@ -461,7 +435,7 @@
 
   <div class="header">
     <div class="header-brand">
-      <h1>SLAB WORTHY</h1>
+      <h1>SLAB WORTHY<span class="tm">&trade;</span></h1>
       <div class="subtitle">AI-Powered Grading &bull; Patent Pending</div>
     </div>
   </div>
@@ -493,7 +467,7 @@
       <div class="val-card">
         <div class="val-label">Raw FMV</div>
         <div class="val-amount raw">$8</div>
-        <div class="val-sub">6 recent sales</div>
+        <div class="val-sub">based on recent sales</div>
       </div>
       <div class="val-card">
         <div class="val-label">Slabbed FMV</div>
@@ -503,14 +477,13 @@
       <div class="val-card">
         <div class="val-label">Net ROI</div>
         <div class="val-amount roi-negative">&minus;$16</div>
-        <div class="val-sub">&minus;$30 grading fee</div>
+        <div class="val-sub">minus grading fee</div>
       </div>
     </div>
 
     <div class="defects-section">
       <div class="defects-header">
         <div class="defects-title">Defects Found</div>
-        <div class="defects-count">7 detected</div>
       </div>
       <div class="defects-grid">
         <div class="defect-area">
@@ -547,14 +520,5 @@
   </div>
 </div>
 
-<script>
-function toggle(v) {
-  document.getElementById('v-worth').classList.toggle('hidden', v !== 'worth');
-  document.getElementById('v-raw').classList.toggle('hidden', v !== 'raw');
-  document.querySelectorAll('.preview-toggle button').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.toLowerCase() === v);
-  });
-}
-</script>
 </body>
 </html>

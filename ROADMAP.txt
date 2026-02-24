@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 4.9.0 (February 21, 2026)
+## Current Version: 5.1.0 (February 24, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -24,6 +24,34 @@
 - [x] **Verify Page Updates** - Branding cleanup, copy updates
 - [x] **Registry Bug Fix** - Collections table mismatch resolved (critical)
 
+### 🎯 Oakland Comic Con Alpha Launch (May 9-10, 2026)
+**Event:** Comic Con Oakland, Oakland Convention Center
+**Exhibitor application:** Submitted Feb 23, 2026
+**Goal:** Alpha launch — "underpromise, overdeliver"
+
+**Must-Have for Booth Demo:**
+- [x] **Valuation endpoint** - `/api/sales/valuation` with grade-specific FMV + slabbing ROI (Session 61)
+- [x] **Vision API backend proxy** - Server-side API key, JWT auth, daily caps (Session 61)
+- [x] **Contact form** - Full form with Turnstile + rate limiting (Session 61)
+- [ ] **Grading flow polish** - Mobile-first, bullet-proof end-to-end for live demo
+- [ ] **Sign-up/onboarding** - Under 60 seconds at the booth
+- [ ] **Photo quality gate** - Friendly "try again" for bad photos
+- [ ] **Results page with valuation** - Grade + value + ROI on one screen
+- [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
+
+**Nice-to-Have:**
+- [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
+- [ ] **One-page results report** - Screenshot-friendly or shareable link
+- [ ] **Landing page polish** - For post-con Googlers
+- [ ] **Signature identification** - Match detected signatures against creator reference DB
+
+**Skip for Oakland:**
+- Billing/Stripe (everyone free tier for alpha)
+- Chrome extensions (not a booth demo)
+- Slab Guard demo (too much to explain in 2 minutes)
+
+**Backup:** GalaxyCon San Jose (Aug 21-23) as polished 1.0 launch
+
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
 - [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
@@ -32,7 +60,8 @@
 - [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
 - [ ] **Live Slab Guard test** - Register comic on production, verify composite matching works
 - [ ] **Slab Guard check UI** - User-facing page to upload a photo and check against registry (currently API-only, no frontend)
-- [ ] **Git deployment** - Push Session 45+46 changes, Render deploy
+- [ ] **Session 59 test plan** - ~40 of 47 tests still formally untested
+- [ ] **Valuation endpoint testing** - 12-test plan in Valuation_Endpoint_Test_Plan.docx
 
 ---
 
@@ -592,7 +621,7 @@ Consider:
 - [ ] Add "Delete my account" option in user settings
 - [ ] Add "Export my data" option
 - [ ] Cookie consent component (if adding tracking)
-- [ ] Contact form with topic routing
+- [x] Contact form with topic routing ✅ (Session 61 — contact.html + routes/contact.py)
 
 ---
 
@@ -834,6 +863,7 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 5.0.0 | Feb 23, 2026 | Vision API backend proxy, contact form, valuation endpoint, Oakland alpha planning |
 | 4.9.0 | Feb 20, 2026 | LPQ texture fingerprinting: border-only LPQ as primary cross-camera metric |
 | 4.8.0 | Feb 18-20, 2026 | SIFT + Edge IoU copy matching, marketplace mode, Vision integration |
 | 4.7.0 | Feb 17, 2026 | Composite fingerprinting upgrade (pHash + dHash + aHash + wHash) |
@@ -942,4 +972,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 17, 2026 (Session 47)*
+*Last updated: February 23, 2026 (Session 61)*

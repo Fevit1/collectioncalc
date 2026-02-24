@@ -27,7 +27,7 @@
     }
     .stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -138,6 +138,10 @@
       <div class="stat-label">Total Collected</div>
     </div>
     <div class="stat-box">
+      <div class="stat-value" id="sessionCount">0</div>
+      <div class="stat-label">This Session</div>
+    </div>
+    <div class="stat-box">
       <div class="stat-value" id="pendingCount">0</div>
       <div class="stat-label">Pending Sync</div>
     </div>
@@ -152,7 +156,8 @@
   
   <div class="buttons">
     <button class="btn-sync" id="syncBtn">Sync Now</button>
-    <button class="btn-clear" id="clearBtn">Clear</button>
+    <button class="btn-clear" id="resetSessionBtn">Reset Session</button>
+    <button class="btn-clear" id="clearBtn">Clear All</button>
   </div>
   
   <div class="status" id="status">Ready</div>

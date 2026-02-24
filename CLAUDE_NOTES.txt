@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 17, 2026 (Session 46)
+**Last Updated:** February 24, 2026 (Session 62)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -11,7 +11,7 @@
 AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine, back, centerfold) → Get instant condition assessment with CGC-equivalent grade, defect detection, and Fair Market Value.
 
 **Live:** slabworthy.com
-**Status:** Pre-beta, building toward private launch
+**Status:** Pre-alpha, targeting Comic Con Oakland (May 9-10, 2026) for alpha launch
 **Tech Stack:** Flask/Python backend, HTML/CSS/JS frontend, PostgreSQL, Cloudflare R2, Claude API
 
 ### Two Patent-Pending Product Lines
@@ -31,18 +31,26 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - No competitive services exist
 
 ### Key Metrics
-- **Database:** 50k+ sales records (eBay + Whatnot + market data)
-- **Normalization:** 24,366 sales normalized with canonical titles
+- **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
+- **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
+- **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
 - **Users:** Pre-launch (building email list)
-- **Revenue:** $0 (pre-revenue, building toward private beta)
+- **Revenue:** $0 (pre-revenue, targeting Oakland Comic Con alpha May 2026)
 
-### Current Priorities
-1. **Stripe Billing** - ✅ COMPLETE (4-tier pricing, payment processing live)
-2. **Bot Protection** - ✅ COMPLETE (Cloudflare Turnstile on verify page)
-3. **PWA Support** - ✅ COMPLETE (installable on mobile devices)
-4. **Composite Fingerprinting** - ✅ COMPLETE (4-algorithm upgrade, tested, deployed)
-5. **Mobile Testing** - Phase 2 (pricing page, verify page, full app flow)
-6. **Live Slab Guard Test** - Next: register a comic on production, test matching
+### Current Priorities (Oakland Alpha - May 9-10, 2026)
+1. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
+2. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
+3. **Contact Form** - ✅ DEPLOYED (contact.html + routes/contact.py, Turnstile + rate limiting)
+4. **Oakland Sprint Plan** - 🔜 NEXT: 10-week plan with week-by-week milestones
+5. **Grading Flow Polish** - Mobile-first, end-to-end bullet-proof for booth demo
+6. **Data Collection Ramp** - More eBay/Whatnot sales data for better valuations
+7. **Session 59 Test Plan** - ~40 of 47 tests still formally untested
+
+### Completed Foundations
+- ✅ Stripe Billing (4-tier pricing), ✅ Bot Protection (Turnstile), ✅ PWA Support
+- ✅ Composite Fingerprinting (4-algorithm), ✅ Universal Footer System
+- ✅ Slab Guard (registration, monitoring, sighting reports, owner dashboard)
+- ✅ Chrome Extensions (Slab Guard Monitor, Whatnot Valuator v2.42.0, eBay Collector)
 
 ---
 
