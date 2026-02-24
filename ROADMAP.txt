@@ -35,7 +35,7 @@
 - [x] **Contact form** - Full form with Turnstile + rate limiting (Session 61)
 - [x] **Grading flow polish** - Mobile-first results screen wired to live site (Session 62)
 - [x] **Results page with valuation** - Grade + value + ROI on one screen, mobile + desktop (Session 62)
-- [ ] **Google Play Store (TWA)** - Submit AAB to internal testing, promote to production pre-Oakland (Session 62)
+- [x] **Google Play Store (TWA)** - Live on Internal Testing, promote to production pre-Oakland (Session 62)
 - [ ] **Sign-up/onboarding** - Under 60 seconds at the booth (name/phone/marketing fields added Session 62, run DB migration)
 - [ ] **Photo quality gate** - Friendly "try again" for bad photos
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
