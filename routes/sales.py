@@ -249,6 +249,98 @@ def add_ebay_sales_batch():
             conn.close()
 
 
+@sales_bp.route('/ebay-sales/backfill-titles', methods=['POST'])
+def backfill_canonical_titles():
+    """
+    Re-run title_normalizer on all ebay_sales with NULL canonical_title.
+    POST /api/ebay-sales/backfill-titles
+    Optional query param: ?limit=100 (default: all)
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+    try:
+        limit = request.args.get('limit', type=int)
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+
+        # Fetch all records with NULL canonical_title
+        query = "SELECT id, raw_title FROM ebay_sales WHERE canonical_title IS NULL"
+        if limit:
+            query += f" LIMIT {limit}"
+        cur.execute(query)
+        rows = cur.fetchall()
+
+        if not rows:
+            return jsonify({'success': True, 'message': 'No NULL canonical_titles found', 'updated': 0})
+
+        updated = 0
+        failed = 0
+        failures = []
+
+        for row_id, raw_title in rows:
+            if not raw_title:
+                failed += 1
+                continue
+
+            try:
+                normalized = normalize_title(raw_title)
+                canonical = normalized.get('canonical_title')
+
+                if canonical:
+                    cur.execute("""
+                        UPDATE ebay_sales SET
+                            canonical_title = %s,
+                            grade_from_title = %s,
+                            grading_company = %s,
+                            is_facsimile = %s,
+                            is_reprint = %s,
+                            is_variant = %s,
+                            is_signed = %s,
+                            is_lot = %s,
+                            is_key_issue = %s,
+                            key_issue_claim = %s,
+                            creators = %s,
+                            title_notes = %s
+                        WHERE id = %s
+                    """, (
+                        canonical,
+                        normalized.get('grade_from_title'),
+                        normalized.get('grading_company'),
+                        normalized.get('is_facsimile', False),
+                        normalized.get('is_reprint', False),
+                        normalized.get('is_variant', False),
+                        normalized.get('is_signed', False),
+                        normalized.get('is_lot', False),
+                        normalized.get('is_key_issue', False),
+                        normalized.get('key_issue_claim'),
+                        normalized.get('creators'),
+                        normalized.get('title_notes')
+                    ))
+                    updated += 1
+                else:
+                    failed += 1
+                    failures.append({'id': row_id, 'raw_title': raw_title, 'reason': 'normalizer returned None'})
+            except Exception as e:
+                failed += 1
+                failures.append({'id': row_id, 'raw_title': raw_title, 'reason': str(e)})
+
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'total_null': len(rows),
+            'updated': updated,
+            'still_null': failed,
+            'sample_failures': failures[:20]
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @sales_bp.route('/ebay-sales/stats', methods=['GET'])
 def get_ebay_sales_stats():
     """Get statistics about collected eBay sales"""
