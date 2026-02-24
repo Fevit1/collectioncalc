@@ -1,6 +1,6 @@
 # Slab Worthy / CollectionCalc Roadmap
 
-## Current Version: 5.1.0 (February 24, 2026)
+## Current Version: 5.2.0 (February 24, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -33,10 +33,11 @@
 - [x] **Valuation endpoint** - `/api/sales/valuation` with grade-specific FMV + slabbing ROI (Session 61)
 - [x] **Vision API backend proxy** - Server-side API key, JWT auth, daily caps (Session 61)
 - [x] **Contact form** - Full form with Turnstile + rate limiting (Session 61)
-- [ ] **Grading flow polish** - Mobile-first, bullet-proof end-to-end for live demo
-- [ ] **Sign-up/onboarding** - Under 60 seconds at the booth
+- [x] **Grading flow polish** - Mobile-first results screen wired to live site (Session 62)
+- [x] **Results page with valuation** - Grade + value + ROI on one screen, mobile + desktop (Session 62)
+- [ ] **Google Play Store (TWA)** - Submit AAB to internal testing, promote to production pre-Oakland (Session 62)
+- [ ] **Sign-up/onboarding** - Under 60 seconds at the booth (name/phone/marketing fields added Session 62, run DB migration)
 - [ ] **Photo quality gate** - Friendly "try again" for bad photos
-- [ ] **Results page with valuation** - Grade + value + ROI on one screen
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
 
 **Nice-to-Have:**
@@ -878,6 +879,7 @@ Consider:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 5.2.0 | Feb 24, 2026 | Results screen wired to live site, signup fields (name/phone/marketing), TWA for Google Play, Digital Asset Links |
 | 5.0.0 | Feb 23, 2026 | Vision API backend proxy, contact form, valuation endpoint, Oakland alpha planning |
 | 4.9.0 | Feb 20, 2026 | LPQ texture fingerprinting: border-only LPQ as primary cross-camera metric |
 | 4.8.0 | Feb 18-20, 2026 | SIFT + Edge IoU copy matching, marketplace mode, Vision integration |
@@ -987,4 +989,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 23, 2026 (Session 61)*
+*Last updated: February 24, 2026 (Session 62)*
