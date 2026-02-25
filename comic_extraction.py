@@ -172,6 +172,10 @@ YOU MUST RETURN EXACTLY THIS JSON STRUCTURE - NO OTHER FIELDS ALLOWED:
   "cover": "",
   "variant": "",
   "barcode_digits": "",
+  "is_slabbed": false,
+  "slab_cert_number": "",
+  "slab_company": "",
+  "slab_grade": "",
   "suggested_grade": "",
   "defects": [],
   "signatures": [],
@@ -201,6 +205,12 @@ IDENTIFICATION FIELDS:
 - cover: Variant indicators like "Cover A", "Cover B", "Variant Cover", "1:25", "Virgin", etc. Empty string if none.
 - variant: Other variant description ("McFarlane variant", "Artgerm cover"). Empty string if none.
 - barcode_digits: IMPORTANT - Find the 5-DIGIT ADD-ON CODE next to the main UPC barcode (bottom-left). It's a separate smaller barcode to the RIGHT of the main UPC. The 5 digits may be printed VERTICALLY or horizontally. Examples: "00111", "00121", "00412". Extract ONLY these 5 digits. Empty string if not readable. Do NOT return the main 12-digit UPC.
+
+SLAB DETECTION FIELDS (for professionally graded/encapsulated comics):
+- is_slabbed: true if the comic is in a hard plastic grading case (slab) from CGC, CBCS, PGX, etc. Look for: a colored label at the top of a rigid plastic holder, certification numbers, and the comic sealed inside.
+- slab_cert_number: The certification/serial number printed on the slab label. This is typically a long number (e.g., "4375804009", "1234567001"). It may appear as a barcode on the label as well. Extract the full number. Empty string if not slabbed or not readable.
+- slab_company: The grading company name from the label: "CGC", "CBCS", "PGX", or other. Empty string if not slabbed.
+- slab_grade: The numeric grade shown on the slab label (e.g., "9.8", "9.6", "8.0"). This is the OFFICIAL grade, not your assessment. Empty string if not slabbed.
 
 CONDITION FIELDS:
 - suggested_grade: Based on visible condition: MT, NM, VF, FN, VG, G, FR, or PR. Be conservative.
@@ -234,7 +244,8 @@ IMPORTANT RULES:
    - Creator names (if visible, use their known active periods)
    - Barcode format (modern UPC vs vintage without barcode)
    If you can determine the year, use it to identify the EXACT series run. Include the volume or series year in the title if needed to disambiguate (e.g., "Ghost Rider (2022)" vs "Ghost Rider (1973)").
-8. GRADING CONSISTENCY: Be precise and systematic when grading. Evaluate these specific criteria in order:
+8. SLABBED COMICS: If the comic is in a grading slab (rigid plastic case with label), set is_slabbed to true and extract the cert number, company, and grade from the label. For slabbed comics, use the LABEL grade as suggested_grade (not your own assessment), and note "Professionally graded" in grade_reasoning.
+9. GRADING CONSISTENCY: Be precise and systematic when grading. Evaluate these specific criteria in order:
    - Corners: Sharp (NM+), very slight rounding (NM), visible rounding (VF), bent/creased (FN or lower)
    - Spine: Tight (NM+), minor stress lines (NM/VF), stress lines (VF), roll or creases (FN or lower)
    - Cover: Clean/glossy (NM+), minor wear (NM/VF), noticeable wear/scuffing (FN), heavy wear (VG or lower)
@@ -399,6 +410,10 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 "cover": "",
                 "variant": "",
                 "barcode_digits": "",
+                "is_slabbed": False,
+                "slab_cert_number": "",
+                "slab_company": "",
+                "slab_grade": "",
                 "suggested_grade": "",
                 "defects": [],
                 "signatures": [],
