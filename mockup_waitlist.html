@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waitlist Mockup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Fake hero for context */
+        .fake-hero {
+            min-height: 30vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+        }
+        .main-logo {
+            font-family: 'Bangers', cursive;
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            background: linear-gradient(180deg, #fef08a 0%, #facc15 40%, #ca8a04 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0 1rem;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid), var(--gold-dark));
+            color: var(--purple-dark);
+            padding: 12px 36px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+
+        /* ── WAITLIST SECTION (actual styles from index.html) ── */
+        .waitlist-section {
+            padding: 2.5rem 1rem 3rem;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #0f0d1f 50%, var(--bg-dark) 100%);
+            border-top: 1px solid rgba(124, 58, 237, 0.15);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+        }
+        .waitlist-container {
+            max-width: 560px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .waitlist-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: var(--purple-light);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 999px;
+            padding: 6px 16px 6px 6px;
+        }
+        .counter-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            background: linear-gradient(135deg, var(--purple-brand), #6366f1);
+            color: var(--gold-mid);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.3);
+        }
+        .waitlist-title {
+            font-family: 'Bangers', cursive;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.4rem;
+        }
+        .waitlist-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .waitlist-email-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .waitlist-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .waitlist-input:focus {
+            border-color: var(--purple-brand);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+        .waitlist-input::placeholder { color: #555; }
+        .waitlist-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .waitlist-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        .waitlist-interests {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            align-items: center;
+        }
+        .interests-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+        }
+        .interest-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #c4b5fd;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            user-select: none;
+        }
+        .interest-chip:has(input:checked) {
+            border-color: var(--purple-brand);
+            background: rgba(124, 58, 237, 0.15);
+            color: #e0d4ff;
+        }
+        .interest-chip input {
+            width: 12px;
+            height: 12px;
+            accent-color: var(--purple-brand);
+        }
+        .waitlist-success {
+            padding: 1.5rem;
+        }
+        .success-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+        .success-title {
+            color: var(--gold-mid);
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+        .success-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        @media (max-width: 480px) {
+            .waitlist-email-row { flex-direction: column; }
+            .waitlist-btn { width: 100%; }
+        }
+
+        /* Fake "How it works" for context */
+        .fake-section {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .fake-section h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.8rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Toggle buttons for states */
+        .demo-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        .demo-btn {
+            padding: 6px 12px;
+            background: #333;
+            color: #aaa;
+            border: 1px solid #555;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+        .demo-btn:hover { background: #444; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- Demo controls -->
+    <div class="demo-controls">
+        <button class="demo-btn" onclick="showForm()">Form State</button>
+        <button class="demo-btn" onclick="showSuccess()">Success State</button>
+        <button class="demo-btn" onclick="showConfirmed()">Confirmed State</button>
+    </div>
+
+    <!-- Fake hero for context -->
+    <div class="fake-hero">
+        <h1 class="main-logo">SLAB WORTHY&trade;</h1>
+        <p class="tagline">AI for Comic Collectors</p>
+        <a href="#" class="cta-button">Check a Comic</a>
+    </div>
+
+    <!-- ═══ ACTUAL WAITLIST SECTION ═══ -->
+    <section class="waitlist-section" id="waitlist">
+        <div class="waitlist-container">
+            <div class="waitlist-counter" id="waitlist-counter">
+                <span class="counter-number" id="counter-number">7</span> collectors on the waitlist
+            </div>
+            <h2 class="waitlist-title">Be the First to Know</h2>
+            <p class="waitlist-subtitle">Get notified when Slab Worthy launches. Early access for waitlist members.</p>
+
+            <form class="waitlist-form" id="waitlist-form" onsubmit="return false;">
+                <div class="waitlist-email-row">
+                    <input type="email" id="waitlist-email" placeholder="your@email.com" required autocomplete="email" class="waitlist-input">
+                    <button type="submit" class="waitlist-btn" id="waitlist-btn">Join the Waitlist</button>
+                </div>
+                <div class="waitlist-interests">
+                    <span class="interests-label">I'm interested in:</span>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="grading" checked> AI Grading</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="slab_guard"> Slab Guard</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="sell_alerts"> Sell Alerts</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="collection"> Collection Tracking</label>
+                </div>
+            </form>
+
+            <div class="waitlist-success" id="waitlist-success" style="display:none;">
+                <div class="success-icon">&#10003;</div>
+                <h3 class="success-title" id="success-title">Check your email!</h3>
+                <p class="success-desc" id="success-desc">We sent a confirmation link. Click it to secure your spot on the waitlist.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fake "How it Works" for context -->
+    <div class="fake-section">
+        <h2>How It Works</h2>
+        <p>Snap. Scan. Know.</p>
+        <p style="margin-top: 1rem; color: #555;">(rest of landing page continues below...)</p>
+    </div>
+
+    <script>
+        function showForm() {
+            document.getElementById('waitlist-form').style.display = 'block';
+            document.getElementById('waitlist-success').style.display = 'none';
+        }
+        function showSuccess() {
+            document.getElementById('waitlist-form').style.display = 'none';
+            const s = document.getElementById('waitlist-success');
+            document.getElementById('success-title').textContent = "Check your email!";
+            document.getElementById('success-desc').textContent = "We sent a confirmation link. Click it to secure your spot on the waitlist.";
+            s.style.display = 'block';
+        }
+        function showConfirmed() {
+            document.getElementById('waitlist-form').style.display = 'none';
+            const s = document.getElementById('waitlist-success');
+            document.getElementById('success-title').textContent = "You're on the list!";
+            document.getElementById('success-desc').textContent = "We'll notify you as soon as Slab Worthy launches. Welcome aboard.";
+            s.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

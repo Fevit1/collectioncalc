@@ -48,23 +48,34 @@
 - [x] **Sales route refactor** - Split 1,146-line sales.py into 3 domain files (Session 64)
 - [x] **Admin dashboard fix** - Sales Tracked now shows combined eBay + Whatnot totals (Session 64)
 
+**🔴 CRITICAL — Fix Before Anything Else:**
+- [ ] **AI grading consistency** - Same comic returning 8.5 → 9.2 → 8.5 across runs. This is the #1 credibility killer. Options: multi-run averaging, temperature=0 enforcement, structured output schema, calibration test suite of 20 reference comics.
+- [ ] **Update CGC grading costs** - Valuation endpoint hardcodes $30/$50/$85/$150. CGC raised prices Jan 2026: Modern Bulk $27, Vintage Bulk $42, Standard etc. Move to config/DB, not hardcoded.
+
 **Must-Have for July 21 Soft Launch:**
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
+- [ ] **Sell Now Alerts (v1)** - When incoming eBay sale exceeds FMV by >25%, alert users who own that title. Email + in-app badge on My Collection. Killer feature nobody else has. (See Sell Now Alerts section below.)
+- [ ] **Waitlist / email capture** - Add email field to landing page NOW, collect leads for 5 months before soft launch
 - [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
 - [ ] **Landing page polish** - For organic traffic and post-announcement Googlers
 - [ ] **Signature identification** - Match detected signatures against creator reference DB
 - [ ] **New beta/booth codes** - Generate GalaxyCon-specific codes
 - [ ] **Google Play Store production** - Promote TWA from Internal Testing
+- [ ] **Test Haiku 4.5 for extraction** - If quality is adequate, massive cost savings. Run against 20 reference comics vs Sonnet.
+- [ ] **Second opinion mode** - Run extraction twice, compare, flag disagreements. "Both runs agreed on 9.4" builds trust.
+- [ ] **SEO / content marketing** - Blog posts like "Is my ASM #300 worth grading?" powered by real sales data. Start 2-3 months before launch.
 
 **Must-Have for Aug 21 GalaxyCon:**
 - [ ] **Booth materials** - Flyers, QR codes, demo signage
 - [ ] **Offline demo fallback** - Cached results for when convention WiFi inevitably fails
 - [ ] **Slab label valuation adjustments** - Factor label type (signature series, restored, etc.) into FMV
+- [ ] **Competitive positioning pages** - "Slab Worthy vs CLZ" and "Slab Worthy vs ComicSnap" comparison pages
 
 **Nice-to-Have:**
 - [ ] **Slab Guard live demo** - Quick registration flow for booth visitors
 - [ ] **Chrome extension demo** - Slab Guard Monitor for eBay
 - [ ] **Social proof** - Testimonials/stats from soft launch period
+- [ ] **Auction platform integrations** - Whatnot API, eBay listing API for direct "List Now" from collection
 
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
@@ -254,6 +265,60 @@
 - [ ] Apply for Microsoft PhotoDNA access (~2-4 weeks)
 - [ ] Integrate PhotoDNA for CSAM hash matching
 - [ ] Create incident response procedure document
+
+### 🔥 Sell Now Alerts — Auction Intelligence (NEW - Session 64) 🆕 HIGH PRIORITY
+**Goal:** Alert collectors when market conditions make it a great time to sell a comic they own.
+
+**Why This Is A Killer Feature:**
+- Nobody else does this. ComicSnap, CLZ, ComicBase — none of them proactively tell you when to sell.
+- Turns Slab Worthy from a one-time grading tool into an ongoing value advisor.
+- Drives daily engagement ("Did any of my comics spike?")
+- Natural upsell to paid tiers (free = weekly digest, Pro = real-time alerts)
+- Makes the My Collection page a living dashboard, not a static list.
+
+**How It Works:**
+1. eBay sale comes in via collector extension (or future API scraping)
+2. Compare sale price against current FMV for that title/issue
+3. If sale price > FMV by threshold (e.g., 25%+), it's a "hot sale"
+4. Find all users who have that title in their collection
+5. Alert them: "Amazing Spider-Man #300 just sold for $850 — 40% above FMV. Now may be a great time to sell."
+
+**Phase 1: Core Alerts**
+- [ ] Background job: scan incoming ebay_sales for price spikes vs FMV
+- [ ] `sell_alerts` table: user_id, comic_title, issue, sale_price, fmv_at_time, spike_pct, alert_type, sent_at, read_at
+- [ ] Email alert via Resend (batched daily or real-time based on tier)
+- [ ] In-app notification badge on My Collection page
+- [ ] "Hot Sales" section at top of My Collection showing comics with recent spikes
+
+**Phase 2: My Collection Integration**
+- [ ] "Sell Now" badge/indicator on comics with active price spikes
+- [ ] Sort/filter: "Recommended to sell" view
+- [ ] Show count: "3 of your comics are above FMV right now"
+- [ ] Spike history chart per comic (FMV trend + recent sales overlay)
+
+**Phase 3: Auction Platform Integration**
+- [ ] "List on eBay" button directly from Sell Now alert
+- [ ] "List on Whatnot" button (when Whatnot API available)
+- [ ] Pre-populated listing templates with title, grade, photos from collection
+- [ ] Suggested starting price based on current market spike
+
+**Phase 4: Smart Alerts**
+- [ ] Alert preferences: per-title, per-threshold, frequency (instant/daily/weekly)
+- [ ] Price drop alerts too ("Your X-Men #1 FMV dropped 15% this month")
+- [ ] Trend alerts ("Silver Age Marvel trending up 12% this quarter")
+- [ ] SMS alerts for paid tiers (via Twilio or similar)
+
+**Pricing Tiers:**
+- Free: Weekly digest email (top 3 spikes)
+- Pro: Daily alerts, in-app notifications
+- Guard/Dealer: Real-time alerts, SMS option, all comics tracked
+
+**Technical Notes:**
+- Spike detection runs as post-insert hook on ebay_sales batch endpoint
+- Match against collections table using canonical_title + issue
+- Cache FMV lookups to avoid hammering valuation endpoint
+- Rate limit alerts: max 1 per title per user per 24h
+- Store alert history for "What did I miss?" review
 
 ### Whatnot Auction Integration
 **Goal:** Create Whatnot auctions directly from graded comics
@@ -806,9 +871,17 @@ Consider:
 ### Direct Competitors (Collector-Focused)
 | Competitor | Focus | Pricing | Threat Level | Notes |
 |-----------|-------|---------|--------------|-------|
-| **CLZ Comics** | Collection management | ~$3/mo | HIGH | Largest user base, added slab frames Jan 2026, custom fields Feb 2026. No AI grading, no theft protection. |
+| **CLZ Comics** | Collection management | ~$3/mo | HIGH | Largest user base, added slab frames Jan 2026, custom fields Feb 2026, Cover Scanner v10.6 improving. No AI grading, no theft protection. If they add AI grading, they already have the user base. |
 | **ComicBase** | Desktop collection DB | One-time $50-150 | MEDIUM | Legacy desktop software. Power users love it. No mobile, no AI. |
 | **League of Comic Geeks** | Social + collection | Free/Premium | MEDIUM | Strong community, weak on grading/valuation. |
+
+### AI Grading Competitors (NEW - as of Feb 2026) 🔴
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **ComicSnap** | AI identification + grading + pricing | Free/Pro tiers | HIGH | Live on App Store + Google Play. Snap photo → ID + grade + price. Direct competitor to our core flow. No theft protection, no multi-angle, no ROI calc. |
+| **ComicMintAI** | AI grading reports | Unknown | MEDIUM | Generates CGC-style reports from photos. Newer entrant. |
+| **Comic Grader AI** | Computer vision defect detection | Unknown | MEDIUM | comicgradeai.com - Uses CV for defect detection. Feature-focused. |
+| **CGC + Accrete.ai ("Treasure Hunter")** | AI authentication + grading + valuation | Unknown | CRITICAL | CGC partnering with Accrete.ai on automated grading. If CGC launches their own AI pre-grade tool, massive threat. Our advantage: we're independent and compare across grading companies. |
 
 ### Adjacent Competitors (Dealer/Inventory-Focused)
 | Competitor | Focus | Pricing | Threat Level | Notes |
@@ -819,13 +892,17 @@ Consider:
 ### Slab Worthy Differentiators (What Nobody Else Has)
 1. **Patent-pending multi-angle AI grading** — No competitor does 4-angle composite grading
 2. **Slab Guard™ theft protection** — Fingerprinting, registration, marketplace monitoring. Completely unique.
-3. **Gamification system** — Badges, levels, rewards. No competitor has engagement loops.
-4. **FMV + AI grade in one flow** — Grade → Value → Protect in a single session
+3. **Sell Now Alerts** — Real-time auction intelligence telling collectors WHEN to sell (see below). Nobody has this.
+4. **Slab detection + label analysis** — Extracts cert number, company, grade, and label type (sig series, restored, etc.)
+5. **FMV + AI grade + ROI in one flow** — Grade → Value → Protect in a single session
+6. **Gamification system** — Badges, levels, rewards. No competitor has engagement loops.
 
 ### Competitive Strategy
-- **vs CLZ:** Win on AI intelligence (grading, valuation) + theft protection. They're a database; we're an AI assistant.
+- **vs CLZ:** Win on AI intelligence (grading, valuation, sell alerts) + theft protection. They're a database; we're an AI assistant.
+- **vs ComicSnap:** We have multi-angle grading (patent-pending), Slab Guard, ROI calculator, and sell alerts. They have simpler UX. Beat them on depth and accuracy.
+- **vs CGC/Accrete.ai:** We're vendor-neutral. CGC's tool will only know CGC data. We aggregate across CGC, CBCS, eBay, Whatnot.
 - **vs P.I.M.:** Different lanes for now (collectors vs dealers). Monitor for expansion into collector market.
-- **vs All:** Slab Guard is the moat — nobody else has comic fingerprinting + theft recovery.
+- **vs All:** Slab Guard + Sell Now Alerts is the moat — nobody else has comic fingerprinting + theft recovery + auction intelligence.
 
 ### Potential Partnerships & Licensing
 - [ ] **P.I.M. / Slab Guard licensing** — Dealers using P.I.M. could benefit from Slab Guard theft protection for high-value inventory. Offer Slab Guard as a white-label API or integration partner. Their dealer base = our registration volume.
@@ -1003,4 +1080,4 @@ This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy,
 
 ---
 
-*Last updated: February 24, 2026 (Session 63)*
+*Last updated: February 25, 2026 (Session 64)*

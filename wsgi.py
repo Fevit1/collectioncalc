@@ -234,6 +234,7 @@ from routes.monitor import monitor_bp, init_modules as monitor_init_modules
 from routes.billing import billing_bp, init_modules as billing_init_modules, check_feature_access
 from routes.vision import vision_bp, init_modules as vision_init_modules
 from routes.contact import contact_bp
+from routes.waitlist import waitlist_bp
 
 # Import imagehash for fingerprinting
 try:
@@ -299,6 +300,7 @@ app.register_blueprint(monitor_bp)     # /api/monitor/*
 app.register_blueprint(billing_bp)     # /api/billing/*
 app.register_blueprint(vision_bp)      # /api/vision/*
 app.register_blueprint(contact_bp)     # /api/contact
+app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
 
 print("✅ All blueprints registered successfully!")
 
