@@ -969,39 +969,6 @@
         </div>
     </section>
 
-    <!-- WAITLIST -->
-    <section class="waitlist-section" id="waitlist">
-        <div class="waitlist-container">
-            <div class="waitlist-counter" id="waitlist-counter" style="display:none;">
-                <span class="counter-number" id="counter-number">0</span> collectors on the waitlist
-            </div>
-            <h2 class="waitlist-title">Be the First to Know</h2>
-            <p class="waitlist-subtitle">Get notified when Slab Worthy launches. Early access for waitlist members.</p>
-
-            <form class="waitlist-form" id="waitlist-form" onsubmit="return submitWaitlist(event)">
-                <div class="waitlist-email-row">
-                    <input type="email" id="waitlist-email" placeholder="your@email.com" required autocomplete="email" class="waitlist-input">
-                    <button type="submit" class="waitlist-btn" id="waitlist-btn">Join the Waitlist</button>
-                </div>
-                <div class="waitlist-interests">
-                    <span class="interests-label">I'm interested in:</span>
-                    <label class="interest-chip"><input type="checkbox" name="interests" value="grading" checked> AI Grading</label>
-                    <label class="interest-chip"><input type="checkbox" name="interests" value="slab_guard"> Slab Guard</label>
-                    <label class="interest-chip"><input type="checkbox" name="interests" value="sell_alerts"> Sell Alerts</label>
-                    <label class="interest-chip"><input type="checkbox" name="interests" value="collection"> Collection Tracking</label>
-                </div>
-                <div class="waitlist-message" id="waitlist-message" style="display:none;"></div>
-            </form>
-
-            <!-- Success state (hidden by default) -->
-            <div class="waitlist-success" id="waitlist-success" style="display:none;">
-                <div class="success-icon">&#10003;</div>
-                <h3 class="success-title" id="success-title">Check your email!</h3>
-                <p class="success-desc" id="success-desc">We sent a confirmation link. Click it to secure your spot on the waitlist.</p>
-            </div>
-        </div>
-    </section>
-
     <!-- MY COLLECTION -->
     <section class="my-collection">
         <div class="section-header">
@@ -1048,6 +1015,39 @@
                 <h3 class="guard-title">Every Comic Gets a Fingerprint</h3>
                 <p class="guard-desc">Our AI generates a unique visual fingerprint for each comic — tied to the physical copy, not just the title. Buyers can verify authenticity instantly, no login required.</p>
                 <a href="/verify.html" class="guard-cta">Verify a Comic</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- WAITLIST -->
+    <section class="waitlist-section" id="waitlist">
+        <div class="waitlist-container">
+            <div class="waitlist-counter" id="waitlist-counter" style="display:none;">
+                <span class="counter-number" id="counter-number">0</span> collectors on the waitlist
+            </div>
+            <h2 class="waitlist-title">Be the First to Know</h2>
+            <p class="waitlist-subtitle">Get notified when Slab Worthy launches. Early access for waitlist members.</p>
+
+            <form class="waitlist-form" id="waitlist-form" onsubmit="return submitWaitlist(event)">
+                <div class="waitlist-email-row">
+                    <input type="email" id="waitlist-email" placeholder="your@email.com" required autocomplete="email" class="waitlist-input">
+                    <button type="submit" class="waitlist-btn" id="waitlist-btn">Join the Waitlist</button>
+                </div>
+                <div class="waitlist-interests">
+                    <span class="interests-label">I'm interested in:</span>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="grading" checked> AI Grading</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="slab_guard"> Slab Guard</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="sell_alerts"> Sell Alerts</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="collection"> Collection Tracking</label>
+                </div>
+                <div class="waitlist-message" id="waitlist-message" style="display:none;"></div>
+            </form>
+
+            <!-- Success state (hidden by default) -->
+            <div class="waitlist-success" id="waitlist-success" style="display:none;">
+                <div class="success-icon">&#10003;</div>
+                <h3 class="success-title" id="success-title">Check your email!</h3>
+                <p class="success-desc" id="success-desc">We sent a confirmation link. Click it to secure your spot on the waitlist.</p>
             </div>
         </div>
     </section>

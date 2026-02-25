@@ -37,10 +37,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Main content area grows to push footer down */
+        .page-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
             justify-content: center;
             padding: 2rem 1rem;
-            position: relative;
-            overflow: hidden;
+            width: 100%;
         }
 
         /* Background gradient */
@@ -269,6 +277,7 @@
     </style>
 </head>
 <body>
+    <div class="page-content">
     <!-- Confirmed state (default) -->
     <div class="container" id="confirmed-state">
         <div class="check-circle">
@@ -341,6 +350,7 @@
         <p class="subtitle">That confirmation link doesn't seem to be valid. It may have already been used or expired.</p>
         <a href="/" class="home-btn">Back to Slab Worthy</a>
     </div>
+    </div><!-- end page-content -->
 
     <!-- FOOTER -->
     <script src="/js/footer.js"></script>
