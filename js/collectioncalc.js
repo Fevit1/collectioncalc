@@ -13,7 +13,7 @@
 (function() {
   'use strict';
 
-  const COLLECTIONCALC_API = 'https://collectioncalc.onrender.com';
+  const COLLECTIONCALC_API = 'https://collectioncalc-docker.onrender.com';
 
   /**
    * Insert a sale - matches SupabaseClient.insertSale() interface
