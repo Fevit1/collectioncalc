@@ -1,4 +1,80 @@
-# Where We Left Off - Feb 24, 2026
+# Where We Left Off - Feb 25, 2026
+
+## Session 63 Accomplishments (Feb 25, 2026)
+
+### Provisional Patent #3 — Signature Identification (Document Created!)
+Created 12-page provisional patent application with 15 claims for automated comic book signature identification technology. Follows same format as the Slab Guard patent filing.
+
+**Title:** System and Method for Automated Identification and Authentication of Creator Signatures on Collectible Items Using Computer Vision and Reference Database Matching
+
+**Coverage:**
+- Signature region detection and extraction from comic book images
+- Reference database of verified creator signatures (137 target, 35+ collected)
+- Similarity scoring with confidence thresholds
+- Forgery detection (size/position/style anomalies)
+- Valuation integration (signature premium calculation)
+- Slab Guard tie-in (registered signatures as ownership proof)
+
+**Cross-references:** Patent #1 (Multi-Angle Grading, Jan 27, 2026) and Patent #2 (Slab Guard, Feb 12, 2026)
+
+**Status:** Document ready, needs to be filed on USPTO before July 21 soft launch
+**File created:** `docs/business/provisional_patent_signature_identification.docx`
+
+### Waitlist Feature — Built (Not Yet Deployed)
+Full waitlist signup system for pre-launch interest capture.
+
+**New files:**
+- `db_migrate_waitlist.py` — Creates waitlist table (email, interests array, verification token, confirmed status, indexes)
+- `routes/waitlist.py` — Three endpoints:
+  - `POST /api/waitlist` — Subscribe (stores email + interests, sends confirmation email via Resend)
+  - `GET /api/waitlist/verify` — Email confirmation (marks as confirmed, redirects to site)
+  - `GET /api/waitlist/count` — Public counter (starts at 7 for existing beta testers)
+
+**Modified files:**
+- `wsgi.py` — Import + register waitlist_bp blueprint
+- `index.html` — New waitlist section added between "How It Works" and "My Collection"
+
+**Landing page waitlist section features:**
+- "Be the First to Know" headline
+- Email input + "Join the Waitlist" button
+- 4 interest checkboxes: AI Grading (pre-checked), Slab Guard, Sell Now Alerts, Collection Management
+- Visual counter badge (purple gradient pill with gold number) showing "X collectors on the waitlist"
+- Success states: "Check your email!" → "You're on the list!"
+
+**Confirmation email features (branded dark theme):**
+- "SLAB WORTHY™" header with halftone dot pattern (CSS-only, no external images)
+- "You're In. Almost." hero copy
+- Gold gradient "Confirm My Spot" CTA button
+- 4 feature cards with emoji icons:
+  - AI Grading — CGC-equivalent grades from 4 photos
+  - Slab Guard — Comic fingerprinting for theft recovery
+  - Sell Now Alerts — Know when to sell + list through auction partners
+  - Live Valuations — AI-powered FMV updated daily
+- "Built by a collector, for collectors. Three patent-pending technologies." social proof
+- Inline CSS + HTML tables for max email client compatibility
+
+**Mockup files created:**
+- `mockup_waitlist.html` — Standalone section mockup
+- `mockup_waitlist_preview.html` — Full page context mockup with state toggles
+
+### Decisions Made
+- **Facebook Business Page:** Holding off until June pre-launch. Stale page looks worse than no page. Will batch-create content 4-6 weeks before GalaxyCon.
+- **Valuation update strategy discussed:** Not 30k API calls per user/day. Registry-based pricing — update hot books daily (~top 2k), active books weekly, cold books monthly/on-demand.
+- **Patent filing strategy:** Can file provisional before tech is production-ready. Method + concept is sufficient. File before July 21 soft launch.
+
+### Pending (Not Yet Done)
+- **Push code to git** — Waitlist route, wsgi.py changes, index.html updates
+- **Run DB migration on Render** — `python db_migrate_waitlist.py`
+- **Test waitlist flow end-to-end** — Sign up, check email, click confirm, verify redirect
+- **Check RESEND_FROM_EMAIL** — Should be noreply@slabworthy.com or similar
+- **File signature patent on USPTO** — Document ready, needs to be submitted before July 21
+- **Run backfill** — Deploy then `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULLs
+- **Grading flow polish** — Speed, instructions, booth demo mode, offline fallback, valuation on results
+- **Oakland 10-week sprint plan** — Still not formalized
+- **Sign-up/onboarding flow** — Under 60 seconds for booth
+- **Results page with valuation** — Wire valuation endpoint into grading results
+
+---
 
 ## Session 62 Accomplishments (Feb 24, 2026)
 

@@ -263,16 +263,16 @@ def verify():
         cur = conn.cursor()
 
         cur.execute(
-            "SELECT id, verified FROM waitlist WHERE verification_token = %s",
+            "SELECT id, verified, interests FROM waitlist WHERE verification_token = %s",
             (token,)
         )
         row = cur.fetchone()
 
         if not row:
-            return redirect(f"{FRONTEND_URL}/?waitlist=invalid")
+            return redirect(f"{FRONTEND_URL}/waitlist-confirmed.html?status=invalid")
 
         if row['verified']:
-            return redirect(f"{FRONTEND_URL}/?waitlist=already")
+            return redirect(f"{FRONTEND_URL}/waitlist-confirmed.html?status=already")
 
         cur.execute(
             """UPDATE waitlist
@@ -282,11 +282,14 @@ def verify():
         )
         conn.commit()
 
-        return redirect(f"{FRONTEND_URL}/?waitlist=confirmed")
+        # Pass interests to confirmation page for personalization
+        interests = row.get('interests') or []
+        interests_param = ','.join(interests) if interests else ''
+        return redirect(f"{FRONTEND_URL}/waitlist-confirmed.html?status=confirmed&interests={interests_param}")
 
     except Exception as e:
         print(f"[Waitlist] Verify error: {e}")
-        return redirect(f"{FRONTEND_URL}/?waitlist=error")
+        return redirect(f"{FRONTEND_URL}/waitlist-confirmed.html?status=error")
     finally:
         if conn:
             conn.close()

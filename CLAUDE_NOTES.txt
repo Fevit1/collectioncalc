@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 24, 2026 (Session 62)
+**Last Updated:** February 25, 2026 (Session 63)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -14,7 +14,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 **Status:** Pre-alpha, targeting Comic Con Oakland (May 9-10, 2026) for alpha launch
 **Tech Stack:** Flask/Python backend, HTML/CSS/JS frontend, PostgreSQL, Cloudflare R2, Claude API
 
-### Two Patent-Pending Product Lines
+### Three Patent-Pending Product Lines
 
 **1. Multi-Angle Grading System**
 - Filed: January 27, 2026
@@ -22,13 +22,22 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - CGC-equivalent grading scale
 - Fair Market Value from 50k+ sales database
 
-**2. Comic Fingerprinting Theft Recovery** 🆕
+**2. Comic Fingerprinting Theft Recovery**
 - Filed: February 12, 2026
 - Uses unique defect patterns to identify individual comics
 - Proof-of-concept validated (Iron Man #200 test)
 - $3.3M ARR potential by Year 3
 - Covers comics ($1.5B) + baseball cards ($5B)
 - No competitive services exist
+
+**3. Signature Identification & Authentication** 🆕
+- Document ready: February 25, 2026 (not yet filed on USPTO)
+- AI-powered detection of creator signatures on comic covers
+- Reference database matching (137 target creators, 35+ collected)
+- Forgery detection via size/position/style anomaly analysis
+- Valuation integration (signature premium calculation)
+- Ties into Slab Guard for registered signature ownership proof
+- File before July 21 soft launch to lock in priority date
 
 ### Key Metrics
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
@@ -38,13 +47,15 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Revenue:** $0 (pre-revenue, targeting Oakland Comic Con alpha May 2026)
 
 ### Current Priorities (Oakland Alpha - May 9-10, 2026)
-1. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
-2. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
-3. **Contact Form** - ✅ DEPLOYED (contact.html + routes/contact.py, Turnstile + rate limiting)
-4. **Oakland Sprint Plan** - 🔜 NEXT: 10-week plan with week-by-week milestones
-5. **Grading Flow Polish** - Mobile-first, end-to-end bullet-proof for booth demo
-6. **Data Collection Ramp** - More eBay/Whatnot sales data for better valuations
-7. **Session 59 Test Plan** - ~40 of 47 tests still formally untested
+1. **Waitlist Feature** - ✅ BUILT, needs deploy + DB migration + end-to-end test
+2. **Signature Patent** - ✅ DOCUMENT READY, needs USPTO filing before July 21
+3. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
+4. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
+5. **Contact Form** - ✅ DEPLOYED (contact.html + routes/contact.py, Turnstile + rate limiting)
+6. **Oakland Sprint Plan** - 🔜 NEXT: 10-week plan with week-by-week milestones
+7. **Grading Flow Polish** - Mobile-first, end-to-end bullet-proof for booth demo
+8. **Data Collection Ramp** - More eBay/Whatnot sales data for better valuations
+9. **Session 59 Test Plan** - ~40 of 47 tests still formally untested
 
 ### Completed Foundations
 - ✅ Stripe Billing (4-tier pricing), ✅ Bot Protection (Turnstile), ✅ PWA Support
@@ -55,6 +66,20 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 ---
 
 ## RECENT MAJOR MILESTONES
+
+### ✅ Signature Identification Patent Document (Feb 25, 2026)
+- **12-page provisional patent** with 15 claims, matching Slab Guard filing format
+- Covers: signature detection, extraction, reference DB matching, confidence scoring, forgery detection, valuation integration, Slab Guard tie-in
+- Cross-references both existing patents
+- **Status:** Document ready, not yet filed on USPTO
+
+### ✅ Waitlist Feature Built (Feb 25, 2026)
+- **Backend:** routes/waitlist.py (subscribe, verify email, public counter)
+- **Database:** db_migrate_waitlist.py (waitlist table with email, interests, verification)
+- **Frontend:** Waitlist section on index.html between How It Works and My Collection
+- **Email:** Branded dark theme confirmation email via Resend with 4 feature cards
+- **Counter:** Starts at 7 (existing beta testers), purple gradient pill badge
+- **Status:** Built, needs deploy + DB migration + end-to-end test
 
 ### ✅ Composite Fingerprinting Upgrade (Feb 17, 2026)
 - **Problem:** Single pHash had only 4-bit margin between same-comic re-photo and different copies
@@ -407,6 +432,13 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 - **PWA Support** (manifest, service worker, installable on mobile)
 - **Content Moderation** (AWS Rekognition integration)
 - **Slab Guard™ Registration** (fingerprinting, serial generation)
+- **Contact Form** (contact.html + routes/contact.py, Turnstile + rate limiting)
+- **Vision API Backend Proxy** (routes/vision.py, JWT auth, plan gating, daily scan caps)
+
+### 🔜 Built, Awaiting Deploy/Test
+- **Waitlist Feature** — Email signup, interest checkboxes, confirmation email, counter (starts at 7). Needs: push, DB migration, end-to-end test
+- **Valuation Endpoint** — `/api/sales/valuation` grade-specific FMV with slabbing ROI. Needs: testing per 12-case plan
+- **Title Normalizer Backfill** — `POST /api/ebay-sales/backfill-titles` to fix 369 legacy NULLs. Needs: deploy + run
 
 ### 🚨 High Priority (Testing Phase)
 - **Live Slab Guard test** - Register a comic on production, verify composite fingerprinting works end-to-end
@@ -495,15 +527,28 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## NEXT SESSION PRIORITIES
 
-1. **Live Slab Guard Test** - Register a comic on production, then test if same comic matches and different comic doesn't (Mike wanted to continue this after dinner)
-2. **Deploy composite code** - Push Session 46 changes to git, deploy to Render
-3. **Test Slab Guard Monitor Chrome extension** - Load unpacked in Chrome dev mode (in CCExtensions/slab-guard-monitor/)
-4. **Mobile Testing** - Test on real devices (started but incomplete)
-   - Pricing page, verify page, full app flow
-5. **AI Grading Consistency** - Investigate why same images give different grades
-6. **Fix comic identification bug** - Ghost Rider false positives
-7. **Custom Fields Feature** - Purchase price, storage location, etc. (enables CSV import)
-8. **CSV Import Feature** - Support CLZ Comics, ComicBase, League of Comic Geeks formats
+### Deploy & Test (Immediate)
+1. **Push + deploy waitlist code** — routes/waitlist.py, wsgi.py, index.html, db_migrate_waitlist.py
+2. **Run waitlist DB migration** — `python db_migrate_waitlist.py` on Render
+3. **Test waitlist end-to-end** — Sign up, check email, click confirm, verify redirect + counter
+4. **Check RESEND_FROM_EMAIL** — Should be noreply@slabworthy.com
+5. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
+
+### Oakland Sprint (May 9-10)
+6. **Oakland 10-week sprint plan** — Formal week-by-week milestones
+7. **Grading flow polish** — Speed up (remove 2-sec delay), photo instructions, booth demo mode, offline fallback, valuation on results, "Grade Next" reset
+8. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
+9. **Wire valuation into results** — Show grade + FMV + slabbing ROI together
+
+### Patent & Business
+10. **File signature patent on USPTO** — Document ready, file before July 21 soft launch
+11. **Facebook/social media** — Deferred to June pre-launch (batch content creation)
+
+### Technical Debt
+12. **AI Grading Consistency** — Same images give different grades (8.5 → 9.2 → 8.5)
+13. **Comic identification bug** — Ghost Rider reboot #1 vs original #1
+14. **Session 59 test plan** — ~40 of 47 tests still formally untested
+15. **Mobile testing** — Pricing page, verify page, full app flow on real devices
 
 ---
 
