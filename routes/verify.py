@@ -196,7 +196,10 @@ def lookup_serial(serial_number):
                 c.year,
                 c.grade,
                 c.photos,
-                u.email
+                u.email,
+                cr.slab_cert_number,
+                cr.slab_company,
+                cr.slab_label_type
             FROM comic_registry cr
             JOIN collections c ON cr.comic_id = c.id
             JOIN users u ON cr.user_id = u.id
@@ -216,7 +219,7 @@ def lookup_serial(serial_number):
         # Parse result
         (serial, status, reg_date, stolen_date, recovery_date,
          title, issue, publisher, pub_year, grade, photos,
-         email) = result
+         email, slab_cert_number, slab_company, slab_label_type) = result
 
         # Parse photos JSON
         import json
@@ -242,6 +245,14 @@ def lookup_serial(serial_number):
                 'display_name': hash_email(email) if email else "Anonymous"
             }
         }
+
+        # Add slab details if present
+        if slab_cert_number:
+            response['slab'] = {
+                'cert_number': slab_cert_number,
+                'company': slab_company,
+                'label_type': slab_label_type
+            }
 
         # Add theft details if reported stolen
         if status == 'reported_stolen' and stolen_date:

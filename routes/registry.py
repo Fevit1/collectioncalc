@@ -552,7 +552,8 @@ def register_comic():
 
         # Check if comic exists and belongs to user
         cur.execute("""
-            SELECT id, title, issue, grade, photos
+            SELECT id, title, issue, grade, photos,
+                   is_slabbed, slab_cert_number, slab_company, slab_label_type
             FROM collections
             WHERE id = %s AND user_id = %s
         """, (comic_id, g.user_id))
@@ -561,7 +562,7 @@ def register_comic():
         if not comic:
             return jsonify({'success': False, 'error': 'Comic not found or access denied'}), 404
 
-        comic_id, title, issue, grade, photos = comic
+        comic_id, title, issue, grade, photos, is_slabbed, slab_cert_number, slab_company, slab_label_type = comic
 
         # Ensure photos is a dict (may come back as JSON string from DB)
         if photos and isinstance(photos, str):
@@ -652,8 +653,11 @@ def register_comic():
                 fingerprint_algorithm,
                 confidence_score,
                 status,
-                monitoring_enabled
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                monitoring_enabled,
+                slab_cert_number,
+                slab_company,
+                slab_label_type
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, registration_date
         """, (
             g.user_id,
@@ -664,7 +668,10 @@ def register_comic():
             'comp_v3_edge',
             confidence_score,
             'active',
-            True
+            True,
+            slab_cert_number,
+            slab_company,
+            slab_label_type
         ))
 
         registry_id, registration_date = cur.fetchone()
@@ -680,7 +687,11 @@ def register_comic():
             'comic': {
                 'title': title,
                 'issue': issue,
-                'grade': float(grade) if grade else None
+                'grade': float(grade) if grade else None,
+                'is_slabbed': is_slabbed or False,
+                'slab_cert_number': slab_cert_number,
+                'slab_company': slab_company,
+                'slab_label_type': slab_label_type
             }
         }
 

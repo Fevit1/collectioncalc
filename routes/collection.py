@@ -85,11 +85,12 @@ def api_save_collection():
         
         cur.execute("""
             INSERT INTO collections (
-                user_id, title, issue, publisher, year, grade, grade_label, 
+                user_id, title, issue, publisher, year, grade, grade_label,
                 confidence, defects, photos, raw_value, slabbed_value, roi, verdict,
-                my_valuation, grading_id
+                my_valuation, grading_id,
+                is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             g.user_id,
@@ -107,7 +108,12 @@ def api_save_collection():
             item.get('roi'),
             item.get('verdict'),
             item.get('my_valuation'),
-            item.get('grading_id')
+            item.get('grading_id'),
+            item.get('is_slabbed', False),
+            item.get('slab_cert_number'),
+            item.get('slab_company'),
+            item.get('slab_grade'),
+            item.get('slab_label_type')
         ))
         saved_ids.append(cur.fetchone()['id'])
     

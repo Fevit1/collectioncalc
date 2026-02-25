@@ -24,34 +24,47 @@
 - [x] **Verify Page Updates** - Branding cleanup, copy updates
 - [x] **Registry Bug Fix** - Collections table mismatch resolved (critical)
 
-### 🎯 Oakland Comic Con Alpha Launch (May 9-10, 2026)
-**Event:** Comic Con Oakland, Oakland Convention Center
-**Exhibitor application:** Submitted Feb 23, 2026
-**Goal:** Alpha launch — "underpromise, overdeliver"
+### 🎯 GalaxyCon San Jose Launch (Aug 21-23, 2026)
+**Event:** GalaxyCon San Jose, San Jose McEnery Convention Center
+**Goal:** Public launch with polished product + live booth demos
+**Note:** CGC on-site via One Stop Comic Shop — grading-aware audience
 
-**Must-Have for Booth Demo:**
+**Timeline:**
+- **July 21** — Soft launch online (public beta, open sign-ups)
+- **May 9-10** — Comic Con Oakland (possible soft in-person launch if someone can cover booth)
+- **Aug 21-23** — GalaxyCon San Jose (main launch event)
+
+**Already Complete:**
 - [x] **Valuation endpoint** - `/api/sales/valuation` with grade-specific FMV + slabbing ROI (Session 61)
 - [x] **Vision API backend proxy** - Server-side API key, JWT auth, daily caps (Session 61)
 - [x] **Contact form** - Full form with Turnstile + rate limiting (Session 61)
 - [x] **Grading flow polish** - Mobile-first results screen wired to live site (Session 62)
 - [x] **Results page with valuation** - Grade + value + ROI on one screen, mobile + desktop (Session 62)
-- [x] **Google Play Store (TWA)** - Live on Internal Testing, promote to production pre-Oakland (Session 62)
-- [x] **Sign-up/onboarding** - Name/phone/marketing fields live, DB migration run, booth codes generated (OAKLAND2026 x200, 50 single-use backups) (Session 62)
+- [x] **Google Play Store (TWA)** - Live on Internal Testing, promote to production pre-launch (Session 62)
+- [x] **Sign-up/onboarding** - Name/phone/marketing fields live, DB migration run, booth codes generated (Session 62)
 - [x] **Photo quality gate** - Resolution + blur check before Claude calls; friendly "retake" message in UI (Session 63)
+- [x] **One-page results report** - Screenshot-friendly or shareable link (Session 63)
+- [x] **Slab detection fields** - is_slabbed, cert number, company, grade, label type in extraction (Session 64)
+- [x] **Sales route refactor** - Split 1,146-line sales.py into 3 domain files (Session 64)
+- [x] **Admin dashboard fix** - Sales Tracked now shows combined eBay + Whatnot totals (Session 64)
+
+**Must-Have for July 21 Soft Launch:**
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
+- [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
+- [ ] **Landing page polish** - For organic traffic and post-announcement Googlers
+- [ ] **Signature identification** - Match detected signatures against creator reference DB
+- [ ] **New beta/booth codes** - Generate GalaxyCon-specific codes
+- [ ] **Google Play Store production** - Promote TWA from Internal Testing
+
+**Must-Have for Aug 21 GalaxyCon:**
+- [ ] **Booth materials** - Flyers, QR codes, demo signage
+- [ ] **Offline demo fallback** - Cached results for when convention WiFi inevitably fails
+- [ ] **Slab label valuation adjustments** - Factor label type (signature series, restored, etc.) into FMV
 
 **Nice-to-Have:**
-- [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
-- [x] **One-page results report** - Screenshot-friendly or shareable link (Session 63)
-- [ ] **Landing page polish** - For post-con Googlers
-- [ ] **Signature identification** - Match detected signatures against creator reference DB
-
-**Skip for Oakland:**
-- Billing/Stripe (everyone free tier for alpha)
-- Chrome extensions (not a booth demo)
-- Slab Guard demo (too much to explain in 2 minutes)
-
-**Backup:** GalaxyCon San Jose (Aug 21-23) as polished 1.0 launch
+- [ ] **Slab Guard live demo** - Quick registration flow for booth visitors
+- [ ] **Chrome extension demo** - Slab Guard Monitor for eBay
+- [ ] **Social proof** - Testimonials/stats from soft launch period
 
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
