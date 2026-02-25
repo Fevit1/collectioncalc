@@ -176,6 +176,7 @@ YOU MUST RETURN EXACTLY THIS JSON STRUCTURE - NO OTHER FIELDS ALLOWED:
   "slab_cert_number": "",
   "slab_company": "",
   "slab_grade": "",
+  "slab_label_type": "",
   "suggested_grade": "",
   "defects": [],
   "signatures": [],
@@ -211,6 +212,18 @@ SLAB DETECTION FIELDS (for professionally graded/encapsulated comics):
 - slab_cert_number: The certification/serial number printed on the slab label. This is typically a long number (e.g., "4375804009", "1234567001"). It may appear as a barcode on the label as well. Extract the full number. Empty string if not slabbed or not readable.
 - slab_company: The grading company name from the label: "CGC", "CBCS", "PGX", or other. Empty string if not slabbed.
 - slab_grade: The numeric grade shown on the slab label (e.g., "9.8", "9.6", "8.0"). This is the OFFICIAL grade, not your assessment. Empty string if not slabbed.
+- slab_label_type: The type of slab label, which significantly affects value. Identify by label COLOR and text:
+  * "universal" — Blue label (CGC) or similar. Standard grading, no signatures or restoration.
+  * "signature_series" — Yellow label (CGC). Signature was WITNESSED by a CGC representative. Big value premium.
+  * "qualified" — Green label (CGC). Has a notable defect noted on label (missing coupon, cut coupon, etc.) but graded as if defect weren't there.
+  * "restored" — Purple label (CGC). Comic has been professionally or amateur restored/repaired. Generally reduces value.
+  * "pedigree" — Gold label (CGC). From a recognized exceptional collection. Rare, adds premium.
+  * "signature_restored" — Yellow/Purple combo label. Witnessed signature on a restored book.
+  * "signature_qualified" — Yellow/Green combo label. Witnessed signature with a qualifying defect.
+  * "conserved" — Grey or Yellow/Grey label. Book has been conserved (non-invasive preservation).
+  * "cgc_jsa" — CGC x JSA label. Unwitnessed signature authenticated by James Spence Authentication.
+  For CBCS: use the same categories (CBCS uses similar color coding — blue=universal, yellow=verified signature, green=qualified, purple=restored).
+  Empty string if not slabbed or label type cannot be determined.
 
 CONDITION FIELDS:
 - suggested_grade: Based on visible condition: MT, NM, VF, FN, VG, G, FR, or PR. Be conservative.
@@ -414,6 +427,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 "slab_cert_number": "",
                 "slab_company": "",
                 "slab_grade": "",
+                "slab_label_type": "",
                 "suggested_grade": "",
                 "defects": [],
                 "signatures": [],
