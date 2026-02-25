@@ -155,18 +155,22 @@ def get_dashboard_stats():
             'api_calls': row['api_calls']
         }
         
-        # Sales stats
+        # Sales stats (combined: market_sales + ebay_sales)
         cur.execute("""
-            SELECT 
-                COUNT(*) as total_sales,
-                COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') as sales_today,
-                COALESCE(AVG(price), 0) as avg_price
-            FROM market_sales
+            SELECT
+                (SELECT COUNT(*) FROM market_sales) + (SELECT COUNT(*) FROM ebay_sales) as total_sales,
+                (SELECT COUNT(*) FROM market_sales WHERE created_at > NOW() - INTERVAL '24 hours') +
+                (SELECT COUNT(*) FROM ebay_sales WHERE created_at > NOW() - INTERVAL '24 hours') as sales_today,
+                (SELECT COUNT(*) FROM market_sales) as market_count,
+                (SELECT COUNT(*) FROM ebay_sales) as ebay_count,
+                COALESCE((SELECT AVG(price) FROM market_sales), 0) as avg_price
         """)
         row = cur.fetchone()
         stats['sales'] = {
             'total': row['total_sales'],
             'today': row['sales_today'],
+            'market_count': row['market_count'],
+            'ebay_count': row['ebay_count'],
             'avg_price': round(float(row['avg_price']), 2)
         }
         

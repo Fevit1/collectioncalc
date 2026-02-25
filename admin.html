@@ -340,6 +340,7 @@
             <div class="stat-card">
                 <div class="stat-label">Sales Tracked</div>
                 <div class="stat-value" id="statSales">-</div>
+                <div class="stat-sub" id="statSalesSub"></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Beta Codes</div>
@@ -532,6 +533,7 @@
                     document.getElementById('statCost').textContent = `$${s.api_usage_month.estimated_cost_usd.toFixed(2)}`;
                     document.getElementById('statCostSub').textContent = `${s.api_usage_month.api_calls} calls`;
                     document.getElementById('statSales').textContent = s.sales.total.toLocaleString();
+                    document.getElementById('statSalesSub').textContent = `${(s.sales.ebay_count || 0).toLocaleString()} eBay · ${(s.sales.market_count || 0).toLocaleString()} Whatnot`;
                     document.getElementById('statCodes').textContent = s.beta_codes.available_codes;
                     document.getElementById('statCodesSub').textContent = `${s.beta_codes.used_codes} used`;
                 }
