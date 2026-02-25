@@ -4,7 +4,7 @@ Flask routes for the CollectionCalc API
 
 New in v4.3.0:
 - MAJOR REFACTOR: Blueprints! Split 2,198-line monolith into modular route files
-- 9 blueprints in routes/ directory (utils, auth, admin, grading, sales, images, barcodes, ebay, collection)
+- 11 blueprints in routes/ directory (utils, auth, admin, grading, sales_ebay, sales_market, sales_valuation, images, barcodes, ebay, collection)
 - 54 routes organized by functionality
 - Easier to maintain, test, and extend
 - Same API, cleaner code
@@ -14,7 +14,9 @@ Routes now in /routes:
 - auth_routes.py: signup, login, verify, password reset (7 routes)
 - admin_routes.py: dashboard, users, NLQ, signatures, barcode backfill (18 routes)
 - grading.py: valuate, extract, cache, AI proxy (4 routes)
-- sales.py: ebay-sales, market sales, FMV calculation (6 routes)
+- sales_ebay.py: eBay batch ingestion, backfill, stats (3 routes)
+- sales_market.py: Whatnot/market sale recording, count, recent (3 routes)
+- sales_valuation.py: FMV calculation, grade-specific valuation (2 routes)
 - images.py: R2 storage, uploads (4 routes)
 - barcodes.py: scanning, testing (2 routes)
 - ebay.py: OAuth, listing, image upload (7 routes)
@@ -219,7 +221,9 @@ from routes.utils import utils_bp, init_globals as utils_init_globals
 from routes.auth_routes import auth_bp
 from routes.admin_routes import admin_bp, init_modules as admin_init_modules
 from routes.grading import grading_bp, init_modules as grading_init_modules
-from routes.sales import sales_bp, init_modules as sales_init_modules
+from routes.sales_ebay import ebay_sales_bp, init_modules as ebay_sales_init_modules
+from routes.sales_market import market_sales_bp, init_modules as market_sales_init_modules
+from routes.sales_valuation import valuation_bp
 from routes.images import images_bp, init_modules as images_init_modules
 from routes.barcodes import barcodes_bp
 from routes.ebay import ebay_bp, init_modules as ebay_init_modules
@@ -251,7 +255,8 @@ grading_init_modules(
     get_valuation_with_ebay, extract_from_base64, moderate_image,
     log_moderation_incident, get_image_hash, ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE
 )
-sales_init_modules(R2_AVAILABLE, upload_sale_image, upload_image, scan_barcode_from_base64)
+ebay_sales_init_modules(R2_AVAILABLE, upload_image)
+market_sales_init_modules(R2_AVAILABLE, upload_sale_image, upload_image, scan_barcode_from_base64)
 images_init_modules(
     R2_AVAILABLE, upload_sale_image, upload_temp_image, upload_submission_image,
     check_r2_connection, scan_barcode_from_base64, moderate_image,
@@ -281,7 +286,9 @@ app.register_blueprint(utils_bp)       # /, /health, /api/debug/*, /api/beta/val
 app.register_blueprint(auth_bp)        # /api/auth/*
 app.register_blueprint(admin_bp)       # /api/admin/*
 app.register_blueprint(grading_bp)     # /api/valuate, /api/extract, /api/cache/*, /api/messages
-app.register_blueprint(sales_bp)       # /api/sales/*, /api/ebay-sales/*
+app.register_blueprint(ebay_sales_bp)   # /api/ebay-sales/*
+app.register_blueprint(market_sales_bp) # /api/sales/record, /api/sales/count, /api/sales/recent
+app.register_blueprint(valuation_bp)    # /api/sales/valuation, /api/sales/fmv
 app.register_blueprint(images_bp)      # /api/images/*
 app.register_blueprint(barcodes_bp)    # /api/barcode-*
 app.register_blueprint(ebay_bp)        # /api/ebay/*
