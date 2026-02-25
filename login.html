@@ -417,39 +417,35 @@
             color: var(--primary);
         }
 
-        /* Waitlist CTA link */
-        .waitlist-cta {
-            margin-top: 2rem;
-            padding: 1.25rem 2rem;
-            background: linear-gradient(135deg, rgba(30,27,75,0.6), rgba(18,18,31,0.9));
-            border: 1px solid rgba(124, 58, 237, 0.25);
-            border-radius: 12px;
-            text-align: center;
-            max-width: 450px;
-            width: 100%;
+        /* Waitlist CTA inside beta card */
+        .waitlist-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 20px 0;
         }
 
         .waitlist-cta-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
         }
 
         .waitlist-cta-link {
             display: inline-block;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
+            background: transparent;
+            color: var(--primary-light);
+            border: 1px solid var(--primary);
             text-decoration: none;
             padding: 10px 24px;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            transition: transform 0.15s, box-shadow 0.15s;
+            transition: all 0.2s;
         }
 
         .waitlist-cta-link:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            background: var(--primary);
+            color: white;
         }
     </style>
     <!-- PWA -->
@@ -487,6 +483,10 @@
                 <p class="footer-link">
                     Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
                 </p>
+
+                <hr class="waitlist-divider">
+                <p class="waitlist-cta-text">Don't have a beta code? Get notified when we launch.</p>
+                <a href="/waitlist.html" class="waitlist-cta-link">Join the Waitlist</a>
             </div>
 
             <div id="signupPanel" class="form-panel">
@@ -633,12 +633,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Waitlist CTA -->
-    <div class="waitlist-cta">
-        <p class="waitlist-cta-text">Don't have a beta code? Get notified when we launch.</p>
-        <a href="/waitlist.html" class="waitlist-cta-link">Join the Waitlist</a>
-    </div>
 
     <script>
         const API_BASE = 'https://collectioncalc-docker.onrender.com';
