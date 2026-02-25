@@ -74,50 +74,65 @@ def _send_waitlist_confirmation(email, token):
     verify_url = f"{API_BASE_URL}/api/waitlist/verify?token={token}"
 
     html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a12; color: #e2e8f0; padding: 40px 30px; border-radius: 12px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="font-family: Arial, sans-serif; font-size: 28px; color: #facc15; margin: 0;">SLAB WORTHY&trade;</h1>
-            <p style="color: #a78bfa; font-size: 14px; margin: 4px 0 0;">AI for Comic Collectors</p>
+    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a12; border-radius: 12px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e1b4b 0%, #0a0a12 50%, #1e1b4b 100%); padding: 40px 30px 30px; text-align: center; position: relative;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle, rgba(99,102,241,0.08) 1px, transparent 1px); background-size: 12px 12px;"></div>
+        <div style="position: relative;">
+          <h1 style="font-family: Arial, Helvetica, sans-serif; font-size: 36px; font-weight: 900; color: #facc15; margin: 0; letter-spacing: 2px; text-shadow: 0 0 20px rgba(250,204,21,0.3);">SLAB WORTHY&trade;</h1>
+          <p style="color: #a78bfa; font-size: 13px; margin: 6px 0 0; letter-spacing: 3px; text-transform: uppercase;">AI-Powered Comic Grading</p>
         </div>
-
-        <h2 style="color: #e2e8f0; font-size: 20px; margin-bottom: 16px;">You're one click away from the list.</h2>
-
-        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6;">
-            Thanks for your interest in Slab Worthy! We're building something new for comic collectors:
-        </p>
-
-        <div style="background: #1e1b4b; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <p style="color: #c4b5fd; font-size: 14px; margin: 0 0 10px;"><strong style="color: #facc15;">AI Grading</strong> &mdash; Snap 4 photos, get an instant grade estimate with defect analysis</p>
-            <p style="color: #c4b5fd; font-size: 14px; margin: 0 0 10px;"><strong style="color: #facc15;">Slab Guard&trade;</strong> &mdash; Fingerprint your comics for theft protection and authentication</p>
-            <p style="color: #c4b5fd; font-size: 14px; margin: 0 0 10px;"><strong style="color: #facc15;">Sell Now Alerts</strong> &mdash; Get notified when the market says it's time to sell</p>
-            <p style="color: #c4b5fd; font-size: 14px; margin: 0;"><strong style="color: #facc15;">Collection Tracking</strong> &mdash; Know exactly what your collection is worth, updated daily</p>
+        <div style="width: 60px; height: 3px; background: linear-gradient(90deg, #6366f1, #facc15); margin: 20px auto 0; border-radius: 2px;"></div>
+      </div>
+      <div style="padding: 32px 30px;">
+        <h2 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 8px; text-align: center;">You're In. Almost.</h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 28px;">One click confirms your spot on the early access list. You'll be the first to know when we launch &mdash; and the first to try what we've been building.</p>
+        <div style="text-align: center; margin: 0 0 32px;">
+          <a href="{verify_url}" style="background: linear-gradient(135deg, #facc15, #f59e0b); color: #0a0a12; padding: 16px 44px; text-decoration: none; border-radius: 8px; font-size: 17px; font-weight: 800; display: inline-block; letter-spacing: 0.5px; box-shadow: 0 4px 20px rgba(250,204,21,0.25);">CONFIRM MY SPOT &rarr;</a>
         </div>
-
-        <p style="text-align: center; margin: 30px 0;">
-            <a href="{verify_url}"
-               style="background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                      color: white;
-                      padding: 14px 36px;
-                      text-decoration: none;
-                      border-radius: 8px;
-                      font-size: 16px;
-                      font-weight: bold;
-                      display: inline-block;">
-                Confirm My Spot
-            </a>
-        </p>
-
-        <p style="color: #64748b; font-size: 13px; text-align: center;">
-            Or copy this link:<br>
-            <a href="{verify_url}" style="color: #818cf8; word-break: break-all;">{verify_url}</a>
-        </p>
-
-        <hr style="border: none; border-top: 1px solid #1e1b4b; margin: 30px 0;">
-
-        <p style="color: #475569; font-size: 12px; text-align: center;">
-            You'll be among the first to know when we launch. No spam, ever.<br>
-            &copy; 2026 Slab Worthy&trade; &mdash; Patent Pending
-        </p>
+        <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #2d2b55, transparent); margin: 4px 0 28px;"></div>
+        <p style="color: #a78bfa; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; margin: 0 0 16px; text-align: center;">What's Coming</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px;">
+          <tr>
+            <td width="50%" style="padding: 0 6px 12px 0; vertical-align: top;">
+              <div style="background: linear-gradient(135deg, #1a1744, #1e1b4b); border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; padding: 18px 16px;">
+                <div style="font-size: 24px; margin-bottom: 8px;">&#x1F4F7;</div>
+                <div style="color: #facc15; font-size: 14px; font-weight: 700; margin-bottom: 4px;">AI Grading</div>
+                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">4 photos. Instant grade estimate with defect analysis.</div>
+              </div>
+            </td>
+            <td width="50%" style="padding: 0 0 12px 6px; vertical-align: top;">
+              <div style="background: linear-gradient(135deg, #1a1744, #1e1b4b); border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; padding: 18px 16px;">
+                <div style="font-size: 24px; margin-bottom: 8px;">&#x1F6E1;</div>
+                <div style="color: #facc15; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Slab Guard&trade;</div>
+                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Fingerprint your comics. Prove ownership. Deter theft.</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td width="50%" style="padding: 0 6px 0 0; vertical-align: top;">
+              <div style="background: linear-gradient(135deg, #1a1744, #1e1b4b); border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; padding: 18px 16px;">
+                <div style="font-size: 24px; margin-bottom: 8px;">&#x1F4C8;</div>
+                <div style="color: #facc15; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Sell Now Alerts</div>
+                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Know when to sell &mdash; and list directly through our auction partners.</div>
+              </div>
+            </td>
+            <td width="50%" style="padding: 0 0 0 6px; vertical-align: top;">
+              <div style="background: linear-gradient(135deg, #1a1744, #1e1b4b); border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; padding: 18px 16px;">
+                <div style="font-size: 24px; margin-bottom: 8px;">&#x1F4B0;</div>
+                <div style="color: #facc15; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Live Valuations</div>
+                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">AI-powered fair market values updated daily for every book you own.</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.12); border-radius: 8px; padding: 16px 20px; text-align: center; margin: 0 0 4px;">
+          <p style="color: #c4b5fd; font-size: 13px; margin: 0; line-height: 1.6;">&#x26A1; Built by a collector, for collectors. Three patent-pending technologies. Launching Summer 2026.</p>
+        </div>
+      </div>
+      <div style="background: #08080f; padding: 24px 30px; text-align: center; border-top: 1px solid #1e1b4b;">
+        <p style="color: #475569; font-size: 12px; margin: 0 0 6px; line-height: 1.5;">You'll only hear from us when it matters. No spam, ever.</p>
+        <p style="color: #334155; font-size: 11px; margin: 0;">&copy; 2026 Slab Worthy&trade; &bull; Patent Pending &bull; San Jose, CA</p>
+      </div>
     </div>
     """
 
