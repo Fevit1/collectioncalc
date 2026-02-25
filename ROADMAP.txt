@@ -42,7 +42,7 @@
 
 **Nice-to-Have:**
 - [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
-- [ ] **One-page results report** - Screenshot-friendly or shareable link
+- [x] **One-page results report** - Screenshot-friendly or shareable link (Session 63)
 - [ ] **Landing page polish** - For post-con Googlers
 - [ ] **Signature identification** - Match detected signatures against creator reference DB
 
