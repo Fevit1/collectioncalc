@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 25, 2026 (Session 63)
+**Last Updated:** February 25, 2026 (Session 64)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -47,7 +47,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Revenue:** $0 (pre-revenue, targeting Oakland Comic Con alpha May 2026)
 
 ### Current Priorities (Oakland Alpha - May 9-10, 2026)
-1. **Waitlist Feature** - ✅ BUILT, needs deploy + DB migration + end-to-end test
+1. **Waitlist Feature** - ✅ DEPLOYED & TESTED (DB migrated, emails sending, confirmation page live)
 2. **Signature Patent** - ✅ DOCUMENT READY, needs USPTO filing before July 21
 3. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
 4. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
@@ -73,13 +73,14 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Cross-references both existing patents
 - **Status:** Document ready, not yet filed on USPTO
 
-### ✅ Waitlist Feature Built (Feb 25, 2026)
+### ✅ Waitlist Feature Deployed & Tested (Feb 25, 2026)
 - **Backend:** routes/waitlist.py (subscribe, verify email, public counter)
-- **Database:** db_migrate_waitlist.py (waitlist table with email, interests, verification)
-- **Frontend:** Waitlist section on index.html between How It Works and My Collection
-- **Email:** Branded dark theme confirmation email via Resend with 4 feature cards
+- **Database:** db_migrate_waitlist.py (waitlist table with email, interests, verification) — migrated on Render
+- **Frontend:** Waitlist section on index.html (moved to bottom, above footer) + added to login.html
+- **Email:** Branded dark theme confirmation email via Resend (lands in Promotions tab — expected)
+- **Confirmation Page:** NEW `waitlist-confirmed.html` — animated checkmark, personalized interest cards, sticky footer
 - **Counter:** Starts at 7 (existing beta testers), purple gradient pill badge
-- **Status:** Built, needs deploy + DB migration + end-to-end test
+- **Status:** ✅ LIVE and working end-to-end
 
 ### ✅ Composite Fingerprinting Upgrade (Feb 17, 2026)
 - **Problem:** Single pHash had only 4-bit margin between same-comic re-photo and different copies
@@ -153,7 +154,22 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 46) - Feb 17, 2026
+## CURRENT SESSION (SESSION 64) - Feb 25, 2026
+
+### What Happened
+**WAITLIST DEPLOYED, DEBUGGED, CONFIRMATION PAGE BUILT, HOMEPAGE & LOGIN UPDATED**
+
+1. Deployed waitlist (Session 63 code) — fixed 500 error (DB migration not run), confirmed emails sending via Resend
+2. Built dedicated waitlist confirmation landing page (`waitlist-confirmed.html`) with animated checkmark, personalized interest cards
+3. Fixed confirmation page: shows ALL selected interests as highlight cards (not just first), "What happens next" simplified to just "Check your inbox"
+4. Fixed confirmation page scrolling (`overflow: hidden` → `overflow-x: hidden`) and sticky footer (flexbox `page-content` wrapper)
+5. Moved waitlist section from middle of homepage to bottom (above footer, below Slab Guard)
+6. Added full waitlist section to login page below the sign-in card
+7. Updated docs checkpoint
+
+---
+
+## PREVIOUS SESSION (SESSION 46) - Feb 17, 2026
 
 ### What Happened
 **COMPOSITE FINGERPRINTING UPGRADE - TESTED, CODED, AND DEPLOYED!**
@@ -436,7 +452,6 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 - **Vision API Backend Proxy** (routes/vision.py, JWT auth, plan gating, daily scan caps)
 
 ### 🔜 Built, Awaiting Deploy/Test
-- **Waitlist Feature** — Email signup, interest checkboxes, confirmation email, counter (starts at 7). Needs: push, DB migration, end-to-end test
 - **Valuation Endpoint** — `/api/sales/valuation` grade-specific FMV with slabbing ROI. Needs: testing per 12-case plan
 - **Title Normalizer Backfill** — `POST /api/ebay-sales/backfill-titles` to fix 369 legacy NULLs. Needs: deploy + run
 
@@ -528,10 +543,10 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 ## NEXT SESSION PRIORITIES
 
 ### Deploy & Test (Immediate)
-1. **Push + deploy waitlist code** — routes/waitlist.py, wsgi.py, index.html, db_migrate_waitlist.py
-2. **Run waitlist DB migration** — `python db_migrate_waitlist.py` on Render
-3. **Test waitlist end-to-end** — Sign up, check email, click confirm, verify redirect + counter
-4. **Check RESEND_FROM_EMAIL** — Should be noreply@slabworthy.com
+1. ~~Push + deploy waitlist code~~ ✅ DONE (Session 64)
+2. ~~Run waitlist DB migration~~ ✅ DONE (Session 64)
+3. ~~Test waitlist end-to-end~~ ✅ DONE (Session 64 — signup, email, confirm, personalized landing page all working)
+4. **Push Session 64 changes** — waitlist-confirmed.html, index.html (moved waitlist), login.html (added waitlist), routes/waitlist.py (verify redirect)
 5. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
 
 ### Oakland Sprint (May 9-10)

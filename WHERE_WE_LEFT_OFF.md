@@ -1,5 +1,68 @@
 # Where We Left Off - Feb 25, 2026
 
+## Session 64 Accomplishments (Feb 25, 2026)
+
+### Waitlist Deployed & Debugged End-to-End
+The waitlist feature from Session 63 went live and was tested/fixed through the full flow.
+
+**Deployment & Fixes:**
+- User ran `python db_migrate_waitlist.py` on Render to create the waitlist table (signup was returning 500 without it)
+- Confirmation email confirmed sending via Resend (100% deliverability) — lands in Gmail Promotions tab (expected for HTML-heavy emails, not a bug)
+- Decided to keep the branded HTML email as-is (Promotions tab is fine for waitlist confirmations)
+
+### Dedicated Waitlist Confirmation Landing Page
+Previously, clicking "Confirm My Spot" in the email just redirected to the homepage. Now it goes to a dedicated page.
+
+**New file: `waitlist-confirmed.html`**
+- Animated green checkmark with SVG draw animation
+- "You're On the List!" headline in gold Bangers font
+- Personalized highlight cards for EACH selected interest (grading, slab_guard, sell_alerts, collection) — shows all selected, not just the first
+- "What happens next" card shows only "Check your inbox" (no redundant feature list when interests are selected)
+- When NO interests selected: shows all 4 features as compact items
+- Error/invalid state with red X for bad/expired links
+- Footer stays pinned to bottom regardless of content height (flexbox `page-content` wrapper with `flex: 1`)
+- Page scrolls properly (`overflow-x: hidden` instead of `overflow: hidden`)
+
+**Modified: `routes/waitlist.py`**
+- Verify endpoint now fetches interests from DB and passes them as URL params
+- Redirects to `/waitlist-confirmed.html?status=confirmed&interests=grading,slab_guard` instead of homepage
+
+**New file: `mockup_waitlist_confirmed.html`**
+- Interactive mockup with 5 toggle buttons to simulate different interest combinations
+
+### Homepage Waitlist Section Moved
+- **Before:** Waitlist was between "How It Works" and "My Collection" (middle of page)
+- **After:** Waitlist moved to below "Slab Guard" section, just above footer
+- **New flow:** Hero → How It Works → My Collection → Slab Guard → **Waitlist** → Footer
+
+### Waitlist Added to Login Page
+- Full waitlist section added below the sign-in card on `login.html`
+- Includes "Not ready to sign in? Join the waitlist instead." intro text
+- Same form (email, interest checkboxes, counter, success state)
+- All waitlist CSS + JS included in login.html (self-contained)
+- Uses `wl-` prefixed class names to avoid conflicts with existing login page styles
+
+### Files Modified This Session
+- `waitlist-confirmed.html` — NEW dedicated confirmation page (with scroll fix + sticky footer)
+- `mockup_waitlist_confirmed.html` — NEW interactive mockup
+- `routes/waitlist.py` — Verify endpoint redirects to new page with interests
+- `index.html` — Waitlist section moved from middle to bottom (above footer)
+- `login.html` — Waitlist section added below sign-in card
+- `WHERE_WE_LEFT_OFF.md` — This file
+- `CLAUDE_NOTES.txt` — Updated
+
+### What's Ready to Push
+All changes are in the working directory. User commits/pushes (Claude doesn't have git credentials). No new DB migrations needed — waitlist table already exists from Session 63 deploy.
+
+### Decisions Made
+- Keep branded HTML confirmation email (Promotions tab is fine)
+- Waitlist belongs at bottom of homepage, not middle
+- Login page should also have waitlist for visitors who can't sign in
+- Confirmation page should show ALL selected interests, not just first
+- "What happens next" should just say "Check your inbox" when interests are selected (no redundant feature list)
+
+---
+
 ## Session 63 Accomplishments (Feb 25, 2026)
 
 ### Provisional Patent #3 — Signature Identification (Document Created!)

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join the Waitlist — Slab Worthy™</title>
+    <meta name="description" content="Be the first to know when Slab Worthy launches. AI-powered grading, theft protection, and collection tracking for comic collectors.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 20%, rgba(124,58,237,0.12) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Logo */
+        .logo-link {
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo {
+            font-family: 'Bangers', cursive;
+            font-size: min(10vw, 3.5rem);
+            letter-spacing: 2px;
+            color: #facc15;
+            text-shadow: 2px 2px 0 #7c3aed, 4px 4px 0 #1e1b4b;
+            white-space: nowrap;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        /* Main card */
+        .waitlist-card {
+            background: linear-gradient(135deg, rgba(30,27,75,0.6), rgba(18,18,31,0.9));
+            border: 2px solid rgba(124,58,237,0.25);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .waitlist-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: var(--purple-light);
+            margin-bottom: 1.25rem;
+            font-weight: 500;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 999px;
+            padding: 6px 16px 6px 6px;
+        }
+
+        .counter-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            background: linear-gradient(135deg, var(--purple-brand), #6366f1);
+            color: var(--gold-mid);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .waitlist-title {
+            font-family: 'Bangers', cursive;
+            font-size: clamp(1.8rem, 5vw, 2.4rem);
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .waitlist-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1.75rem;
+            line-height: 1.6;
+        }
+
+        /* Form */
+        .waitlist-email-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .waitlist-input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .waitlist-input:focus {
+            border-color: var(--purple-brand);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        .waitlist-input::placeholder { color: #555; }
+
+        .waitlist-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .waitlist-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .waitlist-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Interest chips */
+        .waitlist-interests {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .interests-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+        }
+
+        .interest-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #c4b5fd;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            user-select: none;
+        }
+
+        .interest-chip:has(input:checked) {
+            border-color: var(--purple-brand);
+            background: rgba(124, 58, 237, 0.15);
+            color: #e0d4ff;
+        }
+
+        .interest-chip input {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--purple-brand);
+        }
+
+        /* Messages */
+        .waitlist-message {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .waitlist-message.error {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Success state */
+        .waitlist-success {
+            padding: 1.5rem 0;
+        }
+
+        .success-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .success-title {
+            color: var(--gold-mid);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Feature highlights */
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 1.75rem;
+            text-align: left;
+        }
+
+        .feature-item {
+            background: rgba(124, 58, 237, 0.06);
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .feature-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .feature-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .feature-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Links */
+        .login-link {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .login-link a {
+            color: var(--purple-light);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .waitlist-card { padding: 2rem 1.25rem; }
+            .waitlist-email-row { flex-direction: column; }
+            .waitlist-btn { width: 100%; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content">
+        <a href="/" class="logo-link">
+            <h1 class="logo">SLAB WORTHY<sup style="font-size: 0.5em;">™</sup></h1>
+        </a>
+        <p class="tagline">AI for Comic Collectors</p>
+
+        <div class="waitlist-card">
+            <div class="waitlist-counter" id="waitlist-counter" style="display:none;">
+                <span class="counter-number" id="counter-number">0</span> collectors on the waitlist
+            </div>
+
+            <h2 class="waitlist-title">Be the First to Know</h2>
+            <p class="waitlist-subtitle">Get notified when Slab Worthy launches. Waitlist members get early access before anyone else.</p>
+
+            <form class="waitlist-form" id="waitlist-form" onsubmit="return submitWaitlist(event)">
+                <div class="waitlist-email-row">
+                    <input type="email" id="waitlist-email" placeholder="your@email.com" required autocomplete="email" class="waitlist-input">
+                    <button type="submit" class="waitlist-btn" id="waitlist-btn">Join the Waitlist</button>
+                </div>
+                <div class="waitlist-interests">
+                    <span class="interests-label">I'm interested in:</span>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="grading" checked> AI Grading</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="slab_guard"> Slab Guard</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="sell_alerts"> Sell Alerts</label>
+                    <label class="interest-chip"><input type="checkbox" name="interests" value="collection"> Collection Tracking</label>
+                </div>
+                <div class="waitlist-message" id="waitlist-message" style="display:none;"></div>
+            </form>
+
+            <!-- Success state -->
+            <div class="waitlist-success" id="waitlist-success" style="display:none;">
+                <div class="success-icon">&#10003;</div>
+                <h3 class="success-title" id="success-title">Check your email!</h3>
+                <p class="success-desc" id="success-desc">We sent a confirmation link. Click it to secure your spot on the waitlist.</p>
+            </div>
+
+            <!-- Feature highlights -->
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">&#x1F4F7;</div>
+                    <div class="feature-name">AI Grading</div>
+                    <div class="feature-desc">Snap 4 photos, get a CGC-equivalent grade and fair market value.</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">&#x1F6E1;</div>
+                    <div class="feature-name">Slab Guard™</div>
+                    <div class="feature-desc">Patent-pending fingerprinting and theft recovery for your comics.</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">&#x1F4C8;</div>
+                    <div class="feature-name">Sell Alerts</div>
+                    <div class="feature-desc">Know when your book hits a high and where to list it.</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">&#x1F4B0;</div>
+                    <div class="feature-name">Live Valuations</div>
+                    <div class="feature-desc">Track your collection value with prices updated daily.</div>
+                </div>
+            </div>
+        </div>
+
+        <p class="login-link">Already have a beta code? <a href="/login.html">Sign in</a></p>
+    </div>
+
+    <!-- FOOTER -->
+    <script src="/js/footer.js"></script>
+
+    <script>
+        const API = 'https://collectioncalc-docker.onrender.com';
+
+        // Load counter
+        (async function loadWaitlistCount() {
+            try {
+                const resp = await fetch(API + '/api/waitlist/count');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.count > 0) {
+                        document.getElementById('counter-number').textContent = data.count;
+                        document.getElementById('waitlist-counter').style.display = 'block';
+                    }
+                }
+            } catch(e) {}
+        })();
+
+        async function submitWaitlist(e) {
+            e.preventDefault();
+            const btn = document.getElementById('waitlist-btn');
+            const msg = document.getElementById('waitlist-message');
+            const email = document.getElementById('waitlist-email').value.trim();
+
+            const interests = [];
+            document.querySelectorAll('.waitlist-interests input:checked').forEach(cb => {
+                interests.push(cb.value);
+            });
+
+            btn.disabled = true;
+            btn.textContent = 'Joining...';
+            msg.style.display = 'none';
+
+            try {
+                const resp = await fetch(API + '/api/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, interests })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    document.getElementById('waitlist-form').style.display = 'none';
+                    document.getElementById('waitlist-success').style.display = 'block';
+                    if (data.message && data.message.includes('already on the list')) {
+                        document.getElementById('success-title').textContent = "You're already on the list!";
+                        document.getElementById('success-desc').textContent = data.message;
+                    }
+                } else {
+                    msg.textContent = data.error || 'Something went wrong. Please try again.';
+                    msg.className = 'waitlist-message error';
+                    msg.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Join the Waitlist';
+                }
+            } catch(err) {
+                msg.textContent = 'Network error. Please try again.';
+                msg.className = 'waitlist-message error';
+                msg.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Join the Waitlist';
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
