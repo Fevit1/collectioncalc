@@ -69,11 +69,20 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ## RECENT MAJOR MILESTONES
 
-### ✅ Signature Identification Patent Document (Feb 25, 2026)
+### ✅ Photo Authenticity Detector & White Paper (Feb 27, 2026 — Session 65)
+- **7-check photo authenticity detector** (`utils/photo_authenticity.py`): EXIF, moiré (FFT), compression, lighting, resolution/dimensions, edge sharpness, Error Level Analysis (ELA)
+- Tested against real eBay screengrabs vs original Pixel 7 Pro photos — correctly identifies originals (75.8) vs screengrabs (50-52) vs WhatsApp-compressed (56)
+- **Slab Guard white paper draft** (`docs/business/SlabGuard_WhitePaper_DRAFT.docx`) — audience: collectors, moderate technical detail, awaiting Mike's line-by-line review
+- **FAQ updated** with 3 new Slab Guard entries: photo quality for registration, how verification works, what happens when flagged
+- **TODO.md rewritten** with dependency tracking, time estimates (2x speed), critical path to GalaxyCon
+- Signature DB progress: 19 of 42 artists collected (4 signatures each)
+- All waitlist pages production-tested and passing
+
+### ✅ Signature Identification Patent FILED (Feb 25, 2026)
 - **12-page provisional patent** with 15 claims, matching Slab Guard filing format
 - Covers: signature detection, extraction, reference DB matching, confidence scoring, forgery detection, valuation integration, Slab Guard tie-in
 - Cross-references both existing patents
-- **Status:** Document ready, not yet filed on USPTO
+- **Status:** ✅ FILED — Application # 63/990,743, Confirmation # 9241
 
 ### ✅ Waitlist Feature Deployed & Tested (Feb 25, 2026)
 - **Backend:** routes/waitlist.py (subscribe, verify email, public counter)

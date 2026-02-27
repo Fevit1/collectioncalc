@@ -1,94 +1,287 @@
 # Slab Worthy — Master To-Do List
-**Created:** February 25, 2026 (Session 64)
+**Updated:** February 27, 2026 (Session 65)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
+**Soft Launch:** July 21, 2026 (~21 weeks out)
+**Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
+
+**Estimation notes:**
+- Claude coding sessions: estimated at 2x speed (we consistently deliver faster than expected)
+- ⏱ = estimated session time (Claude + Mike working together)
+- 👤 = Mike-only time (testing on devices, business tasks, manual work)
+- 🔗 = dependency on another task
+- ⚠️ = testing-heavy (may take longer — depends on Mike's device time)
 
 ---
 
-## P0 — DO THIS WEEK (Critical Path)
+## ✅ DONE (Session 64-65)
+
+- [x] **File signature identification patent** — Application # 63/990,743, Feb 25, 2026
+- [x] **Push Session 64 code** — Waitlist pages, confirmation flow
+- [x] **Test all waitlist pages on production** — All 4 passing
+- [x] **Photo authenticity detector prototype** — 7-check system, tested with real images
+- [x] **Slab Guard white paper draft** — For Mike's review
+- [x] **FAQ updates** — 3 new Slab Guard entries (photo quality, verification, flagging)
+- [x] **Signature database progress** — 19 of 42 artists collected (4 sigs each)
+
+---
+
+## P0 — THE CREDIBILITY FIX (Next 2 weeks)
+
+> If someone grades the same comic twice at your booth and gets different numbers, nothing else matters.
+
+- [ ] **Fix AI grading inconsistency** ⏱ 1 session
+  - Same comic returning 8.5 → 9.2 → 8.5 across runs
+  - Options: temperature=0, multi-run averaging, structured output schema
+  - Includes building a 10-comic calibration test suite
+  - This is the #1 credibility killer — blocks everything demo-related
+  - 🔗 Blocks: demo mode, GalaxyCon prep, grading accuracy test
+
+- [ ] **Update hardcoded CGC grading costs** ⏱ 30 min
+  - Valuation endpoint uses old prices ($30/$50/$85/$150)
+  - CGC raised prices Jan 2026 — move to config/DB
+  - 🔗 Blocks: accurate valuation display
+
+- [ ] **Push Session 65 code** 👤 10 min
+  - photo_authenticity.py, FAQ, white paper, findings doc, signatures, .gitignore
+  - Git commands provided — Mike pushes
+
+---
+
+## P1 — BOOTH-READY DEMO (Weeks 3-6, March)
+
+> The GalaxyCon pitch loop: scan QR → sign up → grade a comic → see value → wow.
+
+### Product
+
+- [ ] **Grading flow polish** ⏱ 1 session
+  - Remove 2-sec artificial delay
+  - Better photo upload instructions
+  - "Grade Another" reset button
+  - 🔗 Depends on: P0 grading consistency fix
+
+- [ ] **Wire valuation into grading results** ⏱ 1 session
+  - Grade + FMV + slabbing ROI on one screen
+  - 🔗 Depends on: CGC cost update
+
+- [ ] **Booth demo mode** ⏱ 1 session
+  - Cached/pre-loaded results for repeat demos (save API costs)
+  - Skip non-essential steps
+  - 🔗 Depends on: grading flow polish
+
+- [ ] **Sign-up/onboarding under 60 seconds** ⏱ 1 session
+  - QR scan → minimal form → first grade
+  - GalaxyCon-specific booth codes
+  - 🔗 Depends on: grading flow polish
+
+- [ ] **Offline fallback** ⏱ 1 session
+  - Graceful handling when convention WiFi drops
+  - Queue submissions, show cached results
+  - 🔗 Depends on: demo mode
+
+### Testing ⚠️
+
+- [ ] **Valuation endpoint testing** 👤⏱ 1 session
+  - 12-case test plan (grade-specific FMV with slabbing ROI)
+  - 🔗 Depends on: CGC cost update
+
+- [ ] **Run title normalizer backfill** ⏱ 15 min
+  - `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULL titles
+  - No dependencies
+
+- [ ] **Mobile testing (full grading flow)** 👤 2-3 hours across devices ⚠️
+  - Grading, collection, pricing, verify on real phones (Android + iOS)
+  - 🔗 Depends on: grading flow polish
+
+- [ ] **Live Slab Guard registration test** 👤⏱ 1 session ⚠️
+  - Register comic on production, verify fingerprinting
+  - 🔗 No blockers
+
+---
+
+## P2 — LAUNCH PREP (Weeks 7-16, April-June)
+
+> Build the moat and fill the pipeline. This is where Slab Worthy goes from "demo" to "product."
+
+### Product
+
+- [ ] **Integrate photo authenticity into Slab Guard** ⏱ 1-2 sessions
+  - Wire photo_authenticity.py into registration endpoint
+  - Store scores in DB, add to admin dashboard
+  - Challenge flow for suspicious uploads
+  - 🔗 Depends on: Live Slab Guard registration test
+
+- [ ] **Signature identification v1** ⏱ 2-3 sessions
+  - Match detected signatures against reference DB
+  - 🔗 Depends on: signature database (Mike collecting — 23 more artists needed)
+
+- [ ] **Sell Now Alerts v1** ⏱ 2 sessions
+  - When incoming eBay sale exceeds FMV by >25%, alert users who own that title
+  - Email + in-app badge on My Collection
+  - Killer feature nobody else has
+  - 🔗 Depends on: valuation endpoint working + data ramp
+
+- [ ] **Data collection ramp** 👤 ongoing
+  - More eBay/Whatnot sales for better valuations
+  - Focus on GalaxyCon-relevant titles (popular at conventions)
+  - No dependencies — can run anytime
+
+- [ ] **Email drip for waitlist** ⏱ 1 session
+  - 3-4 email sequence to keep waitlist warm pre-launch
+  - Send every 3-4 weeks: feature previews, behind-the-scenes
+  - 🔗 Depends on: having waitlist signups (start after marketing push)
+
+- [ ] **Test Haiku 4.5 for extraction** ⏱ 1 session
+  - Run against 10-20 reference comics vs Sonnet
+  - If quality is adequate, massive cost savings on API calls
+  - No dependencies
+
+### Testing ⚠️
+
+- [ ] **Session 59 test plan** 👤⏱ 2-3 sessions ⚠️
+  - ~40 of 47 tests still formally untested
+  - Auth, billing, grading, collection, fingerprinting
+  - 🔗 Depends on: grading consistency fix (many tests involve grading)
+
+- [ ] **End-to-end grading accuracy test** 👤⏱ 1-2 sessions ⚠️
+  - Grade 10+ comics with known CGC grades, compare
+  - This IS the calibration test suite
+  - 🔗 Depends on: grading consistency fix
+
+- [ ] **Stripe billing flow on mobile** 👤 1-2 hours ⚠️
+  - Checkout, plan upgrade, customer portal on real devices
+  - No code dependency, just needs Mike's time
+
+- [ ] **PWA testing** 👤 1-2 hours ⚠️
+  - Install via "Add to Home Screen" on Android and iOS
+  - Test offline behavior
+  - 🔗 Depends on: offline fallback feature
 
 ### Business
-- [x] **File signature identification patent on USPTO** — ✅ FILED Feb 25, 2026. Application # 63/990,743, Confirmation # 9241. $65 micro entity. Set reminder: December 2026 to file non-provisional.
 
-### Build
-- [ ] **Push Session 64 code** — waitlist.html, waitlist-confirmed.html, index.html, login.html, routes/waitlist.py, mockup_waitlist_confirmed.html
-- [ ] **GalaxyCon sprint plan** — Formal milestones from now to Aug 21
+- [ ] **LLC formation** 👤 1-2 weeks (paperwork + processing)
+  - Needed before: accepting real payments, assigning patents
+  - 🔗 Blocks: Stripe going live, patent assignment
 
-### Test
-- [ ] **Test waitlist confirmation page on production** — After push, sign up with new email, click confirm link, verify personalized landing page works with interests
-- [ ] **Test standalone waitlist.html page** — Verify form submits, counter loads, success state, link back to login works
-- [ ] **Test login.html waitlist CTA** — Verify "Join the Waitlist" button inside beta card links correctly
+- [ ] **Review & approve white paper** 👤 1-2 hours
+  - Line-by-line review of SlabGuard_WhitePaper_DRAFT.docx
+  - 🔗 No blockers
 
 ---
 
-## P1 — THIS MONTH (GalaxyCon Prep - Core Product)
+## P3 — PRE-LAUNCH MARKETING (Weeks 17-21, June-July)
 
-### Build
-- [ ] **Grading flow polish** — Speed up (remove 2-sec artificial delay), photo upload instructions, "Grade Next" reset button, valuation on results page
-- [ ] **Wire valuation into grading results** — Show grade + FMV + slabbing ROI together on the results screen
-- [ ] **Booth demo mode** — Streamlined flow for live demos at GalaxyCon (skip non-essential steps)
-- [ ] **Sign-up/onboarding flow under 60 seconds** — For booth visitors scanning QR code, minimal friction to first grade
-- [ ] **Offline fallback** — Graceful handling if network drops mid-demo at the convention
+> Don't market early — wait until the product is polished. Then push hard for 4 weeks before soft launch.
 
-### Test
-- [ ] **Valuation endpoint testing** — `/api/sales/valuation` needs 12-case test plan executed (grade-specific FMV with slabbing ROI)
-- [ ] **Run title normalizer backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULL titles
-- [ ] **Live Slab Guard registration test** — Register a comic on production, verify composite fingerprinting stores correctly
-- [ ] **Mobile testing (full app flow)** — Grading, collection, pricing, verify — on real phones (Android + iOS)
-- [ ] **PWA testing** — Install via "Add to Home Screen" on Android and iOS, verify offline behavior
+- [ ] **SEO / content marketing** ⏱ 2-3 sessions
+  - Blog posts: "Is my ASM #300 worth grading?" powered by real sales data
+  - Start 6-8 weeks before July 21 soft launch
+  - 🔗 Depends on: valuation + grading working reliably
 
----
+- [ ] **Social media presence** 👤⏱ 1 session to set up, then ongoing
+  - Instagram, Twitter/X, TikTok — batch content creation
+  - Convention-focused: "We'll be at GalaxyCon" campaign
+  - 🔗 Depends on: having polished demo screenshots/video
 
-## P2 — BEFORE GALAXYCON (March - July)
+- [ ] **Competitive positioning pages** ⏱ 1 session
+  - "Slab Worthy vs CLZ" and "Slab Worthy vs ComicSnap"
+  - 🔗 Depends on: product being feature-complete
 
-### Build
-- [ ] **QR code / booth materials** — Landing page or redirect for convention signage
-- [ ] **Data collection ramp** — More eBay/Whatnot sales data for better valuations (especially key titles)
-- [ ] **Email drip for waitlist** — Follow-up emails to keep waitlist engaged pre-launch
+- [ ] **Landing page polish** ⏱ 1 session
+  - For organic traffic and post-announcement Googlers
+  - Shareable white paper link
+  - 🔗 Depends on: white paper approved
 
-### Test
-- [ ] **Session 59 test plan** — ~40 of 47 tests still formally untested (auth, billing, grading, collection, fingerprinting, etc.)
-- [ ] **End-to-end grading accuracy test** — Grade 10+ comics, compare AI grades to known CGC grades
-- [ ] **Stripe billing flow on mobile** — Checkout, plan upgrade, customer portal on real devices
-
-### Business
-- [ ] **GalaxyCon logistics** — Booth setup, equipment (iPad/phone stand, power bank, signage), demo script
+- [ ] **Google Play Store production** 👤 1-2 hours
+  - Promote TWA from Internal Testing
+  - 🔗 Depends on: mobile testing passing
 
 ---
 
-## P3 — NICE TO HAVE (Post-GalaxyCon or If Time Permits)
+## P4 — GALAXYCON LOGISTICS (Weeks 22-25, August)
 
-### Build
-- [ ] **Facebook/social media presence** — Deferred to June pre-launch (batch content creation)
-- [ ] **Grade report sharing/export** — Shareable link or PDF of grading results
-- [ ] **Batch grading** — Grade multiple comics in one session
-- [ ] **Price alerts** — Notify users when their comics hit price thresholds
+- [ ] **Booth materials** 👤⏱ 1 session + print time
+  - QR codes, flyers, signage, demo script
+  - Landing page redirect for convention signage
+  - 🔗 Depends on: final product URL/flow confirmed
 
-### Fix (Technical Debt)
-- [ ] **AI grading inconsistency** — Same 4 images give different grades across runs (8.5 → 9.2 → 8.5). Needs prompt tuning or scoring calibration
-- [ ] **Comic identification bug** — Ghost Rider reboot #1 sometimes identified as original series #1
-- [ ] **Auto-rotation steps 2-4** — Code added but not working
-- [ ] **Single-page upload missing extraction** — Front photo doesn't call extraction API
-- [ ] **Cover not displaying** — Iron Man #200 photos not showing in collection
+- [ ] **Equipment & setup** 👤 shopping + prep
+  - iPad/phone stand, power bank, signage, backup phone
+  - 🔗 No blockers — can buy anytime
 
-### Backlog (Post-Launch)
-- [ ] Two-factor authentication (TOTP)
-- [ ] AI-powered support inbox
-- [ ] NLQ database queries for premium users
-- [ ] Social features
+- [ ] **Demo script & training** 👤⏱ 1 session
+  - 60-second pitch, FAQ card, edge case handling
+  - 🔗 Depends on: demo mode working
+
+- [ ] **New booth/beta codes** ⏱ 30 min
+  - Generate GalaxyCon-specific codes
+  - 🔗 Depends on: sign-up flow finalized
+
+---
+
+## P5 — TECH DEBT & NICE-TO-HAVE (As Time Permits)
+
+### Bugs to Fix
+- [ ] **Comic identification bug** ⏱ 1 session — Ghost Rider reboot vs original
+- [ ] **Auto-rotation steps 2-4** ⏱ 30 min — Code added but not working
+- [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API
+- [ ] **Cover not displaying** ⏱ 30 min — Iron Man #200 in collection
+
+### Features (Post-Launch)
+- [ ] Grade report sharing/export (shareable link or PDF)
+- [ ] Batch grading (multiple comics per session)
+- [ ] Price alerts (notify when comics hit thresholds)
+- [ ] Second opinion mode (run extraction twice, compare)
+- [ ] Slab label valuation adjustments (signature series, restored, etc.)
+- [ ] Two-factor authentication
 - [ ] Multi-vertical expansion (baseball cards, coins, sneakers)
 
 ---
 
+## Critical Path Visualization
+
+```
+WEEKS 1-2 (P0):
+  Fix grading consistency ──┐
+  Update CGC costs ─────────┤
+  Push code ────────────────┘
+                            │
+WEEKS 3-6 (P1):            ▼
+  Grading polish ──► Demo mode ──► Offline fallback
+  Valuation wiring            │
+  Onboarding flow ◄───────────┘
+  Mobile testing ⚠️
+                            │
+WEEKS 7-16 (P2):           ▼
+  Photo auth integration    Sell Now Alerts
+  Signature ID v1           Data ramp (ongoing)
+  Session 59 tests ⚠️      LLC formation 👤
+  Grading accuracy ⚠️      Haiku 4.5 test
+                            │
+WEEKS 17-21 (P3):          ▼
+  SEO/blog content          Social media push
+  Landing page polish       Google Play production
+                            │
+WEEKS 22-25 (P4):          ▼
+  Booth materials           Demo script
+  Equipment                 Beta codes
+                            │
+                            ▼
+  ┌─────────────────────────────────┐
+  │  JULY 21: SOFT LAUNCH          │
+  │  AUG 21-23: GALAXYCON SAN JOSE │
+  └─────────────────────────────────┘
+```
+
 ## Summary
 
-| Priority | Build | Test | Business | Total |
-|----------|-------|------|----------|-------|
-| P0 (This Week) | 2 | 3 | 1 | **6** |
-| P1 (This Month) | 5 | 5 | 0 | **10** |
-| P2 (Before GalaxyCon) | 3 | 3 | 1 | **7** |
-| P3 (Nice to Have) | 4 | 0 | 0 | **4** |
-| P3 (Tech Debt) | 5 | 0 | 0 | **5** |
-| P3 (Backlog) | 5 | 0 | 0 | **5** |
-| **Total** | **24** | **11** | **2** | **37** |
+| Phase | Items | Est. Sessions | Calendar |
+|-------|-------|---------------|----------|
+| P0 — Credibility Fix | 3 | 2 sessions | Weeks 1-2 |
+| P1 — Booth-Ready Demo | 9 | 6 sessions + device testing ⚠️ | Weeks 3-6 |
+| P2 — Launch Prep | 12 | 10 sessions + device testing ⚠️ | Weeks 7-16 |
+| P3 — Marketing | 5 | 5 sessions | Weeks 17-21 |
+| P4 — GalaxyCon Logistics | 4 | 2 sessions + shopping 👤 | Weeks 22-25 |
+| P5 — Tech Debt | 4+7 | As time permits | Anytime |
+| **Total** | **37+** | **~25 sessions** | **25 weeks** |
 
-**Critical path to GalaxyCon:** P0 + P1 = 15 items over the next month, then P2 fills March through July. Extra runway means more polish time.
+**At ~1-2 sessions/week, this is tight but very doable.** The key is staying disciplined about P0 → P1 → P2 order and not getting pulled into P5 polish work before the core demo flow is bulletproof.
