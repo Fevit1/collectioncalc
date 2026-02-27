@@ -57,3 +57,11 @@ ComicBookImages/CLaduePromptRestart*
 ComicBookImages/
 _cleanup_candidates/
 WV/
+
+# Test photos (personal images, eBay grabs - not for repo)
+PhotosOfPhotosTest/
+PhotosofPhotosTest/
+
+# USPTO receipts and screenshots
+docs/business/N417.PYMT*
+docs/business/patentapplicationsingatures*

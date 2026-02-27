@@ -11,7 +11,7 @@
 AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine, back, centerfold) → Get instant condition assessment with CGC-equivalent grade, defect detection, and Fair Market Value.
 
 **Live:** slabworthy.com
-**Status:** Pre-alpha, targeting Comic Con Oakland (May 9-10, 2026) for alpha launch
+**Status:** Pre-alpha, targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch
 **Tech Stack:** Flask/Python backend, HTML/CSS/JS frontend, PostgreSQL, Cloudflare R2, Claude API
 
 ### Three Patent-Pending Product Lines
@@ -30,29 +30,31 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Covers comics ($1.5B) + baseball cards ($5B)
 - No competitive services exist
 
-**3. Signature Identification & Authentication** 🆕
-- Document ready: February 25, 2026 (not yet filed on USPTO)
+**3. Signature Identification & Authentication** ✅
+- **Filed: February 25, 2026 — Application # 63/990,743**
+- Confirmation # 9241, Patent Center # 74618571
+- Filing fee: $65 (micro entity)
 - AI-powered detection of creator signatures on comic covers
 - Reference database matching (137 target creators, 35+ collected)
 - Forgery detection via size/position/style anomaly analysis
 - Valuation integration (signature premium calculation)
 - Ties into Slab Guard for registered signature ownership proof
-- File before July 21 soft launch to lock in priority date
+- **12-month deadline:** File non-provisional by February 25, 2027 (set reminder Month 10 = December 2026)
 
 ### Key Metrics
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
 - **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
 - **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
 - **Users:** Pre-launch (building email list)
-- **Revenue:** $0 (pre-revenue, targeting Oakland Comic Con alpha May 2026)
+- **Revenue:** $0 (pre-revenue, targeting GalaxyCon San Jose alpha Aug 2026)
 
-### Current Priorities (Oakland Alpha - May 9-10, 2026)
-1. **Waitlist Feature** - ✅ DEPLOYED & TESTED (DB migrated, emails sending, confirmation page live)
-2. **Signature Patent** - ✅ DOCUMENT READY, needs USPTO filing before July 21
+### Current Priorities (GalaxyCon San Jose Alpha - Aug 21-23, 2026)
+1. **Waitlist Feature** - ✅ DEPLOYED & PRODUCTION TESTED (all 4 pages verified live: waitlist.html, confirmation flow, login CTA, homepage section)
+2. **Signature Patent** - ✅ FILED on USPTO (Application # 63/990,743, Feb 25, 2026)
 3. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
 4. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
 5. **Contact Form** - ✅ DEPLOYED (contact.html + routes/contact.py, Turnstile + rate limiting)
-6. **Oakland Sprint Plan** - 🔜 NEXT: 10-week plan with week-by-week milestones
+6. **GalaxyCon Sprint Plan** - 🔜 NEXT: 25-week plan with milestones leading to Aug 21
 7. **Grading Flow Polish** - Mobile-first, end-to-end bullet-proof for booth demo
 8. **Data Collection Ramp** - More eBay/Whatnot sales data for better valuations
 9. **Session 59 Test Plan** - ~40 of 47 tests still formally untested
@@ -164,8 +166,9 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 3. Fixed confirmation page: shows ALL selected interests as highlight cards (not just first), "What happens next" simplified to just "Check your inbox"
 4. Fixed confirmation page scrolling (`overflow: hidden` → `overflow-x: hidden`) and sticky footer (flexbox `page-content` wrapper)
 5. Moved waitlist section from middle of homepage to bottom (above footer, below Slab Guard)
-6. Added full waitlist section to login page below the sign-in card
-7. Updated docs checkpoint
+6. Created standalone `waitlist.html` page — full waitlist form with feature grid, shareable URL
+7. Login page: removed inline waitlist, added clean CTA inside Private Beta card linking to `/waitlist.html`
+8. Updated docs checkpoint
 
 ---
 
@@ -546,11 +549,11 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 1. ~~Push + deploy waitlist code~~ ✅ DONE (Session 64)
 2. ~~Run waitlist DB migration~~ ✅ DONE (Session 64)
 3. ~~Test waitlist end-to-end~~ ✅ DONE (Session 64 — signup, email, confirm, personalized landing page all working)
-4. **Push Session 64 changes** — waitlist-confirmed.html, index.html (moved waitlist), login.html (added waitlist), routes/waitlist.py (verify redirect)
+4. **Push Session 64 latest changes** — waitlist.html (new standalone page), waitlist-confirmed.html, index.html, login.html (CTA inside beta card), routes/waitlist.py
 5. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
 
-### Oakland Sprint (May 9-10)
-6. **Oakland 10-week sprint plan** — Formal week-by-week milestones
+### GalaxyCon San Jose Sprint (Aug 21-23)
+6. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
 7. **Grading flow polish** — Speed up (remove 2-sec delay), photo instructions, booth demo mode, offline fallback, valuation on results, "Grade Next" reset
 8. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
 9. **Wire valuation into results** — Show grade + FMV + slabbing ROI together

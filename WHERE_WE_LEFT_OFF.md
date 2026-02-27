@@ -1,6 +1,32 @@
 # Where We Left Off - Feb 25, 2026
 
+## Session 65 (Feb 25, 2026) — Short Session
+
+### What We Did
+- Updated all docs with Patent #3 filing confirmation (Application # 63/990,743)
+- Tested all 4 waitlist pages on production — all passing:
+  - `waitlist.html` (standalone page) ✅
+  - Waitlist confirmation flow end-to-end ✅
+  - `login.html` CTA link to waitlist ✅
+  - Homepage waitlist section positioning ✅
+- Marked waitlist feature as fully production-tested
+
+### What Mike Is Doing Next
+- Working on the **signatures reference database** (collecting creator signature samples for Patent #3's signature identification system — currently 35+ of 137 target creators collected)
+
+---
+
 ## Session 64 Accomplishments (Feb 25, 2026)
+
+### Patent #3 FILED on USPTO!
+- **Title:** System and Method for Automated Identification and Authentication of Creator Signatures on Collectible Items Using Computer Vision and Reference Database Matching
+- **Application #:** 63/990,743
+- **Confirmation #:** 9241
+- **Patent Center #:** 74618571
+- **Filed:** February 25, 2026 at 4:26:52 PM ET
+- **Fee:** $65 (micro entity)
+- **12-month deadline:** File non-provisional by Feb 25, 2027 (reminder at Month 10 = Dec 2026)
+- This is Patent #3 — all three provisional patents are now filed!
 
 ### Waitlist Deployed & Debugged End-to-End
 The waitlist feature from Session 63 went live and was tested/fixed through the full flow.
@@ -35,19 +61,18 @@ Previously, clicking "Confirm My Spot" in the email just redirected to the homep
 - **After:** Waitlist moved to below "Slab Guard" section, just above footer
 - **New flow:** Hero → How It Works → My Collection → Slab Guard → **Waitlist** → Footer
 
-### Waitlist Added to Login Page
-- Full waitlist section added below the sign-in card on `login.html`
-- Includes "Not ready to sign in? Join the waitlist instead." intro text
-- Same form (email, interest checkboxes, counter, success state)
-- All waitlist CSS + JS included in login.html (self-contained)
-- Uses `wl-` prefixed class names to avoid conflicts with existing login page styles
+### Standalone Waitlist Page + Login CTA
+- Created `waitlist.html` — standalone page with logo, full waitlist form, interest chips, counter, 2x2 feature grid, "Already have a beta code? Sign in" link back to login
+- Shareable URL: `slabworthy.com/waitlist.html` (for social, emails, etc.)
+- Login page (`login.html`) — removed bulky inline waitlist section, replaced with clean CTA inside the Private Beta card: "Don't have a beta code? Get notified when we launch." + outlined "Join the Waitlist" button linking to `/waitlist.html`
 
 ### Files Modified This Session
 - `waitlist-confirmed.html` — NEW dedicated confirmation page (with scroll fix + sticky footer)
+- `waitlist.html` — NEW standalone waitlist signup page
 - `mockup_waitlist_confirmed.html` — NEW interactive mockup
 - `routes/waitlist.py` — Verify endpoint redirects to new page with interests
 - `index.html` — Waitlist section moved from middle to bottom (above footer)
-- `login.html` — Waitlist section added below sign-in card
+- `login.html` — Inline waitlist removed, replaced with CTA link inside beta card
 - `WHERE_WE_LEFT_OFF.md` — This file
 - `CLAUDE_NOTES.txt` — Updated
 
@@ -57,7 +82,8 @@ All changes are in the working directory. User commits/pushes (Claude doesn't ha
 ### Decisions Made
 - Keep branded HTML confirmation email (Promotions tab is fine)
 - Waitlist belongs at bottom of homepage, not middle
-- Login page should also have waitlist for visitors who can't sign in
+- Standalone waitlist page is better than side-by-side on login (mobile-friendly)
+- Login page gets a clean CTA link inside the beta card, not a full inline form
 - Confirmation page should show ALL selected interests, not just first
 - "What happens next" should just say "Check your inbox" when interests are selected (no redundant feature list)
 
@@ -65,7 +91,7 @@ All changes are in the working directory. User commits/pushes (Claude doesn't ha
 
 ## Session 63 Accomplishments (Feb 25, 2026)
 
-### Provisional Patent #3 — Signature Identification (Document Created!)
+### Provisional Patent #3 — Signature Identification (Document Created → FILED!)
 Created 12-page provisional patent application with 15 claims for automated comic book signature identification technology. Follows same format as the Slab Guard patent filing.
 
 **Title:** System and Method for Automated Identification and Authentication of Creator Signatures on Collectible Items Using Computer Vision and Reference Database Matching
@@ -133,7 +159,7 @@ Full waitlist signup system for pre-launch interest capture.
 - **File signature patent on USPTO** — Document ready, needs to be submitted before July 21
 - **Run backfill** — Deploy then `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULLs
 - **Grading flow polish** — Speed, instructions, booth demo mode, offline fallback, valuation on results
-- **Oakland 10-week sprint plan** — Still not formalized
+- **GalaxyCon sprint plan** — Milestones leading to Aug 21-23 launch
 - **Sign-up/onboarding flow** — Under 60 seconds for booth
 - **Results page with valuation** — Wire valuation endpoint into grading results
 
@@ -161,7 +187,7 @@ Built `POST /api/ebay-sales/backfill-titles` endpoint in `routes/sales.py` that:
 Mike ran collection sessions bringing total to ~19,632 records. ~50% dupe rate on established titles — need to focus collection on underrepresented titles going forward.
 
 ### Grading Flow Audit — Complete
-Full audit of the grading flow (app.html, js/grading.js, routes/grading.py) for Oakland booth readiness. Key findings:
+Full audit of the grading flow (app.html, js/grading.js, routes/grading.py) for GalaxyCon booth readiness. Key findings:
 - **Too slow:** 20-30 second wait with forced 2-sec delay + random thinking messages
 - **No instructions:** Steps don't explain what photo to take
 - **Auth wall:** Redirects to login immediately, no guest/demo mode
@@ -169,13 +195,13 @@ Full audit of the grading flow (app.html, js/grading.js, routes/grading.py) for 
 - **No valuation on results screen:** Grade and value not shown together
 - **No "Grade Next" reset:** Can't quickly start over for next person in line
 
-### Oakland Nice-to-Have List Updated
-Added **Signature Identification** to nice-to-have list (not required for Oakland). Mike plans to collect creator signature samples this week by searching for their artwork/signatures online.
+### GalaxyCon Nice-to-Have List Updated
+Added **Signature Identification** to nice-to-have list (not required for GalaxyCon). Mike plans to collect creator signature samples this week by searching for their artwork/signatures online.
 
 ### Pending
 - **Run backfill:** Deploy then `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULLs
 - **Grading flow polish:** Implementation needed based on audit findings
-- **Oakland 10-week sprint plan:** Discussed outline but not formalized
+- **GalaxyCon sprint plan:** Discussed outline but not formalized
 - **Sign-up/onboarding flow:** Under 60 seconds for booth
 - **Results page with valuation:** Wire valuation endpoint into grading results
 
@@ -214,7 +240,7 @@ Converted the footer Contact mailto link into a full contact form page.
 - `verify.html` — Same change in standalone footer
 
 ### Valuation Endpoint — Built! (Testing Pending)
-New `/api/sales/valuation` endpoint for grade-specific pricing with slabbing ROI calculation. Purpose-built for the Oakland Comic Con alpha launch demo.
+New `/api/sales/valuation` endpoint for grade-specific pricing with slabbing ROI calculation. Purpose-built for the GalaxyCon San Jose alpha launch demo.
 
 **How it works:**
 1. Exact grade match first (e.g., "Batman 9.6 has 15 sales averaging $153")
@@ -233,20 +259,18 @@ New `/api/sales/valuation` endpoint for grade-specific pricing with slabbing ROI
 
 **Test plan:** `Valuation_Endpoint_Test_Plan.docx` — 12 test cases with clickable live URLs
 
-### Oakland Comic Con Alpha Launch — Planning Started!
-**Event:** Comic Con Oakland, May 9-10, 2026, Oakland Convention Center
+### GalaxyCon San Jose Alpha Launch — Planning Started!
+**Event:** GalaxyCon San Jose, Aug 21-23, 2026
 **Type:** Alpha launch (underpromise, overdeliver)
-**Exhibitor application:** Submitted Feb 23, 2026
 
 **Key decisions made:**
-- Pivoted from SDCC (July 23, too big/expensive) to Oakland (May 9-10, local, comic-focused, right audience)
-- Also considered BayCon (sci-fi/fantasy, wrong audience) and GalaxyCon San Jose (Aug 21-23, backup option)
+- Originally considered SDCC (July 23, too big/expensive), then Oakland Comic Con (May 9-10), ultimately chose GalaxyCon San Jose (Aug 21-23) for more prep time
 - Core demo loop: grade a comic live + show slabbing ROI with real market data
 - Valuation is critical — "is it worth slabbing?" is the killer feature
 - Data analysis: ~25k sales records, ~1,890 graded records across 70+ titles with grade-specific pricing
 - No third-party data services (CovrPrice, GPA) — both ToS prohibit redistribution
 
-**SDCC Launch Roadmap:** `SDCC_Launch_Roadmap.docx` created but may be superseded by Oakland-focused sprint plan
+**SDCC Launch Roadmap:** `SDCC_Launch_Roadmap.docx` created but superseded by GalaxyCon-focused sprint plan
 
 ### Data Analysis Results
 Ran diagnostic queries against production database:
@@ -263,11 +287,10 @@ Ran diagnostic queries against production database:
 
 ### Pending
 - **Test valuation endpoint** — 12-test plan in `Valuation_Endpoint_Test_Plan.docx`, Render deploying
-- **Build Oakland 10-week sprint plan** — detailed week-by-week milestones
+- **Build GalaxyCon sprint plan** — milestones leading to Aug 21 launch
 - **Session 59 test plan** — ~40 of 47 tests still formally untested (see `Session59_Test_Plan_From_Mike_Footer_Issues.docx`)
-- **Ramp up eBay sales collector** — more data = better valuations for Oakland
+- **Ramp up eBay sales collector** — more data = better valuations for GalaxyCon
 - **Consider eBay Browse API** for real-time sold price lookups (supplements owned data)
-- **GalaxyCon San Jose (Aug 21-23)** — potential polished 1.0 launch after Oakland alpha
 
 ---
 
