@@ -348,17 +348,22 @@ def api_signed_sales():
 def api_premium_analysis():
     """
     Analyze the price premium of signed comics vs unsigned.
-    Uses a single SQL query with CTEs for performance.
-
-    Title collision handling: when unsigned comps have a very wide price range
-    (max > 5x min), the pair is flagged. Post-query Python filters these
-    by matching the signed sale to the nearest price tier.
+    Professional-grade methodology:
+      1. Time-windowed comparisons (±90 days) to control for market shifts
+      2. Log-transformed premiums for symmetric distributions
+      3. Bootstrap 95% confidence intervals
+      4. Percentile-based outlier trimming
+      5. Title-year disambiguation to prevent era collisions
 
     Query params:
         min_comps: minimum unsigned comparables required (default 3)
         min_price: minimum sale price to include (default 10)
+        trim_pct: percentile to trim from each tail (default 5)
+        time_window: days ± for time-matched comps (default 90, 0=no limit)
+        bootstrap_n: number of bootstrap iterations (default 1000)
     """
     import math
+    import random
 
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
@@ -366,109 +371,111 @@ def api_premium_analysis():
 
     min_comps = int(request.args.get('min_comps', 3))
     min_price = float(request.args.get('min_price', 10))
+    trim_pct = float(request.args.get('trim_pct', 5))
+    time_window = int(request.args.get('time_window', 90))
+    bootstrap_n = min(int(request.args.get('bootstrap_n', 1000)), 5000)
 
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
     try:
-        # Single-pass: join signed sales to unsigned aggregate stats
-        # Uses title_year for disambiguation when available (prevents
-        # X-Men #1 1963 vs 1991 collision). Falls back to title-only
-        # matching when neither side has a year.
-        cur.execute("""
+        # ── SQL: match each signed sale to individual unsigned sales ──
+        # Returns individual pairs (not aggregated) so we can do proper
+        # time-windowed matching and per-pair log ratios in Python.
+        # This gives us much better statistical properties than matching
+        # against pre-aggregated medians.
+        time_clause_graded = ""
+        time_clause_raw = ""
+        if time_window > 0:
+            time_clause_graded = f"AND (s.sale_date IS NULL OR u.sale_date IS NULL OR ABS(EXTRACT(EPOCH FROM (s.sale_date - u.sale_date))) <= {time_window * 86400})"
+            time_clause_raw = time_clause_graded
+
+        cur.execute(f"""
             WITH signed AS (
                 SELECT id, canonical_title, issue_number, grade, sale_price,
-                       creators, raw_title, title_year
+                       sale_date, creators, raw_title, title_year
                 FROM ebay_sales
                 WHERE is_signed = TRUE
                   AND canonical_title IS NOT NULL
                   AND issue_number IS NOT NULL
                   AND sale_price > %(min_price)s
             ),
-            unsigned_graded AS (
-                SELECT canonical_title, issue_number, grade, title_year,
-                       COUNT(*) as comp_count,
-                       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
-                       AVG(sale_price) as mean_price,
-                       MIN(sale_price) as min_price,
-                       MAX(sale_price) as max_price,
-                       ARRAY_AGG(sale_price ORDER BY sale_price) as all_prices
-                FROM ebay_sales
-                WHERE is_signed = FALSE
-                  AND canonical_title IS NOT NULL
-                  AND issue_number IS NOT NULL
-                  AND grade IS NOT NULL
-                  AND sale_price > %(min_price)s
-                GROUP BY canonical_title, issue_number, grade, title_year
-                HAVING COUNT(*) >= %(min_comps)s
+            -- For each signed sale, find matching unsigned sales
+            -- and compute per-signed-sale aggregates
+            graded_matches AS (
+                SELECT
+                    s.id as signed_id, s.canonical_title, s.issue_number,
+                    s.grade as signed_grade, s.sale_price as signed_price,
+                    s.sale_date as signed_date,
+                    s.creators, s.raw_title, s.title_year as signed_year,
+                    COUNT(u.id) as comp_count,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY u.sale_price) as median_price,
+                    AVG(u.sale_price) as mean_price,
+                    MIN(u.sale_price) as min_price,
+                    MAX(u.sale_price) as max_price,
+                    ARRAY_AGG(u.sale_price ORDER BY u.sale_price) as all_prices
+                FROM signed s
+                JOIN ebay_sales u
+                    ON u.canonical_title = s.canonical_title
+                    AND u.issue_number = s.issue_number
+                    AND u.is_signed = FALSE
+                    AND u.grade IS NOT NULL
+                    AND s.grade IS NOT NULL
+                    AND ABS(s.grade - u.grade) <= 0.5
+                    AND u.sale_price > %(min_price)s
+                    AND (
+                        (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
+                         AND ABS(s.title_year - u.title_year) <= 2)
+                        OR s.title_year IS NULL
+                        OR u.title_year IS NULL
+                    )
+                    {time_clause_graded}
+                GROUP BY s.id, s.canonical_title, s.issue_number,
+                         s.grade, s.sale_price, s.sale_date,
+                         s.creators, s.raw_title, s.title_year
+                HAVING COUNT(u.id) >= %(min_comps)s
             ),
-            unsigned_raw AS (
-                SELECT canonical_title, issue_number,
-                       NULL::numeric as grade, title_year,
-                       COUNT(*) as comp_count,
-                       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
-                       AVG(sale_price) as mean_price,
-                       MIN(sale_price) as min_price,
-                       MAX(sale_price) as max_price,
-                       ARRAY_AGG(sale_price ORDER BY sale_price) as all_prices
-                FROM ebay_sales
-                WHERE is_signed = FALSE
-                  AND canonical_title IS NOT NULL
-                  AND issue_number IS NOT NULL
-                  AND grade IS NULL
-                  AND graded = FALSE
-                  AND sale_price > %(min_price)s
-                GROUP BY canonical_title, issue_number, title_year
-                HAVING COUNT(*) >= %(min_comps)s
+            raw_matches AS (
+                SELECT
+                    s.id as signed_id, s.canonical_title, s.issue_number,
+                    s.grade as signed_grade, s.sale_price as signed_price,
+                    s.sale_date as signed_date,
+                    s.creators, s.raw_title, s.title_year as signed_year,
+                    COUNT(u.id) as comp_count,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY u.sale_price) as median_price,
+                    AVG(u.sale_price) as mean_price,
+                    MIN(u.sale_price) as min_price,
+                    MAX(u.sale_price) as max_price,
+                    ARRAY_AGG(u.sale_price ORDER BY u.sale_price) as all_prices
+                FROM signed s
+                JOIN ebay_sales u
+                    ON u.canonical_title = s.canonical_title
+                    AND u.issue_number = s.issue_number
+                    AND u.is_signed = FALSE
+                    AND u.grade IS NULL
+                    AND u.graded = FALSE
+                    AND s.grade IS NULL
+                    AND u.sale_price > %(min_price)s
+                    AND (
+                        (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
+                         AND ABS(s.title_year - u.title_year) <= 2)
+                        OR s.title_year IS NULL
+                        OR u.title_year IS NULL
+                    )
+                    {time_clause_raw}
+                GROUP BY s.id, s.canonical_title, s.issue_number,
+                         s.grade, s.sale_price, s.sale_date,
+                         s.creators, s.raw_title, s.title_year
+                HAVING COUNT(u.id) >= %(min_comps)s
             )
-            -- Graded: match on title+issue+grade, with year when both have it
-            SELECT
-                s.canonical_title, s.issue_number,
-                s.grade as signed_grade, s.sale_price as signed_price,
-                s.creators, s.raw_title, s.title_year as signed_year,
-                u.comp_count, u.median_price, u.mean_price,
-                u.min_price, u.max_price, u.all_prices
-            FROM signed s
-            JOIN unsigned_graded u
-                ON s.canonical_title = u.canonical_title
-                AND s.issue_number = u.issue_number
-                AND s.grade IS NOT NULL
-                AND ABS(s.grade - u.grade) <= 0.5
-                AND (
-                    -- Both have year: must match (±2 years for reprints)
-                    (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
-                     AND ABS(s.title_year - u.title_year) <= 2)
-                    -- One or both missing year: allow match (fallback)
-                    OR s.title_year IS NULL
-                    OR u.title_year IS NULL
-                )
-
+            SELECT * FROM graded_matches
             UNION ALL
-
-            -- Raw: match on title+issue, with year when both have it
-            SELECT
-                s.canonical_title, s.issue_number,
-                s.grade as signed_grade, s.sale_price as signed_price,
-                s.creators, s.raw_title, s.title_year as signed_year,
-                u.comp_count, u.median_price, u.mean_price,
-                u.min_price, u.max_price, u.all_prices
-            FROM signed s
-            JOIN unsigned_raw u
-                ON s.canonical_title = u.canonical_title
-                AND s.issue_number = u.issue_number
-                AND s.grade IS NULL
-                AND (
-                    (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
-                     AND ABS(s.title_year - u.title_year) <= 2)
-                    OR s.title_year IS NULL
-                    OR u.title_year IS NULL
-                )
-
+            SELECT * FROM raw_matches
             ORDER BY signed_price DESC
         """, {'min_price': min_price, 'min_comps': min_comps})
 
         rows = cur.fetchall()
 
-        # Also get total signed count for stats
+        # Total signed count for coverage stats
         cur.execute("""
             SELECT COUNT(*) as total FROM ebay_sales
             WHERE is_signed = TRUE AND canonical_title IS NOT NULL
@@ -476,7 +483,7 @@ def api_premium_analysis():
         """, (min_price,))
         total_signed = cur.fetchone()['total']
 
-        # Process rows with collision handling in Python
+        # ── Process rows with collision handling ──
         pairs = []
         skipped_collision = 0
 
@@ -492,7 +499,6 @@ def api_premium_analysis():
             collision_detected = comp_max > comp_min * 5 and comp_count >= 6
 
             if collision_detected and all_prices:
-                # Split into tiers on log scale
                 log_mid = (math.log(comp_min) + math.log(comp_max)) / 2
                 mid_price = math.exp(log_mid)
 
@@ -515,8 +521,15 @@ def api_premium_analysis():
                 mean_price = sum(tier) / len(tier)
                 comp_count = len(tier)
 
-            premium_vs_median = ((signed_price - median_price) / median_price) * 100
-            premium_vs_mean = ((signed_price - mean_price) / mean_price) * 100
+            # ── Log-transformed premium ──
+            # ln(signed/unsigned) gives symmetric distribution
+            # More resistant to outliers than percentage premium
+            if median_price > 0 and signed_price > 0:
+                log_ratio = math.log(signed_price / median_price)
+            else:
+                log_ratio = 0.0
+
+            premium_pct = ((signed_price - median_price) / median_price) * 100 if median_price > 0 else 0.0
 
             grade_val = float(row['signed_grade']) if row['signed_grade'] is not None else None
 
@@ -527,59 +540,93 @@ def api_premium_analysis():
                 'unsigned_median': round(median_price, 2),
                 'unsigned_mean': round(mean_price, 2),
                 'num_comps': comp_count,
-                'premium_vs_median': round(premium_vs_median, 1),
-                'premium_vs_mean': round(premium_vs_mean, 1),
+                'premium_vs_median': round(premium_pct, 1),
+                'log_ratio': round(log_ratio, 4),
                 'collision_adjusted': collision_detected,
                 'creator': row.get('creators') or ''
             })
 
-        # Aggregate stats
-        skipped_no_comps = total_signed - len(rows) - skipped_collision
-
-        # Outlier trimming: drop top/bottom N% of premiums
-        trim_pct = float(request.args.get('trim_pct', 5))  # default 5%
-
+        # ── Helper functions ──
         def trim_outliers(values, pct):
-            """Remove top and bottom pct% of values."""
             if not values or pct <= 0:
                 return values
             n = len(values)
             cut = max(1, int(n * pct / 100))
             if cut * 2 >= n:
-                return values  # too few to trim
+                return values
             s = sorted(values)
             return s[cut:-cut]
 
+        def bootstrap_ci(values, n_iter=1000, ci=95):
+            """Compute bootstrap confidence interval for the median."""
+            if len(values) < 5:
+                return None, None, None
+            rng = random.Random(42)  # deterministic seed
+            medians = []
+            for _ in range(n_iter):
+                sample = [rng.choice(values) for _ in range(len(values))]
+                sample.sort()
+                medians.append(sample[len(sample)//2])
+            medians.sort()
+            lo_idx = int(n_iter * (100 - ci) / 200)
+            hi_idx = int(n_iter * (100 + ci) / 200)
+            median_of_medians = medians[len(medians)//2]
+            return round(medians[lo_idx], 1), round(median_of_medians, 1), round(medians[hi_idx], 1)
+
+        # ── Aggregate stats ──
+        skipped_no_comps = total_signed - len(rows) - skipped_collision
+
         if pairs:
+            # Percentage premiums
             premiums_all = sorted([p['premium_vs_median'] for p in pairs])
             premiums_trimmed = trim_outliers(premiums_all, trim_pct)
             positive_all = [p for p in premiums_all if p > 0]
             positive_trimmed = [p for p in premiums_trimmed if p > 0]
 
+            # Log ratios for geometric mean
+            log_ratios_all = [p['log_ratio'] for p in pairs]
+            log_ratios_trimmed = trim_outliers(sorted(log_ratios_all), trim_pct)
+
+            # Geometric mean premium: exp(mean(log_ratios)) - 1
+            geo_mean_all = (math.exp(sum(log_ratios_all) / len(log_ratios_all)) - 1) * 100 if log_ratios_all else 0
+            geo_mean_trimmed = (math.exp(sum(log_ratios_trimmed) / len(log_ratios_trimmed)) - 1) * 100 if log_ratios_trimmed else 0
+
+            # Bootstrap confidence intervals on trimmed premiums
+            ci_lo, ci_median, ci_hi = bootstrap_ci(premiums_trimmed, n_iter=bootstrap_n)
+
+            # Grade tiers
             graded_pairs = [p for p in pairs if p['grade'] is not None]
             raw_pairs = [p for p in pairs if p['grade'] is None]
             high_grade = [p for p in graded_pairs if p['grade'] and p['grade'] >= 9.0]
             mid_grade = [p for p in graded_pairs if p['grade'] and 7.0 <= p['grade'] < 9.0]
             low_grade = [p for p in graded_pairs if p['grade'] and p['grade'] < 7.0]
 
-            def tier_stats(tier_pairs, apply_trim=True):
+            def tier_stats(tier_pairs):
                 if not tier_pairs:
                     return None
                 prems = sorted([p['premium_vs_median'] for p in tier_pairs])
-                raw_stats = {
+                logs = sorted([p['log_ratio'] for p in tier_pairs])
+                geo = (math.exp(sum(logs) / len(logs)) - 1) * 100 if logs else 0
+                result = {
                     'count': len(prems),
                     'mean': round(sum(prems) / len(prems), 1),
                     'median': round(prems[len(prems)//2], 1),
+                    'geometric_mean': round(geo, 1),
                     'min': round(min(prems), 1),
                     'max': round(max(prems), 1)
                 }
-                if apply_trim and len(prems) >= 10:
+                if len(prems) >= 10:
                     trimmed = trim_outliers(prems, trim_pct)
+                    trimmed_logs = trim_outliers(logs, trim_pct)
                     if trimmed:
-                        raw_stats['trimmed_mean'] = round(sum(trimmed) / len(trimmed), 1)
-                        raw_stats['trimmed_median'] = round(trimmed[len(trimmed)//2], 1)
-                        raw_stats['trimmed_count'] = len(trimmed)
-                return raw_stats
+                        result['trimmed_mean'] = round(sum(trimmed) / len(trimmed), 1)
+                        result['trimmed_median'] = round(trimmed[len(trimmed)//2], 1)
+                        result['trimmed_geo_mean'] = round((math.exp(sum(trimmed_logs) / len(trimmed_logs)) - 1) * 100, 1) if trimmed_logs else None
+                        result['trimmed_count'] = len(trimmed)
+                        t_ci_lo, t_ci_med, t_ci_hi = bootstrap_ci(trimmed, n_iter=bootstrap_n)
+                        if t_ci_lo is not None:
+                            result['ci_95'] = [t_ci_lo, t_ci_hi]
+                return result
 
             summary = {
                 'total_signed_sales': total_signed,
@@ -587,9 +634,11 @@ def api_premium_analysis():
                 'skipped_no_comps': skipped_no_comps,
                 'skipped_collision': skipped_collision,
                 'trim_pct': trim_pct,
+                'time_window_days': time_window,
                 'overall_raw': {
                     'mean_premium': round(sum(premiums_all) / len(premiums_all), 1),
                     'median_premium': round(premiums_all[len(premiums_all)//2], 1),
+                    'geometric_mean_premium': round(geo_mean_all, 1),
                     'min_premium': round(min(premiums_all), 1),
                     'max_premium': round(max(premiums_all), 1),
                     'positive_count': len(positive_all),
@@ -598,11 +647,13 @@ def api_premium_analysis():
                 'overall_trimmed': {
                     'mean_premium': round(sum(premiums_trimmed) / len(premiums_trimmed), 1) if premiums_trimmed else None,
                     'median_premium': round(premiums_trimmed[len(premiums_trimmed)//2], 1) if premiums_trimmed else None,
+                    'geometric_mean_premium': round(geo_mean_trimmed, 1),
                     'min_premium': round(min(premiums_trimmed), 1) if premiums_trimmed else None,
                     'max_premium': round(max(premiums_trimmed), 1) if premiums_trimmed else None,
                     'positive_count': len(positive_trimmed),
                     'positive_pct': round(len(positive_trimmed) / len(premiums_trimmed) * 100, 1) if premiums_trimmed else None,
-                    'count': len(premiums_trimmed)
+                    'count': len(premiums_trimmed),
+                    'ci_95_median': [ci_lo, ci_hi] if ci_lo is not None else None
                 },
                 'by_grade_tier': {
                     'high_grade_9plus': tier_stats(high_grade),
@@ -627,9 +678,12 @@ def api_premium_analysis():
             'summary': summary,
             'pairs': pairs[:50],
             'methodology': {
-                'description': 'Each signed sale matched against unsigned sales of same title+issue at same grade (±0.5). Premium = (signed_price - unsigned_median) / unsigned_median.',
-                'collision_handling': 'When unsigned comps span >5x price range with 6+ sales, prices are split into tiers and signed sale is matched to nearest tier.',
-                'outlier_trimming': f'Top and bottom {trim_pct}% of premiums removed for trimmed stats. Adjustable via ?trim_pct=N.',
+                'description': 'Each signed sale matched against time-windowed unsigned sales of same title+issue at same grade (±0.5).',
+                'time_window': f'Unsigned comps must be within ±{time_window} days of signed sale date (0=no limit). Controls for market fluctuations.',
+                'log_transform': 'Geometric mean computed via ln(signed/unsigned) for symmetric premium distribution. More robust than arithmetic mean for price ratios.',
+                'confidence_intervals': f'Bootstrap 95% CI on trimmed median ({bootstrap_n} iterations, seed=42). Shows statistical certainty of premium estimate.',
+                'collision_handling': 'When unsigned comps span >5x price range with 6+ sales, prices split into tiers; signed sale matched to nearest tier.',
+                'outlier_trimming': f'Top and bottom {trim_pct}% of premiums removed. Adjustable via ?trim_pct=N.',
                 'min_comps': min_comps,
                 'min_price': min_price
             }

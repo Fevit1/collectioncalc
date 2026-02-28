@@ -416,32 +416,39 @@ def premium_analysis():
     summary = data.get("summary", {})
     pairs = data.get("pairs", [])
 
+    time_window = summary.get('time_window_days', '?')
     print(f"Total signed sales in DB:  {summary.get('total_signed_sales', '?')}")
     print(f"Matched pairs (w/ comps):  {summary.get('matched_pairs', '?')}")
     print(f"Skipped (no comps):        {summary.get('skipped_no_comps', '?')}")
     print(f"Skipped (title collision):  {summary.get('skipped_collision', '?')}")
+    print(f"Time window:               ±{time_window} days")
 
     raw = summary.get("overall_raw")
     trimmed = summary.get("overall_trimmed")
     trim_pct = summary.get("trim_pct", 5)
 
     if raw:
-        print(f"\n{'═' * 50}")
-        print(f"OVERALL SIGNED PREMIUM (RAW)")
-        print(f"{'═' * 50}")
-        print(f"  Mean premium:    {raw['mean_premium']:+.1f}%")
-        print(f"  Median premium:  {raw['median_premium']:+.1f}%")
-        print(f"  Range:           {raw['min_premium']:+.0f}% to {raw['max_premium']:+.0f}%")
-        print(f"  Positive:        {raw['positive_count']}/{summary['matched_pairs']} ({raw['positive_pct']:.0f}%)")
+        print(f"\n{'═' * 55}")
+        print(f"OVERALL SIGNED PREMIUM (RAW, n={summary.get('matched_pairs', '?')})")
+        print(f"{'═' * 55}")
+        print(f"  Arithmetic mean:   {raw['mean_premium']:+.1f}%")
+        print(f"  Geometric mean:    {raw.get('geometric_mean_premium', 0):+.1f}%")
+        print(f"  Median:            {raw['median_premium']:+.1f}%")
+        print(f"  Range:             {raw['min_premium']:+.0f}% to {raw['max_premium']:+.0f}%")
+        print(f"  Positive:          {raw['positive_count']}/{summary['matched_pairs']} ({raw['positive_pct']:.0f}%)")
 
     if trimmed and trimmed.get('mean_premium') is not None:
-        print(f"\n{'═' * 50}")
+        print(f"\n{'═' * 55}")
         print(f"TRIMMED (top/bottom {trim_pct}% removed, n={trimmed['count']})")
-        print(f"{'═' * 50}")
-        print(f"  Mean premium:    {trimmed['mean_premium']:+.1f}%")
-        print(f"  Median premium:  {trimmed['median_premium']:+.1f}%")
-        print(f"  Range:           {trimmed['min_premium']:+.0f}% to {trimmed['max_premium']:+.0f}%")
-        print(f"  Positive:        {trimmed['positive_count']}/{trimmed['count']} ({trimmed['positive_pct']:.0f}%)")
+        print(f"{'═' * 55}")
+        print(f"  Arithmetic mean:   {trimmed['mean_premium']:+.1f}%")
+        print(f"  Geometric mean:    {trimmed.get('geometric_mean_premium', 0):+.1f}%")
+        print(f"  Median:            {trimmed['median_premium']:+.1f}%")
+        ci = trimmed.get('ci_95_median')
+        if ci:
+            print(f"  95% CI (median):   [{ci[0]:+.1f}%, {ci[1]:+.1f}%]")
+        print(f"  Range:             {trimmed['min_premium']:+.0f}% to {trimmed['max_premium']:+.0f}%")
+        print(f"  Positive:          {trimmed['positive_count']}/{trimmed['count']} ({trimmed['positive_pct']:.0f}%)")
 
     tiers = summary.get("by_grade_tier", {})
     if any(tiers.values()):
@@ -449,13 +456,15 @@ def premium_analysis():
         for tier_name, tier_data in tiers.items():
             if tier_data:
                 label = tier_name.replace('_', ' ').title()
-                trimmed_note = ""
+                parts = [f"{tier_data['count']} pairs"]
+                parts.append(f"median {tier_data['median']:+.0f}%")
+                parts.append(f"geo.mean {tier_data.get('geometric_mean', 0):+.0f}%")
                 if tier_data.get('trimmed_median') is not None:
-                    trimmed_note = f" | trimmed: median {tier_data['trimmed_median']:+.0f}%, mean {tier_data['trimmed_mean']:+.0f}%"
-                print(f"  {label}: {tier_data['count']} pairs, "
-                      f"median {tier_data['median']:+.0f}%, "
-                      f"mean {tier_data['mean']:+.0f}%, "
-                      f"range {tier_data['min']:+.0f}% to {tier_data['max']:+.0f}%{trimmed_note}")
+                    parts.append(f"trimmed median {tier_data['trimmed_median']:+.0f}%")
+                    ci = tier_data.get('ci_95')
+                    if ci:
+                        parts.append(f"95%CI [{ci[0]:+.0f}%,{ci[1]:+.0f}%]")
+                print(f"  {label}: {', '.join(parts)}")
 
     if pairs:
         print(f"\n{'─' * 50}")
@@ -470,8 +479,11 @@ def premium_analysis():
 
     methodology = data.get("methodology", {})
     if methodology:
-        print(f"\nMethodology: {methodology.get('description', '')[:120]}")
-        print(f"Collision handling: {methodology.get('collision_handling', '')[:120]}")
+        print(f"\nMethodology:")
+        print(f"  {methodology.get('description', '')}")
+        print(f"  Time window: {methodology.get('time_window', '')}")
+        print(f"  Log transform: {methodology.get('log_transform', '')}")
+        print(f"  Confidence: {methodology.get('confidence_intervals', '')}")
 
 
 if __name__ == "__main__":
