@@ -36,10 +36,11 @@
   - 10 unit tests passing, live consistency test harness built
   - 🔗 UNBLOCKED: demo mode, GalaxyCon prep, grading accuracy test
 
-- [ ] **Update hardcoded CGC grading costs** ⏱ 30 min
-  - Valuation endpoint uses old prices ($30/$50/$85/$150)
-  - CGC raised prices Jan 2026 — move to config/DB
-  - 🔗 Blocks: accurate valuation display
+- [x] ~~**Update hardcoded CGC grading costs**~~ ✅ Session 66
+  - Updated to 2026 pricing: Modern $30, Vintage $45, High Value $105, Unlimited 4% ($135 min)
+  - Centralized `get_cgc_grading_cost()` function + `CGC_GRADING_COSTS` config in sales_valuation.py
+  - Now factors in modern vs vintage (pre-1975) pricing
+  - All 3 hardcoded locations replaced
 
 - [ ] **Push Session 65 code** 👤 10 min
   - photo_authenticity.py, FAQ, white paper, findings doc, signatures, .gitignore
@@ -134,6 +135,14 @@
   - Run against 10-20 reference comics vs Sonnet
   - If quality is adequate, massive cost savings on API calls
   - No dependencies
+
+- [ ] **Automated CGC price checker + admin approval** ⏱ 2-3 sessions
+  - Weekly scheduled job scrapes CGC fee page, compares to stored config
+  - DB table `pricing_config` for active prices + pending proposals
+  - Admin dashboard "Pricing Updates" tab with approve/reject buttons
+  - On approval, swaps active config; rejected = discarded
+  - Low urgency — CGC changes prices ~once/year (last: Jan 2026)
+  - 🔗 No blockers
 
 ### Testing ⚠️
 

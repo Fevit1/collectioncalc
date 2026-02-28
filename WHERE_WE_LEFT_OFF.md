@@ -33,14 +33,24 @@
 - Even if a category score varies ±0.5 between runs, the weighted average smooths it to ±0.2
 - Multi-run median (optional, 2-3x cost) further reduces to near-zero variance
 
+### Updated CGC Grading Costs to 2026 Pricing
+- **Old:** $30 / $50 / $85 / $150 (flat tiers, no era distinction)
+- **New:** Modern $30, Vintage $45, High Value $105, Unlimited 4% of FMV ($135 min)
+- Created centralized `get_cgc_grading_cost(fmv, year)` function in `routes/sales_valuation.py`
+- Now factors in modern vs vintage (pre-1975) — vintage comics get the correct $45 fee
+- Replaced all 3 hardcoded pricing blocks with the centralized function
+- Added `CGC_GRADING_COSTS` config dict at top of file (versioned, sourced, easy to update)
+- **Added to P2 roadmap:** Automated weekly CGC price checker + admin approval dashboard (2-3 sessions, low urgency since CGC changes prices ~once/year)
+
 ### Files Created/Modified
 - `grading_engine.py` — NEW: structured grading engine
 - `test_grading_consistency.py` — NEW: unit tests + live consistency test
 - `routes/grading.py` — MODIFIED: added `/api/grade` endpoint
+- `routes/sales_valuation.py` — MODIFIED: CGC 2026 pricing, centralized `get_cgc_grading_cost()`
 - `app.html` — MODIFIED: new grading flow + category scores UI
 - `styles.css` — MODIFIED: category score bar styles
 - `WHERE_WE_LEFT_OFF.md` — This file
-- `CLAUDE_NOTES.txt` — Updated
+- `TODO.md` — Updated with completions + automated price checker roadmap item
 
 ### What's Ready to Push
 All changes in working directory. The old `/api/messages` endpoint still works for backward compat. No DB migrations needed.

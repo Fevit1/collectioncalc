@@ -4,6 +4,7 @@ Routes: /api/sales/valuation, /api/sales/fmv
 """
 import os
 import re
+import json
 from decimal import Decimal
 from flask import Blueprint, jsonify, request
 import psycopg2
@@ -11,6 +12,67 @@ from psycopg2.extras import RealDictCursor
 
 # Create blueprint
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
+
+
+# ──────────────────────────────────────────────
+# CGC Grading Cost Configuration (2026 pricing)
+# Updated: January 6, 2026
+# Source: https://www.cgccomics.com/submit/services-fees/cgc-grading/
+# ──────────────────────────────────────────────
+
+CGC_GRADING_COSTS = {
+    "version": "2026-01-06",
+    "last_updated": "2026-01-06",
+    "source": "CGC official fee schedule",
+    "tiers": [
+        # Modern comics (1975-present), standard (non-bulk)
+        {"name": "Modern",      "fee": 30, "max_value": 400, "era": "modern",  "min_year": 1975, "bulk": False},
+        # Modern bulk (25+ books)
+        {"name": "Modern Bulk", "fee": 27, "max_value": 400, "era": "modern",  "min_year": 1975, "bulk": True},
+        # Vintage comics (pre-1975), standard
+        {"name": "Vintage",      "fee": 45, "max_value": 400, "era": "vintage", "min_year": None, "bulk": False},
+        # Vintage bulk (25+ books)
+        {"name": "Vintage Bulk", "fee": 42, "max_value": 400, "era": "vintage", "min_year": None, "bulk": True},
+        # High value (any era, $400-$1000)
+        {"name": "High Value",   "fee": 105, "max_value": 1000, "era": "any",   "min_year": None, "bulk": False},
+        # Unlimited value ($1000+) — 4% of FMV, $135 minimum
+        {"name": "Unlimited",    "fee_pct": 0.04, "fee_min": 135, "max_value": None, "era": "any", "min_year": None, "bulk": False},
+    ],
+    "handling_fee": 5,  # per online invoice
+}
+
+
+def get_cgc_grading_cost(fmv: float, year: int = None) -> int:
+    """
+    Calculate CGC grading cost based on comic's fair market value and year.
+
+    Args:
+        fmv: Fair market value of the comic (raw or best estimate)
+        year: Publication year (used to determine modern vs vintage tier)
+              If None, assumes modern pricing (conservative — modern is cheaper)
+
+    Returns:
+        Estimated grading cost in dollars (integer, rounded up)
+    """
+    if fmv is None or fmv <= 0:
+        fmv = 0
+
+    is_vintage = year is not None and year < 1975
+
+    # Unlimited value tier ($1000+)
+    if fmv >= 1000:
+        cost = max(fmv * 0.04, 135)
+        return int(round(cost))
+
+    # High value tier ($400-$1000)
+    if fmv >= 400:
+        return 105
+
+    # Standard tier (under $400) — depends on era
+    if is_vintage:
+        return 45  # Vintage standard (non-bulk; bulk = 42)
+    else:
+        return 30  # Modern standard (non-bulk; bulk = 27)
 
 
 @valuation_bp.route('/sales/valuation', methods=['GET'])
@@ -243,16 +305,10 @@ def api_sales_valuation():
         raw_fmv = round(sum(raw_prices) / len(raw_prices), 2) if raw_prices else None
         raw_count = len(raw_prices)
 
-        # ---------- Grading cost (tiered by CGC schedule) ----------
+        # ---------- Grading cost (tiered by CGC 2026 schedule) ----------
         base_value = graded_fmv or raw_fmv or 0
-        if base_value >= 1000:
-            grading_cost = 150
-        elif base_value >= 400:
-            grading_cost = 85
-        elif base_value >= 200:
-            grading_cost = 50
-        else:
-            grading_cost = 30
+        comic_year = request.args.get('year', type=int, default=None)
+        grading_cost = get_cgc_grading_cost(base_value, comic_year)
 
         # ---------- ROI calculation ----------
         slabbing_roi = None
@@ -488,7 +544,7 @@ def api_sales_fmv():
 
             # Slabbed premium (typically 40-60% for raw comics without known value)
             slabbed_estimate = raw_estimate * 1.5
-            grading_cost = 30  # Standard grading fee
+            grading_cost = get_cgc_grading_cost(raw_estimate, year)  # CGC 2026 schedule
 
             # Round to 2 decimals
             raw_estimate = round(raw_estimate, 2)
@@ -601,13 +657,8 @@ def api_sales_fmv():
         if slabbed_fmv < raw_fmv:
             slabbed_fmv = raw_fmv * 1.5
 
-        grading_cost = 30
-        if raw_fmv >= 1000:
-            grading_cost = 150
-        elif raw_fmv >= 400:
-            grading_cost = 85
-        elif raw_fmv >= 200:
-            grading_cost = 50
+        comic_year = request.args.get('year', type=int, default=None)
+        grading_cost = get_cgc_grading_cost(raw_fmv, comic_year)
 
         raw_fmv = round(raw_fmv, 2)
         slabbed_fmv = round(slabbed_fmv, 2)
