@@ -44,7 +44,7 @@ SIGNATURES_DIR = Path(__file__).parent / "signatures"
 DB_PATH = SIGNATURES_DIR / "signatures_db.json"
 
 
-def api_get(path, token=None):
+def api_get(path, token=None, timeout=30):
     """GET request to API."""
     url = f"{API_BASE}{path}"
     headers = {}
@@ -52,7 +52,7 @@ def api_get(path, token=None):
         headers['Authorization'] = f'Bearer {token}'
 
     if HAS_REQUESTS:
-        r = requests.get(url, headers=headers, timeout=30)
+        r = requests.get(url, headers=headers, timeout=timeout)
         try:
             return r.json(), r.status_code
         except Exception:
@@ -407,7 +407,7 @@ def premium_analysis():
     print("Running signed premium analysis...")
     print("─" * 60)
 
-    data, status = api_get("/api/signatures/premium-analysis?min_comps=3&min_price=10")
+    data, status = api_get("/api/signatures/premium-analysis?min_comps=3&min_price=10", timeout=120)
 
     if status != 200:
         print(f"❌ Error ({status}): {data}")

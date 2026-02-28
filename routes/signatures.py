@@ -348,19 +348,18 @@ def api_signed_sales():
 def api_premium_analysis():
     """
     Analyze the price premium of signed comics vs unsigned.
-
-    Matches each signed sale against unsigned sales of the same title+issue+grade
-    from the ebay_sales table, then computes the premium percentage.
+    Uses a single SQL query with CTEs for performance.
 
     Title collision handling: when unsigned comps have a very wide price range
-    (max > 5x min), the signed sale is matched against the price tier nearest
-    to it rather than the overall median. This prevents X-Men #1 (1991) signed
-    at $299 from being compared to X-Men #1 (1963) valued at $50,000.
+    (max > 5x min), the pair is flagged. Post-query Python filters these
+    by matching the signed sale to the nearest price tier.
 
     Query params:
         min_comps: minimum unsigned comparables required (default 3)
         min_price: minimum sale price to include (default 10)
     """
+    import math
+
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         return jsonify({'error': 'Database not configured'}), 503
@@ -371,120 +370,159 @@ def api_premium_analysis():
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
     try:
-        # Step 1: Get all signed sales with grade and canonical title
+        # Single-pass: join signed sales to unsigned aggregate stats
         cur.execute("""
-            SELECT id, canonical_title, issue_number, grade, sale_price,
-                   creators, raw_title, grading_company
-            FROM ebay_sales
-            WHERE is_signed = TRUE
-              AND canonical_title IS NOT NULL
-              AND issue_number IS NOT NULL
-              AND sale_price > %s
-            ORDER BY sale_price DESC
-        """, (min_price,))
-        signed_sales = cur.fetchall()
+            WITH signed AS (
+                SELECT id, canonical_title, issue_number, grade, sale_price,
+                       creators, raw_title
+                FROM ebay_sales
+                WHERE is_signed = TRUE
+                  AND canonical_title IS NOT NULL
+                  AND issue_number IS NOT NULL
+                  AND sale_price > %(min_price)s
+            ),
+            unsigned_graded AS (
+                SELECT canonical_title, issue_number, grade,
+                       COUNT(*) as comp_count,
+                       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
+                       AVG(sale_price) as mean_price,
+                       MIN(sale_price) as min_price,
+                       MAX(sale_price) as max_price,
+                       ARRAY_AGG(sale_price ORDER BY sale_price) as all_prices
+                FROM ebay_sales
+                WHERE is_signed = FALSE
+                  AND canonical_title IS NOT NULL
+                  AND issue_number IS NOT NULL
+                  AND grade IS NOT NULL
+                  AND sale_price > %(min_price)s
+                GROUP BY canonical_title, issue_number, grade
+                HAVING COUNT(*) >= %(min_comps)s
+            ),
+            unsigned_raw AS (
+                SELECT canonical_title, issue_number,
+                       NULL::numeric as grade,
+                       COUNT(*) as comp_count,
+                       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
+                       AVG(sale_price) as mean_price,
+                       MIN(sale_price) as min_price,
+                       MAX(sale_price) as max_price,
+                       ARRAY_AGG(sale_price ORDER BY sale_price) as all_prices
+                FROM ebay_sales
+                WHERE is_signed = FALSE
+                  AND canonical_title IS NOT NULL
+                  AND issue_number IS NOT NULL
+                  AND grade IS NULL
+                  AND graded = FALSE
+                  AND sale_price > %(min_price)s
+                GROUP BY canonical_title, issue_number
+                HAVING COUNT(*) >= %(min_comps)s
+            )
+            SELECT
+                s.canonical_title, s.issue_number,
+                s.grade as signed_grade, s.sale_price as signed_price,
+                s.creators, s.raw_title,
+                u.comp_count, u.median_price, u.mean_price,
+                u.min_price, u.max_price, u.all_prices
+            FROM signed s
+            JOIN unsigned_graded u
+                ON s.canonical_title = u.canonical_title
+                AND s.issue_number = u.issue_number
+                AND s.grade IS NOT NULL
+                AND ABS(s.grade - u.grade) <= 0.5
 
+            UNION ALL
+
+            SELECT
+                s.canonical_title, s.issue_number,
+                s.grade as signed_grade, s.sale_price as signed_price,
+                s.creators, s.raw_title,
+                u.comp_count, u.median_price, u.mean_price,
+                u.min_price, u.max_price, u.all_prices
+            FROM signed s
+            JOIN unsigned_raw u
+                ON s.canonical_title = u.canonical_title
+                AND s.issue_number = u.issue_number
+                AND s.grade IS NULL
+
+            ORDER BY signed_price DESC
+        """, {'min_price': min_price, 'min_comps': min_comps})
+
+        rows = cur.fetchall()
+
+        # Also get total signed count for stats
+        cur.execute("""
+            SELECT COUNT(*) as total FROM ebay_sales
+            WHERE is_signed = TRUE AND canonical_title IS NOT NULL
+              AND issue_number IS NOT NULL AND sale_price > %s
+        """, (min_price,))
+        total_signed = cur.fetchone()['total']
+
+        # Process rows with collision handling in Python
         pairs = []
-        skipped_no_comps = 0
         skipped_collision = 0
 
-        for signed in signed_sales:
-            title = signed['canonical_title']
-            issue = signed['issue_number']
-            grade = signed['grade']
-            signed_price = float(signed['sale_price'])
+        for row in rows:
+            signed_price = float(row['signed_price'])
+            comp_min = float(row['min_price'])
+            comp_max = float(row['max_price'])
+            comp_count = row['comp_count']
+            median_price = float(row['median_price'])
+            mean_price = float(row['mean_price'])
+            all_prices = [float(p) for p in row['all_prices']] if row['all_prices'] else []
 
-            # Step 2: Find unsigned comparables at same title+issue
-            # If graded, match at same grade; if raw, match raw-to-raw
-            if grade:
-                cur.execute("""
-                    SELECT sale_price FROM ebay_sales
-                    WHERE canonical_title = %s
-                      AND issue_number = %s
-                      AND is_signed = FALSE
-                      AND grade IS NOT NULL
-                      AND grade BETWEEN %s - 0.5 AND %s + 0.5
-                      AND sale_price > %s
-                    ORDER BY sale_price
-                """, (title, issue, float(grade), float(grade), min_price))
-            else:
-                # Raw signed vs raw unsigned
-                cur.execute("""
-                    SELECT sale_price FROM ebay_sales
-                    WHERE canonical_title = %s
-                      AND issue_number = %s
-                      AND is_signed = FALSE
-                      AND grade IS NULL
-                      AND graded = FALSE
-                      AND sale_price > %s
-                    ORDER BY sale_price
-                """, (title, issue, min_price))
+            collision_detected = comp_max > comp_min * 5 and comp_count >= 6
 
-            comps = [float(r['sale_price']) for r in cur.fetchall()]
-
-            if len(comps) < min_comps:
-                skipped_no_comps += 1
-                continue
-
-            # Step 3: Title collision detection
-            # If price range is huge (max > 5x min), there's likely a title
-            # collision (e.g., X-Men #1 1963 vs 1991). Use nearest-tier matching.
-            comp_min = min(comps)
-            comp_max = max(comps)
-            collision_detected = comp_max > comp_min * 5 and len(comps) >= 6
-
-            if collision_detected:
-                # Split comps into two tiers using the midpoint on log scale
-                import math
+            if collision_detected and all_prices:
+                # Split into tiers on log scale
                 log_mid = (math.log(comp_min) + math.log(comp_max)) / 2
                 mid_price = math.exp(log_mid)
 
-                lower_tier = [p for p in comps if p <= mid_price]
-                upper_tier = [p for p in comps if p > mid_price]
+                lower_tier = [p for p in all_prices if p <= mid_price]
+                upper_tier = [p for p in all_prices if p > mid_price]
 
-                # Which tier is the signed sale closest to?
                 lower_median = sorted(lower_tier)[len(lower_tier)//2] if lower_tier else 0
                 upper_median = sorted(upper_tier)[len(upper_tier)//2] if upper_tier else 0
 
                 if abs(signed_price - lower_median) < abs(signed_price - upper_median):
-                    comps = lower_tier
+                    tier = lower_tier
                 else:
-                    comps = upper_tier
+                    tier = upper_tier
 
-                if len(comps) < min_comps:
+                if len(tier) < min_comps:
                     skipped_collision += 1
                     continue
 
-            # Step 4: Compute premium
-            comps.sort()
-            unsigned_median = comps[len(comps) // 2]
-            unsigned_mean = sum(comps) / len(comps)
-            premium_vs_median = ((signed_price - unsigned_median) / unsigned_median) * 100
-            premium_vs_mean = ((signed_price - unsigned_mean) / unsigned_mean) * 100
+                median_price = sorted(tier)[len(tier)//2]
+                mean_price = sum(tier) / len(tier)
+                comp_count = len(tier)
+
+            premium_vs_median = ((signed_price - median_price) / median_price) * 100
+            premium_vs_mean = ((signed_price - mean_price) / mean_price) * 100
+
+            grade_val = float(row['signed_grade']) if row['signed_grade'] is not None else None
 
             pairs.append({
-                'comic': f"{title} #{issue}",
-                'grade': float(grade) if grade else None,
+                'comic': f"{row['canonical_title']} #{row['issue_number']}",
+                'grade': grade_val,
                 'signed_price': signed_price,
-                'unsigned_median': round(unsigned_median, 2),
-                'unsigned_mean': round(unsigned_mean, 2),
-                'num_comps': len(comps),
+                'unsigned_median': round(median_price, 2),
+                'unsigned_mean': round(mean_price, 2),
+                'num_comps': comp_count,
                 'premium_vs_median': round(premium_vs_median, 1),
                 'premium_vs_mean': round(premium_vs_mean, 1),
                 'collision_adjusted': collision_detected,
-                'creator': signed.get('creators') or ''
+                'creator': row.get('creators') or ''
             })
 
-        # Step 5: Aggregate stats
+        # Aggregate stats
+        skipped_no_comps = total_signed - len(rows) - skipped_collision
+
         if pairs:
-            premiums_median = [p['premium_vs_median'] for p in pairs]
-            premiums_median.sort()
+            premiums_median = sorted([p['premium_vs_median'] for p in pairs])
             positive = [p for p in premiums_median if p > 0]
 
-            # Breakdown by grade tier
             graded_pairs = [p for p in pairs if p['grade'] is not None]
             raw_pairs = [p for p in pairs if p['grade'] is None]
-
             high_grade = [p for p in graded_pairs if p['grade'] and p['grade'] >= 9.0]
             mid_grade = [p for p in graded_pairs if p['grade'] and 7.0 <= p['grade'] < 9.0]
             low_grade = [p for p in graded_pairs if p['grade'] and p['grade'] < 7.0]
@@ -502,7 +540,7 @@ def api_premium_analysis():
                 }
 
             summary = {
-                'total_signed_sales': len(signed_sales),
+                'total_signed_sales': total_signed,
                 'matched_pairs': len(pairs),
                 'skipped_no_comps': skipped_no_comps,
                 'skipped_collision': skipped_collision,
@@ -523,20 +561,19 @@ def api_premium_analysis():
             }
         else:
             summary = {
-                'total_signed_sales': len(signed_sales),
+                'total_signed_sales': total_signed,
                 'matched_pairs': 0,
                 'skipped_no_comps': skipped_no_comps,
                 'skipped_collision': skipped_collision,
                 'note': 'No matched pairs found. Need more unsigned comparables.'
             }
 
-        # Sort pairs by premium descending for display
         pairs.sort(key=lambda x: -x['premium_vs_median'])
 
         return jsonify({
             'success': True,
             'summary': summary,
-            'pairs': pairs[:50],  # Top 50 for display
+            'pairs': pairs[:50],
             'methodology': {
                 'description': 'Each signed sale matched against unsigned sales of same title+issue at same grade (±0.5). Premium = (signed_price - unsigned_median) / unsigned_median.',
                 'collision_handling': 'When unsigned comps span >5x price range with 6+ sales, prices are split into tiers and signed sale is matched to nearest tier. Prevents era-collision bias.',
