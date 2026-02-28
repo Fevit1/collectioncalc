@@ -39,6 +39,7 @@ def normalize_ebay_sale(sale_dict):
             # Add normalized fields
             sale_dict['canonical_title'] = normalized['canonical_title']
             sale_dict['issue_number'] = normalized['issue_number']
+            sale_dict['title_year'] = normalized.get('title_year')
             sale_dict['grade_from_title'] = normalized['grade_from_title']
             sale_dict['grading_company'] = normalized['grading_company']
             sale_dict['is_facsimile'] = normalized['is_facsimile']
@@ -131,9 +132,10 @@ def add_ebay_sales_batch():
                         listing_url, image_url, ebay_item_id, content_hash,
                         canonical_title, grade_from_title, grading_company,
                         is_facsimile, is_reprint, is_variant, is_signed, is_lot,
-                        is_key_issue, key_issue_claim, creators, title_notes
+                        is_key_issue, key_issue_claim, creators, title_notes,
+                        title_year
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                              %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                              %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (ebay_item_id) DO NOTHING
                 """, (
                     sale.get('raw_title'),
@@ -161,7 +163,8 @@ def add_ebay_sales_batch():
                     sale.get('is_key_issue', False),
                     sale.get('key_issue_claim'),
                     sale.get('creators'),
-                    sale.get('title_notes')
+                    sale.get('title_notes'),
+                    sale.get('title_year')
                 ))
 
                 if cur.rowcount > 0:
@@ -264,7 +267,8 @@ def backfill_canonical_titles():
                             is_key_issue = %s,
                             key_issue_claim = %s,
                             creators = %s,
-                            title_notes = %s
+                            title_notes = %s,
+                            title_year = %s
                         WHERE id = %s
                     """, (
                         canonical,
@@ -278,7 +282,8 @@ def backfill_canonical_titles():
                         normalized.get('is_key_issue', False),
                         normalized.get('key_issue_claim'),
                         normalized.get('creators'),
-                        normalized.get('title_notes')
+                        normalized.get('title_notes'),
+                        normalized.get('title_year')
                     ))
                     updated += 1
                 else:

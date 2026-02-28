@@ -371,10 +371,13 @@ def api_premium_analysis():
     cur = conn.cursor()
     try:
         # Single-pass: join signed sales to unsigned aggregate stats
+        # Uses title_year for disambiguation when available (prevents
+        # X-Men #1 1963 vs 1991 collision). Falls back to title-only
+        # matching when neither side has a year.
         cur.execute("""
             WITH signed AS (
                 SELECT id, canonical_title, issue_number, grade, sale_price,
-                       creators, raw_title
+                       creators, raw_title, title_year
                 FROM ebay_sales
                 WHERE is_signed = TRUE
                   AND canonical_title IS NOT NULL
@@ -382,7 +385,7 @@ def api_premium_analysis():
                   AND sale_price > %(min_price)s
             ),
             unsigned_graded AS (
-                SELECT canonical_title, issue_number, grade,
+                SELECT canonical_title, issue_number, grade, title_year,
                        COUNT(*) as comp_count,
                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
                        AVG(sale_price) as mean_price,
@@ -395,12 +398,12 @@ def api_premium_analysis():
                   AND issue_number IS NOT NULL
                   AND grade IS NOT NULL
                   AND sale_price > %(min_price)s
-                GROUP BY canonical_title, issue_number, grade
+                GROUP BY canonical_title, issue_number, grade, title_year
                 HAVING COUNT(*) >= %(min_comps)s
             ),
             unsigned_raw AS (
                 SELECT canonical_title, issue_number,
-                       NULL::numeric as grade,
+                       NULL::numeric as grade, title_year,
                        COUNT(*) as comp_count,
                        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sale_price) as median_price,
                        AVG(sale_price) as mean_price,
@@ -414,13 +417,14 @@ def api_premium_analysis():
                   AND grade IS NULL
                   AND graded = FALSE
                   AND sale_price > %(min_price)s
-                GROUP BY canonical_title, issue_number
+                GROUP BY canonical_title, issue_number, title_year
                 HAVING COUNT(*) >= %(min_comps)s
             )
+            -- Graded: match on title+issue+grade, with year when both have it
             SELECT
                 s.canonical_title, s.issue_number,
                 s.grade as signed_grade, s.sale_price as signed_price,
-                s.creators, s.raw_title,
+                s.creators, s.raw_title, s.title_year as signed_year,
                 u.comp_count, u.median_price, u.mean_price,
                 u.min_price, u.max_price, u.all_prices
             FROM signed s
@@ -429,13 +433,22 @@ def api_premium_analysis():
                 AND s.issue_number = u.issue_number
                 AND s.grade IS NOT NULL
                 AND ABS(s.grade - u.grade) <= 0.5
+                AND (
+                    -- Both have year: must match (±2 years for reprints)
+                    (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
+                     AND ABS(s.title_year - u.title_year) <= 2)
+                    -- One or both missing year: allow match (fallback)
+                    OR s.title_year IS NULL
+                    OR u.title_year IS NULL
+                )
 
             UNION ALL
 
+            -- Raw: match on title+issue, with year when both have it
             SELECT
                 s.canonical_title, s.issue_number,
                 s.grade as signed_grade, s.sale_price as signed_price,
-                s.creators, s.raw_title,
+                s.creators, s.raw_title, s.title_year as signed_year,
                 u.comp_count, u.median_price, u.mean_price,
                 u.min_price, u.max_price, u.all_prices
             FROM signed s
@@ -443,6 +456,12 @@ def api_premium_analysis():
                 ON s.canonical_title = u.canonical_title
                 AND s.issue_number = u.issue_number
                 AND s.grade IS NULL
+                AND (
+                    (s.title_year IS NOT NULL AND u.title_year IS NOT NULL
+                     AND ABS(s.title_year - u.title_year) <= 2)
+                    OR s.title_year IS NULL
+                    OR u.title_year IS NULL
+                )
 
             ORDER BY signed_price DESC
         """, {'min_price': min_price, 'min_comps': min_comps})

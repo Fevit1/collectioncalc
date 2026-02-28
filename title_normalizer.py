@@ -62,6 +62,25 @@ def normalize_title(raw_title):
     working = re.sub(r'[~|]+', ' ', title)
     working = re.sub(r'\s+', ' ', working).strip()
 
+    # ── Step 0.5: Extract publication year before it gets stripped ──
+    title_year = None
+    # Pattern: (1940-2029) in parens like "(1991)" — most reliable
+    year_paren = re.search(r'\((\d{4})\)', working)
+    if year_paren:
+        y = int(year_paren.group(1))
+        if 1930 <= y <= 2029:
+            title_year = y
+    # Fallback: standalone 4-digit year near title, not an issue number
+    if not title_year:
+        year_matches = re.findall(r'\b(19[3-9]\d|20[0-2]\d)\b', working)
+        if year_matches:
+            # Take the first plausible publication year
+            for ym in year_matches:
+                y = int(ym)
+                if 1930 <= y <= 2029:
+                    title_year = y
+                    break
+
     # ── Step 1: Extract grading info ──────────────────────────────
     grade_from_title = None
     grading_company = None
@@ -441,6 +460,7 @@ def normalize_title(raw_title):
     return {
         'canonical_title': canonical_title,
         'issue_number': issue_number,
+        'title_year': title_year,
         'grade_from_title': grade_from_title,
         'grading_company': grading_company,
         'is_facsimile': is_facsimile,
@@ -555,6 +575,7 @@ def _empty_result():
     return {
         'canonical_title': None,
         'issue_number': None,
+        'title_year': None,
         'grade_from_title': None,
         'grading_company': None,
         'is_facsimile': False,
