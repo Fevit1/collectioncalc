@@ -610,6 +610,31 @@
             color: var(--text-muted);
             margin-bottom: -1px;
         }
+        .table-headers .sortable {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s;
+        }
+        .table-headers .sortable:hover {
+            color: var(--accent);
+        }
+        .table-headers .sortable.active {
+            color: var(--accent);
+        }
+        .table-headers .sort-arrow {
+            font-size: 0.6rem;
+            opacity: 0.3;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .table-headers .sortable.active .sort-arrow {
+            opacity: 1;
+        }
+        .table-headers .sortable.desc .sort-arrow {
+            transform: rotate(180deg);
+        }
 
         /* Gallery View */
         .comics-gallery {
@@ -904,12 +929,12 @@
         <!-- Table Headers (List View Only) -->
         <div class="table-headers" id="tableHeaders" style="display: none;">
             <div>Cover</div>
-            <div>Title</div>
-            <div style="text-align: center;">Year</div>
-            <div style="text-align: center;">Issue</div>
-            <div style="text-align: center;">Grade</div>
-            <div style="text-align: right; padding-right: 0.5rem;">FMV</div>
-            <div style="text-align: right;">My Valuation</div>
+            <div class="sortable active asc" data-sort="title" onclick="columnSort('title')">Title <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="year" onclick="columnSort('year')" style="justify-content:center;">Year <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="issue" onclick="columnSort('issue')" style="justify-content:center;">Issue <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="grade" onclick="columnSort('grade')" style="justify-content:center;">Grade <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="fmv" onclick="columnSort('fmv')" style="justify-content:flex-end; padding-right:0.5rem;">FMV <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="valuation" onclick="columnSort('valuation')" style="justify-content:flex-end;">My Val <span class="sort-arrow">▲</span></div>
             <div style="border-left: 1px solid var(--border-default); padding-left: 1rem;">Actions</div>
         </div>
 
@@ -947,6 +972,26 @@
         let collection = [];
         let filteredCollection = [];
         let currentView = 'list';
+        let columnSortField = 'title';
+        let columnSortDir = 'asc';
+
+        function columnSort(field) {
+            if (columnSortField === field) {
+                columnSortDir = columnSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                columnSortField = field;
+                columnSortDir = (field === 'fmv' || field === 'valuation' || field === 'grade') ? 'desc' : 'asc';
+            }
+            // Update header UI
+            document.querySelectorAll('.table-headers .sortable').forEach(el => {
+                el.classList.remove('active', 'asc', 'desc');
+            });
+            const activeHeader = document.querySelector(`.table-headers .sortable[data-sort="${field}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add('active', columnSortDir);
+            }
+            filterAndDisplay();
+        }
 
         // Load collection on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -1067,37 +1112,52 @@
                 return matchesSearch && matchesFilter && matchesEra;
             });
 
-            // Sort
-            filteredCollection.sort((a, b) => {
-                switch(sortValue) {
-                    case 'series':
-                        // Sort by title first, then by issue number
-                        const titleCompare = a.title.localeCompare(b.title);
-                        if (titleCompare !== 0) return titleCompare;
-                        // Parse issue numbers for numeric sort
-                        const issueA = parseInt(a.issue) || 0;
-                        const issueB = parseInt(b.issue) || 0;
-                        return issueA - issueB;
-                    
-                    case 'value-high': 
-                        return (b.raw_value || 0) - (a.raw_value || 0);
-                    
-                    case 'value-low': 
-                        return (a.raw_value || 0) - (b.raw_value || 0);
-                    
-                    case 'grade-high': 
-                        return parseFloat(b.grade) - parseFloat(a.grade);
-                    
-                    case 'grade-low': 
-                        return parseFloat(a.grade) - parseFloat(b.grade);
-                    
-                    case 'recent': 
-                        return new Date(b.created_at) - new Date(a.created_at);
-                    
-                    default: 
-                        return 0;
-                }
-            });
+            // Sort — use column headers in list view, dropdown in gallery
+            if (currentView === 'list') {
+                const dir = columnSortDir === 'asc' ? 1 : -1;
+                filteredCollection.sort((a, b) => {
+                    switch(columnSortField) {
+                        case 'title': {
+                            const cmp = a.title.localeCompare(b.title);
+                            if (cmp !== 0) return cmp * dir;
+                            return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
+                        }
+                        case 'year':
+                            return ((parseInt(a.year) || 0) - (parseInt(b.year) || 0)) * dir;
+                        case 'issue':
+                            return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
+                        case 'grade':
+                            return ((parseFloat(a.grade) || 0) - (parseFloat(b.grade) || 0)) * dir;
+                        case 'fmv':
+                            return ((a.raw_value || 0) - (b.raw_value || 0)) * dir;
+                        case 'valuation':
+                            return ((parseFloat(a.my_valuation) || 0) - (parseFloat(b.my_valuation) || 0)) * dir;
+                        default:
+                            return 0;
+                    }
+                });
+            } else {
+                filteredCollection.sort((a, b) => {
+                    switch(sortValue) {
+                        case 'series':
+                            const titleCompare = a.title.localeCompare(b.title);
+                            if (titleCompare !== 0) return titleCompare;
+                            return (parseInt(a.issue) || 0) - (parseInt(b.issue) || 0);
+                        case 'value-high':
+                            return (b.raw_value || 0) - (a.raw_value || 0);
+                        case 'value-low':
+                            return (a.raw_value || 0) - (b.raw_value || 0);
+                        case 'grade-high':
+                            return parseFloat(b.grade) - parseFloat(a.grade);
+                        case 'grade-low':
+                            return parseFloat(a.grade) - parseFloat(b.grade);
+                        case 'recent':
+                            return new Date(b.created_at) - new Date(a.created_at);
+                        default:
+                            return 0;
+                    }
+                });
+            }
 
             displayCollection();
         }
