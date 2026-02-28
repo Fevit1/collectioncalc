@@ -235,6 +235,7 @@ from routes.billing import billing_bp, init_modules as billing_init_modules, che
 from routes.vision import vision_bp, init_modules as vision_init_modules
 from routes.contact import contact_bp
 from routes.waitlist import waitlist_bp
+from routes.signatures import signatures_bp, init_modules as signatures_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -281,6 +282,7 @@ verify_init_modules(
     ImageDraw if 'ImageDraw' in dir() else None,
     ImageFont if 'ImageFont' in dir() else None
 )
+signatures_init_modules(ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE)
 
 # Register all blueprints
 app.register_blueprint(utils_bp)       # /, /health, /api/debug/*, /api/beta/validate
@@ -301,6 +303,7 @@ app.register_blueprint(billing_bp)     # /api/billing/*
 app.register_blueprint(vision_bp)      # /api/vision/*
 app.register_blueprint(contact_bp)     # /api/contact
 app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
+app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
 
 print("✅ All blueprints registered successfully!")
 

@@ -1,5 +1,54 @@
 # Where We Left Off - Feb 28, 2026
 
+## Session 68 (Feb 28, 2026) — Signature Matching System
+
+### What We Did
+- **Created `signatures/signatures_db.json`** — Reference database mapping 23 artists to 97 signature image files with quality ratings, style notes, aliases, and metadata
+- **Created `signatures/signature_matcher.py`** — Standalone Claude Vision-based matching engine with:
+  - `match_signature()` — Compare unknown sig against all references
+  - `cross_validate()` — Test each artist's sig against all others (accuracy metric)
+  - `test_known_artist()` — Test specific artist identification
+  - CLI interface with `--image`, `--test`, `--cross-validate` flags
+- **Created `routes/signatures.py`** — New Flask blueprint with 3 endpoints:
+  - `POST /api/signatures/match` — Match unknown signature via Claude Vision (auth required)
+  - `GET /api/signatures/db-stats` — Reference database stats (public)
+  - `GET /api/signatures/signed-sales` — Query signed eBay sales with creator breakdown
+- **Wired blueprint into `wsgi.py`** — imports, init_modules, register_blueprint
+- **Created `test_signature_matcher.py`** — Full test suite Mike can run after deployment:
+  - `--check-signed-sales` — See how many signed sales are in DB
+  - `--db-stats` — Verify reference DB deployed correctly
+  - `--test-known "Jim Lee"` — Test known artist match (needs auth token)
+  - `--cross-validate` — Full accuracy test across all 23 artists
+  - `--test-ebay` — Test against real eBay signed comic images
+- **Ran title normalizer backfill** — 376 NULL canonical_titles, all returned None (edge cases: eBay lot numbers, non-comics, art prints). Not actionable.
+
+### Architecture Decisions
+- Matcher sends unknown sig + 1 best reference per artist (largest file = best quality) to Claude Vision
+- Conservative matching: `is_confident_match` only when confidence >= 0.7
+- Results optionally saved to existing `signature_matches` DB table (links to `creator_signatures` and `market_sales`)
+- The `/api/signatures/signed-sales` endpoint lets us find real signed comics from our 24K+ eBay sales to test against
+
+### Files Created/Modified
+- `signatures/signatures_db.json` — NEW: 23 artists, 97 images, quality ratings
+- `signatures/signature_matcher.py` — NEW: Standalone matcher (CLI)
+- `routes/signatures.py` — NEW: Flask blueprint (3 endpoints)
+- `test_signature_matcher.py` — NEW: Production test suite
+- `wsgi.py` — Added signatures blueprint import, init, registration
+
+### What's Next (Priority Order)
+1. **Push Session 67+68 code** to production (git commands below)
+2. **Test `/api/signatures/db-stats`** to confirm deployment worked
+3. **Run `--test-known "Jim Lee"` or `--cross-validate`** to get accuracy baseline
+4. **Check `/api/signatures/signed-sales`** to see if our eBay data has signed comics matching our reference artists
+5. **Collect signatures for missing priority artists**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
+
+### Git Push Commands (PowerShell)
+```powershell
+cd SW ; git add signatures/signatures_db.json signatures/signature_matcher.py routes/signatures.py test_signature_matcher.py wsgi.py app.html routes/sales_valuation.py WHERE_WE_LEFT_OFF.md TODO.md CLAUDE_NOTES.txt ; git commit -m "Session 67-68: Valuation upgrade + Signature matching system" ; git push
+```
+
+---
+
 ## Session 67 (Feb 28, 2026) — Valuation Endpoint Upgrade
 
 ### What We Did

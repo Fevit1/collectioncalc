@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** February 28, 2026 (Session 67)
+**Updated:** February 28, 2026 (Session 68)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,10 @@
 
 ---
 
-## ✅ DONE (Session 64-67)
+## ✅ DONE (Session 64-68)
 
+- [x] **Signature matching system v1** — Session 68: Reference DB (23 artists, 97 images), Flask blueprint (`/api/signatures/match`, `/db-stats`, `/signed-sales`), standalone CLI matcher, production test suite
+- [x] **Title normalizer backfill** — Session 68: 376 NULLs all edge cases (lot numbers, non-comics). Not actionable.
 - [x] **Upgrade valuation on grading results** — Session 67: Switched from grade-blind `/api/sales/fmv` to grade-specific `/api/sales/valuation` with interpolation, fallback estimates, confidence indicator
 - [x] **Grading flow polish** — Session 67: Confirmed all items done (delay removed S66, instructions not needed, Grade Another already exists, valuation now wired)
 - [x] **Fix AI grading inconsistency** — Session 66: Rebuilt from holistic to structured 8-category scoring. New `grading_engine.py`, `/api/grade` endpoint, multi-run support. Unit tests passing.
@@ -87,9 +89,8 @@
   - 12-case test plan (grade-specific FMV with slabbing ROI)
   - 🔗 Depends on: CGC cost update
 
-- [ ] **Run title normalizer backfill** ⏱ 15 min
-  - `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 legacy NULL titles
-  - No dependencies
+- [x] ~~**Run title normalizer backfill**~~ ✅ Session 68
+  - 376 NULLs all edge cases (lot #s, non-comics, art prints). Not actionable.
 
 - [ ] **Mobile testing (full grading flow)** 👤 2-3 hours across devices ⚠️
   - Grading, collection, pricing, verify on real phones (Android + iOS)
@@ -113,9 +114,12 @@
   - Challenge flow for suspicious uploads
   - 🔗 Depends on: Live Slab Guard registration test
 
-- [ ] **Signature identification v1** ⏱ 2-3 sessions
-  - Match detected signatures against reference DB
-  - 🔗 Depends on: signature database (Mike collecting — 23 more artists needed)
+- [ ] **Signature identification v1 — testing & tuning** ⏱ 1-2 sessions
+  - ✅ Reference DB built (23 artists, 97 images)
+  - ✅ API endpoint built (`/api/signatures/match`)
+  - ✅ Test suite built (`test_signature_matcher.py`)
+  - Remaining: deploy, run cross-validation, tune confidence thresholds
+  - 🔗 Depends on: push Session 67-68 code; Mike collecting 5 more priority artists
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title
