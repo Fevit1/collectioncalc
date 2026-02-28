@@ -1143,6 +1143,16 @@
                                 </div>
                             </div>
 
+                            <!-- Category Scores Breakdown -->
+                            <div class="category-scores-section" id="resultCategoryScores" style="display: none;">
+                                <div class="defects-header">
+                                    <div class="defects-title">Grade Breakdown</div>
+                                </div>
+                                <div class="category-scores-grid" id="categoryScoresGrid">
+                                    <!-- Populated by grading flow -->
+                                </div>
+                            </div>
+
                             <!-- Defects 2x2 Grid -->
                             <div class="defects-section" id="resultDefectsSection">
                                 <div class="defects-header">
@@ -2007,77 +2017,50 @@
                     throw new Error('Not authenticated');
                 }
                 
-                // Make grading API call
-                const response = await fetch(`${API_URL}/api/messages`, {
+                // Build images array for new /api/grade endpoint
+                const gradeImages = [];
+                Object.entries(window.gradingState.photos).forEach(([step, photo]) => {
+                    if (photo && photo.base64) {
+                        gradeImages.push({
+                            base64: photo.base64,
+                            media_type: photo.mediaType,
+                            label: labels[step]
+                        });
+                    }
+                });
+
+                // Make structured grading API call
+                const response = await fetch(`${API_URL}/api/grade`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 2048,
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                ...imageContent,
-                                {
-                                    type: 'text',
-                                    text: `You are grading this comic book using ${photoLabels.length} photos: ${photoLabels.join(', ')}.
-
-The comic has been identified as: ${title} #${issue}
-Publisher: ${publisher}
-
-Based on ALL images provided, give a comprehensive grade assessment.
-
-Return a JSON object with these EXACT top-level keys:
-
-{
-  "title": "${title}",
-  "issue": "${issue}",
-  "publisher": "${publisher}",
-  "year": "Year if visible",
-  "final_grade": 9.4,
-  "grade_label": "NM",
-  "grade_reasoning": "Detailed explanation",
-  "front_defects": ["array", "of", "defects"],
-  "spine_defects": ["array", "of", "defects"],
-  "back_defects": ["array", "of", "defects"],
-  "interior_defects": ["array", "of", "defects"],
-  "other_defects": ["array", "of", "defects"],
-  "signature_detected": false,
-  "signature_info": null
-}
-
-Use numeric grades like 9.8, 9.4, 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.0, 2.0, 1.0.
-Grade labels: MT, NM+, NM, NM-, VF+, VF, VF-, FN+, FN, FN-, VG+, VG, VG-, G, FR, PR.
-
-Return ONLY valid JSON, no markdown, no nested objects.`
-                                }
-                            ]
-                        }]
+                        images: gradeImages,
+                        title: title,
+                        issue: issue,
+                        publisher: publisher,
+                        year: window.gradingState.extractedData?.year || '',
+                        runs: 1  // Single run by default; set to 2-3 for higher confidence
                     })
                 });
-                
+
                 if (!response.ok) {
-                    throw new Error(`API returned ${response.status}`);
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `API returned ${response.status}`);
                 }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message || 'API error');
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
                 }
-                
-                // Parse response
-                let resultText = data.content[0].text;
-                resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                const result = JSON.parse(resultText);
                 
                 // Store in gradingState
                 window.gradingState.finalGrade = result;
-                window.gradingState.confidence = baseConfidence;
-                
+                window.gradingState.confidence = result.confidence || baseConfidence;
+
                 // Display results in new results screen
                 if (gradeResultBig) gradeResultBig.textContent = result.final_grade || '?';
                 if (gradeResultLabel) gradeResultLabel.textContent = result.grade_label || 'Unknown';
@@ -2093,6 +2076,42 @@ Return ONLY valid JSON, no markdown, no nested objects.`
                 if (thumbEl && window.gradingState.photos[1]) {
                     const photo = window.gradingState.photos[1];
                     thumbEl.innerHTML = `<img src="data:${photo.mediaType};base64,${photo.base64}" alt="Cover">`;
+                }
+
+                // Display category scores breakdown (new structured grading)
+                const catScoresSection = document.getElementById('resultCategoryScores');
+                const catScoresGrid = document.getElementById('categoryScoresGrid');
+                if (catScoresGrid && result.category_scores) {
+                    catScoresSection.style.display = 'block';
+                    const catLabels = {
+                        cover_front: 'Front Cover',
+                        spine: 'Spine',
+                        corners: 'Corners',
+                        edges: 'Edges',
+                        cover_back: 'Back Cover',
+                        color_gloss: 'Color/Gloss',
+                        structural: 'Structural',
+                        interior: 'Interior'
+                    };
+                    const getBarColor = (score) => {
+                        if (score >= 9.0) return '#10b981'; // green
+                        if (score >= 7.0) return '#3b82f6'; // blue
+                        if (score >= 5.0) return '#f59e0b'; // amber
+                        if (score >= 3.0) return '#f97316'; // orange
+                        return '#ef4444'; // red
+                    };
+                    catScoresGrid.innerHTML = Object.entries(catLabels).map(([key, label]) => {
+                        const score = result.category_scores[key] || 0;
+                        const pct = (score / 10) * 100;
+                        const color = getBarColor(score);
+                        return `<div class="cat-score-row">
+                            <div class="cat-score-label">${label}</div>
+                            <div class="cat-score-bar-bg">
+                                <div class="cat-score-bar-fill" style="width: ${pct}%; background: ${color};"></div>
+                            </div>
+                            <div class="cat-score-value">${score}</div>
+                        </div>`;
+                    }).join('');
                 }
 
                 // Display defects in 2x2 grid

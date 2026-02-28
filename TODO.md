@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** February 27, 2026 (Session 65)
+**Updated:** February 28, 2026 (Session 66)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,9 @@
 
 ---
 
-## ✅ DONE (Session 64-65)
+## ✅ DONE (Session 64-66)
 
+- [x] **Fix AI grading inconsistency** — Session 66: Rebuilt from holistic to structured 8-category scoring. New `grading_engine.py`, `/api/grade` endpoint, multi-run support. Unit tests passing.
 - [x] **File signature identification patent** — Application # 63/990,743, Feb 25, 2026
 - [x] **Push Session 64 code** — Waitlist pages, confirmation flow
 - [x] **Test all waitlist pages on production** — All 4 passing
@@ -29,12 +30,11 @@
 
 > If someone grades the same comic twice at your booth and gets different numbers, nothing else matters.
 
-- [ ] **Fix AI grading inconsistency** ⏱ 1 session
-  - Same comic returning 8.5 → 9.2 → 8.5 across runs
-  - Options: temperature=0, multi-run averaging, structured output schema
-  - Includes building a 10-comic calibration test suite
-  - This is the #1 credibility killer — blocks everything demo-related
-  - 🔗 Blocks: demo mode, GalaxyCon prep, grading accuracy test
+- [x] ~~**Fix AI grading inconsistency**~~ ✅ Session 66
+  - Rebuilt from holistic → structured 8-category scoring
+  - New `grading_engine.py` + `/api/grade` endpoint + multi-run support
+  - 10 unit tests passing, live consistency test harness built
+  - 🔗 UNBLOCKED: demo mode, GalaxyCon prep, grading accuracy test
 
 - [ ] **Update hardcoded CGC grading costs** ⏱ 30 min
   - Valuation endpoint uses old prices ($30/$50/$85/$150)

@@ -1,8 +1,10 @@
 """
 Grading Blueprint - Comic valuation and extraction endpoints
-Routes: /api/valuate, /api/extract, /api/cache/check, /api/messages
+Routes: /api/valuate, /api/extract, /api/cache/check, /api/messages, /api/grade
 """
 import os
+import json
+import concurrent.futures
 from flask import Blueprint, jsonify, request, g
 
 # Create blueprint
@@ -230,10 +232,10 @@ def api_messages():
     
     try:
         response = client.messages.create(**data)
-        
+
         log_api_usage(g.user_id, '/api/messages', data.get('model', 'unknown'),
                       response.usage.input_tokens, response.usage.output_tokens)
-        
+
         response_data = {
             'id': response.id,
             'type': response.type,
@@ -243,4 +245,166 @@ def api_messages():
         }
         return jsonify(response_data)
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────
+# NEW: Structured Grading Endpoint (v2)
+# ──────────────────────────────────────────────
+
+@grading_bp.route('/grade', methods=['POST'])
+@require_auth
+@require_approved
+def api_grade():
+    """
+    Structured comic grading with category scoring and optional multi-run.
+
+    Accepts:
+        images: list of {base64, media_type, label} objects
+        title: comic title (from extraction)
+        issue: issue number
+        publisher: publisher name
+        runs: number of grading passes (1-3, default 1)
+
+    Returns:
+        Computed grade with full category breakdown
+    """
+    if not ANTHROPIC_AVAILABLE or not ANTHROPIC_API_KEY:
+        return jsonify({'error': 'Anthropic API not available'}), 503
+
+    data = request.get_json() or {}
+    images = data.get('images', [])
+    title = data.get('title', 'Unknown')
+    issue = data.get('issue', '?')
+    publisher = data.get('publisher', 'Unknown')
+    num_runs = min(max(data.get('runs', 1), 1), 3)  # clamp 1-3
+
+    if not images:
+        return jsonify({'error': 'At least one image is required'}), 400
+
+    # Photo quality gate
+    from routes.fingerprint_utils import check_photo_quality_base64
+    for img in images:
+        b64 = img.get('base64', '')
+        if b64:
+            quality = check_photo_quality_base64(b64)
+            if not quality['ok']:
+                return jsonify({
+                    'error': quality['message'],
+                    'quality_fail': True,
+                    'tip': quality['tip']
+                }), 400
+            break  # Only check first image
+
+    # Content moderation
+    if moderate_image:
+        for img in images:
+            b64 = img.get('base64', '')
+            if b64:
+                mod_result = moderate_image(b64)
+                if mod_result.get('blocked'):
+                    log_moderation_incident(g.user_id, '/api/grade', mod_result, get_image_hash(b64))
+                    return jsonify({
+                        'error': 'Image rejected: inappropriate content detected.',
+                        'moderation': True
+                    }), 400
+                if mod_result.get('warnings'):
+                    log_moderation_incident(g.user_id, '/api/grade', mod_result, get_image_hash(b64))
+
+    # Build image content blocks for Anthropic API
+    image_content = []
+    photo_labels = []
+    for img in images:
+        image_content.append({
+            'type': 'image',
+            'source': {
+                'type': 'base64',
+                'media_type': img.get('media_type', 'image/jpeg'),
+                'data': img.get('base64', '')
+            }
+        })
+        photo_labels.append(img.get('label', 'Photo'))
+
+    # Build structured grading prompt
+    from grading_engine import build_grading_prompt, parse_grading_response, parse_multi_run_responses
+    prompt_text = build_grading_prompt(title, issue, publisher, photo_labels)
+
+    # Function to make one grading call
+    def run_grading():
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        response = client.messages.create(
+            model='claude-sonnet-4-20250514',
+            max_tokens=2048,
+            temperature=0,
+            messages=[{
+                'role': 'user',
+                'content': [
+                    *image_content,
+                    {'type': 'text', 'text': prompt_text}
+                ]
+            }]
+        )
+        return response
+
+    try:
+        total_input_tokens = 0
+        total_output_tokens = 0
+
+        if num_runs == 1:
+            # Single run — most common, fastest
+            response = run_grading()
+            total_input_tokens = response.usage.input_tokens
+            total_output_tokens = response.usage.output_tokens
+
+            response_text = response.content[0].text
+            result = parse_grading_response(response_text)
+            result['run_count'] = 1
+
+        else:
+            # Multi-run with thread pool for parallel execution
+            raw_responses = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_runs) as executor:
+                futures = [executor.submit(run_grading) for _ in range(num_runs)]
+                for future in concurrent.futures.as_completed(futures):
+                    resp = future.result()
+                    total_input_tokens += resp.usage.input_tokens
+                    total_output_tokens += resp.usage.output_tokens
+                    raw_responses.append(resp.content[0].text)
+
+            result = parse_multi_run_responses(raw_responses)
+
+        # Log total API usage
+        log_api_usage(g.user_id, '/api/grade', 'claude-sonnet-4-20250514',
+                      total_input_tokens, total_output_tokens)
+
+        # Add metadata
+        result['title'] = title
+        result['issue'] = issue
+        result['publisher'] = publisher
+        result['photos_used'] = len(images)
+        result['confidence'] = {1: 65, 2: 78, 3: 88, 4: 94}.get(len(images), 65)
+        result['usage'] = {
+            'input_tokens': total_input_tokens,
+            'output_tokens': total_output_tokens
+        }
+
+        # Map defects to flat arrays for backward compatibility with frontend
+        defects = result.get('defects', {})
+        result['front_defects'] = defects.get('front', [])
+        result['spine_defects'] = defects.get('spine', [])
+        result['back_defects'] = defects.get('back', [])
+        result['interior_defects'] = defects.get('interior', [])
+        result['other_defects'] = defects.get('other', [])
+
+        # Map grade fields for backward compat
+        result['grade_reasoning'] = result.get('observations', '')
+        result['year'] = data.get('year', '')
+
+        return jsonify(result)
+
+    except json.JSONDecodeError as e:
+        return jsonify({'error': f'Failed to parse grading response: {str(e)}'}), 500
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500

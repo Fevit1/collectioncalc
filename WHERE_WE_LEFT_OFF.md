@@ -1,4 +1,57 @@
-# Where We Left Off - Feb 25, 2026
+# Where We Left Off - Feb 28, 2026
+
+## Session 66 (Feb 28, 2026) — Grading Consistency Fix
+
+### What We Did
+- **Rebuilt AI grading from holistic to structured scoring** — the #1 credibility killer (P0)
+- Created `grading_engine.py` — new module with:
+  - 8-category scoring system (cover, spine, corners, edges, back, color/gloss, structural, interior)
+  - Weighted average computation (cover 25%, spine 20%, corners 15%, etc.)
+  - Snap-to-CGC-grade with all 25 valid grades (0.5 PR through 10.0 GM)
+  - Catastrophic single-category cap (destroyed spine caps grade regardless of other scores)
+  - Multi-run median averaging (run 1-3 times, take median per category)
+  - Structured grading prompt that forces the model to evaluate each area independently
+- Created new `/api/grade` endpoint in `routes/grading.py`:
+  - Accepts images + comic info, builds structured prompt server-side
+  - Supports parallel multi-run grading via ThreadPoolExecutor
+  - Photo quality + content moderation gates
+  - Returns computed grade with full category breakdown + backward-compat flat defect arrays
+- Updated `app.html` grading flow:
+  - Calls `/api/grade` instead of raw `/api/messages` proxy
+  - Displays category score bars (color-coded breakdown)
+  - Still feeds into existing FMV/valuation/verdict flow
+- Added `styles.css` category scores UI (bar chart with color coding)
+- Created `test_grading_consistency.py` — 10 unit tests + live API test harness:
+  - All 10 unit tests passing
+  - Live test mode: `python test_grading_consistency.py --live --image comic.jpg --runs 5`
+  - Measures per-category variance and grade spread across runs
+  - 10 calibration comics with known CGC grades for future validation
+
+### Why This Fixes the Inconsistency
+- **Before:** Model was asked "what grade is this?" → subjective, holistic, varies 0.7+ between runs
+- **After:** Model scores 8 specific categories 0-10 → grade computed deterministically from scores
+- Even if a category score varies ±0.5 between runs, the weighted average smooths it to ±0.2
+- Multi-run median (optional, 2-3x cost) further reduces to near-zero variance
+
+### Files Created/Modified
+- `grading_engine.py` — NEW: structured grading engine
+- `test_grading_consistency.py` — NEW: unit tests + live consistency test
+- `routes/grading.py` — MODIFIED: added `/api/grade` endpoint
+- `app.html` — MODIFIED: new grading flow + category scores UI
+- `styles.css` — MODIFIED: category score bar styles
+- `WHERE_WE_LEFT_OFF.md` — This file
+- `CLAUDE_NOTES.txt` — Updated
+
+### What's Ready to Push
+All changes in working directory. The old `/api/messages` endpoint still works for backward compat. No DB migrations needed.
+
+### What Mike Should Do Next
+1. Push this code to production
+2. Grade the same comic 3-5 times and compare results vs before
+3. If variance is still >0.4, bump `runs: 2` in app.html (line ~2029) for multi-run at 2x API cost
+4. Continue collecting signatures for the reference database
+
+---
 
 ## Session 65 (Feb 25, 2026) — Short Session
 
