@@ -386,7 +386,7 @@ def api_premium_analysis():
         time_clause_graded = ""
         time_clause_raw = ""
         if time_window > 0:
-            time_clause_graded = f"AND (s.sale_date IS NULL OR u.sale_date IS NULL OR ABS(EXTRACT(EPOCH FROM (s.sale_date - u.sale_date))) <= {time_window * 86400})"
+            time_clause_graded = f"AND (s.sale_date IS NULL OR u.sale_date IS NULL OR ABS(s.sale_date::date - u.sale_date::date) <= {time_window})"
             time_clause_raw = time_clause_graded
 
         cur.execute(f"""
