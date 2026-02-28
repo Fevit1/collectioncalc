@@ -1,5 +1,48 @@
 # Where We Left Off - Feb 28, 2026
 
+## Session 67 (Feb 28, 2026) — Valuation Endpoint Upgrade
+
+### What We Did
+- **Tested both valuation endpoints** (`/api/sales/fmv` and `/api/sales/valuation`) against production with 8 test cases (ASM #300, Spawn #1, X-Men #1, Batman #423, Iron Man #200, TMNT #1, unknown title, low-grade ASM #300)
+- **Found `/api/sales/fmv` has major issues**: grade-blind tier bucketing (a 2.0 and 7.5 get same price), can't calculate meaningful ROI. The smarter `/api/sales/valuation` endpoint does exact-grade matching with interpolation — much better.
+- **Switched grading results page from `/api/sales/fmv` to `/api/sales/valuation`** in `app.html`
+- **Added fallback estimate logic** to `/api/sales/valuation` endpoint — when no sales data exists, generates estimates from grade/publisher/era baselines (same logic `/api/sales/fmv` already had). Also handles case where raw data exists but no graded data (estimates graded as 1.5x raw).
+- **Added confidence indicator** to grading results UI — shows "High/Medium/Low/Limited" below the valuation triptych
+- **Enhanced verdict taglines** — now show "(estimate)" when using fallback data and "Based on X sales" when real data exists
+- **Verified save-to-collection compatibility** — all field names (raw_value, slabbed_value, roi, verdict) unchanged
+- **Reviewed P1 grading flow polish items** — confirmed they're all done:
+  - 2-sec delay: already removed in Session 66 rebuild
+  - Photo upload instructions: UI is intuitive as-is (Mike confirmed)
+  - "Grade Another" button: already on Slab Report page (Mike confirmed)
+  - Valuation wiring: now upgraded to smarter endpoint (this session)
+
+### Key Test Results (Production)
+| Comic | Grade | Old FMV Raw | Old FMV Slabbed | New Valuation Graded FMV | New Raw FMV | Method | Confidence |
+|-------|-------|-------------|-----------------|--------------------------|-------------|--------|------------|
+| ASM #300 | 9.6 | $779 | $1,168 | $992 | $325 | exact (10 sales) | high |
+| Spawn #1 | 9.8 | $183 | $274 | $291 | $131 | exact (5 sales) | medium |
+| X-Men #1 | 9.6 | $1,028 | $1,542 | $1,480 | $271 | exact (11 sales) | high |
+| ASM #300 | 2.0 | $312 (wrong!) | $312 | $101 | $325 | interpolated | medium |
+| Iron Man #200 | 8.0 | $6 | $9 | fallback est. | $6 | estimated | very_low |
+
+### Files Modified
+- `app.html` — Switched `calculateGradingRecommendation()` from `/api/sales/fmv` to `/api/sales/valuation`, added confidence display, enhanced taglines
+- `routes/sales_valuation.py` — Added fallback estimate logic (grade/publisher/era baselines) for when no sales data exists, `estimated_from_raw` for when only raw data available
+- `WHERE_WE_LEFT_OFF.md` — This file
+- `TODO.md` — Updated
+- `CLAUDE_NOTES.txt` — Updated
+
+### What's Ready to Push
+All changes in working directory. No DB migrations needed. The old `/api/sales/fmv` endpoint still exists and works for anything else that uses it (Chrome extensions, etc.).
+
+### What's Next
+1. Push Session 67 code to production
+2. Test grading flow end-to-end (grade a comic, verify valuation shows up correctly with new endpoint)
+3. Run title normalizer backfill: `curl -X POST https://collectioncalc-docker.onrender.com/api/ebay-sales/backfill-titles`
+4. If time: P5 bug fixes
+
+---
+
 ## Session 66 (Feb 28, 2026) — Grading Consistency Fix
 
 ### What We Did
@@ -52,14 +95,17 @@
 - `WHERE_WE_LEFT_OFF.md` — This file
 - `TODO.md` — Updated with completions + automated price checker roadmap item
 
+### Signature Database Progress
+- Mike completed 4 more creators this session → **23 of 42 artists done** (19 to go)
+
 ### What's Ready to Push
 All changes in working directory. The old `/api/messages` endpoint still works for backward compat. No DB migrations needed.
 
-### What Mike Should Do Next
-1. Push this code to production
+### What Mike Is Doing Next
+1. Push Session 66 code to production (grading engine + CGC pricing)
 2. Grade the same comic 3-5 times and compare results vs before
 3. If variance is still >0.4, bump `runs: 2` in app.html (line ~2029) for multi-run at 2x API cost
-4. Continue collecting signatures for the reference database
+4. Continue collecting creator signatures (19 remaining)
 
 ---
 

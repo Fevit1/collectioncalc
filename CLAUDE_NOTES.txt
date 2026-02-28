@@ -35,7 +35,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Confirmation # 9241, Patent Center # 74618571
 - Filing fee: $65 (micro entity)
 - AI-powered detection of creator signatures on comic covers
-- Reference database matching (137 target creators, 35+ collected)
+- Reference database matching (137 target creators; 23 of 42 priority artists done, 19 to go)
 - Forgery detection via size/position/style anomaly analysis
 - Valuation integration (signature premium calculation)
 - Ties into Slab Guard for registered signature ownership proof
@@ -69,13 +69,31 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ## RECENT MAJOR MILESTONES
 
+### ✅ Valuation Endpoint Upgrade + Grading Flow Polish Complete (Feb 28, 2026 — Session 67)
+- **Tested both valuation endpoints** against production with 8 comics — found `/api/sales/fmv` has grade-blind tier bucketing (treats 2.0 same as 7.5). The `/api/sales/valuation` endpoint does exact-grade matching with interpolation — much better.
+- **Switched grading results page** from `/api/sales/fmv` to `/api/sales/valuation` in `app.html`
+- **Added fallback estimate logic** to valuation endpoint for no-data comics (grade/publisher/era baselines) and raw-only data (1.5x estimate)
+- **Added confidence indicator** (High/Medium/Low/Limited) below valuation triptych
+- **Grading flow polish items all confirmed done**: delay removed (S66), photo instructions not needed (Mike confirmed UI intuitive), Grade Another button already exists (Mike confirmed), valuation now wired with smarter endpoint
+- **P1 "Grading flow polish" and "Wire valuation into results" both marked complete** — unblocks booth demo mode and onboarding
+
+### ✅ Grading Consistency Fix + CGC 2026 Pricing (Feb 28, 2026 — Session 66)
+- **Rebuilt AI grading from holistic to structured 8-category scoring** — the #1 credibility killer (P0)
+- New `grading_engine.py`: 8 weighted categories (cover 25%, spine 20%, corners 15%, etc.), snap-to-CGC-grade, catastrophic cap, multi-run median averaging
+- New `/api/grade` endpoint with parallel multi-run via ThreadPoolExecutor
+- Frontend updated: calls `/api/grade`, displays category score bars
+- 10 unit tests passing + live API consistency test harness
+- **CGC 2026 pricing**: Modern $30, Vintage $45, High Value $105, Unlimited 4% ($135 min). Centralized `get_cgc_grading_cost()` replaces 3 hardcoded locations. Now factors in modern vs vintage era.
+- Added automated CGC price checker + admin approval to P2 roadmap
+- Signature DB: 23 of 42 priority artists done (19 to go)
+
 ### ✅ Photo Authenticity Detector & White Paper (Feb 27, 2026 — Session 65)
 - **7-check photo authenticity detector** (`utils/photo_authenticity.py`): EXIF, moiré (FFT), compression, lighting, resolution/dimensions, edge sharpness, Error Level Analysis (ELA)
 - Tested against real eBay screengrabs vs original Pixel 7 Pro photos — correctly identifies originals (75.8) vs screengrabs (50-52) vs WhatsApp-compressed (56)
 - **Slab Guard white paper draft** (`docs/business/SlabGuard_WhitePaper_DRAFT.docx`) — audience: collectors, moderate technical detail, awaiting Mike's line-by-line review
 - **FAQ updated** with 3 new Slab Guard entries: photo quality for registration, how verification works, what happens when flagged
 - **TODO.md rewritten** with dependency tracking, time estimates (2x speed), critical path to GalaxyCon
-- Signature DB progress: 19 of 42 artists collected (4 signatures each)
+- Signature DB progress: 23 of 42 artists collected (4 signatures each) — updated Session 66
 - All waitlist pages production-tested and passing
 
 ### ✅ Signature Identification Patent FILED (Feb 25, 2026)

@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** February 28, 2026 (Session 66)
+**Updated:** February 28, 2026 (Session 67)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,10 @@
 
 ---
 
-## ✅ DONE (Session 64-66)
+## ✅ DONE (Session 64-67)
 
+- [x] **Upgrade valuation on grading results** — Session 67: Switched from grade-blind `/api/sales/fmv` to grade-specific `/api/sales/valuation` with interpolation, fallback estimates, confidence indicator
+- [x] **Grading flow polish** — Session 67: Confirmed all items done (delay removed S66, instructions not needed, Grade Another already exists, valuation now wired)
 - [x] **Fix AI grading inconsistency** — Session 66: Rebuilt from holistic to structured 8-category scoring. New `grading_engine.py`, `/api/grade` endpoint, multi-run support. Unit tests passing.
 - [x] **File signature identification patent** — Application # 63/990,743, Feb 25, 2026
 - [x] **Push Session 64 code** — Waitlist pages, confirmation flow
@@ -22,7 +24,7 @@
 - [x] **Photo authenticity detector prototype** — 7-check system, tested with real images
 - [x] **Slab Guard white paper draft** — For Mike's review
 - [x] **FAQ updates** — 3 new Slab Guard entries (photo quality, verification, flagging)
-- [x] **Signature database progress** — 19 of 42 artists collected (4 sigs each)
+- [x] **Signature database progress** — 23 of 42 artists collected (4 sigs each)
 
 ---
 
@@ -54,15 +56,15 @@
 
 ### Product
 
-- [ ] **Grading flow polish** ⏱ 1 session
-  - Remove 2-sec artificial delay
-  - Better photo upload instructions
-  - "Grade Another" reset button
-  - 🔗 Depends on: P0 grading consistency fix
+- [x] ~~**Grading flow polish**~~ ✅ Session 67
+  - 2-sec delay: already removed in Session 66 rebuild
+  - Photo instructions: UI intuitive as-is (Mike confirmed)
+  - "Grade Another": already on Slab Report page (Mike confirmed)
 
-- [ ] **Wire valuation into grading results** ⏱ 1 session
-  - Grade + FMV + slabbing ROI on one screen
-  - 🔗 Depends on: CGC cost update
+- [x] ~~**Wire valuation into grading results**~~ ✅ Session 67
+  - Upgraded from `/api/sales/fmv` (grade-blind tiers) to `/api/sales/valuation` (exact-grade + interpolation)
+  - Added fallback estimates for no-data comics, confidence indicator, enhanced taglines
+  - 🔗 UNBLOCKED: booth demo mode, valuation endpoint testing
 
 - [ ] **Booth demo mode** ⏱ 1 session
   - Cached/pre-loaded results for repeat demos (save API costs)

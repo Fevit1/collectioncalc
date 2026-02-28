@@ -1142,6 +1142,10 @@
                                     <div class="val-amount" id="resultNetRoi">--</div>
                                 </div>
                             </div>
+                            <div class="valuation-confidence" style="text-align: center; margin-top: 0.25rem;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Data confidence: </span>
+                                <span id="resultConfidence" style="font-size: 0.75rem; font-weight: 600; display: none;"></span>
+                            </div>
 
                             <!-- Category Scores Breakdown -->
                             <div class="category-scores-section" id="resultCategoryScores" style="display: none;">
@@ -2155,12 +2159,13 @@
         };
         
         // Calculate grading recommendation (FMV, ROI, verdict)
+        // Uses /api/sales/valuation — grade-specific pricing with interpolation
         window.calculateGradingRecommendation = async function(gradeResult) {
             try {
                 const token = localStorage.getItem('cc_token');
                 if (!token) return;
-                
-                // Build FMV API URL with query parameters
+
+                // Build valuation API URL with query parameters
                 const params = new URLSearchParams({
                     title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
                     issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
@@ -2168,45 +2173,55 @@
                     publisher: gradeResult.publisher || window.gradingState.extractedData?.publisher || '',
                     year: gradeResult.year || window.gradingState.extractedData?.year || ''
                 });
-                
-                // Call FMV API
-                const response = await fetch(`${API_URL}/api/sales/fmv?${params}`, {
+
+                // Call grade-specific valuation API
+                const response = await fetch(`${API_URL}/api/sales/valuation?${params}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (!response.ok) {
-                    console.error('FMV API failed:', response.status);
+                    console.error('Valuation API failed:', response.status);
                     return;
                 }
-                
-                const fmvData = await response.json();
-                
-                // Add FMV data to gradeResult and gradingState
-                const raw_value = fmvData.raw_fmv || 0;
-                const slabbed_value = fmvData.slabbed_fmv || 0;
-                const grading_cost = fmvData.grading_cost || 30;
-                const roi = slabbed_value - raw_value - grading_cost;
-                const verdict = roi > 0 ? 'worth' : 'keep-raw';
-                
+
+                const valData = await response.json();
+                if (!valData.success) {
+                    console.error('Valuation API error:', valData.error);
+                    return;
+                }
+
+                // Extract values — valuation endpoint returns graded_fmv (slabbed) and raw_fmv
+                const raw_value = valData.raw_fmv || 0;
+                const slabbed_value = valData.graded_fmv || 0;
+                const grading_cost = valData.grading_cost || 30;
+                const roi = valData.slabbing_roi != null ? valData.slabbing_roi : (slabbed_value - raw_value - grading_cost);
+                const isEstimated = valData.estimated || false;
+                const confidence = valData.confidence || 'unknown';
+                const fmvMethod = valData.fmv_method || 'unknown';
+                const sources = valData.sources || {};
+
                 // Update the grade result object
                 gradeResult.raw_value = raw_value;
                 gradeResult.slabbed_value = slabbed_value;
                 gradeResult.grading_cost = grading_cost;
                 gradeResult.roi = roi;
-                gradeResult.verdict = verdict;
-                
+                gradeResult.verdict = roi > 0 ? 'worth' : 'keep-raw';
+                gradeResult.confidence = confidence;
+                gradeResult.fmv_method = fmvMethod;
+                gradeResult.estimated = isEstimated;
+
                 // Also update gradingState.finalGrade
                 window.gradingState.finalGrade.raw_value = raw_value;
                 window.gradingState.finalGrade.slabbed_value = slabbed_value;
                 window.gradingState.finalGrade.grading_cost = grading_cost;
                 window.gradingState.finalGrade.roi = roi;
-                window.gradingState.finalGrade.verdict = verdict;
-                
-                // Update new results UI
+                window.gradingState.finalGrade.verdict = gradeResult.verdict;
+
+                // Update results UI
                 const rawFmvEl = document.getElementById('resultRawFmv');
                 const slabbedFmvEl = document.getElementById('resultSlabbedFmv');
                 const netRoiEl = document.getElementById('resultNetRoi');
@@ -2224,16 +2239,30 @@
                     verdictBadge.className = `verdict-badge ${roi > 0 ? 'worth' : 'not-worth'}`;
                 }
                 if (verdictTagline) {
+                    // Build tagline with confidence context
+                    const estimateNote = isEstimated ? ' (estimate)' : '';
+                    const salesNote = sources.total ? ` Based on ${sources.total} sales.` : '';
+
                     if (roi > 0) {
-                        verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees. Strong ROI at this grade.`;
+                        verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees${estimateNote}.${salesNote}`;
                     } else {
-                        verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase. Better to enjoy it unslabbed.`;
+                        verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase${estimateNote}. Better to enjoy it unslabbed.${salesNote}`;
                     }
                 }
-                
+
+                // Show confidence indicator if we have one
+                const confidenceEl = document.getElementById('resultConfidence');
+                if (confidenceEl) {
+                    const confLabels = { high: 'High', medium: 'Medium', low: 'Low', very_low: 'Limited' };
+                    const confColors = { high: '#10b981', medium: '#3b82f6', low: '#f59e0b', very_low: '#ef4444' };
+                    confidenceEl.textContent = confLabels[confidence] || confidence;
+                    confidenceEl.style.color = confColors[confidence] || 'var(--text-muted)';
+                    confidenceEl.style.display = '';
+                }
+
             } catch (error) {
                 console.error('Error calculating recommendation:', error);
-                // Don't fail the whole grading if FMV lookup fails
+                // Don't fail the whole grading if valuation lookup fails
             }
         };
         

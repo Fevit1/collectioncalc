@@ -305,9 +305,51 @@ def api_sales_valuation():
         raw_fmv = round(sum(raw_prices) / len(raw_prices), 2) if raw_prices else None
         raw_count = len(raw_prices)
 
+        # ---------- Fallback estimates when data is thin ----------
+        comic_year = request.args.get('year', type=int, default=None)
+        publisher = request.args.get('publisher', '').lower()
+        estimated = False
+
+        if graded_fmv is None and raw_fmv is None:
+            # No sales data at all — generate estimate from grade/publisher/era
+            grade_baselines = {
+                10.0: 50, 9.8: 45, 9.6: 40, 9.4: 35, 9.2: 30, 9.0: 25,
+                8.5: 20, 8.0: 18, 7.5: 16, 7.0: 14, 6.5: 12, 6.0: 10,
+                5.5: 9, 5.0: 8, 4.5: 7, 4.0: 6, 3.5: 5, 3.0: 4, 2.0: 3, 1.0: 2
+            }
+            # Find closest grade baseline
+            closest_grade = min(grade_baselines.keys(), key=lambda g: abs(g - grade))
+            raw_fmv = float(grade_baselines[closest_grade])
+
+            # Publisher multiplier
+            if any(pub in publisher for pub in ['marvel', 'dc']):
+                raw_fmv *= 1.3
+            elif any(pub in publisher for pub in ['image', 'dark horse', 'idw']):
+                raw_fmv *= 1.1
+
+            # Era adjustment
+            if comic_year:
+                if comic_year < 1970:
+                    raw_fmv *= 2.0
+                elif comic_year < 1984:
+                    raw_fmv *= 1.5
+                elif comic_year < 1992:
+                    raw_fmv *= 1.2
+
+            raw_fmv = round(raw_fmv, 2)
+            graded_fmv = round(raw_fmv * 1.5, 2)
+            fmv_method = 'estimated'
+            raw_count = 0
+            estimated = True
+
+        elif graded_fmv is None and raw_fmv is not None:
+            # Have raw data but no graded sales — estimate graded as 1.5x raw
+            graded_fmv = round(raw_fmv * 1.5, 2)
+            fmv_method = 'estimated_from_raw'
+            estimated = True
+
         # ---------- Grading cost (tiered by CGC 2026 schedule) ----------
         base_value = graded_fmv or raw_fmv or 0
-        comic_year = request.args.get('year', type=int, default=None)
         grading_cost = get_cgc_grading_cost(base_value, comic_year)
 
         # ---------- ROI calculation ----------
@@ -392,7 +434,7 @@ def api_sales_valuation():
 
             # Metadata
             'lookback_days': days,
-            'estimated': fmv_method in ['interpolated', 'none']
+            'estimated': estimated or fmv_method in ['estimated', 'estimated_from_raw']
         })
 
     except Exception as e:
