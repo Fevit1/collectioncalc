@@ -1345,48 +1345,41 @@
                 if (!confirmed) return;
             }
 
-            try {
-                const token = localStorage.getItem('cc_token');
+            const token = localStorage.getItem('cc_token');
+            const numId = Number(comicId);
 
-                // Immediately remove from DOM for instant feedback
-                const numId = Number(comicId);
-                const row = document.querySelector(`.comic-card[data-id="${comicId}"], .comic-card[data-id="${numId}"], .comic-frame[data-id="${comicId}"], .comic-frame[data-id="${numId}"]`);
-                if (row) {
-                    row.style.transition = 'opacity 0.25s, transform 0.25s';
-                    row.style.opacity = '0';
-                    row.style.transform = 'translateX(-20px)';
-                }
-
-                const response = await fetch(`${API_URL}/api/collection/${comicId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    // Remove from local arrays using Number coercion for reliable matching
-                    collection = collection.filter(c => Number(c.id) !== numId);
-                    filteredCollection = filteredCollection.filter(c => Number(c.id) !== numId);
-                    // Remove DOM element after animation
-                    setTimeout(() => {
-                        if (row) row.remove();
-                        updateSummary();
-                        displayCollection();
-                    }, 250);
-                } else {
-                    // Restore row if delete failed
-                    if (row) {
-                        row.style.opacity = '1';
-                        row.style.transform = 'none';
-                    }
-                    const errData = await response.json().catch(() => ({}));
-                    alert('Failed to delete comic: ' + (errData.error || response.status));
-                }
-            } catch (error) {
-                console.error('Error deleting comic:', error);
-                alert('Error deleting comic');
+            // --- Optimistic UI: remove instantly, API call in background ---
+            const row = document.querySelector(`.comic-card[data-id="${comicId}"], .comic-card[data-id="${numId}"], .comic-frame[data-id="${comicId}"], .comic-frame[data-id="${numId}"]`);
+            if (row) {
+                row.style.transition = 'opacity 0.15s, transform 0.15s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-20px)';
+                setTimeout(() => row.remove(), 150);
             }
+
+            // Remove from local arrays immediately
+            const removedItem = collection.find(c => Number(c.id) === numId);
+            collection = collection.filter(c => Number(c.id) !== numId);
+            filteredCollection = filteredCollection.filter(c => Number(c.id) !== numId);
+            updateSummary();
+
+            // Fire API call in background (no await blocking the UI)
+            fetch(`${API_URL}/api/collection/${comicId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(async response => {
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    if (removedItem) collection.push(removedItem);
+                    displayCollection();
+                    showToast('Delete failed: ' + (errData.error || response.status), 'error');
+                }
+            }).catch(err => {
+                console.error('Delete request failed:', err);
+                if (removedItem) collection.push(removedItem);
+                displayCollection();
+                showToast('Network error — comic restored', 'error');
+            });
         }
 
         function showDeleteConfirmation() {
