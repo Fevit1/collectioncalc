@@ -1,4 +1,6 @@
-# CollectionCalc API Reference
+# Slab Worthy API Reference
+
+**Last updated:** February 28, 2026 (Session 69)
 
 ## Purpose
 This document lists the actual function names exported from each module.
@@ -10,12 +12,18 @@ This document lists the actual function names exported from each module.
 
 | Function | Description |
 |----------|-------------|
-| `get_valuation_with_ebay()` | Main valuation function - combines DB + eBay data |
+| `get_valuation_with_ebay()` | Main valuation function — combines DB + eBay data |
 | `search_ebay_sold()` | Search eBay sold listings via Claude |
 | `expand_title_alias()` | Expand abbreviations (ASM → Amazing Spider-Man) |
 | `get_cached_result()` | Check cache for existing valuation |
 | `save_to_cache()` | Save valuation result to cache |
-| `calculate_confidence()` | Calculate confidence score |
+| `update_cached_value()` | Update cached valuation with new sales data |
+| `calculate_confidence()` | Calculate confidence level and score |
+| `calculate_tier_confidence()` | Calculate per-tier confidence scores |
+| `get_grade_value()` | Convert grade string to numeric value |
+| `is_grade_compatible()` | Check if sale grade is compatible with requested grade |
+| `normalize_grade_for_cache()` | Normalize grade for cache lookups |
+| `get_recency_weight()` | Calculate weight multiplier based on sale recency |
 
 **Common mistake:** Don't use `get_ebay_valuation` — it doesn't exist.
 
@@ -32,13 +40,14 @@ This document lists the actual function names exported from each module.
 | `get_user_token()` | Get user's token (refreshes if needed) |
 | `is_user_connected()` | Check if user has valid eBay connection |
 | `disconnect_user()` | Remove user's eBay connection |
+| `save_ebay_user_id()` | Save eBay's user ID to our DB |
 | `delete_user_by_ebay_id()` | GDPR deletion by eBay user ID |
+| `init_ebay_tokens_table()` | Create ebay_tokens table if needed |
+| `is_sandbox_mode()` | Check if using eBay sandbox |
 
 **Common mistakes:**
 - Don't use `exchange_code` — use `exchange_code_for_token`
 - Don't use `get_valid_token` — use `get_user_token`
-- Don't use `handle_oauth_callback` — use `exchange_code_for_token`
-- `get_ebay_user_info` doesn't exist
 
 ---
 
@@ -46,13 +55,23 @@ This document lists the actual function names exported from each module.
 
 | Function | Description |
 |----------|-------------|
-| `create_listing()` | Create eBay listing via Inventory API |
+| `create_listing()` | Create eBay listing (Fixed Price or Auction) |
 | `upload_image_to_ebay()` | Upload image to eBay Picture Services |
 | `get_or_create_merchant_location()` | Set up merchant location |
 | `get_or_create_listing_policies()` | Get business policies |
 | `get_listing_status()` | Check listing status |
+| `get_api_url()` | Get eBay API URL (production or sandbox) |
 
-**Common mistake:** Don't use `create_ebay_listing` — use `create_listing`.
+**`create_listing()` full signature (Session 69):**
+```python
+def create_listing(
+    user_id: str, title: str, issue: str, price: float,
+    grade: str = 'VF', description: str = None, publish: bool = False,
+    image_urls: list = None, listing_format: str = 'FIXED_PRICE',
+    auction_duration: str = 'DAYS_7', start_price: float = None,
+    reserve_price: float = None, buy_it_now_price: float = None
+) -> dict
+```
 
 ---
 
@@ -60,10 +79,8 @@ This document lists the actual function names exported from each module.
 
 | Function | Description |
 |----------|-------------|
-| `generate_description()` | Generate AI description for listing |
+| `generate_description()` | Generate AI description (targets 235-245 chars for mobile) |
 | `validate_description()` | Validate description for eBay compliance |
-
-**Common mistake:** Don't use `generate_ebay_description` — use `generate_description`.
 
 ---
 
@@ -73,8 +90,8 @@ This document lists the actual function names exported from each module.
 |----------|-------------|
 | `extract_from_photo()` | Extract comic info from raw image bytes |
 | `extract_from_base64()` | Extract comic info from base64-encoded image |
-
-**Common mistake:** Don't use `extract_comic_from_image` — use `extract_from_base64`.
+| `scan_barcode()` | Scan image for UPC barcode |
+| `decode_barcode()` | Decode 5-digit UPC supplement code |
 
 ---
 
@@ -92,6 +109,7 @@ This document lists the actual function names exported from each module.
 | `verify_jwt()` | Verify JWT token |
 | `get_user_by_id()` | Get user by ID |
 | `get_user_by_email()` | Get user by email |
+| `get_current_user()` | Get current user from JWT token |
 | `validate_beta_code()` | Check if beta code is valid |
 | `use_beta_code()` | Mark beta code as used |
 | `create_beta_code()` | Create new beta code (admin) |
@@ -100,7 +118,11 @@ This document lists the actual function names exported from each module.
 | `reject_user()` | Reject and delete user (admin) |
 | `get_pending_users()` | Get users awaiting approval |
 | `get_all_users()` | Get all users (admin) |
-| `require_admin()` | Check if user is admin |
+| `is_user_admin()` | Check if user is admin |
+| `is_user_approved()` | Check if user is approved |
+| `require_auth` | Decorator: require JWT authentication |
+| `require_approved` | Decorator: require user approval |
+| `require_admin_auth` | Decorator: require admin authentication |
 
 ---
 
@@ -120,6 +142,43 @@ This document lists the actual function names exported from each module.
 
 ---
 
+## Module: `content_moderation.py`
+
+| Function | Description |
+|----------|-------------|
+| `moderate_image()` | Check image via AWS Rekognition |
+| `log_moderation_incident()` | Log moderation event to DB |
+| `get_image_hash()` | Generate SHA256 hash of image |
+| `get_moderation_incidents()` | Get recent incidents (admin) |
+| `get_moderation_stats()` | Get moderation stats (admin) |
+
+---
+
+## Module: `r2_storage.py`
+
+| Function | Description |
+|----------|-------------|
+| `get_r2_client()` | Get S3 client for Cloudflare R2 |
+| `upload_image()` | Upload image to R2 |
+| `upload_to_r2()` | Alias for upload_image |
+| `upload_sale_image()` | Upload image for a sale |
+| `upload_submission_image()` | Upload B4Cert submission image |
+| `upload_temp_image()` | Upload temp image during extraction |
+| `delete_image()` | Delete image from R2 |
+| `get_image_url()` | Get public URL for image |
+| `move_temp_to_sale()` | Move temp image to permanent location |
+| `check_r2_connection()` | Test R2 connection status |
+
+---
+
+## Module: `title_normalizer.py`
+
+| Function | Description |
+|----------|-------------|
+| `normalize_title()` | Parse raw eBay title into structured fields |
+
+---
+
 ## Critical Endpoints (Don't Delete!)
 
 | Endpoint | Purpose | Required By |
@@ -127,66 +186,11 @@ This document lists the actual function names exported from each module.
 | `/api/ebay/account-deletion` | GDPR compliance | eBay (they poll this) |
 | `/api/sales/record` | Whatnot extension writes | Chrome extension |
 | `/api/sales/recent` | Whatnot extension reads | Chrome extension |
+| `/api/ebay-sales/batch` | eBay collector writes | Chrome extension |
+| `/api/monitor/*` | Slab Guard monitoring | Slab Guard extension |
+| `/api/billing/webhook` | Stripe events | Stripe |
 | `/health` or `/` | Health check | Render |
 
 ---
 
-## wsgi.py Import Block (Copy-Paste Reference)
-
-```python
-# Auth imports
-from auth import (
-    signup, login, verify_email, resend_verification, 
-    forgot_password, reset_password, get_current_user,
-    validate_beta_code, create_beta_code, list_beta_codes,
-    approve_user, reject_user, get_pending_users, get_all_users,
-    require_admin, verify_jwt, get_user_by_id
-)
-
-# Admin imports
-from admin import (
-    log_request, log_api_usage, get_dashboard_stats,
-    get_recent_errors, get_endpoint_stats, get_device_breakdown,
-    natural_language_query, get_nlq_history, get_anthropic_usage_summary
-)
-
-# eBay imports (with fallbacks)
-try:
-    from ebay_valuation import get_valuation_with_ebay, search_ebay_sold
-except ImportError as e:
-    print(f"ebay_valuation import error: {e}")
-    get_valuation_with_ebay = None
-    search_ebay_sold = None
-
-try:
-    from ebay_oauth import get_auth_url, exchange_code_for_token, get_user_token, is_user_connected
-except ImportError as e:
-    print(f"ebay_oauth import error: {e}")
-    get_auth_url = None
-    exchange_code_for_token = None
-    get_user_token = None
-    is_user_connected = None
-
-try:
-    from ebay_listing import create_listing, upload_image_to_ebay
-except ImportError as e:
-    print(f"ebay_listing import error: {e}")
-    create_listing = None
-    upload_image_to_ebay = None
-
-try:
-    from ebay_description import generate_description
-except ImportError as e:
-    print(f"ebay_description import error: {e}")
-    generate_description = None
-
-try:
-    from comic_extraction import extract_from_base64
-except ImportError as e:
-    print(f"comic_extraction import error: {e}")
-    extract_from_base64 = None
-```
-
----
-
-*Last updated: January 26, 2026*
+*Last updated: February 28, 2026 (Session 69)*
