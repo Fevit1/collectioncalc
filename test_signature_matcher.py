@@ -400,6 +400,65 @@ def test_ebay_signed(token):
         print(f"    Sale ID {sale.get('id')} is a candidate for testing")
 
 
+# -------------------------------------------------------------------
+# Test 6: Premium analysis
+# -------------------------------------------------------------------
+def premium_analysis():
+    print("Running signed premium analysis...")
+    print("─" * 60)
+
+    data, status = api_get("/api/signatures/premium-analysis?min_comps=3&min_price=10")
+
+    if status != 200:
+        print(f"❌ Error ({status}): {data}")
+        return
+
+    summary = data.get("summary", {})
+    pairs = data.get("pairs", [])
+
+    print(f"Total signed sales in DB:  {summary.get('total_signed_sales', '?')}")
+    print(f"Matched pairs (w/ comps):  {summary.get('matched_pairs', '?')}")
+    print(f"Skipped (no comps):        {summary.get('skipped_no_comps', '?')}")
+    print(f"Skipped (title collision):  {summary.get('skipped_collision', '?')}")
+
+    overall = summary.get("overall")
+    if overall:
+        print(f"\n{'═' * 50}")
+        print(f"OVERALL SIGNED PREMIUM")
+        print(f"{'═' * 50}")
+        print(f"  Mean premium:    {overall['mean_premium']:+.1f}%")
+        print(f"  Median premium:  {overall['median_premium']:+.1f}%")
+        print(f"  Range:           {overall['min_premium']:+.0f}% to {overall['max_premium']:+.0f}%")
+        print(f"  Positive:        {overall['positive_count']}/{summary['matched_pairs']} ({overall['positive_pct']:.0f}%)")
+
+    tiers = summary.get("by_grade_tier", {})
+    if any(tiers.values()):
+        print(f"\nBY GRADE TIER:")
+        for tier_name, tier_data in tiers.items():
+            if tier_data:
+                label = tier_name.replace('_', ' ').title()
+                print(f"  {label}: {tier_data['count']} pairs, "
+                      f"median {tier_data['median']:+.0f}%, "
+                      f"mean {tier_data['mean']:+.0f}%, "
+                      f"range {tier_data['min']:+.0f}% to {tier_data['max']:+.0f}%")
+
+    if pairs:
+        print(f"\n{'─' * 50}")
+        print(f"TOP MATCHED PAIRS (by premium)")
+        print(f"{'Comic':40s} {'Grade':>5s} {'Signed':>8s} {'Unsign':>8s} {'Prem':>7s} {'Comps':>5s}  {'Creator'}")
+        print(f"{'─' * 110}")
+        for p in pairs[:25]:
+            grade_str = f"{p['grade']:.1f}" if p['grade'] else "raw"
+            collision = " ⚠️" if p.get('collision_adjusted') else ""
+            print(f"{p['comic'][:40]:40s} {grade_str:>5s} ${p['signed_price']:>7.0f} ${p['unsigned_median']:>7.0f} "
+                  f"{p['premium_vs_median']:>+6.0f}% {p['num_comps']:>5d}  {(p.get('creator') or '')[:20]}{collision}")
+
+    methodology = data.get("methodology", {})
+    if methodology:
+        print(f"\nMethodology: {methodology.get('description', '')[:120]}")
+        print(f"Collision handling: {methodology.get('collision_handling', '')[:120]}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Signature Matcher")
     parser.add_argument("--check-signed-sales", action="store_true", help="Check signed sales in DB")
@@ -407,6 +466,7 @@ if __name__ == "__main__":
     parser.add_argument("--test-known", help="Test with a known artist name")
     parser.add_argument("--cross-validate", action="store_true", help="Cross-validate all artists")
     parser.add_argument("--test-ebay", action="store_true", help="Test against eBay signed sales")
+    parser.add_argument("--premium-analysis", action="store_true", help="Analyze signed vs unsigned premium")
     parser.add_argument("--token", help="Auth token for protected endpoints")
 
     args = parser.parse_args()
@@ -415,6 +475,8 @@ if __name__ == "__main__":
         check_signed_sales()
     elif args.db_stats:
         check_db_stats()
+    elif args.premium_analysis:
+        premium_analysis()
     elif args.test_known:
         if not args.token:
             print("❌ --token required for matching endpoints")
@@ -436,6 +498,7 @@ if __name__ == "__main__":
         print("Run with one of:")
         print("  --check-signed-sales   See what signed data we have")
         print("  --db-stats            Check reference DB stats (no auth)")
+        print("  --premium-analysis    Signed vs unsigned price premium (no auth)")
         print("  --test-known 'Jim Lee' --token TOKEN   Test known artist")
         print("  --cross-validate --token TOKEN          Full validation")
         print("  --test-ebay --token TOKEN               Test against eBay data")

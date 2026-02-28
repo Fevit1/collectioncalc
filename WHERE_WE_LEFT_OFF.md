@@ -35,16 +35,22 @@
 - `test_signature_matcher.py` — NEW: Production test suite
 - `wsgi.py` — Added signatures blueprint import, init, registration
 
+### Signed Premium Analysis (also Session 68)
+- **Added `/api/signatures/premium-analysis` endpoint** — compares all signed eBay sales against unsigned sales of same title+issue+grade
+- **Title collision fix**: when unsigned comps span >5x price range (e.g., X-Men #1 1963 vs 1991), splits into price tiers and matches signed sale to nearest tier
+- **Initial results** (12 pairs from quick test before endpoint was built): median premium +28%, mean +38%, 75% of signed comics sell above unsigned FMV
+- **Grade tier breakdown** included in output — high grade (9+), mid grade (7-9), low grade (<7), raw
+- Added `--premium-analysis` flag to test script (no auth needed)
+
 ### What's Next (Priority Order)
 1. **Push Session 67+68 code** to production (git commands below)
-2. **Test `/api/signatures/db-stats`** to confirm deployment worked
-3. **Run `--test-known "Jim Lee"` or `--cross-validate`** to get accuracy baseline
-4. **Check `/api/signatures/signed-sales`** to see if our eBay data has signed comics matching our reference artists
-5. **Collect signatures for missing priority artists**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
+2. **Run `python test_signature_matcher.py --premium-analysis`** to get full analysis with collision handling
+3. **Run `--test-known "Jim Lee"` or `--cross-validate`** to get signature accuracy baseline (needs auth token)
+4. **Collect signatures for missing priority artists**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
 
 ### Git Push Commands (PowerShell)
 ```powershell
-cd SW ; git add signatures/signatures_db.json signatures/signature_matcher.py routes/signatures.py test_signature_matcher.py wsgi.py app.html routes/sales_valuation.py WHERE_WE_LEFT_OFF.md TODO.md CLAUDE_NOTES.txt ; git commit -m "Session 67-68: Valuation upgrade + Signature matching system" ; git push
+cd SW ; git add signatures/signatures_db.json signatures/signature_matcher.py routes/signatures.py test_signature_matcher.py wsgi.py app.html routes/sales_valuation.py WHERE_WE_LEFT_OFF.md TODO.md CLAUDE_NOTES.txt ; git commit -m "Session 67-68: Valuation upgrade + Signature matching + Premium analysis" ; git push
 ```
 
 ---
