@@ -131,20 +131,26 @@
         .sig-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .sig-thumb .delete-btn {
             position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 18px;
-            height: 18px;
+            top: -4px;
+            right: -4px;
+            width: 22px;
+            height: 22px;
             background: var(--error);
-            border: none;
+            border: 2px solid var(--bg-dark);
             border-radius: 50%;
             color: white;
-            font-size: 10px;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
+            opacity: 0.85;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            z-index: 2;
         }
-        .sig-thumb:hover .delete-btn { opacity: 1; }
+        .sig-thumb .delete-btn:hover { opacity: 1; transform: scale(1.15); background: #dc2626; }
         .add-image-btn {
             width: 80px;
             height: 80px;
@@ -193,6 +199,8 @@
         .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
         .btn-secondary { background: var(--bg-card-hover); border: 1px solid var(--border); }
         .btn-success { background: var(--success); }
+        .btn-danger { background: var(--error); }
+        .btn-danger:hover { background: #dc2626; }
         .form-row { display: flex; gap: 12px; margin-bottom: 16px; }
         .form-group { flex: 1; }
         .form-group label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
@@ -512,6 +520,7 @@
                     (sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : '') +
                     '<div class="signature-actions">' +
                         (!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : '') +
+                        '<button class="btn btn-sm btn-danger" onclick="deleteCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">🗑 Delete</button>' +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -616,6 +625,22 @@
                 if (data.success) { showToast('Image deleted', 'success'); loadSignatures(); }
                 else { showToast(data.error || 'Failed', 'error'); }
             } catch (e) { showToast('Error', 'error'); }
+        }
+
+        async function deleteCreator(id, name) {
+            if (!confirm('Delete creator "' + name + '" and ALL their reference images? This cannot be undone.')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Deleted ' + name + ' (' + (data.images_deleted || 0) + ' images removed)', 'success');
+                    loadSignatures();
+                }
+                else { showToast(data.error || 'Failed to delete', 'error'); }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
 
         async function verifySignature(id) {

@@ -1,6 +1,6 @@
 # Where We Left Off - Feb 28, 2026
 
-## Session 69 (Feb 28, 2026) — eBay Auction Listing Support
+## Session 69 (Feb 28, 2026) — eBay Auction + Signature Deletion
 
 ### What We Did
 **Added auction format to eBay listing integration** — the existing fixed-price listing flow now supports eBay auctions:
@@ -11,13 +11,19 @@
 - **Backward compatible** — defaults to `FIXED_PRICE` if no format specified. All existing functionality unchanged.
 - **Moved Booth Ready Demo from P1 to P4** in TODO.md priority list — GalaxyCon is still months away.
 
+**Added signature creator deletion:**
+- **Backend** — New `DELETE /api/admin/signatures/<id>` endpoint in `routes/admin_routes.py`. Cascading delete: removes all `signature_images` for the creator first, then the `creator_signatures` row. Returns count of images deleted.
+- **Frontend** — Red "🗑 Delete" button on every creator card in `signatures.html`. Confirmation dialog: "Delete creator X and ALL their reference images? This cannot be undone." Toast notification shows creator name + images removed count.
+
 ### Files Modified
 - `ebay_listing.py` — Added auction format support to `create_listing()`: format toggle, duration, reserve, BIN pricing
 - `routes/ebay.py` — Pass `listing_format`, `auction_duration`, `start_price`, `reserve_price`, `buy_it_now_price` to backend
 - `collection.html` — Added format toggle UI, auction fields (start bid, duration, reserve, BIN), updated `createListing()` JS, format-aware success alerts
+- `routes/admin_routes.py` — New `DELETE /api/admin/signatures/<id>` endpoint with cascading image deletion
+- `signatures.html` — Added `deleteCreator()` JS function, `.btn-danger` CSS class, Delete button on each card
 
 ### What's Next (Priority Order)
-1. **Signature page deletion** — Add "Delete Creator" button to admin signatures page
+1. **eBay auction end-to-end test** — Test OAuth, fixed-price, and auction listing flows
 2. **Facebook page setup** — Create business page, initial content
 3. **Run `--cross-validate`** to get signature accuracy baseline
 4. **Valuation endpoint testing** — 12-case test plan

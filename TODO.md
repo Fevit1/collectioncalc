@@ -15,6 +15,7 @@
 
 ## ✅ DONE (Session 64-68)
 
+- [x] **Signature page deletion** — Session 69: Added "Delete Creator" button to admin signatures page. Backend `DELETE /api/admin/signatures/<id>` endpoint cascades to remove all reference images. Confirmation dialog prevents accidents.
 - [x] **eBay auction listing support** — Session 69: Added Fixed Price / Auction format toggle to listing modal. Auction fields: starting bid, duration (1-10 days), reserve price, Buy It Now. Backend + route + UI all updated. Backward compatible.
 - [x] **Push Session 65 code** — Done by Mike.
 - [x] **Homepage Sign In / Sign Up** — Session 68b: Added top-right auth nav to hero (Option A). Gold "Sign Up" pill + "Sign In" text link. Zero impact on hero layout.
@@ -67,10 +68,9 @@
   - Auction fields: starting bid, duration, reserve, Buy It Now
   - Backend + route + UI all updated
 
-- [ ] **Signature page deletion** ⏱ 30 min
-  - Add "Delete Creator" button to admin signatures page
-  - Backend endpoint already exists, just needs UI wiring
-  - 🔗 No blockers
+- [x] ~~**Signature page deletion**~~ ✅ Session 69
+  - Added "Delete Creator" button + backend DELETE endpoint
+  - Cascading delete removes all reference images
 
 - [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️
   - Test OAuth flow, connect eBay account

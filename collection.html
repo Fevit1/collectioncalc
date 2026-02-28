@@ -2358,14 +2358,43 @@ async function createListing(publish) {
             listing_format: currentListingFormat
         };
 
-        // Add auction-specific fields
+        // Add auction-specific fields with validation
         if (isAuction) {
-            listingData.start_price = parseFloat(document.getElementById('auctionStartPrice').value || '0.99');
+            const startPrice = parseFloat(document.getElementById('auctionStartPrice').value || '0.99');
+            if (startPrice <= 0) {
+                alert('Starting bid must be greater than $0.00');
+                publishBtn.disabled = !window.ebayConnected;
+                draftBtn.disabled = false;
+                publishBtn.textContent = '🚀 Publish Now';
+                return;
+            }
+            listingData.start_price = startPrice;
             listingData.auction_duration = document.getElementById('auctionDuration').value;
             const reserve = document.getElementById('auctionReservePrice').value;
-            if (reserve) listingData.reserve_price = parseFloat(reserve);
+            if (reserve) {
+                const reservePrice = parseFloat(reserve);
+                if (reservePrice <= startPrice) {
+                    alert('Reserve price must be higher than the starting bid ($' + startPrice.toFixed(2) + ')');
+                    publishBtn.disabled = !window.ebayConnected;
+                    draftBtn.disabled = false;
+                    publishBtn.textContent = '🚀 Publish Now';
+                    return;
+                }
+                listingData.reserve_price = reservePrice;
+            }
             const bin = document.getElementById('auctionBuyItNow').value;
-            if (bin) listingData.buy_it_now_price = parseFloat(bin);
+            if (bin) {
+                const binPrice = parseFloat(bin);
+                const minBin = listingData.reserve_price || startPrice;
+                if (binPrice <= minBin) {
+                    alert('Buy It Now price must be higher than ' + (listingData.reserve_price ? 'the reserve price' : 'the starting bid') + ' ($' + minBin.toFixed(2) + ')');
+                    publishBtn.disabled = !window.ebayConnected;
+                    draftBtn.disabled = false;
+                    publishBtn.textContent = '🚀 Publish Now';
+                    return;
+                }
+                listingData.buy_it_now_price = binPrice;
+            }
         }
         
         const response = await fetch(`${API_URL}/api/ebay/list`, {
