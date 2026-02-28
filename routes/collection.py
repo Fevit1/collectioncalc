@@ -127,20 +127,56 @@ def api_save_collection():
 @require_auth
 @require_approved
 def api_delete_collection_item(item_id):
-    """Delete an item from user's collection"""
+    """Delete an item from user's collection (cascades to registry, sightings)"""
     database_url = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
-    cur.execute("DELETE FROM collections WHERE id = %s AND user_id = %s RETURNING id", (item_id, g.user_id))
-    deleted = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    
-    if deleted:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Item not found'}), 404
+
+    try:
+        # Verify the item belongs to this user first
+        cur.execute("SELECT id FROM collections WHERE id = %s AND user_id = %s", (item_id, g.user_id))
+        if not cur.fetchone():
+            return jsonify({'success': False, 'error': 'Item not found'}), 404
+
+        # Delete dependent rows in order (FK constraints)
+        # 1. Sighting reports referencing this comic's registry entry
+        cur.execute("""
+            DELETE FROM sighting_reports
+            WHERE serial_number IN (
+                SELECT serial_number FROM comic_registry WHERE comic_id = %s
+            )
+        """, (item_id,))
+
+        # 2. Match reports referencing this comic's registry entry
+        try:
+            cur.execute("""
+                DELETE FROM match_reports
+                WHERE serial_number IN (
+                    SELECT serial_number FROM comic_registry WHERE comic_id = %s
+                )
+            """, (item_id,))
+        except Exception:
+            pass  # Table may not exist yet
+
+        # 3. Comic registry entries
+        cur.execute("DELETE FROM comic_registry WHERE comic_id = %s", (item_id,))
+
+        # 4. Finally delete the collection item itself
+        cur.execute("DELETE FROM collections WHERE id = %s AND user_id = %s RETURNING id", (item_id, g.user_id))
+        deleted = cur.fetchone()
+        conn.commit()
+
+        if deleted:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Item not found'}), 404
+    except Exception as e:
+        conn.rollback()
+        print(f"[Collection] Delete error for item {item_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 
 @collection_bp.route('/<int:item_id>/valuation', methods=['PATCH'])
