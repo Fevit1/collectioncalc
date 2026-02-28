@@ -1336,10 +1336,27 @@
         }
 
         async function deleteComic(comicId) {
-            if (!confirm('Delete this comic from your collection?')) return;
+            // Check if user has dismissed the warning
+            const skipWarning = localStorage.getItem('cc_skip_delete_warning') === 'true';
+
+            if (!skipWarning) {
+                // Show custom confirmation modal
+                const confirmed = await showDeleteConfirmation();
+                if (!confirmed) return;
+            }
 
             try {
                 const token = localStorage.getItem('cc_token');
+
+                // Immediately remove from DOM for instant feedback
+                const numId = Number(comicId);
+                const row = document.querySelector(`.comic-card[data-id="${comicId}"], .comic-card[data-id="${numId}"], .comic-frame[data-id="${comicId}"], .comic-frame[data-id="${numId}"]`);
+                if (row) {
+                    row.style.transition = 'opacity 0.25s, transform 0.25s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-20px)';
+                }
+
                 const response = await fetch(`${API_URL}/api/collection/${comicId}`, {
                     method: 'DELETE',
                     headers: {
@@ -1348,18 +1365,73 @@
                 });
 
                 if (response.ok) {
-                    // Remove from local array (use == for type coercion since comicId might be string or int)
-                    collection = collection.filter(c => c.id != comicId);
-                    filteredCollection = filteredCollection.filter(c => c.id != comicId);
-                    updateSummary();
-                    displayCollection();
+                    // Remove from local arrays using Number coercion for reliable matching
+                    collection = collection.filter(c => Number(c.id) !== numId);
+                    filteredCollection = filteredCollection.filter(c => Number(c.id) !== numId);
+                    // Remove DOM element after animation
+                    setTimeout(() => {
+                        if (row) row.remove();
+                        updateSummary();
+                        displayCollection();
+                    }, 250);
                 } else {
+                    // Restore row if delete failed
+                    if (row) {
+                        row.style.opacity = '1';
+                        row.style.transform = 'none';
+                    }
                     alert('Failed to delete comic');
                 }
             } catch (error) {
                 console.error('Error deleting comic:', error);
                 alert('Error deleting comic');
             }
+        }
+
+        function showDeleteConfirmation() {
+            return new Promise((resolve) => {
+                // Create modal overlay
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+                const modal = document.createElement('div');
+                modal.style.cssText = 'background:#1a1a2e;border:1px solid #27272a;border-radius:16px;padding:24px;max-width:400px;width:90%;color:#fff;font-family:Inter,sans-serif;';
+                modal.innerHTML = `
+                    <h3 style="margin:0 0 12px;font-size:1.1rem;">Delete this comic?</h3>
+                    <p style="color:#a1a1aa;font-size:0.9rem;margin:0 0 20px;">This will permanently remove it from your collection.</p>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#a1a1aa;margin-bottom:20px;">
+                        <input type="checkbox" id="skipDeleteWarning" style="width:16px;height:16px;accent-color:#6366f1;cursor:pointer;">
+                        Don't show this warning again
+                    </label>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;">
+                        <button id="deleteCancel" style="padding:8px 20px;background:#252542;border:1px solid #27272a;border-radius:8px;color:#fff;cursor:pointer;font-size:0.9rem;">Cancel</button>
+                        <button id="deleteConfirm" style="padding:8px 20px;background:#ef4444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:0.9rem;">Delete</button>
+                    </div>
+                `;
+
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+
+                modal.querySelector('#deleteConfirm').addEventListener('click', () => {
+                    if (modal.querySelector('#skipDeleteWarning').checked) {
+                        localStorage.setItem('cc_skip_delete_warning', 'true');
+                    }
+                    overlay.remove();
+                    resolve(true);
+                });
+
+                modal.querySelector('#deleteCancel').addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(false);
+                });
+
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        resolve(false);
+                    }
+                });
+            });
         }
 
         function viewDetails(comicId) {
