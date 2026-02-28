@@ -1,56 +1,56 @@
 # Where We Left Off - Feb 28, 2026
 
-## Session 68 (Feb 28, 2026) — Signature Matching System
+## Session 68 (Feb 28, 2026) — Signature Matching + Title Year Fix
 
 ### What We Did
-- **Created `signatures/signatures_db.json`** — Reference database mapping 23 artists to 97 signature image files with quality ratings, style notes, aliases, and metadata
-- **Created `signatures/signature_matcher.py`** — Standalone Claude Vision-based matching engine with:
-  - `match_signature()` — Compare unknown sig against all references
-  - `cross_validate()` — Test each artist's sig against all others (accuracy metric)
-  - `test_known_artist()` — Test specific artist identification
-  - CLI interface with `--image`, `--test`, `--cross-validate` flags
-- **Created `routes/signatures.py`** — New Flask blueprint with 3 endpoints:
-  - `POST /api/signatures/match` — Match unknown signature via Claude Vision (auth required)
-  - `GET /api/signatures/db-stats` — Reference database stats (public)
-  - `GET /api/signatures/signed-sales` — Query signed eBay sales with creator breakdown
-- **Wired blueprint into `wsgi.py`** — imports, init_modules, register_blueprint
-- **Created `test_signature_matcher.py`** — Full test suite Mike can run after deployment:
-  - `--check-signed-sales` — See how many signed sales are in DB
-  - `--db-stats` — Verify reference DB deployed correctly
-  - `--test-known "Jim Lee"` — Test known artist match (needs auth token)
-  - `--cross-validate` — Full accuracy test across all 23 artists
-  - `--test-ebay` — Test against real eBay signed comic images
-- **Ran title normalizer backfill** — 376 NULL canonical_titles, all returned None (edge cases: eBay lot numbers, non-comics, art prints). Not actionable.
 
-### Architecture Decisions
-- Matcher sends unknown sig + 1 best reference per artist (largest file = best quality) to Claude Vision
-- Conservative matching: `is_confident_match` only when confidence >= 0.7
-- Results optionally saved to existing `signature_matches` DB table (links to `creator_signatures` and `market_sales`)
-- The `/api/signatures/signed-sales` endpoint lets us find real signed comics from our 24K+ eBay sales to test against
+**Signature Matching System:**
+- Created `signatures/signatures_db.json` — 23 artists, 97 signature images, quality ratings
+- Created `signatures/signature_matcher.py` — Standalone Claude Vision matcher (CLI)
+- Created `routes/signatures.py` — Flask blueprint: `/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`
+- Wired blueprint into `wsgi.py`
+- Created `test_signature_matcher.py` — 6 test modes (`--db-stats`, `--check-signed-sales`, `--test-known`, `--cross-validate`, `--test-ebay`, `--premium-analysis`)
+- Deployed and verified: `--db-stats` (23 artists, 97 images) and `--check-signed-sales` (899 signed sales) working on production
+
+**Signed Premium Analysis:**
+- Built `/api/signatures/premium-analysis` endpoint — single-pass CTE SQL comparing signed vs unsigned sales
+- Initial quick test: median premium +28%, mean +38%
+- Full endpoint run revealed **massive title collisions** — X-Men #1 (1963) and X-Men #1 (1991) normalize to same `canonical_title`, contaminating comps
+- DBeaver analysis confirmed most rows flagged as COLLISION (unsigned price range spans >5x)
+- Even "clean" data showed signed < unsigned in many cases — different printings/editions, not actual damage
+
+**Title Year Collision Fix (coded, needs deploy + migration):**
+- Added "Step 0.5" to `title_normalizer.py` — extracts publication year from raw title BEFORE year gets stripped in Step 9
+  - Pattern 1: `(1991)` in parens (most reliable)
+  - Pattern 2: standalone 4-digit year 1930-2029 (fallback)
+- Added `title_year` field to normalizer return dict and `_empty_result()`
+- Updated `routes/sales_ebay.py` — `title_year` in normalize function, INSERT, and backfill UPDATE
+- Created `db_migrate_title_year.py` — adds column + backfills all existing rows from `raw_title`
+- Updated premium analysis SQL in `routes/signatures.py` — uses `title_year` in GROUP BY and JOIN with ±2 year tolerance
 
 ### Files Created/Modified
-- `signatures/signatures_db.json` — NEW: 23 artists, 97 images, quality ratings
-- `signatures/signature_matcher.py` — NEW: Standalone matcher (CLI)
-- `routes/signatures.py` — NEW: Flask blueprint (3 endpoints)
+- `title_normalizer.py` — MODIFIED: Step 0.5 year extraction, title_year in return dict
+- `routes/sales_ebay.py` — MODIFIED: title_year in normalize, INSERT, backfill UPDATE
+- `routes/signatures.py` — NEW+MODIFIED: 4 endpoints, premium analysis SQL uses title_year
+- `db_migrate_title_year.py` — NEW: Migration script (ALTER TABLE + backfill)
+- `signatures/signatures_db.json` — NEW: 23 artists, 97 images
+- `signatures/signature_matcher.py` — NEW: Standalone CLI matcher
 - `test_signature_matcher.py` — NEW: Production test suite
-- `wsgi.py` — Added signatures blueprint import, init, registration
-
-### Signed Premium Analysis (also Session 68)
-- **Added `/api/signatures/premium-analysis` endpoint** — compares all signed eBay sales against unsigned sales of same title+issue+grade
-- **Title collision fix**: when unsigned comps span >5x price range (e.g., X-Men #1 1963 vs 1991), splits into price tiers and matches signed sale to nearest tier
-- **Initial results** (12 pairs from quick test before endpoint was built): median premium +28%, mean +38%, 75% of signed comics sell above unsigned FMV
-- **Grade tier breakdown** included in output — high grade (9+), mid grade (7-9), low grade (<7), raw
-- Added `--premium-analysis` flag to test script (no auth needed)
+- `wsgi.py` — Added signatures blueprint
 
 ### What's Next (Priority Order)
-1. **Push Session 67+68 code** to production (git commands below)
-2. **Run `python test_signature_matcher.py --premium-analysis`** to get full analysis with collision handling
-3. **Run `--test-known "Jim Lee"` or `--cross-validate`** to get signature accuracy baseline (needs auth token)
-4. **Collect signatures for missing priority artists**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
+1. **Deploy title_year fix** — push code, then run `python db_migrate_title_year.py` on production
+2. **Retest premium analysis** — `python test_signature_matcher.py --premium-analysis` or DBeaver query
+3. **Run `--cross-validate`** to get signature accuracy baseline (needs auth token)
+4. **Collect 5 missing priority artist signatures**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
 
 ### Git Push Commands (PowerShell)
 ```powershell
-cd SW ; git add signatures/signatures_db.json signatures/signature_matcher.py routes/signatures.py test_signature_matcher.py wsgi.py app.html routes/sales_valuation.py WHERE_WE_LEFT_OFF.md TODO.md CLAUDE_NOTES.txt ; git commit -m "Session 67-68: Valuation upgrade + Signature matching + Premium analysis" ; git push
+git add title_normalizer.py routes/sales_ebay.py routes/signatures.py db_migrate_title_year.py ; git commit -m "Add title_year extraction to fix era collisions in premium analysis" ; git push; deploy; purge
+```
+Then after Render deploy completes:
+```powershell
+python db_migrate_title_year.py
 ```
 
 ---

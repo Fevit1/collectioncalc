@@ -15,8 +15,9 @@
 
 ## ✅ DONE (Session 64-68)
 
-- [x] **Signature matching system v1** — Session 68: Reference DB (23 artists, 97 images), Flask blueprint (`/api/signatures/match`, `/db-stats`, `/signed-sales`), standalone CLI matcher, production test suite
+- [x] **Signature matching system v1** — Session 68: Reference DB (23 artists, 97 images), Flask blueprint (`/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`), standalone CLI matcher, production test suite. Deployed: db-stats + signed-sales verified (899 signed sales found).
 - [x] **Title normalizer backfill** — Session 68: 376 NULLs all edge cases (lot numbers, non-comics). Not actionable.
+- [x] **Title year extraction (collision fix)** — Session 68: Added `title_year` field to normalizer (Step 0.5), updated sales_ebay.py INSERT/backfill, created `db_migrate_title_year.py`, updated premium analysis SQL with ±2yr tolerance. **NEEDS: deploy + run migration + retest.**
 - [x] **Upgrade valuation on grading results** — Session 67: Switched from grade-blind `/api/sales/fmv` to grade-specific `/api/sales/valuation` with interpolation, fallback estimates, confidence indicator
 - [x] **Grading flow polish** — Session 67: Confirmed all items done (delay removed S66, instructions not needed, Grade Another already exists, valuation now wired)
 - [x] **Fix AI grading inconsistency** — Session 66: Rebuilt from holistic to structured 8-category scoring. New `grading_engine.py`, `/api/grade` endpoint, multi-run support. Unit tests passing.
@@ -116,10 +117,12 @@
 
 - [ ] **Signature identification v1 — testing & tuning** ⏱ 1-2 sessions
   - ✅ Reference DB built (23 artists, 97 images)
-  - ✅ API endpoint built (`/api/signatures/match`)
+  - ✅ API endpoints built (`/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`)
   - ✅ Test suite built (`test_signature_matcher.py`)
-  - Remaining: deploy, run cross-validation, tune confidence thresholds
-  - 🔗 Depends on: push Session 67-68 code; Mike collecting 5 more priority artists
+  - ✅ db-stats + signed-sales deployed and verified on production
+  - ✅ Title year collision fix coded (needs deploy + migration)
+  - Remaining: deploy title_year fix, run migration, retest premium analysis, run cross-validation, tune confidence thresholds
+  - 🔗 Depends on: deploy title_year code; Mike collecting 5 more priority artists
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title

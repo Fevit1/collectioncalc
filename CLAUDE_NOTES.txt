@@ -69,13 +69,12 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ## RECENT MAJOR MILESTONES
 
-### ✅ Signature Matching System Built (Feb 28, 2026 — Session 68)
-- **Reference database**: `signatures/signatures_db.json` — 23 artists, 97 signature images, quality ratings, style notes, aliases
-- **API endpoint**: `routes/signatures.py` — `/api/signatures/match` (Claude Vision matching), `/db-stats`, `/signed-sales`
-- **Test suite**: `test_signature_matcher.py` — cross-validation, known-artist test, eBay signed-sales test
-- **Standalone CLI**: `signatures/signature_matcher.py` — for local testing without web server
-- **Title backfill**: 376 NULL canonical_titles all edge cases (not fixable)
-- **Next**: Push to prod, run cross-validation to get accuracy baseline, collect 5 missing priority artists
+### ✅ Signature Matching + Title Year Collision Fix (Feb 28, 2026 — Session 68)
+- **Signature system**: Reference DB (23 artists, 97 images), API blueprint (4 endpoints: match, db-stats, signed-sales, premium-analysis), test suite, standalone CLI
+- **Deployed**: db-stats and signed-sales endpoints verified on production (899 signed sales found)
+- **Premium analysis**: Built CTE-based endpoint, found massive era collisions (X-Men #1 1963 vs 1991). DBeaver analysis confirmed.
+- **Title year fix (coded, needs deploy)**: Added `title_year` extraction to normalizer (Step 0.5, before year stripping), updated INSERT/backfill in sales_ebay.py, created `db_migrate_title_year.py` migration, updated premium analysis SQL with ±2yr tolerance
+- **Next**: Deploy code, run migration (`python db_migrate_title_year.py`), retest premium analysis, collect 5 missing priority artists
 
 ### ✅ Valuation Endpoint Upgrade + Grading Flow Polish Complete (Feb 28, 2026 — Session 67)
 - **Tested both valuation endpoints** against production with 8 comics — found `/api/sales/fmv` has grade-blind tier bucketing (treats 2.0 same as 7.5). The `/api/sales/valuation` endpoint does exact-grade matching with interpolation — much better.

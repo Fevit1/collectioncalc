@@ -2,42 +2,25 @@
 Migration: Add title_year column to ebay_sales and backfill from raw_title.
 
 Usage:
-    python db_migrate_title_year.py
+    python db_migrate_title_year.py <DATABASE_URL>
+    python db_migrate_title_year.py                  # falls back to DATABASE_URL env var
 
 This will:
 1. Add title_year INTEGER column to ebay_sales (if not exists)
-2. Re-extract year from raw_title for all existing rows
+2. Extract year from raw_title using server-side SQL (fast, no round trips)
 3. Report stats on how many rows got a year
 """
 
 import os
-import re
+import sys
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
-    print("❌ DATABASE_URL not set")
+    print("❌ Usage: python db_migrate_title_year.py <DATABASE_URL>")
+    print("   Or set DATABASE_URL environment variable")
     exit(1)
-
-
-def extract_year(raw_title):
-    """Extract publication year from a raw eBay title."""
-    if not raw_title:
-        return None
-    # Pattern 1: (1991) in parens — most reliable
-    m = re.search(r'\((\d{4})\)', raw_title)
-    if m:
-        y = int(m.group(1))
-        if 1930 <= y <= 2029:
-            return y
-    # Pattern 2: standalone 4-digit year
-    matches = re.findall(r'\b(19[3-9]\d|20[0-2]\d)\b', raw_title)
-    for ym in matches:
-        y = int(ym)
-        if 1930 <= y <= 2029:
-            return y
-    return None
 
 
 def migrate():
@@ -53,36 +36,39 @@ def migrate():
     conn.commit()
     print("✅ Column added (or already exists)")
 
-    # Step 2: Get all rows with raw_title
-    print("Fetching all rows for year extraction...")
-    cur.execute("SELECT id, raw_title FROM ebay_sales WHERE raw_title IS NOT NULL")
-    rows = cur.fetchall()
-    print(f"  Total rows: {len(rows)}")
+    # Step 2: Backfill using server-side SQL — single UPDATE, no round trips
+    # Priority 1: year in parens like (1991) — most reliable
+    # Priority 2: standalone 4-digit year 1930-2029
+    print("Backfilling title_year from raw_title (server-side SQL)...")
+    cur.execute("""
+        UPDATE ebay_sales
+        SET title_year = COALESCE(
+            -- Priority 1: year in parentheses like (1991)
+            CASE
+                WHEN raw_title ~ '\\(\\d{4}\\)'
+                THEN (
+                    SELECT m[1]::int FROM regexp_matches(raw_title, '\\((\\d{4})\\)') AS r(m)
+                    WHERE m[1]::int BETWEEN 1930 AND 2029
+                    LIMIT 1
+                )
+            END,
+            -- Priority 2: standalone 4-digit year (word boundary)
+            CASE
+                WHEN raw_title ~ '\\m(19[3-9]\\d|20[0-2]\\d)\\M'
+                THEN (
+                    SELECT m[1]::int FROM regexp_matches(raw_title, '\\m(19[3-9]\\d|20[0-2]\\d)\\M', 'g') AS r(m)
+                    WHERE m[1]::int BETWEEN 1930 AND 2029
+                    LIMIT 1
+                )
+            END
+        )
+        WHERE raw_title IS NOT NULL
+    """)
+    updated = cur.rowcount
+    conn.commit()
+    print(f"✅ Processed {updated} rows")
 
-    # Step 3: Extract and update in batches
-    updated = 0
-    batch = []
-    batch_size = 500
-
-    for row in rows:
-        year = extract_year(row['raw_title'])
-        if year:
-            batch.append((year, row['id']))
-            if len(batch) >= batch_size:
-                cur.executemany("UPDATE ebay_sales SET title_year = %s WHERE id = %s", batch)
-                conn.commit()
-                updated += len(batch)
-                batch = []
-
-    # Final batch
-    if batch:
-        cur.executemany("UPDATE ebay_sales SET title_year = %s WHERE id = %s", batch)
-        conn.commit()
-        updated += len(batch)
-
-    print(f"✅ Updated {updated}/{len(rows)} rows with title_year")
-
-    # Step 4: Stats
+    # Step 3: Stats
     cur.execute("SELECT COUNT(*) as total FROM ebay_sales")
     total = cur.fetchone()['total']
     cur.execute("SELECT COUNT(*) as with_year FROM ebay_sales WHERE title_year IS NOT NULL")
