@@ -1,10 +1,16 @@
 """
 Valuation Blueprint - FMV calculation and grade-specific pricing
 Routes: /api/sales/valuation, /api/sales/fmv
+
+Methodology (Session 68+):
+- Median-based FMV (resistant to outliers vs arithmetic mean)
+- Percentile outlier trimming (top/bottom 5%)
+- Bootstrap 95% confidence intervals (1000 iterations, seed=42)
 """
 import os
 import re
 import json
+import random
 from decimal import Decimal
 from flask import Blueprint, jsonify, request
 import psycopg2
@@ -73,6 +79,53 @@ def get_cgc_grading_cost(fmv: float, year: int = None) -> int:
         return 45  # Vintage standard (non-bulk; bulk = 42)
     else:
         return 30  # Modern standard (non-bulk; bulk = 27)
+
+
+# ──────────────────────────────────────────────
+# Statistical Utility Functions
+# Same methodology as premium analysis engine
+# ──────────────────────────────────────────────
+
+def percentile_trim(prices, pct=5):
+    """Remove top/bottom pct% of prices. Returns trimmed sorted list."""
+    if not prices or pct <= 0:
+        return prices
+    n = len(prices)
+    cut = max(1, int(n * pct / 100))
+    if cut * 2 >= n:
+        return prices  # Too few to trim
+    s = sorted(prices)
+    return s[cut:-cut]
+
+
+def compute_median(prices):
+    """Simple median of a list of numbers."""
+    if not prices:
+        return None
+    s = sorted(prices)
+    n = len(s)
+    if n % 2 == 1:
+        return s[n // 2]
+    return (s[n // 2 - 1] + s[n // 2]) / 2
+
+
+def bootstrap_ci_median(values, n_iter=1000, ci=95):
+    """
+    Bootstrap 95% confidence interval for median.
+    Returns (ci_lo, ci_hi) or (None, None) if < 5 values.
+    Deterministic seed=42 for reproducibility.
+    """
+    if not values or len(values) < 5:
+        return None, None
+    rng = random.Random(42)
+    medians = []
+    for _ in range(n_iter):
+        sample = sorted([rng.choice(values) for _ in range(len(values))])
+        medians.append(sample[len(sample) // 2])
+    medians.sort()
+    lo_idx = int(n_iter * (100 - ci) / 200)
+    hi_idx = int(n_iter * (100 + ci) / 200)
+    return round(medians[lo_idx], 2), round(medians[hi_idx], 2)
 
 
 @valuation_bp.route('/sales/valuation', methods=['GET'])
@@ -239,13 +292,18 @@ def api_sales_valuation():
                     grade_buckets[g] = []
                 grade_buckets[g].append(p)
 
-        # 1. Exact grade match
+        # 1. Exact grade match — median with outlier trimming
         exact_match = grade_buckets.get(grade)
         exact_avg = None
         exact_count = 0
+        ci_95_low = None
+        ci_95_high = None
         if exact_match and len(exact_match) >= 1:
-            exact_avg = round(sum(exact_match) / len(exact_match), 2)
+            trimmed = percentile_trim(exact_match)
+            exact_avg = round(compute_median(trimmed), 2)
             exact_count = len(exact_match)
+            # Bootstrap CI on the trimmed data
+            ci_95_low, ci_95_high = bootstrap_ci_median(trimmed)
 
         # 2. Nearest grade interpolation if no exact match (or supplement thin data)
         interpolated_avg = None
@@ -255,31 +313,31 @@ def api_sales_valuation():
         if grades_below and grades_above:
             below_grade = grades_below[0]
             above_grade = grades_above[0]
-            below_avg = sum(grade_buckets[below_grade]) / len(grade_buckets[below_grade])
-            above_avg = sum(grade_buckets[above_grade]) / len(grade_buckets[above_grade])
+            below_median = compute_median(percentile_trim(grade_buckets[below_grade]))
+            above_median = compute_median(percentile_trim(grade_buckets[above_grade]))
 
             # Linear interpolation based on grade distance
             total_dist = above_grade - below_grade
             if total_dist > 0:
                 weight_above = (grade - below_grade) / total_dist
                 weight_below = 1 - weight_above
-                interpolated_avg = round(below_avg * weight_below + above_avg * weight_above, 2)
+                interpolated_avg = round(below_median * weight_below + above_median * weight_above, 2)
         elif grades_below:
             # Only data below - extrapolate conservatively
             below_grade = grades_below[0]
-            below_avg = sum(grade_buckets[below_grade]) / len(grade_buckets[below_grade])
+            below_median = compute_median(percentile_trim(grade_buckets[below_grade]))
             # Higher grade = higher price, add ~10% per half grade
             grade_diff = grade - below_grade
-            interpolated_avg = round(below_avg * (1 + 0.2 * grade_diff), 2)
+            interpolated_avg = round(below_median * (1 + 0.2 * grade_diff), 2)
         elif grades_above:
             # Only data above - extrapolate conservatively
             above_grade = grades_above[0]
-            above_avg = sum(grade_buckets[above_grade]) / len(grade_buckets[above_grade])
+            above_median = compute_median(percentile_trim(grade_buckets[above_grade]))
             # Lower grade = lower price, subtract ~10% per half grade
             grade_diff = above_grade - grade
-            interpolated_avg = round(above_avg * (1 - 0.2 * grade_diff), 2)
+            interpolated_avg = round(above_median * (1 - 0.2 * grade_diff), 2)
             if interpolated_avg < 0:
-                interpolated_avg = round(above_avg * 0.25, 2)
+                interpolated_avg = round(above_median * 0.25, 2)
 
         # Pick the best graded FMV
         if exact_avg and exact_count >= 3:
@@ -300,9 +358,13 @@ def api_sales_valuation():
             graded_fmv = None
             fmv_method = 'none'
 
-        # ---------- Raw FMV ----------
+        # ---------- Raw FMV — median with outlier trimming ----------
         raw_prices = [to_float(s.get('price')) for s in all_raw if to_float(s.get('price')) > 0]
-        raw_fmv = round(sum(raw_prices) / len(raw_prices), 2) if raw_prices else None
+        if raw_prices:
+            trimmed_raw = percentile_trim(raw_prices)
+            raw_fmv = round(compute_median(trimmed_raw), 2)
+        else:
+            raw_fmv = None
         raw_count = len(raw_prices)
 
         # ---------- Fallback estimates when data is thin ----------
@@ -388,9 +450,10 @@ def api_sales_valuation():
         price_curve = []
         for g in sorted(grade_buckets.keys()):
             prices = grade_buckets[g]
+            trimmed_curve = percentile_trim(prices)
             price_curve.append({
                 'grade': g,
-                'avg_price': round(sum(prices) / len(prices), 2),
+                'avg_price': round(compute_median(trimmed_curve), 2),
                 'sales_count': len(prices),
                 'min_price': round(min(prices), 2),
                 'max_price': round(max(prices), 2)
@@ -414,6 +477,10 @@ def api_sales_valuation():
 
             'raw_fmv': raw_fmv,
             'raw_sample_size': raw_count,
+
+            # Confidence interval (null when interpolated/estimated or < 5 exact matches)
+            'ci_95_low': ci_95_low,
+            'ci_95_high': ci_95_high,
 
             # ROI
             'grading_cost': grading_cost,
