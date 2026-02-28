@@ -386,7 +386,14 @@ def api_premium_analysis():
         time_clause_graded = ""
         time_clause_raw = ""
         if time_window > 0:
-            time_clause_graded = f"AND (s.sale_date IS NULL OR u.sale_date IS NULL OR ABS(s.sale_date::date - u.sale_date::date) <= {time_window})"
+            # sale_date is a proper date column — subtraction gives integer days
+            time_clause_graded = (
+                f"AND ("
+                f"  s.sale_date IS NULL "
+                f"  OR u.sale_date IS NULL "
+                f"  OR ABS(s.sale_date - u.sale_date) <= {time_window}"
+                f")"
+            )
             time_clause_raw = time_clause_graded
 
         cur.execute(f"""
