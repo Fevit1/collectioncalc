@@ -536,9 +536,25 @@ def api_premium_analysis():
         # Aggregate stats
         skipped_no_comps = total_signed - len(rows) - skipped_collision
 
+        # Outlier trimming: drop top/bottom N% of premiums
+        trim_pct = float(request.args.get('trim_pct', 5))  # default 5%
+
+        def trim_outliers(values, pct):
+            """Remove top and bottom pct% of values."""
+            if not values or pct <= 0:
+                return values
+            n = len(values)
+            cut = max(1, int(n * pct / 100))
+            if cut * 2 >= n:
+                return values  # too few to trim
+            s = sorted(values)
+            return s[cut:-cut]
+
         if pairs:
-            premiums_median = sorted([p['premium_vs_median'] for p in pairs])
-            positive = [p for p in premiums_median if p > 0]
+            premiums_all = sorted([p['premium_vs_median'] for p in pairs])
+            premiums_trimmed = trim_outliers(premiums_all, trim_pct)
+            positive_all = [p for p in premiums_all if p > 0]
+            positive_trimmed = [p for p in premiums_trimmed if p > 0]
 
             graded_pairs = [p for p in pairs if p['grade'] is not None]
             raw_pairs = [p for p in pairs if p['grade'] is None]
@@ -546,30 +562,47 @@ def api_premium_analysis():
             mid_grade = [p for p in graded_pairs if p['grade'] and 7.0 <= p['grade'] < 9.0]
             low_grade = [p for p in graded_pairs if p['grade'] and p['grade'] < 7.0]
 
-            def tier_stats(tier_pairs):
+            def tier_stats(tier_pairs, apply_trim=True):
                 if not tier_pairs:
                     return None
                 prems = sorted([p['premium_vs_median'] for p in tier_pairs])
-                return {
+                raw_stats = {
                     'count': len(prems),
                     'mean': round(sum(prems) / len(prems), 1),
                     'median': round(prems[len(prems)//2], 1),
                     'min': round(min(prems), 1),
                     'max': round(max(prems), 1)
                 }
+                if apply_trim and len(prems) >= 10:
+                    trimmed = trim_outliers(prems, trim_pct)
+                    if trimmed:
+                        raw_stats['trimmed_mean'] = round(sum(trimmed) / len(trimmed), 1)
+                        raw_stats['trimmed_median'] = round(trimmed[len(trimmed)//2], 1)
+                        raw_stats['trimmed_count'] = len(trimmed)
+                return raw_stats
 
             summary = {
                 'total_signed_sales': total_signed,
                 'matched_pairs': len(pairs),
                 'skipped_no_comps': skipped_no_comps,
                 'skipped_collision': skipped_collision,
-                'overall': {
-                    'mean_premium': round(sum(premiums_median) / len(premiums_median), 1),
-                    'median_premium': round(premiums_median[len(premiums_median)//2], 1),
-                    'min_premium': round(min(premiums_median), 1),
-                    'max_premium': round(max(premiums_median), 1),
-                    'positive_count': len(positive),
-                    'positive_pct': round(len(positive) / len(premiums_median) * 100, 1)
+                'trim_pct': trim_pct,
+                'overall_raw': {
+                    'mean_premium': round(sum(premiums_all) / len(premiums_all), 1),
+                    'median_premium': round(premiums_all[len(premiums_all)//2], 1),
+                    'min_premium': round(min(premiums_all), 1),
+                    'max_premium': round(max(premiums_all), 1),
+                    'positive_count': len(positive_all),
+                    'positive_pct': round(len(positive_all) / len(premiums_all) * 100, 1)
+                },
+                'overall_trimmed': {
+                    'mean_premium': round(sum(premiums_trimmed) / len(premiums_trimmed), 1) if premiums_trimmed else None,
+                    'median_premium': round(premiums_trimmed[len(premiums_trimmed)//2], 1) if premiums_trimmed else None,
+                    'min_premium': round(min(premiums_trimmed), 1) if premiums_trimmed else None,
+                    'max_premium': round(max(premiums_trimmed), 1) if premiums_trimmed else None,
+                    'positive_count': len(positive_trimmed),
+                    'positive_pct': round(len(positive_trimmed) / len(premiums_trimmed) * 100, 1) if premiums_trimmed else None,
+                    'count': len(premiums_trimmed)
                 },
                 'by_grade_tier': {
                     'high_grade_9plus': tier_stats(high_grade),
@@ -595,7 +628,8 @@ def api_premium_analysis():
             'pairs': pairs[:50],
             'methodology': {
                 'description': 'Each signed sale matched against unsigned sales of same title+issue at same grade (±0.5). Premium = (signed_price - unsigned_median) / unsigned_median.',
-                'collision_handling': 'When unsigned comps span >5x price range with 6+ sales, prices are split into tiers and signed sale is matched to nearest tier. Prevents era-collision bias.',
+                'collision_handling': 'When unsigned comps span >5x price range with 6+ sales, prices are split into tiers and signed sale is matched to nearest tier.',
+                'outlier_trimming': f'Top and bottom {trim_pct}% of premiums removed for trimmed stats. Adjustable via ?trim_pct=N.',
                 'min_comps': min_comps,
                 'min_price': min_price
             }

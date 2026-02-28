@@ -421,15 +421,27 @@ def premium_analysis():
     print(f"Skipped (no comps):        {summary.get('skipped_no_comps', '?')}")
     print(f"Skipped (title collision):  {summary.get('skipped_collision', '?')}")
 
-    overall = summary.get("overall")
-    if overall:
+    raw = summary.get("overall_raw")
+    trimmed = summary.get("overall_trimmed")
+    trim_pct = summary.get("trim_pct", 5)
+
+    if raw:
         print(f"\n{'═' * 50}")
-        print(f"OVERALL SIGNED PREMIUM")
+        print(f"OVERALL SIGNED PREMIUM (RAW)")
         print(f"{'═' * 50}")
-        print(f"  Mean premium:    {overall['mean_premium']:+.1f}%")
-        print(f"  Median premium:  {overall['median_premium']:+.1f}%")
-        print(f"  Range:           {overall['min_premium']:+.0f}% to {overall['max_premium']:+.0f}%")
-        print(f"  Positive:        {overall['positive_count']}/{summary['matched_pairs']} ({overall['positive_pct']:.0f}%)")
+        print(f"  Mean premium:    {raw['mean_premium']:+.1f}%")
+        print(f"  Median premium:  {raw['median_premium']:+.1f}%")
+        print(f"  Range:           {raw['min_premium']:+.0f}% to {raw['max_premium']:+.0f}%")
+        print(f"  Positive:        {raw['positive_count']}/{summary['matched_pairs']} ({raw['positive_pct']:.0f}%)")
+
+    if trimmed and trimmed.get('mean_premium') is not None:
+        print(f"\n{'═' * 50}")
+        print(f"TRIMMED (top/bottom {trim_pct}% removed, n={trimmed['count']})")
+        print(f"{'═' * 50}")
+        print(f"  Mean premium:    {trimmed['mean_premium']:+.1f}%")
+        print(f"  Median premium:  {trimmed['median_premium']:+.1f}%")
+        print(f"  Range:           {trimmed['min_premium']:+.0f}% to {trimmed['max_premium']:+.0f}%")
+        print(f"  Positive:        {trimmed['positive_count']}/{trimmed['count']} ({trimmed['positive_pct']:.0f}%)")
 
     tiers = summary.get("by_grade_tier", {})
     if any(tiers.values()):
@@ -437,10 +449,13 @@ def premium_analysis():
         for tier_name, tier_data in tiers.items():
             if tier_data:
                 label = tier_name.replace('_', ' ').title()
+                trimmed_note = ""
+                if tier_data.get('trimmed_median') is not None:
+                    trimmed_note = f" | trimmed: median {tier_data['trimmed_median']:+.0f}%, mean {tier_data['trimmed_mean']:+.0f}%"
                 print(f"  {label}: {tier_data['count']} pairs, "
                       f"median {tier_data['median']:+.0f}%, "
                       f"mean {tier_data['mean']:+.0f}%, "
-                      f"range {tier_data['min']:+.0f}% to {tier_data['max']:+.0f}%")
+                      f"range {tier_data['min']:+.0f}% to {tier_data['max']:+.0f}%{trimmed_note}")
 
     if pairs:
         print(f"\n{'─' * 50}")
