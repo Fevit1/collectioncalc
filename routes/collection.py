@@ -139,27 +139,41 @@ def api_delete_collection_item(item_id):
             return jsonify({'success': False, 'error': 'Item not found'}), 404
 
         # Delete dependent rows in order (FK constraints)
+        # Use savepoints so missing tables don't abort the transaction
+
         # 1. Sighting reports referencing this comic's registry entry
-        cur.execute("""
-            DELETE FROM sighting_reports
-            WHERE serial_number IN (
-                SELECT serial_number FROM comic_registry WHERE comic_id = %s
-            )
-        """, (item_id,))
+        try:
+            cur.execute("SAVEPOINT sp_sightings")
+            cur.execute("""
+                DELETE FROM sighting_reports
+                WHERE serial_number IN (
+                    SELECT serial_number FROM comic_registry WHERE comic_id = %s
+                )
+            """, (item_id,))
+            cur.execute("RELEASE SAVEPOINT sp_sightings")
+        except Exception:
+            cur.execute("ROLLBACK TO SAVEPOINT sp_sightings")
 
         # 2. Match reports referencing this comic's registry entry
         try:
+            cur.execute("SAVEPOINT sp_matches")
             cur.execute("""
                 DELETE FROM match_reports
                 WHERE serial_number IN (
                     SELECT serial_number FROM comic_registry WHERE comic_id = %s
                 )
             """, (item_id,))
+            cur.execute("RELEASE SAVEPOINT sp_matches")
         except Exception:
-            pass  # Table may not exist yet
+            cur.execute("ROLLBACK TO SAVEPOINT sp_matches")
 
         # 3. Comic registry entries
-        cur.execute("DELETE FROM comic_registry WHERE comic_id = %s", (item_id,))
+        try:
+            cur.execute("SAVEPOINT sp_registry")
+            cur.execute("DELETE FROM comic_registry WHERE comic_id = %s", (item_id,))
+            cur.execute("RELEASE SAVEPOINT sp_registry")
+        except Exception:
+            cur.execute("ROLLBACK TO SAVEPOINT sp_registry")
 
         # 4. Finally delete the collection item itself
         cur.execute("DELETE FROM collections WHERE id = %s AND user_id = %s RETURNING id", (item_id, g.user_id))

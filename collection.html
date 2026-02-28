@@ -1380,7 +1380,8 @@
                         row.style.opacity = '1';
                         row.style.transform = 'none';
                     }
-                    alert('Failed to delete comic');
+                    const errData = await response.json().catch(() => ({}));
+                    alert('Failed to delete comic: ' + (errData.error || response.status));
                 }
             } catch (error) {
                 console.error('Error deleting comic:', error);
