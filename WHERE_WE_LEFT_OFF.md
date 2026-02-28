@@ -1,30 +1,55 @@
 # Where We Left Off - Feb 28, 2026
 
-## Session 69 (Feb 28, 2026) — eBay Auction + Signature Deletion
+## Session 69 continued (Feb 28, 2026) — Collection UX + Doc Overhaul
 
 ### What We Did
-**Added auction format to eBay listing integration** — the existing fixed-price listing flow now supports eBay auctions:
-- **Format toggle** — Fixed Price / Auction toggle in the listing modal. Switches between fixed-price fields and auction-specific fields.
-- **Auction fields** — Starting bid, duration (1/3/5/7/10 days), optional reserve price, optional Buy It Now price. Smart defaults: $0.99 start, 7-day duration.
-- **Backend support** — `ebay_listing.py` `create_listing()` now accepts `listing_format`, `auction_duration`, `start_price`, `reserve_price`, `buy_it_now_price`. Uses eBay Inventory API `auctionStartPrice` / `auctionReservePrice` fields.
-- **Route updated** — `/api/ebay/list` passes all new fields through to `create_listing()`.
-- **Backward compatible** — defaults to `FIXED_PRICE` if no format specified. All existing functionality unchanged.
-- **Moved Booth Ready Demo from P1 to P4** in TODO.md priority list — GalaxyCon is still months away.
+**Fixed collection delete (FK cascade with SAVEPOINTs):**
+- Collection delete was failing because `comic_registry.comic_id` references `collections.id` — FK constraint blocked deletion
+- First fix added cascade logic (sighting_reports → match_reports → comic_registry → collections), but psycopg2 transaction abort behavior meant any missing table error poisoned the whole transaction
+- Final fix uses `SAVEPOINT`/`ROLLBACK TO SAVEPOINT` for each potentially-missing table, so errors don't abort the transaction
 
-**Added signature creator deletion:**
-- **Backend** — New `DELETE /api/admin/signatures/<id>` endpoint in `routes/admin_routes.py`. Cascading delete: removes all `signature_images` for the creator first, then the `creator_signatures` row. Returns count of images deleted.
-- **Frontend** — Red "🗑 Delete" button on every creator card in `signatures.html`. Confirmation dialog: "Delete creator X and ALL their reference images? This cannot be undone." Toast notification shows creator name + images removed count.
+**Optimistic delete UI:**
+- Row now fades out in 150ms and is removed from DOM + arrays immediately
+- API call fires in background (no await blocking)
+- On failure: comic is restored back into the collection with a toast notification
+- Replaced `alert()` errors with `showToast()` for consistency
+
+**Smart delete confirmation modal:**
+- Custom styled modal replaces browser `confirm()` dialog
+- "Don't show this warning again" checkbox stores preference in localStorage (`cc_skip_delete_warning`)
+- Immediate DOM fade-out animation with `translateX` transition
+
+**Sortable column headers (list view):**
+- Title, Year, Issue, Grade, FMV, My Valuation columns are all clickable to sort
+- Click toggles ascending/descending with visual arrow indicator
+- Smart defaults: numeric columns (Grade, FMV, Valuation) start descending, text (Title) starts ascending
+- Gallery view still uses dropdown sort
+
+**Signature image delete button visibility:**
+- Made per-image delete (×) button always visible (was hidden behind hover at opacity: 0)
+- Bigger button (22px), dark border, 0.85 opacity (1.0 on hover)
+
+**Auction price validation:**
+- Added client-side validation: start > $0, reserve > start, BIN > reserve
+
+**Complete documentation overhaul:**
+- Rewrote DATABASE_PRODUCTION.md — 16 tables with full column-accurate schemas (was 5 tables with wrong schemas)
+- Rewrote ROUTE_MAPPING.md — 87 routes across 19 blueprint files (was 54 across 10)
+- Updated COMIC_REGISTRY_SCHEMA.md — fixed FK refs, marked as Live, added related tables
+- Updated API_REFERENCE.md — added missing modules (content_moderation, r2_storage, title_normalizer)
 
 ### Files Modified
-- `ebay_listing.py` — Added auction format support to `create_listing()`: format toggle, duration, reserve, BIN pricing
-- `routes/ebay.py` — Pass `listing_format`, `auction_duration`, `start_price`, `reserve_price`, `buy_it_now_price` to backend
-- `collection.html` — Added format toggle UI, auction fields (start bid, duration, reserve, BIN), updated `createListing()` JS, format-aware success alerts
-- `routes/admin_routes.py` — New `DELETE /api/admin/signatures/<id>` endpoint with cascading image deletion
-- `signatures.html` — Added `deleteCreator()` JS function, `.btn-danger` CSS class, Delete button on each card
+- `routes/collection.py` — SAVEPOINT-based cascade delete for FK constraints
+- `collection.html` — Optimistic delete, smart confirmation modal, sortable column headers, auction price validation
+- `signatures.html` — Always-visible image delete button
+- `docs/technical/DATABASE_PRODUCTION.md` — Complete rewrite (16 tables)
+- `routes/ROUTE_MAPPING.md` — Complete rewrite (87 routes)
+- `docs/technical/COMIC_REGISTRY_SCHEMA.md` — FK fix, marked Live
+- `docs/technical/API_REFERENCE.md` — Added missing modules
 
 ### What's Next (Priority Order)
 1. **eBay auction end-to-end test** — Test OAuth, fixed-price, and auction listing flows
-2. **Facebook page setup** — Create business page, initial content
+2. **Whatnot listing prep tool** — "Prep for Whatnot" button
 3. **Run `--cross-validate`** to get signature accuracy baseline
 4. **Valuation endpoint testing** — 12-case test plan
 

@@ -13,8 +13,15 @@
 
 ---
 
-## ✅ DONE (Session 64-68)
+## ✅ DONE (Session 64-69)
 
+- [x] **Sortable collection columns** — Session 69: All list view columns (Title, Year, Issue, Grade, FMV, My Valuation) are clickable to sort ascending/descending with arrow indicators.
+- [x] **Optimistic delete UI** — Session 69: Collection delete now removes row instantly (150ms fade), API fires in background. Rollback on failure with toast notification.
+- [x] **Smart delete confirmation** — Session 69: Custom modal with "Don't show this warning again" checkbox replaces browser confirm(). Preference stored in localStorage.
+- [x] **Fix collection delete FK cascade** — Session 69: SAVEPOINT-based cascade delete handles FK constraints across comic_registry, sighting_reports, match_reports tables.
+- [x] **Documentation overhaul** — Session 69: Rewrote DATABASE_PRODUCTION.md (16 tables), ROUTE_MAPPING.md (87 routes), updated COMIC_REGISTRY_SCHEMA.md + API_REFERENCE.md.
+- [x] **Signature image delete visibility** — Session 69: Made per-image delete button always visible (was hidden behind hover).
+- [x] **Auction price validation** — Session 69: Client-side validation for price relationships (reserve > start, BIN > reserve).
 - [x] **Signature page deletion** — Session 69: Added "Delete Creator" button to admin signatures page. Backend `DELETE /api/admin/signatures/<id>` endpoint cascades to remove all reference images. Confirmation dialog prevents accidents.
 - [x] **eBay auction listing support** — Session 69: Added Fixed Price / Auction format toggle to listing modal. Auction fields: starting bid, duration (1-10 days), reserve price, Buy It Now. Backend + route + UI all updated. Backward compatible.
 - [x] **Push Session 65 code** — Done by Mike.

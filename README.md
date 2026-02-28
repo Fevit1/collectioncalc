@@ -1,127 +1,83 @@
-# CollectionCalc 📚
+# Slab Worthy
 
-**AI-powered comic book collection valuation tool**
+**AI-powered comic book grading, valuation, and collection management platform.**
 
-CollectionCalc uses a hybrid database + AI approach to provide fast, consistent, and accurate valuations for comic book collections.
+Slab Worthy helps collectors answer the question every comic owner asks: "Is this worth getting graded?" Using AI vision for grading, real eBay sales data for valuations, and tools for listing and selling, Slab Worthy is a one-stop platform for comic collectors.
 
-## Features
+## Core Features
 
-- **Deterministic Valuations** - Same comic, same grade = same price (no AI variance)
-- **Three-Tier Pricing Model** - Database → AI fallback → Manual entry
-- **Grade Adjustments** - Automatic price scaling based on CGS/CGC grades
-- **Key Issue Detection** - Identifies first appearances, classic covers, etc.
-- **Batch Processing** - Value entire collections efficiently
-- **User Feedback Loop** - Crowdsourced accuracy improvements
+**AI Grading** — Upload photos of your comic and get a structured grade (0.5–10.0 scale) using an 8-category scoring system. Consistent results backed by multi-run averaging.
+
+**Real-Time Valuations** — Grade-specific fair market values powered by 24,000+ eBay sales. Median-based FMV with outlier trimming and bootstrap 95% confidence intervals.
+
+**Collection Management** — Track your entire collection with sortable columns, search, era filtering, and bulk actions. Optimistic UI for instant feedback.
+
+**eBay Listing Integration** — List comics directly to eBay from your collection. Supports fixed-price and auction formats with OAuth 2.0 authentication.
+
+**Signature Identification** — Reference database of 23+ artists with 97 signature images. AI-powered matching with premium analysis (signing adds ~40-57% to value).
+
+**Slab Guard Registration** — Register comics with perceptual fingerprinting for theft detection and provenance tracking. Patent pending (Application #63/990,743).
+
+**Slabbing ROI Calculator** — Factors in CGC grading costs (2026 pricing), current raw value, and graded FMV to tell you if slabbing is worth it.
+
+## Tech Stack
+
+- **Backend**: Python / Flask (19 blueprints, 87 routes)
+- **Database**: PostgreSQL on Render (16 tables)
+- **Frontend**: Vanilla HTML/CSS/JS on Cloudflare Pages
+- **Image Storage**: Cloudflare R2
+- **AI**: Anthropic Claude API (grading, extraction, signature matching)
+- **Payments**: Stripe (subscription billing)
+- **Marketplace**: eBay Inventory API (OAuth 2.0)
+- **Auth**: JWT with role-based access (user, approved, admin)
 
 ## Architecture
 
 ```
-┌─────────────────┐
-│   User Input    │
-│ (comic details) │
-└────────┬────────┘
-         │
+Cloudflare Pages (Frontend)
+    ├── app.html          — Grading flow (upload → grade → value → save)
+    ├── collection.html   — Collection management + eBay listing
+    ├── verify.html       — Slab Guard verification
+    ├── signatures.html   — Admin signature management
+    └── index.html        — Landing page + waitlist
+
+         │ API calls (JWT auth)
          ▼
-┌─────────────────┐     ┌─────────────────┐
-│  Local Database │────▶│  Found? Return  │
-│   (SQLite)      │     │  cached value   │
-└────────┬────────┘     └─────────────────┘
-         │ Not found
+
+Render (Backend — Flask)
+    ├── routes/           — 19 blueprint files
+    │   ├── auth.py, collection.py, grading.py
+    │   ├── sales_valuation.py, sales_ebay.py
+    │   ├── ebay.py, signatures.py, monitor.py
+    │   └── admin_routes.py, billing.py, ...
+    ├── grading_engine.py — 8-category structured grading
+    ├── comic_extraction.py — AI vision extraction
+    ├── ebay_listing.py   — eBay Inventory API integration
+    └── wsgi.py           — App factory + blueprint registration
+
+         │ Data
          ▼
-┌─────────────────┐     ┌─────────────────┐
-│  AI Web Search  │────▶│  Cache result   │
-│  (Anthropic)    │     │  for next time  │
-└────────┬────────┘     └─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Valuation      │
-│  Model          │
-│  (deterministic)│
-└─────────────────┘
+
+PostgreSQL (Render)         Cloudflare R2 (Images)
+    16 tables                   Comic photos
+    24,000+ eBay sales          Signature references
+    Comic registry              Grading uploads
 ```
-
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/YOUR_USERNAME/collectioncalc.git
-cd collectioncalc
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Initialize database
-python -c "from database_schema import init_database; init_database()"
-
-# Run API server
-python api_server_v3.py
-```
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/valuate` | POST | Value a single comic |
-| `/api/batch` | POST | Value multiple comics |
-| `/api/lookup` | GET | Check database for comic |
-| `/api/feedback` | POST | Submit price correction |
-
-## Example Request
-
-```bash
-curl -X POST http://localhost:5000/api/valuate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Captain America Annual",
-    "issue": "8",
-    "grade": "VF",
-    "publisher": "Marvel Comics",
-    "year": 1986
-  }'
-```
-
-Response:
-```json
-{
-  "final_value": 36.75,
-  "confidence": 85,
-  "db_found": true,
-  "steps": [
-    "Base NM value: $50.00 (source: database)",
-    "Grade adjustment (VF): $50.00 × 0.75 = $37.50",
-    "Era adjustment (copper_age): $37.50 × 0.98 = $36.75"
-  ]
-}
-```
-
-## Cost Efficiency
-
-| Approach | Cost per Comic | 600 Comics |
-|----------|---------------|------------|
-| Pure AI (web search) | ~$0.03 | ~$18 |
-| **CollectionCalc (hybrid)** | ~$0.005 | **~$3** |
-
-90% of lookups hit the local database = 85% cost savings.
 
 ## Documentation
 
-- [Architecture Diagrams](docs/ARCHITECTURE.md)
-- [Database Schema](docs/DATABASE.md)
-- [Budget & Hosting](docs/BUDGET.md)
-- [Roadmap](docs/ROADMAP.md)
+- [Database Schema (Production)](docs/technical/DATABASE_PRODUCTION.md) — All 16 tables with full column schemas
+- [Route Mapping](routes/ROUTE_MAPPING.md) — All 87 routes across 19 blueprint files
+- [API Reference](docs/technical/API_REFERENCE.md) — Backend modules and function signatures
+- [Comic Registry Schema](docs/technical/COMIC_REGISTRY_SCHEMA.md) — Slab Guard fingerprinting system
+- [Budget & Hosting](docs/business/BUDGET.md) — Infrastructure costs
 
-## Tech Stack
+## Project Status
 
-- **Backend**: Python, Flask
-- **Database**: SQLite
-- **AI**: Anthropic Claude API (fallback only)
-- **Hosting**: Render (free tier) + Cloudflare Pages
+**Pre-launch** — Targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch, with soft launch July 21, 2026.
 
-## License
-
-MIT
+Solo founder: Mike Berry
 
 ---
 
-*Built as a portfolio project demonstrating AI product development, cost optimization, and practical system design.*
+*Slab Worthy — Know before you slab.*
