@@ -884,6 +884,48 @@
                 display: none;
             }
         }
+
+        /* Top-right auth nav */
+        .hero-auth-nav {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hero-auth-nav .auth-sign-in {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: color 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .hero-auth-nav .auth-sign-in:hover {
+            color: var(--gold-mid);
+        }
+        .hero-auth-nav .auth-divider {
+            color: rgba(255,255,255,0.2);
+            font-size: 0.7rem;
+        }
+        .hero-auth-nav .auth-sign-up {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--purple-dark);
+            background: var(--gold-mid);
+            padding: 5px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            letter-spacing: 0.3px;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 2px 2px 0px var(--purple-brand);
+        }
+        .hero-auth-nav .auth-sign-up:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px var(--purple-brand);
+        }
     </style>
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -896,6 +938,11 @@
 <body>
     <!-- HERO -->
     <section class="hero">
+        <nav class="hero-auth-nav">
+            <a href="/login.html" class="auth-sign-in">Sign In</a>
+            <span class="auth-divider">|</span>
+            <a href="/login.html?signup=true" class="auth-sign-up">Sign Up</a>
+        </nav>
         <div class="logo-container">
             <h1 class="main-logo">SLAB WORTHY<span style="font-size: 0.5em; vertical-align: super;">&trade;</span></h1>
             <span class="patent-badge">Patent Pending</span>
