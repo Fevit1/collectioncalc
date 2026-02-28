@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** February 28, 2026 (Session 68)
+**Updated:** February 28, 2026 (Session 69)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -15,9 +15,14 @@
 
 ## ✅ DONE (Session 64-68)
 
-- [x] **Signature matching system v1** — Session 68: Reference DB (23 artists, 97 images), Flask blueprint (`/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`), standalone CLI matcher, production test suite. Deployed: db-stats + signed-sales verified (899 signed sales found).
+- [x] **eBay auction listing support** — Session 69: Added Fixed Price / Auction format toggle to listing modal. Auction fields: starting bid, duration (1-10 days), reserve price, Buy It Now. Backend + route + UI all updated. Backward compatible.
+- [x] **Push Session 65 code** — Done by Mike.
+- [x] **Homepage Sign In / Sign Up** — Session 68b: Added top-right auth nav to hero (Option A). Gold "Sign Up" pill + "Sign In" text link. Zero impact on hero layout.
+- [x] **Valuation endpoint upgrade** — Session 68b: Applied premium analysis methodology to `/api/sales/valuation`. Replaced arithmetic mean with median + 5% outlier trimming + bootstrap 95% CI. All existing response fields preserved, new `ci_95_low`/`ci_95_high` additive. No frontend changes needed.
+- [x] **Signed premium analysis engine** — Session 68: Professional-grade methodology with time-windowed comps (±90 days), log-transform geometric mean, bootstrap 95% CI, percentile outlier trimming. Result: signing adds +40-57% to value, 95% CI [+27%, +59%], 72% positive. Deployed and tested on production.
+- [x] **Title year extraction (collision fix)** — Session 68: Added `title_year` column, server-side SQL backfill (62.5% coverage), collisions dropped from hundreds to 4. Deployed and migrated.
+- [x] **Signature matching system v1** — Session 68: Reference DB (23 artists, 97 images), Flask blueprint (4 endpoints), standalone CLI matcher, production test suite. Deployed and verified.
 - [x] **Title normalizer backfill** — Session 68: 376 NULLs all edge cases (lot numbers, non-comics). Not actionable.
-- [x] **Title year extraction (collision fix)** — Session 68: Added `title_year` field to normalizer (Step 0.5), updated sales_ebay.py INSERT/backfill, created `db_migrate_title_year.py`, updated premium analysis SQL with ±2yr tolerance. **NEEDS: deploy + run migration + retest.**
 - [x] **Upgrade valuation on grading results** — Session 67: Switched from grade-blind `/api/sales/fmv` to grade-specific `/api/sales/valuation` with interpolation, fallback estimates, confidence indicator
 - [x] **Grading flow polish** — Session 67: Confirmed all items done (delay removed S66, instructions not needed, Grade Another already exists, valuation now wired)
 - [x] **Fix AI grading inconsistency** — Session 66: Rebuilt from holistic to structured 8-category scoring. New `grading_engine.py`, `/api/grade` endpoint, multi-run support. Unit tests passing.
@@ -47,42 +52,37 @@
   - Now factors in modern vs vintage (pre-1975) pricing
   - All 3 hardcoded locations replaced
 
-- [ ] **Push Session 65 code** 👤 10 min
-  - photo_authenticity.py, FAQ, white paper, findings doc, signatures, .gitignore
-  - Git commands provided — Mike pushes
+- [x] ~~**Push Session 65 code**~~ ✅ Done
 
 ---
 
-## P1 — BOOTH-READY DEMO (Weeks 3-6, March)
+## P1 — COLLECTION & SELLING TOOLS (Weeks 3-6, March)
 
-> The GalaxyCon pitch loop: scan QR → sign up → grade a comic → see value → wow.
+> Make the collection page a selling powerhouse. Grade → value → list → sell.
 
 ### Product
 
-- [x] ~~**Grading flow polish**~~ ✅ Session 67
-  - 2-sec delay: already removed in Session 66 rebuild
-  - Photo instructions: UI intuitive as-is (Mike confirmed)
-  - "Grade Another": already on Slab Report page (Mike confirmed)
+- [x] ~~**eBay auction listing support**~~ ✅ Session 69
+  - Fixed Price / Auction toggle in listing modal
+  - Auction fields: starting bid, duration, reserve, Buy It Now
+  - Backend + route + UI all updated
 
-- [x] ~~**Wire valuation into grading results**~~ ✅ Session 67
-  - Upgraded from `/api/sales/fmv` (grade-blind tiers) to `/api/sales/valuation` (exact-grade + interpolation)
-  - Added fallback estimates for no-data comics, confidence indicator, enhanced taglines
-  - 🔗 UNBLOCKED: booth demo mode, valuation endpoint testing
+- [ ] **Signature page deletion** ⏱ 30 min
+  - Add "Delete Creator" button to admin signatures page
+  - Backend endpoint already exists, just needs UI wiring
+  - 🔗 No blockers
 
-- [ ] **Booth demo mode** ⏱ 1 session
-  - Cached/pre-loaded results for repeat demos (save API costs)
-  - Skip non-essential steps
-  - 🔗 Depends on: grading flow polish
+- [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️
+  - Test OAuth flow, connect eBay account
+  - Test fixed-price listing (draft + publish)
+  - Test auction listing (all field combos)
+  - 🔗 Depends on: eBay developer account approved for production
 
-- [ ] **Sign-up/onboarding under 60 seconds** ⏱ 1 session
-  - QR scan → minimal form → first grade
-  - GalaxyCon-specific booth codes
-  - 🔗 Depends on: grading flow polish
-
-- [ ] **Offline fallback** ⏱ 1 session
-  - Graceful handling when convention WiFi drops
-  - Queue submissions, show cached results
-  - 🔗 Depends on: demo mode
+- [ ] **Whatnot listing prep tool** ⏱ 1 session
+  - "Prep for Whatnot" button generates title, description, suggested starting bid
+  - Copy-to-clipboard for pasting into Whatnot seller dashboard
+  - Whatnot has no public listing API — this is the best we can do
+  - 🔗 No blockers
 
 ### Testing ⚠️
 
@@ -117,12 +117,13 @@
 
 - [ ] **Signature identification v1 — testing & tuning** ⏱ 1-2 sessions
   - ✅ Reference DB built (23 artists, 97 images)
-  - ✅ API endpoints built (`/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`)
+  - ✅ API endpoints built + deployed (match, db-stats, signed-sales, premium-analysis)
   - ✅ Test suite built (`test_signature_matcher.py`)
-  - ✅ db-stats + signed-sales deployed and verified on production
-  - ✅ Title year collision fix coded (needs deploy + migration)
-  - Remaining: deploy title_year fix, run migration, retest premium analysis, run cross-validation, tune confidence thresholds
-  - 🔗 Depends on: deploy title_year code; Mike collecting 5 more priority artists
+  - ✅ Title year collision fix deployed + migrated (62.5% year coverage)
+  - ✅ Premium analysis engine deployed: time-windowed, log-transform, bootstrap CI
+  - ✅ Baseline results: +40-57% premium, 95% CI [+27%, +59%], 72% positive
+  - Remaining: run cross-validation, tune confidence thresholds, per-creator premiums (need more data)
+  - 🔗 Depends on: Mike collecting 5 more priority artists
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title
@@ -215,8 +216,27 @@
 
 ---
 
-## P4 — GALAXYCON LOGISTICS (Weeks 22-25, August)
+## P4 — BOOTH-READY DEMO & GALAXYCON LOGISTICS (Weeks 17-25, June-August)
 
+> The GalaxyCon pitch loop: scan QR → sign up → grade a comic → see value → wow.
+
+### Booth Demo
+- [ ] **Booth demo mode** ⏱ 1 session
+  - Cached/pre-loaded results for repeat demos (save API costs)
+  - Skip non-essential steps
+  - 🔗 Depends on: grading flow polish
+
+- [ ] **Sign-up/onboarding under 60 seconds** ⏱ 1 session
+  - QR scan → minimal form → first grade
+  - GalaxyCon-specific booth codes
+  - 🔗 Depends on: grading flow polish
+
+- [ ] **Offline fallback** ⏱ 1 session
+  - Graceful handling when convention WiFi drops
+  - Queue submissions, show cached results
+  - 🔗 Depends on: demo mode
+
+### Logistics
 - [ ] **Booth materials** 👤⏱ 1 session + print time
   - QR codes, flyers, signage, demo script
   - Landing page redirect for convention signage
@@ -264,9 +284,8 @@ WEEKS 1-2 (P0):
   Push code ────────────────┘
                             │
 WEEKS 3-6 (P1):            ▼
-  Grading polish ──► Demo mode ──► Offline fallback
-  Valuation wiring            │
-  Onboarding flow ◄───────────┘
+  eBay auction support ✅    Sig page deletion
+  eBay e2e testing ⚠️       Whatnot prep tool
   Mobile testing ⚠️
                             │
 WEEKS 7-16 (P2):           ▼
@@ -279,9 +298,9 @@ WEEKS 17-21 (P3):          ▼
   SEO/blog content          Social media push
   Landing page polish       Google Play production
                             │
-WEEKS 22-25 (P4):          ▼
-  Booth materials           Demo script
-  Equipment                 Beta codes
+WEEKS 17-25 (P4):          ▼
+  Demo mode ──► Offline     Booth materials
+  Onboarding flow           Demo script + codes
                             │
                             ▼
   ┌─────────────────────────────────┐
@@ -295,10 +314,10 @@ WEEKS 22-25 (P4):          ▼
 | Phase | Items | Est. Sessions | Calendar |
 |-------|-------|---------------|----------|
 | P0 — Credibility Fix | 3 | 2 sessions | Weeks 1-2 |
-| P1 — Booth-Ready Demo | 9 | 6 sessions + device testing ⚠️ | Weeks 3-6 |
+| P1 — Collection & Selling | 4 | 3 sessions + eBay testing ⚠️ | Weeks 3-6 |
 | P2 — Launch Prep | 12 | 10 sessions + device testing ⚠️ | Weeks 7-16 |
 | P3 — Marketing | 5 | 5 sessions | Weeks 17-21 |
-| P4 — GalaxyCon Logistics | 4 | 2 sessions + shopping 👤 | Weeks 22-25 |
+| P4 — Booth Demo + GalaxyCon | 7 | 5 sessions + shopping 👤 | Weeks 17-25 |
 | P5 — Tech Debt | 4+7 | As time permits | Anytime |
 | **Total** | **37+** | **~25 sessions** | **25 weeks** |
 

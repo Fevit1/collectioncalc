@@ -183,6 +183,11 @@ def api_ebay_list():
         data.get('grade', 'VF'),
         data.get('description'),
         data.get('publish', False),
-        data.get('image_urls')
+        data.get('image_urls'),
+        listing_format=data.get('listing_format', 'FIXED_PRICE'),
+        auction_duration=data.get('auction_duration', 'DAYS_7'),
+        start_price=data.get('start_price'),
+        reserve_price=data.get('reserve_price'),
+        buy_it_now_price=data.get('buy_it_now_price')
     )
     return jsonify(result)

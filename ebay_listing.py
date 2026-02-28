@@ -279,20 +279,29 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         return policies
 
 
-def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF', description: str = None, publish: bool = False, image_urls: list = None) -> dict:
+def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF',
+                    description: str = None, publish: bool = False, image_urls: list = None,
+                    listing_format: str = 'FIXED_PRICE', auction_duration: str = 'DAYS_7',
+                    start_price: float = None, reserve_price: float = None,
+                    buy_it_now_price: float = None) -> dict:
     """
     Create a listing on eBay for a comic book.
-    
+
     Args:
         user_id: The user's ID (to get their eBay token)
         title: Comic book title (e.g., "Amazing Spider-Man")
         issue: Issue number (e.g., "300")
-        price: Listing price in USD
+        price: Listing price in USD (Buy It Now price for fixed, start price for auction)
         grade: Comic grade (NM, VF, FN, etc.)
         description: User-approved listing description (HTML)
         publish: If True, publish immediately (live). If False, create as draft (default)
         image_urls: List of eBay-hosted image URLs. If None, uses placeholder.
-    
+        listing_format: 'FIXED_PRICE' or 'AUCTION' (default: FIXED_PRICE)
+        auction_duration: Duration for auctions - DAYS_1, DAYS_3, DAYS_5, DAYS_7, DAYS_10 (default: DAYS_7)
+        start_price: Starting bid price for auctions (defaults to price if not set)
+        reserve_price: Optional reserve price for auctions (minimum sale price)
+        buy_it_now_price: Optional Buy It Now price for auctions
+
     Returns:
         Dict with success status and listing details or error
     """
@@ -407,27 +416,62 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         
         # Step 4: Create offer (this makes it a listing)
         offer_url = f"{api_url}/sell/inventory/v1/offer"
-        
-        offer_data = {
-            "sku": sku,
-            "marketplaceId": "EBAY_US",
-            "format": "FIXED_PRICE",
-            "listingDescription": description,
-            "availableQuantity": 1,
-            "categoryId": COMIC_CATEGORY_ID,
-            "merchantLocationKey": location_key,
-            "pricingSummary": {
+
+        # Normalize format
+        fmt = listing_format.upper() if listing_format else 'FIXED_PRICE'
+        if fmt not in ('FIXED_PRICE', 'AUCTION'):
+            fmt = 'FIXED_PRICE'
+
+        # Build pricing summary based on format
+        if fmt == 'AUCTION':
+            auction_start = start_price if start_price else price
+            pricing_summary = {
+                "auctionStartPrice": {
+                    "value": str(round(auction_start, 2)),
+                    "currency": "USD"
+                }
+            }
+            # Optional reserve price
+            if reserve_price and reserve_price > auction_start:
+                pricing_summary["auctionReservePrice"] = {
+                    "value": str(round(reserve_price, 2)),
+                    "currency": "USD"
+                }
+            # Optional Buy It Now price (must be > start price)
+            if buy_it_now_price and buy_it_now_price > auction_start:
+                pricing_summary["price"] = {
+                    "value": str(round(buy_it_now_price, 2)),
+                    "currency": "USD"
+                }
+        else:
+            pricing_summary = {
                 "price": {
                     "value": str(round(price, 2)),
                     "currency": "USD"
                 }
-            },
+            }
+
+        offer_data = {
+            "sku": sku,
+            "marketplaceId": "EBAY_US",
+            "format": fmt,
+            "listingDescription": description,
+            "availableQuantity": 1,
+            "categoryId": COMIC_CATEGORY_ID,
+            "merchantLocationKey": location_key,
+            "pricingSummary": pricing_summary,
             "listingPolicies": {
                 "fulfillmentPolicyId": policies['fulfillmentPolicyId'],
                 "paymentPolicyId": policies['paymentPolicyId'],
                 "returnPolicyId": policies['returnPolicyId']
             }
         }
+
+        # Add auction duration if auction format
+        if fmt == 'AUCTION':
+            valid_durations = ['DAYS_1', 'DAYS_3', 'DAYS_5', 'DAYS_7', 'DAYS_10']
+            duration = auction_duration if auction_duration in valid_durations else 'DAYS_7'
+            offer_data["listingDuration"] = duration
         
         print(f"Creating offer with policies: {policies}")
         offer_response = requests.post(offer_url, headers=headers, json=offer_data)
@@ -489,6 +533,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'sku': sku,
                 'title': listing_title,
                 'price': price,
+                'format': fmt,
+                'auction_duration': auction_duration if fmt == 'AUCTION' else None,
                 'draft': False
             }
         else:
@@ -505,6 +551,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                 'sku': sku,
                 'title': listing_title,
                 'price': price,
+                'format': fmt,
+                'auction_duration': auction_duration if fmt == 'AUCTION' else None,
                 'draft': True,
                 'drafts_url': drafts_url,
                 'message': 'Draft created. Visit Seller Hub to add photos and publish.'

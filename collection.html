@@ -1819,21 +1819,53 @@
         cursor: not-allowed;
     }
     
+    /* Format Toggle */
+    .format-toggle {
+        display: flex;
+        background: var(--bg-secondary);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .format-btn {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .format-btn.active {
+        background: linear-gradient(135deg, var(--brand-purple), #6d28d9);
+        color: white;
+        font-weight: 600;
+    }
+
+    .format-btn:hover:not(.active) {
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--text-primary);
+    }
+
     /* Mobile Responsive */
     @media (max-width: 767px) {
         .ebay-modal {
             max-height: 95vh;
         }
-        
+
         .price-input-group {
             flex-direction: column;
             align-items: stretch;
         }
-        
+
         .price-suggestion {
             text-align: center;
         }
-        
+
         .photos-status {
             grid-template-columns: repeat(2, 1fr);
         }
@@ -1879,34 +1911,84 @@
                     <span class="form-help">Max 80 characters. Be specific (e.g., "Amazing Spider-Man #300 VF+ White Pages")</span>
                     <div class="char-counter" id="titleCounter">0 / 80</div>
                 </div>
-                
-                <!-- Price -->
+
+                <!-- Listing Format Toggle -->
                 <div class="form-group">
-                    <label class="form-label">Price (USD)</label>
-                    <div class="price-input-group">
-                        <input type="number" class="form-input" id="listingPrice" min="0.99" step="0.01" required>
-                        <div class="price-suggestion" id="priceSuggestion">
-                            FMV: $--
-                        </div>
+                    <label class="form-label">Listing Format</label>
+                    <div class="format-toggle" id="formatToggle">
+                        <button type="button" class="format-btn active" data-format="FIXED_PRICE" onclick="setListingFormat('FIXED_PRICE')">
+                            Fixed Price
+                        </button>
+                        <button type="button" class="format-btn" data-format="AUCTION" onclick="setListingFormat('AUCTION')">
+                            Auction
+                        </button>
                     </div>
-                    <span class="form-help">eBay minimum: $0.99. Consider grading fees (~$20-$40) if listing as slabbed.</span>
                 </div>
-                
+
+                <!-- Fixed Price fields -->
+                <div id="fixedPriceFields">
+                    <div class="form-group">
+                        <label class="form-label">Price (USD)</label>
+                        <div class="price-input-group">
+                            <input type="number" class="form-input" id="listingPrice" min="0.99" step="0.01" required>
+                            <div class="price-suggestion" id="priceSuggestion">
+                                FMV: $--
+                            </div>
+                        </div>
+                        <span class="form-help">eBay minimum: $0.99. Consider grading fees (~$20-$40) if listing as slabbed.</span>
+                    </div>
+                </div>
+
+                <!-- Auction fields (hidden by default) -->
+                <div id="auctionFields" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Starting Bid (USD)</label>
+                        <div class="price-input-group">
+                            <input type="number" class="form-input" id="auctionStartPrice" min="0.99" step="0.01" placeholder="0.99">
+                            <div class="price-suggestion" id="auctionFmvHint">
+                                FMV: $--
+                            </div>
+                        </div>
+                        <span class="form-help">Low start = more bids. Many sellers start at $0.99 to drive bidding wars.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duration</label>
+                        <select class="form-input" id="auctionDuration">
+                            <option value="DAYS_1">1 Day</option>
+                            <option value="DAYS_3">3 Days</option>
+                            <option value="DAYS_5">5 Days</option>
+                            <option value="DAYS_7" selected>7 Days (Recommended)</option>
+                            <option value="DAYS_10">10 Days</option>
+                        </select>
+                        <span class="form-help">7-day auctions get the most visibility. End on Sunday evenings for best results.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Reserve Price (Optional)</label>
+                        <input type="number" class="form-input" id="auctionReservePrice" min="0" step="0.01" placeholder="Leave blank for no reserve">
+                        <span class="form-help">Minimum price you'll accept. Item won't sell below this. eBay charges a reserve fee.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Buy It Now Price (Optional)</label>
+                        <input type="number" class="form-input" id="auctionBuyItNow" min="0" step="0.01" placeholder="Leave blank for auction only">
+                        <span class="form-help">Let buyers skip the auction and buy immediately at this price. Removed once bidding starts.</span>
+                    </div>
+                </div>
+
                 <!-- Description -->
                 <div class="form-group">
                     <label class="form-label">Description</label>
-                    
+
                     <!-- AI Status -->
                     <div class="ai-status" id="aiStatus" style="display: none;">
                         <span class="spinner"></span>
                         <span id="aiStatusText">Generating description...</span>
                     </div>
-                    
+
                     <textarea class="form-input" id="listingDescription" maxlength="4000" rows="6"></textarea>
                     <span class="form-help">AI-generated for you! Edit if needed. 250-300 chars recommended for mobile.</span>
                     <div class="char-counter" id="descCounter">0 / 4000</div>
                 </div>
-                
+
                 <!-- Photos Upload Status -->
                 <div class="form-group">
                     <label class="form-label">Photos (4 images)</label>
@@ -1918,7 +2000,7 @@
                     </div>
                     <span class="form-help">Photos will be uploaded automatically when you publish.</span>
                 </div>
-                
+
                 <!-- Grading ID (included in description) -->
                 <div class="form-group">
                     <label class="form-label">Slab Worthy™ Assessment</label>
@@ -1949,6 +2031,27 @@ if (typeof window.ebayConnected === 'undefined') {
     window.ebayConnected = false;
 }
 let uploadedImageUrls = [];
+let currentListingFormat = 'FIXED_PRICE';
+
+function setListingFormat(format) {
+    currentListingFormat = format;
+    // Toggle button active states
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.format === format);
+    });
+    // Toggle field visibility
+    document.getElementById('fixedPriceFields').style.display = format === 'FIXED_PRICE' ? 'block' : 'none';
+    document.getElementById('auctionFields').style.display = format === 'AUCTION' ? 'block' : 'none';
+    // Pre-fill auction start price from FMV if switching to auction
+    if (format === 'AUCTION' && currentComic) {
+        const fmv = currentComic.slabbed_value || currentComic.raw_value || 9.99;
+        const startPrice = document.getElementById('auctionStartPrice');
+        if (!startPrice.value) {
+            startPrice.value = '0.99'; // Low start to drive bidding
+        }
+        document.getElementById('auctionFmvHint').textContent = `FMV: $${fmv.toFixed(2)}`;
+    }
+}
 
 async function openEbayListingModal(comicId) {
     // Find comic in collection
@@ -2021,6 +2124,14 @@ function connectToEbay() {
 }
 
 function populateListingForm() {
+    // Reset format to Fixed Price
+    setListingFormat('FIXED_PRICE');
+    // Reset auction fields
+    document.getElementById('auctionStartPrice').value = '';
+    document.getElementById('auctionReservePrice').value = '';
+    document.getElementById('auctionBuyItNow').value = '';
+    document.getElementById('auctionDuration').value = 'DAYS_7';
+
     // Comic preview
     const preview = document.getElementById('comicPreview');
     preview.innerHTML = `
@@ -2035,17 +2146,17 @@ function populateListingForm() {
             <span class="comic-preview-grade">${currentComic.grade || 'N/A'}</span>
         </div>
     `;
-    
+
     // Title - auto-generate
     const title = `${currentComic.title} #${currentComic.issue || '?'} - ${currentComic.grade || 'VG'} ${currentComic.publisher || 'Comic'}`;
     document.getElementById('listingTitle').value = title.substring(0, 80);
     updateCharCounter('title');
-    
+
     // Price - suggest FMV or slightly below
     const suggestedPrice = currentComic.slabbed_value || currentComic.raw_value || 9.99;
     document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
     document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
-    
+
     // Grading ID
     const gradingId = currentComic.grading_id || 'SW-' + currentComic.id;
     document.getElementById('gradingIdDisplay').value = gradingId;
@@ -2229,19 +2340,33 @@ async function createListing(publish) {
             throw new Error('Failed to upload photos');
         }
         
-        // Create listing
+        // Build listing data based on format
+        const isAuction = currentListingFormat === 'AUCTION';
         const listingData = {
             title: currentComic.title,
             issue: currentComic.issue,
-            price: parseFloat(document.getElementById('listingPrice').value),
+            price: isAuction
+                ? parseFloat(document.getElementById('auctionStartPrice').value || '0.99')
+                : parseFloat(document.getElementById('listingPrice').value),
             grade: currentComic.grade,
             publisher: currentComic.publisher,
             year: currentComic.year,
             description: document.getElementById('listingDescription').value,
             image_urls: uploadedImageUrls,
             publish: publish,
-            grading_id: document.getElementById('gradingIdDisplay').value
+            grading_id: document.getElementById('gradingIdDisplay').value,
+            listing_format: currentListingFormat
         };
+
+        // Add auction-specific fields
+        if (isAuction) {
+            listingData.start_price = parseFloat(document.getElementById('auctionStartPrice').value || '0.99');
+            listingData.auction_duration = document.getElementById('auctionDuration').value;
+            const reserve = document.getElementById('auctionReservePrice').value;
+            if (reserve) listingData.reserve_price = parseFloat(reserve);
+            const bin = document.getElementById('auctionBuyItNow').value;
+            if (bin) listingData.buy_it_now_price = parseFloat(bin);
+        }
         
         const response = await fetch(`${API_URL}/api/ebay/list`, {
             method: 'POST',
@@ -2255,11 +2380,13 @@ async function createListing(publish) {
         const data = await response.json();
         
         if (data.success) {
+            const formatLabel = data.format === 'AUCTION' ? 'Auction' : 'Fixed Price';
             if (publish && data.listing_url) {
-                alert(`✓ Listed on eBay!\n\nView at: ${data.listing_url}`);
+                const durationNote = data.auction_duration ? ` (${data.auction_duration.replace('DAYS_', '')} days)` : '';
+                alert(`✓ ${formatLabel} listing live on eBay!${durationNote}\n\nView at: ${data.listing_url}`);
                 window.open(data.listing_url, '_blank');
             } else {
-                alert(`✓ Draft saved!\n\nView in eBay Seller Hub: ${data.drafts_url || 'eBay dashboard'}`);
+                alert(`✓ ${formatLabel} draft saved!\n\nView in eBay Seller Hub: ${data.drafts_url || 'eBay dashboard'}`);
             }
             closeEbayModal();
         } else {

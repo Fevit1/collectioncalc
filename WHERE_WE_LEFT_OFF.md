@@ -1,6 +1,57 @@
 # Where We Left Off - Feb 28, 2026
 
-## Session 68 (Feb 28, 2026) — Signature Matching + Title Year Fix
+## Session 69 (Feb 28, 2026) — eBay Auction Listing Support
+
+### What We Did
+**Added auction format to eBay listing integration** — the existing fixed-price listing flow now supports eBay auctions:
+- **Format toggle** — Fixed Price / Auction toggle in the listing modal. Switches between fixed-price fields and auction-specific fields.
+- **Auction fields** — Starting bid, duration (1/3/5/7/10 days), optional reserve price, optional Buy It Now price. Smart defaults: $0.99 start, 7-day duration.
+- **Backend support** — `ebay_listing.py` `create_listing()` now accepts `listing_format`, `auction_duration`, `start_price`, `reserve_price`, `buy_it_now_price`. Uses eBay Inventory API `auctionStartPrice` / `auctionReservePrice` fields.
+- **Route updated** — `/api/ebay/list` passes all new fields through to `create_listing()`.
+- **Backward compatible** — defaults to `FIXED_PRICE` if no format specified. All existing functionality unchanged.
+- **Moved Booth Ready Demo from P1 to P4** in TODO.md priority list — GalaxyCon is still months away.
+
+### Files Modified
+- `ebay_listing.py` — Added auction format support to `create_listing()`: format toggle, duration, reserve, BIN pricing
+- `routes/ebay.py` — Pass `listing_format`, `auction_duration`, `start_price`, `reserve_price`, `buy_it_now_price` to backend
+- `collection.html` — Added format toggle UI, auction fields (start bid, duration, reserve, BIN), updated `createListing()` JS, format-aware success alerts
+
+### What's Next (Priority Order)
+1. **Signature page deletion** — Add "Delete Creator" button to admin signatures page
+2. **Facebook page setup** — Create business page, initial content
+3. **Run `--cross-validate`** to get signature accuracy baseline
+4. **Valuation endpoint testing** — 12-case test plan
+
+---
+
+## Session 68b (Feb 28, 2026) — Valuation Endpoint Upgrade
+
+### What We Did
+**Upgraded `/api/sales/valuation` with professional-grade methodology** — same approach proven in premium analysis engine:
+- **Median-based FMV** — replaced arithmetic mean everywhere (exact match, interpolation, raw FMV, price curve). A single $5K sale among ten $50 sales now gives ~$50 (median) instead of ~$500 (mean).
+- **Percentile outlier trimming** — top/bottom 5% removed before computing median.
+- **Bootstrap 95% CI** — 1000 iterations, seed=42, reports `ci_95_low`/`ci_95_high` for exact grade matches with 5+ sales.
+- **Backward compatible** — all existing response fields unchanged, new CI fields are additive.
+- **No frontend changes needed** — grading results page renders identically.
+
+**Homepage Sign In / Sign Up nav** — Added top-right auth nav to hero section (Option A from mockup):
+- "Sign In" text link + gold "Sign Up" pill in upper-right corner
+- Matches existing brand (gold gradient, purple shadow)
+- Zero impact on hero layout — logo, tagline, CTA all untouched
+- Sign Up links to `/login.html?signup=true` for future auto-toggle
+
+### Files Modified
+- `routes/sales_valuation.py` — Added `percentile_trim()`, `compute_median()`, `bootstrap_ci_median()`, replaced all mean calculations with median + trim, added CI fields to response
+- `index.html` — Added `.hero-auth-nav` with Sign In / Sign Up links in hero section + CSS
+
+### What's Next (Priority Order)
+1. **Run `--cross-validate`** to get signature accuracy baseline (needs auth token)
+2. **Booth demo mode** — cached results for repeat demos
+3. **Sign-up/onboarding under 60 seconds** — QR → minimal form → first grade
+
+---
+
+## Session 68 (Feb 28, 2026) — Signature Matching + Premium Analysis Engine
 
 ### What We Did
 
@@ -10,48 +61,56 @@
 - Created `routes/signatures.py` — Flask blueprint: `/api/signatures/match`, `/db-stats`, `/signed-sales`, `/premium-analysis`
 - Wired blueprint into `wsgi.py`
 - Created `test_signature_matcher.py` — 6 test modes (`--db-stats`, `--check-signed-sales`, `--test-known`, `--cross-validate`, `--test-ebay`, `--premium-analysis`)
-- Deployed and verified: `--db-stats` (23 artists, 97 images) and `--check-signed-sales` (899 signed sales) working on production
+- Deployed and verified on production
 
-**Signed Premium Analysis:**
-- Built `/api/signatures/premium-analysis` endpoint — single-pass CTE SQL comparing signed vs unsigned sales
-- Initial quick test: median premium +28%, mean +38%
-- Full endpoint run revealed **massive title collisions** — X-Men #1 (1963) and X-Men #1 (1991) normalize to same `canonical_title`, contaminating comps
-- DBeaver analysis confirmed most rows flagged as COLLISION (unsigned price range spans >5x)
-- Even "clean" data showed signed < unsigned in many cases — different printings/editions, not actual damage
-
-**Title Year Collision Fix (coded, needs deploy + migration):**
+**Title Year Collision Fix (deployed + migrated):**
 - Added "Step 0.5" to `title_normalizer.py` — extracts publication year from raw title BEFORE year gets stripped in Step 9
-  - Pattern 1: `(1991)` in parens (most reliable)
-  - Pattern 2: standalone 4-digit year 1930-2029 (fallback)
-- Added `title_year` field to normalizer return dict and `_empty_result()`
-- Updated `routes/sales_ebay.py` — `title_year` in normalize function, INSERT, and backfill UPDATE
-- Created `db_migrate_title_year.py` — adds column + backfills all existing rows from `raw_title`
-- Updated premium analysis SQL in `routes/signatures.py` — uses `title_year` in GROUP BY and JOIN with ±2 year tolerance
+- Added `title_year` column to `ebay_sales` via `db_migrate_title_year.py` — server-side SQL backfill, 15,381/24,629 rows (62.5%) got a year
+- Collisions dropped from hundreds to just 4 after title_year + time window
+
+**Professional-Grade Premium Analysis Engine (deployed + tested):**
+- **Time-windowed comparisons** — unsigned comps must be within ±90 days of signed sale date. Prevents comparing 2024 signed sales against 2020 unsigned prices. Configurable via `?time_window=N`.
+- **Log-transformed premiums** — geometric mean via `ln(signed/unsigned)` gives symmetric distribution resistant to outliers. Arithmetic mean (+141%) inflated by outliers; geometric mean (+57%) much more robust.
+- **Bootstrap 95% confidence intervals** — 1000 iterations, deterministic seed. Gives statistical certainty: median premium +40% [95% CI: +27%, +59%].
+- **Percentile outlier trimming** — top/bottom 5% removed for trimmed stats. Configurable via `?trim_pct=N`.
+- **Per-signed-sale matching** — SQL joins each signed sale to individual unsigned sales (not pre-aggregated groups), enabling proper time-windowed matching.
+
+### Final Premium Analysis Results (Production, Feb 28, 2026)
+```
+Matched pairs:    359 (from 819 signed sales)
+Time window:      ±90 days
+Collisions:       4 (down from hundreds)
+
+TRIMMED (top/bottom 5% removed, n=325):
+  Arithmetic mean:   +81.2%
+  Geometric mean:    +52.3%
+  Median:            +40.0%
+  95% CI (median):   [+26.7%, +58.8%]
+  Positive:          235/325 (72%)
+
+BY GRADE TIER:
+  High Grade 9+:    85 pairs, median +69%, 95%CI [+15%,+109%]
+  Raw Ungraded:     267 pairs, median +36%, 95%CI [+25%,+54%]
+  Mid Grade 7-9:    4 pairs, median +56% (small sample)
+  Low Grade <7:     3 pairs, median +38% (small sample)
+```
+**Headline: Signing a comic adds ~40-57% to market value (median to geo mean), with 95% confidence the true premium is between +27% and +59%. ~72% of signed comics sell above unsigned FMV.**
 
 ### Files Created/Modified
 - `title_normalizer.py` — MODIFIED: Step 0.5 year extraction, title_year in return dict
 - `routes/sales_ebay.py` — MODIFIED: title_year in normalize, INSERT, backfill UPDATE
-- `routes/signatures.py` — NEW+MODIFIED: 4 endpoints, premium analysis SQL uses title_year
-- `db_migrate_title_year.py` — NEW: Migration script (ALTER TABLE + backfill)
+- `routes/signatures.py` — NEW+MODIFIED: 4 endpoints, professional premium analysis engine
+- `db_migrate_title_year.py` — NEW: Migration script (server-side SQL backfill, accepts DB URL as arg)
 - `signatures/signatures_db.json` — NEW: 23 artists, 97 images
 - `signatures/signature_matcher.py` — NEW: Standalone CLI matcher
-- `test_signature_matcher.py` — NEW: Production test suite
+- `test_signature_matcher.py` — NEW: Production test suite with updated premium display
 - `wsgi.py` — Added signatures blueprint
 
 ### What's Next (Priority Order)
-1. **Deploy title_year fix** — push code, then run `python db_migrate_title_year.py` on production
-2. **Retest premium analysis** — `python test_signature_matcher.py --premium-analysis` or DBeaver query
-3. **Run `--cross-validate`** to get signature accuracy baseline (needs auth token)
-4. **Collect 5 missing priority artist signatures**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
-
-### Git Push Commands (PowerShell)
-```powershell
-git add title_normalizer.py routes/sales_ebay.py routes/signatures.py db_migrate_title_year.py ; git commit -m "Add title_year extraction to fix era collisions in premium analysis" ; git push; deploy; purge
-```
-Then after Render deploy completes:
-```powershell
-python db_migrate_title_year.py
-```
+1. **Apply premium analysis methodology to general valuation** — time-windowed FMV, confidence intervals for `/api/sales/valuation`
+2. **Run `--cross-validate`** to get signature accuracy baseline (needs auth token)
+3. **Collect 5 missing priority artist signatures**: Todd McFarlane, Stan Lee, Rob Liefeld, Scott Snyder, J. Scott Campbell
+4. **Evaluate additional improvements**: per-creator premiums (need 15-20+ pairs per creator), key-issue bias control
 
 ---
 
