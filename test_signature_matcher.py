@@ -53,14 +53,20 @@ def api_get(path, token=None):
 
     if HAS_REQUESTS:
         r = requests.get(url, headers=headers, timeout=30)
-        return r.json(), r.status_code
+        try:
+            return r.json(), r.status_code
+        except Exception:
+            return {"error": f"Non-JSON response (HTTP {r.status_code}): {r.text[:200]}"}, r.status_code
     else:
         req = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read()), resp.status
         except urllib.error.HTTPError as e:
-            return json.loads(e.read()), e.code
+            try:
+                return json.loads(e.read()), e.code
+            except Exception:
+                return {"error": f"Non-JSON error response (HTTP {e.code})"}, e.code
 
 
 def api_post(path, data, token=None):
@@ -74,14 +80,20 @@ def api_post(path, data, token=None):
 
     if HAS_REQUESTS:
         r = requests.post(url, json=data, headers=headers, timeout=60)
-        return r.json(), r.status_code
+        try:
+            return r.json(), r.status_code
+        except Exception:
+            return {"error": f"Non-JSON response (HTTP {r.status_code}): {r.text[:200]}"}, r.status_code
     else:
         req = urllib.request.Request(url, data=body, headers=headers, method='POST')
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.loads(resp.read()), resp.status
         except urllib.error.HTTPError as e:
-            return json.loads(e.read()), e.code
+            try:
+                return json.loads(e.read()), e.code
+            except Exception:
+                return {"error": f"Non-JSON error response (HTTP {e.code})"}, e.code
 
 
 def load_db():
