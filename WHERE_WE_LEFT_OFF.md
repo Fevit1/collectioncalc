@@ -1,4 +1,50 @@
-# Where We Left Off - Feb 28, 2026
+# Where We Left Off - Mar 1, 2026
+
+## Session 70 (Mar 1, 2026) — Dashboard + Collapsible Sidebar Nav
+
+### What We Did
+**New logged-in dashboard (`dashboard.html`):**
+- Collapsible left sidebar with grouped navigation: Main (Dashboard, Grade a Comic, My Collection), Sell (eBay Listings, Whatnot Prep), Tools (Slab Guard, Signature ID, Market Pulse, Price Lookup), More (FAQ, Account)
+- Sidebar collapses to 64px icon-only rail with tooltips on hover; remembers state in localStorage
+- Portfolio stats row powered by real `GET /api/collection` data: Comics count, Total FMV, Worth Slabbing, Avg Grade
+- "Most Valuable Comics" panel — top 5 from user's collection sorted by value
+- "Market Movers" panel — static sample data (real trending endpoint is Phase 2)
+- User name derived from email, avatar with initials, logout in sidebar
+- Loading skeleton animations while fetching data
+- Empty state for new users with "Grade your first comic" CTA
+- Mobile responsive: sidebar becomes slide-out drawer with hamburger menu on <900px
+- Auth gate: redirects to login if no token, handles 401 expired tokens
+
+**Login redirect updated:**
+- `login.html` now redirects to `/dashboard.html` instead of `/app.html` after successful login
+
+**SVG favicon added:**
+- Created `favicon.svg` (purple gradient circle + gold "SW" text)
+- Added `<link rel="icon">` to all 17 user-facing HTML pages
+
+**README.md complete rewrite:**
+- Was still "CollectionCalc" referencing SQLite and fake endpoints
+- Now accurately describes Slab Worthy with all features, real tech stack, architecture diagram
+
+### Files Created
+- `dashboard.html` — New logged-in home screen with collapsible sidebar
+- `favicon.svg` — SVG favicon
+
+### Files Modified
+- `login.html` — Changed default redirect from `/app.html` to `/dashboard.html`
+- `README.md` — Complete rewrite
+- `WHERE_WE_LEFT_OFF.md`, `TODO.md` — Updated
+- `docs/technical/DATABASE.md` — Replaced with deprecation notice pointing to DATABASE_PRODUCTION.md
+- All 17 HTML pages — Added favicon link
+
+### What's Next (Priority Order)
+1. **Propagate sidebar nav across site** — Add collapsible sidebar to collection.html, app.html, account.html, etc. for consistent navigation
+2. **eBay auction end-to-end test** — Test OAuth, fixed-price, and auction listing flows
+3. **Whatnot listing prep tool** — "Prep for Whatnot" button
+4. **Backend trending endpoint** — Power the Market Movers panel with real ebay_sales data
+5. **Add display_name to /api/auth/me** — Replace email-derived name with real user name
+
+---
 
 ## Session 69 continued (Feb 28, 2026) — Collection UX + Doc Overhaul
 

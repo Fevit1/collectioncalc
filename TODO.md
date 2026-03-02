@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** February 28, 2026 (Session 69)
+**Updated:** March 1, 2026 (Session 70)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,11 @@
 
 ---
 
-## ✅ DONE (Session 64-69)
+## ✅ DONE (Session 64-70)
 
+- [x] **Logged-in dashboard with collapsible sidebar** — Session 70: New `dashboard.html` as post-login landing page. Collapsible sidebar nav (remembers state), real portfolio stats from collection API, top 5 most valuable comics, market movers (sample data), empty state, mobile drawer nav. Login redirect updated.
+- [x] **SVG favicon** — Session 70: Created `favicon.svg` (purple/gold SW), added to all 17 HTML pages.
+- [x] **README.md rewrite** — Session 70: Was still "CollectionCalc/SQLite/portfolio project". Now accurately documents Slab Worthy.
 - [x] **Sortable collection columns** — Session 69: All list view columns (Title, Year, Issue, Grade, FMV, My Valuation) are clickable to sort ascending/descending with arrow indicators.
 - [x] **Optimistic delete UI** — Session 69: Collection delete now removes row instantly (150ms fade), API fires in background. Rollback on failure with toast notification.
 - [x] **Smart delete confirmation** — Session 69: Custom modal with "Don't show this warning again" checkbox replaces browser confirm(). Preference stored in localStorage.
