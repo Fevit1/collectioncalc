@@ -832,7 +832,7 @@
     <meta name="apple-mobile-web-app-title" content="Slab Worthy">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
-<body>
+<body data-sidebar-page="collection" data-no-universal-footer>
     <div class="container collection-container">
         <!-- Header -->
         <header style="text-align: center; margin-bottom: 2rem;">
@@ -2559,8 +2559,9 @@ async function createListing(publish) {
     }
 }
 </script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
     <!-- Service Worker -->
-    <script src="/js/footer.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});

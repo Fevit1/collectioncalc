@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6366f1;
@@ -304,7 +304,7 @@
         .toast.error { border-color: var(--error); }
     </style>
 </head>
-<body>
+<body data-sidebar-page="admin" data-no-universal-footer>
     <div class="container">
         <header>
             <div class="header-left">
@@ -851,7 +851,7 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
     </script>
-    <!-- Universal Footer -->
-    <script src="/js/footer.js"></script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
 </body>
 </html>

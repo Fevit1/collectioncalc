@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6366f1;
@@ -322,7 +322,7 @@
         .image-count { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
     </style>
 </head>
-<body>
+<body data-sidebar-page="signatures" data-no-universal-footer>
     <div class="container">
         <header>
             <div class="header-left">
@@ -679,7 +679,7 @@
             if (e.key === 'Escape') { closeImageViewer(); closeUploadModal(); }
         });
     </script>
-    <!-- Universal Footer -->
-    <script src="/js/footer.js"></script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
 </body>
 </html>

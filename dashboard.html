@@ -43,232 +43,11 @@
             min-height: 100vh;
         }
 
-        /* App Shell */
-        .app-shell {
-            display: grid;
-            grid-template-columns: var(--sidebar-width) 1fr;
-            min-height: 100vh;
-            transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .app-shell.collapsed {
-            grid-template-columns: var(--sidebar-collapsed) 1fr;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            background: var(--bg-sidebar);
-            border-right: 1px solid var(--border);
-            padding: 1.25rem 0;
-            display: flex;
-            flex-direction: column;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .sidebar-toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 1rem 0 1.25rem;
-            margin-bottom: 1.5rem;
-            min-height: 36px;
-        }
-        .sidebar-logo {
-            font-family: 'Bangers', cursive;
-            font-size: 1.5rem;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 1px;
-            white-space: nowrap;
-            transition: opacity 0.2s, transform 0.2s;
-            text-decoration: none;
-        }
-        .collapsed .sidebar-logo {
-            opacity: 0;
-            transform: translateX(-10px);
-            position: absolute;
-            pointer-events: none;
-        }
-        .sidebar-logo-icon {
-            font-family: 'Bangers', cursive;
-            font-size: 1.3rem;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 1px;
-            display: none;
-            width: 100%;
-            text-align: center;
-        }
-        .collapsed .sidebar-logo-icon { display: block; }
-        .toggle-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: rgba(124, 58, 237, 0.06);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            transition: all 0.15s;
-            flex-shrink: 0;
-        }
-        .toggle-btn:hover {
-            background: rgba(124, 58, 237, 0.15);
-            color: var(--text-primary);
-        }
-        .collapsed .toggle-btn { margin: 0 auto; }
-
-        /* Sidebar Sections */
-        .sidebar-section { margin-bottom: 1.25rem; }
-        .sidebar-label {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            padding: 0 1.25rem;
-            margin-bottom: 0.4rem;
-            white-space: nowrap;
-            overflow: hidden;
-            transition: opacity 0.2s;
-        }
-        .collapsed .sidebar-label {
-            opacity: 0;
-            height: 0;
-            margin: 0;
-            padding: 0;
-        }
-        .sidebar-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.6rem 1.25rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            border-left: 3px solid transparent;
-            white-space: nowrap;
-            position: relative;
-            text-decoration: none;
-        }
-        .sidebar-item:hover {
-            background: rgba(124, 58, 237, 0.06);
-            color: var(--text-primary);
-        }
-        .sidebar-item.active {
-            background: rgba(124, 58, 237, 0.08);
-            color: var(--text-primary);
-            border-left-color: var(--purple-brand);
-        }
-        .sidebar-item .icon {
-            width: 20px;
-            text-align: center;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-        .sidebar-item .label {
-            overflow: hidden;
-            transition: opacity 0.2s, width 0.3s;
-        }
-        .collapsed .sidebar-item .label { opacity: 0; width: 0; }
-        .sidebar-item .badge {
-            margin-left: auto;
-            font-size: 0.65rem;
-            background: rgba(124, 58, 237, 0.2);
-            color: var(--purple-light);
-            padding: 1px 7px;
-            border-radius: 99px;
-            font-weight: 600;
-            transition: opacity 0.2s;
-        }
-        .collapsed .sidebar-item .badge {
-            opacity: 0;
-            position: absolute;
-            pointer-events: none;
-        }
-        .collapsed .sidebar-item {
-            justify-content: center;
-            padding: 0.6rem 0;
-            border-left-width: 0;
-        }
-        .collapsed .sidebar-item.active {
-            border-left-width: 0;
-            background: rgba(124, 58, 237, 0.12);
-        }
-
-        /* Tooltip on collapsed hover */
-        .collapsed .sidebar-item:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            left: calc(var(--sidebar-collapsed) - 4px);
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            z-index: 200;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-
-        .sidebar-spacer { flex: 1; }
-        .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem 1.25rem;
-            border-top: 1px solid var(--border);
-            margin-top: auto;
-            overflow: hidden;
-        }
-        .sidebar-user-avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .sidebar-user-info {
-            flex: 1;
-            min-width: 0;
-            transition: opacity 0.2s;
-        }
-        .collapsed .sidebar-user-info { opacity: 0; width: 0; overflow: hidden; }
-        .collapsed .sidebar-user { justify-content: center; padding: 1rem 0; }
-        .sidebar-user-name {
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .sidebar-user-plan {
-            font-size: 0.65rem;
-            color: var(--gold-mid);
-        }
-
         /* Main Content */
         .main-content {
             padding: 2rem 2.5rem;
-            overflow-y: auto;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         /* Welcome Row */
@@ -493,217 +272,79 @@
         }
 
         /* Mobile */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 999;
-        }
-        .mobile-overlay.visible { display: block; }
-        .mobile-topbar {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 1.25rem;
-            background: var(--bg-sidebar);
-            border-bottom: 1px solid var(--border);
-        }
-        .mobile-topbar .nav-logo {
-            font-family: 'Bangers', cursive;
-            font-size: 1.4rem;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .hamburger {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         @media (max-width: 900px) {
-            .app-shell { grid-template-columns: 1fr; }
-            .sidebar {
-                position: fixed;
-                left: 0; top: 0;
-                width: var(--sidebar-width);
-                transform: translateX(-100%);
-                z-index: 1000;
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .sidebar.mobile-open { transform: translateX(0); }
-            .mobile-topbar { display: flex !important; }
             .portfolio-row { grid-template-columns: repeat(2, 1fr); }
             .two-panel { grid-template-columns: 1fr; }
             .welcome-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .collapsed .sidebar { transform: translateX(-100%); }
             .main-content { padding: 1.5rem 1rem; }
-        }
-        @media (min-width: 901px) {
-            .mobile-overlay { display: none !important; }
-            .mobile-topbar { display: none !important; }
         }
     </style>
 </head>
-<body>
-    <!-- Mobile overlay -->
-    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileNav()"></div>
-
-    <!-- Mobile top bar -->
-    <div class="mobile-topbar">
-        <button class="hamburger" onclick="openMobileNav()">&#9776;</button>
-        <div class="nav-logo">SLAB WORTHY</div>
-        <div style="width:36px"></div>
-    </div>
-
-    <div class="app-shell" id="appShell">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-toggle-row">
-                <a href="/dashboard.html" class="sidebar-logo">SLAB WORTHY</a>
-                <div class="sidebar-logo-icon">SW</div>
-                <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
-                    <span id="toggleIcon">&#171;</span>
-                </button>
+<body data-sidebar-page="dashboard" data-no-universal-footer>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Row -->
+        <div class="welcome-row">
+            <div>
+                <h1>Welcome back, <span id="welcomeName">...</span></h1>
+                <p id="welcomeSub">Loading your collection...</p>
             </div>
+            <a href="/app.html" class="grade-btn">&#128248; Grade a Comic</a>
+        </div>
 
-            <div class="sidebar-section">
-                <div class="sidebar-label">Main</div>
-                <a href="/dashboard.html" class="sidebar-item active" data-tooltip="Dashboard">
-                    <span class="icon">&#127968;</span> <span class="label">Dashboard</span>
-                </a>
-                <a href="/app.html" class="sidebar-item" data-tooltip="Grade a Comic">
-                    <span class="icon">&#128248;</span> <span class="label">Grade a Comic</span>
-                </a>
-                <a href="/collection.html" class="sidebar-item" data-tooltip="My Collection">
-                    <span class="icon">&#128218;</span> <span class="label">My Collection</span>
-                    <span class="badge" id="collectionBadge">--</span>
-                </a>
+        <!-- Portfolio Stats -->
+        <div class="portfolio-row" id="portfolioRow">
+            <div class="portfolio-card">
+                <div class="portfolio-label">Comics</div>
+                <div class="portfolio-value" id="statComics"><div class="skeleton skeleton-text short"></div></div>
             </div>
-
-            <div class="sidebar-section">
-                <div class="sidebar-label">Sell</div>
-                <a href="/collection.html" class="sidebar-item" data-tooltip="eBay Listings">
-                    <span class="icon">&#128176;</span> <span class="label">eBay Listings</span>
-                </a>
-                <a href="#" onclick="alert('Whatnot Prep — coming soon!'); return false;" class="sidebar-item" data-tooltip="Whatnot Prep">
-                    <span class="icon">&#127908;</span> <span class="label">Whatnot Prep</span>
-                </a>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Total FMV</div>
+                <div class="portfolio-value gold" id="statFMV"><div class="skeleton skeleton-text"></div></div>
             </div>
-
-            <div class="sidebar-section">
-                <div class="sidebar-label">Tools</div>
-                <a href="/verify.html" class="sidebar-item" data-tooltip="Slab Guard">
-                    <span class="icon">&#128737;&#65039;</span> <span class="label">Slab Guard</span>
-                </a>
-                <a href="#" onclick="alert('Signature ID — coming soon!'); return false;" class="sidebar-item" data-tooltip="Signature ID">
-                    <span class="icon">&#9997;&#65039;</span> <span class="label">Signature ID</span>
-                </a>
-                <a href="#" onclick="alert('Market Pulse — coming soon!'); return false;" class="sidebar-item" data-tooltip="Market Pulse">
-                    <span class="icon">&#128200;</span> <span class="label">Market Pulse</span>
-                </a>
-                <a href="#" onclick="alert('Price Lookup — coming soon!'); return false;" class="sidebar-item" data-tooltip="Price Lookup">
-                    <span class="icon">&#128202;</span> <span class="label">Price Lookup</span>
-                </a>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Worth Slabbing</div>
+                <div class="portfolio-value" id="statSlab" style="color: var(--green)"><div class="skeleton skeleton-text short"></div></div>
             </div>
-
-            <div class="sidebar-section">
-                <div class="sidebar-label">More</div>
-                <a href="/faq.html" class="sidebar-item" data-tooltip="FAQ">
-                    <span class="icon">&#10067;</span> <span class="label">FAQ</span>
-                </a>
-                <a href="/account.html" class="sidebar-item" data-tooltip="Account">
-                    <span class="icon">&#9881;&#65039;</span> <span class="label">Account</span>
-                </a>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Avg Grade</div>
+                <div class="portfolio-value" id="statGrade"><div class="skeleton skeleton-text short"></div></div>
             </div>
+        </div>
 
-            <div class="sidebar-spacer"></div>
-
-            <div class="sidebar-user" id="sidebarUser">
-                <div class="sidebar-user-avatar" id="userAvatar">?</div>
-                <div class="sidebar-user-info">
-                    <div class="sidebar-user-name" id="userName">Loading...</div>
-                    <div class="sidebar-user-plan">
-                        <a href="#" onclick="logout(); return false;" style="color: var(--text-secondary); text-decoration: none; font-size: 0.65rem;">Log Out</a>
-                    </div>
+        <!-- Two-Panel: Top Comics + Market Movers -->
+        <div class="two-panel">
+            <!-- Top Comics -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Most Valuable Comics</h3>
+                    <a href="/collection.html">View all &rarr;</a>
                 </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Welcome Row -->
-            <div class="welcome-row">
-                <div>
-                    <h1>Welcome back, <span id="welcomeName">...</span></h1>
-                    <p id="welcomeSub">Loading your collection...</p>
-                </div>
-                <a href="/app.html" class="grade-btn">&#128248; Grade a Comic</a>
-            </div>
-
-            <!-- Portfolio Stats -->
-            <div class="portfolio-row" id="portfolioRow">
-                <div class="portfolio-card">
-                    <div class="portfolio-label">Comics</div>
-                    <div class="portfolio-value" id="statComics"><div class="skeleton skeleton-text short"></div></div>
-                </div>
-                <div class="portfolio-card">
-                    <div class="portfolio-label">Total FMV</div>
-                    <div class="portfolio-value gold" id="statFMV"><div class="skeleton skeleton-text"></div></div>
-                </div>
-                <div class="portfolio-card">
-                    <div class="portfolio-label">Worth Slabbing</div>
-                    <div class="portfolio-value" id="statSlab" style="color: var(--green)"><div class="skeleton skeleton-text short"></div></div>
-                </div>
-                <div class="portfolio-card">
-                    <div class="portfolio-label">Avg Grade</div>
-                    <div class="portfolio-value" id="statGrade"><div class="skeleton skeleton-text short"></div></div>
+                <div id="topComicsBody">
+                    <div class="panel-empty">Loading...</div>
                 </div>
             </div>
 
-            <!-- Two-Panel: Top Comics + Market Movers -->
-            <div class="two-panel">
-                <!-- Top Comics -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <h3>Most Valuable Comics</h3>
-                        <a href="/collection.html">View all &rarr;</a>
-                    </div>
-                    <div id="topComicsBody">
-                        <div class="panel-empty">Loading...</div>
-                    </div>
+            <!-- Market Movers -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Market Movers</h3>
+                    <a href="#" style="opacity:0.5; pointer-events:none;">Coming soon</a>
                 </div>
-
-                <!-- Market Movers -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <h3>Market Movers</h3>
-                        <a href="#" style="opacity:0.5; pointer-events:none;">Coming soon</a>
-                    </div>
-                    <div id="marketMoversBody">
-                        <!-- Static sample data -->
-                    </div>
+                <div id="marketMoversBody">
+                    <!-- Static sample data -->
                 </div>
             </div>
+        </div>
 
-            <!-- Empty State (hidden by default) -->
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-icon">&#128230;</div>
-                <h2>Your collection is empty</h2>
-                <p>Grade your first comic to get started! Upload 4 photos and get an AI grade, valuation, and slabbing recommendation.</p>
-                <a href="/app.html" class="cta-link">&#128248; Grade a Comic</a>
-            </div>
-        </main>
-    </div>
+        <!-- Empty State (hidden by default) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">&#128230;</div>
+            <h2>Your collection is empty</h2>
+            <p>Grade your first comic to get started! Upload 4 photos and get an AI grade, valuation, and slabbing recommendation.</p>
+            <a href="/app.html" class="cta-link">&#128248; Grade a Comic</a>
+        </div>
+    </main>
 
     <script>
         const API_URL = 'https://collectioncalc-docker.onrender.com';
@@ -726,11 +367,8 @@
                 const email = userData.email || '';
                 const namePart = email.split('@')[0] || 'User';
                 const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-                const initials = displayName.charAt(0).toUpperCase();
 
                 document.getElementById('welcomeName').textContent = displayName;
-                document.getElementById('userName').textContent = displayName;
-                document.getElementById('userAvatar').textContent = initials;
             } catch (e) {
                 document.getElementById('welcomeName').textContent = 'User';
             }
@@ -787,9 +425,8 @@
             document.getElementById('statSlab').textContent = worthSlabbing;
             document.getElementById('statGrade').textContent = avgGrade.toFixed(1);
 
-            document.getElementById('collectionBadge').textContent = count;
             document.getElementById('welcomeSub').textContent =
-                `${count} comics in your collection &middot; $${totalFMV.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total FMV`;
+                `${count} comics in your collection \u00B7 $${totalFMV.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total FMV`;
         }
 
         // ==========================================
@@ -860,50 +497,10 @@
             document.getElementById('statFMV').textContent = '$0';
             document.getElementById('statSlab').textContent = '0';
             document.getElementById('statGrade').textContent = '0.0';
-            document.getElementById('collectionBadge').textContent = '0';
             document.getElementById('welcomeSub').textContent = 'Grade your first comic to get started!';
         }
-
-        // ==========================================
-        // SIDEBAR TOGGLE
-        // ==========================================
-        function toggleSidebar() {
-            const shell = document.getElementById('appShell');
-            const icon = document.getElementById('toggleIcon');
-            shell.classList.toggle('collapsed');
-            icon.innerHTML = shell.classList.contains('collapsed') ? '&#187;' : '&#171;';
-            // Remember preference
-            localStorage.setItem('sidebar_collapsed', shell.classList.contains('collapsed'));
-        }
-
-        // Restore sidebar state from localStorage
-        (function() {
-            if (localStorage.getItem('sidebar_collapsed') === 'true') {
-                document.getElementById('appShell').classList.add('collapsed');
-                document.getElementById('toggleIcon').innerHTML = '&#187;';
-            }
-        })();
-
-        // ==========================================
-        // MOBILE NAV
-        // ==========================================
-        function openMobileNav() {
-            document.getElementById('sidebar').classList.add('mobile-open');
-            document.getElementById('mobileOverlay').classList.add('visible');
-        }
-        function closeMobileNav() {
-            document.getElementById('sidebar').classList.remove('mobile-open');
-            document.getElementById('mobileOverlay').classList.remove('visible');
-        }
-
-        // ==========================================
-        // LOGOUT
-        // ==========================================
-        function logout() {
-            localStorage.removeItem('cc_token');
-            localStorage.removeItem('cc_user');
-            window.location.replace('/login.html');
-        }
     </script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
 </body>
 </html>
