@@ -270,7 +270,6 @@
 
         /* Main content wrapper */
         .sw-page-content {
-            overflow-y: auto;
             min-height: 100vh;
         }
 
@@ -475,7 +474,12 @@
     document.body.appendChild(appShell);
 
     // Move modals/overlays/toasts back to body root so position:fixed works correctly
-    pageContent.querySelectorAll('.modal-overlay, .image-viewer, .toast, [style*="position: fixed"], [style*="position:fixed"]').forEach(el => {
+    // (sidebar wrapping can trap fixed elements inside the grid layout)
+    pageContent.querySelectorAll(
+        '.modal-overlay, .image-viewer, .toast, .save-toast, .bulk-actions, ' +
+        '.tips-modal-overlay, .auth-modal-overlay, .listing-modal-overlay, .ebay-modal-overlay, ' +
+        '[style*="position: fixed"], [style*="position:fixed"]'
+    ).forEach(el => {
         document.body.appendChild(el);
     });
 
