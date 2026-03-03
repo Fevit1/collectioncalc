@@ -117,8 +117,36 @@ def api_ebay_status():
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     token_data = get_user_token(str(g.user_id))
     if token_data and token_data.get('access_token'):
-        return jsonify({'success': True, 'connected': True})
+        # Also return the eBay username if we have it
+        from ebay_oauth import get_db_connection
+        ebay_username = None
+        try:
+            conn = get_db_connection()
+            if conn:
+                cur = conn.cursor()
+                cur.execute("SELECT ebay_username FROM ebay_tokens WHERE user_id = %s", (str(g.user_id),))
+                row = cur.fetchone()
+                if row:
+                    ebay_username = row[0]
+                cur.close()
+                conn.close()
+        except Exception:
+            pass
+        return jsonify({'success': True, 'connected': True, 'ebay_username': ebay_username})
     return jsonify({'success': True, 'connected': False})
+
+
+@ebay_bp.route('/disconnect', methods=['POST'])
+@require_auth
+@require_approved
+def api_ebay_disconnect():
+    """Disconnect user's eBay account"""
+    try:
+        from ebay_oauth import disconnect_user
+        success = disconnect_user(str(g.user_id))
+        return jsonify({'success': success})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @ebay_bp.route('/generate-description', methods=['POST'])
@@ -149,35 +177,23 @@ def api_ebay_upload_image():
     if not upload_image_to_ebay or not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
-    image_data = data.get('image')       # base64 string (legacy)
-    image_url  = data.get('image_url')   # R2 URL (new proxy path)
-    filename   = data.get('filename', 'comic.jpg')
-
+    image_data = data.get('image')
+    filename = data.get('filename', 'comic.jpg')
+    
+    if not image_data:
+        return jsonify({'success': False, 'error': 'Image data required'}), 400
+    
     token_data = get_user_token(str(g.user_id))
     if not token_data or not token_data.get('access_token'):
         return jsonify({'success': False, 'error': 'eBay not connected'}), 401
-
-    import base64, requests as req_lib
-
-    if image_url:
-        # Proxy fetch from R2 server-side (no browser CORS issues)
-        try:
-            r = req_lib.get(image_url, timeout=15)
-            r.raise_for_status()
-            image_bytes = r.content
-            ct = r.headers.get('Content-Type', 'image/jpeg')
-            ext = 'png' if 'png' in ct else 'webp' if 'webp' in ct else 'jpg'
-            filename = f'comic.{ext}'
-        except Exception as e:
-            return jsonify({'success': False, 'error': f'Failed to fetch image from storage: {str(e)}'}), 400
-    elif image_data:
-        try:
-            image_bytes = base64.b64decode(image_data)
-        except Exception as e:
-            return jsonify({'success': False, 'error': f'Invalid image data: {str(e)}'}), 400
-    else:
-        return jsonify({'success': False, 'error': 'image_url or image required'}), 400
-
+    
+    # Decode base64 to raw bytes
+    import base64
+    try:
+        image_bytes = base64.b64decode(image_data)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid image data: {str(e)}'}), 400
+    
     result = upload_image_to_ebay(token_data['access_token'], image_bytes, filename)
     return jsonify(result)
 

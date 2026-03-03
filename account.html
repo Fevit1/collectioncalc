@@ -230,6 +230,28 @@
         }
 
         /* Sighting Alerts */
+        /* eBay Integration Section */
+        .integrations-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .integrations-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 1.25rem 0; }
+        .integration-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .integration-info { display: flex; align-items: center; gap: 0.75rem; }
+        .integration-logo { width: 36px; height: 36px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .integration-name { font-weight: 600; font-size: 0.95rem; }
+        .integration-status { font-size: 0.8rem; margin-top: 0.15rem; }
+        .integration-status.connected { color: #10b981; }
+        .integration-status.disconnected { color: var(--text-secondary); }
+        .integration-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .btn-connect { background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-connect:hover { opacity: 0.85; }
+        .btn-disconnect { background: transparent; color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-disconnect:hover { border-color: #ef4444; color: #ef4444; }
+
         .sighting-section {
             margin-bottom: 1.5rem;
         }
@@ -504,6 +526,23 @@
 
                 <!-- Actions -->
                 <div class="actions" id="actionButtons"></div>
+            </div>
+
+            <!-- eBay Integration Section -->
+            <div class="integrations-card">
+                <h3>Connected Accounts</h3>
+                <div class="integration-row">
+                    <div class="integration-info">
+                        <div class="integration-logo">🛒</div>
+                        <div>
+                            <div class="integration-name">eBay</div>
+                            <div class="integration-status disconnected" id="ebayStatus">Not connected</div>
+                        </div>
+                    </div>
+                    <div class="integration-actions" id="ebayActions">
+                        <button class="btn-connect" id="ebayConnectBtn" onclick="connectEbay()">Connect eBay</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Sighting Alerts Section -->
@@ -829,9 +868,56 @@
             window.location.href = '/login.html';
         });
 
+        // ── eBay Integration ─────────────────────────────────────
+        async function loadEbayStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const statusEl = document.getElementById('ebayStatus');
+                const actionsEl = document.getElementById('ebayActions');
+                if (data.connected) {
+                    const username = data.ebay_username ? `@${data.ebay_username}` : 'Connected';
+                    statusEl.textContent = `✓ ${username}`;
+                    statusEl.className = 'integration-status connected';
+                    actionsEl.innerHTML = `<button class="btn-disconnect" onclick="disconnectEbay()">Disconnect</button>`;
+                } else {
+                    statusEl.textContent = 'Not connected';
+                    statusEl.className = 'integration-status disconnected';
+                    actionsEl.innerHTML = `<button class="btn-connect" onclick="connectEbay()">Connect eBay</button>`;
+                }
+            } catch (e) { console.error('eBay status error:', e); }
+        }
+
+        async function connectEbay() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/auth`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+            } catch (e) { alert('Could not start eBay authorization. Please try again.'); }
+        }
+
+        async function disconnectEbay() {
+            if (!confirm('Disconnect your eBay account? You can reconnect anytime.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/disconnect`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) loadEbayStatus();
+                else alert('Could not disconnect eBay. Please try again.');
+            } catch (e) { alert('Connection error. Please try again.'); }
+        }
+
         // Load
         loadAccount();
         loadSightings();
+        loadEbayStatus();
     </script>
     <!-- Service Worker -->
     <script>
