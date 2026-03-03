@@ -196,12 +196,21 @@ def api_get_signatures():
     cur = conn.cursor()
     
     try:
-        # Get all creators
-        cur.execute("""
-            SELECT id, creator_name, role, signature_style, verified, source, notes, created_at
-            FROM creator_signatures
-            ORDER BY creator_name
-        """)
+        # Get creators (optionally include archived)
+        include_archived = request.args.get('include_archived', 'false').lower() == 'true'
+        if include_archived:
+            cur.execute("""
+                SELECT id, creator_name, role, signature_style, verified, source, notes, created_at, archived_at
+                FROM creator_signatures
+                ORDER BY archived_at IS NOT NULL, creator_name
+            """)
+        else:
+            cur.execute("""
+                SELECT id, creator_name, role, signature_style, verified, source, notes, created_at, archived_at
+                FROM creator_signatures
+                WHERE archived_at IS NULL
+                ORDER BY creator_name
+            """)
         creators = cur.fetchall()
         
         # Get all images
@@ -232,6 +241,8 @@ def api_get_signatures():
             item = dict(c)
             if item.get('created_at'):
                 item['created_at'] = item['created_at'].isoformat()
+            if item.get('archived_at'):
+                item['archived_at'] = item['archived_at'].isoformat()
             item['images'] = images_by_creator.get(c['id'], [])
             result.append(item)
         
@@ -371,16 +382,15 @@ def api_delete_signature_image(image_id):
         conn.close()
 
 
-@admin_bp.route('/signatures/<int:sig_id>', methods=['DELETE'])
+@admin_bp.route('/signatures/<int:sig_id>/archive', methods=['PUT'])
 @require_admin_auth
-def api_delete_signature(sig_id):
-    """Delete a creator and all their signature images"""
+def api_archive_signature(sig_id):
+    """Archive a creator (soft-delete — hides from matching but preserves all data)"""
     database_url = os.environ.get('DATABASE_URL')
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
 
     try:
-        # Check creator exists
         cur.execute("SELECT id, creator_name FROM creator_signatures WHERE id = %s", (sig_id,))
         creator = cur.fetchone()
         if not creator:
@@ -388,17 +398,42 @@ def api_delete_signature(sig_id):
 
         creator_name = creator['creator_name']
 
-        # Delete all associated images first (foreign key)
-        cur.execute("DELETE FROM signature_images WHERE creator_id = %s", (sig_id,))
-        images_deleted = cur.rowcount
-
-        # Delete the creator
-        cur.execute("DELETE FROM creator_signatures WHERE id = %s", (sig_id,))
+        cur.execute("UPDATE creator_signatures SET archived_at = NOW() WHERE id = %s", (sig_id,))
         conn.commit()
 
-        print(f"Deleted creator '{creator_name}' and {images_deleted} reference images")
+        print(f"Archived creator '{creator_name}'")
 
-        return jsonify({'success': True, 'creator_name': creator_name, 'images_deleted': images_deleted})
+        return jsonify({'success': True, 'creator_name': creator_name, 'archived': True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/signatures/<int:sig_id>/unarchive', methods=['PUT'])
+@require_admin_auth
+def api_unarchive_signature(sig_id):
+    """Unarchive a creator (restore to active matching)"""
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+
+    try:
+        cur.execute("SELECT id, creator_name FROM creator_signatures WHERE id = %s", (sig_id,))
+        creator = cur.fetchone()
+        if not creator:
+            return jsonify({'success': False, 'error': 'Creator not found'}), 404
+
+        creator_name = creator['creator_name']
+
+        cur.execute("UPDATE creator_signatures SET archived_at = NULL WHERE id = %s", (sig_id,))
+        conn.commit()
+
+        print(f"Unarchived creator '{creator_name}'")
+
+        return jsonify({'success': True, 'creator_name': creator_name, 'archived': False})
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

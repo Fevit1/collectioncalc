@@ -90,6 +90,8 @@
             transition: all 0.2s;
         }
         .signature-card:hover { border-color: var(--primary); }
+        .signature-card.archived { opacity: 0.5; border-color: var(--warning); }
+        .signature-card.archived:hover { opacity: 0.75; }
         .signature-header {
             display: flex;
             justify-content: space-between;
@@ -388,6 +390,10 @@
                     <option value="with">With Images</option>
                     <option value="without">Needs Images</option>
                 </select>
+                <label style="display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="showArchived" style="accent-color: #8b5cf6; cursor: pointer;">
+                    Show Archived
+                </label>
             </div>
             <div class="signatures-grid" id="signaturesGrid">
                 <div class="loading"><div class="spinner"></div>Loading...</div>
@@ -460,7 +466,9 @@
 
         async function loadSignatures() {
             try {
-                const res = await fetch(API_BASE + '/api/admin/signatures', { headers: { 'Authorization': 'Bearer ' + token } });
+                const showArchived = document.getElementById('showArchived') && document.getElementById('showArchived').checked;
+                const url = API_BASE + '/api/admin/signatures' + (showArchived ? '?include_archived=true' : '');
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
                 if (data.success) { 
                     signatures = data.signatures; 
@@ -508,7 +516,8 @@
                         '<div class="add-image-btn" onclick="openUploadModal(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">+</div>' +
                     '</div>';
                 }
-                return '<div class="signature-card">' +
+                return '<div class="signature-card' + (sig.archived_at ? ' archived' : '') + '">' +
+                    (sig.archived_at ? '<div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--warning); margin-bottom: 6px; font-weight: 600;">📦 Archived</div>' : '') +
                     '<div class="signature-header">' +
                         '<div>' +
                             '<div class="signature-name">' + sig.creator_name + '</div>' +
@@ -521,7 +530,9 @@
                     (sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : '') +
                     '<div class="signature-actions">' +
                         (!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : '') +
-                        '<button class="btn btn-sm btn-danger" onclick="deleteCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">🗑 Delete</button>' +
+                        (sig.archived_at
+                            ? '<button class="btn btn-sm" style="background: var(--success); color: #fff;" onclick="unarchiveCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">♻️ Unarchive</button>'
+                            : '<button class="btn btn-sm" style="background: #6366f1; color: #fff;" onclick="archiveCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">📦 Archive</button>') +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -531,6 +542,7 @@
             document.getElementById('searchInput').addEventListener('input', renderSignatures);
             document.getElementById('filterRole').addEventListener('change', renderSignatures);
             document.getElementById('filterImage').addEventListener('change', renderSignatures);
+            document.getElementById('showArchived').addEventListener('change', loadSignatures);
         }
 
         document.getElementById('addCreatorForm').addEventListener('submit', async (e) => {
@@ -628,19 +640,34 @@
             } catch (e) { showToast('Error', 'error'); }
         }
 
-        async function deleteCreator(id, name) {
-            if (!confirm('Delete creator "' + name + '" and ALL their reference images? This cannot be undone.')) return;
+        async function archiveCreator(id, name) {
+            if (!confirm('Archive "' + name + '"? They\'ll be hidden from matching but can be restored later.')) return;
             try {
-                const res = await fetch(API_BASE + '/api/admin/signatures/' + id, {
-                    method: 'DELETE',
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + id + '/archive', {
+                    method: 'PUT',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('Deleted ' + name + ' (' + (data.images_deleted || 0) + ' images removed)', 'success');
+                    showToast('Archived ' + name, 'success');
                     loadSignatures();
                 }
-                else { showToast(data.error || 'Failed to delete', 'error'); }
+                else { showToast(data.error || 'Failed to archive', 'error'); }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function unarchiveCreator(id, name) {
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + id + '/unarchive', {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Restored ' + name, 'success');
+                    loadSignatures();
+                }
+                else { showToast(data.error || 'Failed to unarchive', 'error'); }
             } catch (e) { showToast('Error: ' + e.message, 'error'); }
         }
 
