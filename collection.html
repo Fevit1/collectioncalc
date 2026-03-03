@@ -2282,7 +2282,7 @@ function populateListingForm() {
     const preview = document.getElementById('comicPreview');
     preview.innerHTML = `
         <div class="comic-preview-image">
-            ${currentComic.front_image ? `<img src="${currentComic.front_image}" alt="${currentComic.title}">` : '📖'}
+            ${(currentComic.photos && (currentComic.photos.front || currentComic.photos.spine)) ? `<img src="${currentComic.photos.front || currentComic.photos.spine}" alt="${currentComic.title}">` : '📖'}
         </div>
         <div class="comic-preview-details">
             <div class="comic-preview-title">${currentComic.title}</div>
@@ -2392,11 +2392,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function uploadPhotosToEbay() {
     const token = localStorage.getItem('cc_token');
+    const p = currentComic.photos || {};
     const photos = [
-        { name: 'Front', url: currentComic.front_image },
-        { name: 'Spine', url: currentComic.spine_image },
-        { name: 'Back', url: currentComic.back_image },
-        { name: 'Center', url: currentComic.centerfold_image }
+        { name: 'Front', url: p.front },
+        { name: 'Spine', url: p.spine },
+        { name: 'Back', url: p.back },
+        { name: 'Center', url: p.centerfold }
     ];
     
     uploadedImageUrls = [];
