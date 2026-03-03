@@ -88,6 +88,17 @@
             overflow-x: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+        }
+        .sw-sidebar::-webkit-scrollbar { width: 4px; }
+        .sw-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sw-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.3);
+            border-radius: 4px;
+        }
+        .sw-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.5);
         }
         .sw-sidebar-toggle-row {
             display: flex;
