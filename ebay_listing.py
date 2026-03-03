@@ -44,90 +44,91 @@ CONDITION_DESCRIPTIONS = {
 }
 
 
-def upload_image_to_ebay(access_token: str, image_data: bytes, filename: str = "comic.jpg") -> dict:
+def upload_image_to_ebay(access_token: str, image_url_or_bytes, filename: str = "comic.jpg") -> dict:
     """
-    Upload an image to eBay Picture Services using the Media API.
-    
+    Upload an image to eBay Picture Services using the Media API createImageFromUrl.
+
+    Accepts either a public HTTPS image URL (preferred) or raw image bytes.
+    When given a URL, uses eBay's createImageFromUrl so eBay fetches the image directly.
+    When given bytes, falls back to base64-encoding and a data URI (not recommended).
+
     Args:
         access_token: User's eBay access token
-        image_data: Raw image bytes
-        filename: Original filename (for content type detection)
-    
+        image_url_or_bytes: Either a public HTTPS URL string, or raw image bytes
+        filename: Original filename (unused for URL path, kept for backward compat)
+
     Returns:
         Dict with success status and image URL or error
     """
-    api_url = get_api_url()
-    
-    # Determine content type from filename
-    content_type = "image/jpeg"
-    if filename.lower().endswith('.png'):
-        content_type = "image/png"
-    elif filename.lower().endswith('.gif'):
-        content_type = "image/gif"
-    elif filename.lower().endswith('.webp'):
-        content_type = "image/webp"
-    
     # Media API uses apim.ebay.com, not api.ebay.com
     media_base = "https://apim.sandbox.ebay.com" if is_sandbox_mode() else "https://apim.ebay.com"
 
+    # Determine if we got a URL string or raw bytes
+    if isinstance(image_url_or_bytes, str):
+        source_url = image_url_or_bytes
+    elif isinstance(image_url_or_bytes, bytes):
+        # We have raw bytes — this path shouldn't normally be hit anymore,
+        # but kept for backward compat. eBay needs a URL, so we can't use bytes directly.
+        print(f"Warning: upload_image_to_ebay received raw bytes ({len(image_url_or_bytes)} bytes). "
+              "createImageFromUrl requires a public URL. Returning error.")
+        return {'success': False, 'error': 'eBay Media API requires a public image URL, not raw bytes'}
+    else:
+        return {'success': False, 'error': 'Invalid image data type'}
+
     try:
-        # Step 1: Create image resource using Media API
-        create_url = f"{media_base}/commerce/media/v1_beta/image"
+        # Use createImageFromUrl — eBay fetches the image from our R2 URL
+        create_url = f"{media_base}/commerce/media/v1_beta/image/create_image_from_url"
 
         headers = {
             'Authorization': f'Bearer {access_token}',
-            'Content-Type': content_type,
+            'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
 
-        print(f"Uploading image to eBay Media API ({len(image_data)} bytes, {content_type})")
+        body = {"imageUrl": source_url}
+
+        print(f"Calling eBay createImageFromUrl:")
         print(f"  URL: {create_url}")
-        response = requests.post(create_url, headers=headers, data=image_data)
+        print(f"  imageUrl: {source_url[:80]}...")
+        response = requests.post(create_url, headers=headers, json=body)
 
         if response.status_code == 201:
-            # Success - get image ID from location header
+            # Success — response body contains imageUrl (EPS URL) directly
+            result_data = response.json() if response.text else {}
+            eps_url = result_data.get('imageUrl')
             location = response.headers.get('location', '')
-            print(f"Image created, location: {location}")
-
-            # Extract image ID from location URI
-            # Format: https://apim.ebay.com/commerce/media/v1_beta/image/{image_id}
             image_id = location.split('/')[-1] if location else None
 
-            if image_id:
-                # Step 2: Get the actual EPS URL using getImage
-                get_url = f"{media_base}/commerce/media/v1_beta/image/{image_id}"
-                get_headers = {
-                    'Authorization': f'Bearer {access_token}',
-                    'Accept': 'application/json'
-                }
+            print(f"Image created! EPS URL: {eps_url}, location: {location}")
 
-                get_response = requests.get(get_url, headers=get_headers)
-
-                if get_response.status_code == 200:
-                    image_data_response = get_response.json()
-                    image_url = image_data_response.get('imageUrl')
-
-                    if image_url:
-                        print(f"Got EPS URL: {image_url}")
-                        return {
-                            'success': True,
-                            'image_url': image_url,
-                            'image_id': image_id
-                        }
-
-                # If getImage fails, return the image_id anyway
+            if eps_url:
                 return {
                     'success': True,
-                    'image_id': image_id,
-                    'message': 'Image uploaded but could not retrieve EPS URL'
+                    'image_url': eps_url,
+                    'image_id': image_id
                 }
+
+            # If no imageUrl in body, try getImage with the location header
+            if image_id:
+                get_url = f"{media_base}/commerce/media/v1_beta/image/{image_id}"
+                get_response = requests.get(get_url, headers={
+                    'Authorization': f'Bearer {access_token}',
+                    'Accept': 'application/json'
+                })
+                if get_response.status_code == 200:
+                    eps_url = get_response.json().get('imageUrl')
+                    if eps_url:
+                        return {'success': True, 'image_url': eps_url, 'image_id': image_id}
+
+                return {'success': True, 'image_id': image_id,
+                        'message': 'Image uploaded but could not retrieve EPS URL'}
 
         # Handle errors
         error_detail = response.text
         print(f"Image upload failed: {response.status_code} - {error_detail}")
         return {
             'success': False,
-            'error': f'Upload failed: {error_detail}',
+            'error': f'Upload failed ({response.status_code}): {error_detail}',
             'status_code': response.status_code
         }
 
