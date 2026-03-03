@@ -173,27 +173,47 @@ def api_generate_description():
 @require_auth
 @require_approved
 def api_ebay_upload_image():
-    """Upload image to eBay for listing"""
+    """Upload image to eBay for listing.
+
+    Accepts either:
+      - { image_url: "https://..." } — fetches image server-side (R2 proxy, avoids CORS)
+      - { image: "<base64>" } — decodes base64 image data (legacy)
+    """
     if not upload_image_to_ebay or not get_user_token:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
+    image_url = data.get('image_url')
     image_data = data.get('image')
     filename = data.get('filename', 'comic.jpg')
-    
-    if not image_data:
-        return jsonify({'success': False, 'error': 'Image data required'}), 400
-    
+
+    if not image_url and not image_data:
+        return jsonify({'success': False, 'error': 'image_url or image data required'}), 400
+
     token_data = get_user_token(str(g.user_id))
     if not token_data or not token_data.get('access_token'):
         return jsonify({'success': False, 'error': 'eBay not connected'}), 401
-    
-    # Decode base64 to raw bytes
-    import base64
-    try:
-        image_bytes = base64.b64decode(image_data)
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Invalid image data: {str(e)}'}), 400
-    
+
+    import base64 as b64
+
+    if image_url:
+        # R2 proxy path: fetch image server-side to avoid browser CORS
+        try:
+            import requests as req
+            print(f"Fetching image from R2: {image_url[:80]}...")
+            r = req.get(image_url, timeout=30)
+            if r.status_code != 200:
+                return jsonify({'success': False, 'error': f'Failed to fetch image: HTTP {r.status_code}'}), 400
+            image_bytes = r.content
+            print(f"Fetched {len(image_bytes)} bytes from R2")
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Failed to fetch image: {str(e)}'}), 400
+    else:
+        # Legacy base64 path
+        try:
+            image_bytes = b64.b64decode(image_data)
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Invalid image data: {str(e)}'}), 400
+
     result = upload_image_to_ebay(token_data['access_token'], image_bytes, filename)
     return jsonify(result)
 
