@@ -2416,18 +2416,28 @@ async function uploadPhotosToEbay() {
         statusItem.classList.add('uploading');
         
         try {
-            // Fetch image data
+            // Fetch image data and convert to base64
             const imageResponse = await fetch(photo.url);
             const imageBlob = await imageResponse.blob();
-            
-            // Upload to eBay
-            const formData = new FormData();
-            formData.append('image', imageBlob, 'comic.jpg');
-            
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(imageBlob);
+            });
+
+            // Detect content type
+            const contentType = imageBlob.type || 'image/jpeg';
+            const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+
+            // Upload to eBay as base64 JSON
             const uploadResponse = await fetch(`${API_URL}/api/ebay/upload-image`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: base64, filename: `comic.${ext}` })
             });
             
             const data = await uploadResponse.json();

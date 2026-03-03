@@ -150,6 +150,7 @@ def api_ebay_upload_image():
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     data = request.get_json() or {}
     image_data = data.get('image')
+    filename = data.get('filename', 'comic.jpg')
     
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data required'}), 400
@@ -158,7 +159,14 @@ def api_ebay_upload_image():
     if not token_data or not token_data.get('access_token'):
         return jsonify({'success': False, 'error': 'eBay not connected'}), 401
     
-    result = upload_image_to_ebay(token_data['access_token'], image_data)
+    # Decode base64 to raw bytes
+    import base64
+    try:
+        image_bytes = base64.b64decode(image_data)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Invalid image data: {str(e)}'}), 400
+    
+    result = upload_image_to_ebay(token_data['access_token'], image_bytes, filename)
     return jsonify(result)
 
 
