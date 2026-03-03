@@ -67,42 +67,46 @@ def upload_image_to_ebay(access_token: str, image_data: bytes, filename: str = "
     elif filename.lower().endswith('.webp'):
         content_type = "image/webp"
     
+    # Media API uses apim.ebay.com, not api.ebay.com
+    media_base = "https://apim.sandbox.ebay.com" if is_sandbox_mode() else "https://apim.ebay.com"
+
     try:
         # Step 1: Create image resource using Media API
-        create_url = f"{api_url}/commerce/media/v1_beta/image"
-        
+        create_url = f"{media_base}/commerce/media/v1_beta/image"
+
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Content-Type': content_type,
             'Accept': 'application/json'
         }
-        
-        print(f"Uploading image to eBay ({len(image_data)} bytes, {content_type})")
+
+        print(f"Uploading image to eBay Media API ({len(image_data)} bytes, {content_type})")
+        print(f"  URL: {create_url}")
         response = requests.post(create_url, headers=headers, data=image_data)
-        
+
         if response.status_code == 201:
             # Success - get image ID from location header
             location = response.headers.get('location', '')
             print(f"Image created, location: {location}")
-            
+
             # Extract image ID from location URI
             # Format: https://apim.ebay.com/commerce/media/v1_beta/image/{image_id}
             image_id = location.split('/')[-1] if location else None
-            
+
             if image_id:
                 # Step 2: Get the actual EPS URL using getImage
-                get_url = f"{api_url}/commerce/media/v1_beta/image/{image_id}"
+                get_url = f"{media_base}/commerce/media/v1_beta/image/{image_id}"
                 get_headers = {
                     'Authorization': f'Bearer {access_token}',
                     'Accept': 'application/json'
                 }
-                
+
                 get_response = requests.get(get_url, headers=get_headers)
-                
+
                 if get_response.status_code == 200:
                     image_data_response = get_response.json()
                     image_url = image_data_response.get('imageUrl')
-                    
+
                     if image_url:
                         print(f"Got EPS URL: {image_url}")
                         return {
@@ -110,14 +114,14 @@ def upload_image_to_ebay(access_token: str, image_data: bytes, filename: str = "
                             'image_url': image_url,
                             'image_id': image_id
                         }
-                
+
                 # If getImage fails, return the image_id anyway
                 return {
                     'success': True,
                     'image_id': image_id,
                     'message': 'Image uploaded but could not retrieve EPS URL'
                 }
-        
+
         # Handle errors
         error_detail = response.text
         print(f"Image upload failed: {response.status_code} - {error_detail}")
@@ -126,7 +130,7 @@ def upload_image_to_ebay(access_token: str, image_data: bytes, filename: str = "
             'error': f'Upload failed: {error_detail}',
             'status_code': response.status_code
         }
-        
+
     except Exception as e:
         print(f"Image upload error: {e}")
         return {'success': False, 'error': str(e)}
