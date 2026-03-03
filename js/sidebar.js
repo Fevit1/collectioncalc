@@ -474,6 +474,11 @@
     document.body.appendChild(topbar);
     document.body.appendChild(appShell);
 
+    // Move modals/overlays/toasts back to body root so position:fixed works correctly
+    pageContent.querySelectorAll('.modal-overlay, .image-viewer, .toast, [style*="position: fixed"], [style*="position:fixed"]').forEach(el => {
+        document.body.appendChild(el);
+    });
+
     // ==========================================
     // GLOBAL FUNCTIONS
     // ==========================================
