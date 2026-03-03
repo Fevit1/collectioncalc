@@ -2245,9 +2245,28 @@ async function checkEbayConnection() {
     }
 }
 
-function connectToEbay() {
-    // Redirect to eBay OAuth
-    window.location.href = `${API_URL}/api/ebay/auth`;
+async function connectToEbay() {
+    // Fetch the eBay OAuth URL from the backend (requires JWT auth),
+    // then redirect the browser to it
+    const token = localStorage.getItem('cc_token');
+    if (!token) {
+        alert('Please log in first.');
+        return;
+    }
+    try {
+        const response = await fetch(`${API_URL}/api/ebay/auth`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success && data.url) {
+            window.location.href = data.url;
+        } else {
+            alert('Could not start eBay connection: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error connecting to eBay. Please try again.');
+        console.error('connectToEbay error:', err);
+    }
 }
 
 function populateListingForm() {
