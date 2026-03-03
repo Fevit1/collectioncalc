@@ -502,18 +502,23 @@
             grid.innerHTML = filtered.map(sig => {
                 const images = sig.images || [];
                 const imageCount = images.length;
+                // Escape creator name for safe use inside onclick="..." attributes
+                // Must handle both single quotes (JS string) and double quotes (HTML attr)
+                const safeName = sig.creator_name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 let imagesHtml = '';
                 if (imageCount === 0) {
-                    imagesHtml = '<div class="no-images" onclick="openUploadModal(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">📷 Click to add reference images</div>';
+                    imagesHtml = '<div class="no-images" onclick="openUploadModal(' + sig.id + ', \'' + safeName + '\')">📷 Click to add reference images</div>';
                 } else {
                     imagesHtml = '<div class="signature-images">' +
-                        images.map(img => 
-                            '<div class="sig-thumb" onclick="viewImage(\'' + img.image_url + '\', \'' + sig.creator_name.replace(/'/g, "\\'") + '\', \'' + (img.era || '').replace(/'/g, "\\'") + '\', \'' + (img.notes || '').replace(/'/g, "\\'") + '\')">' +
+                        images.map(img => {
+                            const safeEra = (img.era || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const safeNotes = (img.notes || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            return '<div class="sig-thumb" onclick="viewImage(\'' + img.image_url + '\', \'' + safeName + '\', \'' + safeEra + '\', \'' + safeNotes + '\')">' +
                                 '<img src="' + img.image_url + '" alt="Signature">' +
                                 '<button class="delete-btn" onclick="event.stopPropagation(); deleteImage(' + img.id + ', ' + sig.id + ')">×</button>' +
-                            '</div>'
-                        ).join('') +
-                        '<div class="add-image-btn" onclick="openUploadModal(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">+</div>' +
+                            '</div>';
+                        }).join('') +
+                        '<div class="add-image-btn" onclick="openUploadModal(' + sig.id + ', \'' + safeName + '\')">+</div>' +
                     '</div>';
                 }
                 return '<div class="signature-card' + (sig.archived_at ? ' archived' : '') + '">' +
@@ -531,8 +536,8 @@
                     '<div class="signature-actions">' +
                         (!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : '') +
                         (sig.archived_at
-                            ? '<button class="btn btn-sm" style="background: var(--success); color: #fff;" onclick="unarchiveCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">♻️ Unarchive</button>'
-                            : '<button class="btn btn-sm" style="background: #6366f1; color: #fff;" onclick="archiveCreator(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\')">📦 Archive</button>') +
+                            ? '<button class="btn btn-sm" style="background: var(--success); color: #fff;" onclick="unarchiveCreator(' + sig.id + ', \'' + safeName + '\')">♻️ Unarchive</button>'
+                            : '<button class="btn btn-sm" style="background: #6366f1; color: #fff;" onclick="archiveCreator(' + sig.id + ', \'' + safeName + '\')">📦 Archive</button>') +
                     '</div>' +
                 '</div>';
             }).join('');
