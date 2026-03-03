@@ -17,7 +17,7 @@ COMIC_CATEGORY_ID = "259104"
 
 # Placeholder image URL - eBay requires at least 1 image
 # Hosted on our Cloudflare Pages frontend
-PLACEHOLDER_IMAGE_URL = "https://collectioncalc.pages.dev/images/placeholder.png"
+PLACEHOLDER_IMAGE_URL = "https://slabworthy.com/images/placeholder.png"
 
 # Grade to eBay condition mapping (using Inventory API enum values)
 GRADE_TO_CONDITION = {
@@ -167,7 +167,7 @@ def get_or_create_merchant_location(access_token: str) -> str:
                 return locations[0].get('merchantLocationKey')
         
         # No locations found, create a default one
-        location_key = "collectioncalc-default"
+        location_key = "slabworthy-default"
         create_url = f"{api_url}/sell/inventory/v1/location/{location_key}"
         
         location_data = {
@@ -181,7 +181,7 @@ def get_or_create_merchant_location(access_token: str) -> str:
                 }
             },
             "locationTypes": ["WAREHOUSE"],
-            "name": "CollectionCalc Default Location",
+            "name": "Slab Worthy Default Location",
             "merchantLocationStatus": "ENABLED"
         }
         
@@ -327,7 +327,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         description = f"""
         <h2>{title} #{issue}</h2>
         <p><strong>Condition:</strong> {grade} - {condition_desc}</p>
-        <p>Listed via CollectionCalc - AI-powered comic valuation.</p>
+        <p>Listed via Slab Worthy - AI-powered comic valuation.</p>
         <p>Please review photos carefully. Feel free to ask any questions before purchasing.</p>
         """
     
