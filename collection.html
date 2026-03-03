@@ -2399,23 +2399,33 @@ async function uploadPhotosToEbay() {
         { name: 'Back', url: p.back },
         { name: 'Center', url: p.centerfold }
     ];
-    
+
     uploadedImageUrls = [];
     const statusItems = document.querySelectorAll('.photo-status-item');
-    
+
+    // Check if ANY photos exist — if not, proceed with eBay placeholder
+    const hasAnyPhotos = photos.some(ph => ph.url);
+    if (!hasAnyPhotos) {
+        for (let i = 0; i < statusItems.length; i++) {
+            statusItems[i].textContent = `${photos[i].name}: ⏭ No photo`;
+        }
+        console.log('No photos available — listing will use placeholder image');
+        return true; // Allow listing to proceed; ebay_listing.py uses placeholder
+    }
+
     for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         const statusItem = statusItems[i];
-        
+
         if (!photo.url) {
             statusItem.textContent = `${photo.name}: ⚠️ Missing`;
             statusItem.classList.add('error');
             continue;
         }
-        
+
         statusItem.textContent = `${photo.name}: ⏳`;
         statusItem.classList.add('uploading');
-        
+
         try {
             // Send R2 URL to backend — backend fetches + uploads to eBay (avoids CORS)
             const uploadResponse = await fetch(`${API_URL}/api/ebay/upload-image`, {
@@ -2426,9 +2436,9 @@ async function uploadPhotosToEbay() {
                 },
                 body: JSON.stringify({ image_url: photo.url, filename: 'comic.jpg' })
             });
-            
+
             const data = await uploadResponse.json();
-            
+
             if (data.success && data.image_url) {
                 uploadedImageUrls.push(data.image_url);
                 statusItem.textContent = `${photo.name}: ✓`;
@@ -2444,7 +2454,7 @@ async function uploadPhotosToEbay() {
             statusItem.classList.add('error');
         }
     }
-    
+
     return uploadedImageUrls.length > 0;
 }
 

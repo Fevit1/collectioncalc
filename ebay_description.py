@@ -11,11 +11,11 @@ MAX_DESCRIPTION_LENGTH = 4000
 # Only match standalone bad words, not parts of names like "Cassidy" or "classic"
 BANNED_WORDS_PATTERN = r'\b(fuck|shit|damn|bitch|crap)\b'
 
-def generate_description(title: str, issue: str, grade: str, price: float, 
-                         publisher: str = None, year: int = None) -> dict:
+def generate_description(title, issue, grade, price,
+                         publisher=None, year=None) -> dict:
     """
     Generate a professional eBay-ready description for a comic book listing.
-    
+
     Args:
         title: Comic book title (e.g., "Amazing Spider-Man")
         issue: Issue number (e.g., "300")
@@ -58,6 +58,7 @@ def generate_description(title: str, issue: str, grade: str, price: float,
             'PR': 'Poor - Significant wear and possible damage'
         }
         
+        grade = str(grade) if grade else 'VF'
         grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
         
         prompt = f"""Generate an eBay listing description for this comic book.
