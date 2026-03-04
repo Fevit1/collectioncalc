@@ -2880,15 +2880,19 @@ async function createListing(publish) {
         gap: 0.5rem;
         align-items: flex-start;
     }
-    .copyable-field .form-input {
+    .copyable-field .form-input,
+    .mp-modal-body input.form-input,
+    .mp-modal-body textarea.form-input {
         flex: 1;
         width: 100%;
         padding: 0.75rem;
-        background: var(--bg-secondary);
+        background: #1a1a2e !important;
         border: 1px solid rgba(255, 107, 53, 0.3);
         border-radius: 8px;
-        color: white;
-        font-size: 0.95rem;
+        color: #ffffff !important;
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
+        opacity: 1 !important;
     }
     .copyable-field textarea.form-input {
         min-height: 80px;
@@ -3066,7 +3070,7 @@ async function createListing(publish) {
             <div class="copyable-field">
                 <label>Listing Title</label>
                 <div class="copy-row">
-                    <input type="text" class="form-input" id="mpTitle" maxlength="80" placeholder="Generating...">
+                    <input type="text" class="form-input" id="mpTitle" maxlength="80" placeholder="Generating..." style="color:#fff;font-size:1rem;">
                     <button class="copy-btn" onclick="copyMpField('mpTitle', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpTitleHint">Paste into the listing title field</div>
@@ -3076,7 +3080,7 @@ async function createListing(publish) {
             <div class="copyable-field">
                 <label>Description</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="mpDescription" rows="4" placeholder="Generating..."></textarea>
+                    <textarea class="form-input" id="mpDescription" rows="4" placeholder="Generating..." style="color:#fff;font-size:1rem;"></textarea>
                     <button class="copy-btn" onclick="copyMpField('mpDescription', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpDescHint">Platform-optimized description</div>
@@ -3086,7 +3090,7 @@ async function createListing(publish) {
             <div class="copyable-field" id="mpShowNotesSection" style="display:none;">
                 <label id="mpShowNotesLabel">Prep Notes</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="mpShowNotes" rows="4" placeholder="Generating..."></textarea>
+                    <textarea class="form-input" id="mpShowNotes" rows="4" placeholder="Generating..." style="color:#fff;font-size:1rem;"></textarea>
                     <button class="copy-btn" onclick="copyMpField('mpShowNotes', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpShowNotesHint">Talking points and key details</div>
@@ -3231,7 +3235,9 @@ async function openMarketplacePrepModal(comicId, platformKey) {
 
     // Pre-populate with fallback content immediately (never leave fields empty)
     const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
-    document.getElementById('mpTitle').value = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
+    const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
+    console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'FMV:', fmv);
+    document.getElementById('mpTitle').value = fallbackTitle;
     document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
     if (platform.hasNotes) {
         document.getElementById('mpShowNotes').value = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
