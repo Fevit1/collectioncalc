@@ -252,6 +252,58 @@
         .btn-disconnect { background: transparent; color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
         .btn-disconnect:hover { border-color: #ef4444; color: #ef4444; }
 
+        /* My Selling Platforms */
+        .platforms-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .platforms-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+        .platforms-card .platforms-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
+        .platform-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+        }
+        .platform-toggle-row:last-child { border-bottom: none; }
+        .platform-toggle-info { display: flex; align-items: center; gap: 0.75rem; }
+        .platform-toggle-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .platform-toggle-name { font-size: 0.9rem; font-weight: 500; }
+        .platform-toggle-type { font-size: 0.7rem; color: var(--text-secondary); margin-left: 0.5rem; }
+        .platform-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        .platform-toggle input { opacity: 0; width: 0; height: 0; }
+        .platform-toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 22px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .platform-toggle .slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .platform-toggle input:checked + .slider { background: #7c3aed; }
+        .platform-toggle input:checked + .slider::before { transform: translateX(18px); }
+        .platform-toggle input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
         .sighting-section {
             margin-bottom: 1.5rem;
         }
@@ -543,6 +595,13 @@
                         <button class="btn-connect" id="ebayConnectBtn" onclick="connectEbay()">Connect eBay</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- My Selling Platforms -->
+            <div class="platforms-card" id="platforms">
+                <h3>My Selling Platforms</h3>
+                <div class="platforms-subtitle">Toggle on the platforms you sell on. Only enabled platforms appear in your Sell menu.</div>
+                <div id="platformToggles"></div>
             </div>
 
             <!-- Sighting Alerts Section -->
@@ -914,10 +973,55 @@
             } catch (e) { alert('Connection error. Please try again.'); }
         }
 
+        // ── My Selling Platforms ────────────────────────────────
+        const SELL_PLATFORM_LIST = [
+            { key: 'ebay', name: 'eBay', color: '#e53238', type: 'Direct Listing', alwaysOn: true },
+            { key: 'whatnot', name: 'Whatnot', color: '#e67e22', type: 'Live Auction Prep' },
+            { key: 'mercari', name: 'Mercari', color: '#4dc0b5', type: 'Fixed Price Prep' },
+            { key: 'facebook', name: 'Facebook Marketplace', color: '#1877f2', type: 'Fixed Price Prep' },
+            { key: 'heritage', name: 'Heritage Auctions', color: '#1a3c6e', type: 'Consignment Prep' },
+            { key: 'comicconnect', name: 'ComicConnect', color: '#cc0000', type: 'Consignment Prep' },
+            { key: 'mycomicshop', name: 'MyComicShop', color: '#336699', type: 'Consignment Prep' },
+            { key: 'comc', name: 'COMC', color: '#e67e22', type: 'Consignment Prep' },
+            { key: 'hipcomic', name: 'Hip Comics', color: '#8b5cf6', type: 'Consignment Prep' }
+        ];
+
+        function getSellPlatformPrefs() {
+            try { return JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); }
+            catch (e) { localStorage.removeItem('sw_sell_platforms'); return {}; }
+        }
+
+        function loadPlatformPrefs() {
+            const saved = getSellPlatformPrefs();
+            const container = document.getElementById('platformToggles');
+            container.innerHTML = SELL_PLATFORM_LIST.map(p => {
+                const isOn = p.alwaysOn || saved[p.key] === true;
+                return `<div class="platform-toggle-row">
+                    <div class="platform-toggle-info">
+                        <div class="platform-toggle-dot" style="background:${p.color}"></div>
+                        <span class="platform-toggle-name">${p.name}</span>
+                        <span class="platform-toggle-type">${p.type}</span>
+                    </div>
+                    <label class="platform-toggle">
+                        <input type="checkbox" ${isOn ? 'checked' : ''} ${p.alwaysOn ? 'disabled' : ''}
+                               onchange="savePlatformPref('${p.key}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>`;
+            }).join('');
+        }
+
+        function savePlatformPref(key, enabled) {
+            const saved = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}');
+            saved[key] = enabled;
+            localStorage.setItem('sw_sell_platforms', JSON.stringify(saved));
+        }
+
         // Load
         loadAccount();
         loadSightings();
         loadEbayStatus();
+        loadPlatformPrefs();
     </script>
     <!-- Service Worker -->
     <script>

@@ -378,9 +378,25 @@
             <a href="/collection.html" class="sw-sidebar-item ${isActive('ebay')}" data-tooltip="eBay Listings">
                 <span class="sw-icon">&#128176;</span> <span class="sw-label">eBay Listings</span>
             </a>
-            <a href="#" onclick="alert('Whatnot Prep \u2014 coming soon!'); return false;" class="sw-sidebar-item ${isActive('whatnot')}" data-tooltip="Whatnot Prep">
-                <span class="sw-icon">&#127908;</span> <span class="sw-label">Whatnot Prep</span>
-            </a>
+            ${(() => {
+                let prefs = {};
+                try { prefs = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); } catch(e) {}
+                const platforms = [
+                    { key: 'whatnot', icon: '&#127908;', name: 'Whatnot Prep' },
+                    { key: 'mercari', icon: '&#127991;&#65039;', name: 'Mercari Prep' },
+                    { key: 'facebook', icon: '&#128172;', name: 'FB Marketplace' },
+                    { key: 'heritage', icon: '&#127963;&#65039;', name: 'Heritage' },
+                    { key: 'comicconnect', icon: '&#128279;', name: 'ComicConnect' },
+                    { key: 'mycomicshop', icon: '&#128214;', name: 'MyComicShop' },
+                    { key: 'comc', icon: '&#128230;', name: 'COMC' },
+                    { key: 'hipcomic', icon: '&#127925;', name: 'Hip Comics' }
+                ];
+                return platforms.filter(p => prefs[p.key]).map(p =>
+                    `<a href="/collection.html" class="sw-sidebar-item ${isActive(p.key)}" data-tooltip="${p.name}">
+                        <span class="sw-icon">${p.icon}</span> <span class="sw-label">${p.name}</span>
+                    </a>`
+                ).join('');
+            })()}
         </div>
 
         <div class="sw-sidebar-section">

@@ -373,6 +373,23 @@
             position: relative;
         }
 
+        .sell-dropdown-item.disabled {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .sell-dropdown-manage {
+            display: block;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--brand-purple);
+            text-decoration: none;
+            border-top: 1px solid rgba(124, 58, 237, 0.15);
+            cursor: pointer;
+        }
+        .sell-dropdown-manage:hover { text-decoration: underline; }
+
         .sell-dropdown-item {
             display: flex;
             align-items: center;
@@ -1639,17 +1656,21 @@
 
             const targetDropdown = event.target.closest('.sell-dropdown-wrapper').querySelector('.sell-dropdown');
 
-            // Build dropdown content if empty
-            if (!targetDropdown.innerHTML) {
-                targetDropdown.innerHTML = SELL_PLATFORMS.map(p => {
-                    if (p.divider) return '<div class="sell-dropdown-divider"></div>';
-                    return `<button class="sell-dropdown-item" onclick="event.stopPropagation(); sellAction('${p.action}', '${p.key}', ${comicId})">
-                        <span class="platform-dot" style="background:${p.color}"></span>
-                        ${p.name}
-                        <span class="platform-tag">${p.tag}</span>
-                    </button>`;
-                }).join('');
-            }
+            // Build dropdown content (rebuild each time to reflect preference changes)
+            let prefs = {};
+            try { prefs = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); } catch(e) {}
+            targetDropdown.innerHTML = SELL_PLATFORMS.map(p => {
+                if (p.divider) return '<div class="sell-dropdown-divider"></div>';
+                // eBay always enabled; prep platforms check prefs
+                const enabled = p.action === 'ebay' || prefs[p.key] === true;
+                const cls = enabled ? '' : ' disabled';
+                const click = enabled ? `onclick="event.stopPropagation(); sellAction('${p.action}', '${p.key}', ${comicId})"` : '';
+                return `<button class="sell-dropdown-item${cls}" ${click}>
+                    <span class="platform-dot" style="background:${p.color}"></span>
+                    ${p.name}
+                    <span class="platform-tag">${p.tag}</span>
+                </button>`;
+            }).join('') + '<a class="sell-dropdown-manage" href="/account.html#platforms" onclick="event.stopPropagation()">Manage Platforms</a>';
 
             targetDropdown.classList.toggle('active');
             // Elevate the parent card so dropdown escapes stacking context
