@@ -137,8 +137,8 @@ def api_ebay_status():
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
     token_data = get_user_token(str(g.user_id))
     if token_data and token_data.get('access_token'):
-        # Also return the eBay username if we have it
-        from ebay_oauth import get_db_connection
+        # Return the eBay username — fetch from DB, backfill from API if missing
+        from ebay_oauth import get_db_connection, save_ebay_user_id
         ebay_username = None
         try:
             conn = get_db_connection()
@@ -152,6 +152,22 @@ def api_ebay_status():
                 conn.close()
         except Exception:
             pass
+
+        # Backfill: if username missing, fetch from eBay Identity API and save
+        if not ebay_username:
+            try:
+                import requests as req
+                identity_resp = req.get(
+                    'https://apiz.ebay.com/commerce/identity/v1/user/',
+                    headers={'Authorization': f'Bearer {token_data["access_token"]}'}
+                )
+                if identity_resp.status_code == 200:
+                    ebay_username = identity_resp.json().get('username', '')
+                    if ebay_username:
+                        save_ebay_user_id(str(g.user_id), ebay_username)
+            except Exception:
+                pass
+
         return jsonify({'success': True, 'connected': True, 'ebay_username': ebay_username})
     return jsonify({'success': True, 'connected': False})
 
