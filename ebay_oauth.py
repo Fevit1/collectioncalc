@@ -1,5 +1,5 @@
 """
-eBay OAuth Integration for CollectionCalc
+eBay OAuth Integration for Slab Worthy
 Handles user authentication and token management for eBay API access.
 """
 

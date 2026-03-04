@@ -97,13 +97,33 @@ def api_ebay_callback():
         return jsonify({'success': False, 'error': 'No code provided'}), 400
     
     try:
-        from ebay_oauth import save_user_token
+        from ebay_oauth import save_user_token, save_ebay_user_id
         token_data = exchange_code_for_token(code)
         if state:  # state contains user_id
             save_user_token(state, token_data)
-        
-        frontend_url = os.environ.get('FRONTEND_URL', 'https://collectioncalc.com')
-        return f'<script>window.location.href = "{frontend_url}?ebay=connected";</script>'
+
+            # Fetch and save eBay username
+            try:
+                import requests as req
+                ebay_access_token = token_data.get('access_token')
+                if ebay_access_token:
+                    identity_resp = req.get(
+                        'https://apiz.ebay.com/commerce/identity/v1/user/',
+                        headers={'Authorization': f'Bearer {ebay_access_token}'}
+                    )
+                    if identity_resp.status_code == 200:
+                        identity_data = identity_resp.json()
+                        ebay_username = identity_data.get('username', '')
+                        if ebay_username:
+                            save_ebay_user_id(state, ebay_username)
+                            print(f"Saved eBay username: {ebay_username}")
+                    else:
+                        print(f"eBay identity API returned {identity_resp.status_code}")
+            except Exception as identity_err:
+                print(f"Could not fetch eBay username (non-fatal): {identity_err}")
+
+        frontend_url = os.environ.get('FRONTEND_URL', 'https://slabworthy.com')
+        return f'<script>window.location.href = "{frontend_url}/account.html?ebay=connected";</script>'
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
