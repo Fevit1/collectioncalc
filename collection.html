@@ -2340,7 +2340,7 @@ async function generateDescription() {
             // Add grading ID to description
             const gradingId = document.getElementById('gradingIdDisplay').value;
             const fullDescription = data.description +
-                `\n\nVerify this grade at slabworthy.com/verify/${gradingId}`;
+                `\n\nSlab Worthy™ Assessment ID: ${gradingId}`;
             
             descriptionField.value = fullDescription;
             updateCharCounter('desc');
@@ -2358,7 +2358,7 @@ async function generateDescription() {
         
         // Fallback description
         const gradingId = document.getElementById('gradingIdDisplay').value;
-        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nVerify this grade at slabworthy.com/verify/${gradingId}`;
+        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nSlab Worthy™ Assessment ID: ${gradingId}`;
         updateCharCounter('desc');
     }
 }
