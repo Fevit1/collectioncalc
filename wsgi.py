@@ -88,6 +88,13 @@ except ImportError as e:
     generate_whatnot_content = None
 
 try:
+    from marketplace_prep import generate_platform_content, get_all_platforms
+except ImportError as e:
+    print(f"marketplace_prep import error: {e}")
+    generate_platform_content = None
+    get_all_platforms = None
+
+try:
     from comic_extraction import extract_from_base64
 except ImportError as e:
     print(f"comic_extraction import error: {e}")
@@ -243,6 +250,7 @@ from routes.contact import contact_bp
 from routes.waitlist import waitlist_bp
 from routes.signatures import signatures_bp, init_modules as signatures_init_modules
 from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
+from routes.marketplace import marketplace_bp, init_modules as marketplace_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -276,6 +284,7 @@ ebay_init_modules(
     create_listing, upload_image_to_ebay, generate_description
 )
 whatnot_init_modules(generate_whatnot_content)
+marketplace_init_modules(generate_platform_content, get_all_platforms)
 registry_init_modules(imagehash, Image if 'Image' in dir() else None)
 monitor_init_modules(imagehash, Image if 'Image' in dir() else None)
 billing_init_modules()
@@ -312,7 +321,8 @@ app.register_blueprint(vision_bp)      # /api/vision/*
 app.register_blueprint(contact_bp)     # /api/contact
 app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
 app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
-app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content
+app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content (legacy)
+app.register_blueprint(marketplace_bp) # /api/marketplace/platforms, /api/marketplace/generate-content
 
 print("✅ All blueprints registered successfully!")
 

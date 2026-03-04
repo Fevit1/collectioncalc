@@ -333,14 +333,83 @@
             transform: translateY(-1px);
         }
 
-        .action-btn.whatnot {
-            background: linear-gradient(135deg, #ff6b35, #e84118);
+        .action-btn.sell-btn {
+            background: linear-gradient(135deg, var(--brand-purple), #facc15);
             border: none;
             color: white;
+            font-weight: 600;
         }
 
-        .action-btn.whatnot:hover {
+        .action-btn.sell-btn:hover {
             transform: translateY(-1px);
+        }
+
+        .sell-dropdown-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .sell-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            min-width: 200px;
+            background: var(--bg-primary);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .sell-dropdown.active {
+            display: block;
+        }
+
+        .sell-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            transition: background 0.15s;
+        }
+
+        .sell-dropdown-item:hover {
+            background: rgba(124, 58, 237, 0.15);
+        }
+
+        .sell-dropdown-item .platform-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .sell-dropdown-item .platform-tag {
+            font-size: 0.65rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--text-muted);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .sell-dropdown-divider {
+            height: 1px;
+            background: rgba(124, 58, 237, 0.2);
+            margin: 0.25rem 0;
+        }
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
@@ -1286,12 +1355,12 @@
                             />
                         </div>
                         <div class="comic-actions">
-                            <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
-                                eBay
-                            </button>
-                            <button class="action-btn whatnot" onclick="prepForWhatnot(${comic.id})">
-                                Whatnot
-                            </button>
+                            <div class="sell-dropdown-wrapper">
+                                <button class="action-btn sell-btn" onclick="toggleSellDropdown(event, ${comic.id})">
+                                    Sell ▾
+                                </button>
+                                <div class="sell-dropdown" id="sellDropdown-${comic.id}"></div>
+                            </div>
                             <button class="action-btn danger" onclick="deleteComic(${comic.id})">
                                 🗑️
                             </button>
@@ -1358,12 +1427,12 @@
                                 />
                             </div>
                             <div class="detail-actions">
-                                <button class="action-btn primary" onclick="event.stopPropagation(); listOnEbay(${comic.id})">
-                                    eBay
-                                </button>
-                                <button class="action-btn whatnot" onclick="event.stopPropagation(); prepForWhatnot(${comic.id})">
-                                    Whatnot
-                                </button>
+                                <div class="sell-dropdown-wrapper">
+                                    <button class="action-btn sell-btn" onclick="event.stopPropagation(); toggleSellDropdown(event, ${comic.id})">
+                                        Sell ▾
+                                    </button>
+                                    <div class="sell-dropdown" id="sellDropdownDetail-${comic.id}"></div>
+                                </div>
                                 <button class="action-btn danger" onclick="event.stopPropagation(); deleteComic(${comic.id})">
                                     🗑️ Delete
                                 </button>
@@ -1542,8 +1611,59 @@
             openEbayListingModal(comicId);
         }
 
-        function prepForWhatnot(comicId) {
-            openWhatnotPrepModal(comicId);
+        // Sell dropdown platforms
+        const SELL_PLATFORMS = [
+            { key: 'ebay', name: 'eBay', color: '#e53238', tag: 'Direct', action: 'ebay' },
+            { divider: true },
+            { key: 'whatnot', name: 'Whatnot', color: '#ff6b35', tag: 'Prep', action: 'prep' },
+            { key: 'mercari', name: 'Mercari', color: '#4dc0e8', tag: 'Prep', action: 'prep' },
+            { key: 'facebook', name: 'Facebook Marketplace', color: '#1877f2', tag: 'Prep', action: 'prep' },
+            { divider: true },
+            { key: 'heritage', name: 'Heritage Auctions', color: '#1a3c6e', tag: 'Prep', action: 'prep' },
+            { key: 'comicconnect', name: 'ComicConnect', color: '#cc0000', tag: 'Prep', action: 'prep' },
+            { key: 'mycomicshop', name: 'MyComicShop', color: '#336699', tag: 'Prep', action: 'prep' },
+            { key: 'comc', name: 'COMC', color: '#e67e22', tag: 'Prep', action: 'prep' },
+            { key: 'hipcomic', name: 'Hip Comics', color: '#8b5cf6', tag: 'Prep', action: 'prep' }
+        ];
+
+        function toggleSellDropdown(event, comicId) {
+            event.stopPropagation();
+            // Close any open dropdowns first
+            document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+
+            // Find all dropdowns for this comic (grid + detail views)
+            const dropdowns = document.querySelectorAll(`[id^="sellDropdown"][id$="-${comicId}"]`);
+            const targetDropdown = event.target.closest('.sell-dropdown-wrapper').querySelector('.sell-dropdown');
+
+            // Build dropdown content if empty
+            if (!targetDropdown.innerHTML) {
+                targetDropdown.innerHTML = SELL_PLATFORMS.map(p => {
+                    if (p.divider) return '<div class="sell-dropdown-divider"></div>';
+                    return `<button class="sell-dropdown-item" onclick="event.stopPropagation(); sellAction('${p.action}', '${p.key}', ${comicId})">
+                        <span class="platform-dot" style="background:${p.color}"></span>
+                        ${p.name}
+                        <span class="platform-tag">${p.tag}</span>
+                    </button>`;
+                }).join('');
+            }
+
+            targetDropdown.classList.toggle('active');
+        }
+
+        // Close dropdowns when clicking elsewhere
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+        });
+
+        function sellAction(action, platformKey, comicId) {
+            // Close dropdown
+            document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+
+            if (action === 'ebay') {
+                openEbayListingModal(comicId);
+            } else if (action === 'prep') {
+                openMarketplacePrepModal(comicId, platformKey);
+            }
         }
 
         function toggleGalleryExpand(comicId) {
@@ -2648,10 +2768,10 @@ async function createListing(publish) {
 </script>
 
 <!-- ============================================================ -->
-<!-- Whatnot Prep Modal -->
+<!-- Marketplace Prep Modal (generic for all platforms) -->
 <!-- ============================================================ -->
 <style>
-    .whatnot-modal-overlay {
+    .mp-modal-overlay {
         display: none;
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -2660,14 +2780,14 @@ async function createListing(publish) {
         overflow-y: auto;
         padding: 2rem 1rem;
     }
-    .whatnot-modal-overlay.active {
+    .mp-modal-overlay.active {
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .whatnot-modal {
+    .mp-modal {
         background: var(--bg-primary);
-        border: 2px solid rgba(255, 107, 53, 0.5);
+        border: 2px solid rgba(124, 58, 237, 0.5);
         border-radius: 16px;
         max-width: 700px;
         width: 100%;
@@ -2675,15 +2795,13 @@ async function createListing(publish) {
         overflow-y: auto;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     }
-    .whatnot-modal-header {
-        background: linear-gradient(135deg, #ff6b35, #e84118);
+    .mp-modal-header {
         padding: 1.5rem;
-        border-bottom: 2px solid rgba(255, 107, 53, 0.3);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .whatnot-modal-title {
+    .mp-modal-title {
         font-size: 1.5rem;
         font-weight: 700;
         color: white;
@@ -2691,21 +2809,26 @@ async function createListing(publish) {
         align-items: center;
         gap: 0.5rem;
     }
-    .whatnot-logo {
-        background: white;
-        color: #ff6b35;
+    .mp-platform-badge {
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
         font-weight: 700;
         font-size: 1rem;
+        background: white;
     }
-    .whatnot-modal-body { padding: 1.5rem; }
-    .whatnot-modal-footer {
+    .mp-modal-body { padding: 1.5rem; }
+    .mp-modal-footer {
         padding: 1.5rem;
-        border-top: 1px solid rgba(255, 107, 53, 0.3);
+        border-top: 1px solid rgba(124, 58, 237, 0.3);
         display: flex;
         gap: 1rem;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .mp-paste-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        flex: 1;
     }
 
     /* Copyable field */
@@ -2854,10 +2977,10 @@ async function createListing(publish) {
         background: linear-gradient(135deg, #10b981, #059669);
     }
 
-    /* AI status for Whatnot */
-    .whatnot-ai-status {
-        background: rgba(255, 107, 53, 0.1);
-        border: 1px solid rgba(255, 107, 53, 0.3);
+    /* AI status for marketplace prep */
+    .mp-ai-status {
+        background: rgba(124, 58, 237, 0.1);
+        border: 1px solid rgba(124, 58, 237, 0.3);
         border-radius: 8px;
         padding: 0.75rem;
         margin-bottom: 1rem;
@@ -2866,9 +2989,9 @@ async function createListing(publish) {
         gap: 0.5rem;
         font-size: 0.85rem;
     }
-    .whatnot-ai-status.generating { color: #ff6b35; }
-    .whatnot-ai-status.success { color: #10b981; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
-    .whatnot-ai-status.error { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+    .mp-ai-status.generating { color: #a855f7; }
+    .mp-ai-status.success { color: #10b981; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+    .mp-ai-status.error { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
 
     @media (max-width: 767px) {
         .pricing-suggestions { grid-template-columns: 1fr; }
@@ -2876,80 +2999,70 @@ async function createListing(publish) {
     }
 </style>
 
-<div class="whatnot-modal-overlay" id="whatnotModalOverlay" onclick="if(event.target===event.currentTarget) closeWhatnotModal()">
-    <div class="whatnot-modal">
-        <div class="whatnot-modal-header">
-            <div class="whatnot-modal-title">
-                <span class="whatnot-logo">Whatnot</span>
-                Prep for Live Auction
+<div class="mp-modal-overlay" id="mpModalOverlay" onclick="if(event.target===event.currentTarget) closeMarketplaceModal()">
+    <div class="mp-modal">
+        <div class="mp-modal-header" id="mpModalHeader">
+            <div class="mp-modal-title">
+                <span class="mp-platform-badge" id="mpPlatformBadge">Platform</span>
+                <span id="mpModalSubtitle">Prep Listing</span>
             </div>
-            <button class="modal-close" onclick="closeWhatnotModal()" style="background:transparent;border:none;color:white;font-size:2rem;cursor:pointer;">&times;</button>
+            <button class="modal-close" onclick="closeMarketplaceModal()" style="background:transparent;border:none;color:white;font-size:2rem;cursor:pointer;">&times;</button>
         </div>
 
-        <div class="whatnot-modal-body">
-            <!-- Comic Preview (reuse style) -->
-            <div class="comic-preview" id="whatnotComicPreview" style="border-color: rgba(255,107,53,0.3);"></div>
+        <div class="mp-modal-body">
+            <div class="comic-preview" id="mpComicPreview"></div>
 
-            <!-- AI Status -->
-            <div class="whatnot-ai-status generating" id="whatnotAiStatus" style="display:none;">
+            <div class="mp-ai-status generating" id="mpAiStatus" style="display:none;">
                 <span class="spinner"></span>
-                <span id="whatnotAiStatusText">Generating content...</span>
+                <span id="mpAiStatusText">Generating content...</span>
             </div>
 
-            <!-- Pricing Suggestions -->
-            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Suggested Pricing</label>
-            <div class="pricing-suggestions">
-                <div class="pricing-card">
-                    <div class="price-label">Starting Bid</div>
-                    <div class="price-value" id="whatnotStartPrice">$0.99</div>
-                    <div class="price-hint">Low starts drive bidding</div>
-                </div>
-                <div class="pricing-card">
-                    <div class="price-label">Buy Now</div>
-                    <div class="price-value" id="whatnotBuyNow">$--</div>
-                    <div class="price-hint">Based on FMV</div>
-                </div>
+            <!-- Pricing (dynamic labels) -->
+            <div id="mpPricingSection">
+                <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Suggested Pricing</label>
+                <div class="pricing-suggestions" id="mpPricingCards"></div>
             </div>
 
             <!-- Listing Title -->
             <div class="copyable-field">
                 <label>Listing Title</label>
                 <div class="copy-row">
-                    <input type="text" class="form-input" id="whatnotTitle" maxlength="80" readonly>
-                    <button class="copy-btn" onclick="copyWhatnotField('whatnotTitle', this)">📋</button>
+                    <input type="text" class="form-input" id="mpTitle" maxlength="80" readonly>
+                    <button class="copy-btn" onclick="copyMpField('mpTitle', this)">📋</button>
                 </div>
-                <div class="field-hint">Paste into Whatnot's title field</div>
+                <div class="field-hint" id="mpTitleHint">Paste into the listing title field</div>
             </div>
 
             <!-- Description -->
             <div class="copyable-field">
                 <label>Description</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="whatnotDescription" rows="3" readonly></textarea>
-                    <button class="copy-btn" onclick="copyWhatnotField('whatnotDescription', this)">📋</button>
+                    <textarea class="form-input" id="mpDescription" rows="3" readonly></textarea>
+                    <button class="copy-btn" onclick="copyMpField('mpDescription', this)">📋</button>
                 </div>
-                <div class="field-hint">Short &amp; punchy for the listing card</div>
+                <div class="field-hint" id="mpDescHint">Platform-optimized description</div>
             </div>
 
-            <!-- Show Prep Notes -->
-            <div class="copyable-field">
-                <label>Show Prep Notes (Talking Points)</label>
+            <!-- Show/Prep Notes (shown only for platforms that have them) -->
+            <div class="copyable-field" id="mpShowNotesSection" style="display:none;">
+                <label id="mpShowNotesLabel">Prep Notes</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="whatnotShowNotes" rows="5" readonly></textarea>
-                    <button class="copy-btn" onclick="copyWhatnotField('whatnotShowNotes', this)">📋</button>
+                    <textarea class="form-input" id="mpShowNotes" rows="5" readonly></textarea>
+                    <button class="copy-btn" onclick="copyMpField('mpShowNotes', this)">📋</button>
                 </div>
-                <div class="field-hint">Reference during your live stream</div>
+                <div class="field-hint" id="mpShowNotesHint">Talking points and key details</div>
             </div>
 
             <!-- Photos -->
             <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Photos</label>
-            <div class="photo-downloads" id="whatnotPhotos"></div>
-            <div class="field-hint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click &gt; Save Image, then upload to Whatnot</div>
+            <div class="photo-downloads" id="mpPhotos"></div>
+            <div class="field-hint" id="mpPhotoHint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click > Save Image, then upload to the platform</div>
         </div>
 
-        <div class="whatnot-modal-footer">
-            <button class="btn-secondary" onclick="closeWhatnotModal()">Close</button>
-            <button class="btn-copy-all" id="whatnotCopyAllBtn" onclick="copyAllWhatnot(this)">
+        <div class="mp-modal-footer">
+            <div class="mp-paste-hint" id="mpPasteHint"></div>
+            <button class="btn-secondary" onclick="closeMarketplaceModal()">Close</button>
+            <button class="btn-copy-all" id="mpCopyAllBtn" onclick="copyAllMp(this)">
                 📋 Copy All
             </button>
         </div>
@@ -2957,37 +3070,107 @@ async function createListing(publish) {
 </div>
 
 <script>
-// Whatnot Prep Modal Logic
-let whatnotComic = null;
+// Marketplace Prep Modal Logic (generic for all platforms)
+let mpComic = null;
+let mpCurrentPlatform = null;
 
-async function openWhatnotPrepModal(comicId) {
-    whatnotComic = collection.find(c => c.id === comicId);
-    if (!whatnotComic) { alert('Comic not found'); return; }
+// Platform metadata (matches backend PLATFORMS config)
+const MP_PLATFORMS = {
+    whatnot:      { name: 'Whatnot',              color: '#ff6b35', hasNotes: true,  startLabel: 'Starting Bid',   buyLabel: 'Buy Now',          subtitle: 'Prep for Live Auction' },
+    mercari:      { name: 'Mercari',              color: '#4dc0e8', hasNotes: false, startLabel: null,             buyLabel: 'Listing Price',    subtitle: 'Prep Listing' },
+    facebook:     { name: 'Facebook Marketplace',  color: '#1877f2', hasNotes: false, startLabel: null,             buyLabel: 'Listing Price',    subtitle: 'Prep Listing' },
+    heritage:     { name: 'Heritage Auctions',     color: '#1a3c6e', hasNotes: true,  startLabel: 'Estimated Value', buyLabel: 'Reserve Suggestion', subtitle: 'Prep Consignment' },
+    comicconnect: { name: 'ComicConnect',          color: '#cc0000', hasNotes: true,  startLabel: 'Estimated Value', buyLabel: 'Reserve Suggestion', subtitle: 'Prep Consignment' },
+    mycomicshop:  { name: 'MyComicShop',           color: '#336699', hasNotes: false, startLabel: null,             buyLabel: 'Listing Price',    subtitle: 'Prep Listing' },
+    comc:         { name: 'COMC',                  color: '#e67e22', hasNotes: false, startLabel: null,             buyLabel: 'Suggested Price',  subtitle: 'Prep Consignment' },
+    hipcomic:     { name: 'Hip Comics',            color: '#8b5cf6', hasNotes: false, startLabel: null,             buyLabel: 'Listing Price',    subtitle: 'Prep Listing' }
+};
 
-    document.getElementById('whatnotModalOverlay').classList.add('active');
+const MP_PASTE_HINTS = {
+    whatnot:      'Open Whatnot Seller Dashboard → Create Listing → Paste fields',
+    mercari:      'Open Mercari → Sell → Fill in fields → Upload photos',
+    facebook:     'Facebook → Marketplace → Create New Listing → Item for Sale',
+    heritage:     'Submit at HA.com/Consign → Comics & Comic Art',
+    comicconnect: 'ComicConnect.com → Sell → Submit consignment request',
+    mycomicshop:  'MyComicShop.com → Sell → Search for title → Enter details',
+    comc:         'Ship item to COMC → They scan and list → Set your price online',
+    hipcomic:     'HipComic.com → Sell Comics → Create listing → Paste details'
+};
+
+async function openMarketplacePrepModal(comicId, platformKey) {
+    mpComic = collection.find(c => c.id === comicId);
+    if (!mpComic) { alert('Comic not found'); return; }
+
+    mpCurrentPlatform = platformKey;
+    const platform = MP_PLATFORMS[platformKey];
+    if (!platform) { alert('Unknown platform'); return; }
+
+    // Style the modal header with platform color
+    const header = document.getElementById('mpModalHeader');
+    header.style.background = `linear-gradient(135deg, ${platform.color}, ${adjustColor(platform.color, -30)})`;
+    header.style.borderBottom = `2px solid ${platform.color}40`;
+
+    // Set platform badge and subtitle
+    document.getElementById('mpPlatformBadge').textContent = platform.name;
+    document.getElementById('mpPlatformBadge').style.color = platform.color;
+    document.getElementById('mpModalSubtitle').textContent = platform.subtitle;
 
     // Comic preview
-    const preview = document.getElementById('whatnotComicPreview');
-    preview.innerHTML = `
+    document.getElementById('mpComicPreview').innerHTML = `
         <div class="comic-preview-image">
-            ${whatnotComic.front_image ? `<img src="${whatnotComic.front_image}" alt="${whatnotComic.title}">` : '📖'}
+            ${mpComic.front_image ? `<img src="${mpComic.front_image}" alt="${mpComic.title}">` : '📖'}
         </div>
         <div class="comic-preview-details">
-            <div class="comic-preview-title">${whatnotComic.title}</div>
+            <div class="comic-preview-title">${mpComic.title}</div>
             <div class="comic-preview-meta">
-                #${whatnotComic.issue || '?'} • ${whatnotComic.publisher || 'Unknown'} • ${whatnotComic.year || '?'}
+                #${mpComic.issue || '?'} • ${mpComic.publisher || 'Unknown'} • ${mpComic.year || '?'}
             </div>
-            <span class="comic-preview-grade">${whatnotComic.grade || 'N/A'}</span>
+            <span class="comic-preview-grade">${mpComic.grade || 'N/A'}</span>
         </div>
     `;
 
+    // Configure pricing cards based on platform
+    const pricingEl = document.getElementById('mpPricingCards');
+    if (platform.startLabel) {
+        pricingEl.innerHTML = `
+            <div class="pricing-card">
+                <div class="price-label">${platform.startLabel}</div>
+                <div class="price-value" id="mpStartPrice">$--</div>
+                <div class="price-hint" id="mpStartHint"></div>
+            </div>
+            <div class="pricing-card">
+                <div class="price-label">${platform.buyLabel}</div>
+                <div class="price-value" id="mpBuyNow">$--</div>
+                <div class="price-hint">Based on FMV</div>
+            </div>
+        `;
+    } else {
+        pricingEl.innerHTML = `
+            <div class="pricing-card" style="grid-column: span 2;">
+                <div class="price-label">${platform.buyLabel}</div>
+                <div class="price-value" id="mpBuyNow">$--</div>
+                <div class="price-hint">Based on FMV</div>
+            </div>
+        `;
+    }
+
+    // Show/hide notes section
+    const notesSection = document.getElementById('mpShowNotesSection');
+    notesSection.style.display = platform.hasNotes ? 'block' : 'none';
+    if (platform.hasNotes) {
+        document.getElementById('mpShowNotesLabel').textContent =
+            platformKey === 'whatnot' ? 'Show Prep Notes (Talking Points)' : 'Prep Notes';
+        document.getElementById('mpShowNotesHint').textContent =
+            platformKey === 'whatnot' ? 'Reference during your live stream' : 'Key details for your submission';
+    }
+
     // Photos
-    const photosEl = document.getElementById('whatnotPhotos');
+    const photosEl = document.getElementById('mpPhotos');
     const photoSlots = [
-        { name: 'Front', url: whatnotComic.front_image },
-        { name: 'Spine', url: whatnotComic.spine_image },
-        { name: 'Back', url: whatnotComic.back_image },
-        { name: 'Center', url: whatnotComic.centerfold_image }
+        { name: 'Front', url: mpComic.front_image },
+        { name: 'Spine', url: mpComic.spine_image },
+        { name: 'Back', url: mpComic.back_image },
+        { name: 'Center', url: mpComic.centerfold_image }
     ];
     photosEl.innerHTML = photoSlots.map(p => {
         if (p.url) {
@@ -2999,113 +3182,151 @@ async function openWhatnotPrepModal(comicId) {
         return `<div class="photo-download-item no-photo">${p.name}: N/A</div>`;
     }).join('');
 
-    // Generate content via API
-    await generateWhatnotContent();
+    // Paste instructions
+    document.getElementById('mpPasteHint').textContent = MP_PASTE_HINTS[platformKey] || '';
+    document.getElementById('mpPhotoHint').textContent = `Right-click > Save Image, then upload to ${platform.name}`;
+
+    // Copy All button color
+    const copyBtn = document.getElementById('mpCopyAllBtn');
+    copyBtn.style.background = `linear-gradient(135deg, ${platform.color}, ${adjustColor(platform.color, -20)})`;
+
+    // Show modal
+    document.getElementById('mpModalOverlay').classList.add('active');
+
+    // Generate content
+    await generateMarketplaceContent(platformKey);
 }
 
-function closeWhatnotModal() {
-    document.getElementById('whatnotModalOverlay').classList.remove('active');
-    whatnotComic = null;
+function closeMarketplaceModal() {
+    document.getElementById('mpModalOverlay').classList.remove('active');
+    mpComic = null;
+    mpCurrentPlatform = null;
 }
 
-async function generateWhatnotContent() {
-    const aiStatus = document.getElementById('whatnotAiStatus');
-    const aiText = document.getElementById('whatnotAiStatusText');
+async function generateMarketplaceContent(platformKey) {
+    const aiStatus = document.getElementById('mpAiStatus');
+    const aiText = document.getElementById('mpAiStatusText');
+    const platform = MP_PLATFORMS[platformKey];
     const token = localStorage.getItem('cc_token');
 
     aiStatus.style.display = 'flex';
-    aiStatus.className = 'whatnot-ai-status generating';
-    aiText.textContent = 'Generating Whatnot content with AI...';
+    aiStatus.className = 'mp-ai-status generating';
+    aiText.textContent = `Generating ${platform.name} content with AI...`;
 
     try {
-        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
+        const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
 
-        const response = await fetch(`${API_URL}/api/whatnot/generate-content`, {
+        const response = await fetch(`${API_URL}/api/marketplace/generate-content`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                title: whatnotComic.title,
-                issue: whatnotComic.issue,
-                grade: whatnotComic.grade,
+                platform: platformKey,
+                title: mpComic.title,
+                issue: mpComic.issue,
+                grade: mpComic.grade,
                 price: fmv,
-                publisher: whatnotComic.publisher,
-                year: whatnotComic.year
+                publisher: mpComic.publisher,
+                year: mpComic.year
             })
         });
 
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
 
         if (data.success) {
-            document.getElementById('whatnotTitle').value = data.listing_title || '';
-            document.getElementById('whatnotDescription').value = data.description || '';
-            document.getElementById('whatnotShowNotes').value = data.show_notes || '';
-            document.getElementById('whatnotStartPrice').textContent = `$${(data.suggested_start || 0.99).toFixed(2)}`;
-            document.getElementById('whatnotBuyNow').textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
+            document.getElementById('mpTitle').value = data.listing_title || '';
+            document.getElementById('mpDescription').value = data.description || '';
 
-            aiStatus.className = 'whatnot-ai-status success';
+            if (platform.hasNotes && data.show_notes) {
+                document.getElementById('mpShowNotes').value = data.show_notes;
+            }
+
+            // Pricing
+            const startEl = document.getElementById('mpStartPrice');
+            if (startEl && data.suggested_start != null) {
+                startEl.textContent = `$${data.suggested_start.toFixed(2)}`;
+                const hintEl = document.getElementById('mpStartHint');
+                if (hintEl) {
+                    hintEl.textContent = platformKey === 'whatnot' ? 'Low starts drive bidding' : 'Based on market data';
+                }
+            }
+            const buyEl = document.getElementById('mpBuyNow');
+            if (buyEl) {
+                buyEl.textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
+            }
+
+            aiStatus.className = 'mp-ai-status success';
             aiText.textContent = '✓ Content generated';
             setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
         } else {
             throw new Error(data.error || 'Generation failed');
         }
     } catch (error) {
-        console.error('Whatnot content generation error:', error);
-        aiStatus.className = 'whatnot-ai-status error';
-        aiText.textContent = '✗ Failed — using template';
+        console.error(`${platform.name} content generation error:`, error);
+        aiStatus.className = 'mp-ai-status error';
+        aiText.textContent = '✗ Failed — using fallback template';
 
         // Fallback
-        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
-        document.getElementById('whatnotTitle').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} ${whatnotComic.grade || ''}`.trim();
-        document.getElementById('whatnotDescription').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} — a great pickup for any collection!`;
-        document.getElementById('whatnotShowNotes').value = `• ${whatnotComic.title} #${whatnotComic.issue || '?'}\n• ${whatnotComic.publisher || ''} ${whatnotComic.year || ''}\n• Graded ${whatnotComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}\n• Low start — let the bidders decide!`;
-        document.getElementById('whatnotStartPrice').textContent = '$0.99';
-        document.getElementById('whatnotBuyNow').textContent = `$${fmv.toFixed(2)}`;
+        const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
+        document.getElementById('mpTitle').value = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
+        document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} — a great pickup for any collection!`;
+        if (platform.hasNotes) {
+            document.getElementById('mpShowNotes').value = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+        }
+        const buyEl = document.getElementById('mpBuyNow');
+        if (buyEl) buyEl.textContent = `$${fmv.toFixed(2)}`;
+        const startEl = document.getElementById('mpStartPrice');
+        if (startEl && platformKey === 'whatnot') startEl.textContent = '$0.99';
     }
 }
 
-function copyWhatnotField(fieldId, btn) {
+// Utility: darken/lighten a hex color
+function adjustColor(hex, amount) {
+    hex = hex.replace('#', '');
+    const r = Math.max(0, Math.min(255, parseInt(hex.substr(0,2), 16) + amount));
+    const g = Math.max(0, Math.min(255, parseInt(hex.substr(2,2), 16) + amount));
+    const b = Math.max(0, Math.min(255, parseInt(hex.substr(4,2), 16) + amount));
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function copyMpField(fieldId, btn) {
     const field = document.getElementById(fieldId);
     navigator.clipboard.writeText(field.value).then(() => {
         btn.textContent = '✓';
         btn.classList.add('copied');
-        setTimeout(() => {
-            btn.textContent = '📋';
-            btn.classList.remove('copied');
-        }, 2000);
+        setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
     }).catch(() => {
-        // Fallback for older browsers
         field.select();
         document.execCommand('copy');
         btn.textContent = '✓';
         btn.classList.add('copied');
-        setTimeout(() => {
-            btn.textContent = '📋';
-            btn.classList.remove('copied');
-        }, 2000);
+        setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
     });
 }
 
-function copyAllWhatnot(btn) {
-    const title = document.getElementById('whatnotTitle').value;
-    const desc = document.getElementById('whatnotDescription').value;
-    const notes = document.getElementById('whatnotShowNotes').value;
-    const start = document.getElementById('whatnotStartPrice').textContent;
-    const buyNow = document.getElementById('whatnotBuyNow').textContent;
+function copyAllMp(btn) {
+    if (!mpCurrentPlatform) return;
+    const platform = MP_PLATFORMS[mpCurrentPlatform];
+    const title = document.getElementById('mpTitle').value;
+    const desc = document.getElementById('mpDescription').value;
+    const buyNow = document.getElementById('mpBuyNow')?.textContent || '';
+    const startPrice = document.getElementById('mpStartPrice')?.textContent || '';
+    const notes = platform?.hasNotes ? document.getElementById('mpShowNotes').value : '';
 
-    const allText = `Title: ${title}\nStarting Bid: ${start}\nBuy Now: ${buyNow}\n\nDescription:\n${desc}\n\nShow Notes:\n${notes}`;
+    let allText = `Title: ${title}`;
+    if (startPrice && platform?.startLabel) allText += `\n${platform.startLabel}: ${startPrice}`;
+    if (buyNow) allText += `\n${platform?.buyLabel || 'Price'}: ${buyNow}`;
+    allText += `\n\nDescription:\n${desc}`;
+    if (notes) allText += `\n\nPrep Notes:\n${notes}`;
 
     navigator.clipboard.writeText(allText).then(() => {
         btn.textContent = '✓ Copied!';
         btn.classList.add('copied');
-        setTimeout(() => {
-            btn.textContent = '📋 Copy All';
-            btn.classList.remove('copied');
-        }, 2500);
+        setTimeout(() => { btn.textContent = '📋 Copy All'; btn.classList.remove('copied'); }, 2500);
     }).catch(() => {
-        // Fallback
         const ta = document.createElement('textarea');
         ta.value = allText;
         document.body.appendChild(ta);
@@ -3114,10 +3335,7 @@ function copyAllWhatnot(btn) {
         document.body.removeChild(ta);
         btn.textContent = '✓ Copied!';
         btn.classList.add('copied');
-        setTimeout(() => {
-            btn.textContent = '📋 Copy All';
-            btn.classList.remove('copied');
-        }, 2500);
+        setTimeout(() => { btn.textContent = '📋 Copy All'; btn.classList.remove('copied'); }, 2500);
     });
 }
 </script>
