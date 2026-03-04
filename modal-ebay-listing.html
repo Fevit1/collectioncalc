@@ -542,7 +542,7 @@ async function checkEbayConnection() {
         
         if (ebayConnected) {
             indicator.classList.remove('disconnected');
-            statusText.textContent = `Connected to eBay as ${data.username || 'user'}`;
+            statusText.textContent = `Connected to eBay as ${data.ebay_username || 'Connected'}`;
             connectBtn.style.display = 'none';
             publishBtn.disabled = false;
         } else {
