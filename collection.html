@@ -3158,10 +3158,11 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     document.getElementById('mpPlatformBadge').style.color = platform.color;
     document.getElementById('mpModalSubtitle').textContent = platform.subtitle;
 
-    // Comic preview
+    // Comic preview (photos are nested in mpComic.photos object)
+    const mpPhotos = mpComic.photos || {};
     document.getElementById('mpComicPreview').innerHTML = `
         <div class="comic-preview-image">
-            ${mpComic.front_image ? `<img src="${mpComic.front_image}" alt="${mpComic.title}">` : '📖'}
+            ${(mpPhotos.front || mpPhotos.spine) ? `<img src="${mpPhotos.front || mpPhotos.spine}" alt="${mpComic.title}">` : '📖'}
         </div>
         <div class="comic-preview-details">
             <div class="comic-preview-title">${mpComic.title}</div>
@@ -3207,13 +3208,13 @@ async function openMarketplacePrepModal(comicId, platformKey) {
             platformKey === 'whatnot' ? 'Reference during your live stream' : 'Key details for your submission';
     }
 
-    // Photos
+    // Photos (photos are nested in mpComic.photos object)
     const photosEl = document.getElementById('mpPhotos');
     const photoSlots = [
-        { name: 'Front', url: mpComic.front_image },
-        { name: 'Spine', url: mpComic.spine_image },
-        { name: 'Back', url: mpComic.back_image },
-        { name: 'Center', url: mpComic.centerfold_image }
+        { name: 'Front', url: mpPhotos.front },
+        { name: 'Spine', url: mpPhotos.spine },
+        { name: 'Back', url: mpPhotos.back },
+        { name: 'Center', url: mpPhotos.centerfold }
     ];
     photosEl.innerHTML = photoSlots.map(p => {
         if (p.url) {
@@ -3236,7 +3237,7 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     // Pre-populate with fallback content immediately (never leave fields empty)
     const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
-    console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'FMV:', fmv);
+    console.log('[MP] Pre-populating fields. Comic:', JSON.stringify({title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, publisher: mpComic.publisher, year: mpComic.year, photos: mpPhotos, fmv}));
     document.getElementById('mpTitle').value = fallbackTitle;
     document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
     if (platform.hasNotes) {
