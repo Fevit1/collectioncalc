@@ -998,6 +998,20 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadCollection();
             setupEventListeners();
+
+            // If returning from eBay OAuth, show success and clean up URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('ebay') === 'connected') {
+                // Brief toast notification
+                const toast = document.createElement('div');
+                toast.textContent = '✓ eBay connected! You can now list items.';
+                toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:10000;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+                // Clean the URL without reloading
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, '', cleanUrl);
+            }
         });
 
         function setupEventListeners() {
@@ -2254,7 +2268,7 @@ async function connectToEbay() {
         return;
     }
     try {
-        const response = await fetch(`${API_URL}/api/ebay/auth`, {
+        const response = await fetch(`${API_URL}/api/ebay/auth?return_to=collection.html`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();

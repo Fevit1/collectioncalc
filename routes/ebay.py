@@ -80,7 +80,10 @@ def api_ebay_auth():
     """Get eBay OAuth authorization URL"""
     if not get_auth_url:
         return jsonify({'success': False, 'error': 'eBay module not available'}), 503
-    url = get_auth_url(g.user_id)
+    # Encode return page into state so callback redirects back to the right place
+    return_to = request.args.get('return_to', 'account.html')
+    state = f"{g.user_id}|{return_to}"
+    url = get_auth_url(state)
     return jsonify({'success': True, 'url': url})
 
 
@@ -99,8 +102,17 @@ def api_ebay_callback():
     try:
         from ebay_oauth import save_user_token, save_ebay_user_id
         token_data = exchange_code_for_token(code)
-        if state:  # state contains user_id
-            save_user_token(state, token_data)
+
+        # Parse state: "user_id|return_page" or just "user_id"
+        user_id = state
+        return_page = 'account.html'
+        if state and '|' in state:
+            parts = state.split('|', 1)
+            user_id = parts[0]
+            return_page = parts[1] if parts[1] else 'account.html'
+
+        if user_id:
+            save_user_token(user_id, token_data)
 
             # Fetch and save eBay username
             try:
@@ -115,15 +127,20 @@ def api_ebay_callback():
                         identity_data = identity_resp.json()
                         ebay_username = identity_data.get('username', '')
                         if ebay_username:
-                            save_ebay_user_id(state, ebay_username)
+                            save_ebay_user_id(user_id, ebay_username)
                             print(f"Saved eBay username: {ebay_username}")
                     else:
                         print(f"eBay identity API returned {identity_resp.status_code}")
             except Exception as identity_err:
                 print(f"Could not fetch eBay username (non-fatal): {identity_err}")
 
+        # Redirect back to the page the user started from
         frontend_url = os.environ.get('FRONTEND_URL', 'https://slabworthy.com')
-        return f'<script>window.location.href = "{frontend_url}/account.html?ebay=connected";</script>'
+        # Sanitize return_page to prevent open redirect — only allow known pages
+        allowed_pages = ['account.html', 'collection.html', 'dashboard.html', 'app.html']
+        if return_page not in allowed_pages:
+            return_page = 'account.html'
+        return f'<script>window.location.href = "{frontend_url}/{return_page}?ebay=connected";</script>'
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
