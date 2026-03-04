@@ -1,10 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Purple slab case -->
-  <rect x="4" y="2" width="56" height="60" rx="5" fill="#7c3aed"/>
-  <!-- Dark comic window -->
-  <rect x="8" y="6" width="48" height="52" rx="3" fill="#1a1a2e"/>
-  <!-- Label strip at top -->
-  <rect x="8" y="4" width="48" height="16" rx="3" fill="#5b21b6"/>
-  <!-- Gold $ -->
-  <text x="32" y="51" text-anchor="middle" font-family="'Bangers','Impact','Arial Black',sans-serif" font-size="36" fill="#facc15">$</text>
+  <!-- Black rounded background -->
+  <rect width="64" height="64" rx="12" fill="#000000"/>
+  <!-- Gold $ tilted right 8° -->
+  <text x="32" y="52" text-anchor="middle" font-family="'Bangers','Impact','Arial Black',sans-serif" font-size="56" fill="#facc15" transform="rotate(8, 32, 38)">$</text>
 </svg>
