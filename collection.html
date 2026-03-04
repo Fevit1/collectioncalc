@@ -331,6 +331,16 @@
 
         .action-btn.primary:hover {
             transform: translateY(-1px);
+        }
+
+        .action-btn.whatnot {
+            background: linear-gradient(135deg, #ff6b35, #e84118);
+            border: none;
+            color: white;
+        }
+
+        .action-btn.whatnot:hover {
+            transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
@@ -1279,6 +1289,9 @@
                             <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
                                 eBay
                             </button>
+                            <button class="action-btn whatnot" onclick="prepForWhatnot(${comic.id})">
+                                Whatnot
+                            </button>
                             <button class="action-btn danger" onclick="deleteComic(${comic.id})">
                                 🗑️
                             </button>
@@ -1347,6 +1360,9 @@
                             <div class="detail-actions">
                                 <button class="action-btn primary" onclick="event.stopPropagation(); listOnEbay(${comic.id})">
                                     eBay
+                                </button>
+                                <button class="action-btn whatnot" onclick="event.stopPropagation(); prepForWhatnot(${comic.id})">
+                                    Whatnot
                                 </button>
                                 <button class="action-btn danger" onclick="event.stopPropagation(); deleteComic(${comic.id})">
                                     🗑️ Delete
@@ -1524,6 +1540,10 @@
 
         function listOnEbay(comicId) {
             openEbayListingModal(comicId);
+        }
+
+        function prepForWhatnot(comicId) {
+            openWhatnotPrepModal(comicId);
         }
 
         function toggleGalleryExpand(comicId) {
@@ -2626,6 +2646,482 @@ async function createListing(publish) {
     }
 }
 </script>
+
+<!-- ============================================================ -->
+<!-- Whatnot Prep Modal -->
+<!-- ============================================================ -->
+<style>
+    .whatnot-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        overflow-y: auto;
+        padding: 2rem 1rem;
+    }
+    .whatnot-modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .whatnot-modal {
+        background: var(--bg-primary);
+        border: 2px solid rgba(255, 107, 53, 0.5);
+        border-radius: 16px;
+        max-width: 700px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .whatnot-modal-header {
+        background: linear-gradient(135deg, #ff6b35, #e84118);
+        padding: 1.5rem;
+        border-bottom: 2px solid rgba(255, 107, 53, 0.3);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .whatnot-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .whatnot-logo {
+        background: white;
+        color: #ff6b35;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+    .whatnot-modal-body { padding: 1.5rem; }
+    .whatnot-modal-footer {
+        padding: 1.5rem;
+        border-top: 1px solid rgba(255, 107, 53, 0.3);
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    /* Copyable field */
+    .copyable-field {
+        position: relative;
+        margin-bottom: 1.25rem;
+    }
+    .copyable-field label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+    .copyable-field .copy-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+    .copyable-field .form-input {
+        flex: 1;
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 8px;
+        color: white;
+        font-size: 0.95rem;
+    }
+    .copyable-field textarea.form-input {
+        min-height: 80px;
+        resize: vertical;
+        font-family: 'Inter', sans-serif;
+    }
+    .copyable-field .form-input:focus {
+        outline: none;
+        border-color: #ff6b35;
+    }
+    .copy-btn {
+        padding: 0.75rem;
+        background: rgba(255, 107, 53, 0.15);
+        border: 1px solid rgba(255, 107, 53, 0.4);
+        border-radius: 8px;
+        color: #ff6b35;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        min-width: 44px;
+        text-align: center;
+    }
+    .copy-btn:hover {
+        background: rgba(255, 107, 53, 0.25);
+    }
+    .copy-btn.copied {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: #10b981;
+        color: #10b981;
+    }
+    .field-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    /* Pricing suggestions */
+    .pricing-suggestions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .pricing-card {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .pricing-card .price-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+    .pricing-card .price-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ff6b35;
+    }
+    .pricing-card .price-hint {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    /* Photo download grid */
+    .photo-downloads {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+    .photo-download-item {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 8px;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+    .photo-download-item img {
+        width: 100%;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 0.25rem;
+    }
+    .photo-download-item a {
+        color: #ff6b35;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .photo-download-item a:hover { text-decoration: underline; }
+    .photo-download-item.no-photo {
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+    }
+
+    /* Copy All button */
+    .btn-copy-all {
+        background: linear-gradient(135deg, #ff6b35, #e84118);
+        color: white;
+        font-weight: 700;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    .btn-copy-all:hover { transform: translateY(-1px); }
+    .btn-copy-all.copied {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    /* AI status for Whatnot */
+    .whatnot-ai-status {
+        background: rgba(255, 107, 53, 0.1);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    .whatnot-ai-status.generating { color: #ff6b35; }
+    .whatnot-ai-status.success { color: #10b981; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+    .whatnot-ai-status.error { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+
+    @media (max-width: 767px) {
+        .pricing-suggestions { grid-template-columns: 1fr; }
+        .photo-downloads { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+
+<div class="whatnot-modal-overlay" id="whatnotModalOverlay" onclick="if(event.target===event.currentTarget) closeWhatnotModal()">
+    <div class="whatnot-modal">
+        <div class="whatnot-modal-header">
+            <div class="whatnot-modal-title">
+                <span class="whatnot-logo">Whatnot</span>
+                Prep for Live Auction
+            </div>
+            <button class="modal-close" onclick="closeWhatnotModal()" style="background:transparent;border:none;color:white;font-size:2rem;cursor:pointer;">&times;</button>
+        </div>
+
+        <div class="whatnot-modal-body">
+            <!-- Comic Preview (reuse style) -->
+            <div class="comic-preview" id="whatnotComicPreview" style="border-color: rgba(255,107,53,0.3);"></div>
+
+            <!-- AI Status -->
+            <div class="whatnot-ai-status generating" id="whatnotAiStatus" style="display:none;">
+                <span class="spinner"></span>
+                <span id="whatnotAiStatusText">Generating content...</span>
+            </div>
+
+            <!-- Pricing Suggestions -->
+            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Suggested Pricing</label>
+            <div class="pricing-suggestions">
+                <div class="pricing-card">
+                    <div class="price-label">Starting Bid</div>
+                    <div class="price-value" id="whatnotStartPrice">$0.99</div>
+                    <div class="price-hint">Low starts drive bidding</div>
+                </div>
+                <div class="pricing-card">
+                    <div class="price-label">Buy Now</div>
+                    <div class="price-value" id="whatnotBuyNow">$--</div>
+                    <div class="price-hint">Based on FMV</div>
+                </div>
+            </div>
+
+            <!-- Listing Title -->
+            <div class="copyable-field">
+                <label>Listing Title</label>
+                <div class="copy-row">
+                    <input type="text" class="form-input" id="whatnotTitle" maxlength="80" readonly>
+                    <button class="copy-btn" onclick="copyWhatnotField('whatnotTitle', this)">📋</button>
+                </div>
+                <div class="field-hint">Paste into Whatnot's title field</div>
+            </div>
+
+            <!-- Description -->
+            <div class="copyable-field">
+                <label>Description</label>
+                <div class="copy-row">
+                    <textarea class="form-input" id="whatnotDescription" rows="3" readonly></textarea>
+                    <button class="copy-btn" onclick="copyWhatnotField('whatnotDescription', this)">📋</button>
+                </div>
+                <div class="field-hint">Short &amp; punchy for the listing card</div>
+            </div>
+
+            <!-- Show Prep Notes -->
+            <div class="copyable-field">
+                <label>Show Prep Notes (Talking Points)</label>
+                <div class="copy-row">
+                    <textarea class="form-input" id="whatnotShowNotes" rows="5" readonly></textarea>
+                    <button class="copy-btn" onclick="copyWhatnotField('whatnotShowNotes', this)">📋</button>
+                </div>
+                <div class="field-hint">Reference during your live stream</div>
+            </div>
+
+            <!-- Photos -->
+            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Photos</label>
+            <div class="photo-downloads" id="whatnotPhotos"></div>
+            <div class="field-hint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click &gt; Save Image, then upload to Whatnot</div>
+        </div>
+
+        <div class="whatnot-modal-footer">
+            <button class="btn-secondary" onclick="closeWhatnotModal()">Close</button>
+            <button class="btn-copy-all" id="whatnotCopyAllBtn" onclick="copyAllWhatnot(this)">
+                📋 Copy All
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Whatnot Prep Modal Logic
+let whatnotComic = null;
+
+async function openWhatnotPrepModal(comicId) {
+    whatnotComic = collection.find(c => c.id === comicId);
+    if (!whatnotComic) { alert('Comic not found'); return; }
+
+    document.getElementById('whatnotModalOverlay').classList.add('active');
+
+    // Comic preview
+    const preview = document.getElementById('whatnotComicPreview');
+    preview.innerHTML = `
+        <div class="comic-preview-image">
+            ${whatnotComic.front_image ? `<img src="${whatnotComic.front_image}" alt="${whatnotComic.title}">` : '📖'}
+        </div>
+        <div class="comic-preview-details">
+            <div class="comic-preview-title">${whatnotComic.title}</div>
+            <div class="comic-preview-meta">
+                #${whatnotComic.issue || '?'} • ${whatnotComic.publisher || 'Unknown'} • ${whatnotComic.year || '?'}
+            </div>
+            <span class="comic-preview-grade">${whatnotComic.grade || 'N/A'}</span>
+        </div>
+    `;
+
+    // Photos
+    const photosEl = document.getElementById('whatnotPhotos');
+    const photoSlots = [
+        { name: 'Front', url: whatnotComic.front_image },
+        { name: 'Spine', url: whatnotComic.spine_image },
+        { name: 'Back', url: whatnotComic.back_image },
+        { name: 'Center', url: whatnotComic.centerfold_image }
+    ];
+    photosEl.innerHTML = photoSlots.map(p => {
+        if (p.url) {
+            return `<div class="photo-download-item">
+                <img src="${p.url}" alt="${p.name}">
+                <a href="${p.url}" target="_blank" download>${p.name}</a>
+            </div>`;
+        }
+        return `<div class="photo-download-item no-photo">${p.name}: N/A</div>`;
+    }).join('');
+
+    // Generate content via API
+    await generateWhatnotContent();
+}
+
+function closeWhatnotModal() {
+    document.getElementById('whatnotModalOverlay').classList.remove('active');
+    whatnotComic = null;
+}
+
+async function generateWhatnotContent() {
+    const aiStatus = document.getElementById('whatnotAiStatus');
+    const aiText = document.getElementById('whatnotAiStatusText');
+    const token = localStorage.getItem('cc_token');
+
+    aiStatus.style.display = 'flex';
+    aiStatus.className = 'whatnot-ai-status generating';
+    aiText.textContent = 'Generating Whatnot content with AI...';
+
+    try {
+        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
+
+        const response = await fetch(`${API_URL}/api/whatnot/generate-content`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: whatnotComic.title,
+                issue: whatnotComic.issue,
+                grade: whatnotComic.grade,
+                price: fmv,
+                publisher: whatnotComic.publisher,
+                year: whatnotComic.year
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('whatnotTitle').value = data.listing_title || '';
+            document.getElementById('whatnotDescription').value = data.description || '';
+            document.getElementById('whatnotShowNotes').value = data.show_notes || '';
+            document.getElementById('whatnotStartPrice').textContent = `$${(data.suggested_start || 0.99).toFixed(2)}`;
+            document.getElementById('whatnotBuyNow').textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
+
+            aiStatus.className = 'whatnot-ai-status success';
+            aiText.textContent = '✓ Content generated';
+            setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
+        } else {
+            throw new Error(data.error || 'Generation failed');
+        }
+    } catch (error) {
+        console.error('Whatnot content generation error:', error);
+        aiStatus.className = 'whatnot-ai-status error';
+        aiText.textContent = '✗ Failed — using template';
+
+        // Fallback
+        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
+        document.getElementById('whatnotTitle').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} ${whatnotComic.grade || ''}`.trim();
+        document.getElementById('whatnotDescription').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} — a great pickup for any collection!`;
+        document.getElementById('whatnotShowNotes').value = `• ${whatnotComic.title} #${whatnotComic.issue || '?'}\n• ${whatnotComic.publisher || ''} ${whatnotComic.year || ''}\n• Graded ${whatnotComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}\n• Low start — let the bidders decide!`;
+        document.getElementById('whatnotStartPrice').textContent = '$0.99';
+        document.getElementById('whatnotBuyNow').textContent = `$${fmv.toFixed(2)}`;
+    }
+}
+
+function copyWhatnotField(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    navigator.clipboard.writeText(field.value).then(() => {
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '📋';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(() => {
+        // Fallback for older browsers
+        field.select();
+        document.execCommand('copy');
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '📋';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+function copyAllWhatnot(btn) {
+    const title = document.getElementById('whatnotTitle').value;
+    const desc = document.getElementById('whatnotDescription').value;
+    const notes = document.getElementById('whatnotShowNotes').value;
+    const start = document.getElementById('whatnotStartPrice').textContent;
+    const buyNow = document.getElementById('whatnotBuyNow').textContent;
+
+    const allText = `Title: ${title}\nStarting Bid: ${start}\nBuy Now: ${buyNow}\n\nDescription:\n${desc}\n\nShow Notes:\n${notes}`;
+
+    navigator.clipboard.writeText(allText).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '📋 Copy All';
+            btn.classList.remove('copied');
+        }, 2500);
+    }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = allText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '📋 Copy All';
+            btn.classList.remove('copied');
+        }, 2500);
+    });
+}
+</script>
+
     <!-- Shared sidebar nav -->
     <script src="/js/sidebar.js"></script>
     <!-- Service Worker -->

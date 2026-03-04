@@ -82,6 +82,12 @@ except ImportError as e:
     generate_description = None
 
 try:
+    from whatnot_description import generate_whatnot_content
+except ImportError as e:
+    print(f"whatnot_description import error: {e}")
+    generate_whatnot_content = None
+
+try:
     from comic_extraction import extract_from_base64
 except ImportError as e:
     print(f"comic_extraction import error: {e}")
@@ -236,6 +242,7 @@ from routes.vision import vision_bp, init_modules as vision_init_modules
 from routes.contact import contact_bp
 from routes.waitlist import waitlist_bp
 from routes.signatures import signatures_bp, init_modules as signatures_init_modules
+from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
 
 # Import imagehash for fingerprinting
 try:
@@ -268,6 +275,7 @@ ebay_init_modules(
     get_auth_url, exchange_code_for_token, get_user_token, is_user_connected,
     create_listing, upload_image_to_ebay, generate_description
 )
+whatnot_init_modules(generate_whatnot_content)
 registry_init_modules(imagehash, Image if 'Image' in dir() else None)
 monitor_init_modules(imagehash, Image if 'Image' in dir() else None)
 billing_init_modules()
@@ -304,6 +312,7 @@ app.register_blueprint(vision_bp)      # /api/vision/*
 app.register_blueprint(contact_bp)     # /api/contact
 app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
 app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
+app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content
 
 print("✅ All blueprints registered successfully!")
 
