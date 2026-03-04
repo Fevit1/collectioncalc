@@ -24,9 +24,10 @@ def api_get_collection():
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, user_id, title, issue, publisher, year, grade, grade_label, 
+        SELECT id, user_id, title, issue, publisher, year, grade, grade_label,
                confidence, defects, photos, raw_value, slabbed_value, roi, verdict,
-               my_valuation, grading_id, created_at, updated_at
+               my_valuation, grading_id, is_slabbed, slab_cert_number, slab_company,
+               slab_grade, slab_label_type, created_at, updated_at
         FROM collections 
         WHERE user_id = %s 
         ORDER BY created_at DESC

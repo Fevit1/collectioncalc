@@ -1365,7 +1365,7 @@
                             ${comic.grade} ${comic.grade_label || ''}
                             ${defectsTooltip}
                         </div>
-                        <div class="value-amount">$${(comic.raw_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="value-amount">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         <div>
                             <input 
                                 type="text" 
@@ -1433,8 +1433,8 @@
                                 </span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">FMV</span>
-                                <span class="detail-value">$${(comic.raw_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <span class="detail-label">FMV${comic.is_slabbed ? ' (Slabbed)' : ' (Raw)'}</span>
+                                <span class="detail-value">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">My Valuation</span>
@@ -2368,7 +2368,7 @@ function setListingFormat(format) {
     document.getElementById('auctionFields').style.display = format === 'AUCTION' ? 'block' : 'none';
     // Pre-fill auction start price from FMV if switching to auction
     if (format === 'AUCTION' && currentComic) {
-        const fmv = currentComic.slabbed_value || currentComic.raw_value || 9.99;
+        const fmv = currentComic.is_slabbed ? (currentComic.slabbed_value || currentComic.raw_value || 9.99) : (currentComic.raw_value || 9.99);
         const startPrice = document.getElementById('auctionStartPrice');
         if (!startPrice.value) {
             startPrice.value = '0.99'; // Low start to drive bidding
@@ -2500,7 +2500,7 @@ function populateListingForm() {
     updateCharCounter('title');
 
     // Price - suggest FMV or slightly below
-    const suggestedPrice = currentComic.slabbed_value || currentComic.raw_value || 9.99;
+    const suggestedPrice = currentComic.is_slabbed ? (currentComic.slabbed_value || currentComic.raw_value || 9.99) : (currentComic.raw_value || 9.99);
     document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
     document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
 
@@ -3235,7 +3235,7 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     copyBtn.style.background = `linear-gradient(135deg, ${platform.color}, ${adjustColor(platform.color, -20)})`;
 
     // Pre-populate with fallback content immediately (never leave fields empty)
-    const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
+    const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
     console.log('[MP] Pre-populating fields. Comic:', JSON.stringify({title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, publisher: mpComic.publisher, year: mpComic.year, photos: mpPhotos, fmv}));
     document.getElementById('mpTitle').value = fallbackTitle;
@@ -3272,7 +3272,7 @@ async function generateMarketplaceContent(platformKey) {
     aiText.textContent = `Generating ${platform.name} content with AI...`;
 
     try {
-        const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
+        const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
 
         const response = await fetch(`${API_URL}/api/marketplace/generate-content`, {
             method: 'POST',
