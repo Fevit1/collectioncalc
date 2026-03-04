@@ -384,7 +384,7 @@ function toggleUserMenu() {
 
 function closeUserMenu() {
     const dropdown = document.getElementById('userMenuDropdown');
-    dropdown.classList.remove('show');
+    if (dropdown) dropdown.classList.remove('show');
 }
 
 document.addEventListener('click', (e) => {

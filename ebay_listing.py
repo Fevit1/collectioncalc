@@ -1,5 +1,5 @@
 """
-eBay Listing Integration for CollectionCalc
+eBay Listing Integration for Slab Worthy
 Creates listings on eBay using the Inventory API.
 """
 
@@ -314,18 +314,32 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     token_data = get_user_token(user_id)
     if not token_data or not token_data.get('access_token'):
         return {'success': False, 'error': 'Not connected to eBay. Please connect your account.'}
-    
+
     access_token = token_data['access_token']
     api_url = get_api_url()
-    
+
+    # Normalize grade to string and map numeric CGC grades to letter grades
+    grade_str = str(grade).strip().upper() if grade else 'VF'
+    NUMERIC_TO_LETTER = {
+        '10': 'MT', '10.0': 'MT', '9.9': 'MT', '9.8': 'NM', '9.6': 'NM',
+        '9.4': 'NM', '9.2': 'NM', '9.0': 'VF', '8.5': 'VF', '8.0': 'VF',
+        '7.5': 'FN', '7.0': 'FN', '6.5': 'FN', '6.0': 'FN',
+        '5.5': 'VG', '5.0': 'VG', '4.5': 'VG', '4.0': 'VG',
+        '3.5': 'G', '3.0': 'G', '2.5': 'G', '2.0': 'G',
+        '1.8': 'FR', '1.5': 'FR', '1.0': 'FR',
+        '0.5': 'PR'
+    }
+    letter_grade = NUMERIC_TO_LETTER.get(grade_str, grade_str)
+
     # Get condition info
-    condition = GRADE_TO_CONDITION.get(grade.upper(), 'USED_EXCELLENT')
-    condition_desc = CONDITION_DESCRIPTIONS.get(grade.upper(), 'Good condition')
+    condition = GRADE_TO_CONDITION.get(letter_grade, 'USED_EXCELLENT')
+    condition_desc = CONDITION_DESCRIPTIONS.get(letter_grade, 'Good condition')
     
-    # Build listing title (eBay max 80 chars)
-    listing_title = f"{title} #{issue} Comic Book - {grade} Condition"
+    # Build listing title (eBay max 80 chars) — use original grade (e.g. "9.8" or "NM")
+    display_grade = grade_str if grade_str != letter_grade else letter_grade
+    listing_title = f"{title} #{issue} Comic Book - {display_grade} Condition"
     if len(listing_title) > 80:
-        listing_title = f"{title} #{issue} - {grade}"[:80]
+        listing_title = f"{title} #{issue} - {display_grade}"[:80]
     
     # Use provided description or generate a basic one
     if not description:
