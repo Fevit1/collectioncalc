@@ -336,10 +336,18 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     condition_desc = CONDITION_DESCRIPTIONS.get(letter_grade, 'Good condition')
     
     # Build listing title (eBay max 80 chars) — use original grade (e.g. "9.8" or "NM")
+    # Add KEY ISSUE tag if the description flags it as one
     display_grade = grade_str if grade_str != letter_grade else letter_grade
-    listing_title = f"{title} #{issue} Comic Book - {display_grade} Condition"
-    if len(listing_title) > 80:
-        listing_title = f"{title} #{issue} - {display_grade}"[:80]
+    is_key_issue = bool(description and 'KEY ISSUE' in description.upper())
+
+    if is_key_issue:
+        listing_title = f"{title} #{issue} KEY ISSUE Comic Book - {display_grade}"
+        if len(listing_title) > 80:
+            listing_title = f"{title} #{issue} KEY ISSUE - {display_grade}"[:80]
+    else:
+        listing_title = f"{title} #{issue} Comic Book - {display_grade} Condition"
+        if len(listing_title) > 80:
+            listing_title = f"{title} #{issue} - {display_grade}"[:80]
     
     # Use provided description or generate a basic one
     if not description:
