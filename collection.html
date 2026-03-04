@@ -999,18 +999,29 @@
             loadCollection();
             setupEventListeners();
 
-            // If returning from eBay OAuth, show success and clean up URL
+            // If returning from eBay OAuth, reopen the listing modal for the comic we were working on
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('ebay') === 'connected') {
-                // Brief toast notification
-                const toast = document.createElement('div');
-                toast.textContent = '✓ eBay connected! You can now list items.';
-                toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:8px;z-index:10000;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 4000);
                 // Clean the URL without reloading
-                const cleanUrl = window.location.pathname;
-                window.history.replaceState({}, '', cleanUrl);
+                window.history.replaceState({}, '', window.location.pathname);
+
+                // Reopen the Create Listing modal after collection loads
+                const pendingComicId = localStorage.getItem('sw_ebay_pending_comic');
+                if (pendingComicId) {
+                    localStorage.removeItem('sw_ebay_pending_comic');
+                    // Wait for collection to load, then open the modal
+                    const waitForCollection = setInterval(() => {
+                        if (collection && collection.length > 0) {
+                            clearInterval(waitForCollection);
+                            const comicId = parseInt(pendingComicId);
+                            if (collection.find(c => c.id === comicId)) {
+                                openEbayListingModal(comicId);
+                            }
+                        }
+                    }, 200);
+                    // Safety timeout — stop waiting after 10s
+                    setTimeout(() => clearInterval(waitForCollection), 10000);
+                }
             }
         });
 
@@ -2273,6 +2284,10 @@ async function connectToEbay() {
         });
         const data = await response.json();
         if (data.success && data.url) {
+            // Remember which comic was open so we can reopen the modal after OAuth
+            if (currentComic && currentComic.id) {
+                localStorage.setItem('sw_ebay_pending_comic', currentComic.id);
+            }
             window.location.href = data.url;
         } else {
             alert('Could not start eBay connection: ' + (data.error || 'Unknown error'));
