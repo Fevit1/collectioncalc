@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 1, 2026 (Session 70)
+**Updated:** March 4, 2026 (Session 74)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,13 @@
 
 ---
 
-## ✅ DONE (Session 64-70)
+## ✅ DONE (Session 64-74)
 
+- [x] **First successful eBay listing published!** — Session 74: Fixed grade type crash (numeric grades like 8.5 crashed `.upper()`), added NUMERIC_TO_LETTER mapping for all CGC grades. Fixed eBay URL policy violation (removed external URL from description). Added KEY ISSUE detection in listing titles. Synced frontend editable title to backend. Fixed OAuth callback redirect to account.html. Added eBay Identity API username fetch. Fixed closeUserMenu null reference.
+- [x] **eBay listing image upload fixes** — Session 73: Fixed photo URL mismatch (currentComic.photos.* vs flat properties). Fixed CORS by switching to server-side R2 proxy fetch. Added sell.marketing OAuth scope. Added disconnect endpoint + Connected Accounts UI to account.html.
+- [x] **Test sidebar + footer across all pages** ✅ Session 73
+- [x] **eBay OAuth + listing bug fixes** — Session 72: Fixed connectToEbay() missing JWT header (was bare window.location.href → now fetches auth URL with Bearer token then redirects). Fixed image upload mismatch (FormData → base64 JSON frontend, added base64 decode in backend). Fixed stale CollectionCalc branding in ebay_listing.py (4 references → Slab Worthy). Updated eBay Developer Portal RuName callback URLs to collectioncalc-docker.onrender.com.
+- [x] **Shared sidebar component (`js/sidebar.js`)** — Session 71: Extracted sidebar into single source of truth. All 6 auth pages (dashboard, app, collection, account, admin, signatures) now use shared component. sw- prefixed CSS, auto-detect active page, admin-conditional items. ~400 lines removed from dashboard.html.
 - [x] **Logged-in dashboard with collapsible sidebar** — Session 70: New `dashboard.html` as post-login landing page. Collapsible sidebar nav (remembers state), real portfolio stats from collection API, top 5 most valuable comics, market movers (sample data), empty state, mobile drawer nav. Login redirect updated.
 - [x] **SVG favicon** — Session 70: Created `favicon.svg` (purple/gold SW), added to all 17 HTML pages.
 - [x] **README.md rewrite** — Session 70: Was still "CollectionCalc/SQLite/portfolio project". Now accurately documents Slab Worthy.
@@ -25,7 +30,7 @@
 - [x] **Documentation overhaul** — Session 69: Rewrote DATABASE_PRODUCTION.md (16 tables), ROUTE_MAPPING.md (87 routes), updated COMIC_REGISTRY_SCHEMA.md + API_REFERENCE.md.
 - [x] **Signature image delete visibility** — Session 69: Made per-image delete button always visible (was hidden behind hover).
 - [x] **Auction price validation** — Session 69: Client-side validation for price relationships (reserve > start, BIN > reserve).
-- [x] **Signature page deletion** — Session 69: Added "Delete Creator" button to admin signatures page. Backend `DELETE /api/admin/signatures/<id>` endpoint cascades to remove all reference images. Confirmation dialog prevents accidents.
+- [x] **Signature page deletion** — Session 69: Added "Delete Creator" button + backend DELETE endpoint. Cascading delete removes all reference images.
 - [x] **eBay auction listing support** — Session 69: Added Fixed Price / Auction format toggle to listing modal. Auction fields: starting bid, duration (1-10 days), reserve price, Buy It Now. Backend + route + UI all updated. Backward compatible.
 - [x] **Push Session 65 code** — Done by Mike.
 - [x] **Homepage Sign In / Sign Up** — Session 68b: Added top-right auth nav to hero (Option A). Gold "Sign Up" pill + "Sign In" text link. Zero impact on hero layout.
@@ -40,10 +45,6 @@
 - [x] **File signature identification patent** — Application # 63/990,743, Feb 25, 2026
 - [x] **Push Session 64 code** — Waitlist pages, confirmation flow
 - [x] **Test all waitlist pages on production** — All 4 passing
-- [x] **Photo authenticity detector prototype** — 7-check system, tested with real images
-- [x] **Slab Guard white paper draft** — For Mike's review
-- [x] **FAQ updates** — 3 new Slab Guard entries (photo quality, verification, flagging)
-- [x] **Signature database progress** — 23 of 42 artists collected (4 sigs each)
 
 ---
 
@@ -52,17 +53,7 @@
 > If someone grades the same comic twice at your booth and gets different numbers, nothing else matters.
 
 - [x] ~~**Fix AI grading inconsistency**~~ ✅ Session 66
-  - Rebuilt from holistic → structured 8-category scoring
-  - New `grading_engine.py` + `/api/grade` endpoint + multi-run support
-  - 10 unit tests passing, live consistency test harness built
-  - 🔗 UNBLOCKED: demo mode, GalaxyCon prep, grading accuracy test
-
 - [x] ~~**Update hardcoded CGC grading costs**~~ ✅ Session 66
-  - Updated to 2026 pricing: Modern $30, Vintage $45, High Value $105, Unlimited 4% ($135 min)
-  - Centralized `get_cgc_grading_cost()` function + `CGC_GRADING_COSTS` config in sales_valuation.py
-  - Now factors in modern vs vintage (pre-1975) pricing
-  - All 3 hardcoded locations replaced
-
 - [x] ~~**Push Session 65 code**~~ ✅ Done
 
 ---
@@ -74,24 +65,32 @@
 ### Product
 
 - [x] ~~**eBay auction listing support**~~ ✅ Session 69
-  - Fixed Price / Auction toggle in listing modal
-  - Auction fields: starting bid, duration, reserve, Buy It Now
-  - Backend + route + UI all updated
-
 - [x] ~~**Signature page deletion**~~ ✅ Session 69
-  - Added "Delete Creator" button + backend DELETE endpoint
-  - Cascading delete removes all reference images
 
-- [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️
-  - Test OAuth flow, connect eBay account
-  - Test fixed-price listing (draft + publish)
-  - Test auction listing (all field combos)
-  - 🔗 Depends on: eBay developer account approved for production
+- [x] ~~**Test sidebar + footer across all pages**~~ ✅ Session 73 (confirmed working)
+  - Sidebar renders correctly on all 6 auth pages (dashboard, app, collection, account, admin, signatures)
+  - Collapse/expand works and persists across page navigations
+  - Active page highlighting correct on each page
+  - Admin-only items hidden for non-admin users
+  - Mobile drawer works on <900px
+  - Footer still renders on all public pages (index, login, faq, pricing, about, contact, etc.)
+  - No CSS conflicts or layout breaks
 
-- [ ] **Whatnot listing prep tool** ⏱ 1 session
-  - "Prep for Whatnot" button generates title, description, suggested starting bid
+- [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️ ← **RESUME HERE**
+  - ✅ OAuth flow working (Session 72)
+  - ✅ Image upload via R2 proxy working (Session 73-74)
+  - ✅ Fixed-price publish working — first listing live! (Session 74)
+  - ✅ KEY ISSUE detection in titles working (Session 74)
+  - ✅ AI description generation working (Session 74)
+  - 🔜 Test fixed-price draft listing
+  - 🔜 Test auction listing (all field combos)
+  - 🔜 Fix eBay username display (shows "user" instead of therealmikeberry — key mismatch may need disconnect/reconnect)
+
+- [ ] **Plan Whatnot integration** ⏱ 1 session
+  - Research Whatnot seller tools, API availability, common seller workflows
+  - Design "Prep for Whatnot" feature: title gen, description, suggested starting bid
   - Copy-to-clipboard for pasting into Whatnot seller dashboard
-  - Whatnot has no public listing API — this is the best we can do
+  - Whatnot has no public listing API — determine best UX approach
   - 🔗 No blockers
 
 ### Testing ⚠️
@@ -101,7 +100,6 @@
   - 🔗 Depends on: CGC cost update
 
 - [x] ~~**Run title normalizer backfill**~~ ✅ Session 68
-  - 376 NULLs all edge cases (lot #s, non-comics, art prints). Not actionable.
 
 - [ ] **Mobile testing (full grading flow)** 👤 2-3 hours across devices ⚠️
   - Grading, collection, pricing, verify on real phones (Android + iOS)
@@ -269,6 +267,8 @@
 ## P5 — TECH DEBT & NICE-TO-HAVE (As Time Permits)
 
 ### Bugs to Fix
+- [x] ~~**eBay OAuth callback redirect**~~ ✅ Session 74 — now redirects to account.html
+- [ ] **eBay username shows as "user"** ⏱ 15 min — Backend backfill + frontend key fix (`data.ebay_username`) deployed in Session 74 but still showing "user". May need disconnect/reconnect to trigger Identity API call, or scope may be missing. Code is in place — just needs debugging.
 - [ ] **Comic identification bug** ⏱ 1 session — Ghost Rider reboot vs original
 - [ ] **Auto-rotation steps 2-4** ⏱ 30 min — Code added but not working
 - [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API
@@ -282,6 +282,8 @@
 - [ ] Slab label valuation adjustments (signature series, restored, etc.)
 - [ ] Two-factor authentication
 - [ ] Multi-vertical expansion (baseball cards, coins, sneakers)
+- [ ] Add display_name to /api/auth/me (replace email-derived name)
+- [ ] Backend trending endpoint for Market Movers panel (real ebay_sales data)
 
 ---
 
@@ -294,8 +296,8 @@ WEEKS 1-2 (P0):
   Push code ────────────────┘
                             │
 WEEKS 3-6 (P1):            ▼
-  eBay auction support ✅    Sig page deletion
-  eBay e2e testing ⚠️       Whatnot prep tool
+  eBay auction support ✅    Sig page deletion ✅
+  eBay e2e testing ⚠️ 🔜    Whatnot prep tool
   Mobile testing ⚠️
                             │
 WEEKS 7-16 (P2):           ▼

@@ -69,12 +69,41 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ## RECENT MAJOR MILESTONES
 
-### ✅ Signature Matching + Title Year Collision Fix (Feb 28, 2026 — Session 68)
-- **Signature system**: Reference DB (23 artists, 97 images), API blueprint (4 endpoints: match, db-stats, signed-sales, premium-analysis), test suite, standalone CLI
-- **Deployed**: db-stats and signed-sales endpoints verified on production (899 signed sales found)
-- **Premium analysis**: Built CTE-based endpoint, found massive era collisions (X-Men #1 1963 vs 1991). DBeaver analysis confirmed.
-- **Title year fix (coded, needs deploy)**: Added `title_year` extraction to normalizer (Step 0.5, before year stripping), updated INSERT/backfill in sales_ebay.py, created `db_migrate_title_year.py` migration, updated premium analysis SQL with ±2yr tolerance
-- **Next**: Deploy code, run migration (`python db_migrate_title_year.py`), retest premium analysis, collect 5 missing priority artists
+### ✅ First Successful eBay Listing Published! (Mar 4, 2026 — Session 74)
+- **Listing live at:** https://www.ebay.com/itm/147183901233
+- Fixed grade type crash (numeric grades → NUMERIC_TO_LETTER mapping for all CGC grades)
+- Fixed eBay URL policy violation (removed slabworthy.com URL from description footer)
+- Added KEY ISSUE detection in listing titles (auto-detected from AI description)
+- Frontend editable title now synced to backend (user can edit before publish)
+- Fixed OAuth callback redirect (now goes to account.html)
+- Added eBay Identity API username fetch + backfill on status check
+- Fixed closeUserMenu null reference on pages without dropdown
+- **Remaining:** Draft listing test, auction listing test, username display fix
+
+### ✅ Homepage Sign In / Sign Up Nav (Feb 28, 2026 — Session 68b)
+- Added top-right auth nav to hero section — "Sign In" text link + gold "Sign Up" pill
+- Matches brand (gold gradient, purple shadow), standard web convention (top-right for auth)
+- Zero impact on hero layout — logo, tagline, main CTA all untouched
+- Sign Up links to `/login.html?signup=true` for future auto-toggle to registration form
+
+### ✅ Valuation Endpoint Upgrade (Feb 28, 2026 — Session 68b)
+- **Applied premium analysis methodology to `/api/sales/valuation`** — the endpoint powering grading results page
+- Replaced arithmetic mean with **median + 5% percentile outlier trimming** everywhere: exact grade match, grade interpolation, raw FMV, price curve
+- Added **bootstrap 95% confidence intervals** (`ci_95_low`, `ci_95_high`) for exact grade matches with 5+ sales
+- Added utility functions: `percentile_trim()`, `compute_median()`, `bootstrap_ci_median()`
+- **Backward compatible** — all existing response fields preserved, new CI fields additive, no frontend changes needed
+- **Impact**: A single $5K outlier sale among ten $50 sales now gives ~$50 (median) instead of ~$500 (mean)
+
+### ✅ Signature Matching + Premium Analysis Engine (Feb 28, 2026 — Session 68)
+- **Signature system**: Reference DB (23 artists, 97 images), API blueprint (4 endpoints), test suite, standalone CLI — all deployed and verified
+- **Title year collision fix**: Added `title_year` column + server-side SQL backfill (15,381/24,629 rows = 62.5%). Collisions dropped from hundreds to 4.
+- **Professional-grade premium analysis engine** deployed with:
+  - Time-windowed comps (±90 days) — controls for market shifts
+  - Log-transformed geometric mean — resistant to outliers
+  - Bootstrap 95% confidence intervals (1000 iterations)
+  - Percentile outlier trimming (top/bottom 5%)
+- **Results**: Signing adds +40-57% to value (median to geo mean), 95% CI [+27%, +59%], 72% positive. High grade 9+: +69% median. Raw: +36% median.
+- **Next**: Apply methodology to general `/api/sales/valuation`, run cross-validation, collect 5 missing priority artists
 
 ### ✅ Valuation Endpoint Upgrade + Grading Flow Polish Complete (Feb 28, 2026 — Session 67)
 - **Tested both valuation endpoints** against production with 8 comics — found `/api/sales/fmv` has grade-blind tier bucketing (treats 2.0 same as 7.5). The `/api/sales/valuation` endpoint does exact-grade matching with interpolation — much better.
@@ -190,7 +219,16 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 64) - Feb 25, 2026
+## CURRENT SESSION (SESSION 74) - Mar 4, 2026
+
+### What Happened
+**FIRST SUCCESSFUL EBAY LISTING PUBLISHED VIA SLAB WORTHY!**
+
+See WHERE_WE_LEFT_OFF.md for full details. Key: fixed 7 bugs, published first listing, added KEY ISSUE title detection.
+
+---
+
+## PREVIOUS SESSION (SESSION 64) - Feb 25, 2026
 
 ### What Happened
 **WAITLIST DEPLOYED, DEBUGGED, CONFIRMATION PAGE BUILT, HOMEPAGE & LOGIN UPDATED**
