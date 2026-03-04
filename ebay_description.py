@@ -1,5 +1,5 @@
 """
-eBay Description Generator for CollectionCalc
+eBay Description Generator for Slab Worthy
 Generates professional, eBay-compliant descriptions for comic book listings.
 """
 
