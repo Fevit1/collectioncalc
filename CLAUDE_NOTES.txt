@@ -69,6 +69,14 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ## RECENT MAJOR MILESTONES
 
+### eBay Username Root Cause Fixed + Favicon Redesign (Mar 4, 2026 — Session 75)
+- **Root cause:** OAuth scopes missing `commerce.identity.readonly` — Identity API returned 403 silently
+- Added scope to EBAY_SCOPES in ebay_oauth.py, changed fallback from "user" to "Connected"
+- Mike needs to disconnect/reconnect eBay after deploy for new token with updated scope
+- Created favicon-options.html with 6 options (indigo/purple/dark/gradient × white/gold text)
+- Current circle+gradient favicon is blurry at 16px; new options use LinkedIn-style rounded square
+- Code-reviewed draft + auction flows — no bugs found, ready for live testing
+
 ### ✅ First Successful eBay Listing Published! (Mar 4, 2026 — Session 74)
 - **Listing live at:** https://www.ebay.com/itm/147183901233
 - Fixed grade type crash (numeric grades → NUMERIC_TO_LETTER mapping for all CGC grades)

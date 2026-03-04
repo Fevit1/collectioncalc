@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 4, 2026 (Session 74)
+**Updated:** March 4, 2026 (Session 75)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -82,9 +82,10 @@
   - ✅ Fixed-price publish working — first listing live! (Session 74)
   - ✅ KEY ISSUE detection in titles working (Session 74)
   - ✅ AI description generation working (Session 74)
+  - ✅ eBay username root cause found & fixed (Session 75) — missing `commerce.identity.readonly` scope. Needs deploy + disconnect/reconnect to verify.
+  - 🔜 Pick new favicon (options in `favicon-options.html`)
   - 🔜 Test fixed-price draft listing
   - 🔜 Test auction listing (all field combos)
-  - 🔜 Fix eBay username display (shows "user" instead of therealmikeberry — key mismatch may need disconnect/reconnect)
 
 - [ ] **Plan Whatnot integration** ⏱ 1 session
   - Research Whatnot seller tools, API availability, common seller workflows

@@ -1,5 +1,46 @@
 # Where We Left Off - Mar 4, 2026
 
+## Session 75 (Mar 4, 2026) — eBay Username Root Cause + Favicon Redesign
+
+### eBay Username Bug — Root Cause Found & Fixed
+**The mystery is solved:** OAuth scopes were missing `commerce.identity.readonly`.
+- The eBay Identity API requires this scope to call `/commerce/identity/v1/user/`
+- Without it, the API returned 403 — caught silently by try/except, username never saved
+- The backfill in `/api/ebay/status` also failed for the same reason
+- **Fix:** Added `commerce.identity.readonly` to `EBAY_SCOPES` in `ebay_oauth.py`
+- Changed fallback text from "user" to "Connected" in collection.html and modal-ebay-listing.html
+- **Action required:** Mike needs to disconnect and reconnect eBay after deploying to get a new token with the updated scope
+
+### Favicon Redesign (In Progress)
+- Current favicon: circle with gradient bg + gradient gold text → blurry/unreadable at 16px
+- Created `favicon-options.html` comparison page with 6 options at 64/32/16px + tab simulations
+- Options include: solid indigo, purple, dark bg, gradient bg — with white or gold text
+- Both dark and light tab bar simulations included
+- **Waiting for Mike's pick** before replacing `favicon.svg`
+
+### Code Review: Draft + Auction Flows
+- Reviewed `ebay_listing.py` `create_listing()` — draft flow (publish=False) creates inventory item + offer but skips publish, returns Seller Hub drafts URL
+- Auction flow sends `start_price`, `auction_duration`, `reserve_price`, `buy_it_now_price` with proper validation
+- Frontend `createListing(false)` for draft, `createListing(true)` for publish — both look clean
+- No bugs found in code review — ready for live testing
+
+### Files Modified This Session
+- `ebay_oauth.py` — Added `commerce.identity.readonly` to EBAY_SCOPES
+- `collection.html` — Changed username fallback from "user" to "Connected"
+- `modal-ebay-listing.html` — Fixed `data.username` → `data.ebay_username`, fallback "Connected"
+- `favicon-options.html` — New comparison page (6 favicon options)
+
+### What's Next (Priority Order)
+1. **Deploy + reconnect eBay** — verify username now displays correctly
+2. **Pick favicon** — Mike to choose from options page, then replace favicon.svg
+3. **Test fixed-price draft listing** — click "Save as Draft" instead of Publish
+4. **Test auction listing** — toggle to Auction, set starting bid, duration, reserve, BIN
+5. **Plan Whatnot integration** — research seller tools, design "Prep for Whatnot" feature
+6. **Valuation endpoint testing** — 12-case test plan
+7. **Mobile testing** — full grading flow on real devices
+
+---
+
 ## Session 74 (Mar 4, 2026) — eBay Listing E2E: First Successful Publish!
 
 ### Major Milestone
@@ -44,30 +85,6 @@
 - Frontend sends user-editable `listingTitle` as `listing_title` in API call
 - Backend uses provided title instead of auto-generating (respects user edits)
 - Fallback auto-generation still works if no title provided
-
-### Known Issue — Deferred
-- **eBay username still shows as "user"** in collection.html modal
-  - Backend backfill + frontend key fix (`data.ebay_username`) both deployed
-  - May need disconnect/reconnect to trigger, or the Identity API scope may be missing
-  - Added to P5 bugs in TODO.md
-
-### Files Modified This Session
-- `routes/ebay.py` — OAuth username fetch, callback redirect, status backfill, listing_title param
-- `ebay_listing.py` — Grade type crash fix, KEY ISSUE title, listing_title param, rebranding
-- `ebay_oauth.py` — Docstring rebrand
-- `collection.html` — Footer simplify, KEY ISSUE title update, listing_title sync, username key fix
-- `js/auth.js` — closeUserMenu null check
-- `TODO.md` — Updated with session 74 completions
-- `CLAUDE_NOTES.txt` — Updated with session 74 milestone
-- `WHERE_WE_LEFT_OFF.md` — This file
-
-### What's Next (Priority Order)
-1. **Debug eBay username display** — may need to disconnect/reconnect eBay, or check Identity API scope
-2. **Test fixed-price draft listing** — click "Save as Draft" instead of Publish
-3. **Test auction listing** — toggle to Auction, set starting bid, duration, reserve, BIN
-4. **Plan Whatnot integration** — research seller tools, design "Prep for Whatnot" feature
-5. **Valuation endpoint testing** — 12-case test plan
-6. **Mobile testing** — full grading flow on real devices
 
 ---
 
