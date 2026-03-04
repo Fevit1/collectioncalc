@@ -353,20 +353,24 @@
             display: none;
             position: absolute;
             top: 100%;
-            left: 0;
             right: 0;
-            min-width: 200px;
+            min-width: 220px;
             background: var(--bg-primary);
             border: 1px solid rgba(124, 58, 237, 0.4);
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            z-index: 100;
-            overflow: hidden;
+            z-index: 9999;
             margin-top: 4px;
         }
 
         .sell-dropdown.active {
             display: block;
+        }
+
+        /* Elevate the parent card when dropdown is open so it escapes stacking context */
+        .comic-card.sell-open {
+            z-index: 999;
+            position: relative;
         }
 
         .sell-dropdown-item {
@@ -472,6 +476,7 @@
 
         .comics-list .comic-card:hover {
             background: rgba(79, 70, 229, 0.05);
+            transform: none; /* Override grid card transform — prevents stacking context that traps dropdown */
         }
 
         .comics-list .comic-card:first-child {
@@ -1630,9 +1635,8 @@
             event.stopPropagation();
             // Close any open dropdowns first
             document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.comic-card.sell-open, .comic-frame.sell-open').forEach(c => c.classList.remove('sell-open'));
 
-            // Find all dropdowns for this comic (grid + detail views)
-            const dropdowns = document.querySelectorAll(`[id^="sellDropdown"][id$="-${comicId}"]`);
             const targetDropdown = event.target.closest('.sell-dropdown-wrapper').querySelector('.sell-dropdown');
 
             // Build dropdown content if empty
@@ -1648,16 +1652,23 @@
             }
 
             targetDropdown.classList.toggle('active');
+            // Elevate the parent card so dropdown escapes stacking context
+            const parentCard = event.target.closest('.comic-card, .comic-frame');
+            if (parentCard && targetDropdown.classList.contains('active')) {
+                parentCard.classList.add('sell-open');
+            }
         }
 
         // Close dropdowns when clicking elsewhere
         document.addEventListener('click', () => {
             document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.comic-card.sell-open, .comic-frame.sell-open').forEach(c => c.classList.remove('sell-open'));
         });
 
         function sellAction(action, platformKey, comicId) {
             // Close dropdown
             document.querySelectorAll('.sell-dropdown.active').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.sell-open').forEach(c => c.classList.remove('sell-open'));
 
             if (action === 'ebay') {
                 openEbayListingModal(comicId);
