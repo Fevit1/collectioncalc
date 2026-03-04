@@ -2293,8 +2293,8 @@ function populateListingForm() {
         </div>
     `;
 
-    // Title - auto-generate
-    const title = `${currentComic.title} #${currentComic.issue || '?'} - ${currentComic.grade || 'VG'} ${currentComic.publisher || 'Comic'}`;
+    // Title - auto-generate (eBay max 80 chars)
+    const title = `${currentComic.title} #${currentComic.issue || '?'} Comic Book - ${currentComic.grade || 'VG'} ${currentComic.publisher || ''}`.trim();
     document.getElementById('listingTitle').value = title.substring(0, 80);
     updateCharCounter('title');
 
@@ -2344,7 +2344,18 @@ async function generateDescription() {
             
             descriptionField.value = fullDescription;
             updateCharCounter('desc');
-            
+
+            // Update title with KEY ISSUE if the AI flagged it
+            if (data.description.toUpperCase().includes('KEY ISSUE')) {
+                const titleInput = document.getElementById('listingTitle');
+                const currentTitle = titleInput.value;
+                if (!currentTitle.toUpperCase().includes('KEY ISSUE')) {
+                    const keyTitle = `${currentComic.title} #${currentComic.issue || '?'} KEY ISSUE Comic Book - ${currentComic.grade || 'VG'}`.substring(0, 80);
+                    titleInput.value = keyTitle;
+                    updateCharCounter('title');
+                }
+            }
+
             aiStatus.className = 'ai-status success';
             document.getElementById('aiStatusText').textContent = '✓ Description generated';
             setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
@@ -2497,6 +2508,7 @@ async function createListing(publish) {
         const isAuction = currentListingFormat === 'AUCTION';
         const listingData = {
             title: currentComic.title,
+            listing_title: document.getElementById('listingTitle').value,
             issue: currentComic.issue,
             price: isAuction
                 ? parseFloat(document.getElementById('auctionStartPrice').value || '0.99')

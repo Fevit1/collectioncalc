@@ -260,6 +260,7 @@ def api_ebay_list():
         auction_duration=data.get('auction_duration', 'DAYS_7'),
         start_price=data.get('start_price'),
         reserve_price=data.get('reserve_price'),
-        buy_it_now_price=data.get('buy_it_now_price')
+        buy_it_now_price=data.get('buy_it_now_price'),
+        listing_title=data.get('listing_title')
     )
     return jsonify(result)

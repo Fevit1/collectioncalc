@@ -288,7 +288,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
                     description: str = None, publish: bool = False, image_urls: list = None,
                     listing_format: str = 'FIXED_PRICE', auction_duration: str = 'DAYS_7',
                     start_price: float = None, reserve_price: float = None,
-                    buy_it_now_price: float = None) -> dict:
+                    buy_it_now_price: float = None, listing_title: str = None) -> dict:
     """
     Create a listing on eBay for a comic book.
 
@@ -335,19 +335,23 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     condition = GRADE_TO_CONDITION.get(letter_grade, 'USED_EXCELLENT')
     condition_desc = CONDITION_DESCRIPTIONS.get(letter_grade, 'Good condition')
     
-    # Build listing title (eBay max 80 chars) — use original grade (e.g. "9.8" or "NM")
-    # Add KEY ISSUE tag if the description flags it as one
-    display_grade = grade_str if grade_str != letter_grade else letter_grade
-    is_key_issue = bool(description and 'KEY ISSUE' in description.upper())
-
-    if is_key_issue:
-        listing_title = f"{title} #{issue} KEY ISSUE Comic Book - {display_grade}"
-        if len(listing_title) > 80:
-            listing_title = f"{title} #{issue} KEY ISSUE - {display_grade}"[:80]
+    # Build listing title (eBay max 80 chars)
+    # Use frontend-provided title if available (user may have edited it)
+    if listing_title and listing_title.strip():
+        listing_title = listing_title.strip()[:80]
     else:
-        listing_title = f"{title} #{issue} Comic Book - {display_grade} Condition"
-        if len(listing_title) > 80:
-            listing_title = f"{title} #{issue} - {display_grade}"[:80]
+        # Fallback: auto-generate title
+        display_grade = grade_str if grade_str != letter_grade else letter_grade
+        is_key_issue = bool(description and 'KEY ISSUE' in description.upper())
+
+        if is_key_issue:
+            listing_title = f"{title} #{issue} KEY ISSUE Comic Book - {display_grade}"
+            if len(listing_title) > 80:
+                listing_title = f"{title} #{issue} KEY ISSUE - {display_grade}"[:80]
+        else:
+            listing_title = f"{title} #{issue} Comic Book - {display_grade} Condition"
+            if len(listing_title) > 80:
+                listing_title = f"{title} #{issue} - {display_grade}"[:80]
     
     # Use provided description or generate a basic one
     if not description:
