@@ -77,7 +77,7 @@
     footer.innerHTML = `
         <div class="footer-content">
             <div class="footer-brand">
-                <div class="footer-logo">SLAB WORTHY\u2122</div>
+                <div class="footer-logo">$LAB WORTHY\u2122</div>
                 <p class="footer-tagline">Powered by CollectionCalc\u2122</p>
             </div>
             <div class="footer-links">

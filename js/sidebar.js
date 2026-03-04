@@ -353,7 +353,7 @@
 
     const sidebarHTML = `
         <div class="sw-sidebar-toggle-row">
-            <a href="/dashboard.html" class="sw-sidebar-logo">SLAB WORTHY\u2122</a>
+            <a href="/dashboard.html" class="sw-sidebar-logo">$LAB WORTHY\u2122</a>
             <div class="sw-sidebar-logo-icon">SW</div>
             <button class="sw-toggle-btn" id="swToggleBtn" title="Toggle sidebar">
                 <span id="swToggleIcon">&#171;</span>
@@ -437,7 +437,7 @@
     topbar.className = 'sw-mobile-topbar';
     topbar.innerHTML = `
         <button class="sw-hamburger" onclick="window.swOpenMobileNav()">&#9776;</button>
-        <div class="sw-mobile-logo">SLAB WORTHY\u2122</div>
+        <div class="sw-mobile-logo">$LAB WORTHY\u2122</div>
         <div style="width:36px"></div>
     `;
 
