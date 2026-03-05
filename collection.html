@@ -2880,51 +2880,44 @@ async function createListing(publish) {
         gap: 0.5rem;
         align-items: flex-start;
     }
-    .copyable-field .form-input,
-    .mp-modal .form-input,
-    .mp-modal-body input.form-input,
-    .mp-modal-body textarea.form-input,
-    input#mpTitle, textarea#mpDescription, textarea#mpShowNotes {
+    /* Contenteditable div fields (replaced input/textarea to fix WebKit text rendering) */
+    .mp-editable {
         flex: 1;
-        display: block !important;
-        visibility: visible !important;
         width: 100%;
-        padding: 0.75rem !important;
-        background: #1a1a2e !important;
-        border: 1px solid rgba(255, 107, 53, 0.3) !important;
+        padding: 0.75rem;
+        background: #1a1a2e;
+        border: 1px solid rgba(255, 107, 53, 0.3);
         border-radius: 8px;
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-        font-size: 1rem !important;
-        line-height: 1.5 !important;
-        opacity: 1 !important;
-        -webkit-opacity: 1 !important;
-        font-family: 'Inter', -apple-system, sans-serif !important;
+        color: #ffffff;
+        font-size: 1rem;
+        line-height: 1.5;
+        font-family: 'Inter', -apple-system, sans-serif;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        outline: none;
+        cursor: text;
+        min-height: 44px;
     }
-    input#mpTitle {
-        min-height: 44px !important;
-        height: auto !important;
+    .mp-editable:focus {
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.15);
     }
-    .copyable-field textarea.form-input,
-    textarea#mpDescription, textarea#mpShowNotes {
-        min-height: 90px !important;
+    .mp-editable.mp-multiline {
+        min-height: 90px;
         max-height: 200px;
-        height: auto !important;
-        resize: vertical;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        overflow-y: auto;
+        overflow-x: hidden;
         scrollbar-width: thin;
         scrollbar-color: rgba(255,107,53,0.4) rgba(255,255,255,0.05);
     }
-    .copyable-field textarea.form-input::-webkit-scrollbar,
-    textarea#mpDescription::-webkit-scrollbar,
-    textarea#mpShowNotes::-webkit-scrollbar { width: 6px; }
-    .copyable-field textarea.form-input::-webkit-scrollbar-track,
-    textarea#mpDescription::-webkit-scrollbar-track,
-    textarea#mpShowNotes::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
-    .copyable-field textarea.form-input::-webkit-scrollbar-thumb,
-    textarea#mpDescription::-webkit-scrollbar-thumb,
-    textarea#mpShowNotes::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.5); border-radius: 3px; }
+    .mp-editable.mp-multiline::-webkit-scrollbar { width: 6px; }
+    .mp-editable.mp-multiline::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+    .mp-editable.mp-multiline::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.5); border-radius: 3px; }
+    .mp-editable:empty::before {
+        content: attr(data-placeholder);
+        color: rgba(255,255,255,0.3);
+        pointer-events: none;
+    }
     .copyable-field .form-input:focus,
     .mp-modal .form-input:focus {
         outline: none;
@@ -3091,7 +3084,7 @@ async function createListing(publish) {
             <div class="copyable-field">
                 <label>Listing Title</label>
                 <div class="copy-row">
-                    <input type="text" class="form-input" id="mpTitle" maxlength="80" placeholder="Generating..." style="color:#fff;font-size:1rem;">
+                    <div class="form-input mp-editable" id="mpTitle" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
                     <button class="copy-btn" onclick="copyMpField('mpTitle', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpTitleHint">Paste into the listing title field</div>
@@ -3101,7 +3094,7 @@ async function createListing(publish) {
             <div class="copyable-field">
                 <label>Description</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="mpDescription" rows="4" placeholder="Generating..." style="color:#fff;font-size:1rem;"></textarea>
+                    <div class="form-input mp-editable mp-multiline" id="mpDescription" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
                     <button class="copy-btn" onclick="copyMpField('mpDescription', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpDescHint">Platform-optimized description</div>
@@ -3111,7 +3104,7 @@ async function createListing(publish) {
             <div class="copyable-field" id="mpShowNotesSection" style="display:none;">
                 <label id="mpShowNotesLabel">Prep Notes</label>
                 <div class="copy-row">
-                    <textarea class="form-input" id="mpShowNotes" rows="4" placeholder="Generating..." style="color:#fff;font-size:1rem;"></textarea>
+                    <div class="form-input mp-editable mp-multiline" id="mpShowNotes" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
                     <button class="copy-btn" onclick="copyMpField('mpShowNotes', this)">📋</button>
                 </div>
                 <div class="field-hint" id="mpShowNotesHint">Talking points and key details</div>
@@ -3265,20 +3258,12 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     const fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
     console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'Desc:', fallbackDesc.substring(0, 50));
 
-    // Helper: force-set a field value with maximum CSS visibility
+    // Helper: set content on contenteditable div fields
     function mpSetField(id, val) {
         const el = document.getElementById(id);
         if (!el) { console.error('[MP] Element not found:', id); return; }
-        el.value = val;
-        el.setAttribute('value', val);  // also set HTML attribute
-        el.style.setProperty('color', '#ffffff', 'important');
-        el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-        el.style.setProperty('background', '#1a1a2e', 'important');
-        el.style.setProperty('opacity', '1', 'important');
-        el.style.setProperty('font-size', '1rem', 'important');
-        el.style.setProperty('visibility', 'visible', 'important');
-        el.style.setProperty('height', 'auto', 'important');
-        el.style.setProperty('min-height', id === 'mpTitle' ? '44px' : '80px', 'important');
+        // Use textContent for contenteditable divs (guaranteed visible rendering)
+        el.textContent = val;
         console.log(`[MP] Set ${id} = "${val.substring(0, 40)}..." (length=${val.length})`);
     }
 
@@ -3301,12 +3286,12 @@ async function openMarketplacePrepModal(comicId, platformKey) {
         const t = document.getElementById('mpTitle');
         const d = document.getElementById('mpDescription');
         const n = document.getElementById('mpShowNotes');
-        const tVal = t?.value || '(empty)';
-        const dVal = d?.value || '(empty)';
-        const nVal = n?.value || '(empty)';
+        const tVal = t?.textContent || '(empty)';
+        const dVal = d?.textContent || '(empty)';
+        const nVal = n?.textContent || '(empty)';
         console.log(`[MP] Post-render check: title="${tVal}", desc="${dVal.substring(0,40)}"`);
-        if (t && !t.value) { t.value = fallbackTitle; console.warn('[MP] Title was empty after render, re-set'); }
-        if (d && !d.value) { d.value = fallbackDesc; console.warn('[MP] Desc was empty after render, re-set'); }
+        if (t && !t.textContent) { t.textContent = fallbackTitle; console.warn('[MP] Title was empty after render, re-set'); }
+        if (d && !d.textContent) { d.textContent = fallbackDesc; console.warn('[MP] Desc was empty after render, re-set'); }
 
         // Show debug strip (TEMPORARY)
         const dbg = document.getElementById('mpDebugStrip');
@@ -3376,31 +3361,21 @@ async function generateMarketplaceContent(platformKey) {
 
             // ONLY overwrite if API returned actual content (never clear fallback with empty)
             if (data.listing_title && data.listing_title.trim()) {
-                titleEl.value = data.listing_title;
+                titleEl.textContent = data.listing_title;
                 console.log('[MP] AI title set:', data.listing_title);
             } else {
                 console.warn('[MP] API returned empty listing_title, keeping fallback');
             }
             if (data.description && data.description.trim()) {
-                descEl.value = data.description;
+                descEl.textContent = data.description;
                 console.log('[MP] AI desc set:', data.description.substring(0, 50));
             } else {
                 console.warn('[MP] API returned empty description, keeping fallback');
             }
             if (platform.hasNotes && data.show_notes && data.show_notes.trim()) {
-                notesEl.value = data.show_notes;
+                notesEl.textContent = data.show_notes;
                 console.log('[MP] AI notes set:', data.show_notes.substring(0, 50));
             }
-
-            // Force text visibility after AI content update
-            [titleEl, descEl, notesEl].forEach(el => {
-                if (el) {
-                    el.style.setProperty('color', '#ffffff', 'important');
-                    el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-                    el.style.setProperty('visibility', 'visible', 'important');
-                    el.style.setProperty('opacity', '1', 'important');
-                }
-            });
 
             // Pricing
             const startEl = document.getElementById('mpStartPrice');
@@ -3424,7 +3399,7 @@ async function generateMarketplaceContent(platformKey) {
             // Update debug strip after AI content
             const dbg2 = document.getElementById('mpDebugStrip');
             if (dbg2) {
-                dbg2.textContent = `DEBUG (${data.source}): Title[${titleEl.value.length}]="${titleEl.value.substring(0,30)}" | Desc[${descEl.value.length}]="${descEl.value.substring(0,30)}"`;
+                dbg2.textContent = `DEBUG (${data.source}): Title[${titleEl.textContent.length}]="${titleEl.textContent.substring(0,30)}" | Desc[${descEl.textContent.length}]="${descEl.textContent.substring(0,30)}"`;
             }
         } else {
             throw new Error(data.error || 'Generation failed');
@@ -3439,7 +3414,7 @@ async function generateMarketplaceContent(platformKey) {
         const tEl = document.getElementById('mpTitle');
         const dEl = document.getElementById('mpDescription');
         if (dbg3) {
-            dbg3.textContent = `DEBUG (error: ${error.message.substring(0,40)}): Title[${tEl?.value?.length}]="${tEl?.value?.substring(0,30)}" | Desc[${dEl?.value?.length}]="${dEl?.value?.substring(0,30)}"`;
+            dbg3.textContent = `DEBUG (error: ${error.message.substring(0,40)}): Title[${tEl?.textContent?.length}]="${tEl?.textContent?.substring(0,30)}" | Desc[${dEl?.textContent?.length}]="${dEl?.textContent?.substring(0,30)}"`;
         }
     }
 }
@@ -3455,13 +3430,20 @@ function adjustColor(hex, amount) {
 
 function copyMpField(fieldId, btn) {
     const field = document.getElementById(fieldId);
-    navigator.clipboard.writeText(field.value).then(() => {
+    const text = field.textContent || field.innerText || '';
+    navigator.clipboard.writeText(text).then(() => {
         btn.textContent = '✓';
         btn.classList.add('copied');
         setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
     }).catch(() => {
-        field.select();
+        // Fallback: select and copy
+        const range = document.createRange();
+        range.selectNodeContents(field);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
         document.execCommand('copy');
+        sel.removeAllRanges();
         btn.textContent = '✓';
         btn.classList.add('copied');
         setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
@@ -3471,11 +3453,11 @@ function copyMpField(fieldId, btn) {
 function copyAllMp(btn) {
     if (!mpCurrentPlatform) return;
     const platform = MP_PLATFORMS[mpCurrentPlatform];
-    const title = document.getElementById('mpTitle').value;
-    const desc = document.getElementById('mpDescription').value;
+    const title = document.getElementById('mpTitle').textContent || '';
+    const desc = document.getElementById('mpDescription').textContent || '';
     const buyNow = document.getElementById('mpBuyNow')?.textContent || '';
     const startPrice = document.getElementById('mpStartPrice')?.textContent || '';
-    const notes = platform?.hasNotes ? document.getElementById('mpShowNotes').value : '';
+    const notes = platform?.hasNotes ? (document.getElementById('mpShowNotes').textContent || '') : '';
 
     let allText = `Title: ${title}`;
     if (startPrice && platform?.startLabel) allText += `\n${platform.startLabel}: ${startPrice}`;
