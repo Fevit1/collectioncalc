@@ -3141,14 +3141,12 @@ async function createListing(publish) {
             </div>
 
             <!-- Photos -->
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                <label style="font-weight:600;font-size:0.9rem;margin:0;">Photos</label>
-                <button class="mp-download-photos-btn" id="mpDownloadAllPhotos" onclick="downloadAllMpPhotos()" style="display:none;">
+            <div style="margin-bottom:0.5rem;">
+                <button class="mp-download-photos-btn" id="mpDownloadAllPhotos" onclick="downloadAllMpPhotos()" style="display:none;width:100%;">
                     ⬇ Download All Photos
                 </button>
             </div>
             <div class="photo-downloads" id="mpPhotos"></div>
-            <div class="field-hint" id="mpPhotoHint" style="margin-top:-0.75rem;margin-bottom:1rem;">Save photos then upload to the platform</div>
 
             <!-- Debug strip (hidden — enable by setting display:block in console) -->
             <div id="mpDebugStrip" style="margin-top:1rem;padding:0.5rem;background:rgba(255,107,53,0.15);border:1px solid rgba(255,107,53,0.3);border-radius:6px;font-size:0.75rem;color:#ff6b35;font-family:monospace;display:none;word-break:break-all;"></div>
@@ -3298,9 +3296,9 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
     const fallbackDesc = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
     let fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
-    fallbackNotes += `\n• Slab Worthy Assessment #${mpComic.id}`;
     if (mpComic.registry_serial) {
-        fallbackNotes += `\n• Slab Guard Registered: ${mpComic.registry_serial}`;
+        fallbackNotes += `\n• Slab Guard Verified: ${mpComic.registry_serial}`;
+        fallbackNotes += `\n  Verify: ${API_URL}/api/verify/lookup/${mpComic.registry_serial}`;
     }
     console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'Desc:', fallbackDesc.substring(0, 50));
 
