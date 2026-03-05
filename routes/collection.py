@@ -24,13 +24,15 @@ def api_get_collection():
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, user_id, title, issue, publisher, year, grade, grade_label,
-               confidence, defects, photos, raw_value, slabbed_value, roi, verdict,
-               my_valuation, grading_id, is_slabbed, slab_cert_number, slab_company,
-               slab_grade, slab_label_type, created_at, updated_at
-        FROM collections 
-        WHERE user_id = %s 
-        ORDER BY created_at DESC
+        SELECT c.id, c.user_id, c.title, c.issue, c.publisher, c.year, c.grade, c.grade_label,
+               c.confidence, c.defects, c.photos, c.raw_value, c.slabbed_value, c.roi, c.verdict,
+               c.my_valuation, c.grading_id, c.is_slabbed, c.slab_cert_number, c.slab_company,
+               c.slab_grade, c.slab_label_type, c.created_at, c.updated_at,
+               cr.serial_number AS registry_serial
+        FROM collections c
+        LEFT JOIN comic_registry cr ON cr.comic_id = c.id
+        WHERE c.user_id = %s
+        ORDER BY c.created_at DESC
     """, (g.user_id,))
     items = cur.fetchall()
     cur.close()

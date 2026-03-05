@@ -8,7 +8,8 @@ import anthropic
 
 
 def generate_whatnot_content(title, issue, grade, price,
-                             publisher=None, year=None) -> dict:
+                             publisher=None, year=None,
+                             assessment_id=None, registry_serial=None) -> dict:
     """
     Generate Whatnot-optimized listing content and live show talking points.
 
@@ -43,7 +44,9 @@ def generate_whatnot_content(title, issue, grade, price,
             'success': True,
             'listing_title': listing_title,
             'description': _fallback_description(title, issue, grade_str),
-            'show_notes': _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
+            'show_notes': _append_sw_ids(
+                _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
+                assessment_id, registry_serial),
             'suggested_start': suggested_start,
             'suggested_buy_now': suggested_buy_now,
             'source': 'template'
@@ -110,6 +113,9 @@ SHOW_NOTES:
         if len(description) > 250:
             description = description[:247] + "..."
 
+        # Append Slab Worthy IDs to show notes
+        show_notes = _append_sw_ids(show_notes, assessment_id, registry_serial)
+
         return {
             'success': True,
             'listing_title': listing_title,
@@ -126,7 +132,9 @@ SHOW_NOTES:
             'success': True,
             'listing_title': listing_title,
             'description': _fallback_description(title, issue, grade_str),
-            'show_notes': _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
+            'show_notes': _append_sw_ids(
+                _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
+                assessment_id, registry_serial),
             'suggested_start': suggested_start,
             'suggested_buy_now': suggested_buy_now,
             'source': 'template',
@@ -157,3 +165,12 @@ def _fallback_show_notes(title, issue, grade, fmv, publisher=None, year=None):
         notes.append(f"• FMV: ${fmv:.2f} based on recent sales data")
     notes.append("• Low start — let the bidders decide the price!")
     return "\n".join(notes)
+
+
+def _append_sw_ids(show_notes, assessment_id=None, registry_serial=None):
+    """Append Slab Worthy assessment and registry IDs to show notes."""
+    if assessment_id:
+        show_notes += f"\n• Slab Worthy Assessment #{assessment_id}"
+    if registry_serial:
+        show_notes += f"\n• Slab Guard Registered: {registry_serial}"
+    return show_notes

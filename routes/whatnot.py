@@ -38,11 +38,13 @@ def api_whatnot_generate_content():
     price = data.get('price', 0)
     publisher = data.get('publisher')
     year = data.get('year')
+    assessment_id = data.get('assessment_id')
+    registry_serial = data.get('registry_serial')
 
     if not title:
         return jsonify({'success': False, 'error': 'Comic title is required'}), 400
 
-    print(f"[Whatnot] Generating content for: {title} #{issue} grade={grade} price={price}")
+    print(f"[Whatnot] Generating content for: {title} #{issue} grade={grade} price={price} assessment={assessment_id} registry={registry_serial}")
 
     result = generate_whatnot_content(
         title=title,
@@ -50,7 +52,9 @@ def api_whatnot_generate_content():
         grade=grade,
         price=price,
         publisher=publisher,
-        year=year
+        year=year,
+        assessment_id=assessment_id,
+        registry_serial=registry_serial
     )
 
     print(f"[Whatnot] Result: success={result.get('success')}, source={result.get('source')}, ai_error={result.get('ai_error', 'none')}")

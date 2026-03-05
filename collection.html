@@ -2853,14 +2853,23 @@ async function createListing(publish) {
         padding: 1.5rem;
         border-top: 1px solid rgba(124, 58, 237, 0.3);
         display: flex;
-        gap: 1rem;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
         align-items: center;
     }
+    .mp-modal-footer .mp-footer-buttons {
+        display: flex;
+        gap: 0.75rem;
+        width: 100%;
+        justify-content: flex-end;
+    }
     .mp-paste-hint {
+        width: 100%;
         font-size: 0.75rem;
         color: var(--text-muted);
-        flex: 1;
+        text-align: center;
+        line-height: 1.4;
     }
 
     /* Copyable field */
@@ -3039,6 +3048,21 @@ async function createListing(publish) {
     .btn-copy-all.copied {
         background: linear-gradient(135deg, #10b981, #059669);
     }
+    .mp-download-photos-btn {
+        background: rgba(124, 58, 237, 0.2);
+        border: 1px solid rgba(124, 58, 237, 0.4);
+        color: #a78bfa;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .mp-download-photos-btn:hover {
+        background: rgba(124, 58, 237, 0.35);
+        transform: translateY(-1px);
+    }
 
     /* AI status for marketplace prep */
     .mp-ai-status {
@@ -3117,20 +3141,27 @@ async function createListing(publish) {
             </div>
 
             <!-- Photos -->
-            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Photos</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                <label style="font-weight:600;font-size:0.9rem;margin:0;">Photos</label>
+                <button class="mp-download-photos-btn" id="mpDownloadAllPhotos" onclick="downloadAllMpPhotos()" style="display:none;">
+                    ⬇ Download All Photos
+                </button>
+            </div>
             <div class="photo-downloads" id="mpPhotos"></div>
-            <div class="field-hint" id="mpPhotoHint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click > Save Image, then upload to the platform</div>
+            <div class="field-hint" id="mpPhotoHint" style="margin-top:-0.75rem;margin-bottom:1rem;">Save photos then upload to the platform</div>
 
-            <!-- Debug strip (TEMPORARY — remove after confirming fields work) -->
+            <!-- Debug strip (hidden — enable by setting display:block in console) -->
             <div id="mpDebugStrip" style="margin-top:1rem;padding:0.5rem;background:rgba(255,107,53,0.15);border:1px solid rgba(255,107,53,0.3);border-radius:6px;font-size:0.75rem;color:#ff6b35;font-family:monospace;display:none;word-break:break-all;"></div>
         </div>
 
         <div class="mp-modal-footer">
+            <div class="mp-footer-buttons">
+                <button class="btn-secondary" onclick="closeMarketplaceModal()">Close</button>
+                <button class="btn-copy-all" id="mpCopyAllBtn" onclick="copyAllMp(this)">
+                    📋 Copy All
+                </button>
+            </div>
             <div class="mp-paste-hint" id="mpPasteHint"></div>
-            <button class="btn-secondary" onclick="closeMarketplaceModal()">Close</button>
-            <button class="btn-copy-all" id="mpCopyAllBtn" onclick="copyAllMp(this)">
-                📋 Copy All
-            </button>
         </div>
     </div>
 </div>
@@ -3249,6 +3280,11 @@ async function openMarketplacePrepModal(comicId, platformKey) {
         return `<div class="photo-download-item no-photo">${p.name}: N/A</div>`;
     }).join('');
 
+    // Show/hide Download All Photos button
+    const hasPhotos = photoSlots.some(p => p.url);
+    const dlBtn = document.getElementById('mpDownloadAllPhotos');
+    if (dlBtn) dlBtn.style.display = hasPhotos ? 'inline-block' : 'none';
+
     // Paste instructions
     document.getElementById('mpPasteHint').textContent = MP_PASTE_HINTS[platformKey] || '';
     document.getElementById('mpPhotoHint').textContent = `Right-click > Save Image, then upload to ${platform.name}`;
@@ -3261,7 +3297,11 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
     const fallbackDesc = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
-    const fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+    let fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+    fallbackNotes += `\n• Slab Worthy Assessment #${mpComic.id}`;
+    if (mpComic.registry_serial) {
+        fallbackNotes += `\n• Slab Guard Registered: ${mpComic.registry_serial}`;
+    }
     console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'Desc:', fallbackDesc.substring(0, 50));
 
     // Helper: set content on contenteditable div fields
@@ -3302,7 +3342,7 @@ async function openMarketplacePrepModal(comicId, platformKey) {
         // Show debug strip (TEMPORARY)
         const dbg = document.getElementById('mpDebugStrip');
         if (dbg) {
-            dbg.style.display = 'block';
+            // dbg.style.display = 'block';  // Hidden for now — enable for debugging
             dbg.textContent = `DEBUG: Title[${tVal.length}]="${tVal.substring(0,30)}" | Desc[${dVal.length}]="${dVal.substring(0,30)}" | Notes[${nVal.length}]="${nVal.substring(0,30)}"`;
         }
     });
@@ -3336,9 +3376,10 @@ async function generateMarketplaceContent(platformKey) {
             ? `${API_URL}/api/whatnot/generate-content`
             : `${API_URL}/api/marketplace/generate-content`;
 
+        const basePayload = { title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, price: fmv, publisher: mpComic.publisher, year: mpComic.year, assessment_id: mpComic.id, registry_serial: mpComic.registry_serial || null };
         const payload = platformKey === 'whatnot'
-            ? { title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, price: fmv, publisher: mpComic.publisher, year: mpComic.year }
-            : { platform: platformKey, title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, price: fmv, publisher: mpComic.publisher, year: mpComic.year };
+            ? basePayload
+            : { ...basePayload, platform: platformKey };
 
         console.log(`[MP] POST ${endpoint}`, JSON.stringify(payload));
 
@@ -3486,6 +3527,48 @@ function copyAllMp(btn) {
         btn.classList.add('copied');
         setTimeout(() => { btn.textContent = '📋 Copy All'; btn.classList.remove('copied'); }, 2500);
     });
+}
+
+async function downloadAllMpPhotos() {
+    if (!mpComic) return;
+    const photos = mpComic.photos || {};
+    const slots = [
+        { name: 'front', url: photos.front },
+        { name: 'spine', url: photos.spine },
+        { name: 'back', url: photos.back },
+        { name: 'centerfold', url: photos.centerfold }
+    ].filter(p => p.url);
+
+    if (!slots.length) { alert('No photos available'); return; }
+
+    const btn = document.getElementById('mpDownloadAllPhotos');
+    const origText = btn.textContent;
+    btn.textContent = `⬇ Downloading ${slots.length}...`;
+    btn.disabled = true;
+
+    const comicSlug = `${mpComic.title}_${mpComic.issue || ''}`.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+
+    for (const photo of slots) {
+        try {
+            const resp = await fetch(photo.url);
+            const blob = await resp.blob();
+            const ext = photo.url.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${comicSlug}_${photo.name}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            // Small delay between downloads so browser doesn't block them
+            await new Promise(r => setTimeout(r, 300));
+        } catch (e) {
+            console.error(`[MP] Failed to download ${photo.name}:`, e);
+        }
+    }
+
+    btn.textContent = '✓ Downloaded!';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
 }
 </script>
 
