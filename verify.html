@@ -738,9 +738,9 @@
             comicDetails.innerHTML = detailsHTML;
             resultCard.classList.add('show');
 
-            // Show "Report a Sighting" section for active or stolen comics
+            // Show "Report a Sighting" section only for stolen comics
             const sightingSection = document.getElementById('sightingSection');
-            if (data.status === 'active' || data.status === 'reported_stolen') {
+            if (data.status === 'reported_stolen') {
                 sightingSection.classList.add('show');
                 // Store serial for the sighting form
                 sightingSection.dataset.serial = data.serial_number;

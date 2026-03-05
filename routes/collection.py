@@ -28,7 +28,9 @@ def api_get_collection():
                c.confidence, c.defects, c.photos, c.raw_value, c.slabbed_value, c.roi, c.verdict,
                c.my_valuation, c.grading_id, c.is_slabbed, c.slab_cert_number, c.slab_company,
                c.slab_grade, c.slab_label_type, c.created_at, c.updated_at,
-               cr.serial_number AS registry_serial
+               cr.serial_number AS registry_serial,
+               cr.status AS registry_status,
+               cr.registration_date AS registry_date
         FROM collections c
         LEFT JOIN comic_registry cr ON cr.comic_id = c.id
         WHERE c.user_id = %s

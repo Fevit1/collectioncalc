@@ -75,10 +75,16 @@ def watermark_image(image_url, serial_number):
     """Add visible watermark to cover photo"""
     import requests
     from io import BytesIO
+    from PIL import ImageOps
 
     # Download image
     response = requests.get(image_url, timeout=10)
-    img = PIL_Image.open(BytesIO(response.content)).convert('RGBA')
+    img = PIL_Image.open(BytesIO(response.content))
+
+    # Auto-orient based on EXIF rotation tag (fixes rotated phone photos)
+    img = ImageOps.exif_transpose(img)
+
+    img = img.convert('RGBA')
 
     # Create overlay layer
     txt_layer = PIL_Image.new('RGBA', img.size, (255, 255, 255, 0))

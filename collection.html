@@ -845,6 +845,68 @@
             margin-top: 1rem;
         }
 
+        /* Register / Report Stolen buttons */
+        .action-btn.register-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            white-space: nowrap;
+        }
+        .action-btn.register-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .action-btn.report-stolen-btn {
+            background: linear-gradient(135deg, #f59e0b, #dc2626);
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            white-space: nowrap;
+        }
+        .action-btn.report-stolen-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        .action-btn.mark-recovered-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            white-space: nowrap;
+        }
+        .action-btn.mark-recovered-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .registry-status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .registry-status-badge.stolen {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .registry-status-badge.recovered {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .registry-status-badge.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+        }
+
         /* Export Button */
         .export-btn {
             background: var(--brand-indigo);
@@ -1377,6 +1439,7 @@
                             />
                         </div>
                         <div class="comic-actions">
+                            ${guardButton(comic)}
                             <div class="sell-dropdown-wrapper">
                                 <button class="action-btn sell-btn" onclick="toggleSellDropdown(event, ${comic.id})">
                                     Sell ▾
@@ -1449,6 +1512,7 @@
                                 />
                             </div>
                             <div class="detail-actions">
+                                ${guardButton(comic, true)}
                                 <div class="sell-dropdown-wrapper">
                                     <button class="action-btn sell-btn" onclick="event.stopPropagation(); toggleSellDropdown(event, ${comic.id})">
                                         Sell ▾
@@ -1695,6 +1759,94 @@
                 openEbayListingModal(comicId);
             } else if (action === 'prep') {
                 openMarketplacePrepModal(comicId, platformKey);
+            }
+        }
+
+        // Guard button helper — renders Register, Report Stolen, or Mark Recovered
+        function guardButton(comic, stopProp) {
+            const sp = stopProp ? 'event.stopPropagation(); ' : '';
+            if (!comic.registry_serial) {
+                return `<button class="action-btn register-btn" onclick="${sp}registerComic(${comic.id})">🛡️ Register</button>`;
+            }
+            if (comic.registry_status === 'active') {
+                return `<button class="action-btn report-stolen-btn" onclick="${sp}reportStolenComic(${comic.id})">🚨 Report Stolen</button>`;
+            }
+            if (comic.registry_status === 'reported_stolen') {
+                return `<span class="registry-status-badge stolen">🚨 Stolen</span>
+                        <button class="action-btn mark-recovered-btn" onclick="${sp}markRecoveredComic(${comic.id})">✅ Recovered</button>`;
+            }
+            if (comic.registry_status === 'recovered') {
+                return `<span class="registry-status-badge recovered">✅ Recovered</span>`;
+            }
+            return '';
+        }
+
+        async function registerComic(comicId) {
+            try {
+                const token = localStorage.getItem('cc_token');
+                const response = await fetch(`${API_URL}/api/registry/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ comic_id: comicId })
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    if (data.quality_failed) {
+                        alert(`Photo quality issue: ${data.error}\n\nTips:\n${(data.photo_quality?.tips || []).join('\n')}`);
+                    } else if (data.upgrade_required) {
+                        alert(data.error);
+                        if (data.upgrade_url) window.location.href = data.upgrade_url;
+                    } else {
+                        alert(`Registration failed: ${data.error}`);
+                    }
+                    return;
+                }
+
+                alert(`Registered with Slab Guard!\n\nSerial: ${data.serial_number}\nConfidence: ${data.confidence_score}%`);
+                await loadCollection();
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Failed to register comic. Please try again.');
+            }
+        }
+
+        async function reportStolenComic(comicId) {
+            if (!confirm('Report this comic as stolen?\n\nSlab Guard will actively monitor marketplaces for it.')) return;
+            try {
+                const token = localStorage.getItem('cc_token');
+                const response = await fetch(`${API_URL}/api/registry/report-stolen/${comicId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (!data.success) { alert(`Failed: ${data.error}`); return; }
+                alert(`Comic reported as stolen.\n\nSerial: ${data.serial_number}\nSlab Guard is now monitoring.`);
+                await loadCollection();
+            } catch (error) {
+                console.error('Report stolen error:', error);
+                alert('Failed to report comic as stolen. Please try again.');
+            }
+        }
+
+        async function markRecoveredComic(comicId) {
+            if (!confirm('Mark this comic as recovered?')) return;
+            try {
+                const token = localStorage.getItem('cc_token');
+                const response = await fetch(`${API_URL}/api/registry/mark-recovered/${comicId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (!data.success) { alert(`Failed: ${data.error}`); return; }
+                alert(`Comic marked as recovered! Glad you got it back.`);
+                await loadCollection();
+            } catch (error) {
+                console.error('Mark recovered error:', error);
+                alert('Failed to mark comic as recovered. Please try again.');
             }
         }
 

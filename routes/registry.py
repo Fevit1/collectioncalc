@@ -904,3 +904,130 @@ def get_registration_status(comic_id):
         if conn:
             cur.close()
             conn.close()
+
+
+@registry_bp.route('/report-stolen/<int:comic_id>', methods=['POST'])
+@require_auth
+@require_approved
+def report_comic_stolen(comic_id):
+    """Mark a registered comic as reported stolen. Only the owner can do this."""
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+
+        # Verify comic is registered to this user
+        cur.execute("""
+            SELECT cr.id, cr.status, cr.serial_number
+            FROM comic_registry cr
+            WHERE cr.comic_id = %s AND cr.user_id = %s
+        """, (comic_id, g.user_id))
+
+        result = cur.fetchone()
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': 'Comic not found or not registered'
+            }), 404
+
+        registry_id, current_status, serial_number = result
+
+        if current_status != 'active':
+            return jsonify({
+                'success': False,
+                'error': f'Only active registrations can be reported stolen. Current status: {current_status}'
+            }), 400
+
+        cur.execute("""
+            UPDATE comic_registry
+            SET status = 'reported_stolen',
+                reported_stolen_date = NOW()
+            WHERE id = %s
+            RETURNING serial_number, reported_stolen_date
+        """, (registry_id,))
+
+        updated = cur.fetchone()
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'serial_number': updated[0],
+            'reported_stolen_date': updated[1].isoformat(),
+            'message': 'Comic reported as stolen. Slab Guard is now actively monitoring for this comic.'
+        })
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Report stolen error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+
+@registry_bp.route('/mark-recovered/<int:comic_id>', methods=['POST'])
+@require_auth
+@require_approved
+def mark_comic_recovered(comic_id):
+    """Mark a stolen comic as recovered. Only the owner can do this."""
+    database_url = os.environ.get('DATABASE_URL')
+    conn = None
+
+    try:
+        conn = psycopg2.connect(database_url)
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT cr.id, cr.status, cr.serial_number
+            FROM comic_registry cr
+            WHERE cr.comic_id = %s AND cr.user_id = %s
+        """, (comic_id, g.user_id))
+
+        result = cur.fetchone()
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': 'Comic not found or not registered'
+            }), 404
+
+        registry_id, current_status, serial_number = result
+
+        if current_status != 'reported_stolen':
+            return jsonify({
+                'success': False,
+                'error': f'Only stolen comics can be marked as recovered. Current status: {current_status}'
+            }), 400
+
+        cur.execute("""
+            UPDATE comic_registry
+            SET status = 'recovered',
+                recovery_date = NOW()
+            WHERE id = %s
+            RETURNING serial_number, recovery_date
+        """, (registry_id,))
+
+        updated = cur.fetchone()
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'serial_number': updated[0],
+            'recovery_date': updated[1].isoformat(),
+            'message': 'Comic marked as recovered. Glad you got it back!'
+        })
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Mark recovered error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
