@@ -27,6 +27,7 @@ def init_modules(gen_content_func):
 def api_whatnot_generate_content():
     """Generate Whatnot-optimized listing content and show prep notes."""
     if not generate_whatnot_content:
+        print("[Whatnot] generate_whatnot_content module not available!")
         return jsonify({'success': False, 'error': 'Whatnot module not available'}), 503
 
     data = request.get_json() or {}
@@ -41,6 +42,8 @@ def api_whatnot_generate_content():
     if not title:
         return jsonify({'success': False, 'error': 'Comic title is required'}), 400
 
+    print(f"[Whatnot] Generating content for: {title} #{issue} grade={grade} price={price}")
+
     result = generate_whatnot_content(
         title=title,
         issue=issue,
@@ -50,4 +53,5 @@ def api_whatnot_generate_content():
         year=year
     )
 
+    print(f"[Whatnot] Result: success={result.get('success')}, source={result.get('source')}, ai_error={result.get('ai_error', 'none')}")
     return jsonify(result)

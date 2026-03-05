@@ -58,25 +58,27 @@ def generate_whatnot_content(title, issue, grade, price,
         if year:
             comic_info += f" - {year}"
 
-        prompt = f"""Generate TWO pieces of content for a Whatnot live auction listing for this comic book.
+        prompt = f"""Generate content for a Whatnot live auction listing for this comic book. Whatnot is a live-streaming marketplace where sellers present items on camera. Content should be energetic and drive bidding.
 
 Comic: {comic_info}
 Grade: {grade_str or 'Unknown'}
 FMV: ${fmv:.2f}
 
-PIECE 1 — LISTING DESCRIPTION (target 100-150 characters):
-Short, punchy description for the Whatnot listing card. Energy and hype appropriate for live auctions.
-Include: KEY ISSUE status if applicable, era, why it's collectible.
-Exclude: grade, price, title (shown separately), shipping info.
-Plain text only, no HTML.
+PIECE 1 — LISTING DESCRIPTION (100-150 characters):
+This appears on the listing card in the Whatnot app before the live show starts. Keep it short and punchy.
+- Lead with what makes this book special (KEY ISSUE, first appearance, iconic cover, etc.)
+- Use language that creates urgency/excitement for collectors
+- Do NOT include: grade, price, title (shown separately), shipping info
+- Plain text only, no HTML or hashtags
 
-PIECE 2 — SHOW PREP NOTES (target 200-300 characters):
-Talking points the seller can reference during their live stream. Written as bullet-style notes.
+PIECE 2 — SHOW PREP NOTES (200-400 characters):
+Talking points the seller reads during their live stream while showing the book on camera. Written as bullet-style notes starting with "•".
 Include:
-- What makes this comic special (first appearance, key creator, major event)
-- Recent sales context ("Recent sales in this grade range: $X-$Y")
-- One-liner hook to hype bidders
-Format as short lines separated by newlines, starting with "•"
+- What makes this comic special (first appearance, key creator run, major storyline event, iconic cover artist)
+- Why collectors want this book specifically
+- Suggested opening line to hype bidders (e.g., "Alright who needs this for their run...")
+- Any notable recent market movement or demand context
+Do NOT fabricate specific sales prices — keep market references general (e.g., "hot book right now", "always in demand").
 
 Respond in this exact format:
 DESCRIPTION: [your description]
@@ -85,7 +87,7 @@ SHOW_NOTES:
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=400,
+            max_tokens=600,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -104,9 +106,9 @@ SHOW_NOTES:
             description = text[:150]
             show_notes = _fallback_show_notes(title, issue, grade_str, fmv, publisher, year)
 
-        # Clean up description
-        if len(description) > 200:
-            description = description[:197] + "..."
+        # Clean up description (Whatnot listing cards support ~150 chars)
+        if len(description) > 250:
+            description = description[:247] + "..."
 
         return {
             'success': True,

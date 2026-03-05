@@ -3270,29 +3270,39 @@ async function generateMarketplaceContent(platformKey) {
     aiStatus.style.display = 'flex';
     aiStatus.className = 'mp-ai-status generating';
     aiText.textContent = `Generating ${platform.name} content with AI...`;
+    console.log(`[MP] Generating content for ${platformKey}...`);
 
     try {
         const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
 
-        const response = await fetch(`${API_URL}/api/marketplace/generate-content`, {
+        // Use dedicated Whatnot endpoint for better content; generic marketplace for others
+        const endpoint = platformKey === 'whatnot'
+            ? `${API_URL}/api/whatnot/generate-content`
+            : `${API_URL}/api/marketplace/generate-content`;
+
+        const payload = platformKey === 'whatnot'
+            ? { title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, price: fmv, publisher: mpComic.publisher, year: mpComic.year }
+            : { platform: platformKey, title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, price: fmv, publisher: mpComic.publisher, year: mpComic.year };
+
+        console.log(`[MP] POST ${endpoint}`, JSON.stringify(payload));
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                platform: platformKey,
-                title: mpComic.title,
-                issue: mpComic.issue,
-                grade: mpComic.grade,
-                price: fmv,
-                publisher: mpComic.publisher,
-                year: mpComic.year
-            })
+            body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        console.log(`[MP] Response status: ${response.status}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[MP] Error response body:`, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
         const data = await response.json();
+        console.log(`[MP] Response data:`, JSON.stringify(data).substring(0, 500));
 
         if (data.success) {
             document.getElementById('mpTitle').value = data.listing_title || '';
@@ -3316,16 +3326,17 @@ async function generateMarketplaceContent(platformKey) {
                 buyEl.textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
             }
 
+            const sourceLabel = data.source === 'ai' ? '✓ AI content generated' : '✓ Content ready (template)';
             aiStatus.className = 'mp-ai-status success';
-            aiText.textContent = '✓ Content generated';
-            setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
+            aiText.textContent = sourceLabel;
+            setTimeout(() => { aiStatus.style.display = 'none'; }, 4000);
         } else {
             throw new Error(data.error || 'Generation failed');
         }
     } catch (error) {
-        console.error(`${platform.name} content generation error:`, error);
+        console.error(`[MP] ${platform.name} content generation error:`, error);
         aiStatus.className = 'mp-ai-status error';
-        aiText.textContent = '✗ AI unavailable — edit the pre-filled content below';
+        aiText.innerHTML = `✗ AI unavailable — edit below or <a href="#" onclick="event.preventDefault(); generateMarketplaceContent('${platformKey}')" style="color:#ff6b35;text-decoration:underline;">retry</a>`;
         // Fallback content was already pre-populated in openMarketplacePrepModal
     }
 }
