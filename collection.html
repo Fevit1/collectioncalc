@@ -2884,12 +2884,14 @@ async function createListing(publish) {
     .mp-modal .form-input,
     .mp-modal-body input.form-input,
     .mp-modal-body textarea.form-input,
-    #mpTitle, #mpDescription, #mpShowNotes {
+    input#mpTitle, textarea#mpDescription, textarea#mpShowNotes {
         flex: 1;
+        display: block !important;
+        visibility: visible !important;
         width: 100%;
-        padding: 0.75rem;
+        padding: 0.75rem !important;
         background: #1a1a2e !important;
-        border: 1px solid rgba(255, 107, 53, 0.3);
+        border: 1px solid rgba(255, 107, 53, 0.3) !important;
         border-radius: 8px;
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
@@ -2897,28 +2899,32 @@ async function createListing(publish) {
         line-height: 1.5 !important;
         opacity: 1 !important;
         -webkit-opacity: 1 !important;
-        overflow: visible;
+        font-family: 'Inter', -apple-system, sans-serif !important;
+    }
+    input#mpTitle {
+        min-height: 44px !important;
+        height: auto !important;
     }
     .copyable-field textarea.form-input,
     textarea#mpDescription, textarea#mpShowNotes {
-        min-height: 80px;
+        min-height: 90px !important;
         max-height: 200px;
+        height: auto !important;
         resize: vertical;
-        font-family: 'Inter', -apple-system, sans-serif;
-        overflow: auto !important;
+        overflow-y: auto !important;
         overflow-x: hidden !important;
         scrollbar-width: thin;
-        scrollbar-color: rgba(255,107,53,0.3) transparent;
+        scrollbar-color: rgba(255,107,53,0.4) rgba(255,255,255,0.05);
     }
     .copyable-field textarea.form-input::-webkit-scrollbar,
     textarea#mpDescription::-webkit-scrollbar,
-    textarea#mpShowNotes::-webkit-scrollbar { width: 4px; }
+    textarea#mpShowNotes::-webkit-scrollbar { width: 6px; }
     .copyable-field textarea.form-input::-webkit-scrollbar-track,
     textarea#mpDescription::-webkit-scrollbar-track,
-    textarea#mpShowNotes::-webkit-scrollbar-track { background: transparent; }
+    textarea#mpShowNotes::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
     .copyable-field textarea.form-input::-webkit-scrollbar-thumb,
     textarea#mpDescription::-webkit-scrollbar-thumb,
-    textarea#mpShowNotes::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.4); border-radius: 2px; }
+    textarea#mpShowNotes::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.5); border-radius: 3px; }
     .copyable-field .form-input:focus,
     .mp-modal .form-input:focus {
         outline: none;
@@ -3115,6 +3121,9 @@ async function createListing(publish) {
             <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Photos</label>
             <div class="photo-downloads" id="mpPhotos"></div>
             <div class="field-hint" id="mpPhotoHint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click > Save Image, then upload to the platform</div>
+
+            <!-- Debug strip (TEMPORARY — remove after confirming fields work) -->
+            <div id="mpDebugStrip" style="margin-top:1rem;padding:0.5rem;background:rgba(255,107,53,0.15);border:1px solid rgba(255,107,53,0.3);border-radius:6px;font-size:0.75rem;color:#ff6b35;font-family:monospace;display:none;word-break:break-all;"></div>
         </div>
 
         <div class="mp-modal-footer">
@@ -3252,25 +3261,33 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     // Pre-populate with fallback content immediately (never leave fields empty)
     const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
-    console.log('[MP] Pre-populating fields. Comic:', JSON.stringify({title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, publisher: mpComic.publisher, year: mpComic.year, photos: mpPhotos, fmv}));
+    const fallbackDesc = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
+    const fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+    console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'Desc:', fallbackDesc.substring(0, 50));
 
-    // Force text visibility on all form fields (nuclear approach — CSS specificity wars)
-    const mpFields = ['mpTitle', 'mpDescription', 'mpShowNotes'];
-    mpFields.forEach(id => {
+    // Helper: force-set a field value with maximum CSS visibility
+    function mpSetField(id, val) {
         const el = document.getElementById(id);
-        if (el) {
-            el.style.setProperty('color', '#ffffff', 'important');
-            el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-            el.style.setProperty('background', '#1a1a2e', 'important');
-            el.style.setProperty('opacity', '1', 'important');
-        }
-    });
-
-    document.getElementById('mpTitle').value = fallbackTitle;
-    document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
-    if (platform.hasNotes) {
-        document.getElementById('mpShowNotes').value = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+        if (!el) { console.error('[MP] Element not found:', id); return; }
+        el.value = val;
+        el.setAttribute('value', val);  // also set HTML attribute
+        el.style.setProperty('color', '#ffffff', 'important');
+        el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+        el.style.setProperty('background', '#1a1a2e', 'important');
+        el.style.setProperty('opacity', '1', 'important');
+        el.style.setProperty('font-size', '1rem', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
+        el.style.setProperty('height', 'auto', 'important');
+        el.style.setProperty('min-height', id === 'mpTitle' ? '44px' : '80px', 'important');
+        console.log(`[MP] Set ${id} = "${val.substring(0, 40)}..." (length=${val.length})`);
     }
+
+    mpSetField('mpTitle', fallbackTitle);
+    mpSetField('mpDescription', fallbackDesc);
+    if (platform.hasNotes) {
+        mpSetField('mpShowNotes', fallbackNotes);
+    }
+
     const preStartEl = document.getElementById('mpStartPrice');
     if (preStartEl) preStartEl.textContent = platformKey === 'whatnot' ? '$0.99' : `$${(fmv * 0.5).toFixed(2)}`;
     const preBuyEl = document.getElementById('mpBuyNow');
@@ -3279,7 +3296,27 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     // Show modal
     document.getElementById('mpModalOverlay').classList.add('active');
 
-    // Try AI generation (will overwrite fallback content on success)
+    // Verify fields have content after render (debug)
+    requestAnimationFrame(() => {
+        const t = document.getElementById('mpTitle');
+        const d = document.getElementById('mpDescription');
+        const n = document.getElementById('mpShowNotes');
+        const tVal = t?.value || '(empty)';
+        const dVal = d?.value || '(empty)';
+        const nVal = n?.value || '(empty)';
+        console.log(`[MP] Post-render check: title="${tVal}", desc="${dVal.substring(0,40)}"`);
+        if (t && !t.value) { t.value = fallbackTitle; console.warn('[MP] Title was empty after render, re-set'); }
+        if (d && !d.value) { d.value = fallbackDesc; console.warn('[MP] Desc was empty after render, re-set'); }
+
+        // Show debug strip (TEMPORARY)
+        const dbg = document.getElementById('mpDebugStrip');
+        if (dbg) {
+            dbg.style.display = 'block';
+            dbg.textContent = `DEBUG: Title[${tVal.length}]="${tVal.substring(0,30)}" | Desc[${dVal.length}]="${dVal.substring(0,30)}" | Notes[${nVal.length}]="${nVal.substring(0,30)}"`;
+        }
+    });
+
+    // Try AI generation (will overwrite fallback content ONLY if it returns real content)
     generateMarketplaceContent(platformKey);
 }
 
@@ -3337,11 +3374,22 @@ async function generateMarketplaceContent(platformKey) {
             const descEl = document.getElementById('mpDescription');
             const notesEl = document.getElementById('mpShowNotes');
 
-            titleEl.value = data.listing_title || '';
-            descEl.value = data.description || '';
-
-            if (platform.hasNotes && data.show_notes) {
+            // ONLY overwrite if API returned actual content (never clear fallback with empty)
+            if (data.listing_title && data.listing_title.trim()) {
+                titleEl.value = data.listing_title;
+                console.log('[MP] AI title set:', data.listing_title);
+            } else {
+                console.warn('[MP] API returned empty listing_title, keeping fallback');
+            }
+            if (data.description && data.description.trim()) {
+                descEl.value = data.description;
+                console.log('[MP] AI desc set:', data.description.substring(0, 50));
+            } else {
+                console.warn('[MP] API returned empty description, keeping fallback');
+            }
+            if (platform.hasNotes && data.show_notes && data.show_notes.trim()) {
                 notesEl.value = data.show_notes;
+                console.log('[MP] AI notes set:', data.show_notes.substring(0, 50));
             }
 
             // Force text visibility after AI content update
@@ -3349,6 +3397,8 @@ async function generateMarketplaceContent(platformKey) {
                 if (el) {
                     el.style.setProperty('color', '#ffffff', 'important');
                     el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+                    el.style.setProperty('visibility', 'visible', 'important');
+                    el.style.setProperty('opacity', '1', 'important');
                 }
             });
 
@@ -3370,6 +3420,12 @@ async function generateMarketplaceContent(platformKey) {
             aiStatus.className = 'mp-ai-status success';
             aiText.textContent = sourceLabel;
             setTimeout(() => { aiStatus.style.display = 'none'; }, 4000);
+
+            // Update debug strip after AI content
+            const dbg2 = document.getElementById('mpDebugStrip');
+            if (dbg2) {
+                dbg2.textContent = `DEBUG (${data.source}): Title[${titleEl.value.length}]="${titleEl.value.substring(0,30)}" | Desc[${descEl.value.length}]="${descEl.value.substring(0,30)}"`;
+            }
         } else {
             throw new Error(data.error || 'Generation failed');
         }
@@ -3378,6 +3434,13 @@ async function generateMarketplaceContent(platformKey) {
         aiStatus.className = 'mp-ai-status error';
         aiText.innerHTML = `✗ AI unavailable — edit below or <a href="#" onclick="event.preventDefault(); generateMarketplaceContent('${platformKey}')" style="color:#ff6b35;text-decoration:underline;">retry</a>`;
         // Fallback content was already pre-populated in openMarketplacePrepModal
+        // Update debug strip on error
+        const dbg3 = document.getElementById('mpDebugStrip');
+        const tEl = document.getElementById('mpTitle');
+        const dEl = document.getElementById('mpDescription');
+        if (dbg3) {
+            dbg3.textContent = `DEBUG (error: ${error.message.substring(0,40)}): Title[${tEl?.value?.length}]="${tEl?.value?.substring(0,30)}" | Desc[${dEl?.value?.length}]="${dEl?.value?.substring(0,30)}"`;
+        }
     }
 }
 
