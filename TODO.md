@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 4, 2026 (Session 75)
+**Updated:** March 5, 2026 (Session 77)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
 **Soft Launch:** July 21, 2026 (~21 weeks out)
 **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -13,8 +13,15 @@
 
 ---
 
-## ✅ DONE (Session 64-74)
+## ✅ DONE (Session 64-77)
 
+- [x] **Facebook page assets created** — Session 77: Profile pic (170px + 512px) with "$LAB WORTHY" in Bangers font, gold on dark circle. Cover photo (820x462) with comic-panel collage background, purple overlay, gold wordmark + tagline. Multiple iterations refined with user feedback.
+- [x] **FMV is_slabbed fix** — Session 76: Collection list always showed `raw_value` even for slabbed comics. Backend fix: added `is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type` to SELECT query in `collection.py`. Frontend fix: all 6 FMV references now check `comic.is_slabbed` to show `slabbed_value` or `raw_value` correctly. Labels show "FMV (Slabbed)" or "FMV (Raw)" in detail view.
+- [x] **Marketplace prep modal photo fix** — Session 76: Modal used flat properties (`mpComic.front_image`) but API returns nested `comic.photos.front`. Fixed 3 locations: preview image, photo grid slots, debug logging. All 8 non-eBay platforms (Whatnot, Mercari, Facebook, Heritage, ComicConnect, MyComicShop, COMC, Hip Comics) now populate photos correctly.
+- [x] **Favicon selected and deployed** — Session 76: Mike picked favicon from options page.
+- [x] **Deploy + verify** — Session 76: Code deployed to production.
+- [x] **CGC pricing update** — Session 76: Updated hardcoded CGC grading costs.
+- [x] **AI grading improvements** — Session 76: Grading consistency improved (needs continued testing).
 - [x] **First successful eBay listing published!** — Session 74: Fixed grade type crash (numeric grades like 8.5 crashed `.upper()`), added NUMERIC_TO_LETTER mapping for all CGC grades. Fixed eBay URL policy violation (removed external URL from description). Added KEY ISSUE detection in listing titles. Synced frontend editable title to backend. Fixed OAuth callback redirect to account.html. Added eBay Identity API username fetch. Fixed closeUserMenu null reference.
 - [x] **eBay listing image upload fixes** — Session 73: Fixed photo URL mismatch (currentComic.photos.* vs flat properties). Fixed CORS by switching to server-side R2 proxy fetch. Added sell.marketing OAuth scope. Added disconnect endpoint + Connected Accounts UI to account.html.
 - [x] **Test sidebar + footer across all pages** ✅ Session 73
@@ -76,23 +83,39 @@
   - Footer still renders on all public pages (index, login, faq, pricing, about, contact, etc.)
   - No CSS conflicts or layout breaks
 
-- [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️ ← **RESUME HERE**
+- [ ] **eBay listing end-to-end test** 👤⏱ 1 session ⚠️
   - ✅ OAuth flow working (Session 72)
   - ✅ Image upload via R2 proxy working (Session 73-74)
   - ✅ Fixed-price publish working — first listing live! (Session 74)
   - ✅ KEY ISSUE detection in titles working (Session 74)
   - ✅ AI description generation working (Session 74)
-  - ✅ eBay username root cause found & fixed (Session 75) — missing `commerce.identity.readonly` scope. Needs deploy + disconnect/reconnect to verify.
-  - 🔜 Pick new favicon (options in `favicon-options.html`)
+  - ✅ eBay username root cause found & fixed (Session 75)
+  - ✅ Favicon picked + deployed (Session 76)
   - 🔜 Test fixed-price draft listing
   - 🔜 Test auction listing (all field combos)
 
-- [ ] **Plan Whatnot integration** ⏱ 1 session
-  - Research Whatnot seller tools, API availability, common seller workflows
-  - Design "Prep for Whatnot" feature: title gen, description, suggested starting bid
-  - Copy-to-clipboard for pasting into Whatnot seller dashboard
-  - Whatnot has no public listing API — determine best UX approach
-  - 🔗 No blockers
+- [x] ~~**Multi-platform marketplace prep**~~ ✅ Session 76-78
+  - Whatnot, Mercari, Facebook, Heritage, ComicConnect, MyComicShop, COMC, Hip Comics
+  - AI content generation per platform via `/api/marketplace/generate-content`
+  - Dedicated Whatnot endpoint `/api/whatnot/generate-content` with live-auction-optimized prompts
+  - Photo population fixed (nested photos object)
+  - FMV display fixed (is_slabbed-aware pricing)
+  - Copy-to-clipboard for pasting into seller dashboards
+  - ✅ Session 78: Fixed invisible text bug — replaced input/textarea with contenteditable divs (WebKit rendering issue)
+  - ✅ Session 78: Fixed flex layout — copy buttons compact (36px), text fields full width
+  - ✅ Session 78: Added "Download All Photos" button (downloads front/spine/back/centerfold sequentially)
+  - ✅ Session 78: Added Slab Guard verification URL to show prep notes (if registered)
+  - ✅ Session 78: Collection API now includes registry_serial via LEFT JOIN to comic_registry
+  - ✅ Session 78: Cleaned up modal UI — removed redundant labels/hints, moved paste instructions below buttons
+
+- [ ] **Test marketplace prep on production** 👤⏱ 30 min ⚠️ ← **RESUME HERE**
+  - ✅ Whatnot text fields now populate and display correctly
+  - ✅ AI content generating (confirmed via debug strip)
+  - 🔜 Test Download All Photos button
+  - 🔜 Test Copy All clipboard
+  - 🔜 Verify Slab Guard serial appears for registered comics
+  - 🔜 Test Mercari, Facebook, Heritage platforms
+  - 🔜 Test with both raw and slabbed comics
 
 ### Testing ⚠️
 
@@ -206,6 +229,8 @@
   - 🔗 Depends on: valuation + grading working reliably
 
 - [ ] **Social media presence** 👤⏱ 1 session to set up, then ongoing
+  - ✅ Facebook page assets created (Session 77): profile pic + cover photo
+  - 🔜 Facebook page setup (working with Sonnet 4.6)
   - Instagram, Twitter/X, TikTok — batch content creation
   - Convention-focused: "We'll be at GalaxyCon" campaign
   - 🔗 Depends on: having polished demo screenshots/video
@@ -269,7 +294,7 @@
 
 ### Bugs to Fix
 - [x] ~~**eBay OAuth callback redirect**~~ ✅ Session 74 — now redirects to account.html
-- [ ] **eBay username shows as "user"** ⏱ 15 min — Backend backfill + frontend key fix (`data.ebay_username`) deployed in Session 74 but still showing "user". May need disconnect/reconnect to trigger Identity API call, or scope may be missing. Code is in place — just needs debugging.
+- [x] ~~**eBay username shows as "user"**~~ ✅ Session 75 — Root cause: missing `commerce.identity.readonly` scope. Fixed in `ebay_oauth.py`. Fallback changed to "Connected". Needs disconnect/reconnect after deploy to verify.
 - [ ] **Comic identification bug** ⏱ 1 session — Ghost Rider reboot vs original
 - [ ] **Auto-rotation steps 2-4** ⏱ 30 min — Code added but not working
 - [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API
@@ -324,14 +349,14 @@ WEEKS 17-25 (P4):          ▼
 
 ## Summary
 
-| Phase | Items | Est. Sessions | Calendar |
-|-------|-------|---------------|----------|
-| P0 — Credibility Fix | 3 | 2 sessions | Weeks 1-2 |
-| P1 — Collection & Selling | 4 | 3 sessions + eBay testing ⚠️ | Weeks 3-6 |
-| P2 — Launch Prep | 12 | 10 sessions + device testing ⚠️ | Weeks 7-16 |
-| P3 — Marketing | 5 | 5 sessions | Weeks 17-21 |
-| P4 — Booth Demo + GalaxyCon | 7 | 5 sessions + shopping 👤 | Weeks 17-25 |
-| P5 — Tech Debt | 4+7 | As time permits | Anytime |
-| **Total** | **37+** | **~25 sessions** | **25 weeks** |
+| Phase | Items | Est. Sessions | Calendar | Status |
+|-------|-------|---------------|----------|--------|
+| P0 — Credibility Fix | 3 | 2 sessions | Weeks 1-2 | ✅ COMPLETE |
+| P1 — Collection & Selling | 4 | 3 sessions + eBay testing ⚠️ | Weeks 3-6 | 🟡 eBay e2e + marketplace test remaining |
+| P2 — Launch Prep | 12 | 10 sessions + device testing ⚠️ | Weeks 7-16 | Upcoming |
+| P3 — Marketing | 5 | 5 sessions | Weeks 17-21 | 🟡 Facebook assets done, page setup in progress |
+| P4 — Booth Demo + GalaxyCon | 7 | 5 sessions + shopping 👤 | Weeks 17-25 | Not started |
+| P5 — Tech Debt | 3+7 | As time permits | Anytime | eBay username bug fixed |
+| **Total** | **37+** | **~25 sessions** | **25 weeks** | |
 
 **At ~1-2 sessions/week, this is tight but very doable.** The key is staying disciplined about P0 → P1 → P2 order and not getting pulled into P5 polish work before the core demo flow is bulletproof.

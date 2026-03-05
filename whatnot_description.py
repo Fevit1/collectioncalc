@@ -168,9 +168,8 @@ def _fallback_show_notes(title, issue, grade, fmv, publisher=None, year=None):
 
 
 def _append_sw_ids(show_notes, assessment_id=None, registry_serial=None):
-    """Append Slab Worthy assessment and registry IDs to show notes."""
-    if assessment_id:
-        show_notes += f"\n• Slab Worthy Assessment #{assessment_id}"
+    """Append Slab Guard registry info to show notes with verification URL."""
     if registry_serial:
-        show_notes += f"\n• Slab Guard Registered: {registry_serial}"
+        show_notes += f"\n• Slab Guard Verified: {registry_serial}"
+        show_notes += f"\n  Verify: https://collectioncalc-docker.onrender.com/api/verify/lookup/{registry_serial}"
     return show_notes
