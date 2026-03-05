@@ -3285,7 +3285,7 @@ async function openMarketplacePrepModal(comicId, platformKey) {
 
     // Paste instructions
     document.getElementById('mpPasteHint').textContent = MP_PASTE_HINTS[platformKey] || '';
-    document.getElementById('mpPhotoHint').textContent = `Right-click > Save Image, then upload to ${platform.name}`;
+    // Photo hint removed — Download All Photos button replaced the right-click instructions
 
     // Copy All button color
     const copyBtn = document.getElementById('mpCopyAllBtn');
@@ -3475,6 +3475,7 @@ function adjustColor(hex, amount) {
 
 function copyMpField(fieldId, btn) {
     const field = document.getElementById(fieldId);
+    if (!field) { console.warn('[MP] copyMpField: element not found:', fieldId); return; }
     const text = field.textContent || field.innerText || '';
     navigator.clipboard.writeText(text).then(() => {
         btn.textContent = '✓';
@@ -3498,11 +3499,11 @@ function copyMpField(fieldId, btn) {
 function copyAllMp(btn) {
     if (!mpCurrentPlatform) return;
     const platform = MP_PLATFORMS[mpCurrentPlatform];
-    const title = document.getElementById('mpTitle').textContent || '';
-    const desc = document.getElementById('mpDescription').textContent || '';
+    const title = document.getElementById('mpTitle')?.textContent || '';
+    const desc = document.getElementById('mpDescription')?.textContent || '';
     const buyNow = document.getElementById('mpBuyNow')?.textContent || '';
     const startPrice = document.getElementById('mpStartPrice')?.textContent || '';
-    const notes = platform?.hasNotes ? (document.getElementById('mpShowNotes').textContent || '') : '';
+    const notes = platform?.hasNotes ? (document.getElementById('mpShowNotes')?.textContent || '') : '';
 
     let allText = `Title: ${title}`;
     if (startPrice && platform?.startLabel) allText += `\n${platform.startLabel}: ${startPrice}`;
