@@ -3298,7 +3298,7 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     let fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
     if (mpComic.registry_serial) {
         fallbackNotes += `\n• Slab Guard Verified: ${mpComic.registry_serial}`;
-        fallbackNotes += `\n  Verify: ${API_URL}/api/verify/lookup/${mpComic.registry_serial}`;
+        fallbackNotes += `\n  Verify: https://slabworthy.com/verify.html?serial=${mpComic.registry_serial}`;
     }
     console.log('[MP] Pre-populating fields. Title:', fallbackTitle, 'Desc:', fallbackDesc.substring(0, 50));
 

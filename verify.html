@@ -574,7 +574,18 @@
             }
         });
 
-        async function verifySerial() {
+        // Auto-lookup if serial is in URL params (direct link from marketplace listings)
+        (function autoLookup() {
+            const params = new URLSearchParams(window.location.search);
+            const serial = (params.get('serial') || params.get('s') || '').trim().toUpperCase();
+            if (serial && serial.match(/^SW-\d{4}-[A-Z0-9]{6}$/)) {
+                document.getElementById('serialInput').value = serial;
+                // Use GET (no Turnstile required) for direct links
+                verifySerial(true);
+            }
+        })();
+
+        async function verifySerial(skipTurnstile) {
             const serialNumber = document.getElementById('serialInput').value.trim();
             const errorMsg = document.getElementById('errorMessage');
             const resultCard = document.getElementById('resultCard');
@@ -597,9 +608,11 @@
 
             // Show loading
             verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<div class="spinner"></div> Verifying...';
+            verifyBtn.innerHTML = '<div class="spinner" style="display:inline-block;width:20px;height:20px;margin:0 8px -4px 0;border-width:2px;"></div> Verifying...';
 
-            if (!turnstileToken) {
+            // Direct links (skipTurnstile=true) use GET which doesn't require Turnstile
+            // Manual lookups use POST with Turnstile token
+            if (!skipTurnstile && !turnstileToken) {
                 showError('Please complete the security check');
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify Comic';
@@ -607,11 +620,18 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ turnstile_token: turnstileToken })
-                });
+                let response;
+                if (skipTurnstile) {
+                    // GET request — no Turnstile needed (for direct links from marketplace listings)
+                    response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`);
+                } else {
+                    // POST request with Turnstile token (manual lookups)
+                    response = await fetch(`${API_URL}/api/verify/lookup/${serialNumber}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ turnstile_token: turnstileToken })
+                    });
+                }
                 const data = await response.json();
 
                 if (!data.success) {

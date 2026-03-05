@@ -171,5 +171,5 @@ def _append_sw_ids(show_notes, assessment_id=None, registry_serial=None):
     """Append Slab Guard registry info to show notes with verification URL."""
     if registry_serial:
         show_notes += f"\n• Slab Guard Verified: {registry_serial}"
-        show_notes += f"\n  Verify: https://collectioncalc-docker.onrender.com/api/verify/lookup/{registry_serial}"
+        show_notes += f"\n  Verify: https://slabworthy.com/verify.html?serial={registry_serial}"
     return show_notes
