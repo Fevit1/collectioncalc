@@ -2881,8 +2881,10 @@ async function createListing(publish) {
         align-items: flex-start;
     }
     .copyable-field .form-input,
+    .mp-modal .form-input,
     .mp-modal-body input.form-input,
-    .mp-modal-body textarea.form-input {
+    .mp-modal-body textarea.form-input,
+    #mpTitle, #mpDescription, #mpShowNotes {
         flex: 1;
         width: 100%;
         padding: 0.75rem;
@@ -2890,25 +2892,38 @@ async function createListing(publish) {
         border: 1px solid rgba(255, 107, 53, 0.3);
         border-radius: 8px;
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
         font-size: 1rem !important;
         line-height: 1.5 !important;
         opacity: 1 !important;
+        -webkit-opacity: 1 !important;
+        overflow: visible;
     }
-    .copyable-field textarea.form-input {
+    .copyable-field textarea.form-input,
+    textarea#mpDescription, textarea#mpShowNotes {
         min-height: 80px;
         max-height: 200px;
         resize: vertical;
-        font-family: 'Inter', sans-serif;
-        overflow-y: auto;
+        font-family: 'Inter', -apple-system, sans-serif;
+        overflow: auto !important;
+        overflow-x: hidden !important;
         scrollbar-width: thin;
-        scrollbar-color: rgba(124,58,237,0.3) transparent;
+        scrollbar-color: rgba(255,107,53,0.3) transparent;
     }
-    .copyable-field textarea.form-input::-webkit-scrollbar { width: 6px; }
-    .copyable-field textarea.form-input::-webkit-scrollbar-track { background: transparent; }
-    .copyable-field textarea.form-input::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); border-radius: 3px; }
-    .copyable-field .form-input:focus {
+    .copyable-field textarea.form-input::-webkit-scrollbar,
+    textarea#mpDescription::-webkit-scrollbar,
+    textarea#mpShowNotes::-webkit-scrollbar { width: 4px; }
+    .copyable-field textarea.form-input::-webkit-scrollbar-track,
+    textarea#mpDescription::-webkit-scrollbar-track,
+    textarea#mpShowNotes::-webkit-scrollbar-track { background: transparent; }
+    .copyable-field textarea.form-input::-webkit-scrollbar-thumb,
+    textarea#mpDescription::-webkit-scrollbar-thumb,
+    textarea#mpShowNotes::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.4); border-radius: 2px; }
+    .copyable-field .form-input:focus,
+    .mp-modal .form-input:focus {
         outline: none;
         border-color: #ff6b35;
+        box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.15);
     }
     .copy-btn {
         padding: 0.75rem;
@@ -3238,6 +3253,19 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
     console.log('[MP] Pre-populating fields. Comic:', JSON.stringify({title: mpComic.title, issue: mpComic.issue, grade: mpComic.grade, publisher: mpComic.publisher, year: mpComic.year, photos: mpPhotos, fmv}));
+
+    // Force text visibility on all form fields (nuclear approach — CSS specificity wars)
+    const mpFields = ['mpTitle', 'mpDescription', 'mpShowNotes'];
+    mpFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.setProperty('color', '#ffffff', 'important');
+            el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+            el.style.setProperty('background', '#1a1a2e', 'important');
+            el.style.setProperty('opacity', '1', 'important');
+        }
+    });
+
     document.getElementById('mpTitle').value = fallbackTitle;
     document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
     if (platform.hasNotes) {
@@ -3305,12 +3333,24 @@ async function generateMarketplaceContent(platformKey) {
         console.log(`[MP] Response data:`, JSON.stringify(data).substring(0, 500));
 
         if (data.success) {
-            document.getElementById('mpTitle').value = data.listing_title || '';
-            document.getElementById('mpDescription').value = data.description || '';
+            const titleEl = document.getElementById('mpTitle');
+            const descEl = document.getElementById('mpDescription');
+            const notesEl = document.getElementById('mpShowNotes');
+
+            titleEl.value = data.listing_title || '';
+            descEl.value = data.description || '';
 
             if (platform.hasNotes && data.show_notes) {
-                document.getElementById('mpShowNotes').value = data.show_notes;
+                notesEl.value = data.show_notes;
             }
+
+            // Force text visibility after AI content update
+            [titleEl, descEl, notesEl].forEach(el => {
+                if (el) {
+                    el.style.setProperty('color', '#ffffff', 'important');
+                    el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+                }
+            });
 
             // Pricing
             const startEl = document.getElementById('mpStartPrice');
