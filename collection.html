@@ -63,9 +63,9 @@
                     <input type="text" id="searchInput" placeholder="🔍 Search by title or issue...">
                 </div>
 
-                <div class="controls-group">
+                <div class="controls-group" id="listSortGroup">
                     <span class="control-label">Sort:</span>
-                    <select id="sortSelect">
+                    <select id="listSortSelect">
                         <option value="date-desc">Newest First</option>
                         <option value="date-asc">Oldest First</option>
                         <option value="value-desc">Value (High-Low)</option>
@@ -96,9 +96,9 @@
                     </select>
                 </div>
 
-                <div class="controls-group">
+                <div class="controls-group" id="gallerySortGroup" style="display:none;">
                     <span class="control-label">Sort:</span>
-                    <select id="sortSelect">
+                    <select id="gallerySortSelect">
                         <option value="series">Series & Issue</option>
                         <option value="value-high">Value: High to Low</option>
                         <option value="value-low">Value: Low to High</option>

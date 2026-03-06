@@ -63,8 +63,16 @@ function setupEventListeners() {
     // Search
     document.getElementById('searchInput').addEventListener('input', filterAndDisplay);
 
-    // Sort
-    document.getElementById('sortSelect').addEventListener('change', filterAndDisplay);
+    // Sort (both list and gallery dropdowns)
+    document.getElementById('listSortSelect').addEventListener('change', () => {
+        // Dropdown sort overrides column header sort
+        columnSortField = null;
+        document.querySelectorAll('.table-headers .sortable').forEach(el => {
+            el.classList.remove('active', 'asc', 'desc');
+        });
+        filterAndDisplay();
+    });
+    document.getElementById('gallerySortSelect').addEventListener('change', filterAndDisplay);
 
     // Filter
     document.getElementById('filterSelect').addEventListener('change', filterAndDisplay);
@@ -84,7 +92,10 @@ function setupEventListeners() {
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentView = btn.dataset.view;
-            displayCollection();
+            // Show correct sort dropdown for each view
+            document.getElementById('listSortGroup').style.display = currentView === 'list' ? '' : 'none';
+            document.getElementById('gallerySortGroup').style.display = currentView === 'gallery' ? '' : 'none';
+            filterAndDisplay();
         });
     });
 }
@@ -144,7 +155,8 @@ function filterAndDisplay() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const filterValue = document.getElementById('filterSelect').value;
     const eraValue = document.getElementById('eraFilter').value;
-    const sortValue = document.getElementById('sortSelect').value;
+    const listSortValue = document.getElementById('listSortSelect').value;
+    const gallerySortValue = document.getElementById('gallerySortSelect').value;
 
     // Filter
     filteredCollection = collection.filter(comic => {
@@ -172,33 +184,52 @@ function filterAndDisplay() {
         return matchesSearch && matchesFilter && matchesEra;
     });
 
-    // Sort — use column headers in list view, dropdown in gallery
+    // Sort — use dropdown + column headers in list view, dropdown in gallery
     if (currentView === 'list') {
-        const dir = columnSortDir === 'asc' ? 1 : -1;
-        filteredCollection.sort((a, b) => {
-            switch(columnSortField) {
-                case 'title': {
-                    const cmp = a.title.localeCompare(b.title);
-                    if (cmp !== 0) return cmp * dir;
-                    return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
+        // If column header was clicked, use that; otherwise use dropdown
+        if (columnSortField) {
+            const dir = columnSortDir === 'asc' ? 1 : -1;
+            filteredCollection.sort((a, b) => {
+                switch(columnSortField) {
+                    case 'title': {
+                        const cmp = a.title.localeCompare(b.title);
+                        if (cmp !== 0) return cmp * dir;
+                        return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
+                    }
+                    case 'year':
+                        return ((parseInt(a.year) || 0) - (parseInt(b.year) || 0)) * dir;
+                    case 'issue':
+                        return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
+                    case 'grade':
+                        return ((parseFloat(a.grade) || 0) - (parseFloat(b.grade) || 0)) * dir;
+                    case 'fmv':
+                        return ((a.raw_value || 0) - (b.raw_value || 0)) * dir;
+                    case 'valuation':
+                        return ((parseFloat(a.my_valuation) || 0) - (parseFloat(b.my_valuation) || 0)) * dir;
+                    default:
+                        return 0;
                 }
-                case 'year':
-                    return ((parseInt(a.year) || 0) - (parseInt(b.year) || 0)) * dir;
-                case 'issue':
-                    return ((parseInt(a.issue) || 0) - (parseInt(b.issue) || 0)) * dir;
-                case 'grade':
-                    return ((parseFloat(a.grade) || 0) - (parseFloat(b.grade) || 0)) * dir;
-                case 'fmv':
-                    return ((a.raw_value || 0) - (b.raw_value || 0)) * dir;
-                case 'valuation':
-                    return ((parseFloat(a.my_valuation) || 0) - (parseFloat(b.my_valuation) || 0)) * dir;
-                default:
-                    return 0;
-            }
-        });
+            });
+        } else {
+            filteredCollection.sort((a, b) => {
+                switch(listSortValue) {
+                    case 'date-desc': return new Date(b.created_at) - new Date(a.created_at);
+                    case 'date-asc': return new Date(a.created_at) - new Date(b.created_at);
+                    case 'value-desc': return (b.raw_value || 0) - (a.raw_value || 0);
+                    case 'value-asc': return (a.raw_value || 0) - (b.raw_value || 0);
+                    case 'grade-desc': return parseFloat(b.grade) - parseFloat(a.grade);
+                    case 'title-asc': {
+                        const cmp = a.title.localeCompare(b.title);
+                        if (cmp !== 0) return cmp;
+                        return (parseInt(a.issue) || 0) - (parseInt(b.issue) || 0);
+                    }
+                    default: return 0;
+                }
+            });
+        }
     } else {
         filteredCollection.sort((a, b) => {
-            switch(sortValue) {
+            switch(gallerySortValue) {
                 case 'series':
                     const titleCompare = a.title.localeCompare(b.title);
                     if (titleCompare !== 0) return titleCompare;

@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 6, 2026 (Session 80)
+**Updated:** March 6, 2026 (Session 81)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -14,8 +14,9 @@
 
 ---
 
-## ✅ DONE (Session 64-80)
+## ✅ DONE (Session 64-81)
 
+- [x] **Refactor collection.html into modular files** — Session 81: Split 3,925-line monolith into 5 files: collection.html (410 lines, HTML shell), collection.css (1,745 lines), collection.js (922 lines), ebay-modal.js (453 lines), marketplace-modal.js (406 lines). Fixed duplicate sortSelect IDs — list and gallery views now have separate sort dropdowns that show/hide on view toggle.
 - [x] **Register/Stolen E2E test passed** — Session 80: Full state machine tested on production (register → stolen → recovered → verify page behavior). All transitions working correctly.
 - [x] **Sell button brand fix** — Session 80: Changed from gradient to dark fill with brand-purple border/text to match other buttons.
 - [x] **Guard serial readability** — Session 80: Increased font size (0.65→0.8rem), opacity (0.7→0.9), added font-weight 600.
@@ -152,6 +153,7 @@
 
 - [ ] **Mobile testing (full grading flow)** 👤 2-3 hours across devices ⚠️
   - Grading, collection, pricing, verify on real phones (Android + iOS)
+  - Also test collection page responsive styles post-refactor (Session 81)
   - 🔗 Depends on: grading flow polish
 
 - [ ] **Live Slab Guard registration test** 👤⏱ 1 session ⚠️
