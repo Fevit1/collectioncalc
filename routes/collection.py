@@ -30,9 +30,15 @@ def api_get_collection():
                c.slab_grade, c.slab_label_type, c.created_at, c.updated_at,
                cr.serial_number AS registry_serial,
                cr.status AS registry_status,
-               cr.registration_date AS registry_date
+               cr.registration_date AS registry_date,
+               COALESCE(sc.sighting_count, 0) AS sighting_count
         FROM collections c
         LEFT JOIN comic_registry cr ON cr.comic_id = c.id
+        LEFT JOIN (
+            SELECT sr.serial_number, COUNT(*) AS sighting_count
+            FROM sighting_reports sr
+            GROUP BY sr.serial_number
+        ) sc ON sc.serial_number = cr.serial_number
         WHERE c.user_id = %s
         ORDER BY c.created_at DESC
     """, (g.user_id,))

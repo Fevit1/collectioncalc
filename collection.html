@@ -334,14 +334,16 @@
         }
 
         .action-btn.sell-btn {
-            background: linear-gradient(135deg, var(--brand-purple), #facc15);
-            border: none;
-            color: white;
+            background: var(--bg-primary, #0f0f1a);
+            border: 1px solid var(--brand-purple, #7c3aed);
+            color: var(--brand-purple, #7c3aed);
             font-weight: 600;
         }
 
         .action-btn.sell-btn:hover {
-            transform: translateY(-1px);
+            background: rgba(124, 58, 237, 0.15);
+            border-color: var(--brand-indigo, #4f46e5);
+            color: var(--text-primary, #fff);
         }
 
         .sell-dropdown-wrapper {
@@ -881,9 +883,27 @@
             color: var(--status-success, #10b981);
         }
         .guard-btn .guard-serial {
-            font-size: 0.65rem;
-            opacity: 0.7;
+            font-size: 0.8rem;
+            opacity: 0.9;
             font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        /* Sighting notification badge on guard button */
+        .guard-btn .sighting-badge {
+            background: var(--status-error, #ef4444);
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            margin-left: 2px;
+            line-height: 1;
         }
         .guard-dropdown {
             display: none;
@@ -928,16 +948,41 @@
             border-bottom: 1px solid var(--border-default, #334155);
             margin-bottom: 0.25rem;
         }
-        /* Registering animation */
+        /* Registering animation — uses steps for cross-browser compat */
         @keyframes guardEllipsis {
             0% { content: ''; }
             25% { content: '.'; }
             50% { content: '..'; }
             75% { content: '...'; }
+            100% { content: ''; }
+        }
+        .guard-btn.registering {
+            pointer-events: none;
+            opacity: 0.8;
+            border-color: var(--brand-purple, #7c3aed);
+            color: var(--brand-purple, #7c3aed);
         }
         .guard-btn.registering::after {
             content: '';
-            animation: guardEllipsis 1.2s infinite;
+            animation: guardEllipsis 1.5s steps(4, end) infinite;
+        }
+        /* Flash green on success before collection reloads */
+        .guard-btn.register-success {
+            border-color: var(--status-success, #10b981);
+            color: var(--status-success, #10b981);
+            transition: all 0.3s;
+        }
+        /* Flash red on stolen report */
+        .guard-btn.report-success {
+            border-color: var(--status-error, #ef4444);
+            color: var(--status-error, #ef4444);
+            transition: all 0.3s;
+        }
+        /* Flash green on recovery */
+        .guard-btn.recover-success {
+            border-color: var(--status-success, #10b981);
+            color: var(--status-success, #10b981);
+            transition: all 0.3s;
         }
 
         /* Export Button */
@@ -1817,6 +1862,10 @@
                 label = '✅';
             }
 
+            // Sighting badge — show count if comic has unread sightings
+            const sightingCount = comic.sighting_count || 0;
+            const sightingBadge = sightingCount > 0 ? `<span class="sighting-badge">${sightingCount}</span>` : '';
+
             let dropdownItems = '';
             // Serial number info row
             dropdownItems += `<div class="guard-dropdown-info">${serial}</div>`;
@@ -1829,6 +1878,11 @@
                 dropdownItems += `<button class="guard-dropdown-item danger" onclick="${sp}reportStolenComic(${id})">🚨 Report Stolen Again</button>`;
             }
 
+            // Sightings link — show if there are sightings
+            if (sightingCount > 0) {
+                dropdownItems += `<button class="guard-dropdown-item" onclick="${sp}window.location.href='/sightings.html?comic_id=${id}&serial=${encodeURIComponent(serial)}'">🔍 View Sightings (${sightingCount})</button>`;
+            }
+
             // Copy serial to clipboard
             dropdownItems += `<button class="guard-dropdown-item" onclick="${sp}navigator.clipboard.writeText('${serial}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='📋 Copy Serial',1500)">📋 Copy Serial</button>`;
 
@@ -1837,7 +1891,7 @@
 
             return `<div class="guard-wrapper">
                 <button class="guard-btn ${statusClass}" onclick="${sp}toggleGuardDropdown(event, ${id})">
-                    ${label} <span class="guard-serial">${serial.slice(-6)}</span> ▾
+                    ${label} <span class="guard-serial">${serial.slice(-6)}</span>${sightingBadge} ▾
                 </button>
                 <div class="guard-dropdown" id="guardDropdown-${id}">
                     ${dropdownItems}
@@ -1860,7 +1914,7 @@
         });
 
         async function registerComic(comicId, btn) {
-            // Show registering animation
+            // Show registering animation with animated ellipses
             const origHTML = btn.innerHTML;
             btn.innerHTML = '🛡️ Registering';
             btn.classList.add('registering');
@@ -1882,32 +1936,52 @@
                     btn.innerHTML = origHTML;
                     btn.classList.remove('registering');
                     btn.disabled = false;
-                    if (data.quality_failed) {
-                        alert(`Photo quality issue: ${data.error}\n\nTips:\n${(data.photo_quality?.tips || []).join('\n')}`);
-                    } else if (data.upgrade_required) {
-                        alert(data.error);
-                        if (data.upgrade_url) window.location.href = data.upgrade_url;
-                    } else {
-                        alert(`Registration failed: ${data.error}`);
+                    // Show error inline on the button briefly
+                    const errorMsg = data.quality_failed
+                        ? 'Photo quality too low'
+                        : data.upgrade_required
+                            ? 'Upgrade required'
+                            : (data.error || 'Registration failed');
+                    btn.innerHTML = '❌ ' + errorMsg;
+                    btn.style.color = 'var(--status-error)';
+                    btn.style.borderColor = 'var(--status-error)';
+                    setTimeout(() => {
+                        btn.innerHTML = origHTML;
+                        btn.style.color = '';
+                        btn.style.borderColor = '';
+                    }, 3000);
+                    if (data.upgrade_required && data.upgrade_url) {
+                        setTimeout(() => window.location.href = data.upgrade_url, 1500);
                     }
                     return;
                 }
 
-                alert(`Registered with Slab Guard!\n\nSerial: ${data.serial_number}`);
-                await loadCollection();
+                // Success — flash green with serial, then reload
+                btn.classList.remove('registering');
+                btn.classList.add('register-success');
+                btn.innerHTML = `🛡️ ${data.serial_number}`;
+                setTimeout(() => loadCollection(), 1200);
             } catch (error) {
                 btn.innerHTML = origHTML;
                 btn.classList.remove('registering');
                 btn.disabled = false;
                 console.error('Registration error:', error);
-                alert('Failed to register comic. Please try again.');
+                btn.innerHTML = '❌ Error — retry';
+                btn.style.color = 'var(--status-error)';
+                setTimeout(() => { btn.innerHTML = origHTML; btn.style.color = ''; }, 3000);
             }
         }
 
         async function reportStolenComic(comicId) {
-            if (!confirm('Report this comic as stolen?\n\nSlab Guard will actively monitor marketplaces for it.')) return;
-            // Close dropdown
+            // No confirm modal — act immediately, button changes color
             document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
+            const btn = document.querySelector(`#guardBtn-${comicId}`) ||
+                        document.querySelector(`.guard-btn.registered[onclick*="${comicId}"]`) ||
+                        document.querySelector(`.guard-btn.recovered[onclick*="${comicId}"]`);
+            if (btn) {
+                btn.innerHTML = '🚨 Reporting...';
+                btn.disabled = true;
+            }
             try {
                 const token = localStorage.getItem('cc_token');
                 const response = await fetch(`${API_URL}/api/registry/report-stolen/${comicId}`, {
@@ -1915,19 +1989,32 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                 });
                 const data = await response.json();
-                if (!data.success) { alert(`Failed: ${data.error}`); return; }
-                alert(`Comic reported as stolen.\n\nSerial: ${data.serial_number}\nSlab Guard is now monitoring.`);
-                await loadCollection();
+                if (!data.success) {
+                    if (btn) { btn.innerHTML = '❌ ' + (data.error || 'Failed'); btn.disabled = false; }
+                    setTimeout(() => loadCollection(), 2000);
+                    return;
+                }
+                // Flash stolen color then reload
+                if (btn) {
+                    btn.classList.add('report-success');
+                    btn.innerHTML = '🚨 Reported Stolen';
+                }
+                setTimeout(() => loadCollection(), 1200);
             } catch (error) {
                 console.error('Report stolen error:', error);
-                alert('Failed to report comic as stolen. Please try again.');
+                if (btn) { btn.innerHTML = '❌ Error'; btn.disabled = false; }
+                setTimeout(() => loadCollection(), 2000);
             }
         }
 
         async function markRecoveredComic(comicId) {
-            if (!confirm('Mark this comic as recovered?')) return;
-            // Close dropdown
+            // No confirm modal — act immediately, button changes color
             document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
+            const btn = document.querySelector(`.guard-btn.stolen[onclick*="${comicId}"]`);
+            if (btn) {
+                btn.innerHTML = '✅ Recovering...';
+                btn.disabled = true;
+            }
             try {
                 const token = localStorage.getItem('cc_token');
                 const response = await fetch(`${API_URL}/api/registry/mark-recovered/${comicId}`, {
@@ -1935,12 +2022,21 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                 });
                 const data = await response.json();
-                if (!data.success) { alert(`Failed: ${data.error}`); return; }
-                alert(`Comic marked as recovered! Glad you got it back.`);
-                await loadCollection();
+                if (!data.success) {
+                    if (btn) { btn.innerHTML = '❌ ' + (data.error || 'Failed'); btn.disabled = false; }
+                    setTimeout(() => loadCollection(), 2000);
+                    return;
+                }
+                // Flash recovered color then reload
+                if (btn) {
+                    btn.classList.add('recover-success');
+                    btn.innerHTML = '✅ Recovered!';
+                }
+                setTimeout(() => loadCollection(), 1200);
             } catch (error) {
                 console.error('Mark recovered error:', error);
-                alert('Failed to mark comic as recovered. Please try again.');
+                if (btn) { btn.innerHTML = '❌ Error'; btn.disabled = false; }
+                setTimeout(() => loadCollection(), 2000);
             }
         }
 
