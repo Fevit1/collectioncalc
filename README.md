@@ -1,8 +1,8 @@
 # Slab Worthy
 
-**AI-powered comic book grading, valuation, and collection management platform.**
+**AI-powered grading, valuation, and collection management for comics and collectibles.**
 
-Slab Worthy helps collectors answer the question every comic owner asks: "Is this worth getting graded?" Using AI vision for grading, real eBay sales data for valuations, and tools for listing and selling, Slab Worthy is a one-stop platform for comic collectors.
+Slab Worthy helps collectors answer the question every owner asks: "Is this worth getting graded?" Using AI vision for grading, real eBay sales data for valuations, and tools for listing and selling, Slab Worthy is a one-stop platform for comic collectors — with baseball card support planned for Q4 2026.
 
 ## Core Features
 
@@ -19,6 +19,12 @@ Slab Worthy helps collectors answer the question every comic owner asks: "Is thi
 **Slab Guard Registration** — Register comics with perceptual fingerprinting for theft detection and provenance tracking. Patent pending (Application #63/990,743).
 
 **Slabbing ROI Calculator** — Factors in CGC grading costs (2026 pricing), current raw value, and graded FMV to tell you if slabbing is worth it.
+
+**Multi-Platform Marketplace Prep** — AI-generated listing content for Whatnot, eBay, Mercari, Facebook, Heritage, and more. Download photos, copy-paste to seller dashboards.
+
+## Planned: Baseball Card Vertical (Q4 2026)
+
+Card-specific grading (centering, corners, edges, surface), PSA/BGS/SGC cost calculator, card extraction (player, year, set, card number), and Slab Guard for cards. TAM: 15-20M card-collecting households in the US.
 
 ## Tech Stack
 
@@ -71,12 +77,15 @@ PostgreSQL (Render)         Cloudflare R2 (Images)
 - [API Reference](docs/technical/API_REFERENCE.md) — Backend modules and function signatures
 - [Comic Registry Schema](docs/technical/COMIC_REGISTRY_SCHEMA.md) — Slab Guard fingerprinting system
 - [Budget & Hosting](docs/business/BUDGET.md) — Infrastructure costs
+- [Year 1 P&L](docs/business/SlabWorthy_Year1_PnL.xlsx) — Revenue/cost projection for 15K users
 
 ## Project Status
 
-**Pre-launch** — Targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch, with soft launch July 21, 2026.
+**Pre-launch (Session 80)** — Targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch, with soft launch July 21, 2026. Baseball card vertical planned for Q4 2026.
 
-Solo founder: Mike Berry
+**Year 1 projection (15K users):** $739K revenue, $379K net profit (51% margin) including employee + marketing costs.
+
+Founder: Mike Berry
 
 ---
 

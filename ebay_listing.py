@@ -236,7 +236,6 @@ def get_or_create_listing_policies(access_token: str) -> dict:
     
     try:
         # Get fulfillment policies
-        # Get fulfillment policies
         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
         response = requests.get(fulfillment_url, headers=headers)
         print(f"Get fulfillment response: {response.status_code}")

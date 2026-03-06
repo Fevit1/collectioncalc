@@ -1,10 +1,17 @@
-# Slab Worthy / CollectionCalc Roadmap
+# Slab Worthy Roadmap
 
-## Current Version: 5.3.0 (February 24, 2026)
+## Current Version: 5.4.0 (March 6, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
 2. Comic fingerprinting theft recovery (Filed Feb 12, 2026)
+
+### 💰 BUSINESS PLANNING (Session 80)
+- Year 1 P&L: 15,000 users (5K comics + 10K baseball cards) → **$739K revenue, $379K net profit (51% margin)**
+- TAM: Comics ~2-5M collectors + ~4K shops | Cards ~15-20M households + ~4K shops
+- First hire planned: Marketing + Front-End Design ($97.5K/yr all-in)
+- Marketing budget: $54K/yr (ads, content, conventions, tools)
+- File: `docs/business/SlabWorthy_Year1_PnL.xlsx`
 
 ---
 
@@ -70,11 +77,23 @@
 - [ ] **Slab label valuation adjustments** - Factor label type (signature series, restored, etc.) into FMV
 - [ ] **Competitive positioning pages** - "Slab Worthy vs CLZ" and "Slab Worthy vs ComicSnap" comparison pages
 
-**Nice-to-Have:**
+**Nice-to-Have for GalaxyCon:**
 - [ ] **Slab Guard live demo** - Quick registration flow for booth visitors
 - [ ] **Chrome extension demo** - Slab Guard Monitor for eBay
 - [ ] **Social proof** - Testimonials/stats from soft launch period
 - [ ] **Auction platform integrations** - Whatnot API, eBay listing API for direct "List Now" from collection
+
+### 🃏 Phase 3: Baseball Card Vertical (Post-Launch, Q4 2026)
+**TAM:** 15-20M card-collecting households in US, $2-13B market, ~3,000-5,000 card shops
+**Revenue Impact:** Projects +$493K/yr revenue from 10K card users (P&L modeled)
+**API Note:** 2× cost per call vs comics (front+back analysis, centering, surface detail)
+
+- [ ] **Card grading engine** - Centering, corners, edges, surface scoring (different from comic 8-category)
+- [ ] **Card extraction** - Player, year, set, card number, parallel/insert/auto identification
+- [ ] **PSA/BGS/SGC cost calculator** - Equivalent of CGC ROI for cards
+- [ ] **Card sales data pipeline** - eBay completed listings for baseball cards
+- [ ] **Card-specific Slab Guard** - Front+back fingerprinting for card theft protection
+- [ ] **Multi-vertical UI** - Collection page supports comics AND cards with vertical switcher
 
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
@@ -82,7 +101,7 @@
 - [ ] **AI grading consistency** - Investigate 8.5→9.2→8.5 variance
 - [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
 - [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
-- [ ] **Live Slab Guard test** - Register comic on production, verify composite matching works
+- [x] **Live Slab Guard test** - ✅ Session 80: Full E2E on production (register → stolen → recovered → verify page)
 - [ ] **Slab Guard check UI** - User-facing page to upload a photo and check against registry (currently API-only, no frontend)
 - [ ] **Session 59 test plan** - ~40 of 47 tests still formally untested
 - [ ] **Valuation endpoint testing** - 12-test plan in Valuation_Endpoint_Test_Plan.docx

@@ -1,4 +1,149 @@
-# Where We Left Off - Mar 5, 2026
+# Where We Left Off - Mar 6, 2026
+
+## Session 80 (Mar 6, 2026) — Register/Stolen E2E Test + UI Fixes + P&L Projection
+
+### Register/Report Stolen — Full E2E Test on Production ✅
+Tested the entire Slab Guard state machine on slabworthy.com:
+- Registered Atari Force comic → got serial SW-2026-JNZ5HR ✅
+- Reported it stolen → button changed to 🚨 stolen state ✅
+- Checked verify page for stolen comic → showed "REPORTED STOLEN" badge + "Report a Sighting" button ✅
+- Checked verify page for active comic (SW-2026-6N6QMS, Amethyst) → no sighting button ✅
+- Marked recovered → button changed to ✅ recovered with "Report Stolen Again" ✅
+- EXIF rotation verified working on verify page ✅
+
+### UI/UX Fixes (5 Issues from Testing)
+1. **Sell button brand fix** — Changed from purple/gold gradient to dark fill with brand-purple border/text (matches other buttons)
+2. **Larger serial numbers** — Increased `.guard-serial` from 0.65rem→0.8rem, opacity 0.7→0.9, added font-weight 600
+3. **Animated ellipsis during registration** — CSS `@keyframes guardEllipsis` with `steps(4, end)`, pointer-events disabled while registering
+4. **Removed all alert/confirm modals** — Chrome extension can't interact with native modals. Rewrote `registerComic()`, `reportStolenComic()`, `markRecoveredComic()` to use inline button state changes (color flash → auto-reload)
+5. **Sighting notifications in My Collection** — Red badge on guard button showing sighting count, "View Sightings" dropdown link → new sightings.html page
+
+### New File: sightings.html
+Full sighting details page for comic owners:
+- Auth-gated, reads comic_id and serial from URL params
+- Calls `/api/registry/my-sightings` API, filters by serial
+- Shows comic info bar with title, issue, status badge, serial tag
+- Sighting cards with: reporter email, date, listing URL, message
+- Owner response buttons: "That's mine" / "Not mine" / "Investigating"
+- All user content escaped with `escapeHtml()` for XSS prevention
+
+### Collection API Updated
+- Added `sighting_count` via LEFT JOIN subquery on `sighting_reports` table
+- Grouped by `serial_number` with COALESCE for null handling
+
+### Year 1 P&L Projection (Business Planning)
+Built comprehensive P&L spreadsheet for investor/planning purposes:
+- **v1:** Comics only (5,000 users) → $200K annual profit, 81% margin
+- **v2:** Added baseball cards (10,000 users, 2× API rate) → $544K profit, 74% margin
+- **v3 (final):** Full startup costs (employee + marketing + G&A) → **$379K profit, 51% net margin**
+- File: `docs/business/SlabWorthy_Year1_PnL.xlsx` (3 tabs: Assumptions, P&L Summary, Scenarios)
+
+### TAM Research
+- Comic collectors (US): ~2-5 million individuals, ~3,700-4,700 shops
+- Sports card collectors (US): ~15-20 million households, ~3,000-5,000+ shops
+- 15,000 user target = <0.1% of individual TAM (very achievable)
+- Shop targets (500 comic / 1,000 card) are aggressive for Y1 (11-33% penetration); more realistic: 150-400 shops per vertical
+
+### Anthropic API Token Cost Analysis
+| Endpoint | Model | Max Tokens | Est. Cost/Call |
+|----------|-------|-----------|----------------|
+| Grading (Vision) | Sonnet 4 | 2,048 | $0.035 |
+| Listing gen | Sonnet 4 | 600 | $0.010 |
+| Slab Guard CV | Sonnet 4 | 1,500 | $0.024 |
+| Signature match | Sonnet 4.5 | 1,500 | $0.024 |
+| Card equivalents | — | — | 2× above |
+
+### Security Fixes
+- **XSS in sightings.html** — Applied `escapeHtml()` to all interpolated values (serial, listing_url, reporter_email, etc.)
+- **Missing URI encoding** — Added `encodeURIComponent()` for serial parameter in View Sightings URL
+
+### Files Modified
+- `collection.html` — Sell button CSS, guard-serial CSS, registering animation, guardButton() JS, registerComic/reportStolen/markRecovered rewritten (no modals), sighting badge + dropdown
+- `routes/collection.py` — Added sighting_count LEFT JOIN subquery
+- `sightings.html` — NEW file (sighting details page)
+- `docs/business/SlabWorthy_Year1_PnL.xlsx` — NEW file (Year 1 P&L v3)
+
+### Deploy Checklist
+```
+git add collection.html routes/collection.py sightings.html ; git commit -m "No-modal guard actions + sighting page + sell button brand fix" ; git push ; deploy ; purge
+```
+
+### What's Next
+1. **Deploy Session 80 code** — Mike to run deploy
+2. **Test the no-modal flows on production** — register, report stolen, recover (all inline now)
+3. **Baseball card vertical planning** — architecture decisions for multi-vertical support
+4. **Hire first employee** — Marketing + front-end design role ($75K + benefits)
+5. **Test marketplace prep** — Download All Photos, Copy All, multiple platforms
+
+---
+
+## Session 79 (Mar 5, 2026) — Register/Stolen Buttons + Verify Page Polish
+
+### Whatnot Modal Crash Fix
+**Bug:** Clicking Sell → Whatnot did nothing. eBay worked fine.
+**Root cause:** When we cleaned up the Photos section in Session 78 and removed the "Right-click > Save Image" hint element (`mpPhotoHint`), the JS reference on line 3288 was left behind: `document.getElementById('mpPhotoHint').textContent = ...`. Since the element no longer exists, `getElementById` returns `null`, and `.textContent` on `null` throws a `TypeError` that kills the entire `openMarketplacePrepModal()` function before the modal opens.
+**Fix:** Removed the dead reference line, added `?.` null safety to `copyMpField()` and `copyAllMp()`.
+
+### Human-Friendly Verify Page (Auto-Lookup)
+**Problem:** Slab Guard verify links in marketplace prep notes pointed to the raw API endpoint (`/api/verify/lookup/SW-2026-...`) which returned JSON — unusable for buyers.
+**Fix:**
+- Updated `verify.html` to read `?serial=` URL parameter on page load
+- Auto-calls API via GET (no Turnstile needed for direct links) and displays results immediately
+- Updated verify URL format in both `whatnot_description.py` and `collection.html` fallback notes to: `https://slabworthy.com/verify.html?serial=SW-2026-XXXXX`
+- Manual lookups (typing serial on the page) still require Turnstile via POST
+
+### Cover Image EXIF Rotation Fix
+**Problem:** Cover image on verify page displayed rotated (phone photos have EXIF orientation data).
+**Fix:** Added `from PIL import ImageOps` and `ImageOps.exif_transpose(img)` before `.convert('RGBA')` in `watermark_image()` function in `routes/verify.py`.
+
+### Register + Report Stolen Buttons in Collection
+**New collection page buttons** — conditional per comic based on registration status:
+- **Not registered** → 🛡️ Register button (calls existing `/api/registry/register`)
+- **Active (registered)** → 🚨 Report Stolen button
+- **Reported stolen** → Red "Stolen" badge + ✅ Recovered button
+- **Recovered** → Amber "Recovered" badge
+
+**New helper function** `guardButton(comic, stopProp)` generates the right button for both list and gallery views.
+
+**New API endpoints** (in `routes/registry.py`):
+- `POST /api/registry/report-stolen/<comic_id>` — changes status from `active` → `reported_stolen`, sets `reported_stolen_date`
+- `POST /api/registry/mark-recovered/<comic_id>` — changes status from `reported_stolen` → `recovered`, sets `recovery_date`
+
+Both require auth + approved. Owner-only with proper status transition guards.
+
+### Collection API Enhanced
+Added `cr.status AS registry_status` and `cr.registration_date AS registry_date` to the SELECT query in `routes/collection.py`. These auto-serialize via the existing `dict(item)` loop.
+
+### Verify Page Sighting Restriction
+Changed "Report a Sighting" visibility from `active || reported_stolen` to just `reported_stolen`. Only stolen comics show the sighting form.
+
+### Mike's Vision for Future Sighting Flow
+Ideal case: Slab Guard Chrome extension running on buyer's browser → extension knows which comics are registered/stolen → when one appears on eBay, user clicks extension button → auto-fills report-sighting form with URL, email, timestamp. Extension already has partial support built.
+
+### Files Modified This Session
+- `collection.html` — Fixed mpPhotoHint crash, null safety on copy functions, verify URL update, Register/Stolen/Recovered buttons (CSS + HTML + JS in both views)
+- `verify.html` — Auto-lookup from URL params, GET support for direct links, sighting restricted to stolen only
+- `routes/verify.py` — EXIF rotation fix in watermark_image()
+- `routes/registry.py` — New report-stolen and mark-recovered endpoints
+- `routes/collection.py` — Added registry_status and registry_date to response
+- `whatnot_description.py` — Updated verify URL to slabworthy.com/verify.html?serial=...
+- `TODO.md` — Updated to Session 79
+- `WHERE_WE_LEFT_OFF.md` — Updated to Session 79
+
+### What's Next (Priority Order)
+1. **Test Register + Report Stolen flow** — register a comic, report stolen, mark recovered, verify page behavior
+2. **Test marketplace prep** — Download All Photos, Copy All, verify links, multiple platforms
+3. **Test eBay draft + auction listings** — remaining from P1
+4. **Refactor collection.html** — 3,583 lines, needs splitting into CSS/JS modules (discussed but deferred)
+5. **Chrome extension enhancement** — auto-detect registered/stolen comics on eBay, one-click sighting report
+
+### Deploy Checklist
+```
+git add collection.html verify.html routes/verify.py routes/registry.py routes/collection.py whatnot_description.py ; git commit -m "Register/Report Stolen buttons + verify page auto-lookup + EXIF fix" ; git push ; deploy ; purge
+```
+Already deployed by Mike before break.
+
+---
 
 ## Session 78 (Mar 5, 2026) — Whatnot Modal Invisible Text Fix + UI Polish
 

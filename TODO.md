@@ -1,8 +1,9 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 5, 2026 (Session 77)
-**Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
-**Soft Launch:** July 21, 2026 (~21 weeks out)
-**Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
+**Updated:** March 6, 2026 (Session 80)
+**Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
+**Soft Launch:** July 21, 2026 (~20 weeks out)
+**Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
+**First Hire:** Marketing + Front-End Design (planned)
 
 **Estimation notes:**
 - Claude coding sessions: estimated at 2x speed (we consistently deliver faster than expected)
@@ -13,8 +14,22 @@
 
 ---
 
-## ✅ DONE (Session 64-77)
+## ✅ DONE (Session 64-80)
 
+- [x] **Register/Stolen E2E test passed** — Session 80: Full state machine tested on production (register → stolen → recovered → verify page behavior). All transitions working correctly.
+- [x] **Sell button brand fix** — Session 80: Changed from gradient to dark fill with brand-purple border/text to match other buttons.
+- [x] **Guard serial readability** — Session 80: Increased font size (0.65→0.8rem), opacity (0.7→0.9), added font-weight 600.
+- [x] **Remove all guard modals** — Session 80: Replaced alert()/confirm() in registerComic, reportStolenComic, markRecoveredComic with inline button state changes. Chrome extension can't interact with native modals.
+- [x] **Animated ellipsis during registration** — Session 80: CSS keyframes with steps(4, end), pointer-events disabled while processing.
+- [x] **Sighting notifications in My Collection** — Session 80: Red badge on guard button showing count, "View Sightings" dropdown link. New sightings.html page with owner response buttons.
+- [x] **Year 1 P&L projection** — Session 80: Full startup P&L (comics + baseball cards, 15K users, employee + marketing). $739K revenue, $379K profit, 51% net margin. File: `docs/business/SlabWorthy_Year1_PnL.xlsx`.
+- [x] **TAM analysis** — Session 80: Comic collectors ~2-5M, card collectors ~15-20M households. 15K user target is <0.1% penetration (very achievable). Shop targets aggressive for Y1.
+- [x] **Whatnot modal crash fix** — Session 79: Removed dead `mpPhotoHint` JS reference that crashed `openMarketplacePrepModal()`. Added null safety (`?.`) to `copyMpField()` and `copyAllMp()`.
+- [x] **Human-friendly verify page** — Session 79: Verify links now point to `slabworthy.com/verify.html?serial=SW-2026-XXXXX` instead of raw API JSON. Auto-lookup on page load via GET (no Turnstile needed for direct links). Updated URLs in both `whatnot_description.py` and `collection.html` fallback notes.
+- [x] **Cover image EXIF rotation fix** — Session 79: Added `ImageOps.exif_transpose()` to `watermark_image()` in `verify.py`. Phone photos now display correctly oriented on the verify page.
+- [x] **Register + Report Stolen buttons** — Session 79: Collection page now shows conditional guard buttons per comic: 🛡️ Register (unregistered) → 🚨 Report Stolen (active) → ✅ Recovered (stolen). Both list and gallery views. New API endpoints: `POST /api/registry/report-stolen/<comic_id>` and `POST /api/registry/mark-recovered/<comic_id>`.
+- [x] **Verify page sighting restriction** — Session 79: "Report a Sighting" section now only shows for stolen comics, not active ones.
+- [x] **Collection API enhanced** — Session 79: Added `registry_status` and `registry_date` to collection response via LEFT JOIN.
 - [x] **Facebook page assets created** — Session 77: Profile pic (170px + 512px) with "$LAB WORTHY" in Bangers font, gold on dark circle. Cover photo (820x462) with comic-panel collage background, purple overlay, gold wordmark + tagline. Multiple iterations refined with user feedback.
 - [x] **FMV is_slabbed fix** — Session 76: Collection list always showed `raw_value` even for slabbed comics. Backend fix: added `is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type` to SELECT query in `collection.py`. Frontend fix: all 6 FMV references now check `comic.is_slabbed` to show `slabbed_value` or `raw_value` correctly. Labels show "FMV (Slabbed)" or "FMV (Raw)" in detail view.
 - [x] **Marketplace prep modal photo fix** — Session 76: Modal used flat properties (`mpComic.front_image`) but API returns nested `comic.photos.front`. Fixed 3 locations: preview image, photo grid slots, debug logging. All 8 non-eBay platforms (Whatnot, Mercari, Facebook, Heritage, ComicConnect, MyComicShop, COMC, Hip Comics) now populate photos correctly.
@@ -108,14 +123,24 @@
   - ✅ Session 78: Collection API now includes registry_serial via LEFT JOIN to comic_registry
   - ✅ Session 78: Cleaned up modal UI — removed redundant labels/hints, moved paste instructions below buttons
 
-- [ ] **Test marketplace prep on production** 👤⏱ 30 min ⚠️ ← **RESUME HERE**
+- [ ] **Test marketplace prep on production** 👤⏱ 30 min ⚠️
   - ✅ Whatnot text fields now populate and display correctly
   - ✅ AI content generating (confirmed via debug strip)
+  - ✅ Session 79: Whatnot modal crash fixed (mpPhotoHint null ref)
+  - ✅ Session 79: Verify links now human-friendly (auto-lookup on page load)
   - 🔜 Test Download All Photos button
   - 🔜 Test Copy All clipboard
   - 🔜 Verify Slab Guard serial appears for registered comics
   - 🔜 Test Mercari, Facebook, Heritage platforms
   - 🔜 Test with both raw and slabbed comics
+
+- [x] ~~**Test Register + Report Stolen flow**~~ ✅ Session 80
+  - ✅ Register an unregistered comic → serial SW-2026-JNZ5HR assigned
+  - ✅ Report registered comic as stolen → status changed, button updated
+  - ✅ Mark stolen comic as recovered → status changed, "Report Stolen Again" option
+  - ✅ Visit verify page for stolen comic → "REPORTED STOLEN" badge + sighting form
+  - ✅ Visit verify page for active comic → no sighting form (correct)
+  - ✅ Cover image EXIF rotation working on verify page
 
 ### Testing ⚠️
 
@@ -301,15 +326,28 @@
 - [ ] **Cover not displaying** ⏱ 30 min — Iron Man #200 in collection
 
 ### Features (Post-Launch)
+- [ ] **🃏 Baseball card vertical** ⏱ 3-5 sessions — TAM: 15-20M households, $2-13B market
+  - Grading engine adaptation (centering, surface, corners, edges — different from comics)
+  - Card-specific extraction (player, year, set, card number, parallel/insert)
+  - eBay sales data pipeline for baseball cards
+  - PSA/BGS/SGC cost calculator (equivalent of CGC for cards)
+  - 2× API cost per call vs comics (more surface area analysis)
+  - P&L projects 10K card users adding $493K annual revenue
 - [ ] Grade report sharing/export (shareable link or PDF)
 - [ ] Batch grading (multiple comics per session)
 - [ ] Price alerts (notify when comics hit thresholds)
 - [ ] Second opinion mode (run extraction twice, compare)
 - [ ] Slab label valuation adjustments (signature series, restored, etc.)
 - [ ] Two-factor authentication
-- [ ] Multi-vertical expansion (baseball cards, coins, sneakers)
 - [ ] Add display_name to /api/auth/me (replace email-derived name)
 - [ ] Backend trending endpoint for Market Movers panel (real ebay_sales data)
+
+### Business (In Progress)
+- [ ] **Hire first employee** — Marketing + front-end design ($75K + 30% benefits = $97.5K/yr)
+- [ ] **Marketing budget** — $4,500/mo (ads $2,500, content $1,000, conventions $500, tools $500)
+- [x] **Year 1 P&L** ✅ Session 80 — docs/business/SlabWorthy_Year1_PnL.xlsx
+- [x] **TAM analysis** ✅ Session 80 — Comics + baseball cards, 15K target achievable
+- [ ] **LLC formation** 👤 — Needed before: accepting real payments, assigning patents
 
 ---
 
@@ -352,11 +390,11 @@ WEEKS 17-25 (P4):          ▼
 | Phase | Items | Est. Sessions | Calendar | Status |
 |-------|-------|---------------|----------|--------|
 | P0 — Credibility Fix | 3 | 2 sessions | Weeks 1-2 | ✅ COMPLETE |
-| P1 — Collection & Selling | 4 | 3 sessions + eBay testing ⚠️ | Weeks 3-6 | 🟡 eBay e2e + marketplace test remaining |
+| P1 — Collection & Selling | 4 | 3 sessions + eBay testing ⚠️ | Weeks 3-6 | 🟡 eBay e2e + marketplace test remaining; Slab Guard ✅ |
 | P2 — Launch Prep | 12 | 10 sessions + device testing ⚠️ | Weeks 7-16 | Upcoming |
-| P3 — Marketing | 5 | 5 sessions | Weeks 17-21 | 🟡 Facebook assets done, page setup in progress |
+| P3 — Marketing | 5 | 5 sessions | Weeks 17-21 | 🟡 FB assets done, P&L + TAM done |
 | P4 — Booth Demo + GalaxyCon | 7 | 5 sessions + shopping 👤 | Weeks 17-25 | Not started |
-| P5 — Tech Debt | 3+7 | As time permits | Anytime | eBay username bug fixed |
-| **Total** | **37+** | **~25 sessions** | **25 weeks** | |
+| P5 — Tech Debt + Expansion | 3+8 | As time permits | Anytime | Baseball card vertical planned |
+| **Total** | **38+** | **~25 sessions** | **24 weeks** | |
 
-**At ~1-2 sessions/week, this is tight but very doable.** The key is staying disciplined about P0 → P1 → P2 order and not getting pulled into P5 polish work before the core demo flow is bulletproof.
+**At ~1-2 sessions/week, this is tight but very doable.** Key: stay disciplined P0→P1→P2 order. Baseball card vertical is post-launch but P&L shows it triples the business. First hire (marketing + front-end) budgeted at $97.5K/yr all-in.
