@@ -934,10 +934,10 @@ def report_comic_stolen(comic_id):
 
         registry_id, current_status, serial_number = result
 
-        if current_status != 'active':
+        if current_status not in ('active', 'recovered'):
             return jsonify({
                 'success': False,
-                'error': f'Only active registrations can be reported stolen. Current status: {current_status}'
+                'error': f'Cannot report stolen from current status: {current_status}'
             }), 400
 
         cur.execute("""

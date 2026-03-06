@@ -845,66 +845,99 @@
             margin-top: 1rem;
         }
 
-        /* Register / Report Stolen buttons */
-        .action-btn.register-btn {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-            border: none;
-            color: white;
-            font-weight: 600;
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-            white-space: nowrap;
-        }
-        .action-btn.register-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-        .action-btn.report-stolen-btn {
-            background: linear-gradient(135deg, #f59e0b, #dc2626);
-            border: none;
-            color: white;
-            font-weight: 600;
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-            white-space: nowrap;
-        }
-        .action-btn.report-stolen-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-        .action-btn.mark-recovered-btn {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            color: white;
-            font-weight: 600;
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-            white-space: nowrap;
-        }
-        .action-btn.mark-recovered-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-        .registry-status-badge {
+        /* Slab Guard — compact guard menu (shield icon + dropdown) */
+        .guard-wrapper {
+            position: relative;
             display: inline-block;
-            padding: 0.3rem 0.6rem;
+        }
+        .guard-btn {
+            background: none;
+            border: 1px solid var(--border-default, #334155);
+            color: var(--text-secondary, #94a3b8);
             border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            white-space: nowrap;
+        }
+        .guard-btn:hover {
+            border-color: var(--brand-indigo, #4f46e5);
+            color: var(--text-primary, #fff);
+        }
+        .guard-btn.registered {
+            border-color: var(--brand-indigo, #4f46e5);
+            color: var(--brand-purple, #7c3aed);
+        }
+        .guard-btn.stolen {
+            border-color: var(--status-error, #ef4444);
+            color: var(--status-error, #ef4444);
+        }
+        .guard-btn.recovered {
+            border-color: var(--status-success, #10b981);
+            color: var(--status-success, #10b981);
+        }
+        .guard-btn .guard-serial {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            font-family: 'Courier New', monospace;
+        }
+        .guard-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            background: var(--bg-primary, #0f0f1a);
+            border: 1px solid var(--border-default, #334155);
+            border-radius: 8px;
+            min-width: 200px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            padding: 0.5rem 0;
+        }
+        .guard-dropdown.active { display: block; }
+        .guard-dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: none;
+            background: none;
+            color: var(--text-primary, #fff);
+            font-size: 0.85rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .guard-dropdown-item:hover {
+            background: var(--bg-secondary, #1a1a2e);
+        }
+        .guard-dropdown-item.danger {
+            color: var(--status-error, #ef4444);
+        }
+        .guard-dropdown-item.success {
+            color: var(--status-success, #10b981);
+        }
+        .guard-dropdown-info {
+            padding: 0.4rem 1rem;
             font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--text-muted, #64748b);
+            font-family: 'Courier New', monospace;
+            border-bottom: 1px solid var(--border-default, #334155);
+            margin-bottom: 0.25rem;
         }
-        .registry-status-badge.stolen {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+        /* Registering animation */
+        @keyframes guardEllipsis {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
         }
-        .registry-status-badge.recovered {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
-        }
-        .registry-status-badge.active {
-            background: rgba(99, 102, 241, 0.2);
-            color: #818cf8;
+        .guard-btn.registering::after {
+            content: '';
+            animation: guardEllipsis 1.2s infinite;
         }
 
         /* Export Button */
@@ -1762,26 +1795,77 @@
             }
         }
 
-        // Guard button helper — renders Register, Report Stolen, or Mark Recovered
+        // Guard button — compact shield icon with dropdown for guard actions
         function guardButton(comic, stopProp) {
             const sp = stopProp ? 'event.stopPropagation(); ' : '';
+            const id = comic.id;
+
             if (!comic.registry_serial) {
-                return `<button class="action-btn register-btn" onclick="${sp}registerComic(${comic.id})">🛡️ Register</button>`;
+                // Not registered — simple Register button
+                return `<button class="guard-btn" id="guardBtn-${id}" onclick="${sp}registerComic(${id}, this)">🛡️ Register</button>`;
             }
-            if (comic.registry_status === 'active') {
-                return `<button class="action-btn report-stolen-btn" onclick="${sp}reportStolenComic(${comic.id})">🚨 Report Stolen</button>`;
-            }
+
+            // Registered — shield button showing status + dropdown for actions
+            let statusClass = 'registered';
+            let label = '🛡️';
+            let serial = comic.registry_serial;
             if (comic.registry_status === 'reported_stolen') {
-                return `<span class="registry-status-badge stolen">🚨 Stolen</span>
-                        <button class="action-btn mark-recovered-btn" onclick="${sp}markRecoveredComic(${comic.id})">✅ Recovered</button>`;
+                statusClass = 'stolen';
+                label = '🚨';
+            } else if (comic.registry_status === 'recovered') {
+                statusClass = 'recovered';
+                label = '✅';
             }
-            if (comic.registry_status === 'recovered') {
-                return `<span class="registry-status-badge recovered">✅ Recovered</span>`;
+
+            let dropdownItems = '';
+            // Serial number info row
+            dropdownItems += `<div class="guard-dropdown-info">${serial}</div>`;
+
+            if (comic.registry_status === 'active') {
+                dropdownItems += `<button class="guard-dropdown-item danger" onclick="${sp}reportStolenComic(${id})">🚨 Report Stolen</button>`;
+            } else if (comic.registry_status === 'reported_stolen') {
+                dropdownItems += `<button class="guard-dropdown-item success" onclick="${sp}markRecoveredComic(${id})">✅ Mark Recovered</button>`;
+            } else if (comic.registry_status === 'recovered') {
+                dropdownItems += `<button class="guard-dropdown-item danger" onclick="${sp}reportStolenComic(${id})">🚨 Report Stolen Again</button>`;
             }
-            return '';
+
+            // Copy serial to clipboard
+            dropdownItems += `<button class="guard-dropdown-item" onclick="${sp}navigator.clipboard.writeText('${serial}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='📋 Copy Serial',1500)">📋 Copy Serial</button>`;
+
+            // View on verify page
+            dropdownItems += `<button class="guard-dropdown-item" onclick="${sp}window.open('https://slabworthy.com/verify.html?serial=${serial}','_blank')">🔗 View Verify Page</button>`;
+
+            return `<div class="guard-wrapper">
+                <button class="guard-btn ${statusClass}" onclick="${sp}toggleGuardDropdown(event, ${id})">
+                    ${label} <span class="guard-serial">${serial.slice(-6)}</span> ▾
+                </button>
+                <div class="guard-dropdown" id="guardDropdown-${id}">
+                    ${dropdownItems}
+                </div>
+            </div>`;
         }
 
-        async function registerComic(comicId) {
+        function toggleGuardDropdown(event, comicId) {
+            event.stopPropagation();
+            const dropdown = document.getElementById(`guardDropdown-${comicId}`);
+            const wasActive = dropdown.classList.contains('active');
+            // Close all guard dropdowns
+            document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
+            if (!wasActive) dropdown.classList.add('active');
+        }
+
+        // Close guard dropdowns on outside click
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
+        });
+
+        async function registerComic(comicId, btn) {
+            // Show registering animation
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '🛡️ Registering';
+            btn.classList.add('registering');
+            btn.disabled = true;
+
             try {
                 const token = localStorage.getItem('cc_token');
                 const response = await fetch(`${API_URL}/api/registry/register`, {
@@ -1795,6 +1879,9 @@
                 const data = await response.json();
 
                 if (!data.success) {
+                    btn.innerHTML = origHTML;
+                    btn.classList.remove('registering');
+                    btn.disabled = false;
                     if (data.quality_failed) {
                         alert(`Photo quality issue: ${data.error}\n\nTips:\n${(data.photo_quality?.tips || []).join('\n')}`);
                     } else if (data.upgrade_required) {
@@ -1806,9 +1893,12 @@
                     return;
                 }
 
-                alert(`Registered with Slab Guard!\n\nSerial: ${data.serial_number}\nConfidence: ${data.confidence_score}%`);
+                alert(`Registered with Slab Guard!\n\nSerial: ${data.serial_number}`);
                 await loadCollection();
             } catch (error) {
+                btn.innerHTML = origHTML;
+                btn.classList.remove('registering');
+                btn.disabled = false;
                 console.error('Registration error:', error);
                 alert('Failed to register comic. Please try again.');
             }
@@ -1816,6 +1906,8 @@
 
         async function reportStolenComic(comicId) {
             if (!confirm('Report this comic as stolen?\n\nSlab Guard will actively monitor marketplaces for it.')) return;
+            // Close dropdown
+            document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
             try {
                 const token = localStorage.getItem('cc_token');
                 const response = await fetch(`${API_URL}/api/registry/report-stolen/${comicId}`, {
@@ -1834,6 +1926,8 @@
 
         async function markRecoveredComic(comicId) {
             if (!confirm('Mark this comic as recovered?')) return;
+            // Close dropdown
+            document.querySelectorAll('.guard-dropdown.active').forEach(d => d.classList.remove('active'));
             try {
                 const token = localStorage.getItem('cc_token');
                 const response = await fetch(`${API_URL}/api/registry/mark-recovered/${comicId}`, {
