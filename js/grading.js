@@ -2419,7 +2419,9 @@ async function calculateGradingRecommendation(gradeResult) {
             body: JSON.stringify({
                 title: title,
                 issue: issue,
-                grade: lookupGrade
+                grade: lookupGrade,
+                year: parseInt(gradingState.extractedData?.year) || null,
+                publisher: gradingState.extractedData?.publisher || null
             })
         });
         

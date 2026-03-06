@@ -125,12 +125,25 @@ def lookup_comic(
     }
     
     # Strategy 1: Exact match on normalized title + issue
-    if norm_publisher:
+    # Include year when provided for series disambiguation (Ghost Rider 1973 vs 2022)
+    if norm_publisher and year:
+        cursor.execute('''
+            SELECT title, issue_number, publisher, nm_value, source, last_updated
+            FROM comics
+            WHERE title_normalized = ? AND issue_number = ? AND publisher = ? AND year = ?
+        ''', (norm_title, norm_issue, norm_publisher, year))
+    elif norm_publisher:
         cursor.execute('''
             SELECT title, issue_number, publisher, nm_value, source, last_updated
             FROM comics
             WHERE title_normalized = ? AND issue_number = ? AND publisher = ?
         ''', (norm_title, norm_issue, norm_publisher))
+    elif year:
+        cursor.execute('''
+            SELECT title, issue_number, publisher, nm_value, source, last_updated
+            FROM comics
+            WHERE title_normalized = ? AND issue_number = ? AND year = ?
+        ''', (norm_title, norm_issue, year))
     else:
         cursor.execute('''
             SELECT title, issue_number, publisher, nm_value, source, last_updated

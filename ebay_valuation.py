@@ -273,7 +273,7 @@ def init_cache_db():
             pass
         return False
 
-def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[EbayValuationResult]:
+def get_cached_result(title: str, issue: str, grade: str = None, year: int = None) -> Optional[EbayValuationResult]:
     """Check PostgreSQL cache for existing search result."""
     conn = get_db_connection()
     if not conn:
@@ -284,14 +284,17 @@ def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[Eba
         cursor = conn.cursor()
         
         # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
+        # Include year for series disambiguation (Ghost Rider 1973 vs 2022)
         if grade:
             normalized_grade = normalize_grade_for_cache(grade)
             search_key = f"{title.lower().strip()}|{str(issue).strip()}|{normalized_grade}"
         else:
             search_key = f"{title.lower().strip()}|{str(issue).strip()}"
-        
+        if year:
+            search_key += f"|{year}"
+
         cursor.execute('''
-            SELECT estimated_value, confidence, confidence_score, num_sales, 
+            SELECT estimated_value, confidence, confidence_score, num_sales,
                    price_min, price_max, sales_data, reasoning, cached_at,
                    quick_sale, fair_value, high_end, lowest_bin,
                    quick_sale_confidence, fair_value_confidence, high_end_confidence
@@ -349,7 +352,7 @@ def get_cached_result(title: str, issue: str, grade: str = None) -> Optional[Eba
             pass
         return None
 
-def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: str = None):
+def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: str = None, year: int = None):
     """Save search result to PostgreSQL cache."""
     conn = get_db_connection()
     if not conn:
@@ -360,12 +363,15 @@ def save_to_cache(title: str, issue: str, result: EbayValuationResult, grade: st
         cursor = conn.cursor()
         
         # Include NORMALIZED grade in cache key if provided (VF+, VF, VF- all map to "VF")
+        # Include year for series disambiguation (Ghost Rider 1973 vs 2022)
         if grade:
             normalized_grade = normalize_grade_for_cache(grade)
             search_key = f"{title.lower().strip()}|{str(issue).strip()}|{normalized_grade}"
         else:
             search_key = f"{title.lower().strip()}|{str(issue).strip()}"
-        
+        if year:
+            search_key += f"|{year}"
+
         # Use INSERT ... ON CONFLICT for upsert
         cursor.execute('''
             INSERT INTO search_cache 
@@ -636,7 +642,7 @@ def calculate_tier_confidence(
     
     return (quick_sale_conf, fair_value_conf, high_end_conf)
 
-def _single_search(client, title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, is_signed: bool = False, signer: str = None) -> tuple:
+def _single_search(client, title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, is_signed: bool = False, signer: str = None, year: int = None) -> tuple:
     """
     Run a single search query. Returns (sales_list, corrected_title) or ([], None) on error.
     """
@@ -653,7 +659,8 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
     # Build search query based on whether it's signed or not
     if is_signed:
         # For signed comics, search for signed/autographed copies
-        search_query = f"{full_title} #{issue} comic signed autograph"
+        year_str = f" ({year})" if year else ""
+        search_query = f"{full_title}{year_str} #{issue} comic signed autograph"
         if signer:
             search_query += f" {signer}"
         if publisher:
@@ -662,7 +669,9 @@ def _single_search(client, title: str, issue: str, grade: str, publisher: str = 
         signed_note = f"\n\nIMPORTANT: This is a SIGNED/AUTOGRAPHED copy{f' signed by {signer}' if signer else ''}. Search for signed copies, not raw unsigned copies. Signed comics are worth significantly more than unsigned."
     else:
         # For unsigned comics, exclude CGC/slabs
-        search_query = f"{full_title} #{issue} comic raw ungraded"
+        # Include year for series disambiguation (e.g., Ghost Rider 2022 vs 1973)
+        year_str = f" ({year})" if year else ""
+        search_query = f"{full_title}{year_str} #{issue} comic raw ungraded"
         if publisher:
             search_query += f" {publisher}"
         search_query += " -CGC -CBCS -slab -graded price sold value"
@@ -778,7 +787,7 @@ IMPORTANT:
     return ([], [], None)
 
 
-def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, num_samples: int = 3, force_refresh: bool = False, is_signed: bool = False, signer: str = None) -> EbayValuationResult:
+def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, issue_type: str = None, num_samples: int = 3, force_refresh: bool = False, is_signed: bool = False, signer: str = None, year: int = None) -> EbayValuationResult:
     """
     Search for market prices using Claude AI with web search.
     Runs multiple samples and takes median for accuracy.
@@ -808,8 +817,9 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
             cache_title = f"{cache_title} {signer}"
     
     # Check cache first (unless force_refresh)
+    # Pass year for series disambiguation (Ghost Rider 1973 vs 2022)
     if not force_refresh:
-        cached = get_cached_result(cache_title, issue, grade)
+        cached = get_cached_result(cache_title, issue, grade, year=year)
         if cached:
             return cached
     
@@ -838,7 +848,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     corrected_title = None
     
     for i in range(num_samples):
-        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher, issue_type, is_signed, signer)
+        sales, bin_listings, title_fix = _single_search(client, title, issue, grade, publisher, issue_type, is_signed, signer, year=year)
         all_sales.extend(sales)
         all_bin_listings.extend(bin_listings)
         if title_fix and not corrected_title:
@@ -1099,7 +1109,7 @@ def search_ebay_sold(title: str, issue: str, grade: str, publisher: str = None, 
     )
     
     # Save to cache for future requests (use cache_title which includes issue_type, and grade)
-    save_to_cache(cache_title, issue, result, grade)
+    save_to_cache(cache_title, issue, result, grade, year=year)
     
     return result
 
@@ -1139,7 +1149,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
         source = 'database'
         
         # Still search eBay to validate/adjust
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer, year=year)
         
         if ebay_result.num_sales > 0:
             # Blend database and eBay (favor eBay if high confidence)
@@ -1189,7 +1199,7 @@ def get_valuation_with_ebay(title: str, issue: str, grade: str,
     
     else:
         # Not in database - rely on eBay
-        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer)
+        ebay_result = search_ebay_sold(title, issue, grade, publisher, issue_type=issue_type, force_refresh=force_refresh, is_signed=is_signed, signer=signer, year=year)
         
         if ebay_result.num_sales > 0:
             return {
