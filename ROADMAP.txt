@@ -1,6 +1,6 @@
 # Slab Worthy Roadmap
 
-## Current Version: 5.4.0 (March 6, 2026)
+## Current Version: 5.5.0 (March 6, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
@@ -738,6 +738,16 @@ Consider:
 ---
 
 ## Recently Completed
+
+### Session 81 - Collection Page Refactor + Sort Fix (March 6, 2026)
+- [x] Refactored collection.html from 3,925-line monolith into 5 modular files
+  - collection.html (410 lines) — Pure HTML shell + auth gate
+  - js/collection.css (1,745 lines) — All extracted styles
+  - js/collection.js (922 lines) — Core collection logic
+  - js/ebay-modal.js (453 lines) — eBay listing modal
+  - js/marketplace-modal.js (406 lines) — Marketplace prep modal
+- [x] Fixed duplicate sortSelect ID bug — list and gallery views now have separate sort dropdowns
+- [x] Sort dropdowns show/hide correctly on view toggle
 
 ### Session 45 - Homepage Redesign & Registry Fix (February 16, 2026)
 - [x] Homepage redesign: Hero 100vh→70vh, How It Works 4→2 steps

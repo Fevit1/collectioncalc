@@ -42,7 +42,7 @@ Card-specific grading (centering, corners, edges, surface), PSA/BGS/SGC cost cal
 ```
 Cloudflare Pages (Frontend)
     ├── app.html          — Grading flow (upload → grade → value → save)
-    ├── collection.html   — Collection management + eBay listing
+    ├── collection.html   — Collection management (modular: js/collection.css, collection.js, ebay-modal.js, marketplace-modal.js)
     ├── verify.html       — Slab Guard verification
     ├── signatures.html   — Admin signature management
     └── index.html        — Landing page + waitlist
@@ -81,7 +81,7 @@ PostgreSQL (Render)         Cloudflare R2 (Images)
 
 ## Project Status
 
-**Pre-launch (Session 80)** — Targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch, with soft launch July 21, 2026. Baseball card vertical planned for Q4 2026.
+**Pre-launch (Session 81)** — Targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch, with soft launch July 21, 2026. Baseball card vertical planned for Q4 2026.
 
 **Year 1 projection (15K users):** $739K revenue, $379K net profit (51% margin) including employee + marketing costs.
 

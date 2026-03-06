@@ -1,5 +1,64 @@
 # Where We Left Off - Mar 6, 2026
 
+## Session 81 (Mar 6, 2026) — Collection Page Refactor + Sort Fix
+
+### Collection.html Refactored into Modular Files ✅
+Split the 3,925-line monolith into 5 clean files:
+- `collection.html` (410 lines) — Pure HTML shell with auth gate inline script
+- `js/collection.css` (1,745 lines) — All CSS (collection page, sell dropdown, guard buttons, eBay modal, marketplace modal, responsive)
+- `js/collection.js` (922 lines) — Core collection logic (26 functions: load, filter, sort, display, CRUD, sell, guard, gallery export)
+- `js/ebay-modal.js` (453 lines) — eBay listing modal (open/close, populate, generate description, upload photos, create listing)
+- `js/marketplace-modal.js` (406 lines) — Generic marketplace prep modal for 8 platforms (Whatnot, Mercari, Facebook, Heritage, ComicConnect, MyComicShop, COMC, Hip Comics)
+
+Script loading order preserved: utils.js → auth.js → collection.js → ebay-modal.js → marketplace-modal.js → sidebar.js
+
+### Sort Dropdown Bug Fixed ✅
+**Bug:** Sort dropdown in list view did nothing. Filter and era dropdowns worked fine.
+**Root cause:** Two `<select>` elements both had `id="sortSelect"` — one for list view (values: date-desc, value-desc, etc.) and one for gallery view (values: series, value-high, etc.). `getElementById` always grabbed the first one. The list view sort values didn't match any switch case in `filterAndDisplay()`, so they fell to `default: return 0` (no sort).
+**Fix:**
+- Gave unique IDs: `listSortSelect` and `gallerySortSelect`
+- Wrapped in container divs (`listSortGroup` / `gallerySortGroup`) with show/hide on view toggle
+- Added switch cases for list sort values (date-desc, date-asc, value-desc, value-asc, grade-desc, title-asc)
+- Column header sorting still works — clicking a column header overrides the dropdown, changing the dropdown clears column sort state
+
+### Testing Results
+1. ✅ Page loads correctly
+2. ⏳ Gallery view needs work (deferred)
+3. ✅ Sort fixed (was broken, now works)
+4. ✅ Sell dropdown works
+5. ✅ Guard actions work
+6. ✅ eBay modal works
+7. ✅ Marketplace prep modal works
+8. ✅ Gallery expand works
+9. ℹ️ Bulk actions are stubbed out (Export/Delete say "coming soon")
+10. ⏳ Mobile responsive — added to TODO for later testing
+
+### Files Modified
+- `collection.html` — Slimmed to 410-line HTML shell with unique sort dropdown IDs
+- `js/collection.css` — NEW (1,745 lines extracted CSS)
+- `js/collection.js` — NEW (922 lines core logic + sort fix)
+- `js/ebay-modal.js` — NEW (453 lines eBay modal)
+- `js/marketplace-modal.js` — NEW (406 lines marketplace modal)
+- `TODO.md` — Updated to Session 81
+- `ROADMAP.txt` — Added Session 81, bumped to v5.5.0
+- `README.md` — Updated architecture section + session number
+- `WHERE_WE_LEFT_OFF.md` — This file
+
+### Deploy Checklist
+```
+git add collection.html js/collection.css js/collection.js js/ebay-modal.js js/marketplace-modal.js TODO.md ROADMAP.txt README.md WHERE_WE_LEFT_OFF.md ; git commit -m "Refactor collection.html into modular files + fix sort dropdowns" ; git push ; deploy ; purge
+```
+
+### What's Next
+1. **Deploy sort fix** — run git add/commit/push/deploy/purge
+2. **Test sort on production** — list sort dropdown + column header clicks + gallery sort
+3. **Gallery view improvements** — noted during testing as needing work
+4. **Mobile responsive testing** — post-refactor CSS check on real devices
+5. **Wire up bulk actions** — checkboxes per comic card, export/delete implementation
+6. **Baseball card vertical planning** — architecture decisions for multi-vertical support
+
+---
+
 ## Session 80 (Mar 6, 2026) — Register/Stolen E2E Test + UI Fixes + P&L Projection
 
 ### Register/Report Stolen — Full E2E Test on Production ✅
