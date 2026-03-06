@@ -55,8 +55,8 @@
 - [x] **Admin dashboard fix** - Sales Tracked now shows combined eBay + Whatnot totals (Session 64)
 
 **🔴 CRITICAL — Fix Before Anything Else:**
-- [ ] **AI grading consistency** - Same comic returning 8.5 → 9.2 → 8.5 across runs. This is the #1 credibility killer. Options: multi-run averaging, temperature=0 enforcement, structured output schema, calibration test suite of 20 reference comics.
-- [ ] **Update CGC grading costs** - Valuation endpoint hardcodes $30/$50/$85/$150. CGC raised prices Jan 2026: Modern Bulk $27, Vintage Bulk $42, Standard etc. Move to config/DB, not hardcoded.
+- [x] **AI grading consistency** — ✅ RESOLVED (Session 81). Multi-run averaging and structured output schema implemented.
+- [x] **Update CGC grading costs** — ✅ RESOLVED (Session 81). Updated from hardcoded values to current CGC pricing.
 
 **Must-Have for July 21 Soft Launch:**
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
@@ -98,7 +98,7 @@
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
 - [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
-- [ ] **AI grading consistency** - Investigate 8.5→9.2→8.5 variance
+- [x] **AI grading consistency** — ✅ RESOLVED (Session 81)
 - [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
 - [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
 - [x] **Live Slab Guard test** - ✅ Session 80: Full E2E on production (register → stolen → recovered → verify page)
@@ -845,12 +845,12 @@ Consider:
 ## Known Bugs
 
 **Active:**
-- [ ] 🔴 **Cover not displaying** - Iron Man #200 photos not showing in collection (HIGH PRIORITY)
-- [ ] 🔴 **AI grading inconsistency** - Same 4 images: 8.5 → 9.2 → 8.5 (different runs)
+- [x] ✅ **Cover not displaying** — FIXED (Session 81). Iron Man #200 photos now showing.
+- [x] ✅ **AI grading inconsistency** — FIXED (Session 81). Multi-run averaging + structured output.
 - [ ] 🔴 **Comic identification bug** - Ghost Rider reboot #1 vs original #1 confusion
-- [ ] 🐛 **Auto-rotation steps 2-4** - Code added but not working
+- [x] ✅ **Auto-rotation steps 2-4** — FIXED (Session 81).
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
-- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API
+- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API (needs verification)
 
 **Fixed in Session 45:**
 - [x] ✅ **Registry bug (CRITICAL)** - Collections table mismatch, issue_number→issue column fix

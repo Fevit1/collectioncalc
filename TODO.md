@@ -323,9 +323,9 @@
 - [x] ~~**eBay OAuth callback redirect**~~ ✅ Session 74 — now redirects to account.html
 - [x] ~~**eBay username shows as "user"**~~ ✅ Session 75 — Root cause: missing `commerce.identity.readonly` scope. Fixed in `ebay_oauth.py`. Fallback changed to "Connected". Needs disconnect/reconnect after deploy to verify.
 - [ ] **Comic identification bug** ⏱ 1 session — Ghost Rider reboot vs original
-- [ ] **Auto-rotation steps 2-4** ⏱ 30 min — Code added but not working
-- [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API
-- [ ] **Cover not displaying** ⏱ 30 min — Iron Man #200 in collection
+- [x] ~~**Auto-rotation steps 2-4**~~ ✅ FIXED
+- [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API (needs verification)
+- [x] ~~**Cover not displaying**~~ ✅ FIXED — Iron Man #200 now showing
 
 ### Features (Post-Launch)
 - [ ] **🃏 Baseball card vertical** ⏱ 3-5 sessions — TAM: 15-20M households, $2-13B market
