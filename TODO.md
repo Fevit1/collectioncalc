@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 7, 2026 (Session 84)
+**Updated:** March 7, 2026 (Session 85)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -188,12 +188,15 @@
   - ✅ Session 84: Blueprint registered in wsgi.py (signatures_v2_bp)
   - ✅ Session 84: Seed script created (seed_creator_metadata.py — 41 creators with career dates, publishers, signature style)
   - ✅ Session 84: Two-stage Haiku prefilter tested and reverted (52.2% accuracy, 60.9% Haiku recall — not viable)
-  - 🔜 Run migrations on Render PostgreSQL (in order: columns first, then log table)
-  - 🔜 Run seed script: `python seed_creator_metadata.py <DATABASE_URL>`
-  - 🔜 Deploy to Render + A/B test v1 vs v2
+  - ✅ Session 84: Migrations run on Render PostgreSQL (columns + log table)
+  - ✅ Session 84: Seed script run — 41 creators populated with metadata
+  - ✅ Session 84: Code deployed to Render
+  - ✅ Session 85: First v2 test — Jim Lee at 0.96 confidence (high)
+  - ✅ Session 85: Fixed pass_count=1 bug (2/3 Opus passes silently failing; added retry + degraded_result flag)
+  - 🔜 Deploy pass_count fix + retest to confirm 3/3 passes
+  - 🔜 A/B test v1 vs v2 (curl test — no in-app UI yet)
   - 🔜 Fix style_notes metadata (Mike) + source better Bendis/Claremont reference images
   - 🔜 Target 87%+ accuracy before advertising signature feature
-  - 🔗 Depends on: Migrations run, creator metadata seeded
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title

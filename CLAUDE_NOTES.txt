@@ -228,21 +228,16 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 84) - Mar 7, 2026
+## CURRENT SESSION (SESSION 85) - Mar 7, 2026
 
 ### What Happened
-**SIGNATURE ORCHESTRATOR V2 INTEGRATED INTO CODEBASE**
+**V2 FIRST TEST SUCCESS + PASS_COUNT BUG FIX**
 
-Session 83 designed the orchestrator architecture; Session 84 integrated it into the repo with 7 integration fixes:
-1. `cs.name` -> `cs.creator_name` (match production schema)
-2. Removed `cs.slug` (column doesn't exist; generated in Python)
-3. R2 images via HTTP `image_url` (matches v1 pattern, no boto3 needed)
-4. DB connection via `os.environ['DATABASE_URL']` (matches rest of app)
-5. Auth decorators added (`@require_auth`, `@require_approved`)
-6. `init_modules()` pattern added for wsgi.py consistency
-7. Removed unused imports (asyncio, boto3)
+First v2 match test via PowerShell: **Jim Lee identified at 0.96 confidence (high)** — this was the hardest confusion case in v1. Latency 37.4s. However, `pass_count=1` revealed a bug: 2 of 3 Opus passes were silently failing and being dropped.
 
-Also: Two-stage Haiku prefilter approach from Session 82 was tested and **reverted** -- Haiku recall was only 60.9% (target was 95%+), dropping overall accuracy to 52.2% from 78.3%. Single-stage Sonnet remains the v1 approach.
+**pass_count=1 bug fix:** Added retry logic for failed passes, `degraded_result` flag, `passes_attempted` field in response, and better logging. Failed passes now get one automatic retry before being abandoned. Degraded results auto-flagged for human review.
+
+**Next:** Push fix, deploy, retest to confirm pass_count=3.
 
 ---
 

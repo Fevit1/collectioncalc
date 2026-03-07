@@ -105,6 +105,7 @@ class AggregatedResult:
     flags: dict
     analysis: dict
     pass_count: int
+    passes_attempted: int
     latency_ms: int
 
 
@@ -274,7 +275,8 @@ def log_result_to_db(
                 result.pass_count,
                 result.latency_ms,
                 result.flags.get("low_confidence_match", False)
-                    or result.flags.get("high_confusion_pair", False),
+                    or result.flags.get("high_confusion_pair", False)
+                    or result.flags.get("degraded_result", False),
             ])
             conn.commit()
     except Exception as e:
@@ -451,7 +453,7 @@ def run_single_pass(
 # 3-Pass Aggregation
 # ---------------------------------------------------------------------------
 
-def aggregate_passes(passes: list[PassResult]) -> AggregatedResult:
+def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> AggregatedResult:
     """
     Aggregate results from 3 Opus passes:
     - Average confidence scores per creator
@@ -546,6 +548,11 @@ def aggregate_passes(passes: list[PassResult]) -> AggregatedResult:
             if delta < CONFUSION_PAIR_DELTA:
                 merged_flags["high_confusion_pair"] = True
 
+    # Flag degraded results (fewer than expected passes succeeded)
+    if len(passes) < passes_attempted:
+        merged_flags["degraded_result"] = True
+        merged_flags["passes_failed"] = passes_attempted - len(passes)
+
     # Use analysis from the most deterministic pass (temp=0.2)
     best_analysis = next(
         (p.analysis for p in passes if p.temperature == 0.2 and p.analysis),
@@ -558,6 +565,7 @@ def aggregate_passes(passes: list[PassResult]) -> AggregatedResult:
         flags=merged_flags,
         analysis=best_analysis,
         pass_count=len(passes),
+        passes_attempted=passes_attempted,
         latency_ms=0,  # set by caller
     )
 
@@ -612,6 +620,7 @@ def run_orchestrated_identification(
 
     # Step 3: 3 parallel Opus passes
     pass_results: list[PassResult] = []
+    failed_passes: list[PassResult] = []
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {
@@ -628,7 +637,7 @@ def run_orchestrated_identification(
         }
         for future in futures:
             result = future.result()
-            if result.rankings:  # only include successful passes
+            if result.rankings:
                 pass_results.append(result)
                 logger.info(
                     "Pass temp=%.1f complete — top result: %s (%.2f)",
@@ -636,20 +645,66 @@ def run_orchestrated_identification(
                     result.rankings[0].get("creator", "unknown") if result.rankings else "none",
                     result.rankings[0].get("confidence", 0) if result.rankings else 0,
                 )
+            else:
+                failed_passes.append(result)
+                logger.warning(
+                    "Pass temp=%.1f FAILED — flags: %s",
+                    result.temperature, result.flags,
+                )
+
+    # Retry failed passes once (API errors are often transient)
+    if failed_passes and len(pass_results) < len(PASS_TEMPERATURES):
+        logger.info("Retrying %d failed pass(es)...", len(failed_passes))
+        retry_temps = [fp.temperature for fp in failed_passes]
+        with ThreadPoolExecutor(max_workers=len(retry_temps)) as executor:
+            retry_futures = {
+                executor.submit(
+                    run_single_pass,
+                    temp,
+                    unknown_image_b64,
+                    candidates,
+                    comic_context,
+                    system_prompt,
+                    client,
+                ): temp
+                for temp in retry_temps
+            }
+            for future in retry_futures:
+                result = future.result()
+                if result.rankings:
+                    pass_results.append(result)
+                    logger.info(
+                        "Retry pass temp=%.1f SUCCEEDED — top: %s (%.2f)",
+                        result.temperature,
+                        result.rankings[0].get("creator", "unknown"),
+                        result.rankings[0].get("confidence", 0),
+                    )
+                else:
+                    logger.warning(
+                        "Retry pass temp=%.1f FAILED again — flags: %s",
+                        result.temperature, result.flags,
+                    )
+
+    if len(pass_results) < len(PASS_TEMPERATURES):
+        logger.warning(
+            "DEGRADED: Only %d/%d passes succeeded",
+            len(pass_results), len(PASS_TEMPERATURES),
+        )
 
     if not pass_results:
-        raise RuntimeError("All Opus passes failed")
+        raise RuntimeError("All Opus passes failed (including retries)")
 
     # Step 4: Aggregate
-    result = aggregate_passes(pass_results)
+    result = aggregate_passes(pass_results, passes_attempted=len(PASS_TEMPERATURES))
     result.latency_ms = int(time.time() * 1000) - start_ms
 
     logger.info(
-        "Orchestration complete — top: %s (%.2f), latency: %dms, passes: %d",
+        "Orchestration complete — top: %s (%.2f), latency: %dms, passes: %d/%d",
         result.top5[0]["creator"] if result.top5 else "none",
         result.top5[0]["confidence"] if result.top5 else 0,
         result.latency_ms,
         result.pass_count,
+        result.passes_attempted,
     )
 
     return result
@@ -787,6 +842,7 @@ def match_signature():
         "stability_scores": result.stability_scores,
         "latency_ms": result.latency_ms,
         "pass_count": result.pass_count,
+        "passes_attempted": result.passes_attempted,
     })
 
 
