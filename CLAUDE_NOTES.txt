@@ -35,11 +35,12 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Confirmation # 9241, Patent Center # 74618571
 - Filing fee: $65 (micro entity)
 - AI-powered detection of creator signatures on comic covers
-- Reference database matching (137 target creators; 23 of 42 priority artists done, 19 to go)
+- Reference database matching (137 target creators; 43 artists done, 172 signatures in R2)
 - Forgery detection via size/position/style anomaly analysis
 - Valuation integration (signature premium calculation)
 - Ties into Slab Guard for registered signature ownership proof
 - **12-month deadline:** File non-provisional by February 25, 2027 (set reminder Month 10 = December 2026)
+- **Orchestrator v2 built (Session 83, pre-deploy):** 3-pass Opus 4.6 with metadata pre-filter + parallel calls + aggregation. See SIGNATURE ORCHESTRATOR section below.
 
 ### Key Metrics
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
@@ -455,9 +456,56 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## ARCHITECTURE OVERVIEW
 
-### Backend (Flask/Python)
+### Signature Identification System (v1 deployed / v2 pre-deploy)
+
+**Current v1 (deployed, routes/signatures.py):**
+- 4 endpoints: POST /match, POST /identify, GET /db-stats, GET /signed-sales
+- /match: single Sonnet call, unknown sig vs ~46 reference images (2 per artist × 23)
+- /identify: Haiku detect + Sonnet match against PostgreSQL candidates
+- Local: signatures_db.json (23 artists, 97 images); Production: 43 artists, 172 images in R2
+- Cost: ~$0.03/match call (gets expensive as artist count grows toward 100)
+
+**Orchestrator v2 (pre-deploy, routes/signature_orchestrator.py):**
+- Blueprint: /api/signatures/v2/match and /api/signatures/v2/match/stats
+- Model: Claude Opus 4.6 (claude-opus-4-6)
+- Architecture: PostgreSQL metadata pre-filter (100 → 15 candidates) → R2 image fetch → 3 parallel Opus calls (temp 0.2/0.5/0.7) → confidence aggregation → flags
+- New DB table: signature_identification_log (review queue, confusion tracking)
+- System prompt: prompts/signature_identification_system.md (loaded at runtime, inline fallback)
+- Flags: low_confidence_match, high_confusion_pair, context_mismatch, stability_score per creator
+- Known confusion pair: Jim Lee vs 3 other creators (being addressed by publisher_affiliations pre-filter)
+
+**New DB columns needed (migration pre-deploy):**
+- creator_signatures: career_start, career_end, publisher_affiliations (text[]), signature_style, reference_image_count, active, notes
+- signature_images: r2_key, sort_order, source_url, approximate_year, image_notes
+- Auto-trigger: trg_update_image_count keeps reference_image_count in sync
+
+**Files (all pre-deploy, downloaded but not yet in repo):**
+- routes/signature_orchestrator.py
+- prompts/signature_identification_system.md
+- migrations/add_orchestrator_columns.sql
+- migrations/add_signature_identification_log.sql
+
+**Deploy sequence:**
+1. Run add_orchestrator_columns.sql
+2. Run add_signature_identification_log.sql
+3. Seed 43 existing creators with career_start, publisher_affiliations, signature_style
+4. Add routes/signature_orchestrator.py to repo
+5. Add prompts/signature_identification_system.md to repo
+6. Register blueprint in wsgi.py: from routes.signature_orchestrator import signatures_bp (v2)
+7. Deploy to Render
+8. Test /api/signatures/v2/match against known signatures
+9. A/B compare v1 vs v2 accuracy before cutting over
+
+**Accuracy targets:**
+- Current v1 (Session 82): 78.3% (18/23 artists)
+- Immediate target: 87%+ (fix style_notes + better Bendis/Claremont refs)
+- Long-term target: 95% at 100 creators
+
+---
+
+
 - **wsgi.py** - Main app (~305 lines after v4.3.0 refactor)
-- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py
+- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py, signatures.py (v1), signature_orchestrator.py (v2 — pre-deploy)
 - **Services:** billing.py (Stripe), content_moderation.py (AWS Rekognition), ebay_oauth.py, ebay_valuation.py, ebay_listing.py, comic_extraction.py, r2_storage.py
 - **Database:** PostgreSQL on Render
 - **External APIs:** Claude API (grading), Stripe (payments), Cloudflare R2 (images), Resend (email), AWS Rekognition (content moderation), Cloudflare Turnstile (bot protection)

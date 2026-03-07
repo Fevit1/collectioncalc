@@ -175,18 +175,21 @@
   - Challenge flow for suspicious uploads
   - 🔗 Depends on: Live Slab Guard registration test
 
-- [ ] **Signature identification v1 — testing & tuning** ⏱ 1-2 sessions
-  - ✅ Reference DB built (23 artists, 97 images)
-  - ✅ API endpoints built + deployed (match, db-stats, signed-sales, premium-analysis)
-  - ✅ Test suite built (`test_signature_matcher.py`)
-  - ✅ Title year collision fix deployed + migrated (62.5% year coverage)
-  - ✅ Premium analysis engine deployed: time-windowed, log-transform, bootstrap CI
-  - ✅ Baseline results: +40-57% premium, 95% CI [+27%, +59%], 72% positive
-  - ✅ Session 82: Cross-validation baseline 73.9% → improved to 78.3% with multi-reference + system prompt + preferred_images
-  - ✅ Session 82: Fixed cross-validation data leakage bug (test image excluded from references)
-  - ✅ Session 82: Jim Lee, Jae Lee, Jim Steranko now correctly identified
-  - Remaining: fix style_notes metadata (Mike), source better reference images, deploy changes, target 87%+
-  - 🔗 Depends on: Mike fixing style_notes + collecting better reference images for Bendis/Claremont
+- [ ] **Signature identification v2 — deploy orchestrator** ⏱ 1 session
+  - ✅ Reference DB built (43 artists, 172 images in R2)
+  - ✅ API endpoints v1 built + deployed (match, db-stats, signed-sales, premium-analysis)
+  - ✅ Session 82: Cross-validation 73.9% → 78.3% with multi-reference + system prompt + preferred_images
+  - ✅ Session 82: Fixed cross-validation data leakage bug; Jim Lee, Jae Lee, Jim Steranko now correct
+  - ✅ Session 83: Orchestrator v2 built (3-pass Opus 4.6, metadata pre-filter, parallel calls, aggregation)
+  - ✅ Session 83: System prompt file written (prompts/signature_identification_system.md)
+  - ✅ Session 83: DB migrations written (add_orchestrator_columns.sql + add_signature_identification_log.sql)
+  - 🔜 Run migrations on Render PostgreSQL (in order: columns first, then log table)
+  - 🔜 Seed 43 existing creators with career_start, publisher_affiliations, signature_style
+  - 🔜 Add orchestrator files to repo + register blueprint in wsgi.py
+  - 🔜 Deploy to Render + A/B test v1 vs v2
+  - 🔜 Fix style_notes metadata (Mike) + source better Bendis/Claremont reference images
+  - 🔜 Target 87%+ accuracy before advertising signature feature
+  - 🔗 Depends on: Migrations run, creator metadata seeded
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title

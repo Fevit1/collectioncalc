@@ -1,5 +1,83 @@
 # Where We Left Off - Mar 7, 2026
 
+## Session 83 (Mar 7, 2026) — Signature Orchestrator v2 Architecture
+
+### What Was Built
+Designed and built a complete 3-pass Opus 4.6 orchestration layer for signature identification. This session was architecture + code generation — **nothing deployed yet**.
+
+### Problem Being Solved
+Current v1 `/api/signatures/match` sends all reference images in a single Sonnet call. At 43 artists × 2 images = 86 images per call, and growing toward 100 artists × 4 images = 400 images, cost and accuracy both degrade. Jim Lee is still confused with 3 other creators.
+
+### Files Created (downloaded, not yet in repo)
+
+**routes/signature_orchestrator.py**
+- Flask blueprint at `/api/signatures/v2/`
+- Two endpoints: `POST /match` and `GET /match/stats`
+- Full orchestration pipeline:
+  1. `prefilter_candidates()` — PostgreSQL metadata query (era, publisher) narrows 100 → 15 creators
+  2. `fetch_images_from_r2()` — boto3 S3-compatible R2 fetch, 4 images per creator
+  3. `run_orchestrated_identification()` — fires 3 parallel Opus calls via ThreadPoolExecutor
+  4. `aggregate_passes()` — averages confidence scores, detects rank instability, normalizes to sum=1.0
+  5. `log_result_to_db()` — writes result + flags to PostgreSQL review queue (non-blocking)
+- Model: `claude-opus-4-6`
+- 3 passes at temperatures: 0.2 (deterministic), 0.5 (moderate), 0.7 (exploratory)
+- Flags: `low_confidence_match` (<0.50), `high_confusion_pair` (rank1/rank2 within 0.10), `stability_score`
+
+**prompts/signature_identification_system.md**
+- Full system prompt for Opus — forensic signature expert persona
+- Structured JSON output format (top 5 rankings, match_evidence, contra_evidence, flags)
+- Disambiguation guidance for initials-based sigs, cursive sigs, era context
+- Multi-pass aggregation instructions (for orchestrator, not shown to user)
+- Context injection template (publisher/era/slab_label prepended to each call)
+- Claude Code implementation notes (R2 key pattern, pre-filter, review queue)
+
+**migrations/add_orchestrator_columns.sql**
+- Adds to `creator_signatures`: career_start, career_end, publisher_affiliations (text[]), signature_style, reference_image_count, active, notes
+- Adds to `signature_images`: r2_key, sort_order, source_url, approximate_year, image_notes
+- 4 indexes including GIN index on publisher_affiliations for array containment queries
+- Auto-trigger `trg_update_image_count` keeps reference_image_count in sync on INSERT/UPDATE/DELETE
+- Backfill query for existing rows
+- Validation view `migration_validation` — shows count_check OK/MISMATCH per creator
+
+**migrations/add_signature_identification_log.sql**
+- New table `signature_identification_log` — stores every identification result
+- Columns: top_creator, top_confidence, top5_json, flags_json, comic_context_json, stability_scores_json, needs_review, reviewed, correct_creator
+- 3 indexes for review queue and per-creator analysis
+- Views: `signature_review_queue` (unreviewed flagged items) and `signature_confusion_summary` (per-creator confusion matrix for tuning)
+
+### Deploy Sequence (Next Session)
+```
+1. psql → run add_orchestrator_columns.sql
+2. psql → run add_signature_identification_log.sql
+3. Run migration_validation view — confirm all count_check = 'OK'
+4. Seed creator metadata (career_start, publisher_affiliations, signature_style) for all 43 creators
+5. git add routes/signature_orchestrator.py prompts/signature_identification_system.md migrations/
+6. Register blueprint in wsgi.py:
+   from routes.signature_orchestrator import signatures_bp as signatures_v2_bp
+   app.register_blueprint(signatures_v2_bp)
+7. git commit -m "Add signature orchestrator v2 + DB migrations" ; git push ; deploy ; purge
+8. Test POST /api/signatures/v2/match with known signed book image
+9. Check GET /api/signatures/v2/match/stats
+10. A/B compare v1 (/api/signatures/match) vs v2 accuracy on same test set
+```
+
+### Key Architecture Decisions
+- **v1 stays live** — v2 is at `/api/signatures/v2/` so both run in parallel for A/B testing
+- **Pre-filter via PostgreSQL metadata** — publisher_affiliations will directly address Jim Lee confusion (he and his lookalikes work for different publishers in different eras)
+- **CLIP embeddings deferred** — PostgreSQL metadata pre-filter is sufficient for now; revisit if accuracy plateaus at 90%+
+- **Confidence normalization** — all 5 scores always sum to 1.0, forces honest uncertainty
+- **Review queue** — every low_confidence or confusion_pair result auto-flagged for human review; builds ground truth dataset over time
+
+### What's Next (Priority Order)
+1. **Run DB migrations** — columns first, then log table
+2. **Seed creator metadata** — career_start/publisher_affiliations/signature_style for 43 creators
+3. **Add files to repo + register blueprint**
+4. **Deploy + test**
+5. **Fix style_notes** (Mike manual task) + source better Bendis/Claremont reference images
+6. **Target 87%+ accuracy** before advertising signature feature publicly
+
+---
+
 ## Session 82 (Mar 7, 2026) — Signature Recognition Accuracy Improvements
 
 ### Problem
