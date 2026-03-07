@@ -249,6 +249,7 @@ from routes.vision import vision_bp, init_modules as vision_init_modules
 from routes.contact import contact_bp
 from routes.waitlist import waitlist_bp
 from routes.signatures import signatures_bp, init_modules as signatures_init_modules
+from routes.signature_orchestrator import signatures_v2_bp, init_modules as signatures_v2_init_modules
 from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
 from routes.marketplace import marketplace_bp, init_modules as marketplace_init_modules
 
@@ -300,6 +301,7 @@ verify_init_modules(
     ImageFont if 'ImageFont' in dir() else None
 )
 signatures_init_modules(ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE)
+signatures_v2_init_modules(ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE)
 
 # Register all blueprints
 app.register_blueprint(utils_bp)       # /, /health, /api/debug/*, /api/beta/validate
@@ -321,6 +323,7 @@ app.register_blueprint(vision_bp)      # /api/vision/*
 app.register_blueprint(contact_bp)     # /api/contact
 app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
 app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
+app.register_blueprint(signatures_v2_bp)  # /api/signatures/v2/match, /api/signatures/v2/match/stats
 app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content (legacy)
 app.register_blueprint(marketplace_bp) # /api/marketplace/platforms, /api/marketplace/generate-content
 

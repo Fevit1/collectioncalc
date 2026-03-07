@@ -1,5 +1,86 @@
 # Where We Left Off - Mar 7, 2026
 
+## Session 84 (Mar 7, 2026) — Signature Orchestrator v2 Integration + Haiku Revert
+
+### What Was Done
+Integrated the signature orchestrator v2 (designed in Session 83) into the codebase. Found and fixed 7 integration issues. Also tested and reverted the two-stage Haiku prefilter approach from Session 82.
+
+### Haiku Two-Stage Prefilter — Tested and Reverted
+- Implemented Haiku 4.5 pre-filter → Sonnet targeted match in `routes/signatures.py` and `signatures/signature_matcher.py`
+- Cross-validation results: **52.2% accuracy** (down from 78.3%), **60.9% Haiku recall** (9/23 correct artists filtered out before reaching Sonnet)
+- Target was 95%+ Haiku recall — nowhere close
+- **Decision:** Reverted all two-stage changes. Single-stage Sonnet remains the v1 approach.
+- The v2 orchestrator uses a different strategy (Opus 4.6 with metadata pre-filter, not Haiku visual pre-filter)
+
+### Orchestrator v2 — 7 Integration Fixes
+The orchestrator was designed in Session 83 but had integration mismatches with the production codebase. All 7 were discovered by comparing against `routes/signatures.py` (v1), `db_migrate_signatures.py`, and `db_migrate_signature_images.py`:
+
+1. **`cs.name` → `cs.creator_name`** — Production `creator_signatures` table uses `creator_name`, not `name`
+2. **Removed `cs.slug`** — Column doesn't exist in production; slug is now generated in Python via `slugify()`
+3. **R2 images via HTTP `image_url`** — v1 uses public R2 URLs fetched via HTTP `requests.get()`; v2 was using boto3 with wrong env var names (`R2_ENDPOINT_URL` vs `R2_ENDPOINT`). Switched to HTTP fetch matching v1 pattern.
+4. **DB connection via `os.environ.get('DATABASE_URL')`** — Was using `current_app.config["DATABASE_URL"]` which doesn't exist; all other blueprints use `os.environ`
+5. **Auth decorators added** — `@require_auth` and `@require_approved` on both routes (was missing)
+6. **`init_modules()` pattern** — Added for wsgi.py consistency (receives ANTHROPIC_API_KEY, anthropic lib, ANTHROPIC_AVAILABLE)
+7. **Removed unused imports** — `import asyncio` and `import boto3` removed; added `import requests as http_requests` and `from auth import require_auth, require_approved`
+
+### Files Created/Modified
+
+**routes/signature_orchestrator.py** (29,538 bytes — CREATED)
+- Copied from Downloads, rewritten with all 7 fixes
+- Blueprint: `signatures_v2_bp` at `/api/signatures/v2/`
+- Two endpoints: `POST /match` and `GET /match/stats`
+- Pipeline: PostgreSQL metadata pre-filter → R2 HTTP fetch → 3 parallel Opus 4.6 calls → confidence aggregation → review queue logging
+
+**prompts/signature_identification_system.md** (5,196 bytes — CREATED)
+- Full forensic expert system prompt for Opus 4.6
+- Loaded at runtime by `load_system_prompt()` (extracts between `## SYSTEM PROMPT` and `## IDENTIFICATION TASK PROMPT` headers)
+- Covers: 6-point structural comparison, disambiguation guidance, confidence calibration, exact JSON output format
+
+**seed_creator_metadata.py** (11,337 bytes — CREATED)
+- Standalone script to populate career_start, career_end, publisher_affiliations, signature_style
+- 41 creators across 5 categories: 20 artists, 13 writers, 3 cover artists, 4 legends, 1 additional
+- Idempotent, case-insensitive matching, handles George Perez accent mismatch
+- Usage: `python seed_creator_metadata.py <DATABASE_URL>`
+
+**migrations/add_orchestrator_columns.sql** (8,409 bytes — copied from Downloads)
+- Adds career_start, career_end, publisher_affiliations (TEXT[]), signature_style, reference_image_count, active, notes to creator_signatures
+- Adds r2_key, sort_order, source_url, approximate_year, image_notes to signature_images
+- Auto-trigger trg_update_image_count, validation view
+
+**migrations/add_signature_identification_log.sql** (2,471 bytes — copied from Downloads)
+- Creates signature_identification_log table (review queue)
+- 3 indexes, 2 views (signature_review_queue, signature_confusion_summary)
+
+**wsgi.py** (3 edits)
+- Import: `from routes.signature_orchestrator import signatures_v2_bp, init_modules as signatures_v2_init_modules`
+- Init: `signatures_v2_init_modules(ANTHROPIC_API_KEY, anthropic, ANTHROPIC_AVAILABLE)`
+- Register: `app.register_blueprint(signatures_v2_bp)`
+
+**CLAUDE_NOTES.txt** — Updated session number, current session description, file status, blueprint listing
+
+### Deploy Sequence (Next Session)
+```
+1. psql → run migrations/add_orchestrator_columns.sql
+2. psql → run migrations/add_signature_identification_log.sql
+3. Verify: SELECT * FROM migration_validation; (all count_check should be 'OK')
+4. python seed_creator_metadata.py <DATABASE_URL>
+5. git add + commit + push
+6. Deploy on Render
+7. Test: POST /api/signatures/v2/match with known signed book image
+8. Test: GET /api/signatures/v2/match/stats
+9. A/B compare v1 (/api/signatures/match) vs v2 (/api/signatures/v2/match) accuracy
+```
+
+### What's Next (Priority Order)
+1. **Run DB migrations** — columns first, then log table (Mike, manual)
+2. **Run seed script** — `python seed_creator_metadata.py <DATABASE_URL>`
+3. **Deploy to Render** — git push + deploy
+4. **A/B test v1 vs v2** — compare accuracy on same test images
+5. **Fix style_notes** (Mike manual task) + source better Bendis/Claremont reference images
+6. **Target 87%+ accuracy** before advertising signature feature publicly
+
+---
+
 ## Session 83 (Mar 7, 2026) — Signature Orchestrator v2 Architecture
 
 ### What Was Built

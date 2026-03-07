@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 7, 2026 (Session 82)
+**Updated:** March 7, 2026 (Session 84)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -16,6 +16,7 @@
 
 ## ✅ DONE (Session 64-81)
 
+- [x] **Signature orchestrator v2 integrated** — Session 84: Integrated orchestrator into repo with 7 fixes (cs.creator_name, removed cs.slug, HTTP R2 fetch, os.environ DB URL, auth decorators, init_modules pattern, removed unused imports). Registered blueprint in wsgi.py. Created seed_creator_metadata.py (41 creators). Created prompts/signature_identification_system.md. Two-stage Haiku prefilter tested and reverted (52.2% accuracy). Pre-deploy: needs migrations + seed + deploy.
 - [x] **Signature matching accuracy improvements** — Session 82: Improved cross-validation from 73.9% → 78.3% (17/23 → 18/23). Added multi-reference images (2 per artist), forensic expert system prompt, preferred_images curation for all 23 artists, fixed cross-validation data leakage bug. Jim Lee now correctly identified (was misidentified as Grant Morrison). Target 87%+ still needs style_notes fix + better reference images.
 - [x] **Refactor collection.html into modular files** — Session 81: Split 3,925-line monolith into 5 files: collection.html (410 lines, HTML shell), collection.css (1,745 lines), collection.js (922 lines), ebay-modal.js (453 lines), marketplace-modal.js (406 lines). Fixed duplicate sortSelect IDs — list and gallery views now have separate sort dropdowns that show/hide on view toggle.
 - [x] **Register/Stolen E2E test passed** — Session 80: Full state machine tested on production (register → stolen → recovered → verify page behavior). All transitions working correctly.
@@ -183,9 +184,12 @@
   - ✅ Session 83: Orchestrator v2 built (3-pass Opus 4.6, metadata pre-filter, parallel calls, aggregation)
   - ✅ Session 83: System prompt file written (prompts/signature_identification_system.md)
   - ✅ Session 83: DB migrations written (add_orchestrator_columns.sql + add_signature_identification_log.sql)
+  - ✅ Session 84: Orchestrator integrated into repo with 7 integration fixes (column names, R2 HTTP fetch, auth decorators, init_modules pattern, removed boto3)
+  - ✅ Session 84: Blueprint registered in wsgi.py (signatures_v2_bp)
+  - ✅ Session 84: Seed script created (seed_creator_metadata.py — 41 creators with career dates, publishers, signature style)
+  - ✅ Session 84: Two-stage Haiku prefilter tested and reverted (52.2% accuracy, 60.9% Haiku recall — not viable)
   - 🔜 Run migrations on Render PostgreSQL (in order: columns first, then log table)
-  - 🔜 Seed 43 existing creators with career_start, publisher_affiliations, signature_style
-  - 🔜 Add orchestrator files to repo + register blueprint in wsgi.py
+  - 🔜 Run seed script: `python seed_creator_metadata.py <DATABASE_URL>`
   - 🔜 Deploy to Render + A/B test v1 vs v2
   - 🔜 Fix style_notes metadata (Mike) + source better Bendis/Claremont reference images
   - 🔜 Target 87%+ accuracy before advertising signature feature

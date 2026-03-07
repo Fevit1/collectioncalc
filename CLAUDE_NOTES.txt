@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** February 28, 2026 (Session 68)
+**Last Updated:** March 7, 2026 (Session 84)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -228,7 +228,25 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 74) - Mar 4, 2026
+## CURRENT SESSION (SESSION 84) - Mar 7, 2026
+
+### What Happened
+**SIGNATURE ORCHESTRATOR V2 INTEGRATED INTO CODEBASE**
+
+Session 83 designed the orchestrator architecture; Session 84 integrated it into the repo with 7 integration fixes:
+1. `cs.name` -> `cs.creator_name` (match production schema)
+2. Removed `cs.slug` (column doesn't exist; generated in Python)
+3. R2 images via HTTP `image_url` (matches v1 pattern, no boto3 needed)
+4. DB connection via `os.environ['DATABASE_URL']` (matches rest of app)
+5. Auth decorators added (`@require_auth`, `@require_approved`)
+6. `init_modules()` pattern added for wsgi.py consistency
+7. Removed unused imports (asyncio, boto3)
+
+Also: Two-stage Haiku prefilter approach from Session 82 was tested and **reverted** -- Haiku recall was only 60.9% (target was 95%+), dropping overall accuracy to 52.2% from 78.3%. Single-stage Sonnet remains the v1 approach.
+
+---
+
+## PREVIOUS SESSION (SESSION 74) - Mar 4, 2026
 
 ### What Happened
 **FIRST SUCCESSFUL EBAY LISTING PUBLISHED VIA SLAB WORTHY!**
@@ -479,11 +497,12 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 - signature_images: r2_key, sort_order, source_url, approximate_year, image_notes
 - Auto-trigger: trg_update_image_count keeps reference_image_count in sync
 
-**Files (all pre-deploy, downloaded but not yet in repo):**
-- routes/signature_orchestrator.py
+**Files (all in repo as of Session 84):**
+- routes/signature_orchestrator.py (integrated with 7 fixes)
 - prompts/signature_identification_system.md
 - migrations/add_orchestrator_columns.sql
 - migrations/add_signature_identification_log.sql
+- seed_creator_metadata.py (career_start, publisher_affiliations, signature_style for 41 creators)
 
 **Deploy sequence:**
 1. Run add_orchestrator_columns.sql
@@ -504,8 +523,8 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 ---
 
 
-- **wsgi.py** - Main app (~305 lines after v4.3.0 refactor)
-- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py, signatures.py (v1), signature_orchestrator.py (v2 — pre-deploy)
+- **wsgi.py** - Main app (~310 lines after v4.3.0 refactor + v2 signature blueprint)
+- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py, signatures.py (v1), signature_orchestrator.py (v2 — registered, pre-deploy)
 - **Services:** billing.py (Stripe), content_moderation.py (AWS Rekognition), ebay_oauth.py, ebay_valuation.py, ebay_listing.py, comic_extraction.py, r2_storage.py
 - **Database:** PostgreSQL on Render
 - **External APIs:** Claude API (grading), Stripe (payments), Cloudflare R2 (images), Resend (email), AWS Rekognition (content moderation), Cloudflare Turnstile (bot protection)
