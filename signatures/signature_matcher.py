@@ -51,13 +51,81 @@ def get_media_type(filename):
     return {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif'}.get(ext, 'image/jpeg')
 
 
-def build_reference_collage_prompt(db, unknown_b64, unknown_media_type):
+def select_reference_images(artist, max_images=2, exclude_image=None):
+    """
+    Select the best reference images for an artist from the local DB.
+
+    Priority:
+    1. Images listed in 'preferred_images' (manually curated for quality)
+    2. Fallback: largest files by size
+
+    Args:
+        artist: dict from signatures_db.json with 'images' and optional 'preferred_images'
+        max_images: maximum number of reference images to return
+        exclude_image: filename to exclude (e.g. for cross-validation)
+
+    Returns:
+        list of image filenames (up to max_images)
+    """
+    preferred = artist.get('preferred_images', [])
+    all_images = [img for img in artist['images'] if img != exclude_image]
+
+    if not all_images:
+        return []
+
+    # Use preferred images first (filtering out excluded and missing files)
+    selected = []
+    for img in preferred:
+        if img in all_images:
+            img_path = SIGNATURES_DIR / img
+            if img_path.exists():
+                selected.append(img)
+
+    # Fill remaining slots with largest files (that aren't already selected)
+    if len(selected) < max_images:
+        remaining = [img for img in all_images if img not in selected]
+        sized = []
+        for img_file in remaining:
+            img_path = SIGNATURES_DIR / img_file
+            if img_path.exists():
+                sized.append((img_file, img_path.stat().st_size))
+        sized.sort(key=lambda x: x[1], reverse=True)
+
+        for img_file, _ in sized:
+            if len(selected) >= max_images:
+                break
+            selected.append(img_file)
+
+    return selected[:max_images]
+
+
+# System prompt for signature matching — provides forensic expertise context
+SIGNATURE_MATCHING_SYSTEM_PROMPT = """You are an expert forensic document examiner specializing in handwriting and signature authentication for comic book creators. You have extensive experience analyzing autographs from comic conventions, signed editions, and CGC Signature Series submissions.
+
+Your expertise includes:
+- Identifying distinctive letterforms, stroke patterns, and pressure characteristics unique to each creator
+- Distinguishing between visually similar signatures (e.g., different "Jim" artists)
+- Recognizing that the same person's signature varies naturally between signings while maintaining core characteristics
+- Understanding that context clues (ink color, marker type, signing surface) do NOT determine identity — only the handwriting itself does
+
+When comparing signatures:
+- Focus on STRUCTURAL features: letter construction, connections, proportions, baseline angle
+- Look for DISTINCTIVE elements: unique flourishes, loops, crossbar styles, terminal strokes
+- Account for NATURAL VARIATION: the same signer's autograph varies in size, slant, and neatness
+- Be CONSERVATIVE: a false positive (wrong identification) is much worse than a false negative (saying UNKNOWN)
+- When multiple reference images are provided for an artist, use them to understand the range of natural variation in that artist's signature"""
+
+
+def build_reference_collage_prompt(db, unknown_b64, unknown_media_type, exclude_image=None):
     """
     Build a Claude Vision prompt that shows the unknown signature alongside
     reference samples from each artist. Returns a list of messages for the API.
 
-    Strategy: Send the unknown sig + 1 reference per artist (best quality),
+    Strategy: Send the unknown sig + up to 2 references per artist (preferred first),
     ask Claude to rank the top matches with confidence scores.
+
+    Args:
+        exclude_image: filename to exclude from references (for cross-validation)
     """
     content = []
 
@@ -75,40 +143,29 @@ def build_reference_collage_prompt(db, unknown_b64, unknown_media_type):
         }
     })
 
-    # Add one reference per artist (pick the largest/best file)
+    # Add up to 2 reference images per artist (preferred first, then largest)
     ref_index = 2
-    artist_map = {}  # Track which image index maps to which artist
 
     for artist in db["artists"]:
-        # Pick the best reference image (largest file = likely best quality)
-        best_image = None
-        best_size = 0
-        for img_file in artist["images"]:
-            img_path = SIGNATURES_DIR / img_file
-            if img_path.exists():
-                size = img_path.stat().st_size
-                if size > best_size:
-                    best_size = size
-                    best_image = img_file
+        ref_images = select_reference_images(artist, max_images=2, exclude_image=exclude_image)
 
-        if best_image:
-            img_path = SIGNATURES_DIR / best_image
-            img_b64 = image_to_base64(img_path)
-            media_type = get_media_type(best_image)
-
+        if ref_images:
             content.append({
                 "type": "text",
                 "text": f"\nREFERENCE {ref_index} — {artist['name']}:"
             })
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": media_type,
-                    "data": img_b64
-                }
-            })
-            artist_map[ref_index] = artist
+            for img_file in ref_images:
+                img_path = SIGNATURES_DIR / img_file
+                img_b64 = image_to_base64(img_path)
+                media_type = get_media_type(img_file)
+                content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": img_b64
+                    }
+                })
             ref_index += 1
 
     # Add the matching instruction
@@ -151,7 +208,7 @@ Rules:
     return content
 
 
-def match_signature(unknown_image_path, api_key=None, verbose=True):
+def match_signature(unknown_image_path, api_key=None, verbose=True, exclude_image=None):
     """
     Match an unknown signature against the reference database.
 
@@ -159,6 +216,7 @@ def match_signature(unknown_image_path, api_key=None, verbose=True):
         unknown_image_path: Path to the unknown signature image
         api_key: Anthropic API key (falls back to env var)
         verbose: Print progress
+        exclude_image: filename to exclude from references (for cross-validation)
 
     Returns:
         dict with matches, best_match, confidence, etc.
@@ -192,7 +250,7 @@ def match_signature(unknown_image_path, api_key=None, verbose=True):
     if verbose:
         print(f"Comparing against {len(db['artists'])} reference artists...")
 
-    content = build_reference_collage_prompt(db, unknown_b64, unknown_media_type)
+    content = build_reference_collage_prompt(db, unknown_b64, unknown_media_type, exclude_image=exclude_image)
 
     # Call Claude Vision
     client = anthropic.Anthropic(api_key=api_key)
@@ -202,7 +260,8 @@ def match_signature(unknown_image_path, api_key=None, verbose=True):
 
     response = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=1500,
+        system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
+        max_tokens=2000,
         messages=[{
             "role": "user",
             "content": content
@@ -255,7 +314,8 @@ def cross_validate(api_key=None, samples_per_artist=1):
         print(f"\n{'─' * 60}")
         print(f"Testing: {artist['name']} (using {test_image})")
 
-        result = match_signature(test_path, api_key=api_key, verbose=False)
+        # Exclude the test image from the reference set to avoid data leakage
+        result = match_signature(test_path, api_key=api_key, verbose=False, exclude_image=test_image)
 
         if result and "best_match" in result:
             correct = result["best_match"].lower().strip() == artist["name"].lower().strip()
@@ -322,7 +382,7 @@ def cross_validate(api_key=None, samples_per_artist=1):
     results_path = SIGNATURES_DIR / "cross_validation_results.json"
     with open(results_path, 'w') as f:
         json.dump({
-            "date": "2026-02-28",
+            "date": "2026-03-07",
             "total": total,
             "correct": correct,
             "accuracy": accuracy,

@@ -1,4 +1,71 @@
-# Where We Left Off - Mar 6, 2026
+# Where We Left Off - Mar 7, 2026
+
+## Session 82 (Mar 7, 2026) — Signature Recognition Accuracy Improvements
+
+### Problem
+Cross-validation accuracy was **73.9% (17/23)** — 6 artists misidentified at HIGH confidence (0.82-0.92). Key failure: Jim Lee was being confused with Grant Morrison.
+
+### Root Cause Analysis (5 issues identified)
+1. **Only 1 reference image per artist** — not enough to capture natural signature variation
+2. **No system prompt** — no forensic expertise context for the model
+3. **Bad reference image selection** — "largest file = best quality" heuristic fails for images with busy backgrounds or logo overlaps
+4. **Inaccurate style_notes metadata** — Claude Sonnet wrote the descriptions, they don't match reality (fix deferred to Mike)
+5. **Cross-validation data leakage bug** — test image wasn't excluded from the reference set
+
+### Fixes Implemented
+
+**1. Added `preferred_images` to all 23 artists in `signatures_db.json`**
+- Manually curated best 2 reference images per artist
+- Avoided bad references: `BrianMichaelBendis_Signature_5_2003.jpg` (white pen on busy comic cover), `Jim_Starlin_Signature_2.jpg` (Infinity Gauntlet logo overlap)
+
+**2. Added `select_reference_images()` helper function**
+- Priority: preferred_images first → fallback to largest files by size
+- Accepts `exclude_image` param for cross-validation
+- Added to both `routes/signatures.py` and `signatures/signature_matcher.py`
+
+**3. Added `SIGNATURE_MATCHING_SYSTEM_PROMPT` constant**
+- Expert forensic document examiner context
+- Emphasizes structural features, natural variation, conservative matching
+- Applied to all 3 `client.messages.create()` calls via `system=` parameter
+
+**4. Updated `/match` endpoint (`routes/signatures.py`)**
+- Now sends 2 reference images per artist (was 1)
+- Increased `max_tokens` from 1500 → 2000
+
+**5. Updated `_step2_match_signatures()` (`routes/signatures.py`)**
+- Now sends up to 3 images per candidate artist from PostgreSQL
+- Added system prompt
+
+**6. Updated CLI matcher (`signatures/signature_matcher.py`)**
+- Same multi-reference + system prompt pattern
+- Fixed cross-validation data leakage: test image now excluded from references
+
+### Results: 78.3% accuracy (18/23) — up from 73.9% (17/23)
+
+| Category | Artists | Details |
+|----------|---------|---------|
+| ✅ Fixed (3) | Jae Lee, Jim Lee, Jim Steranko | Previously wrong, now correct |
+| ❌ Still failing (3) | Bendis, Claremont, Geoff Johns | Persistent misidentifications |
+| ❌ New failures (2) | Art Adams, Grant Morrison | Appeared after changes |
+
+**Note:** Cross-validation uses random image selection per run, so results have variance. The test is now harder/fairer due to the exclude_image bug fix.
+
+### Token Cost Impact
+- `/match`: 23 → 46 reference images (~$0.11/call additional)
+- `/identify` step 2: minimal increase (only candidate artists)
+
+### Files Modified
+- `signatures/signatures_db.json` — added `preferred_images` to all 23 artists
+- `routes/signatures.py` — helper function, system prompt, `/match` multi-reference, `_step2_match_signatures` multi-reference
+- `signatures/signature_matcher.py` — helper function, system prompt, prompt builder, cross-validate bug fix
+
+### What's Next (to push toward 87%+ target)
+1. **Fix `style_notes` metadata** — Mike needs to correct the inaccurate descriptions (Claude Sonnet wrote them)
+2. **Source better reference images** — especially for Bendis (noisy backgrounds) and Claremont
+3. **Deploy to production** — changes only tested locally via CLI, need to push + deploy on Render
+4. **Run server-based tests** — use `test_signature_matcher.py` against production API
+
+---
 
 ## Session 81 (Mar 6, 2026) — Collection Page Refactor + Sort Fix
 

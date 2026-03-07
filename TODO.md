@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 6, 2026 (Session 81)
+**Updated:** March 7, 2026 (Session 82)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -16,6 +16,7 @@
 
 ## ✅ DONE (Session 64-81)
 
+- [x] **Signature matching accuracy improvements** — Session 82: Improved cross-validation from 73.9% → 78.3% (17/23 → 18/23). Added multi-reference images (2 per artist), forensic expert system prompt, preferred_images curation for all 23 artists, fixed cross-validation data leakage bug. Jim Lee now correctly identified (was misidentified as Grant Morrison). Target 87%+ still needs style_notes fix + better reference images.
 - [x] **Refactor collection.html into modular files** — Session 81: Split 3,925-line monolith into 5 files: collection.html (410 lines, HTML shell), collection.css (1,745 lines), collection.js (922 lines), ebay-modal.js (453 lines), marketplace-modal.js (406 lines). Fixed duplicate sortSelect IDs — list and gallery views now have separate sort dropdowns that show/hide on view toggle.
 - [x] **Register/Stolen E2E test passed** — Session 80: Full state machine tested on production (register → stolen → recovered → verify page behavior). All transitions working correctly.
 - [x] **Sell button brand fix** — Session 80: Changed from gradient to dark fill with brand-purple border/text to match other buttons.
@@ -181,8 +182,11 @@
   - ✅ Title year collision fix deployed + migrated (62.5% year coverage)
   - ✅ Premium analysis engine deployed: time-windowed, log-transform, bootstrap CI
   - ✅ Baseline results: +40-57% premium, 95% CI [+27%, +59%], 72% positive
-  - Remaining: run cross-validation, tune confidence thresholds, per-creator premiums (need more data)
-  - 🔗 Depends on: Mike collecting 5 more priority artists
+  - ✅ Session 82: Cross-validation baseline 73.9% → improved to 78.3% with multi-reference + system prompt + preferred_images
+  - ✅ Session 82: Fixed cross-validation data leakage bug (test image excluded from references)
+  - ✅ Session 82: Jim Lee, Jae Lee, Jim Steranko now correctly identified
+  - Remaining: fix style_notes metadata (Mike), source better reference images, deploy changes, target 87%+
+  - 🔗 Depends on: Mike fixing style_notes + collecting better reference images for Bendis/Claremont
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title

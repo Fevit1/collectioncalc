@@ -14,7 +14,7 @@ Slab Worthy helps collectors answer the question every owner asks: "Is this wort
 
 **eBay Listing Integration** — List comics directly to eBay from your collection. Supports fixed-price and auction formats with OAuth 2.0 authentication.
 
-**Signature Identification** — Reference database of 23+ artists with 97 signature images. AI-powered matching with premium analysis (signing adds ~40-57% to value).
+**Signature Identification** — Reference database of 23 artists with 97 signature images. Multi-reference forensic matching with curated preferred images. Cross-validation accuracy: 78%. Premium analysis shows signing adds ~40-57% to value.
 
 **Slab Guard Registration** — Register comics with perceptual fingerprinting for theft detection and provenance tracking. Patent pending (Application #63/990,743).
 

@@ -51,6 +51,71 @@ def get_media_type(filename):
     return {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif'}.get(ext, 'image/jpeg')
 
 
+# System prompt for signature matching — provides forensic expertise context
+SIGNATURE_MATCHING_SYSTEM_PROMPT = """You are an expert forensic document examiner specializing in handwriting and signature authentication for comic book creators. You have extensive experience analyzing autographs from comic conventions, signed editions, and CGC Signature Series submissions.
+
+Your expertise includes:
+- Identifying distinctive letterforms, stroke patterns, and pressure characteristics unique to each creator
+- Distinguishing between visually similar signatures (e.g., different "Jim" artists)
+- Recognizing that the same person's signature varies naturally between signings while maintaining core characteristics
+- Understanding that context clues (ink color, marker type, signing surface) do NOT determine identity — only the handwriting itself does
+
+When comparing signatures:
+- Focus on STRUCTURAL features: letter construction, connections, proportions, baseline angle
+- Look for DISTINCTIVE elements: unique flourishes, loops, crossbar styles, terminal strokes
+- Account for NATURAL VARIATION: the same signer's autograph varies in size, slant, and neatness
+- Be CONSERVATIVE: a false positive (wrong identification) is much worse than a false negative (saying UNKNOWN)
+- When multiple reference images are provided for an artist, use them to understand the range of natural variation in that artist's signature"""
+
+
+def select_reference_images(artist, max_images=2, exclude_image=None):
+    """
+    Select the best reference images for an artist from the local DB.
+
+    Priority:
+    1. Images listed in 'preferred_images' (manually curated for quality)
+    2. Fallback: largest files by size
+
+    Args:
+        artist: dict from signatures_db.json with 'images' and optional 'preferred_images'
+        max_images: maximum number of reference images to return
+        exclude_image: filename to exclude (e.g. for cross-validation)
+
+    Returns:
+        list of image filenames (up to max_images)
+    """
+    preferred = artist.get('preferred_images', [])
+    all_images = [img for img in artist['images'] if img != exclude_image]
+
+    if not all_images:
+        return []
+
+    # Use preferred images first (filtering out excluded and missing files)
+    selected = []
+    for img in preferred:
+        if img in all_images:
+            img_path = SIGNATURES_DIR / img
+            if img_path.exists():
+                selected.append(img)
+
+    # Fill remaining slots with largest files (that aren't already selected)
+    if len(selected) < max_images:
+        remaining = [img for img in all_images if img not in selected]
+        sized = []
+        for img_file in remaining:
+            img_path = SIGNATURES_DIR / img_file
+            if img_path.exists():
+                sized.append((img_file, img_path.stat().st_size))
+        sized.sort(key=lambda x: x[1], reverse=True)
+
+        for img_file, _ in sized:
+            if len(selected) >= max_images:
+                break
+            selected.append(img_file)
+
+    return selected[:max_images]
+
+
 # -------------------------------------------------------------------
 # Route: Match an unknown signature against the reference database
 # -------------------------------------------------------------------
@@ -99,29 +164,21 @@ def api_match_signature():
         "source": {"type": "base64", "media_type": media_type, "data": unknown_b64}
     })
 
-    # Add one reference per artist (best quality = largest file)
+    # Add up to 2 reference images per artist (preferred first, then largest)
     ref_index = 2
     for artist in db["artists"]:
-        best_image = None
-        best_size = 0
-        for img_file in artist["images"]:
-            img_path = SIGNATURES_DIR / img_file
-            if img_path.exists():
-                size = img_path.stat().st_size
-                if size > best_size:
-                    best_size = size
-                    best_image = img_file
+        ref_images = select_reference_images(artist, max_images=2)
 
-        if best_image:
-            img_path = SIGNATURES_DIR / best_image
-            img_b64 = image_to_base64(img_path)
-            img_media = get_media_type(best_image)
-
+        if ref_images:
             content.append({"type": "text", "text": f"\nREFERENCE {ref_index} — {artist['name']}:"})
-            content.append({
-                "type": "image",
-                "source": {"type": "base64", "media_type": img_media, "data": img_b64}
-            })
+            for img_file in ref_images:
+                img_path = SIGNATURES_DIR / img_file
+                img_b64 = image_to_base64(img_path)
+                img_media = get_media_type(img_file)
+                content.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": img_media, "data": img_b64}
+                })
             ref_index += 1
 
     # Matching instruction
@@ -163,7 +220,8 @@ Rules:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=1500,
+            system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
+            max_tokens=2000,
             messages=[{"role": "user", "content": content}]
         )
 
@@ -444,23 +502,32 @@ def _step2_match_signatures(cover_b64, media_type, detected_sigs, references):
         "text": f"Detected {len(detected_sigs)} signature(s) on this cover:\n" + "\n".join(sig_descriptions)
     })
 
-    # Add reference images
+    # Add up to 3 reference images per candidate artist
+    MAX_REFS_PER_CANDIDATE = 3
     ref_index = 1
     artist_names_in_prompt = []
     for artist_name, ref_data in references.items():
-        best_url = ref_data['best_image_url']
-        try:
-            img_b64, img_media = _fetch_and_encode_r2_image(best_url)
-            era_note = f" (era: {ref_data['images'][0].get('era', 'unknown')})" if ref_data['images'][0].get('era') else ""
-            content.append({"type": "text", "text": f"\nREFERENCE {ref_index} — {artist_name}{era_note}:"})
-            content.append({
-                "type": "image",
-                "source": {"type": "base64", "media_type": img_media, "data": img_b64}
-            })
+        images_to_send = ref_data['images'][:MAX_REFS_PER_CANDIDATE]
+        loaded_any = False
+        label_content = {"type": "text", "text": f"\nREFERENCE {ref_index} — {artist_name}:"}
+        content.append(label_content)
+        for img_record in images_to_send:
+            img_url = img_record['image_url']
+            try:
+                img_b64, img_media = _fetch_and_encode_r2_image(img_url)
+                content.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": img_media, "data": img_b64}
+                })
+                loaded_any = True
+            except Exception as e:
+                print(f"[signatures/identify] Failed to fetch reference image for {artist_name}: {e}")
+        if loaded_any:
             artist_names_in_prompt.append(artist_name)
             ref_index += 1
-        except Exception as e:
-            print(f"[signatures/identify] Failed to fetch reference for {artist_name}: {e}")
+        else:
+            # Remove the label we added since no images loaded
+            content.remove(label_content)
 
     if not artist_names_in_prompt:
         return {"signatures": [], "error": "No reference images could be loaded"}, {'sonnet_input': 0, 'sonnet_output': 0}
@@ -514,6 +581,7 @@ RULES:
 
     response = client.messages.create(
         model="claude-sonnet-4-5-20250929",
+        system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
         max_tokens=2000,
         messages=[{"role": "user", "content": content}]
     )

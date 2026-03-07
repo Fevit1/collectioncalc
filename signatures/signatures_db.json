@@ -12,6 +12,7 @@
       "aliases": ["Adam Hughes", "AH"],
       "quality_rating": "low",
       "quality_notes": "Very small files (1-3KB), minimal detail. May need higher-res samples.",
+      "preferred_images": ["AdamaHughesSignature3.jpg", "AdamaHughesSignature2.jpg"],
       "images": [
         "AdamaHughesSignature.jpg",
         "AdamaHughesSignature2.jpg",
@@ -30,6 +31,7 @@
       "aliases": ["Alan Moore"],
       "quality_rating": "medium",
       "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["AlanMooreSignature3.jpg", "AlanMooreSignature1.jpg"],
       "images": [
         "AlanMooreSignature1.jpg",
         "AlanMooreSignature2.jpg",
@@ -46,6 +48,7 @@
       "aliases": ["Alex Ross"],
       "quality_rating": "high",
       "quality_notes": "Good resolution (15-17KB), clear images, consistent style visible.",
+      "preferred_images": ["AlexRossSignature2.jpg", "AlexRossSignature4.jpg"],
       "images": [
         "AlexRossSignature1.jpg",
         "AlexRossSignature2.jpg",
@@ -62,6 +65,7 @@
       "aliases": ["Art Adams", "Arthur Adams"],
       "quality_rating": "medium",
       "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["ArtAdamsSignature3.jpg", "ArtAdamsSignature4.jpg"],
       "images": [
         "ArtAdamsSignature1_2018.jpg",
         "ArtAdamsSignature2.jpg",
@@ -78,6 +82,7 @@
       "aliases": ["Bill Finger"],
       "quality_rating": "medium",
       "quality_notes": "Small files but legible.",
+      "preferred_images": ["BillFingerSignature4.jpg", "BillFingerSignature1.jpg"],
       "images": [
         "BillFingerSignature1.jpg",
         "BillFingerSignature2.jpg",
@@ -94,6 +99,7 @@
       "aliases": ["Bob Kane"],
       "quality_rating": "high",
       "quality_notes": "Good range of sizes, one large sample (23KB). Dated samples useful for era comparison.",
+      "preferred_images": ["BobKaneSignature3.jpg", "BobKaneSignature2_1988.jpg"],
       "images": [
         "BobKaneSignature1_1994.jpg",
         "BobKaneSignature2_1988.jpg",
@@ -110,6 +116,7 @@
       "aliases": ["Brian Bendis", "Brian Michael Bendis", "BMB"],
       "quality_rating": "high",
       "quality_notes": "Best collection — 8 samples with varied contexts, some dated. Wide size range shows consistency.",
+      "preferred_images": ["BrianMichaelBendis_Signature_3_2001.jpg", "BrianMichaelBendis_Signature_1.jpg"],
       "images": [
         "BrianMichaelBendis_Signature_1.jpg",
         "BrianMichaelBendis_Signature_2.jpg",
@@ -130,6 +137,7 @@
       "aliases": ["Chris Claremont"],
       "quality_rating": "high",
       "quality_notes": "Good variety, includes one large sample (17KB).",
+      "preferred_images": ["ChrisClaremontSignature4.jpg", "ChrisClaremontSignature1.jpg"],
       "images": [
         "ChrisClaremontSignature1.jpg",
         "ChrisClaremontSignature2.jpg",
@@ -146,6 +154,7 @@
       "aliases": ["Ed Brubaker"],
       "quality_rating": "medium",
       "quality_notes": "Decent, 4 samples.",
+      "preferred_images": ["EdBrubakerSignature3.jpg", "EdBrubakerSignature1.jpg"],
       "images": [
         "EdBrubakerSignature1.jpg",
         "EdBrubakerSignature2.jpg",
@@ -162,6 +171,7 @@
       "aliases": ["Frank Miller"],
       "quality_rating": "medium",
       "quality_notes": "Small files (2-4KB) but recognizable style.",
+      "preferred_images": ["Frank_Miller_Signature3.jpg", "Frank_Miller_Signature_4.jpg"],
       "images": [
         "Frank_Miller_Signature1.jpg",
         "Frank_Miller_Signature2.jpg",
@@ -178,6 +188,7 @@
       "aliases": ["Gabriele Dell'Otto", "Gabrielle Dell'Otto", "Dell'Otto"],
       "quality_rating": "low",
       "quality_notes": "Small files (2-5KB). May need better samples.",
+      "preferred_images": ["Gabrielle_DellOtto_Signature_1.jpg", "Gabrielle_DellOtto_Signature_4.jpg"],
       "images": [
         "Gabrielle_DellOtto_Signature_1.jpg",
         "Gabrielle_DellOtto_Signature_2.jpg",
@@ -194,6 +205,7 @@
       "aliases": ["Geoff Johns"],
       "quality_rating": "medium",
       "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["Geoff_Johns_Signature_1.jpg", "Geoff_Johns_Signature_2.jpg"],
       "images": [
         "Geoff_Johns_Signature_1.jpg",
         "Geoff_Johns_Signature_2.jpg",
@@ -210,6 +222,7 @@
       "aliases": ["George Perez", "George Pérez"],
       "quality_rating": "high",
       "quality_notes": "Good variety of sizes, one large (13KB). Deceased — signatures increasingly valuable.",
+      "preferred_images": ["George_Perez_Signature_4.jpg", "George_Perez_Signature_3.jpg"],
       "images": [
         "George_Perez_Signature_1.jpg",
         "George_Perez_Signature_2.jpg",
@@ -226,6 +239,7 @@
       "aliases": ["Grant Morrison"],
       "quality_rating": "high",
       "quality_notes": "Large, clear files (8-16KB). Good quality collection.",
+      "preferred_images": ["Grant_Morrison_Signature_2.jpg", "Grant_Morrison_Signature_4.jpg"],
       "images": [
         "Grant_Morrison_Signature_1.jpg",
         "Grant_Morrison_Signature_2.jpg",
@@ -242,6 +256,7 @@
       "aliases": ["Greg Capullo"],
       "quality_rating": "high",
       "quality_notes": "Good resolution (5-12KB), clear examples.",
+      "preferred_images": ["Greg_Capullo_Signature_3.jpg", "Greg_Capullo_Signature_2.jpg"],
       "images": [
         "Greg_Capullo_Signature_1.jpg",
         "Greg_Capullo_Signature_2.jpg",
@@ -258,6 +273,7 @@
       "aliases": ["Ivan Reis"],
       "quality_rating": "low",
       "quality_notes": "Very small files (1-2KB). Needs better resolution samples.",
+      "preferred_images": ["Ivan_Reis_Signature_1.jpg", "Ivan_Reis_Signature_3.jpg"],
       "images": [
         "Ivan_Reis_Signature_1.jpg",
         "Ivan_Reis_Signature_2.jpg",
@@ -274,6 +290,7 @@
       "aliases": ["Jack Kirby"],
       "quality_rating": "high",
       "quality_notes": "Good variety including one large (22KB). Important for high-value authentication.",
+      "preferred_images": ["Jack_Kirby_Signature_3.jpg", "Jack_Kirby_Signature_4.jpg"],
       "images": [
         "Jack_Kirby_Signature_1.jpg",
         "Jack_Kirby_Signature_2.jpg",
@@ -290,6 +307,7 @@
       "aliases": ["Jae Lee"],
       "quality_rating": "medium",
       "quality_notes": "Mixed sizes, some good detail.",
+      "preferred_images": ["Jae_Lee_Signature_4.jpg", "Jae_Lee_Signature_3.jpg"],
       "images": [
         "Jae_Lee_Signature_1.jpg",
         "Jae_Lee_Signature_2.jpg",
@@ -306,6 +324,7 @@
       "aliases": ["James Tynion", "James Tynion IV"],
       "quality_rating": "medium",
       "quality_notes": "One good large sample (10KB), rest small.",
+      "preferred_images": ["James_Tynion_IV_Signature_4.jpg", "James_Tynion_IV_Signature_3.jpg"],
       "images": [
         "James_Tynion_IV_Signature_1.jpg",
         "James_Tynion_IV_Signature_2.jpg",
@@ -322,6 +341,7 @@
       "aliases": ["Jerry Siegel"],
       "quality_rating": "high",
       "quality_notes": "One very large sample (81KB), good variety. High-value authentication target.",
+      "preferred_images": ["Jerry_Siegel_Signature_1.jpg", "Jerry_Siegel_Signature_2.jpg"],
       "images": [
         "Jerry_Siegel_Signature_1.jpg",
         "Jerry_Siegel_Signature_2.jpg",
@@ -338,6 +358,7 @@
       "aliases": ["Jim Lee"],
       "quality_rating": "high",
       "quality_notes": "Excellent collection — large clear files (7-34KB). Top priority for convention matching.",
+      "preferred_images": ["Jim_Lee_Signature_1.jpg", "Jim_Lee_Signature_2.jpg"],
       "images": [
         "Jim_Lee_Signature_1.jpg",
         "Jim_Lee_Signature_2.jpg",
@@ -354,6 +375,7 @@
       "aliases": ["Jim Starlin"],
       "quality_rating": "high",
       "quality_notes": "Large files (10-47KB) but only 3 samples — MISSING signature #1.",
+      "preferred_images": ["Jim_Starlin_Signature_4.jpg", "Jim_Starlin_Signature_3.jpg"],
       "images": [
         "Jim_Starlin_Signature_2.jpg",
         "Jim_Starlin_Signature_3.jpg",
@@ -369,6 +391,7 @@
       "aliases": ["Jim Steranko", "Steranko"],
       "quality_rating": "high",
       "quality_notes": "Large, detailed files (5-42KB). Distinctive style should match well.",
+      "preferred_images": ["Jim_Steranko_Signature_3.jpg", "Jim_Steranko_Signature_1.jpg"],
       "images": [
         "Jim_Steranko_Signature_1.jpg",
         "Jim_Steranko_Signature_2.jpg",
