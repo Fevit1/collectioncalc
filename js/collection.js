@@ -342,6 +342,9 @@ function createComicCard(comic) {
                 </div>
                 <div class="comic-actions">
                     ${guardButton(comic)}
+                    <button id="sig-btn-${comic.id}" class="action-btn" onclick="handleCollectionIdentifySignatures(event, ${comic.id})" title="Identify signatures on cover">
+                        🔍 ID Sigs
+                    </button>
                     <div class="sell-dropdown-wrapper">
                         <button class="action-btn sell-btn" onclick="toggleSellDropdown(event, ${comic.id})">
                             Sell ▾
@@ -352,6 +355,7 @@ function createComicCard(comic) {
                         🗑️
                     </button>
                 </div>
+                <div id="sig-results-${comic.id}" style="display: none;"></div>
             </div>
         `;
     }
@@ -415,6 +419,9 @@ function createComicCard(comic) {
                     </div>
                     <div class="detail-actions">
                         ${guardButton(comic, true)}
+                        <button id="sig-btn-${comic.id}" class="action-btn" onclick="handleCollectionIdentifySignatures(event, ${comic.id})" title="Identify signatures on cover">
+                            🔍 ID Sigs
+                        </button>
                         <div class="sell-dropdown-wrapper">
                             <button class="action-btn sell-btn" onclick="event.stopPropagation(); toggleSellDropdown(event, ${comic.id})">
                                 Sell ▾
@@ -425,6 +432,7 @@ function createComicCard(comic) {
                             🗑️ Delete
                         </button>
                     </div>
+                    <div id="sig-results-${comic.id}" style="display: none;"></div>
                 </div>
             </div>
         `;
@@ -950,4 +958,97 @@ function deleteSelected() {
 
 function clearSelection() {
     document.getElementById('bulkActions').classList.remove('show');
+}
+
+// ============================================
+// SIGNATURE IDENTIFICATION — Collection page
+// ============================================
+
+/**
+ * Handle "Identify Signatures" button click on a comic in the collection.
+ * Fetches the front cover from R2 and calls the identify endpoint.
+ * @param {Event} event - Click event (to stop propagation in gallery view)
+ * @param {number} comicId - Comic ID from the collection
+ */
+async function handleCollectionIdentifySignatures(event, comicId) {
+    if (event) event.stopPropagation();
+
+    // Find the comic in the loaded collection
+    const comic = collection.find(c => c.id === comicId);
+    if (!comic) {
+        showToast('Comic not found', 'error');
+        return;
+    }
+
+    const photoUrl = comic.photos && (comic.photos.front || comic.photos.spine || comic.photos.back);
+    if (!photoUrl) {
+        showToast('No photo available for this comic — upload a cover photo first', 'error');
+        return;
+    }
+
+    // Find or create results container
+    let container = document.getElementById(`sig-results-${comicId}`);
+    const btn = document.getElementById(`sig-btn-${comicId}`);
+
+    if (!container) {
+        // Create a container dynamically near the button
+        container = document.createElement('div');
+        container.id = `sig-results-${comicId}`;
+        container.style.display = 'none';
+        if (btn && btn.parentNode) {
+            btn.parentNode.insertAdjacentElement('afterend', container);
+        }
+    }
+
+    // Loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Analyzing...';
+    }
+    container.innerHTML = '<div style="padding: 8px; color: var(--text-secondary); font-size: 12px;">Detecting signatures on cover...</div>';
+    container.style.display = 'block';
+
+    try {
+        // Fetch the cover image from R2 and convert to base64
+        const { base64, mediaType } = await fetchImageAsBase64(photoUrl);
+
+        // Call the identify endpoint
+        const result = await identifySignatures(base64, mediaType, comicId);
+
+        if (result.success) {
+            displaySignatureIdentifyResults(result, container);
+
+            // If confident match, update the comic's signer via API
+            if (result.signatures && result.signatures.length > 0) {
+                const bestSig = result.signatures[0];
+                if (bestSig.best_match.is_confident && bestSig.best_match.artist_name !== 'UNKNOWN') {
+                    try {
+                        await fetch(`${API_URL}/api/collection/${comicId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: JSON.stringify({
+                                is_signed: true,
+                                signer: bestSig.best_match.artist_name
+                            })
+                        });
+                        showToast(`Identified: ${bestSig.best_match.artist_name} (${Math.round(bestSig.best_match.confidence * 100)}% confidence)`, 'success');
+                    } catch (e) {
+                        console.error('Failed to update comic signer:', e);
+                    }
+                }
+            }
+        } else {
+            container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${result.error || 'Unknown error'}</div>`;
+        }
+    } catch (error) {
+        container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${error.message}</div>`;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🔍 ID Sigs';
+        }
+    }
 }

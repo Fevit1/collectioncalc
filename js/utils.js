@@ -279,4 +279,120 @@ function updateProgress(percent, text) {
     document.getElementById('progressText').textContent = text;
 }
 
+// ============================================
+// SIGNATURE IDENTIFICATION (shared across pages)
+// ============================================
+
+/**
+ * Call /api/signatures/identify with a cover image.
+ * @param {string} imageB64 - Base64-encoded cover image (no data URI prefix)
+ * @param {string} mediaType - MIME type (default 'image/jpeg')
+ * @param {number|null} comicId - Optional comic ID for DB recording
+ * @returns {object} API response with signatures array
+ */
+async function identifySignatures(imageB64, mediaType = 'image/jpeg', comicId = null) {
+    const payload = { image: imageB64, media_type: mediaType };
+    if (comicId) payload.comic_id = comicId;
+
+    const response = await fetch(`${API_URL}/api/signatures/identify`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+    }
+    return await response.json();
+}
+
+/** Get color for confidence score display. */
+function getSignatureConfidenceColor(confidence) {
+    if (confidence >= 0.8) return 'var(--status-success)';
+    if (confidence >= 0.6) return 'var(--status-warning)';
+    if (confidence >= 0.3) return '#ef4444';
+    return 'var(--text-muted)';
+}
+
+/**
+ * Render signature identification results into a container element.
+ * @param {object} result - API response from /api/signatures/identify
+ * @param {HTMLElement} container - Target element to render into
+ */
+function displaySignatureIdentifyResults(result, container) {
+    if (!result.signatures || result.signatures.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
+                <div style="font-size: 13px; color: var(--text-secondary);">No signatures detected on this cover.</div>
+            </div>`;
+        container.style.display = 'block';
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-top: 12px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">
+            <div style="font-weight: 600; font-size: 12px; color: var(--status-success); margin-bottom: 10px;">
+                Signature Identification — ${result.signatures_found} signature${result.signatures_found !== 1 ? 's' : ''} found
+            </div>
+            ${result.signatures.map(sig => `
+                <div style="margin-bottom: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="font-size: 14px; font-weight: 600;">
+                            ${sig.best_match.artist_name || 'UNKNOWN'}
+                        </div>
+                        <div style="padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; background: ${getSignatureConfidenceColor(sig.best_match.confidence)};">
+                            ${Math.round(sig.best_match.confidence * 100)}%${sig.best_match.is_confident ? ' ✓' : ''}
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                        ${sig.location || ''} ${sig.ink_color ? '· ' + sig.ink_color : ''} ${sig.style ? '· ' + sig.style : ''}
+                    </div>
+                    ${sig.candidates && sig.candidates.length > 1 ? `
+                    <div style="font-size: 11px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: var(--text-muted); margin-bottom: 4px;">Other candidates:</div>
+                        ${sig.candidates.slice(1).map(c => `
+                            <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+                                <span>${c.artist_name}</span>
+                                <span style="color: ${getSignatureConfidenceColor(c.confidence)}; font-weight: 500;">${Math.round(c.confidence * 100)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>` : ''}
+                    ${sig.candidates && sig.candidates[0] && sig.candidates[0].reasoning ? `
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; font-style: italic;">
+                        ${sig.candidates[0].reasoning}
+                    </div>` : ''}
+                </div>
+            `).join('')}
+            <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 4px;">
+                For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature
+                ${result.references_used ? ` · Matched against ${result.references_used} reference artists` : ''}
+            </div>
+        </div>`;
+    container.style.display = 'block';
+}
+
+/**
+ * Fetch an image from a URL and return base64 data.
+ * Used by collection page to convert R2 photo URLs.
+ */
+async function fetchImageAsBase64(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUri = reader.result;
+            const b64 = dataUri.split(',')[1];
+            const mediaType = dataUri.split(';')[0].split(':')[1] || 'image/jpeg';
+            resolve({ base64: b64, mediaType });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
 console.log('utils.js loaded');

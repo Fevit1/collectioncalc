@@ -578,6 +578,12 @@ function renderItemsList() {
                     <label>Signed by</label>
                     <input type="text" value="${item.signer || ''}" placeholder="e.g., Stan Lee, Scott Snyder" onchange="updateItem(${idx}, 'signer', this.value)">
                 </div>
+                <div style="margin-top: 6px;">
+                    <button id="identify-sig-btn-${idx}" class="btn-small" onclick="handleIdentifySignatures(${idx})" style="font-size: 11px; padding: 4px 10px; background: var(--brand-indigo); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        🔍 Identify Signatures
+                    </button>
+                </div>
+                <div id="sig-identify-results-${idx}" style="display: none;"></div>
             </div>
             ${(item.defects && item.defects.length > 0) || item.grade_reasoning ? `
             <div class="condition-assessment" style="margin-top: 12px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
@@ -1331,5 +1337,82 @@ document.getElementById('valuationForm').addEventListener('submit', async (e) =>
     btn.disabled = false;
     btn.textContent = 'Get Valuation';
 });
+
+// ============================================
+// SIGNATURE IDENTIFICATION — Grading flow handlers
+// (Shared functions identifySignatures, displaySignatureIdentifyResults, etc. are in utils.js)
+// ============================================
+
+/**
+ * Handle "Identify Signatures" button click in the grading flow.
+ * Uses the item's stored cover image.
+ * @param {number} idx - Index into extractedItems array
+ */
+async function handleIdentifySignatures(idx) {
+    const item = extractedItems[idx];
+    if (!item || !item.image) {
+        showToast('No cover image available for signature identification', 'error');
+        return;
+    }
+
+    const btn = document.getElementById(`identify-sig-btn-${idx}`);
+    const container = document.getElementById(`sig-identify-results-${idx}`);
+    if (!btn || !container) return;
+
+    // Show loading state
+    btn.disabled = true;
+    btn.textContent = 'Analyzing signatures...';
+    container.innerHTML = '<div style="padding: 8px; color: var(--text-secondary); font-size: 12px;">Detecting signatures on cover...</div>';
+    container.style.display = 'block';
+
+    try {
+        // Extract base64 from data URI
+        const b64 = item.image.split(',')[1];
+        const mediaType = item.image.split(';')[0].split(':')[1] || 'image/jpeg';
+
+        const result = await identifySignatures(b64, mediaType);
+
+        if (result.success) {
+            displaySignatureIdentifyResults(result, container);
+
+            // Auto-populate signer field if confident match
+            if (result.signatures && result.signatures.length > 0) {
+                const bestSig = result.signatures[0];
+                if (bestSig.best_match.is_confident && bestSig.best_match.artist_name !== 'UNKNOWN') {
+                    // Update item data
+                    item.is_signed = true;
+                    item.signer = bestSig.best_match.artist_name;
+                    item.signature_detected = true;
+                    item.signature_analysis = {
+                        most_likely_signer: {
+                            name: bestSig.best_match.artist_name,
+                            confidence: Math.round(bestSig.best_match.confidence * 100)
+                        },
+                        confidence_scores: result.signatures.map(s => ({
+                            name: s.best_match.artist_name,
+                            confidence: Math.round(s.best_match.confidence * 100)
+                        })),
+                        signature_characteristics: bestSig.candidates && bestSig.candidates[0] ? bestSig.candidates[0].reasoning : ''
+                    };
+
+                    // Update checkbox and signer field
+                    const checkbox = document.getElementById(`signed-${idx}`);
+                    const signerInput = document.querySelector(`#signer-group-${idx} input`);
+                    const signerGroup = document.getElementById(`signer-group-${idx}`);
+                    if (checkbox) checkbox.checked = true;
+                    if (signerGroup) signerGroup.style.display = 'block';
+                    if (signerInput) signerInput.value = bestSig.best_match.artist_name;
+                }
+            }
+        } else {
+            container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${result.error || 'Unknown error'}</div>`;
+        }
+    } catch (error) {
+        container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Identify Signatures';
+    }
+}
 
 console.log('app.js loaded');

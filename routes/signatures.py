@@ -1,10 +1,11 @@
 """
 Signatures Blueprint - Signature identification and matching
-Routes: /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
+Routes: /api/signatures/match, /api/signatures/identify, /api/signatures/db-stats, /api/signatures/signed-sales
 """
 import os
 import json
 import base64
+import requests as http_requests
 from pathlib import Path
 from flask import Blueprint, jsonify, request, g
 import psycopg2
@@ -230,6 +231,542 @@ def _save_match_result(sale_id, result):
     finally:
         cur.close()
         conn.close()
+
+
+# -------------------------------------------------------------------
+# Helpers: Two-step signature identification from full cover photos
+# -------------------------------------------------------------------
+
+def _fetch_and_encode_r2_image(image_url):
+    """Fetch an image from R2 URL and return (base64_string, media_type)."""
+    resp = http_requests.get(image_url, timeout=15)
+    resp.raise_for_status()
+    content_type = resp.headers.get('content-type', 'image/jpeg')
+    b64 = base64.b64encode(resp.content).decode('utf-8')
+    return b64, content_type
+
+
+def _get_wildcard_artist_ids(cur, limit=10):
+    """Get top N most-matched artist IDs from signature_matches (DB-driven wildcards)."""
+    try:
+        cur.execute("""
+            SELECT signature_id, COUNT(*) as match_count
+            FROM signature_matches
+            GROUP BY signature_id
+            ORDER BY match_count DESC
+            LIMIT %s
+        """, (limit,))
+        return [row['signature_id'] for row in cur.fetchall()]
+    except Exception:
+        return []
+
+
+def _fetch_reference_signatures(candidate_names, wildcard_ids=None):
+    """
+    Fetch reference images from PostgreSQL for candidate artists + wildcards.
+    Returns dict keyed by artist name with id, images list, and best_image_url.
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        return {}
+
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    try:
+        # Get creators matching candidate names (case-insensitive)
+        creator_ids = set()
+        creator_map = {}  # id -> name
+
+        if candidate_names:
+            placeholders = ','.join(['%s'] * len(candidate_names))
+            cur.execute(f"""
+                SELECT id, creator_name FROM creator_signatures
+                WHERE LOWER(creator_name) IN ({placeholders})
+                AND archived_at IS NULL
+            """, [n.lower() for n in candidate_names])
+            for row in cur.fetchall():
+                creator_ids.add(row['id'])
+                creator_map[row['id']] = row['creator_name']
+
+        # Add wildcard artist IDs
+        if wildcard_ids:
+            for wid in wildcard_ids:
+                if wid not in creator_ids:
+                    creator_ids.add(wid)
+
+        # Fetch names for wildcard IDs we don't already have
+        missing_ids = [wid for wid in (wildcard_ids or []) if wid not in creator_map]
+        if missing_ids:
+            placeholders = ','.join(['%s'] * len(missing_ids))
+            cur.execute(f"""
+                SELECT id, creator_name FROM creator_signatures
+                WHERE id IN ({placeholders}) AND archived_at IS NULL
+            """, missing_ids)
+            for row in cur.fetchall():
+                creator_map[row['id']] = row['creator_name']
+
+        if not creator_ids:
+            return {}
+
+        # Fetch all reference images for these creators
+        id_list = list(creator_ids)
+        placeholders = ','.join(['%s'] * len(id_list))
+        cur.execute(f"""
+            SELECT creator_id, image_url, era, notes
+            FROM signature_images
+            WHERE creator_id IN ({placeholders})
+            ORDER BY created_at DESC
+        """, id_list)
+        images = cur.fetchall()
+
+        # Group by creator, select best (most recent = first) image
+        result = {}
+        for cid in creator_ids:
+            name = creator_map.get(cid)
+            if not name:
+                continue
+            creator_images = [img for img in images if img['creator_id'] == cid]
+            if creator_images:
+                result[name] = {
+                    'id': cid,
+                    'images': creator_images,
+                    'best_image_url': creator_images[0]['image_url']
+                }
+
+        return result
+    finally:
+        cur.close()
+        conn.close()
+
+
+def _step1_detect_signatures(cover_b64, media_type):
+    """
+    Step 1: Use Haiku to detect signatures on a full cover photo.
+    Returns parsed JSON with signatures_detected count and details.
+    """
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    content = [
+        {
+            "type": "image",
+            "source": {"type": "base64", "media_type": media_type, "data": cover_b64}
+        },
+        {
+            "type": "text",
+            "text": """Analyze this comic book cover for handwritten signatures (NOT printed text, NOT logos, NOT credits).
+
+TASK: Detect all handwritten signatures present on the cover.
+
+For EACH signature found, provide:
+1. Location on cover (e.g., "bottom right corner", "top left near logo")
+2. Approximate number of characters/letters visible
+3. Signature style (flowing cursive, angular print, block letters, monogram, etc.)
+4. Ink color if distinguishable (black, blue, silver, gold, red, etc.)
+5. Your best guess at who signed it — consider the comic's creators, era, and known convention signers
+6. Confidence in your guess (0-100)
+
+Return ONLY valid JSON:
+{
+    "signatures_detected": 2,
+    "signatures": [
+        {
+            "index": 0,
+            "location": "bottom right corner",
+            "character_count": 7,
+            "style": "flowing cursive",
+            "ink_color": "black marker",
+            "preliminary_id": "Jim Lee",
+            "preliminary_confidence": 65,
+            "reasoning": "Matches known Jim Lee signature style, he is the cover artist"
+        }
+    ],
+    "notes": "Any other observations"
+}
+
+RULES:
+- Only report actual handwritten signatures — NOT printed creator credits, logos, or title text
+- If you cannot determine the signer, use "UNKNOWN" as preliminary_id
+- Be conservative with confidence — 30-60% is fine for preliminary guesses
+- Return empty signatures array if no handwritten signatures are found
+- Maximum 5 signatures"""
+        }
+    ]
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=800,
+        messages=[{"role": "user", "content": content}]
+    )
+
+    response_text = response.content[0].text
+    tokens = {
+        'haiku_input': response.usage.input_tokens,
+        'haiku_output': response.usage.output_tokens
+    }
+
+    # Parse JSON
+    json_start = response_text.find('{')
+    json_end = response_text.rfind('}') + 1
+    if json_start >= 0 and json_end > json_start:
+        result = json.loads(response_text[json_start:json_end])
+        return result, tokens
+    else:
+        return {"signatures_detected": 0, "signatures": [], "notes": "Failed to parse detection response"}, tokens
+
+
+def _step2_match_signatures(cover_b64, media_type, detected_sigs, references):
+    """
+    Step 2: Use Sonnet to match detected signatures against reference images.
+    Sends the original cover image + reference images for visual comparison.
+    Returns parsed results with confidence scores per signature.
+    """
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    content = []
+
+    # Original cover image first
+    content.append({"type": "text", "text": "COMIC COVER WITH SIGNATURES TO IDENTIFY:"})
+    content.append({
+        "type": "image",
+        "source": {"type": "base64", "media_type": media_type, "data": cover_b64}
+    })
+
+    # Describe each detected signature for context
+    sig_descriptions = []
+    for sig in detected_sigs:
+        sig_descriptions.append(
+            f"  Signature {sig['index'] + 1}: {sig.get('location', 'unknown location')}, "
+            f"{sig.get('style', 'unknown style')}, {sig.get('ink_color', 'unknown ink')}, "
+            f"~{sig.get('character_count', '?')} characters"
+        )
+    content.append({
+        "type": "text",
+        "text": f"Detected {len(detected_sigs)} signature(s) on this cover:\n" + "\n".join(sig_descriptions)
+    })
+
+    # Add reference images
+    ref_index = 1
+    artist_names_in_prompt = []
+    for artist_name, ref_data in references.items():
+        best_url = ref_data['best_image_url']
+        try:
+            img_b64, img_media = _fetch_and_encode_r2_image(best_url)
+            era_note = f" (era: {ref_data['images'][0].get('era', 'unknown')})" if ref_data['images'][0].get('era') else ""
+            content.append({"type": "text", "text": f"\nREFERENCE {ref_index} — {artist_name}{era_note}:"})
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": img_media, "data": img_b64}
+            })
+            artist_names_in_prompt.append(artist_name)
+            ref_index += 1
+        except Exception as e:
+            print(f"[signatures/identify] Failed to fetch reference for {artist_name}: {e}")
+
+    if not artist_names_in_prompt:
+        return {"signatures": [], "error": "No reference images could be loaded"}, {'sonnet_input': 0, 'sonnet_output': 0}
+
+    # Matching instructions
+    content.append({"type": "text", "text": f"""
+TASK: For each signature on the cover, compare it against the {len(artist_names_in_prompt)} reference signatures above.
+
+EVALUATION CRITERIA:
+1. Letter formation and stroke characteristics
+2. Slant angle and baseline consistency
+3. Overall flow, rhythm, and spacing
+4. Distinctive flourishes, underlines, or marks
+5. Pressure variation patterns
+6. Character shapes and proportions
+
+Return ONLY valid JSON:
+{{
+    "signatures": [
+        {{
+            "signature_index": 0,
+            "location": "bottom right corner",
+            "best_match": "Artist Name",
+            "best_confidence": 0.85,
+            "is_confident_match": true,
+            "candidates": [
+                {{
+                    "artist_name": "Artist Name",
+                    "confidence": 0.85,
+                    "reasoning": "Strong match in letter formation and distinctive flourish"
+                }},
+                {{
+                    "artist_name": "Another Artist",
+                    "confidence": 0.30,
+                    "reasoning": "Similar slant but different letter shapes"
+                }}
+            ]
+        }}
+    ],
+    "overall_notes": "Summary observations"
+}}
+
+RULES:
+- Provide up to 3 candidates per signature, sorted by confidence (highest first)
+- Confidence: 0.8-1.0 (confident), 0.6-0.8 (likely), 0.3-0.6 (possible), <0.3 (unlikely)
+- Set is_confident_match to true ONLY if best_confidence >= 0.7
+- If no reference matches well, set best_match to "UNKNOWN" with confidence < 0.3
+- Be conservative — a false positive is worse than a false negative
+- You may also suggest artists NOT in the reference set if you recognize the signature
+"""})
+
+    response = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": content}]
+    )
+
+    response_text = response.content[0].text
+    tokens = {
+        'sonnet_input': response.usage.input_tokens,
+        'sonnet_output': response.usage.output_tokens
+    }
+
+    json_start = response_text.find('{')
+    json_end = response_text.rfind('}') + 1
+    if json_start >= 0 and json_end > json_start:
+        result = json.loads(response_text[json_start:json_end])
+        return result, tokens
+    else:
+        return {"signatures": [], "error": "Failed to parse matching response"}, tokens
+
+
+def _record_identification(comic_id, results):
+    """Save identification results to signature_matches table."""
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url or not comic_id:
+        return
+
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    try:
+        for sig in results.get('signatures', []):
+            best = sig.get('best_match')
+            confidence = sig.get('best_confidence', 0)
+            if not best or best == 'UNKNOWN' or confidence < 0.5:
+                continue
+
+            cur.execute("SELECT id FROM creator_signatures WHERE LOWER(creator_name) = LOWER(%s)", (best,))
+            row = cur.fetchone()
+            if row:
+                cur.execute("""
+                    INSERT INTO signature_matches (sale_id, signature_id, confidence, match_method)
+                    VALUES (%s, %s, %s, %s)
+                """, (comic_id, row['id'], confidence, 'claude_vision_v2_identify'))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"[signatures/identify] Error recording identification: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+# -------------------------------------------------------------------
+# Route: Identify signatures on a full comic cover (two-step)
+# -------------------------------------------------------------------
+@signatures_bp.route('/identify', methods=['POST'])
+@require_auth
+@require_approved
+def api_identify_signatures():
+    """
+    Two-step signature identification from a full cover photo.
+
+    Step 1 (Haiku): Detect signatures, locations, and preliminary guesses.
+    Step 2 (Sonnet): Match against reference images from the database.
+
+    Accepts:
+        image: base64-encoded full cover photo
+        media_type: MIME type (default image/jpeg)
+        comic_id: optional — link results to a comic in the collection
+
+    Returns:
+        signatures_found: number of signatures detected
+        signatures: array of identified signatures with confidence scores
+        tokens_used: breakdown of API token usage
+    """
+    if not ANTHROPIC_AVAILABLE or not ANTHROPIC_API_KEY:
+        return jsonify({'error': 'Anthropic API not available'}), 503
+
+    data = request.get_json() or {}
+    cover_b64 = data.get('image', '')
+    media_type = data.get('media_type', 'image/jpeg')
+    comic_id = data.get('comic_id')
+
+    if not cover_b64:
+        return jsonify({'error': 'No cover image provided'}), 400
+
+    total_tokens = {}
+
+    # ── Step 1: Haiku detection ──
+    try:
+        haiku_result, haiku_tokens = _step1_detect_signatures(cover_b64, media_type)
+        total_tokens.update(haiku_tokens)
+    except Exception as e:
+        return jsonify({'error': f'Signature detection failed: {str(e)}'}), 500
+
+    detected_sigs = haiku_result.get('signatures', [])
+    num_found = haiku_result.get('signatures_detected', len(detected_sigs))
+
+    # No signatures? Return early — skip Step 2
+    if not detected_sigs:
+        return jsonify({
+            'success': True,
+            'signatures_found': 0,
+            'signatures': [],
+            'haiku_notes': haiku_result.get('notes', ''),
+            'tokens_used': total_tokens,
+            'authentication_note': 'No signatures detected on this cover.'
+        })
+
+    # ── Gather candidate artist names from Haiku's guesses ──
+    candidate_names = []
+    for sig in detected_sigs:
+        prelim = sig.get('preliminary_id', '')
+        if prelim and prelim != 'UNKNOWN':
+            candidate_names.append(prelim)
+
+    # ── Get DB-driven wildcard artists (top 10 most-matched) ──
+    wildcard_ids = []
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            wc_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            wc_cur = wc_conn.cursor()
+            wildcard_ids = _get_wildcard_artist_ids(wc_cur, limit=10)
+            wc_cur.close()
+            wc_conn.close()
+    except Exception:
+        pass  # Wildcards are optional — proceed without them
+
+    # ── Fetch reference images from PostgreSQL/R2 ──
+    try:
+        references = _fetch_reference_signatures(candidate_names, wildcard_ids)
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch reference signatures: {str(e)}'}), 500
+
+    # If we have no references at all, return Haiku results only
+    if not references:
+        return jsonify({
+            'success': True,
+            'signatures_found': num_found,
+            'signatures': [{
+                'index': s['index'],
+                'location': s.get('location', ''),
+                'style': s.get('style', ''),
+                'ink_color': s.get('ink_color', ''),
+                'best_match': {
+                    'artist_name': s.get('preliminary_id', 'UNKNOWN'),
+                    'confidence': s.get('preliminary_confidence', 0) / 100.0,
+                    'is_confident': False
+                },
+                'candidates': [],
+                'note': 'No reference images available for matching — showing preliminary guess only'
+            } for s in detected_sigs],
+            'tokens_used': total_tokens,
+            'authentication_note': 'For definitive verification, submit to CGC Signature Series or CBCS Verified Signature.'
+        })
+
+    # ── Step 2: Sonnet matching ──
+    try:
+        sonnet_result, sonnet_tokens = _step2_match_signatures(cover_b64, media_type, detected_sigs, references)
+        total_tokens.update(sonnet_tokens)
+    except Exception as e:
+        # On Sonnet failure, return Haiku results as fallback
+        return jsonify({
+            'success': True,
+            'signatures_found': num_found,
+            'signatures': [{
+                'index': s['index'],
+                'location': s.get('location', ''),
+                'style': s.get('style', ''),
+                'ink_color': s.get('ink_color', ''),
+                'best_match': {
+                    'artist_name': s.get('preliminary_id', 'UNKNOWN'),
+                    'confidence': s.get('preliminary_confidence', 0) / 100.0,
+                    'is_confident': False
+                },
+                'candidates': [],
+                'note': f'Reference matching failed ({str(e)}) — showing preliminary guess only'
+            } for s in detected_sigs],
+            'tokens_used': total_tokens,
+            'authentication_note': 'For definitive verification, submit to CGC Signature Series or CBCS Verified Signature.'
+        })
+
+    # ── Merge Haiku detection info with Sonnet match results ──
+    final_signatures = []
+    sonnet_sigs = sonnet_result.get('signatures', [])
+
+    for i, haiku_sig in enumerate(detected_sigs):
+        # Find corresponding Sonnet result by index
+        sonnet_sig = next((s for s in sonnet_sigs if s.get('signature_index') == i), None)
+
+        if sonnet_sig:
+            # Enrich candidates with artist_id from references
+            candidates = sonnet_sig.get('candidates', [])
+            for c in candidates:
+                ref = references.get(c.get('artist_name'))
+                if ref:
+                    c['artist_id'] = ref['id']
+
+            best_name = sonnet_sig.get('best_match', haiku_sig.get('preliminary_id', 'UNKNOWN'))
+            best_conf = sonnet_sig.get('best_confidence', 0)
+            best_ref = references.get(best_name)
+
+            final_signatures.append({
+                'index': i,
+                'location': haiku_sig.get('location', sonnet_sig.get('location', '')),
+                'style': haiku_sig.get('style', ''),
+                'ink_color': haiku_sig.get('ink_color', ''),
+                'character_count': haiku_sig.get('character_count'),
+                'preliminary_id': haiku_sig.get('preliminary_id', ''),
+                'preliminary_confidence': haiku_sig.get('preliminary_confidence', 0),
+                'best_match': {
+                    'artist_name': best_name,
+                    'artist_id': best_ref['id'] if best_ref else None,
+                    'confidence': best_conf,
+                    'is_confident': best_conf >= 0.7
+                },
+                'candidates': candidates
+            })
+        else:
+            # No Sonnet result for this signature — use Haiku data
+            final_signatures.append({
+                'index': i,
+                'location': haiku_sig.get('location', ''),
+                'style': haiku_sig.get('style', ''),
+                'ink_color': haiku_sig.get('ink_color', ''),
+                'character_count': haiku_sig.get('character_count'),
+                'preliminary_id': haiku_sig.get('preliminary_id', ''),
+                'preliminary_confidence': haiku_sig.get('preliminary_confidence', 0),
+                'best_match': {
+                    'artist_name': haiku_sig.get('preliminary_id', 'UNKNOWN'),
+                    'artist_id': None,
+                    'confidence': haiku_sig.get('preliminary_confidence', 0) / 100.0,
+                    'is_confident': False
+                },
+                'candidates': []
+            })
+
+    # ── Optionally save results ──
+    if comic_id:
+        try:
+            _record_identification(comic_id, {'signatures': final_signatures})
+        except Exception as e:
+            print(f"[signatures/identify] Error saving results: {e}")
+
+    return jsonify({
+        'success': True,
+        'signatures_found': len(final_signatures),
+        'signatures': final_signatures,
+        'overall_notes': sonnet_result.get('overall_notes', ''),
+        'tokens_used': total_tokens,
+        'references_used': len(references),
+        'authentication_note': 'For definitive verification, submit to CGC Signature Series or CBCS Verified Signature.'
+    })
 
 
 # -------------------------------------------------------------------
