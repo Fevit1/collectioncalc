@@ -28,6 +28,17 @@ For each candidate creator, perform a systematic structural comparison:
 
 **Era context**: If the comic context provides publisher or era information, weight candidates from that publisher/era more heavily — but never eliminate a candidate solely based on era mismatch, as creators sign books from any era at conventions.
 
+### Style Metadata Confidence
+
+Each candidate's reference label may include a style hint with a trust level:
+
+- **"Known style: X (verified)"** — A human expert confirmed this style classification. Treat as reliable prior: if the unknown signature's visual style clearly conflicts with the verified style, that's genuine contra-evidence worth noting.
+- **"Expected style: X"** — AI-assigned with reasonable confidence. Use as a soft hint but do NOT penalize a match if the unknown signature's style doesn't match — the classification might be wrong.
+- **"Possible style: X (unverified)"** — AI-assigned with low confidence. Essentially ignore this for scoring purposes. The AI that assigned it was uncertain.
+- **No style hint** — Style metadata was too unreliable to include. Rely entirely on visual comparison.
+
+**Critical**: Never reject a strong structural match because of a style mismatch in unverified metadata. Style hints are supplementary — your eyes and forensic analysis of the actual images are what matter.
+
 ### Confidence Calibration
 
 - **0.85-1.0 (High)**: Structural features match across multiple diagnostic elements. You would stake your professional reputation on this identification.

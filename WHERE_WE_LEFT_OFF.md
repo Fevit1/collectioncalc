@@ -10,6 +10,12 @@
 - **Updated signatures_db.json** — added 57 new entries with empty images, updated stats, cleared missing_priority_artists
 - **Updated seed_creator_metadata.py** — added all 57 new creators with career dates, publishers, signature styles
 - **Fixed zero-image UI state** in signatures.html — now shows "No reference images yet / Upload to enable matching" instead of generic "Click to add"
+- **Style Confidence System** — prevents AI-assigned style metadata from biasing matches:
+  - New DB columns: `style_source` ('ai_assigned'|'admin') + `style_confidence` (0.0-1.0)
+  - Per-creator confidence seeded: 0.9 (iconic, like Kevin Eastman/Stan Lee) → 0.3 (uncertain, like Dan Mora/Pepe Larraz)
+  - Orchestrator injects style as weighted hints: "verified" (admin) vs "expected" (high conf) vs "unverified" (low) vs omitted (too unreliable)
+  - Admin UI: click any style badge → override → becomes source='admin' at 1.0 confidence
+  - Opus system prompt explicitly told: never reject structural match over unverified metadata
 - **Updated known_creators.json** — expanded from 75 to 115 names
 
 ### Creator Selection Summary

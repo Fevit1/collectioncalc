@@ -200,13 +200,19 @@ def api_get_signatures():
         include_archived = request.args.get('include_archived', 'false').lower() == 'true'
         if include_archived:
             cur.execute("""
-                SELECT id, creator_name, role, signature_style, verified, source, notes, created_at, archived_at
+                SELECT id, creator_name, role, signature_style,
+                       COALESCE(style_confidence, 0.5) AS style_confidence,
+                       COALESCE(style_source, 'ai_assigned') AS style_source,
+                       verified, source, notes, created_at, archived_at
                 FROM creator_signatures
                 ORDER BY archived_at IS NOT NULL, creator_name
             """)
         else:
             cur.execute("""
-                SELECT id, creator_name, role, signature_style, verified, source, notes, created_at, archived_at
+                SELECT id, creator_name, role, signature_style,
+                       COALESCE(style_confidence, 0.5) AS style_confidence,
+                       COALESCE(style_source, 'ai_assigned') AS style_source,
+                       verified, source, notes, created_at, archived_at
                 FROM creator_signatures
                 WHERE archived_at IS NULL
                 ORDER BY creator_name
@@ -448,6 +454,53 @@ def api_upload_signature_image(sig_id):
     """Upload or replace signature reference image (legacy endpoint)"""
     # Redirect to new endpoint
     return api_add_signature_image(sig_id)
+
+
+@admin_bp.route('/signatures/<int:sig_id>/style', methods=['PUT'])
+@require_admin_auth
+def api_update_style(sig_id):
+    """Update signature style with source + confidence tracking.
+    When admin sets style, source='admin' and confidence=1.0 (ground truth).
+    """
+    data = request.get_json() or {}
+    new_style = data.get('signature_style', '').strip().lower()
+    valid_styles = {'initials', 'cursive', 'stylized', 'print', 'mixed'}
+
+    if new_style not in valid_styles:
+        return jsonify({'success': False, 'error': f'Invalid style. Must be one of: {", ".join(sorted(valid_styles))}'}), 400
+
+    style_source = data.get('style_source', 'admin')
+    style_confidence = float(data.get('style_confidence', 1.0))
+
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url)
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE creator_signatures
+            SET signature_style = %s,
+                style_source = %s,
+                style_confidence = %s
+            WHERE id = %s
+            RETURNING id, creator_name
+        """, (new_style, style_source, style_confidence, sig_id))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        if result:
+            return jsonify({'success': True, 'id': result[0], 'creator_name': result[1],
+                           'signature_style': new_style, 'style_source': style_source,
+                           'style_confidence': style_confidence})
+        else:
+            return jsonify({'success': False, 'error': 'Creator not found'}), 404
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 
 @admin_bp.route('/signatures/<int:sig_id>/verify', methods=['POST'])

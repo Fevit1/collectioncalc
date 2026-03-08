@@ -86,6 +86,8 @@ class CreatorCandidate:
     era_end: Optional[int]
     publisher_affiliations: list[str]
     signature_style: Optional[str]   # e.g. "initials", "cursive", "stylized"
+    style_confidence: float = 0.5   # 0.0-1.0 how much to trust the style label
+    style_source: str = "ai_assigned"  # 'ai_assigned' or 'admin' (Mike verified)
     image_urls: list[str] = field(default_factory=list)
     reference_images_b64: list[str] = field(default_factory=list)
 
@@ -180,13 +182,16 @@ def prefilter_candidates(
                     cs.career_end AS era_end,
                     cs.publisher_affiliations,
                     cs.signature_style,
+                    COALESCE(cs.style_confidence, 0.5) AS style_confidence,
+                    COALESCE(cs.style_source, 'ai_assigned') AS style_source,
                     array_agg(si.image_url ORDER BY si.sort_order NULLS LAST, si.created_at DESC)
                         AS image_urls
                 FROM creator_signatures cs
                 JOIN signature_images si ON si.creator_id = cs.id
                 WHERE {where_clause}
                 GROUP BY cs.id, cs.creator_name, cs.career_start,
-                         cs.career_end, cs.publisher_affiliations, cs.signature_style
+                         cs.career_end, cs.publisher_affiliations, cs.signature_style,
+                         cs.style_confidence, cs.style_source
                 HAVING COUNT(si.id) >= 2
                 ORDER BY cs.reference_image_count DESC
                 LIMIT %s
@@ -208,13 +213,16 @@ def prefilter_candidates(
                         cs.career_end AS era_end,
                         cs.publisher_affiliations,
                         cs.signature_style,
+                        COALESCE(cs.style_confidence, 0.5) AS style_confidence,
+                        COALESCE(cs.style_source, 'ai_assigned') AS style_source,
                         array_agg(si.image_url ORDER BY si.sort_order NULLS LAST, si.created_at DESC)
                             AS image_urls
                     FROM creator_signatures cs
                     JOIN signature_images si ON si.creator_id = cs.id
                     WHERE cs.active = true
                     GROUP BY cs.id, cs.creator_name, cs.career_start,
-                             cs.career_end, cs.publisher_affiliations, cs.signature_style
+                             cs.career_end, cs.publisher_affiliations, cs.signature_style,
+                             cs.style_confidence, cs.style_source
                     ORDER BY cs.reference_image_count DESC
                     LIMIT %s
                 """, [limit])
@@ -231,6 +239,8 @@ def prefilter_candidates(
                     era_end=row["era_end"],
                     publisher_affiliations=row["publisher_affiliations"] or [],
                     signature_style=row["signature_style"],
+                    style_confidence=row.get("style_confidence", 0.5),
+                    style_source=row.get("style_source", "ai_assigned"),
                     image_urls=urls,
                 ))
 
@@ -351,9 +361,21 @@ REFERENCE IMAGES FOLLOW (grouped by creator, {REFERENCE_IMAGES_PER_CREATOR} per 
     content = [{"type": "text", "text": context_block}]
 
     for candidate in candidates:
+        # Build style hint with confidence annotation
+        style_hint = ""
+        if candidate.signature_style:
+            if candidate.style_source == "admin":
+                # Mike verified — treat as ground truth
+                style_hint = f" | Known style: {candidate.signature_style} (verified)"
+            elif candidate.style_confidence >= 0.7:
+                style_hint = f" | Expected style: {candidate.signature_style}"
+            elif candidate.style_confidence >= 0.4:
+                style_hint = f" | Possible style: {candidate.signature_style} (unverified)"
+            # confidence < 0.4 → omit style entirely (too unreliable to mention)
+
         content.append({
             "type": "text",
-            "text": f"\n--- REFERENCE: {candidate.name} ---"
+            "text": f"\n--- REFERENCE: {candidate.name}{style_hint} ---"
         })
         for img_b64 in candidate.reference_images_b64:
             content.append({

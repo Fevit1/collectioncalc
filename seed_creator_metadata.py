@@ -15,6 +15,7 @@ This script is idempotent — safe to run multiple times.
 
 import os
 import sys
+import unicodedata
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -648,6 +649,112 @@ CREATOR_METADATA = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Name normalization: strip accents, collapse whitespace, lowercase
+# Handles: Pérez→perez, Whilche→match via aliases, etc.
+# ---------------------------------------------------------------------------
+def _normalize(name: str) -> str:
+    """Strip accents and lowercase for fuzzy matching."""
+    nfkd = unicodedata.normalize('NFKD', name)
+    ascii_only = ''.join(c for c in nfkd if not unicodedata.combining(c))
+    return ascii_only.strip().lower()
+
+# Known DB→seed name mappings for entries that can't be matched by normalization
+NAME_ALIASES = {
+    "whilche portacio": "Whilce Portacio",      # DB typo (extra 'h')
+}
+
+# ---------------------------------------------------------------------------
+# Style confidence overrides — how sure we are about the signature_style value.
+#
+# Default: 0.6 (reasonable guess for AI-assigned styles)
+# Override with specific values based on Session 86 analysis:
+#   0.9 = Very confident (iconic/well-documented signature style)
+#   0.7 = Fairly confident (good public documentation)
+#   0.5 = Default/moderate uncertainty
+#   0.3 = Genuinely uncertain (international artists, limited examples)
+#
+# When Mike verifies/corrects a style via the admin UI, it becomes
+# style_source='admin', style_confidence=1.0 (ground truth).
+#
+# IMPORTANT: Sonnet was wrong on ~1/3 of original 43 styles. These
+# confidence scores reflect Claude's honest uncertainty, NOT Sonnet's
+# original assignments. Low confidence = "don't trust this for matching."
+# ---------------------------------------------------------------------------
+STYLE_CONFIDENCE = {
+    # === 0.9: ICONIC / WELL-DOCUMENTED (no doubt) ===
+    "Todd McFarlane": 0.9,      # stylized — one of the most famous comic sigs
+    "Jim Lee": 0.9,             # stylized — iconic "JL" element
+    "Stan Lee": 0.9,            # cursive — literally the most famous comic signature
+    "Jack Kirby": 0.9,          # cursive — very well-documented
+    "Adam Hughes": 0.9,         # initials — "AH!" is iconic
+    "Kevin Eastman": 0.9,       # stylized — turtle sketches are legendary
+    "Bill Sienkiewicz": 0.9,    # stylized — one of the most distinctive in comics
+    "Skottie Young": 0.9,       # stylized — matches his art perfectly
+    "Joe Quesada": 0.9,         # stylized — "JQ" monogram well-known
+    "Marc Silvestri": 0.9,      # stylized — lots of convention footage
+    "Humberto Ramos": 0.9,      # stylized — angular, distinctive
+    "Frank Cho": 0.9,           # print — clean, deliberate, well-known
+    "Ed McGuinness": 0.9,       # print — bold, clean
+    "Mike Mignola": 0.9,        # print — well-known blocky style
+    "Rob Liefeld": 0.9,         # print — well-documented
+    "Greg Capullo": 0.9,        # cursive — lots of convention footage
+    "Alex Ross": 0.9,           # cursive — well-documented
+
+    # === 0.7: FAIRLY CONFIDENT (good public documentation) ===
+    "Frank Miller": 0.7,        # stylized — pretty sure but varies over decades
+    "Neal Adams": 0.7,          # cursive — well-known but deceased, less recent ref
+    "John Byrne": 0.7,          # print — fairly well-documented
+    "Steve Ditko": 0.7,         # print — limited examples but consistent
+    "George Perez": 0.7,        # cursive — well-documented
+    "Art Adams": 0.7,           # cursive — good convention presence
+    "J. Scott Campbell": 0.7,   # cursive — lots of con footage
+    "Walt Simonson": 0.7,       # cursive — "WS" monogram well-known
+    "David Finch": 0.7,         # cursive — active convention signer
+    "Erik Larsen": 0.7,         # cursive — Image co-founder, well-documented
+    "Robert Kirkman": 0.7,      # cursive — Walking Dead signings well-documented
+    "Mark Waid": 0.7,           # cursive — lots of public signings
+    "Larry Hama": 0.7,          # cursive — one of the most prolific con signers
+    "Darwyn Cooke": 0.7,        # stylized — retro style well-known
+    "Jim Steranko": 0.7,        # stylized — artistic reputation matches
+    "Bill Finger": 0.7,         # cursive — Golden Age, limited but consistent
+    "Bob Kane": 0.7,            # print — well-documented historical
+    "Brian Michael Bendis": 0.7, # stylized — enough public examples
+    "Garth Ennis": 0.7,         # cursive — good UK convention presence
+    "Mark Brooks": 0.7,         # cursive — active modern cover artist
+    "Ryan Stegman": 0.7,        # cursive — active Venom-era signer
+    "Terry Dodson": 0.7,        # cursive — good convention presence
+    "Sean Murphy": 0.7,         # cursive — White Knight signings documented
+    "Tim Sale": 0.7,            # cursive — well-known before passing
+    "Bernie Wrightson": 0.7,    # cursive — horror conventions well-documented
+    "Michael Turner": 0.7,      # cursive — pre-2008 signings documented
+
+    # === 0.5: MODERATE UNCERTAINTY (default for most) ===
+    # Creators not listed here get the default 0.6.
+    # These are explicitly set to 0.5 because I have specific doubts:
+    "Jae Lee": 0.5,             # stylized — fairly confident but limited recent ref
+    "Clayton Crain": 0.5,       # stylized — digital painter, could be print
+    "Rafael Albuquerque": 0.5,  # stylized — Brazilian, could be cursive
+    "Jen Bartel": 0.5,          # stylized — could be cursive with flourishes
+    "Mark Bagley": 0.5,         # cursive — probably right but limited verification
+    "Ryan Ottley": 0.5,         # cursive — probably right but similar concern
+    "Patrick Gleason": 0.5,     # cursive — limited verification
+    "Gary Frank": 0.5,          # cursive — limited verification
+
+    # === 0.3: GENUINELY UNCERTAIN (my red-flag list) ===
+    "Donny Cates": 0.3,         # assigned 'print' — could easily be cursive or mixed
+    "Mitch Gerads": 0.3,        # assigned 'print' — could be cursive
+    "Warren Ellis": 0.3,        # assigned 'print' — could be cursive or stylized
+    "Olivier Coipel": 0.3,      # assigned 'cursive' — European, could be stylized
+    "Esad Ribic": 0.3,          # assigned 'cursive' — Croatian, uncertain
+    "Lee Bermejo": 0.3,         # assigned 'stylized' — could be cursive
+    "Dan Mora": 0.3,            # assigned 'cursive' — newer intl artist, unverified
+    "Jorge Jimenez": 0.3,       # assigned 'cursive' — newer intl artist, unverified
+    "Pepe Larraz": 0.3,         # assigned 'cursive' — Spanish, unverified
+    "Sara Pichelli": 0.3,       # assigned 'cursive' — Italian, unverified
+}
+
+
 def seed_metadata():
     """Update all creators with career_start, career_end, publisher_affiliations, signature_style."""
     database_url = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('DATABASE_URL')
@@ -670,27 +777,49 @@ def seed_metadata():
         skipped = 0
         not_found = []
 
+        # Pre-build normalized lookup for fuzzy matching
+        normalized_lookup = {}
+        for key, val in CREATOR_METADATA.items():
+            normalized_lookup[_normalize(key)] = val
+
         for row in db_creators:
             db_name = row['creator_name']
             creator_id = row['id']
 
-            # Try exact match first, then case-insensitive
+            # 1. Exact match
             meta = CREATOR_METADATA.get(db_name)
+
+            # 2. Case-insensitive match
             if not meta:
-                # Try case-insensitive match
                 for key, val in CREATOR_METADATA.items():
                     if key.lower() == db_name.lower():
                         meta = val
                         break
 
-            # Handle George Perez / George Perez accent mismatch
-            if not meta and 'perez' in db_name.lower():
-                meta = CREATOR_METADATA.get("George Perez")
+            # 3. Accent-normalized match (handles Pérez→Perez, etc.)
+            if not meta:
+                norm_db = _normalize(db_name)
+                meta = normalized_lookup.get(norm_db)
+
+            # 4. Alias table (handles typos like Whilche→Whilce)
+            if not meta:
+                alias_target = NAME_ALIASES.get(db_name.lower())
+                if alias_target:
+                    meta = CREATOR_METADATA.get(alias_target)
 
             if not meta:
                 not_found.append(db_name)
                 skipped += 1
                 continue
+
+            # Look up style confidence (default 0.6 if not in overrides)
+            confidence = STYLE_CONFIDENCE.get(db_name, 0.6)
+            # Also try the matched key name (for accent-normalized matches)
+            if confidence == 0.6:
+                for key_name in STYLE_CONFIDENCE:
+                    if _normalize(key_name) == _normalize(db_name):
+                        confidence = STYLE_CONFIDENCE[key_name]
+                        break
 
             cur.execute("""
                 UPDATE creator_signatures
@@ -698,6 +827,11 @@ def seed_metadata():
                     career_end = %s,
                     publisher_affiliations = %s,
                     signature_style = %s,
+                    style_confidence = CASE
+                        WHEN style_source = 'admin' THEN style_confidence
+                        ELSE %s
+                    END,
+                    style_source = COALESCE(style_source, 'ai_assigned'),
                     active = true
                 WHERE id = %s
             """, [
@@ -705,12 +839,14 @@ def seed_metadata():
                 meta["career_end"],
                 meta["publishers"],
                 meta["style"],
+                confidence,
                 creator_id,
             ])
             updated += 1
             career = f"{meta['career_start']}-{'present' if meta['career_end'] is None else meta['career_end']}"
             pubs = ', '.join(meta['publishers'])
-            print(f"  Updated: {db_name:30s} | {career:15s} | {pubs:40s} | {meta['style']}")
+            conf_label = "★" if confidence >= 0.9 else ("●" if confidence >= 0.7 else ("○" if confidence >= 0.5 else "?"))
+            print(f"  Updated: {db_name:30s} | {career:15s} | {pubs:40s} | {meta['style']:9s} | {conf_label} {confidence:.1f}")
 
         conn.commit()
 

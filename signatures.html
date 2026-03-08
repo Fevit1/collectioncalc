@@ -535,7 +535,7 @@
                     '</div>' +
                     '<div class="image-count">' + imageCount + ' reference image' + (imageCount !== 1 ? 's' : '') + '</div>' +
                     imagesHtml +
-                    (sig.signature_style ? '<div class="signature-style">"' + sig.signature_style + '"</div>' : '') +
+                    buildStyleBadge(sig) +
                     '<div class="signature-actions">' +
                         (!sig.verified ? '<button class="btn btn-sm btn-success" onclick="verifySignature(' + sig.id + ')">✓ Verify</button>' : '') +
                         (sig.archived_at
@@ -544,6 +544,54 @@
                     '</div>' +
                 '</div>';
             }).join('');
+        }
+
+        // --- Style badge with confidence indicator + click-to-override ---
+        function buildStyleBadge(sig) {
+            if (!sig.signature_style) return '<div class="signature-style" style="color:var(--text-muted);font-style:italic;cursor:pointer;" onclick="promptStyleOverride(' + sig.id + ', \'' + sig.creator_name.replace(/'/g, "\\'") + '\', \'\')">(no style set — click to assign)</div>';
+
+            const src = sig.style_source || 'ai_assigned';
+            const conf = sig.style_confidence != null ? sig.style_confidence : 0.5;
+            let icon, label, color;
+            if (src === 'admin') {
+                icon = '✓'; label = 'verified'; color = 'var(--success, #22c55e)';
+            } else if (conf >= 0.7) {
+                icon = '●'; label = 'confident'; color = 'var(--info, #3b82f6)';
+            } else if (conf >= 0.4) {
+                icon = '○'; label = 'uncertain'; color = 'var(--warning, #f59e0b)';
+            } else {
+                icon = '?'; label = 'unverified'; color = 'var(--error, #ef4444)';
+            }
+            const safeName = sig.creator_name.replace(/'/g, "\\'");
+            const safeStyle = sig.signature_style.replace(/'/g, "\\'");
+            return '<div class="signature-style" style="cursor:pointer;" onclick="promptStyleOverride(' + sig.id + ', \'' + safeName + '\', \'' + safeStyle + '\')" title="Click to verify/change style">' +
+                '"' + sig.signature_style + '" ' +
+                '<span style="font-size:0.75rem;color:' + color + ';font-style:normal;">' + icon + ' ' + label + '</span>' +
+            '</div>';
+        }
+
+        async function promptStyleOverride(creatorId, creatorName, currentStyle) {
+            const styles = ['initials', 'cursive', 'stylized', 'print', 'mixed'];
+            const choice = prompt(
+                'Verify signature style for ' + creatorName + '\\n\\n' +
+                'Current: ' + (currentStyle || '(none)') + '\\n\\n' +
+                'Enter one of: ' + styles.join(', ') + '\\n' +
+                '(or cancel to keep current)',
+                currentStyle
+            );
+            if (!choice || !styles.includes(choice.toLowerCase().trim())) return;
+            try {
+                const res = await fetch(API_BASE + '/api/admin/signatures/' + creatorId + '/style', {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ signature_style: choice.toLowerCase().trim(), style_source: 'admin', style_confidence: 1.0 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Style verified for ' + creatorName + ': ' + choice, 'success');
+                    loadSignatures();
+                } else { showToast(data.error || 'Failed to update style', 'error'); }
+            } catch (e) { showToast('Error updating style', 'error'); }
         }
 
         function setupFilters() {

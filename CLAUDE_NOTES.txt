@@ -248,6 +248,20 @@ Selected 57 new creators using weighted criteria (market value, distinctiveness,
 
 **Files created/modified:** migrations/add_57_new_creators.sql, migrations/verify_100_creators.sql, signatures/signatures_db.json (+57 entries), seed_creator_metadata.py (+57 entries), signatures.html (zero-image UI fix), known_creators.json (expanded)
 
+**Style Confidence System (Session 86b):**
+- Added `style_source` ('ai_assigned'|'admin') and `style_confidence` (0.0-1.0) columns to creator_signatures
+- Sonnet was wrong on ~1/3 of original style metadata; this system prevents that bias from propagating
+- Per-creator confidence values seeded: 0.9 (iconic/well-documented) → 0.3 (genuinely uncertain international artists)
+- Orchestrator v2 now injects style hints with confidence annotations into Opus prompt:
+  - "Known style: X (verified)" → admin-confirmed, full trust
+  - "Expected style: X" → high confidence AI, soft hint
+  - "Possible style: X (unverified)" → low confidence, essentially ignore
+  - (omitted) → too unreliable to mention (confidence < 0.4)
+- Admin UI: click style badge on any creator card → prompt to verify/override → sets source='admin', confidence=1.0
+- System prompt updated with explicit instructions: never reject a strong structural match because of unverified metadata
+- Migration: migrations/add_style_confidence.sql
+- Files: seed_creator_metadata.py, routes/signature_orchestrator.py, routes/admin_routes.py, signatures.html, prompts/signature_identification_system.md
+
 ---
 
 ## PREVIOUS SESSION (SESSION 85) - Mar 7, 2026
