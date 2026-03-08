@@ -21,7 +21,8 @@ import logging
 import os
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
+# ThreadPoolExecutor removed — sequential passes needed due to Opus 4.6
+# rate limit (30K input tokens/min). Parallel calls trigger 429 errors.
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -70,7 +71,7 @@ REFERENCE_IMAGES_PER_CREATOR = 4
 PASS_TEMPERATURES = [0.2, 0.5, 0.7]
 LOW_CONFIDENCE_THRESHOLD = 0.50
 CONFUSION_PAIR_DELTA = 0.10  # rank1 vs rank2 within this → flag
-MAX_WORKERS = 3              # Parallel Opus calls
+# MAX_WORKERS removed — passes run sequentially now (rate limit constraint)
 
 
 # ---------------------------------------------------------------------------
@@ -618,72 +619,51 @@ def run_orchestrated_identification(
     if not candidates:
         raise ValueError("No candidates with reference images available")
 
-    # Step 3: 3 parallel Opus passes
+    # Step 3: Sequential Opus passes (not parallel — 30K input tokens/min rate limit
+    # on Opus 4.6 means parallel calls trigger 429 errors). Each pass takes ~20-30s,
+    # so sequential execution naturally spaces requests within the rate limit window.
     pass_results: list[PassResult] = []
-    failed_passes: list[PassResult] = []
+    failed_temps: list[float] = []
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {
-            executor.submit(
-                run_single_pass,
-                temp,
-                unknown_image_b64,
-                candidates,
-                comic_context,
-                system_prompt,
-                client,
-            ): temp
-            for temp in PASS_TEMPERATURES
-        }
-        for future in futures:
-            result = future.result()
+    for temp in PASS_TEMPERATURES:
+        result = run_single_pass(
+            temp, unknown_image_b64, candidates, comic_context, system_prompt, client,
+        )
+        if result.rankings:
+            pass_results.append(result)
+            logger.info(
+                "Pass temp=%.1f complete — top result: %s (%.2f)",
+                result.temperature,
+                result.rankings[0].get("creator", "unknown"),
+                result.rankings[0].get("confidence", 0),
+            )
+        else:
+            failed_temps.append(temp)
+            logger.warning(
+                "Pass temp=%.1f FAILED — flags: %s",
+                result.temperature, result.flags,
+            )
+
+    # Retry failed passes once (rate limit may have cleared by now)
+    if failed_temps:
+        logger.info("Retrying %d failed pass(es)...", len(failed_temps))
+        for temp in failed_temps:
+            result = run_single_pass(
+                temp, unknown_image_b64, candidates, comic_context, system_prompt, client,
+            )
             if result.rankings:
                 pass_results.append(result)
                 logger.info(
-                    "Pass temp=%.1f complete — top result: %s (%.2f)",
+                    "Retry pass temp=%.1f SUCCEEDED — top: %s (%.2f)",
                     result.temperature,
-                    result.rankings[0].get("creator", "unknown") if result.rankings else "none",
-                    result.rankings[0].get("confidence", 0) if result.rankings else 0,
+                    result.rankings[0].get("creator", "unknown"),
+                    result.rankings[0].get("confidence", 0),
                 )
             else:
-                failed_passes.append(result)
                 logger.warning(
-                    "Pass temp=%.1f FAILED — flags: %s",
+                    "Retry pass temp=%.1f FAILED again — flags: %s",
                     result.temperature, result.flags,
                 )
-
-    # Retry failed passes once (API errors are often transient)
-    if failed_passes and len(pass_results) < len(PASS_TEMPERATURES):
-        logger.info("Retrying %d failed pass(es)...", len(failed_passes))
-        retry_temps = [fp.temperature for fp in failed_passes]
-        with ThreadPoolExecutor(max_workers=len(retry_temps)) as executor:
-            retry_futures = {
-                executor.submit(
-                    run_single_pass,
-                    temp,
-                    unknown_image_b64,
-                    candidates,
-                    comic_context,
-                    system_prompt,
-                    client,
-                ): temp
-                for temp in retry_temps
-            }
-            for future in retry_futures:
-                result = future.result()
-                if result.rankings:
-                    pass_results.append(result)
-                    logger.info(
-                        "Retry pass temp=%.1f SUCCEEDED — top: %s (%.2f)",
-                        result.temperature,
-                        result.rankings[0].get("creator", "unknown"),
-                        result.rankings[0].get("confidence", 0),
-                    )
-                else:
-                    logger.warning(
-                        "Retry pass temp=%.1f FAILED again — flags: %s",
-                        result.temperature, result.flags,
-                    )
 
     if len(pass_results) < len(PASS_TEMPERATURES):
         logger.warning(
