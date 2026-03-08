@@ -319,6 +319,90 @@ function getSignatureConfidenceColor(confidence) {
 }
 
 /**
+ * Identify signatures using v2 orchestrator (3-pass Opus with metadata pre-filter).
+ * @param {string} imageB64 - Base64-encoded cover image
+ * @param {object} metadata - Optional: { publisher, title, year }
+ * @returns {object} V2 API response with top5, flags, stability_scores, etc.
+ */
+async function identifySignaturesV2(imageB64, metadata = {}) {
+    const formData = new FormData();
+    formData.append('image', imageB64);
+    if (metadata.publisher) formData.append('publisher', metadata.publisher);
+    if (metadata.title) formData.append('title', metadata.title);
+    if (metadata.year) {
+        const yr = parseInt(metadata.year);
+        if (yr) {
+            formData.append('era_decade', yr < 1970 ? 'pre-1970' : `${Math.floor(yr / 10) * 10}s`);
+        }
+    }
+    formData.append('signature_location', 'cover');
+
+    const response = await fetch(`${API_URL}/api/signatures/v2/match`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: formData
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+    }
+    return await response.json();
+}
+
+/**
+ * Render v2 signature identification results into a container element.
+ * @param {object} result - API response from /api/signatures/v2/match
+ * @param {HTMLElement} container - Target element to render into
+ */
+function displaySignatureV2Results(result, container) {
+    if (!result.top5 || result.top5.length === 0 || result.top5[0].confidence < 0.25) {
+        container.innerHTML = `
+            <div style="padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
+                <div style="font-size: 13px; color: var(--text-secondary);">No signatures detected on this cover.</div>
+            </div>`;
+        container.style.display = 'block';
+        return;
+    }
+
+    const top = result.top5[0];
+    const confColor = getSignatureConfidenceColor(top.confidence);
+    const flags = result.flags || {};
+
+    container.innerHTML = `
+        <div style="margin-top: 12px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">
+            <div style="font-weight: 600; font-size: 12px; color: var(--status-success); margin-bottom: 10px;">
+                Signature Identification (v2 — ${result.pass_count || 3} analysis passes)
+            </div>
+            <div style="margin-bottom: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 14px; font-weight: 600;">${top.creator}</div>
+                    <div style="padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; background: ${confColor};">
+                        ${Math.round(top.confidence * 100)}% ${top.confidence_label || ''}
+                    </div>
+                </div>
+                ${top.match_evidence ? `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">${top.match_evidence.slice(0, 3).join(' · ')}</div>` : ''}
+                ${flags.high_confusion_pair ? '<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">Similar to another creator — verify carefully</div>' : ''}
+            </div>
+            ${result.top5.length > 1 ? `
+            <div style="font-size: 11px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="color: var(--text-muted); margin-bottom: 4px;">Other candidates:</div>
+                ${result.top5.slice(1, 4).map(c => `
+                    <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+                        <span>${c.creator}</span>
+                        <span style="color: ${getSignatureConfidenceColor(c.confidence)}; font-weight: 500;">${Math.round(c.confidence * 100)}%</span>
+                    </div>
+                `).join('')}
+            </div>` : ''}
+            <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">
+                For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature
+                · ${result.latency_ms ? `${(result.latency_ms / 1000).toFixed(1)}s` : ''}
+            </div>
+        </div>`;
+    container.style.display = 'block';
+}
+
+/**
  * Render signature identification results into a container element.
  * @param {object} result - API response from /api/signatures/identify
  * @param {HTMLElement} container - Target element to render into

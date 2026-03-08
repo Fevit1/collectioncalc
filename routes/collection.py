@@ -27,7 +27,7 @@ def api_get_collection():
         SELECT c.id, c.user_id, c.title, c.issue, c.publisher, c.year, c.grade, c.grade_label,
                c.confidence, c.defects, c.photos, c.raw_value, c.slabbed_value, c.roi, c.verdict,
                c.my_valuation, c.grading_id, c.is_slabbed, c.slab_cert_number, c.slab_company,
-               c.slab_grade, c.slab_label_type, c.created_at, c.updated_at,
+               c.slab_grade, c.slab_label_type, c.signature_data, c.created_at, c.updated_at,
                cr.serial_number AS registry_serial,
                cr.status AS registry_status,
                cr.registration_date AS registry_date,
@@ -62,6 +62,8 @@ def api_get_collection():
             i['defects'] = json.loads(i['defects'])
         if i.get('photos') and isinstance(i['photos'], str):
             i['photos'] = json.loads(i['photos'])
+        if i.get('signature_data') and isinstance(i['signature_data'], str):
+            i['signature_data'] = json.loads(i['signature_data'])
             
         items_list.append(i)
     
@@ -90,18 +92,20 @@ def api_save_collection():
     
     saved_ids = []
     for item in items:
-        # Convert defects and photos to JSON strings if they're dicts
+        # Convert defects, photos, and signature_data to JSON strings if they're dicts
         defects_json = json.dumps(item.get('defects')) if item.get('defects') else None
         photos_json = json.dumps(item.get('photos')) if item.get('photos') else None
-        
+        signature_json = json.dumps(item.get('signature_data')) if item.get('signature_data') else None
+
         cur.execute("""
             INSERT INTO collections (
                 user_id, title, issue, publisher, year, grade, grade_label,
                 confidence, defects, photos, raw_value, slabbed_value, roi, verdict,
                 my_valuation, grading_id,
-                is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type
+                is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type,
+                signature_data
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             g.user_id,
@@ -124,7 +128,8 @@ def api_save_collection():
             item.get('slab_cert_number'),
             item.get('slab_company'),
             item.get('slab_grade'),
-            item.get('slab_label_type')
+            item.get('slab_label_type'),
+            signature_json
         ))
         saved_ids.append(cur.fetchone()['id'])
     
@@ -230,5 +235,64 @@ def api_update_valuation(item_id):
     
     if updated:
         return jsonify({'success': True, 'comic_id': updated['id'], 'my_valuation': float(updated['my_valuation']) if updated['my_valuation'] else None})
+    else:
+        return jsonify({'success': False, 'error': 'Item not found'}), 404
+
+
+@collection_bp.route('/<int:item_id>', methods=['PUT'])
+@require_auth
+@require_approved
+def api_update_collection_item(item_id):
+    """Update a collection item — supports signature_data and slab fields"""
+    data = request.get_json() or {}
+
+    # Whitelist of allowed update fields
+    set_parts = []
+    values = []
+
+    if 'signature_data' in data:
+        set_parts.append('signature_data = %s')
+        values.append(json.dumps(data['signature_data']) if data['signature_data'] else None)
+
+    if 'is_slabbed' in data:
+        set_parts.append('is_slabbed = %s')
+        values.append(data['is_slabbed'])
+    if 'slab_cert_number' in data:
+        set_parts.append('slab_cert_number = %s')
+        values.append(data['slab_cert_number'])
+    if 'slab_company' in data:
+        set_parts.append('slab_company = %s')
+        values.append(data['slab_company'])
+    if 'slab_grade' in data:
+        set_parts.append('slab_grade = %s')
+        values.append(data['slab_grade'])
+    if 'slab_label_type' in data:
+        set_parts.append('slab_label_type = %s')
+        values.append(data['slab_label_type'])
+
+    if not set_parts:
+        return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
+
+    set_parts.append('updated_at = NOW()')
+    set_clause = ', '.join(set_parts)
+    values.extend([item_id, g.user_id])
+
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+
+    cur.execute(f"""
+        UPDATE collections SET {set_clause}
+        WHERE id = %s AND user_id = %s
+        RETURNING id
+    """, values)
+
+    updated = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if updated:
+        return jsonify({'success': True, 'comic_id': updated['id']})
     else:
         return jsonify({'success': False, 'error': 'Item not found'}), 404

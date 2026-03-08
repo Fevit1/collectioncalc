@@ -202,6 +202,7 @@ def lookup_serial(serial_number):
                 c.year,
                 c.grade,
                 c.photos,
+                c.signature_data,
                 u.email,
                 cr.slab_cert_number,
                 cr.slab_company,
@@ -224,7 +225,7 @@ def lookup_serial(serial_number):
 
         # Parse result
         (serial, status, reg_date, stolen_date, recovery_date,
-         title, issue, publisher, pub_year, grade, photos,
+         title, issue, publisher, pub_year, grade, photos, signature_data,
          email, slab_cert_number, slab_company, slab_label_type) = result
 
         # Parse photos JSON
@@ -258,6 +259,17 @@ def lookup_serial(serial_number):
                 'cert_number': slab_cert_number,
                 'company': slab_company,
                 'label_type': slab_label_type
+            }
+
+        # Add signature details if present
+        sig_data = signature_data
+        if isinstance(sig_data, str):
+            sig_data = json.loads(sig_data)
+        if sig_data and sig_data.get('creator'):
+            response['signature'] = {
+                'creator': sig_data['creator'],
+                'confidence': sig_data.get('confidence'),
+                'confidence_label': sig_data.get('confidence_label')
             }
 
         # Add theft details if reported stolen

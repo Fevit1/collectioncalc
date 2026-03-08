@@ -1181,11 +1181,10 @@
 
                         </div>
 
-                        <!-- Signature Detection (if found) — below the fold -->
+                        <!-- Signature Detection — shown after automatic check -->
                         <div class="grade-report-signature" id="gradeReportSignature" style="display: none;">
-                            <h4>Signature Detected</h4>
                             <div id="signatureInfo">
-                                <!-- Signature analysis -->
+                                <!-- Populated by runSignatureCheck() -->
                             </div>
                         </div>
 
@@ -2146,6 +2145,11 @@
                 if (window.calculateGradingRecommendation && typeof window.calculateGradingRecommendation === 'function') {
                     await window.calculateGradingRecommendation(result);
                 }
+
+                // Check for signatures on front cover (runs in background, doesn't block)
+                if (window.gradingState.photos[1]) {
+                    runSignatureCheck(window.gradingState.photos[1]);
+                }
                 
             } catch (error) {
                 console.error('Grading error:', error);
@@ -2387,6 +2391,123 @@
         }
 
         // Core save to collection function
+        // Run signature identification on the front cover photo (non-blocking)
+        async function runSignatureCheck(photo) {
+            const sigSection = document.getElementById('gradeReportSignature');
+            const sigInfo = document.getElementById('signatureInfo');
+            if (!sigSection || !sigInfo) return;
+
+            try {
+                // Show loading state
+                sigSection.style.display = 'block';
+                sigInfo.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border-left: 3px solid var(--brand-indigo);">
+                        <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                        <span style="font-size: 13px; color: var(--text-secondary);">Checking for signatures...</span>
+                    </div>`;
+
+                const token = localStorage.getItem('cc_token');
+                if (!token) { sigSection.style.display = 'none'; return; }
+
+                // Build metadata from grading state
+                const ext = window.gradingState.extractedData || {};
+                const yearStr = ext.year || '';
+                let eraDecade = '';
+                const yr = parseInt(yearStr);
+                if (yr) {
+                    if (yr < 1970) eraDecade = 'pre-1970';
+                    else eraDecade = `${Math.floor(yr / 10) * 10}s`;
+                }
+
+                // Build multipart form data for v2 endpoint
+                const formData = new FormData();
+                formData.append('image', photo.base64);
+                if (ext.publisher) formData.append('publisher', ext.publisher);
+                if (eraDecade) formData.append('era_decade', eraDecade);
+                if (ext.title) formData.append('title', ext.title);
+                formData.append('signature_location', 'cover');
+
+                const response = await fetch(`${API_URL}/api/signatures/v2/match`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    console.warn('Signature check failed:', response.status);
+                    sigSection.style.display = 'none';
+                    return;
+                }
+
+                const result = await response.json();
+
+                // Check if we got a meaningful result
+                const topMatch = result.top5 && result.top5[0];
+                if (!topMatch || topMatch.confidence < 0.40) {
+                    // No confident match — hide section
+                    sigSection.style.display = 'none';
+                    window.gradingState.signatureResult = null;
+                    return;
+                }
+
+                // Store result for saving to collection later
+                window.gradingState.signatureResult = result;
+
+                // Build the signature display
+                const conf = topMatch.confidence;
+                const confLabel = topMatch.confidence_label || (conf >= 0.85 ? 'high' : conf >= 0.65 ? 'medium' : 'low');
+                const confColor = conf >= 0.85 ? '#10b981' : conf >= 0.65 ? '#3b82f6' : conf >= 0.40 ? '#f59e0b' : '#ef4444';
+                const confPct = Math.round(conf * 100);
+
+                const flags = result.flags || {};
+                const flagWarnings = [];
+                if (flags.high_confusion_pair) flagWarnings.push('Similar to another creator — verify carefully');
+                if (flags.low_confidence_match) flagWarnings.push('Low confidence — treat as tentative');
+
+                const stability = result.stability_scores && result.stability_scores[topMatch.creator];
+                const stabilityNote = stability && stability < 0.8
+                    ? `<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">Identification varied across analysis passes</div>`
+                    : '';
+
+                sigInfo.innerHTML = `
+                    <div style="padding: 14px; background: rgba(16, 185, 129, 0.08); border-radius: 8px; border-left: 3px solid ${confColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: var(--text-primary);">
+                                Signature Detected
+                            </div>
+                            <div style="padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; background: ${confColor};">
+                                ${confPct}% ${confLabel}
+                            </div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+                            ${topMatch.creator}
+                        </div>
+                        ${topMatch.match_evidence && topMatch.match_evidence.length > 0
+                            ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">${topMatch.match_evidence.slice(0, 3).join(' · ')}</div>`
+                            : ''}
+                        <div style="font-size: 12px; color: var(--status-success); font-weight: 500; margin-bottom: 4px;">
+                            Signed copies typically sell for +40-57% more
+                        </div>
+                        ${stabilityNote}
+                        ${flagWarnings.map(w => `<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">${w}</div>`).join('')}
+                        ${result.top5 && result.top5.length > 1 && result.top5[1].confidence >= 0.25 ? `
+                        <div style="font-size: 11px; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);">
+                            Other candidates: ${result.top5.slice(1, 3).map(c =>
+                                `${c.creator} (${Math.round(c.confidence * 100)}%)`
+                            ).join(', ')}
+                        </div>` : ''}
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">
+                            For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature
+                        </div>
+                    </div>`;
+
+            } catch (error) {
+                console.warn('Signature check error:', error);
+                sigSection.style.display = 'none';
+                window.gradingState.signatureResult = null;
+            }
+        }
+
         async function saveToCollection() {
             // Check if we have grade data
             if (!window.gradingState || !window.gradingState.finalGrade) {
@@ -2472,7 +2593,21 @@
                     slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
                     roi: window.gradingState.finalGrade.roi || null,
                     verdict: window.gradingState.finalGrade.verdict || null,
-                    grading_id: gradingId
+                    grading_id: gradingId,
+                    signature_data: (() => {
+                        const sr = window.gradingState.signatureResult;
+                        if (!sr || !sr.top5 || !sr.top5[0] || sr.top5[0].confidence < 0.40) return null;
+                        const top = sr.top5[0];
+                        return {
+                            creator: top.creator,
+                            confidence: top.confidence,
+                            confidence_label: top.confidence_label || 'unknown',
+                            flags: sr.flags || {},
+                            stability: sr.stability_scores && sr.stability_scores[top.creator] || null,
+                            pass_count: sr.pass_count || 0,
+                            detected_at: new Date().toISOString()
+                        };
+                    })()
                 };
 
                 // Wrap in items array as backend expects

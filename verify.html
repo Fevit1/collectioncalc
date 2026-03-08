@@ -724,6 +724,21 @@
                 </div>
             `;
 
+            // Signature info
+            if (data.signature && data.signature.creator) {
+                const sigConf = data.signature.confidence ? Math.round(data.signature.confidence * 100) : '?';
+                const sigColor = data.signature.confidence >= 0.85 ? '#10b981' : data.signature.confidence >= 0.65 ? '#3b82f6' : '#f59e0b';
+                detailsHTML += `
+                    <div class="detail-row">
+                        <span class="detail-label">Signature</span>
+                        <span class="detail-value" style="color: ${sigColor}; font-weight: 600;">
+                            &#9997; ${data.signature.creator}
+                            <span style="font-size: 0.85em; opacity: 0.8;">(${sigConf}% ${data.signature.confidence_label || ''})</span>
+                        </span>
+                    </div>
+                `;
+            }
+
             if (data.status === 'reported_stolen' && data.stolen_date) {
                 detailsHTML += `
                     <div class="detail-row">

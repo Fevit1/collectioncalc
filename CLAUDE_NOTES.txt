@@ -35,7 +35,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Confirmation # 9241, Patent Center # 74618571
 - Filing fee: $65 (micro entity)
 - AI-powered detection of creator signatures on comic covers
-- Reference database matching (100 creators in DB; 43 with images, 57 pending upload; 172 signatures in R2)
+- Reference database matching (100 creators in production DB; 43 with images, 57 pending upload; 172 signatures in R2)
 - Forgery detection via size/position/style anomaly analysis
 - Valuation integration (signature premium calculation)
 - Ties into Slab Guard for registered signature ownership proof
@@ -43,7 +43,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Orchestrator v2 built (Session 83, pre-deploy):** 3-pass Opus 4.6 with metadata pre-filter + parallel calls + aggregation. See SIGNATURE ORCHESTRATOR section below.
 
 ### Key Metrics
-- **Signature DB:** 100 creators (43 with images, 57 pending upload), 172 signatures in R2
+- **Signature DB:** 100 creators active (43 with images, 57 pending upload), 172 signatures in R2, style confidence system live
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
 - **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
 - **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
@@ -232,9 +232,9 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 ## CURRENT SESSION (SESSION 86) - Mar 8, 2026
 
 ### What Happened
-**SIGNATURE DB EXPANDED: 43 → 100 CREATORS**
+**SIGNATURE DB EXPANDED: 43 → 100 CREATORS — ✅ FULLY DEPLOYED**
 
-Selected 57 new creators using weighted criteria (market value, distinctiveness, era coverage, collection prevalence, convention signing frequency). Full confusion risk screening against existing 43. Created SQL migration, JSON entries, seed script updates, UI fix, and verification queries.
+Selected 57 new creators using weighted criteria (market value, distinctiveness, era coverage, collection prevalence, convention signing frequency). Full confusion risk screening against existing 43. Created SQL migration, JSON entries, seed script updates, UI fix, and verification queries. All deployed to production.
 
 **New creators by tier:**
 - **Tier 1 (15):** High market value artists — Walt Simonson, Marc Silvestri, David Finch, Adam Kubert, Andy Kubert, Frank Cho, Joe Quesada, Jim Cheung, Ed McGuinness, Kevin Eastman, Bill Sienkiewicz, Mike Zeck, Whilce Portacio, Erik Larsen, Michael Turner
@@ -246,7 +246,11 @@ Selected 57 new creators using weighted criteria (market value, distinctiveness,
 
 **Confusion pairs flagged:** Adam/Andy Kubert (HIGH), Jim Cheung vs Jim Lee/Steranko/Starlin (MEDIUM), Mark Waid vs Mark Millar (MEDIUM), Mark Bagley vs Mark Brooks (MEDIUM), Ryan Stegman vs Ryan Ottley (MEDIUM)
 
-**Files created/modified:** migrations/add_57_new_creators.sql, migrations/verify_100_creators.sql, signatures/signatures_db.json (+57 entries), seed_creator_metadata.py (+57 entries), signatures.html (zero-image UI fix), known_creators.json (expanded)
+**Seed script fixes (97/100 → 100/100):**
+- "George Pérez" — accent stripping via `unicodedata.normalize('NFKD')`
+- "Whilche Portacio" — DB typo fixed + `NAME_ALIASES` dict for fuzzy matching
+- "Brian Michael Bendis - Early 2000s" — duplicate removed
+- 4-tier matching now: exact → case-insensitive → accent-normalized → alias
 
 **Style Confidence System (Session 86b):**
 - Added `style_source` ('ai_assigned'|'admin') and `style_confidence` (0.0-1.0) columns to creator_signatures
@@ -259,8 +263,15 @@ Selected 57 new creators using weighted criteria (market value, distinctiveness,
   - (omitted) → too unreliable to mention (confidence < 0.4)
 - Admin UI: click style badge on any creator card → prompt to verify/override → sets source='admin', confidence=1.0
 - System prompt updated with explicit instructions: never reject a strong structural match because of unverified metadata
-- Migration: migrations/add_style_confidence.sql
-- Files: seed_creator_metadata.py, routes/signature_orchestrator.py, routes/admin_routes.py, signatures.html, prompts/signature_identification_system.md
+
+**Deploy completed:**
+- All code pushed (commit `9f7e4dc`)
+- DB name typos fixed (Whilce, Bendis duplicate removed)
+- Style confidence migration run
+- Seed script re-run: 100/100 creators updated
+- Cloudflare cache purged — signatures.html live with clickable style badges
+
+**Files created/modified:** migrations/add_57_new_creators.sql, migrations/verify_100_creators.sql, migrations/add_style_confidence.sql, migrations/fix_creator_name_typos.sql, signatures/signatures_db.json, seed_creator_metadata.py, signatures.html, known_creators.json, routes/signature_orchestrator.py, routes/admin_routes.py, prompts/signature_identification_system.md
 
 ---
 
@@ -510,37 +521,29 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 - Local: signatures_db.json (23 artists, 97 images); Production: 43 artists, 172 images in R2
 - Cost: ~$0.03/match call (gets expensive as artist count grows toward 100)
 
-**Orchestrator v2 (pre-deploy, routes/signature_orchestrator.py):**
+**Orchestrator v2 (✅ DEPLOYED, routes/signature_orchestrator.py):**
 - Blueprint: /api/signatures/v2/match and /api/signatures/v2/match/stats
 - Model: Claude Opus 4.6 (claude-opus-4-6)
-- Architecture: PostgreSQL metadata pre-filter (100 → 15 candidates) → R2 image fetch → 3 parallel Opus calls (temp 0.2/0.5/0.7) → confidence aggregation → flags
-- New DB table: signature_identification_log (review queue, confusion tracking)
+- Architecture: PostgreSQL metadata pre-filter (100 → 15 candidates) → R2 image fetch → 3 sequential Opus calls (temp 0.2/0.5/0.7) → confidence aggregation → flags
+- Sequential passes due to Opus 30K tokens/min rate limit (parallel caused 429s)
+- Latency: ~99s for 3 passes (can drop to ~33s with rate limit increase)
+- DB table: signature_identification_log (review queue, confusion tracking)
 - System prompt: prompts/signature_identification_system.md (loaded at runtime, inline fallback)
 - Flags: low_confidence_match, high_confusion_pair, context_mismatch, stability_score per creator
-- Known confusion pair: Jim Lee vs 3 other creators (being addressed by publisher_affiliations pre-filter)
+- Style confidence system: style hints injected with trust levels (verified/expected/unverified/omitted)
+- Known confusion pair: Jim Lee vs 3 other creators (addressed by publisher_affiliations pre-filter)
 
-**New DB columns needed (migration pre-deploy):**
-- creator_signatures: career_start, career_end, publisher_affiliations (text[]), signature_style, reference_image_count, active, notes
+**DB columns (✅ ALL MIGRATED):**
+- creator_signatures: career_start, career_end, publisher_affiliations (text[]), signature_style, reference_image_count, active, notes, style_source, style_confidence
 - signature_images: r2_key, sort_order, source_url, approximate_year, image_notes
 - Auto-trigger: trg_update_image_count keeps reference_image_count in sync
 
-**Files (all in repo as of Session 84):**
-- routes/signature_orchestrator.py (integrated with 7 fixes)
-- prompts/signature_identification_system.md
-- migrations/add_orchestrator_columns.sql
-- migrations/add_signature_identification_log.sql
-- seed_creator_metadata.py (career_start, publisher_affiliations, signature_style for 41 creators)
-
-**Deploy sequence:**
-1. Run add_orchestrator_columns.sql
-2. Run add_signature_identification_log.sql
-3. Seed 43 existing creators with career_start, publisher_affiliations, signature_style
-4. Add routes/signature_orchestrator.py to repo
-5. Add prompts/signature_identification_system.md to repo
-6. Register blueprint in wsgi.py: from routes.signature_orchestrator import signatures_bp (v2)
-7. Deploy to Render
-8. Test /api/signatures/v2/match against known signatures
-9. A/B compare v1 vs v2 accuracy before cutting over
+**Files:**
+- routes/signature_orchestrator.py (integrated, deployed, 3/3 passes working)
+- prompts/signature_identification_system.md (with style confidence guidance)
+- routes/admin_routes.py (style override endpoint)
+- seed_creator_metadata.py (100 creators with career dates, publishers, styles, confidence values)
+- migrations/ (add_orchestrator_columns, add_signature_identification_log, add_57_new_creators, add_style_confidence, fix_creator_name_typos)
 
 **Accuracy targets:**
 - Current v1 (Session 82): 78.3% (18/23 artists)
@@ -719,27 +722,27 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## NEXT SESSION PRIORITIES
 
-### Deploy & Test (Immediate)
-1. ~~Push + deploy waitlist code~~ ✅ DONE (Session 64)
-2. ~~Run waitlist DB migration~~ ✅ DONE (Session 64)
-3. ~~Test waitlist end-to-end~~ ✅ DONE (Session 64 — signup, email, confirm, personalized landing page all working)
-4. **Push Session 64 latest changes** — waitlist.html (new standalone page), waitlist-confirmed.html, index.html, login.html (CTA inside beta card), routes/waitlist.py
-5. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
+### Signature System (Active)
+1. **Upload reference images for 57 new creators** — Mike is sourcing signatures from the web (Tier 1 first: Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz, Walt Simonson)
+2. **Verify style metadata via admin UI** — click style badges to confirm/override as images are uploaded
+3. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
+4. **Fix Bendis/Claremont refs** — source better quality reference images
+5. **Request Anthropic rate limit increase** — re-enable parallel Opus passes (~99s → ~33s)
+6. **Target 87%+ accuracy** before advertising signature feature publicly
 
 ### GalaxyCon San Jose Sprint (Aug 21-23)
-6. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
-7. **Grading flow polish** — Speed up (remove 2-sec delay), photo instructions, booth demo mode, offline fallback, valuation on results, "Grade Next" reset
-8. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
-9. **Wire valuation into results** — Show grade + FMV + slabbing ROI together
+7. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
+8. **Grading flow polish** — booth demo mode, offline fallback
+9. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
 
 ### Patent & Business
-10. **File signature patent on USPTO** — Document ready, file before July 21 soft launch
+10. **Signature patent filed** ✅ — Application # 63/990,743 (Feb 25, 2026). Non-provisional deadline: Feb 25, 2027
 11. **Facebook/social media** — Deferred to June pre-launch (batch content creation)
 
 ### Technical Debt
 12. **AI Grading Consistency** — Same images give different grades (8.5 → 9.2 → 8.5)
 13. **Comic identification bug** — Ghost Rider reboot #1 vs original #1
-14. **Session 59 test plan** — ~40 of 47 tests still formally untested
+14. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
 15. **Mobile testing** — Pricing page, verify page, full app flow on real devices
 
 ---

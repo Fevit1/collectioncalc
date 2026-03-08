@@ -1,6 +1,6 @@
 # Where We Left Off - Mar 8, 2026
 
-## Session 86 (Mar 8, 2026) — Signature DB Expanded: 43 → 100 Creators
+## Session 86 (Mar 8, 2026) — Signature DB Expanded: 43 → 100 Creators ✅ DEPLOYED
 
 ### What Was Done
 - **Selected 57 new creators** using weighted criteria: market value, signature distinctiveness, era/publisher coverage, collection prevalence, convention signing frequency
@@ -17,6 +17,13 @@
   - Admin UI: click any style badge → override → becomes source='admin' at 1.0 confidence
   - Opus system prompt explicitly told: never reject structural match over unverified metadata
 - **Updated known_creators.json** — expanded from 75 to 115 names
+- **Fixed 3 seed script mismatches** (97/100 → 100/100):
+  - "George Pérez" — accent `é` mismatch, fixed with `unicodedata.normalize('NFKD')` accent stripping
+  - "Whilche Portacio" — DB typo (extra 'h'), fixed with SQL UPDATE + `NAME_ALIASES` dict
+  - "Brian Michael Bendis - Early 2000s" — duplicate DB entry, fixed with SQL DELETE
+  - Seed script now has 4-tier matching: exact → case-insensitive → accent-normalized → alias
+- **All migrations and seed run on production** — 100 creators active, style confidence columns populated
+- **Cloudflare cache purged** — updated signatures.html live with clickable style badges
 
 ### Creator Selection Summary
 
@@ -37,42 +44,18 @@
 - `signatures.html` — MODIFIED: zero-image UI message improved
 - `known_creators.json` — MODIFIED: 75 → 115 names
 
-### Deploy Sequence
-```
-1. Run migration on Render PostgreSQL:
-   python run_migrations.py migrations/add_57_new_creators.sql
-   (or connect via psql and run the SQL directly)
-
-2. Run seed script for metadata:
-   python seed_creator_metadata.py <DATABASE_URL>
-
-3. Verify with:
-   python run_migrations.py migrations/verify_100_creators.sql
-   -- Expected: ~100 total_active_creators
-
-4. Deploy code changes:
-   git add migrations/ signatures/ seed_creator_metadata.py signatures.html known_creators.json
-   git commit -m "Expand signature DB from 43 to 100 creators"
-   git push ; deploy ; purge
-
-5. Verify in UI:
-   - Navigate to /signatures.html
-   - Confirm 100 creators visible
-   - Confirm new creators show "No reference images yet — Upload to enable matching"
-   - Filter by "Needs Images" → should show 57 creators
-
-6. Upload reference images:
-   - Start with Tier 1 (highest value) creators
-   - 2-4 reference images per creator via admin UI
-   - Priority: Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz
-```
+### Deploy Status: ✅ COMPLETE
+All migrations, seed scripts, and code deployed to Render. Cloudflare cache purged. 100 creators active in production DB with style confidence values.
 
 ### What's Next (Priority Order)
-1. **Run migration + seed on Render** — deploy the 57 new creators to production DB
-2. **Upload reference images** — start with Tier 1 high-value creators (4 images each)
-3. **A/B test v1 vs v2** — compare accuracy on same test images
-4. **Fix style_notes metadata** (Mike manual task) + source better Bendis/Claremont reference images
-5. **Request Anthropic rate limit increase** — re-enable parallel passes for ~33s latency
+1. **Upload reference images for 57 new creators** — Mike is sourcing signatures from the web
+   - Start with Tier 1 (highest value): Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz, Walt Simonson
+   - 2-4 reference images per creator via admin UI at /signatures.html
+   - As images are uploaded, verify style metadata and click to correct if needed
+2. **Verify style metadata via admin UI** — click style badges to confirm/override AI-assigned styles (sets source='admin', confidence=1.0)
+3. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
+4. **Fix Bendis/Claremont reference images** — source better quality refs (current ones have noisy backgrounds)
+5. **Request Anthropic rate limit increase** — re-enable parallel Opus passes for ~33s latency (currently ~99s sequential)
 6. **Target 87%+ accuracy** before advertising signature feature publicly
 
 ---

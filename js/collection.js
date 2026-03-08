@@ -317,12 +317,20 @@ function createComicCard(comic) {
             ? `$${comic.my_valuation.toFixed(2)}`
             : '';
 
+        // Signature badge
+        const sigBadge = comic.signature_data && comic.signature_data.creator
+            ? `<div style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(16,185,129,0.15); color: #10b981; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;">
+                 <span style="font-size: 10px;">&#9997;</span> ${comic.signature_data.creator}
+                 <span style="color: ${getSignatureConfidenceColor(comic.signature_data.confidence)}; font-weight: 600;">${Math.round(comic.signature_data.confidence * 100)}%</span>
+               </div>`
+            : '';
+
         return `
             <div class="comic-card" data-id="${comic.id}">
                 <div class="comic-thumbnail">
                     ${photoUrl ? `<img src="${photoUrl}" alt="${comic.title}">` : '📖'}
                 </div>
-                <div class="comic-title">${comic.title}</div>
+                <div class="comic-title">${comic.title}${sigBadge}</div>
                 <div class="comic-issue">${comic.year || '—'}</div>
                 <div class="comic-issue">#${comic.issue}</div>
                 <div class="comic-grade">
@@ -380,6 +388,17 @@ function createComicCard(comic) {
             ? `$${comic.my_valuation.toFixed(2)}`
             : '';
 
+        // Gallery signature badge
+        const gallerySigBadge = comic.signature_data && comic.signature_data.creator
+            ? `<div class="detail-row">
+                 <span class="detail-label">Signed</span>
+                 <span class="detail-value" style="color: #10b981; font-weight: 600;">
+                   &#9997; ${comic.signature_data.creator}
+                   <span style="color: ${getSignatureConfidenceColor(comic.signature_data.confidence)}; font-size: 11px;">(${Math.round(comic.signature_data.confidence * 100)}%)</span>
+                 </span>
+               </div>`
+            : '';
+
         return `
             <div class="comic-frame" data-id="${comic.id}" onclick="toggleGalleryExpand(${comic.id})">
                 <div class="frame-outer">
@@ -405,6 +424,7 @@ function createComicCard(comic) {
                         <span class="detail-label">FMV${comic.is_slabbed ? ' (Slabbed)' : ' (Raw)'}</span>
                         <span class="detail-value">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
+                    ${gallerySigBadge}
                     <div class="detail-row">
                         <span class="detail-label">My Valuation</span>
                         <input
@@ -991,7 +1011,6 @@ async function handleCollectionIdentifySignatures(event, comicId) {
     const btn = document.getElementById(`sig-btn-${comicId}`);
 
     if (!container) {
-        // Create a container dynamically near the button
         container = document.createElement('div');
         container.id = `sig-results-${comicId}`;
         container.style.display = 'none';
@@ -1005,43 +1024,56 @@ async function handleCollectionIdentifySignatures(event, comicId) {
         btn.disabled = true;
         btn.textContent = 'Analyzing...';
     }
-    container.innerHTML = '<div style="padding: 8px; color: var(--text-secondary); font-size: 12px;">Detecting signatures on cover...</div>';
+    container.innerHTML = '<div style="padding: 8px; color: var(--text-secondary); font-size: 12px;">Running 3-pass signature analysis (this takes ~90 seconds)...</div>';
     container.style.display = 'block';
 
     try {
         // Fetch the cover image from R2 and convert to base64
-        const { base64, mediaType } = await fetchImageAsBase64(photoUrl);
+        const { base64 } = await fetchImageAsBase64(photoUrl);
 
-        // Call the identify endpoint
-        const result = await identifySignatures(base64, mediaType, comicId);
+        // Call v2 orchestrator with metadata for better pre-filtering
+        const result = await identifySignaturesV2(base64, {
+            publisher: comic.publisher,
+            title: comic.title,
+            year: comic.year
+        });
 
-        if (result.success) {
-            displaySignatureIdentifyResults(result, container);
+        // Display v2 results
+        displaySignatureV2Results(result, container);
 
-            // If confident match, update the comic's signer via API
-            if (result.signatures && result.signatures.length > 0) {
-                const bestSig = result.signatures[0];
-                if (bestSig.best_match.is_confident && bestSig.best_match.artist_name !== 'UNKNOWN') {
-                    try {
-                        await fetch(`${API_URL}/api/collection/${comicId}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${authToken}`
-                            },
-                            body: JSON.stringify({
-                                is_signed: true,
-                                signer: bestSig.best_match.artist_name
-                            })
-                        });
-                        showToast(`Identified: ${bestSig.best_match.artist_name} (${Math.round(bestSig.best_match.confidence * 100)}% confidence)`, 'success');
-                    } catch (e) {
-                        console.error('Failed to update comic signer:', e);
-                    }
-                }
+        // If confident match, save signature_data via PUT
+        const topMatch = result.top5 && result.top5[0];
+        if (topMatch && topMatch.confidence >= 0.40) {
+            const sigData = {
+                creator: topMatch.creator,
+                confidence: topMatch.confidence,
+                confidence_label: topMatch.confidence_label || 'unknown',
+                flags: result.flags || {},
+                stability: result.stability_scores && result.stability_scores[topMatch.creator] || null,
+                pass_count: result.pass_count || 0,
+                detected_at: new Date().toISOString()
+            };
+
+            try {
+                await fetch(`${API_URL}/api/collection/${comicId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ signature_data: sigData })
+                });
+
+                // Update local collection array so badge appears without refresh
+                comic.signature_data = sigData;
+                showToast(`Identified: ${topMatch.creator} (${Math.round(topMatch.confidence * 100)}% confidence)`, 'success');
+            } catch (e) {
+                console.error('Failed to save signature data:', e);
             }
+        } else if (!topMatch || topMatch.confidence < 0.25) {
+            showToast('No signatures detected on this cover', 'info');
         } else {
-            container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${result.error || 'Unknown error'}</div>`;
+            showToast(`Possible: ${topMatch.creator} (${Math.round(topMatch.confidence * 100)}% — low confidence)`, 'info');
         }
     } catch (error) {
         container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${error.message}</div>`;
