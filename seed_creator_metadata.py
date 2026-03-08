@@ -287,6 +287,364 @@ CREATOR_METADATA = {
         "publishers": ["MARVEL", "DC"],
         "style": "cursive",
     },
+
+    # =================================================================
+    # === 57 NEW CREATORS (Session 86 expansion: 43 → 100) ===
+    # =================================================================
+
+    # --- TIER 1: HIGH MARKET VALUE ARTISTS (15) ---
+    "Walt Simonson": {
+        "career_start": 1980,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Marc Silvestri": {
+        "career_start": 1986,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE", "TOP COW"],
+        "style": "stylized",
+    },
+    "David Finch": {
+        "career_start": 1995,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Adam Kubert": {
+        "career_start": 1990,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Andy Kubert": {
+        "career_start": 1988,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Frank Cho": {
+        "career_start": 1996,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC", "IMAGE"],
+        "style": "print",
+    },
+    "Joe Quesada": {
+        "career_start": 1990,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "stylized",
+    },
+    "Jim Cheung": {
+        "career_start": 1995,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Ed McGuinness": {
+        "career_start": 1996,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "print",
+    },
+    "Kevin Eastman": {
+        "career_start": 1984,
+        "career_end": None,
+        "publishers": ["MIRAGE", "IDW"],
+        "style": "stylized",
+    },
+    "Bill Sienkiewicz": {
+        "career_start": 1980,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "stylized",
+    },
+    "Mike Zeck": {
+        "career_start": 1974,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Whilce Portacio": {
+        "career_start": 1986,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE"],
+        "style": "cursive",
+    },
+    "Erik Larsen": {
+        "career_start": 1986,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE"],
+        "style": "cursive",
+    },
+    "Michael Turner": {
+        "career_start": 1996,
+        "career_end": 2008,
+        "publishers": ["TOP COW", "DC", "ASPEN"],
+        "style": "cursive",
+    },
+
+    # --- TIER 2: STRONG CONVENTION/MODERN ARTISTS (15) ---
+    "Ryan Stegman": {
+        "career_start": 2009,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Terry Dodson": {
+        "career_start": 1993,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Sean Murphy": {
+        "career_start": 2005,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Patrick Gleason": {
+        "career_start": 1998,
+        "career_end": None,
+        "publishers": ["DC", "MARVEL"],
+        "style": "cursive",
+    },
+    "Gary Frank": {
+        "career_start": 1991,
+        "career_end": None,
+        "publishers": ["DC", "MARVEL"],
+        "style": "cursive",
+    },
+    "Mark Bagley": {
+        "career_start": 1984,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Humberto Ramos": {
+        "career_start": 1994,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "stylized",
+    },
+    "Leinil Francis Yu": {
+        "career_start": 1994,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Ryan Ottley": {
+        "career_start": 2003,
+        "career_end": None,
+        "publishers": ["IMAGE", "MARVEL"],
+        "style": "cursive",
+    },
+    "Jorge Jimenez": {
+        "career_start": 2016,
+        "career_end": None,
+        "publishers": ["DC"],
+        "style": "cursive",
+    },
+    "Dan Mora": {
+        "career_start": 2016,
+        "career_end": None,
+        "publishers": ["DC", "BOOM"],
+        "style": "cursive",
+    },
+    "Olivier Coipel": {
+        "career_start": 2000,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Esad Ribic": {
+        "career_start": 1997,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Lee Bermejo": {
+        "career_start": 2003,
+        "career_end": None,
+        "publishers": ["DC"],
+        "style": "stylized",
+    },
+    "Daniel Warren Johnson": {
+        "career_start": 2014,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE", "SKYBOUND"],
+        "style": "stylized",
+    },
+
+    # --- TIER 3: DECEASED/LEGACY HIGH VALUE (5) ---
+    "Bernie Wrightson": {
+        "career_start": 1968,
+        "career_end": 2017,
+        "publishers": ["DC", "MARVEL"],
+        "style": "cursive",
+    },
+    "Tim Sale": {
+        "career_start": 1983,
+        "career_end": 2022,
+        "publishers": ["DC", "MARVEL"],
+        "style": "cursive",
+    },
+    "Darwyn Cooke": {
+        "career_start": 1985,
+        "career_end": 2016,
+        "publishers": ["DC", "MARVEL", "IDW"],
+        "style": "stylized",
+    },
+    "Mike Wieringo": {
+        "career_start": 1989,
+        "career_end": 2007,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Herb Trimpe": {
+        "career_start": 1966,
+        "career_end": 2015,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+
+    # --- TIER 4: HIGH VALUE WRITERS (10) ---
+    "Mark Waid": {
+        "career_start": 1987,
+        "career_end": None,
+        "publishers": ["DC", "MARVEL"],
+        "style": "cursive",
+    },
+    "Peter David": {
+        "career_start": 1985,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "cursive",
+    },
+    "Robert Kirkman": {
+        "career_start": 2000,
+        "career_end": None,
+        "publishers": ["IMAGE", "SKYBOUND", "MARVEL"],
+        "style": "cursive",
+    },
+    "Jason Aaron": {
+        "career_start": 2007,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Garth Ennis": {
+        "career_start": 1991,
+        "career_end": None,
+        "publishers": ["DC", "MARVEL", "IMAGE", "DYNAMITE"],
+        "style": "cursive",
+    },
+    "Warren Ellis": {
+        "career_start": 1994,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC", "IMAGE", "WILDSTORM"],
+        "style": "print",
+    },
+    "Donny Cates": {
+        "career_start": 2014,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE"],
+        "style": "print",
+    },
+    "Chip Zdarsky": {
+        "career_start": 2014,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Matt Fraction": {
+        "career_start": 2001,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE"],
+        "style": "cursive",
+    },
+    "Larry Hama": {
+        "career_start": 1969,
+        "career_end": None,
+        "publishers": ["MARVEL", "IDW"],
+        "style": "cursive",
+    },
+
+    # --- TIER 5: COVER ARTISTS / VARIANT MARKET (7) ---
+    "Mark Brooks": {
+        "career_start": 2002,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Skottie Young": {
+        "career_start": 2003,
+        "career_end": None,
+        "publishers": ["MARVEL", "IMAGE"],
+        "style": "stylized",
+    },
+    "Jenny Frison": {
+        "career_start": 2007,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Jen Bartel": {
+        "career_start": 2017,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "stylized",
+    },
+    "Derrick Chew": {
+        "career_start": 2019,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC"],
+        "style": "stylized",
+    },
+    "Clayton Crain": {
+        "career_start": 2003,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "stylized",
+    },
+    "Rafael Albuquerque": {
+        "career_start": 2005,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE"],
+        "style": "stylized",
+    },
+
+    # --- TIER 6: ERA/PUBLISHER COVERAGE + RISING STARS (5) ---
+    "Kieron Gillen": {
+        "career_start": 2006,
+        "career_end": None,
+        "publishers": ["MARVEL", "DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Joshua Williamson": {
+        "career_start": 2011,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE"],
+        "style": "cursive",
+    },
+    "Sara Pichelli": {
+        "career_start": 2008,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Pepe Larraz": {
+        "career_start": 2011,
+        "career_end": None,
+        "publishers": ["MARVEL"],
+        "style": "cursive",
+    },
+    "Mitch Gerads": {
+        "career_start": 2011,
+        "career_end": None,
+        "publishers": ["DC", "IMAGE"],
+        "style": "print",
+    },
 }
 
 

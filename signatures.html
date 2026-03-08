@@ -507,7 +507,10 @@
                 const safeName = sig.creator_name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 let imagesHtml = '';
                 if (imageCount === 0) {
-                    imagesHtml = '<div class="no-images" onclick="openUploadModal(' + sig.id + ', \'' + safeName + '\')">📷 Click to add reference images</div>';
+                    imagesHtml = '<div class="no-images" onclick="openUploadModal(' + sig.id + ', \'' + safeName + '\')">' +
+                        '<span style="display:block;font-size:0.9rem;margin-bottom:2px;">No reference images yet</span>' +
+                        '<span style="display:block;font-size:0.75rem;color:var(--text-muted);">📷 Upload to enable matching</span>' +
+                    '</div>';
                 } else {
                     imagesHtml = '<div class="signature-images">' +
                         images.map(img => {

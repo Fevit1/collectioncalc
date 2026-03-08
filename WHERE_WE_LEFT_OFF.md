@@ -1,42 +1,115 @@
-# Where We Left Off - Mar 7, 2026
+# Where We Left Off - Mar 8, 2026
+
+## Session 86 (Mar 8, 2026) — Signature DB Expanded: 43 → 100 Creators
+
+### What Was Done
+- **Selected 57 new creators** using weighted criteria: market value, signature distinctiveness, era/publisher coverage, collection prevalence, convention signing frequency
+- **Confusion risk screening** against all 43 existing creators — flagged 5 HIGH/MEDIUM pairs (Adam/Andy Kubert, Jim Cheung vs Jim Lee/Steranko/Starlin, Mark Waid vs Mark Millar, Mark Bagley vs Mark Brooks, Ryan Stegman vs Ryan Ottley)
+- **Created SQL migration** (`migrations/add_57_new_creators.sql`) — 57 INSERT statements with WHERE NOT EXISTS guards (idempotent)
+- **Created verification queries** (`migrations/verify_100_creators.sql`) — 10 queries: total count, role breakdown, era coverage, publisher coverage, image status, confusion pairs, summary dashboard
+- **Updated signatures_db.json** — added 57 new entries with empty images, updated stats, cleared missing_priority_artists
+- **Updated seed_creator_metadata.py** — added all 57 new creators with career dates, publishers, signature styles
+- **Fixed zero-image UI state** in signatures.html — now shows "No reference images yet / Upload to enable matching" instead of generic "Click to add"
+- **Updated known_creators.json** — expanded from 75 to 115 names
+
+### Creator Selection Summary
+
+| Tier | Count | Description | Examples |
+|------|-------|-------------|----------|
+| 1 — High Market Value | 15 | Top auction artists | Kevin Eastman, Marc Silvestri, Michael Turner |
+| 2 — Convention/Modern | 15 | Active con signers | Ryan Ottley, Jorge Jimenez, Dan Mora |
+| 3 — Deceased/Legacy | 5 | Valuable limited supply | Bernie Wrightson, Tim Sale, Darwyn Cooke |
+| 4 — Writers | 10 | Key comic writers | Robert Kirkman, Garth Ennis, Larry Hama |
+| 5 — Cover Artists | 7 | Variant market | Skottie Young, Mark Brooks, Jenny Frison |
+| 6 — Coverage/Rising | 5 | Era/publisher fill | Sara Pichelli, Pepe Larraz, Mitch Gerads |
+
+### Files Created/Modified
+- `migrations/add_57_new_creators.sql` — NEW: 57 INSERT statements with confusion risk notes
+- `migrations/verify_100_creators.sql` — NEW: 10 verification queries
+- `signatures/signatures_db.json` — MODIFIED: +57 entries (23 → 80 in local DB)
+- `seed_creator_metadata.py` — MODIFIED: +57 entries (41 → 98 in seed data)
+- `signatures.html` — MODIFIED: zero-image UI message improved
+- `known_creators.json` — MODIFIED: 75 → 115 names
+
+### Deploy Sequence
+```
+1. Run migration on Render PostgreSQL:
+   python run_migrations.py migrations/add_57_new_creators.sql
+   (or connect via psql and run the SQL directly)
+
+2. Run seed script for metadata:
+   python seed_creator_metadata.py <DATABASE_URL>
+
+3. Verify with:
+   python run_migrations.py migrations/verify_100_creators.sql
+   -- Expected: ~100 total_active_creators
+
+4. Deploy code changes:
+   git add migrations/ signatures/ seed_creator_metadata.py signatures.html known_creators.json
+   git commit -m "Expand signature DB from 43 to 100 creators"
+   git push ; deploy ; purge
+
+5. Verify in UI:
+   - Navigate to /signatures.html
+   - Confirm 100 creators visible
+   - Confirm new creators show "No reference images yet — Upload to enable matching"
+   - Filter by "Needs Images" → should show 57 creators
+
+6. Upload reference images:
+   - Start with Tier 1 (highest value) creators
+   - 2-4 reference images per creator via admin UI
+   - Priority: Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz
+```
+
+### What's Next (Priority Order)
+1. **Run migration + seed on Render** — deploy the 57 new creators to production DB
+2. **Upload reference images** — start with Tier 1 high-value creators (4 images each)
+3. **A/B test v1 vs v2** — compare accuracy on same test images
+4. **Fix style_notes metadata** (Mike manual task) + source better Bendis/Claremont reference images
+5. **Request Anthropic rate limit increase** — re-enable parallel passes for ~33s latency
+6. **Target 87%+ accuracy** before advertising signature feature publicly
+
+---
 
 ## Session 85 (Mar 7, 2026) — v2 First Test Success + pass_count Bug Fix
 
 ### What Was Done
 - **First v2 match test succeeded!** Jim Lee identified at 0.96 confidence (high) via PowerShell curl
-- **Found and fixed pass_count=1 bug** — 2 of 3 Opus passes were silently failing and being dropped. Added retry logic, degraded_result flag, passes_attempted tracking.
+- **Found and fixed pass_count=1 bug** — 2 of 3 Opus passes silently failing due to 429 rate limit
+- **Root cause:** Opus 4.6 has 30K input tokens/min limit; 3 parallel calls with ~15 candidate images each instantly exceeded it
+- **Fix 1:** Added retry logic + degraded_result flag + passes_attempted tracking (deployed, got 2/3 passes)
+- **Fix 2:** Switched from parallel to sequential passes — natural ~30s spacing between calls avoids rate limit (deployed, got **3/3 passes**)
+- Latency: 37s (1 pass) → 58s (2 passes) → **99s (3 passes, all working)**
 
-### First v2 Test Results (Jim Lee)
+### Final v2 Test Results (Jim Lee — 3/3 passes)
 - **Top result:** Jim Lee at 0.96 confidence (high)
 - **#2:** J. Scott Campbell at 0.02 (speculative)
 - **#3:** Frank Miller at 0.01 (speculative)
 - **Difficulty:** easy
-- **Latency:** 37,443ms (~37 seconds)
-- **pass_count:** 1 (BUG — expected 3, only 1 Opus pass succeeded)
+- **Latency:** 99,115ms (~99 seconds) — 3 sequential Opus passes
+- **pass_count:** 3 ✅ (passes_attempted: 3)
 - **Stability scores:** all 1.0 for top 5
-- **Flags:** no forgery, no poor quality, no confusion pair
+- **Flags:** no degraded_result, no forgery, no poor quality, no confusion pair
 - **Context match:** "Jim Lee was a major DC artist in the 1990s" — publisher/era metadata pre-filter working
 
-### pass_count=1 Bug — Root Cause & Fix
-**Root cause:** `run_single_pass()` catches API errors and JSON parse failures, returning `PassResult(rankings=[])`. The orchestrator then silently filtered these out with `if result.rankings:`, so 2 failed passes were invisible — no warning, no retry, no flag.
+### Latency Scaling Analysis
+Latency should NOT increase with more artists — pre-filter caps candidates at 15 regardless of DB size. Bottleneck is Opus processing time per pass (~30s × 3 = ~90s). Options to reduce:
+1. Request Anthropic rate limit increase → re-enable parallel → ~33s
+2. Reduce MAX_CANDIDATES (15 → 10) or REFERENCE_IMAGES_PER_CREATOR (4 → 2)
 
-**Fix (routes/signature_orchestrator.py):**
-1. **Failed passes now tracked separately** — logged with `logger.warning()` showing temperature and failure flags
-2. **Automatic retry** — failed passes get one retry before being abandoned (API errors are often transient)
-3. **New `degraded_result` flag** — set in `merged_flags` when fewer passes succeeded than attempted
-4. **New `passes_attempted` field** — response now shows `pass_count` (succeeded) AND `passes_attempted` (total)
-5. **`needs_review` includes degraded** — degraded results auto-flagged for human review in DB log
-6. **Summary logging** — "DEGRADED: Only 2/3 passes succeeded" warning in server logs
-
-### Files Modified
-- **routes/signature_orchestrator.py** — Retry logic for failed passes, degraded_result flag, passes_attempted field in AggregatedResult + API response, better logging
+### Key Changes (routes/signature_orchestrator.py)
+1. **Sequential passes** — replaced ThreadPoolExecutor with sequential loop (rate limit constraint)
+2. **Retry logic** — failed passes get one retry
+3. **degraded_result flag** — set when fewer passes succeed than attempted
+4. **passes_attempted field** — response shows both pass_count and passes_attempted
+5. **needs_review includes degraded** — auto-flagged for human review in DB log
 
 ### What's Next (Priority Order)
-1. **Deploy fix + retest** — push, deploy, re-run Jim Lee test and confirm pass_count=3
-2. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
-3. **Check Render logs** — understand what specifically caused 2/3 passes to fail (timeout? rate limit? JSON parse?)
-4. **Fix style_notes** (Mike manual task) + source better Bendis/Claremont reference images
-5. **Target 87%+ accuracy** before advertising signature feature publicly
+1. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
+2. **Add more signatures** — expand reference DB beyond current 43 artists
+3. **Fix style_notes** (Mike manual task) + source better Bendis/Claremont reference images
+4. **Target 87%+ accuracy** before advertising signature feature publicly
+5. **Request Anthropic rate limit increase** — re-enable parallel passes for ~33s latency
 
 ---
 

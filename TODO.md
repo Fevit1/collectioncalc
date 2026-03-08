@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 7, 2026 (Session 85)
+**Updated:** March 8, 2026 (Session 86)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -16,6 +16,7 @@
 
 ## ✅ DONE (Session 64-81)
 
+- [x] **Signature DB expanded 43 → 100 creators** — Session 86: Selected 57 new creators with weighted criteria + confusion risk screening. SQL migration, JSON entries, seed script, UI fix, verification queries all created. Pending: run migration on Render, then upload reference images via admin UI.
 - [x] **Signature orchestrator v2 integrated** — Session 84: Integrated orchestrator into repo with 7 fixes (cs.creator_name, removed cs.slug, HTTP R2 fetch, os.environ DB URL, auth decorators, init_modules pattern, removed unused imports). Registered blueprint in wsgi.py. Created seed_creator_metadata.py (41 creators). Created prompts/signature_identification_system.md. Two-stage Haiku prefilter tested and reverted (52.2% accuracy). Pre-deploy: needs migrations + seed + deploy.
 - [x] **Signature matching accuracy improvements** — Session 82: Improved cross-validation from 73.9% → 78.3% (17/23 → 18/23). Added multi-reference images (2 per artist), forensic expert system prompt, preferred_images curation for all 23 artists, fixed cross-validation data leakage bug. Jim Lee now correctly identified (was misidentified as Grant Morrison). Target 87%+ still needs style_notes fix + better reference images.
 - [x] **Refactor collection.html into modular files** — Session 81: Split 3,925-line monolith into 5 files: collection.html (410 lines, HTML shell), collection.css (1,745 lines), collection.js (922 lines), ebay-modal.js (453 lines), marketplace-modal.js (406 lines). Fixed duplicate sortSelect IDs — list and gallery views now have separate sort dropdowns that show/hide on view toggle.
@@ -193,7 +194,11 @@
   - ✅ Session 84: Code deployed to Render
   - ✅ Session 85: First v2 test — Jim Lee at 0.96 confidence (high)
   - ✅ Session 85: Fixed pass_count=1 bug (2/3 Opus passes silently failing; added retry + degraded_result flag)
-  - 🔜 Deploy pass_count fix + retest to confirm 3/3 passes
+  - ✅ Session 85: Sequential passes deployed — 3/3 passes working, 99s latency (rate limit: 30K tokens/min on Opus 4.6)
+  - ✅ Session 86: Expanded signature DB from 43 → 100 creators (SQL migration + JSON + seed script + UI fix)
+  - 🔜 Run migration on Render: `migrations/add_57_new_creators.sql`
+  - 🔜 Run seed script for new creators: `python seed_creator_metadata.py <DATABASE_URL>`
+  - 🔜 Upload reference images for 57 new creators via /signatures.html admin UI
   - 🔜 A/B test v1 vs v2 (curl test — no in-app UI yet)
   - 🔜 Fix style_notes metadata (Mike) + source better Bendis/Claremont reference images
   - 🔜 Target 87%+ accuracy before advertising signature feature

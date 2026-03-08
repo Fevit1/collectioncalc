@@ -35,7 +35,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - Confirmation # 9241, Patent Center # 74618571
 - Filing fee: $65 (micro entity)
 - AI-powered detection of creator signatures on comic covers
-- Reference database matching (137 target creators; 43 artists done, 172 signatures in R2)
+- Reference database matching (100 creators in DB; 43 with images, 57 pending upload; 172 signatures in R2)
 - Forgery detection via size/position/style anomaly analysis
 - Valuation integration (signature premium calculation)
 - Ties into Slab Guard for registered signature ownership proof
@@ -43,6 +43,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Orchestrator v2 built (Session 83, pre-deploy):** 3-pass Opus 4.6 with metadata pre-filter + parallel calls + aggregation. See SIGNATURE ORCHESTRATOR section below.
 
 ### Key Metrics
+- **Signature DB:** 100 creators (43 with images, 57 pending upload), 172 signatures in R2
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
 - **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
 - **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
@@ -228,16 +229,33 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 85) - Mar 7, 2026
+## CURRENT SESSION (SESSION 86) - Mar 8, 2026
 
 ### What Happened
-**V2 FIRST TEST SUCCESS + PASS_COUNT BUG FIX**
+**SIGNATURE DB EXPANDED: 43 → 100 CREATORS**
 
-First v2 match test via PowerShell: **Jim Lee identified at 0.96 confidence (high)** — this was the hardest confusion case in v1. Latency 37.4s. However, `pass_count=1` revealed a bug: 2 of 3 Opus passes were silently failing and being dropped.
+Selected 57 new creators using weighted criteria (market value, distinctiveness, era coverage, collection prevalence, convention signing frequency). Full confusion risk screening against existing 43. Created SQL migration, JSON entries, seed script updates, UI fix, and verification queries.
 
-**pass_count=1 bug fix:** Added retry logic for failed passes, `degraded_result` flag, `passes_attempted` field in response, and better logging. Failed passes now get one automatic retry before being abandoned. Degraded results auto-flagged for human review.
+**New creators by tier:**
+- **Tier 1 (15):** High market value artists — Walt Simonson, Marc Silvestri, David Finch, Adam Kubert, Andy Kubert, Frank Cho, Joe Quesada, Jim Cheung, Ed McGuinness, Kevin Eastman, Bill Sienkiewicz, Mike Zeck, Whilce Portacio, Erik Larsen, Michael Turner
+- **Tier 2 (15):** Convention/modern artists — Ryan Stegman, Terry Dodson, Sean Murphy, Patrick Gleason, Gary Frank, Mark Bagley, Humberto Ramos, Leinil Francis Yu, Ryan Ottley, Jorge Jimenez, Dan Mora, Olivier Coipel, Esad Ribic, Lee Bermejo, Daniel Warren Johnson
+- **Tier 3 (5):** Deceased/legacy — Bernie Wrightson, Tim Sale, Darwyn Cooke, Mike Wieringo, Herb Trimpe
+- **Tier 4 (10):** Writers — Mark Waid, Peter David, Robert Kirkman, Jason Aaron, Garth Ennis, Warren Ellis, Donny Cates, Chip Zdarsky, Matt Fraction, Larry Hama
+- **Tier 5 (7):** Cover artists — Mark Brooks, Skottie Young, Jenny Frison, Jen Bartel, Derrick Chew, Clayton Crain, Rafael Albuquerque
+- **Tier 6 (5):** Coverage/rising — Kieron Gillen, Joshua Williamson, Sara Pichelli, Pepe Larraz, Mitch Gerads
 
-**Next:** Push fix, deploy, retest to confirm pass_count=3.
+**Confusion pairs flagged:** Adam/Andy Kubert (HIGH), Jim Cheung vs Jim Lee/Steranko/Starlin (MEDIUM), Mark Waid vs Mark Millar (MEDIUM), Mark Bagley vs Mark Brooks (MEDIUM), Ryan Stegman vs Ryan Ottley (MEDIUM)
+
+**Files created/modified:** migrations/add_57_new_creators.sql, migrations/verify_100_creators.sql, signatures/signatures_db.json (+57 entries), seed_creator_metadata.py (+57 entries), signatures.html (zero-image UI fix), known_creators.json (expanded)
+
+---
+
+## PREVIOUS SESSION (SESSION 85) - Mar 7, 2026
+
+### What Happened
+**V2 DEPLOYED + 3/3 PASSES WORKING**
+
+First v2 match test: **Jim Lee at 0.96 confidence (high)** — hardest confusion case in v1. Found pass_count=1 bug (429 rate limit on Opus 4.6 — 30K tokens/min, 3 parallel calls exceeded it). Fixed by switching to sequential passes. Final result: **3/3 passes, 99s latency, Jim Lee 0.96**. Latency won't scale with more artists (pre-filter caps at 15 candidates). Can drop to ~33s if Anthropic increases rate limit.
 
 ---
 
