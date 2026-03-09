@@ -2945,8 +2945,6 @@
                 console.error('Save error:', error);
                 console.error('Save details:', error.stack || error);
                 showSaveToast('Save failed — please try again', 'error', error.message);
-                // Temporary debug alert so we can see what's failing
-                alert('Save failed: ' + (error.message || error) + '\n\nStack: ' + (error.stack || 'none'));
 
                 // Hide theft protection section if save failed
                 const protectionSection = document.getElementById('gradeReportProtection');
