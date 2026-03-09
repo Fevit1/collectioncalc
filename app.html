@@ -2819,37 +2819,50 @@
             try {
                 const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-                // Upload photos to R2 IN PARALLEL (not sequentially)
+                // Upload photos to R2 with timeout — save proceeds even if uploads fail
                 const photoMap = { 1: 'front', 2: 'spine', 3: 'back', 4: 'centerfold' };
                 const photoUrls = { front: null, spine: null, back: null, centerfold: null };
 
-                const uploadPromises = Object.entries(photoMap).map(async ([num, type]) => {
-                    const photo = window.gradingState.photos[num];
-                    if (photo && photo.base64) {
-                        try {
-                            const uploadResp = await fetch(`${API_URL}/api/images/submission`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    image: photo.base64,
-                                    submission_id: gradingId,
-                                    type: type
-                                })
-                            });
-                            const uploadResult = await uploadResp.json();
-                            if (uploadResult.success && uploadResult.url) {
-                                photoUrls[type] = uploadResult.url;
-                            }
-                        } catch (uploadErr) {
-                            console.warn(`Photo upload failed for ${type}:`, uploadErr);
-                        }
-                    }
-                });
+                try {
+                    const uploadWithTimeout = (promise, ms) => Promise.race([
+                        promise,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timeout')), ms))
+                    ]);
 
-                await Promise.all(uploadPromises);
+                    const uploadPromises = Object.entries(photoMap).map(async ([num, type]) => {
+                        const photo = window.gradingState.photos[num];
+                        if (photo && photo.base64) {
+                            try {
+                                const uploadResp = await uploadWithTimeout(
+                                    fetch(`${API_URL}/api/images/submission`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            image: photo.base64,
+                                            submission_id: gradingId,
+                                            type: type
+                                        })
+                                    }),
+                                    30000  // 30 second timeout per photo
+                                );
+                                const uploadResult = await uploadResp.json();
+                                if (uploadResult.success && uploadResult.url) {
+                                    photoUrls[type] = uploadResult.url;
+                                }
+                            } catch (uploadErr) {
+                                console.warn(`Photo upload failed for ${type}:`, uploadErr);
+                            }
+                        }
+                    });
+
+                    await Promise.all(uploadPromises);
+                    console.log('Photo uploads complete:', photoUrls);
+                } catch (photoErr) {
+                    console.warn('Photo upload phase failed, saving without photos:', photoErr);
+                }
 
                 // Gather all the data
                 const itemData = {
@@ -2893,6 +2906,8 @@
                     items: [itemData]
                 };
 
+                console.log('Sending save request...', { title: itemData.title, issue: itemData.issue });
+
                 // Send to API
                 const response = await fetch(`${API_URL}/api/collection/save`, {
                     method: 'POST',
@@ -2928,8 +2943,10 @@
 
             } catch (error) {
                 console.error('Save error:', error);
-                showSaveToast('Save failed — please try again', 'error', error.message);
                 console.error('Save details:', error.stack || error);
+                showSaveToast('Save failed — please try again', 'error', error.message);
+                // Temporary debug alert so we can see what's failing
+                alert('Save failed: ' + (error.message || error) + '\n\nStack: ' + (error.stack || 'none'));
 
                 // Hide theft protection section if save failed
                 const protectionSection = document.getElementById('gradeReportProtection');
