@@ -25,6 +25,8 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
+            width: auto !important;
+            display: inline-block !important;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff;
             border: none;
