@@ -2653,18 +2653,17 @@
                 return;
             }
 
-            // Show instant success feedback
-            showSaveToast('Saved to Collection!', 'success', 'Uploading photos in background...');
+            // Show saving state (not success yet — wait for API confirmation)
+            showSaveToast('Saving to Collection...', 'success', 'Uploading photos...');
 
-            // Show theft protection section immediately (optimistic UI)
+            // Show theft protection section with disabled button until save completes
             const protectionSection = document.getElementById('gradeReportProtection');
             const registerBtn = document.getElementById('registerBtn');
             if (protectionSection) {
                 protectionSection.style.display = 'block';
-                // Keep button disabled until save completes
                 if (registerBtn) {
                     registerBtn.disabled = true;
-                    registerBtn.textContent = '⏳ Waiting for save...';
+                    registerBtn.textContent = '⏳ Saving...';
                 }
             }
 
@@ -2764,6 +2763,9 @@
                 const result = await response.json();
                 console.log('Save complete:', result);
 
+                // NOW show actual success — save confirmed by server
+                showSaveToast('Saved to Collection!', 'success', 'Your comic has been saved.');
+
                 // Store comic ID for registration
                 if (result.ids && result.ids.length > 0) {
                     window.lastSavedComicId = result.ids[0];
@@ -2779,6 +2781,7 @@
             } catch (error) {
                 console.error('Save error:', error);
                 showSaveToast('Save failed — please try again', 'error', error.message);
+                console.error('Save details:', error.stack || error);
 
                 // Hide theft protection section if save failed
                 const protectionSection = document.getElementById('gradeReportProtection');
