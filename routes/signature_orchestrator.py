@@ -28,7 +28,7 @@ from typing import Optional
 
 import psycopg2
 import requests as http_requests
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from psycopg2.extras import RealDictCursor
 
 from auth import require_auth, require_approved
@@ -784,6 +784,56 @@ def match_signature():
         "pass_count": int
       }
     """
+    # --- Signature ID usage cap (10/month for free users, admins exempt) ---
+    from datetime import datetime, timezone
+    MONTHLY_SIG_LIMIT = 10
+
+    database_url = os.environ.get('DATABASE_URL')
+    try:
+        cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cap_cur = cap_conn.cursor()
+        cap_cur.execute(
+            "SELECT is_admin, sig_checks_this_month, sig_checks_reset_date FROM users WHERE id = %s",
+            (g.user_id,)
+        )
+        cap_user = cap_cur.fetchone()
+
+        if cap_user and not cap_user.get('is_admin', False):
+            now = datetime.now(timezone.utc)
+            reset_date = cap_user.get('sig_checks_reset_date')
+
+            # Reset counter if new month
+            if reset_date is None or (now.year > reset_date.year or now.month > reset_date.month):
+                if now.month == 12:
+                    next_reset = datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
+                else:
+                    next_reset = datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
+                cap_cur.execute(
+                    "UPDATE users SET sig_checks_this_month = 0, sig_checks_reset_date = %s WHERE id = %s",
+                    (next_reset, g.user_id)
+                )
+                cap_conn.commit()
+                sig_used = 0
+                resets_at = next_reset.strftime('%b %d')
+            else:
+                sig_used = cap_user.get('sig_checks_this_month', 0) or 0
+                resets_at = reset_date.strftime('%b %d') if reset_date else 'next month'
+
+            if sig_used >= MONTHLY_SIG_LIMIT:
+                cap_cur.close()
+                cap_conn.close()
+                return jsonify({
+                    'error': 'sig_limit',
+                    'limit': MONTHLY_SIG_LIMIT,
+                    'used': sig_used,
+                    'resets_at': resets_at
+                }), 429
+
+        cap_cur.close()
+        cap_conn.close()
+    except Exception as e:
+        logger.warning("Sig cap check failed (allowing request): %s", e)
+
     # --- Parse image input ---
     image_b64 = None
 
@@ -836,6 +886,24 @@ def match_signature():
         log_result_to_db(unknown_key, result, comic_context)
     except Exception as e:
         logger.warning("DB logging failed (non-fatal): %s", e)
+
+    # --- Increment sig check counter ---
+    try:
+        inc_conn = psycopg2.connect(database_url)
+        inc_cur = inc_conn.cursor()
+        inc_cur.execute(
+            """UPDATE users
+               SET sig_checks_this_month = COALESCE(sig_checks_this_month, 0) + 1,
+                   sig_checks_reset_date = COALESCE(sig_checks_reset_date,
+                       date_trunc('month', CURRENT_TIMESTAMP + INTERVAL '1 month'))
+               WHERE id = %s""",
+            (g.user_id,)
+        )
+        inc_conn.commit()
+        inc_cur.close()
+        inc_conn.close()
+    except Exception as e:
+        logger.warning("Failed to increment sig check counter: %s", e)
 
     return jsonify({
         "top5": result.top5,

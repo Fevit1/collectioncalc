@@ -345,6 +345,9 @@ async function identifySignaturesV2(imageB64, metadata = {}) {
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Request failed' }));
+        if (response.status === 429 && err.error === 'sig_limit') {
+            return { sig_limit: true, limit: err.limit, used: err.used, resets_at: err.resets_at };
+        }
         throw new Error(err.error || `HTTP ${response.status}`);
     }
     return await response.json();

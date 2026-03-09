@@ -1038,6 +1038,16 @@ async function handleCollectionIdentifySignatures(event, comicId) {
             year: comic.year
         });
 
+        // Check for sig limit reached
+        if (result.sig_limit) {
+            container.innerHTML = `<div style="padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 6px; border-left: 3px solid #f59e0b; font-size: 12px; color: var(--text-secondary);">
+                Signature ID limit reached (${result.used}/${result.limit} this month). Resets ${result.resets_at}.
+            </div>`;
+            if (btn) { btn.disabled = false; btn.textContent = '🔍 ID Sigs'; }
+            showToast(`Signature ID limit reached — resets ${result.resets_at}`, 'error');
+            return;
+        }
+
         // Display v2 results
         displaySignatureV2Results(result, container);
 

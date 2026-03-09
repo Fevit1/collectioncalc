@@ -2556,6 +2556,15 @@
                 });
 
                 if (!response.ok) {
+                    if (response.status === 429) {
+                        // Sig check limit reached — show subtle note instead of hiding
+                        const limitData = await response.json().catch(() => ({}));
+                        sigInfo.innerHTML = `
+                            <div style="padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 3px solid #f59e0b; font-size: 12px; color: var(--text-muted);">
+                                Signature ID limit reached (${limitData.used || ''}/${limitData.limit || 10} this month). Resets ${limitData.resets_at || 'next month'}.
+                            </div>`;
+                        return;
+                    }
                     console.warn('Signature check failed:', response.status);
                     sigSection.style.display = 'none';
                     return;
