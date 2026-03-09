@@ -1849,8 +1849,87 @@
                 
             } catch (error) {
                 console.error('Extraction error:', error);
-                // Still allow grading even if extraction fails
-                progressText.textContent = '⚠️ Could not identify comic - you can still grade';
+                // Set default extractedData so the rest of the flow works
+                window.gradingState.extractedData = {
+                    title: '',
+                    issue: '',
+                    publisher: '',
+                    year: null
+                };
+
+                // Show inline edit form so user can enter comic details
+                progressText.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="color: #f59e0b; margin-bottom: 8px;">⚠️ Could not identify comic automatically</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Enter the details below for accurate grading &amp; valuation</div>
+                    </div>
+                    <div id="editExtractedForm" style="display: block; margin-top: 4px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title *</label>
+                                <input type="text" id="editTitle" placeholder="e.g. Amazing Spider-Man" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                                <input type="text" id="editIssue" placeholder="#" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                                <input type="text" id="editPublisher" placeholder="e.g. Marvel" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                                <input type="text" id="editYear" placeholder="1985" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button onclick="saveExtractEdit()" style="
+                                background: var(--brand-purple);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 6px 14px;
+                                cursor: pointer;
+                                font-size: 12px;
+                                font-weight: 500;
+                            ">✓ Save Details</button>
+                        </div>
+                    </div>
+                `;
                 generateBtn.disabled = false;
             }
         }
@@ -1869,6 +1948,75 @@
             document.getElementById('editExtractedForm').style.display = 'none';
         }
         
+        // Save details from extraction failure form
+        function saveExtractEdit() {
+            const title = document.getElementById('editTitle').value.trim();
+            const issue = document.getElementById('editIssue').value.trim();
+            const publisher = document.getElementById('editPublisher').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+
+            // Update gradingState
+            window.gradingState.extractedData.title = title || 'Unknown';
+            window.gradingState.extractedData.issue = issue || '?';
+            window.gradingState.extractedData.publisher = publisher;
+            window.gradingState.extractedData.year = year ? parseInt(year) : null;
+
+            // Replace form with confirmation
+            const progressText = document.getElementById('uploadProgressText');
+            if (title) {
+                progressText.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span id="extractedDisplay">✓ ${title} #${issue || '?'}</span>
+                        <span onclick="showExtractEditAgain()" title="Edit details" style="
+                            color: var(--brand-purple);
+                            cursor: pointer;
+                            font-size: 11px;
+                            opacity: 0.7;
+                        ">✏️</span>
+                    </div>
+                `;
+            } else {
+                progressText.innerHTML = '<span style="color: #f59e0b;">⚠️ No title entered — grading will proceed as Unknown</span>';
+            }
+        }
+
+        // Re-show the extract edit form after saving
+        function showExtractEditAgain() {
+            const ed = window.gradingState.extractedData;
+            const progressText = document.getElementById('uploadProgressText');
+            // Re-trigger the form with current values
+            progressText.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #f59e0b; margin-bottom: 8px;">⚠️ Edit comic details</div>
+                </div>
+                <div id="editExtractedForm" style="display: block; margin-top: 4px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title *</label>
+                            <input type="text" id="editTitle" value="${ed.title || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                            <input type="text" id="editIssue" value="${ed.issue || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                            <input type="text" id="editPublisher" value="${ed.publisher || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                            <input type="text" id="editYear" value="${ed.year || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick="saveExtractEdit()" style="background:var(--brand-purple);color:white;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:500;">✓ Save Details</button>
+                    </div>
+                </div>
+            `;
+        }
+
         // Save edited data
         function saveEdit() {
             const title = document.getElementById('editTitle').value.trim();
