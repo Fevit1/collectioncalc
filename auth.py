@@ -567,6 +567,9 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
     # Hash password and create user
     password_hash = hash_password(password)
     
+    # Auto-approve users who sign up with a valid beta code
+    auto_approve = True if beta_code else False
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -577,9 +580,10 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
                 is_approved, is_admin, beta_code_used,
                 display_name, phone, marketing_consent
             )
-            VALUES (%s, %s, %s, %s, FALSE, FALSE, FALSE, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, FALSE, %s, FALSE, %s, %s, %s, %s)
             RETURNING id
         """, (email, password_hash, verification_token, verification_expires,
+              auto_approve,
               beta_code.upper().strip() if beta_code else None,
               display_name, phone, bool(marketing_consent)))
         
@@ -597,7 +601,7 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
             'success': True,
             'message': 'Account created! Please check your email to verify your account.',
             'user_id': user_id,
-            'requires_approval': True
+            'requires_approval': not auto_approve
         }
     except Exception as e:
         conn.rollback()
