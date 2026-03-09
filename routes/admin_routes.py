@@ -4,9 +4,17 @@ Routes: /api/admin/*
 """
 import os
 import uuid
+import resend
 from flask import Blueprint, jsonify, request, g
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://slabworthy.com')
+
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 # Create blueprint
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -715,6 +723,77 @@ def api_admin_waitlist():
     finally:
         cur.close()
         conn.close()
+
+
+@admin_bp.route('/waitlist/invite', methods=['POST'])
+@require_admin_auth
+def api_admin_waitlist_invite():
+    """Generate a beta code and send invite email to a waitlist user"""
+    data = request.get_json() or {}
+    email = data.get('email', '').strip()
+
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'}), 400
+
+    try:
+        # Create a beta code
+        code = create_beta_code(g.admin_id, f'Waitlist invite: {email}', 1, None)
+
+        # Send invite email via Resend
+        if not RESEND_API_KEY:
+            print(f"[DEV MODE] Invite email for {email} with code {code}")
+            return jsonify({'success': True, 'code': code, 'email_sent': False, 'dev_mode': True})
+
+        resend.Emails.send({
+            "from": f"Slab Worthy <{RESEND_FROM_EMAIL}>",
+            "to": [email],
+            "subject": "You're invited to Slab Worthy!",
+            "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f23; color: #ffffff; padding: 40px 30px; border-radius: 12px;">
+                    <h1 style="color: #6366f1; margin-bottom: 8px;">$LAB WORTHY\u2122</h1>
+                    <p style="color: #a1a1aa; font-size: 14px; margin-top: 0;">AI-Powered Comic Grading &amp; Valuation</p>
+
+                    <h2 style="color: #ffffff; margin-top: 30px;">You're Invited!</h2>
+                    <p style="color: #d4d4d8;">Thanks for signing up for the Slab Worthy waitlist. We're excited to have you join our beta program!</p>
+
+                    <p style="color: #d4d4d8;">Use this beta code to create your account:</p>
+
+                    <div style="background: #1a1a2e; border: 2px solid #6366f1; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
+                        <span style="font-family: monospace; font-size: 24px; font-weight: 700; color: #f59e0b; letter-spacing: 2px;">{code}</span>
+                    </div>
+
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="{FRONTEND_URL}/login.html"
+                           style="background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                                  color: white;
+                                  padding: 14px 36px;
+                                  text-decoration: none;
+                                  border-radius: 8px;
+                                  display: inline-block;
+                                  font-weight: 600;
+                                  font-size: 16px;">
+                            Create Your Account
+                        </a>
+                    </p>
+
+                    <h3 style="color: #ffffff; margin-top: 30px;">What You Get</h3>
+                    <ul style="color: #d4d4d8; line-height: 1.8;">
+                        <li><strong>AI Comic Grading</strong> \u2014 Get an estimated grade from photos of your comics</li>
+                        <li><strong>Fair Market Valuation</strong> \u2014 Know what your comics are actually worth</li>
+                        <li><strong>Slab Guard\u2122</strong> \u2014 Register and protect your collection</li>
+                        <li><strong>Signature ID</strong> \u2014 Identify creator signatures on signed comics</li>
+                    </ul>
+
+                    <p style="color: #71717a; font-size: 12px; margin-top: 30px; border-top: 1px solid #27272a; padding-top: 20px;">
+                        This invite was sent to {email}. If you didn't sign up for the Slab Worthy waitlist, you can ignore this email.
+                    </p>
+                </div>
+            """
+        })
+
+        return jsonify({'success': True, 'code': code, 'email_sent': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/barcode-stats', methods=['GET'])

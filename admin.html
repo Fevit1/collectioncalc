@@ -769,37 +769,29 @@
         }
 
         async function inviteWaitlistUser(email) {
+            if (!confirm(`Send beta invite to ${email}?`)) return;
+
             try {
-                // Create a beta code for this person
-                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                const res = await fetch(`${API_BASE}/api/admin/waitlist/invite`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ note: `Waitlist invite: ${email}` })
+                    body: JSON.stringify({ email })
                 });
                 const data = await res.json();
 
                 if (!data.success) {
-                    showToast(data.error || 'Failed to create code', 'error');
+                    showToast(data.error || 'Failed to invite', 'error');
                     return;
                 }
 
-                const code = data.code;
-                const subject = encodeURIComponent('You\'re invited to Slab Worthy!');
-                const body = encodeURIComponent(
-                    `Hi!\n\nThanks for signing up for Slab Worthy. You're in!\n\n` +
-                    `Use this beta code to create your account:\n\n` +
-                    `${code}\n\n` +
-                    `Sign up here: https://slabworthy.com/login.html\n\n` +
-                    `— The Slab Worthy Team`
-                );
-
-                // Open mailto link
-                window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
-
-                showToast(`Beta code ${code} created for ${email}`, 'success');
+                if (data.email_sent) {
+                    showToast(`Invite sent to ${email} (code: ${data.code})`, 'success');
+                } else {
+                    showToast(`Code ${data.code} created (dev mode — no email sent)`, 'success');
+                }
                 loadBetaCodes();
                 loadStats();
             } catch (e) {
