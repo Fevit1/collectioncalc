@@ -667,6 +667,56 @@ def api_backfill_barcodes():
             conn.close()
 
 
+@admin_bp.route('/waitlist', methods=['GET'])
+@require_admin_auth
+def api_admin_waitlist():
+    """Get all waitlist entries with summary stats"""
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+
+    try:
+        # Get all entries
+        cur.execute("""
+            SELECT id, email, interests, verified, created_at, verified_at, ip_address
+            FROM waitlist
+            ORDER BY created_at DESC
+        """)
+        rows = cur.fetchall()
+
+        entries = []
+        for r in rows:
+            entries.append({
+                'id': r['id'],
+                'email': r['email'],
+                'interests': r['interests'] or [],
+                'verified': r['verified'],
+                'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                'verified_at': r['verified_at'].isoformat() if r['verified_at'] else None,
+                'ip_address': r['ip_address']
+            })
+
+        # Summary stats
+        total = len(entries)
+        verified = sum(1 for e in entries if e['verified'])
+        unverified = total - verified
+
+        return jsonify({
+            'success': True,
+            'entries': entries,
+            'stats': {
+                'total': total,
+                'verified': verified,
+                'unverified': unverified
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 @admin_bp.route('/barcode-stats', methods=['GET'])
 @require_admin_auth
 def api_barcode_stats():

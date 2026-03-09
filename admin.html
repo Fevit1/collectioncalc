@@ -348,6 +348,11 @@
                 <div class="stat-value" id="statCodes">-</div>
                 <div class="stat-sub" id="statCodesSub"></div>
             </div>
+            <div class="stat-card">
+                <div class="stat-label">Waitlist Signups</div>
+                <div class="stat-value" id="statWaitlist">-</div>
+                <div class="stat-sub" id="statWaitlistSub"></div>
+            </div>
         </div>
 
         <!-- Tabs -->
@@ -357,6 +362,7 @@
             <button class="tab" data-tab="codes">🎟️ Beta Codes</button>
             <button class="tab" data-tab="errors">⚠️ Errors</button>
             <button class="tab" data-tab="usage">📊 API Usage</button>
+            <button class="tab" data-tab="waitlist">📋 Waitlist</button>
         </div>
 
         <!-- NLQ Tab -->
@@ -466,6 +472,28 @@
                 </div>
             </div>
         </div>
+        <!-- Waitlist Tab -->
+        <div class="tab-panel" id="tab-waitlist">
+            <div class="section">
+                <h2 class="section-title">📋 Waitlist Signups</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Interests</th>
+                                <th>Signed Up</th>
+                                <th>Verified At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waitlistBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -515,6 +543,7 @@
             loadBetaCodes();
             loadErrors();
             loadUsage();
+            loadWaitlist();
         }
 
         async function loadStats() {
@@ -688,6 +717,50 @@
                 `;
             } catch (e) {
                 console.error('Failed to load usage:', e);
+            }
+        }
+
+        const INTEREST_LABELS = {
+            'grading': 'AI Grading',
+            'slab_guard': 'Slab Guard',
+            'sell_alerts': 'Sell Alerts',
+            'collection': 'Collection'
+        };
+
+        async function loadWaitlist() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/waitlist`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                // Update stats card
+                if (data.success && data.stats) {
+                    document.getElementById('statWaitlist').textContent = data.stats.total;
+                    document.getElementById('statWaitlistSub').textContent = `${data.stats.verified} verified · ${data.stats.unverified} pending`;
+                }
+
+                const tbody = document.getElementById('waitlistBody');
+                if (!data.success || !data.entries.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No waitlist signups yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.entries.map(e => `
+                    <tr>
+                        <td>${e.email}</td>
+                        <td>
+                            ${e.verified
+                                ? '<span class="status-badge status-approved">Verified</span>'
+                                : '<span class="status-badge status-pending">Pending</span>'}
+                        </td>
+                        <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
+                        <td>${formatDate(e.created_at)}</td>
+                        <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load waitlist:', e);
             }
         }
 
