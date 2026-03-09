@@ -784,6 +784,13 @@ def api_admin_waitlist_invite():
                         <li><strong>Signature ID</strong> \u2014 Identify creator signatures on signed comics</li>
                     </ul>
 
+                    <div style="background: #1a1a2e; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-top: 24px;">
+                        <p style="color: #f59e0b; font-weight: 600; margin: 0 0 8px 0; font-size: 14px;">\u2728 You're one of our first beta testers!</p>
+                        <p style="color: #d4d4d8; margin: 0; font-size: 13px; line-height: 1.6;">
+                            As an early tester, you get <strong>25 free gradings per month</strong>. We're actively building based on your input \u2014 look for the <strong style="color: #8b5cf6;">Feedback</strong> button on every page to tell us what's working and what isn't. We read every single response.
+                        </p>
+                    </div>
+
                     <p style="color: #71717a; font-size: 12px; margin-top: 30px; border-top: 1px solid #27272a; padding-top: 20px;">
                         This invite was sent to {email}. If you didn't sign up for the Slab Worthy waitlist, you can ignore this email.
                     </p>
