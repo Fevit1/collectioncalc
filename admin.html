@@ -485,10 +485,11 @@
                                 <th>Interests</th>
                                 <th>Signed Up</th>
                                 <th>Verified At</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="waitlistBody">
-                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                            <tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -742,7 +743,7 @@
 
                 const tbody = document.getElementById('waitlistBody');
                 if (!data.success || !data.entries.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No waitlist signups yet</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No waitlist signups yet</td></tr>';
                     return;
                 }
 
@@ -757,10 +758,52 @@
                         <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
                         <td>${formatDate(e.created_at)}</td>
                         <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
+                        <td class="action-btns">
+                            <button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>
+                        </td>
                     </tr>
                 `).join('');
             } catch (e) {
                 console.error('Failed to load waitlist:', e);
+            }
+        }
+
+        async function inviteWaitlistUser(email) {
+            try {
+                // Create a beta code for this person
+                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note: `Waitlist invite: ${email}` })
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    showToast(data.error || 'Failed to create code', 'error');
+                    return;
+                }
+
+                const code = data.code;
+                const subject = encodeURIComponent('You\'re invited to Slab Worthy!');
+                const body = encodeURIComponent(
+                    `Hi!\n\nThanks for signing up for Slab Worthy. You're in!\n\n` +
+                    `Use this beta code to create your account:\n\n` +
+                    `${code}\n\n` +
+                    `Sign up here: https://slabworthy.com/login.html\n\n` +
+                    `— The Slab Worthy Team`
+                );
+
+                // Open mailto link
+                window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+
+                showToast(`Beta code ${code} created for ${email}`, 'success');
+                loadBetaCodes();
+                loadStats();
+            } catch (e) {
+                showToast('Failed to invite user', 'error');
             }
         }
 
