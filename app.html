@@ -1090,6 +1090,9 @@
                             <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
                                 Generate Slab Report →
                             </button>
+                            <div id="gradingUsageCounter" style="display: none; text-align: center; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                                <span id="gradingUsageText"></span>
+                            </div>
                         </div>
                         
                     </div>
@@ -1172,6 +1175,18 @@
                             <div class="results-actions">
                                 <button type="button" class="results-btn results-btn-primary" onclick="saveGradeToCollection()">Save to Collection</button>
                                 <button type="button" class="results-btn results-btn-secondary" onclick="window.location.href='/app'">Grade Next</button>
+                            </div>
+
+                            <!-- Post-grading Feedback -->
+                            <div id="gradingFeedback" style="text-align: center; margin: 1rem 0; padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <span style="color: var(--text-muted); font-size: 0.85rem; margin-right: 0.5rem;">Was this grade helpful?</span>
+                                <button type="button" id="feedbackThumbUp" onclick="submitGradingFeedback(1)" style="background: none; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 1.1rem; margin: 0 0.25rem; transition: all 0.2s;">👍</button>
+                                <button type="button" id="feedbackThumbDown" onclick="submitGradingFeedback(0)" style="background: none; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 1.1rem; margin: 0 0.25rem; transition: all 0.2s;">👎</button>
+                                <button type="button" id="feedbackCommentBtn" onclick="toggleFeedbackComment()" style="background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; margin-left: 0.5rem; text-decoration: underline;">Add comment</button>
+                                <div id="feedbackCommentArea" style="display: none; margin-top: 0.75rem;">
+                                    <textarea id="feedbackCommentText" placeholder="What could be improved?" style="width: 100%; max-width: 400px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem;"></textarea>
+                                </div>
+                                <div id="feedbackThanks" style="display: none; color: #10b981; font-size: 0.85rem; margin-top: 0.5rem;">✓ Thanks for your feedback!</div>
                             </div>
 
                             <!-- Footer -->
@@ -2050,6 +2065,41 @@
                     })
                 });
 
+                // Check for monthly grading limit
+                if (response.status === 429) {
+                    const limitData = await response.json().catch(() => ({}));
+                    if (limitData.error === 'monthly_limit') {
+                        // Show limit reached UI instead of error
+                        const resultsScreen = document.getElementById('resultsScreen');
+                        if (resultsScreen) {
+                            // Switch to results view
+                            document.querySelectorAll('.grading-step-content').forEach(c => c.classList.remove('active'));
+                            document.getElementById('gradingContent5').classList.add('active');
+
+                            resultsScreen.innerHTML = `
+                                <div style="text-align: center; padding: 3rem 1.5rem;">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🚫</div>
+                                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Monthly Limit Reached</h2>
+                                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                                        You've used <strong style="color: #f59e0b;">${limitData.used}</strong> of <strong>${limitData.limit}</strong> free gradings this month.
+                                    </p>
+                                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; max-width: 320px; margin: 0 auto 1.5rem;">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Resets on</div>
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;">${limitData.resets_at}</div>
+                                    </div>
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+                                        Want more gradings? Premium plans coming soon!
+                                    </p>
+                                    <button type="button" class="btn-primary" onclick="window.location.href='/app'" style="padding: 0.75rem 2rem;">
+                                        ← Back to Home
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+                }
+
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
                     throw new Error(errData.error || `API returned ${response.status}`);
@@ -2150,7 +2200,15 @@
                 if (window.gradingState.photos[1]) {
                     runSignatureCheck(window.gradingState.photos[1]);
                 }
-                
+
+                // Update grading usage counter
+                if (result.grading_usage) {
+                    updateGradingUsageCounter(result.grading_usage);
+                }
+
+                // Reset feedback state for this grading session
+                feedbackSubmitted = false;
+
             } catch (error) {
                 console.error('Grading error:', error);
                 if (gradeResultBig) gradeResultBig.textContent = 'Error';
@@ -2276,6 +2334,70 @@
             window.location.href = '/collection.html';
         }
         
+        // ── Grading Feedback Functions ──
+        let feedbackSubmitted = false;
+
+        function toggleFeedbackComment() {
+            const area = document.getElementById('feedbackCommentArea');
+            if (area) area.style.display = area.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function submitGradingFeedback(rating) {
+            if (feedbackSubmitted) return;
+            feedbackSubmitted = true;
+
+            const upBtn = document.getElementById('feedbackThumbUp');
+            const downBtn = document.getElementById('feedbackThumbDown');
+            const commentBtn = document.getElementById('feedbackCommentBtn');
+            const thanksEl = document.getElementById('feedbackThanks');
+            const commentText = document.getElementById('feedbackCommentText')?.value?.trim() || '';
+
+            // Visual feedback — highlight selected thumb
+            if (rating === 1 && upBtn) {
+                upBtn.style.background = '#10b98133'; upBtn.style.borderColor = '#10b981';
+            } else if (rating === 0 && downBtn) {
+                downBtn.style.background = '#ef444433'; downBtn.style.borderColor = '#ef4444';
+            }
+            if (upBtn) upBtn.disabled = true;
+            if (downBtn) downBtn.disabled = true;
+            if (commentBtn) commentBtn.style.display = 'none';
+
+            try {
+                const authToken = localStorage.getItem('cc_token');
+                await fetch(`${API_URL}/api/feedback/grading`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        rating: rating,
+                        comment: commentText,
+                        grading_id: window.gradingState?.finalGrade?.id || null
+                    })
+                });
+            } catch (e) {
+                console.error('Feedback submit error:', e);
+            }
+
+            if (thanksEl) thanksEl.style.display = 'block';
+            const commentArea = document.getElementById('feedbackCommentArea');
+            if (commentArea) commentArea.style.display = 'none';
+        }
+
+        // Update grading usage counter after successful grade
+        function updateGradingUsageCounter(usageData) {
+            const counter = document.getElementById('gradingUsageCounter');
+            const text = document.getElementById('gradingUsageText');
+            if (counter && text && usageData) {
+                const remaining = usageData.limit - usageData.used;
+                text.textContent = `${remaining} of ${usageData.limit} free gradings remaining this month`;
+                if (remaining <= 5) text.style.color = '#f59e0b';
+                if (remaining <= 2) text.style.color = '#ef4444';
+                counter.style.display = 'block';
+            }
+        }
+
         // Save current grading to collection
         async function saveGradeToCollection() {
             return await saveToCollection();
@@ -2660,6 +2782,9 @@
     
     <!-- Shared sidebar nav -->
     <script src="/js/sidebar.js"></script>
+
+    <!-- Floating feedback widget -->
+    <script src="/js/feedback-widget.js"></script>
 
     <!-- Service Worker -->
     <script>

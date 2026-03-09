@@ -272,6 +272,71 @@ def api_grade():
     if not ANTHROPIC_AVAILABLE or not ANTHROPIC_API_KEY:
         return jsonify({'error': 'Anthropic API not available'}), 503
 
+    # ── Grading cap check (beta: 25/month for free users) ──
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    from datetime import datetime, timezone
+
+    MONTHLY_GRADING_LIMIT = 25
+
+    database_url = os.environ.get('DATABASE_URL')
+    cap_conn = None
+    try:
+        cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cap_cur = cap_conn.cursor()
+
+        cap_cur.execute(
+            "SELECT is_admin, gradings_this_month, gradings_reset_date FROM users WHERE id = %s",
+            (g.user_id,)
+        )
+        cap_user = cap_cur.fetchone()
+
+        if cap_user and not cap_user.get('is_admin', False):
+            now = datetime.now(timezone.utc)
+            reset_date = cap_user.get('gradings_reset_date')
+
+            # Reset counter if we're in a new month
+            if reset_date is None or (now.year > reset_date.year or now.month > reset_date.month):
+                # Calculate next month's first day for reset display
+                if now.month == 12:
+                    next_reset = datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
+                else:
+                    next_reset = datetime(now.year, now.month + 1, 1, tzinfo=timezone.utc)
+
+                cap_cur.execute(
+                    "UPDATE users SET gradings_this_month = 0, gradings_reset_date = %s WHERE id = %s",
+                    (next_reset, g.user_id)
+                )
+                cap_conn.commit()
+                gradings_used = 0
+                resets_at = next_reset.strftime('%b %d')
+            else:
+                gradings_used = cap_user.get('gradings_this_month', 0) or 0
+                resets_at = reset_date.strftime('%b %d') if reset_date else 'next month'
+
+            # Enforce cap
+            if gradings_used >= MONTHLY_GRADING_LIMIT:
+                cap_cur.close()
+                cap_conn.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'monthly_limit',
+                    'limit': MONTHLY_GRADING_LIMIT,
+                    'used': gradings_used,
+                    'resets_at': resets_at
+                }), 429
+
+        cap_cur.close()
+    except Exception as e:
+        print(f"[WARN] Grading cap check failed (allowing grading): {e}")
+    finally:
+        if cap_conn:
+            try:
+                cap_conn.close()
+            except:
+                pass
+    # ── End grading cap check ──
+
     data = request.get_json() or {}
     images = data.get('images', [])
     title = data.get('title', 'Unknown')
@@ -377,6 +442,24 @@ def api_grade():
         log_api_usage(g.user_id, '/api/grade', 'claude-sonnet-4-20250514',
                       total_input_tokens, total_output_tokens)
 
+        # Increment grading counter for usage cap
+        try:
+            inc_conn = psycopg2.connect(database_url)
+            inc_cur = inc_conn.cursor()
+            inc_cur.execute(
+                """UPDATE users
+                   SET gradings_this_month = COALESCE(gradings_this_month, 0) + 1,
+                       gradings_reset_date = COALESCE(gradings_reset_date,
+                           date_trunc('month', CURRENT_TIMESTAMP + INTERVAL '1 month'))
+                   WHERE id = %s""",
+                (g.user_id,)
+            )
+            inc_conn.commit()
+            inc_cur.close()
+            inc_conn.close()
+        except Exception as e:
+            print(f"[WARN] Failed to increment grading counter: {e}")
+
         # Add metadata
         result['title'] = title
         result['issue'] = issue
@@ -399,6 +482,22 @@ def api_grade():
         # Map grade fields for backward compat
         result['grade_reasoning'] = result.get('observations', '')
         result['year'] = data.get('year', '')
+
+        # Include grading usage info for frontend counter
+        try:
+            usage_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            usage_cur = usage_conn.cursor()
+            usage_cur.execute("SELECT gradings_this_month, is_admin FROM users WHERE id = %s", (g.user_id,))
+            usage_row = usage_cur.fetchone()
+            if usage_row and not usage_row.get('is_admin'):
+                result['grading_usage'] = {
+                    'used': usage_row.get('gradings_this_month', 0) or 0,
+                    'limit': MONTHLY_GRADING_LIMIT
+                }
+            usage_cur.close()
+            usage_conn.close()
+        except Exception:
+            pass
 
         return jsonify(result)
 

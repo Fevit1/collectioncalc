@@ -1,6 +1,6 @@
 # SLAB WORTHY - CLAUDE SESSION NOTES
 
-**Last Updated:** March 7, 2026 (Session 84)
+**Last Updated:** March 8, 2026 (Session 88)
 **Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
 
 ---
@@ -47,7 +47,7 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 - **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
 - **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
 - **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
-- **Users:** Pre-launch (building email list)
+- **Users:** 7 waitlist signups, beta invite system live (25 gradings/month cap)
 - **Revenue:** $0 (pre-revenue, targeting GalaxyCon San Jose alpha Aug 2026)
 
 ### Current Priorities (GalaxyCon San Jose Alpha - Aug 21-23, 2026)
@@ -229,49 +229,63 @@ AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine
 
 ---
 
-## CURRENT SESSION (SESSION 86) - Mar 8, 2026
+## CURRENT SESSION (SESSION 88) - Mar 8, 2026
+
+### What Happened
+**BETA USER MANAGEMENT — GRADING CAP + FEEDBACK SYSTEM + ADMIN REPORTING**
+
+Built three systems to prepare for beta user invitations:
+
+1. **Grading Cap (25/month)** — Enforced in `POST /api/grade` before Claude call. Non-admin users limited to 25 gradings/month with automatic monthly reset. Counter tracks in `gradings_this_month` + `gradings_reset_date` columns on users table. Frontend shows styled "limit reached" screen with reset date + remaining gradings counter near Grade button.
+
+2. **Feedback System (dual approach)**
+   - **Post-grading thumbs up/down** — Appears after every grade result. Thumbs buttons + optional comment, posts to `/api/feedback/grading`.
+   - **Floating feedback widget** — "💬 Feedback" pill on all user-facing pages (app, collection, dashboard, signatures). Opens modal with 5-star rating + textarea, posts to `/api/feedback/general`. Only shown for logged-in users, excluded from admin page.
+
+3. **Admin Feedback Dashboard** — New "💬 Feedback" tab in admin.html showing all feedback entries with stats cards (total count, thumbs up %, avg general rating).
+
+4. **Waitlist Admin + Invite Flow** — Added earlier in session: "📋 Waitlist" tab in admin showing all signups with stats. "📧 Invite" button generates beta code + sends branded HTML email via Resend from noreply@slabworthy.com.
+
+**New files:** `migrations/add_grading_cap_and_feedback.sql`, `routes/feedback.py`, `js/feedback-widget.js`
+**Modified:** `routes/grading.py`, `wsgi.py`, `app.html`, `admin.html`, `collection.html`, `dashboard.html`, `signatures.html`, `routes/admin_routes.py`
+
+---
+
+## PREVIOUS SESSION (SESSION 87) - Mar 8, 2026
+
+### What Happened
+**SIGNATURE ID → SLAB REPORT + COLLECTION + SLAB GUARD — ✅ DEPLOYED**
+
+Wired signature identification results into all three user-facing surfaces. Previously, the v2 orchestrator worked but results were invisible to users. Now:
+
+1. **Grading Results Page** — Auto-runs signature check after grading completes. Shows creator name, confidence badge (color-coded), match evidence, premium estimate, flags, and CGC disclaimer. Uses front cover photo + metadata (publisher, title, year → era_decade).
+2. **My Collection** — Signature data saved as `signature_data JSONB` column. Signature badges visible on both list and gallery views. "🔍 ID Sigs" button upgraded from broken v1 to working v2 orchestrator + PUT save.
+3. **Slab Guard Verify** — Lookup response includes signature info when present. Verify page displays "✍️ Signed by: Creator (96% high)" for registered signed comics.
+
+**New DB column:** `signature_data JSONB` on `collections` table with partial index on `->>'creator'`. Format: `{"creator": "Jim Lee", "confidence": 0.92, "confidence_label": "high", "flags": {}, "stability": 0.95, "pass_count": 3, "detected_at": "..."}`. NULL = not checked, `{}` = checked but no signature found.
+
+**New endpoint:** `PUT /api/collection/<item_id>` — whitelist-based update for `signature_data` and slab fields. Fixes the existing broken `handleCollectionIdentifySignatures()` which tried PUT to a nonexistent route.
+
+**Confidence thresholds:** ≥0.40 to show signature section; ≥0.85 green, ≥0.65 yellow, ≥0.40 orange for UI badges.
+
+**Deploy completed:**
+- Commit `8f4db30` pushed
+- Migration run on Render (signature_data column + index)
+- Cloudflare cache purged
+- 9 files changed: 463 insertions, 121 deletions
+
+**Files created/modified:** migrations/add_collection_signature_columns.sql (NEW), routes/collection.py, routes/verify.py, app.html, js/utils.js, js/collection.js, verify.html, CLAUDE_NOTES.txt, WHERE_WE_LEFT_OFF.md
+
+---
+
+## PREVIOUS SESSION (SESSION 86) - Mar 8, 2026
 
 ### What Happened
 **SIGNATURE DB EXPANDED: 43 → 100 CREATORS — ✅ FULLY DEPLOYED**
 
-Selected 57 new creators using weighted criteria (market value, distinctiveness, era coverage, collection prevalence, convention signing frequency). Full confusion risk screening against existing 43. Created SQL migration, JSON entries, seed script updates, UI fix, and verification queries. All deployed to production.
+Selected 57 new creators using weighted criteria. Full confusion risk screening. Style confidence system added. All deployed to production. See WHERE_WE_LEFT_OFF.md for full details.
 
-**New creators by tier:**
-- **Tier 1 (15):** High market value artists — Walt Simonson, Marc Silvestri, David Finch, Adam Kubert, Andy Kubert, Frank Cho, Joe Quesada, Jim Cheung, Ed McGuinness, Kevin Eastman, Bill Sienkiewicz, Mike Zeck, Whilce Portacio, Erik Larsen, Michael Turner
-- **Tier 2 (15):** Convention/modern artists — Ryan Stegman, Terry Dodson, Sean Murphy, Patrick Gleason, Gary Frank, Mark Bagley, Humberto Ramos, Leinil Francis Yu, Ryan Ottley, Jorge Jimenez, Dan Mora, Olivier Coipel, Esad Ribic, Lee Bermejo, Daniel Warren Johnson
-- **Tier 3 (5):** Deceased/legacy — Bernie Wrightson, Tim Sale, Darwyn Cooke, Mike Wieringo, Herb Trimpe
-- **Tier 4 (10):** Writers — Mark Waid, Peter David, Robert Kirkman, Jason Aaron, Garth Ennis, Warren Ellis, Donny Cates, Chip Zdarsky, Matt Fraction, Larry Hama
-- **Tier 5 (7):** Cover artists — Mark Brooks, Skottie Young, Jenny Frison, Jen Bartel, Derrick Chew, Clayton Crain, Rafael Albuquerque
-- **Tier 6 (5):** Coverage/rising — Kieron Gillen, Joshua Williamson, Sara Pichelli, Pepe Larraz, Mitch Gerads
-
-**Confusion pairs flagged:** Adam/Andy Kubert (HIGH), Jim Cheung vs Jim Lee/Steranko/Starlin (MEDIUM), Mark Waid vs Mark Millar (MEDIUM), Mark Bagley vs Mark Brooks (MEDIUM), Ryan Stegman vs Ryan Ottley (MEDIUM)
-
-**Seed script fixes (97/100 → 100/100):**
-- "George Pérez" — accent stripping via `unicodedata.normalize('NFKD')`
-- "Whilche Portacio" — DB typo fixed + `NAME_ALIASES` dict for fuzzy matching
-- "Brian Michael Bendis - Early 2000s" — duplicate removed
-- 4-tier matching now: exact → case-insensitive → accent-normalized → alias
-
-**Style Confidence System (Session 86b):**
-- Added `style_source` ('ai_assigned'|'admin') and `style_confidence` (0.0-1.0) columns to creator_signatures
-- Sonnet was wrong on ~1/3 of original style metadata; this system prevents that bias from propagating
-- Per-creator confidence values seeded: 0.9 (iconic/well-documented) → 0.3 (genuinely uncertain international artists)
-- Orchestrator v2 now injects style hints with confidence annotations into Opus prompt:
-  - "Known style: X (verified)" → admin-confirmed, full trust
-  - "Expected style: X" → high confidence AI, soft hint
-  - "Possible style: X (unverified)" → low confidence, essentially ignore
-  - (omitted) → too unreliable to mention (confidence < 0.4)
-- Admin UI: click style badge on any creator card → prompt to verify/override → sets source='admin', confidence=1.0
-- System prompt updated with explicit instructions: never reject a strong structural match because of unverified metadata
-
-**Deploy completed:**
-- All code pushed (commit `9f7e4dc`)
-- DB name typos fixed (Whilce, Bendis duplicate removed)
-- Style confidence migration run
-- Seed script re-run: 100/100 creators updated
-- Cloudflare cache purged — signatures.html live with clickable style badges
-
-**Files created/modified:** migrations/add_57_new_creators.sql, migrations/verify_100_creators.sql, migrations/add_style_confidence.sql, migrations/fix_creator_name_typos.sql, signatures/signatures_db.json, seed_creator_metadata.py, signatures.html, known_creators.json, routes/signature_orchestrator.py, routes/admin_routes.py, prompts/signature_identification_system.md
+**Key facts:** 100 creators active, 43 with images, 57 pending upload. Style confidence columns seeded. 4-tier name matching in seed script. Commit `9f7e4dc`.
 
 ---
 
@@ -722,28 +736,29 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 
 ## NEXT SESSION PRIORITIES
 
-### Signature System (Active)
+### Signature System — Make It Real (Active)
 1. **Upload reference images for 57 new creators** — Mike is sourcing signatures from the web (Tier 1 first: Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz, Walt Simonson)
 2. **Verify style metadata via admin UI** — click style badges to confirm/override as images are uploaded
-3. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
-4. **Fix Bendis/Claremont refs** — source better quality reference images
-5. **Request Anthropic rate limit increase** — re-enable parallel Opus passes (~99s → ~33s)
-6. **Target 87%+ accuracy** before advertising signature feature publicly
+3. **End-to-end signature test on production** — Grade a known signed comic → verify signature section appears → save to collection → check badge on collection page → verify via Slab Guard lookup
+4. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
+5. **Fix Bendis/Claremont refs** — source better quality reference images
+6. **Request Anthropic rate limit increase** — re-enable parallel Opus passes (~99s → ~33s)
+7. **Target 87%+ accuracy** before advertising signature feature publicly
 
 ### GalaxyCon San Jose Sprint (Aug 21-23)
-7. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
-8. **Grading flow polish** — booth demo mode, offline fallback
-9. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
+8. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
+9. **Grading flow polish** — booth demo mode, offline fallback
+10. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
 
 ### Patent & Business
-10. **Signature patent filed** ✅ — Application # 63/990,743 (Feb 25, 2026). Non-provisional deadline: Feb 25, 2027
-11. **Facebook/social media** — Deferred to June pre-launch (batch content creation)
+11. **Signature patent filed** ✅ — Application # 63/990,743 (Feb 25, 2026). Non-provisional deadline: Feb 25, 2027
+12. **Facebook/social media** — Deferred to June pre-launch (batch content creation)
 
 ### Technical Debt
-12. **AI Grading Consistency** — Same images give different grades (8.5 → 9.2 → 8.5)
-13. **Comic identification bug** — Ghost Rider reboot #1 vs original #1
-14. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
-15. **Mobile testing** — Pricing page, verify page, full app flow on real devices
+13. **AI Grading Consistency** — Same images give different grades (8.5 → 9.2 → 8.5)
+14. **Comic identification bug** — Ghost Rider reboot #1 vs original #1
+15. **Run title backfill** — `curl -X POST .../api/ebay-sales/backfill-titles` to fix 369 NULLs
+16. **Mobile testing** — Pricing page, verify page, full app flow on real devices
 
 ---
 

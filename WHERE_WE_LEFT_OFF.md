@@ -1,62 +1,116 @@
 # Where We Left Off - Mar 8, 2026
 
+## Session 88 (Mar 8, 2026) — Beta User Management: Grading Cap + Feedback System
+
+### What Was Done
+1. **Waitlist Admin + Invite Flow** — New "📋 Waitlist" tab in admin.html with table of all signups, stats card, and "📧 Invite" button that generates a beta code and sends branded HTML email via Resend from noreply@slabworthy.com.
+
+2. **Grading Cap (25/month)** — Enforced in `POST /api/grade` endpoint before Claude API call. Non-admin users limited to 25 gradings per month. Counter auto-resets on month boundary. Frontend shows "Monthly Limit Reached" screen with reset date when exhausted, plus a remaining-gradings counter near the Grade button.
+
+3. **Feedback System**
+   - **Post-grading thumbs up/down** in app.html — appears after every Slab Report, with optional comment
+   - **Floating "💬 Feedback" widget** (`js/feedback-widget.js`) — on all user-facing pages (app, collection, dashboard, signatures). 5-star rating + textarea modal. Only visible to logged-in users.
+   - **Backend**: `routes/feedback.py` with `POST /api/feedback/grading`, `POST /api/feedback/general`, `GET /api/admin/feedback`
+   - **Admin tab**: "💬 Feedback" tab in admin.html with stats + table view
+
+### Files Created
+- `migrations/add_grading_cap_and_feedback.sql` — users grading columns + user_feedback table + indexes
+- `routes/feedback.py` — Feedback blueprint (3 endpoints)
+- `js/feedback-widget.js` — Floating feedback pill + modal
+
+### Files Modified
+- `routes/grading.py` — Cap check before Claude call + counter increment after success + usage info in response
+- `routes/admin_routes.py` — Waitlist GET + Invite POST with Resend email
+- `wsgi.py` — Registered feedback_bp blueprint
+- `app.html` — 429 limit screen + thumbs up/down + grading usage counter + feedback widget script
+- `admin.html` — Waitlist tab + Feedback tab + stats + loadFeedback()
+- `collection.html`, `dashboard.html`, `signatures.html` — Added feedback-widget.js script tag
+
+### Deploy Steps Required
+1. **Commit & push** all changes
+2. **Run migration** on Render shell:
+   ```sql
+   ALTER TABLE users ADD COLUMN IF NOT EXISTS gradings_this_month INTEGER DEFAULT 0;
+   ALTER TABLE users ADD COLUMN IF NOT EXISTS gradings_reset_date TIMESTAMPTZ;
+   CREATE TABLE IF NOT EXISTS user_feedback (
+       id SERIAL PRIMARY KEY,
+       user_id INTEGER REFERENCES users(id),
+       feedback_type VARCHAR(20) NOT NULL,
+       rating INTEGER,
+       comment TEXT,
+       page_url TEXT,
+       grading_id INTEGER,
+       created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+   CREATE INDEX IF NOT EXISTS idx_user_feedback_user ON user_feedback(user_id, created_at DESC);
+   CREATE INDEX IF NOT EXISTS idx_user_feedback_type ON user_feedback(feedback_type, created_at DESC);
+   ```
+3. **Manual deploy** on Render (auto-deploy is off)
+4. **Purge Cloudflare cache** (app.html, admin.html, collection.html, dashboard.html, signatures.html, js/feedback-widget.js)
+
+### What's Next (Priority Order)
+1. **Commit, push, deploy** these changes
+2. **Run migration** on Render
+3. **Test invite flow** — Send a beta invite from admin → verify email received → create account with beta code
+4. **Test grading cap** — Grade as a non-admin → verify counter increments → verify limit screen at 25
+5. **Test feedback** — Thumbs up/down after grading + floating widget on collection page
+6. **End-to-end signature test on production** — Grade a known signed comic → verify sig section
+7. **Upload reference images for 57 new creators** — Mike sourcing Tier 1 first
+
+---
+
+## Session 87 (Mar 8, 2026) — Signature ID → Slab Report + Collection + Slab Guard ✅ DEPLOYED
+
+### What Was Done
+Wired the v2 signature orchestrator into all three user-facing surfaces. Previously, signatures were detected but invisible to users. Now the full loop works:
+
+- **Grading Results Page (app.html)** — Auto-runs signature check after grading. Shows creator name + confidence badge (green ≥0.85, yellow ≥0.65, orange ≥0.40) + match evidence + premium estimate + flags + CGC disclaimer. Uses front cover photo + metadata (publisher, title, year → era_decade). Hidden if no match or confidence < 0.40.
+- **My Collection (collection.js)** — Signature badges on both list and gallery views ("✍️ Jim Lee 96%"). "🔍 ID Sigs" button upgraded from broken v1 to working v2 + PUT save. Badge updates without page refresh.
+- **Save to Collection (app.html)** — `signature_data` JSONB persisted when saving grading results
+- **Slab Guard Verify (verify.html + verify.py)** — Lookup response includes signature info. Verify page shows "✍️ Signed by: Creator (96% high)" for registered signed comics.
+- **New PUT endpoint (collection.py)** — `PUT /api/collection/<item_id>` with whitelist-based update for `signature_data` and slab fields. Fixes the existing broken "ID Sigs" button.
+- **DB migration** — `signature_data JSONB` column + partial index on `->>'creator'`
+
+### Key Design Decisions
+- **Single JSONB column** over separate columns — flexible for future multi-signature support
+- **NULL vs empty object** — `NULL` = not yet checked; `{}` = checked, no signature found
+- **Confidence threshold 0.40** — below this, signature section hidden (no false positives in UI)
+- **FormData not JSON** — v2 orchestrator expects multipart form data for base64 image
+
+### Files Created/Modified
+- `migrations/add_collection_signature_columns.sql` — NEW: JSONB column + partial index
+- `routes/collection.py` — GET returns sig data, POST saves it, new PUT endpoint
+- `routes/verify.py` — Lookup includes signature info in response
+- `app.html` — Auto sig check after grading, renders results section, saves with collection
+- `js/utils.js` — `identifySignaturesV2()` + `displaySignatureV2Results()`
+- `js/collection.js` — Sig badges on cards (list + gallery), upgraded "ID Sigs" to v2 + PUT
+- `verify.html` — Shows signature on Slab Guard lookup
+
+### Deploy Status: ✅ COMPLETE
+Commit `8f4db30` pushed. Migration run on Render. Cloudflare cache purged. 9 files, 463 insertions, 121 deletions.
+
+### What's Next (Priority Order)
+1. **End-to-end test on production** — Grade a known signed comic → verify sig section appears → save to collection → check badge → verify via Slab Guard
+2. **Upload reference images for 57 new creators** — Mike is sourcing (Tier 1 first: Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz, Walt Simonson)
+3. **Verify style metadata via admin UI** — click style badges to confirm/override as images are uploaded
+4. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
+5. **Fix Bendis/Claremont refs** — source better quality reference images
+6. **Request Anthropic rate limit increase** — re-enable parallel Opus passes (~99s → ~33s)
+7. **Target 87%+ accuracy** before advertising signature feature publicly
+
+---
+
 ## Session 86 (Mar 8, 2026) — Signature DB Expanded: 43 → 100 Creators ✅ DEPLOYED
 
 ### What Was Done
 - **Selected 57 new creators** using weighted criteria: market value, signature distinctiveness, era/publisher coverage, collection prevalence, convention signing frequency
 - **Confusion risk screening** against all 43 existing creators — flagged 5 HIGH/MEDIUM pairs (Adam/Andy Kubert, Jim Cheung vs Jim Lee/Steranko/Starlin, Mark Waid vs Mark Millar, Mark Bagley vs Mark Brooks, Ryan Stegman vs Ryan Ottley)
-- **Created SQL migration** (`migrations/add_57_new_creators.sql`) — 57 INSERT statements with WHERE NOT EXISTS guards (idempotent)
-- **Created verification queries** (`migrations/verify_100_creators.sql`) — 10 queries: total count, role breakdown, era coverage, publisher coverage, image status, confusion pairs, summary dashboard
-- **Updated signatures_db.json** — added 57 new entries with empty images, updated stats, cleared missing_priority_artists
-- **Updated seed_creator_metadata.py** — added all 57 new creators with career dates, publishers, signature styles
-- **Fixed zero-image UI state** in signatures.html — now shows "No reference images yet / Upload to enable matching" instead of generic "Click to add"
-- **Style Confidence System** — prevents AI-assigned style metadata from biasing matches:
-  - New DB columns: `style_source` ('ai_assigned'|'admin') + `style_confidence` (0.0-1.0)
-  - Per-creator confidence seeded: 0.9 (iconic, like Kevin Eastman/Stan Lee) → 0.3 (uncertain, like Dan Mora/Pepe Larraz)
-  - Orchestrator injects style as weighted hints: "verified" (admin) vs "expected" (high conf) vs "unverified" (low) vs omitted (too unreliable)
-  - Admin UI: click any style badge → override → becomes source='admin' at 1.0 confidence
-  - Opus system prompt explicitly told: never reject structural match over unverified metadata
-- **Updated known_creators.json** — expanded from 75 to 115 names
-- **Fixed 3 seed script mismatches** (97/100 → 100/100):
-  - "George Pérez" — accent `é` mismatch, fixed with `unicodedata.normalize('NFKD')` accent stripping
-  - "Whilche Portacio" — DB typo (extra 'h'), fixed with SQL UPDATE + `NAME_ALIASES` dict
-  - "Brian Michael Bendis - Early 2000s" — duplicate DB entry, fixed with SQL DELETE
-  - Seed script now has 4-tier matching: exact → case-insensitive → accent-normalized → alias
+- **Style Confidence System** — new `style_source` + `style_confidence` columns; prevents AI-assigned metadata from biasing matches
+- **Fixed 3 seed script mismatches** (97/100 → 100/100): accent stripping, DB typo fix, duplicate removal
 - **All migrations and seed run on production** — 100 creators active, style confidence columns populated
-- **Cloudflare cache purged** — updated signatures.html live with clickable style badges
-
-### Creator Selection Summary
-
-| Tier | Count | Description | Examples |
-|------|-------|-------------|----------|
-| 1 — High Market Value | 15 | Top auction artists | Kevin Eastman, Marc Silvestri, Michael Turner |
-| 2 — Convention/Modern | 15 | Active con signers | Ryan Ottley, Jorge Jimenez, Dan Mora |
-| 3 — Deceased/Legacy | 5 | Valuable limited supply | Bernie Wrightson, Tim Sale, Darwyn Cooke |
-| 4 — Writers | 10 | Key comic writers | Robert Kirkman, Garth Ennis, Larry Hama |
-| 5 — Cover Artists | 7 | Variant market | Skottie Young, Mark Brooks, Jenny Frison |
-| 6 — Coverage/Rising | 5 | Era/publisher fill | Sara Pichelli, Pepe Larraz, Mitch Gerads |
-
-### Files Created/Modified
-- `migrations/add_57_new_creators.sql` — NEW: 57 INSERT statements with confusion risk notes
-- `migrations/verify_100_creators.sql` — NEW: 10 verification queries
-- `signatures/signatures_db.json` — MODIFIED: +57 entries (23 → 80 in local DB)
-- `seed_creator_metadata.py` — MODIFIED: +57 entries (41 → 98 in seed data)
-- `signatures.html` — MODIFIED: zero-image UI message improved
-- `known_creators.json` — MODIFIED: 75 → 115 names
+- Commit `9f7e4dc`
 
 ### Deploy Status: ✅ COMPLETE
-All migrations, seed scripts, and code deployed to Render. Cloudflare cache purged. 100 creators active in production DB with style confidence values.
-
-### What's Next (Priority Order)
-1. **Upload reference images for 57 new creators** — Mike is sourcing signatures from the web
-   - Start with Tier 1 (highest value): Kevin Eastman, Marc Silvestri, Michael Turner, Bill Sienkiewicz, Walt Simonson
-   - 2-4 reference images per creator via admin UI at /signatures.html
-   - As images are uploaded, verify style metadata and click to correct if needed
-2. **Verify style metadata via admin UI** — click style badges to confirm/override AI-assigned styles (sets source='admin', confidence=1.0)
-3. **A/B test v1 vs v2** — compare accuracy on same test images (multiple artists)
-4. **Fix Bendis/Claremont reference images** — source better quality refs (current ones have noisy backgrounds)
-5. **Request Anthropic rate limit increase** — re-enable parallel Opus passes for ~33s latency (currently ~99s sequential)
-6. **Target 87%+ accuracy** before advertising signature feature publicly
 
 ---
 

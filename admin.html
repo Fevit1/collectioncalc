@@ -363,6 +363,7 @@
             <button class="tab" data-tab="errors">⚠️ Errors</button>
             <button class="tab" data-tab="usage">📊 API Usage</button>
             <button class="tab" data-tab="waitlist">📋 Waitlist</button>
+            <button class="tab" data-tab="feedback">💬 Feedback</button>
         </div>
 
         <!-- NLQ Tab -->
@@ -495,6 +496,47 @@
                 </div>
             </div>
         </div>
+
+        <!-- Feedback Tab -->
+        <div class="tab-panel" id="tab-feedback">
+            <div class="section">
+                <h2 class="section-title">💬 User Feedback</h2>
+                <!-- Feedback Stats -->
+                <div class="stats-grid" id="feedbackStatsGrid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Feedback</div>
+                        <div class="stat-value" id="fbStatTotal">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Grading Thumbs Up</div>
+                        <div class="stat-value" id="fbStatThumbsUp">-</div>
+                        <div class="stat-sub" id="fbStatPositivePct"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg General Rating</div>
+                        <div class="stat-value" id="fbStatAvgRating">-</div>
+                        <div class="stat-sub" id="fbStatGeneralCount"></div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Rating</th>
+                                <th>Comment</th>
+                                <th>Page</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackBody">
+                            <tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -545,6 +587,7 @@
             loadErrors();
             loadUsage();
             loadWaitlist();
+            loadFeedback();
         }
 
         async function loadStats() {
@@ -796,6 +839,62 @@
                 loadStats();
             } catch (e) {
                 showToast('Failed to invite user', 'error');
+            }
+        }
+
+        async function loadFeedback() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/feedback`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                // Update feedback stats
+                if (data.stats) {
+                    document.getElementById('fbStatTotal').textContent = data.stats.total;
+                    document.getElementById('fbStatThumbsUp').textContent =
+                        `${data.stats.thumbs_up} / ${data.stats.thumbs_up + data.stats.thumbs_down}`;
+                    document.getElementById('fbStatPositivePct').textContent =
+                        data.stats.thumbs_up + data.stats.thumbs_down > 0
+                            ? `${data.stats.positive_pct}% positive`
+                            : 'No grading feedback yet';
+                    document.getElementById('fbStatAvgRating').textContent =
+                        data.stats.avg_general_rating ? `${data.stats.avg_general_rating} / 5` : '-';
+                    document.getElementById('fbStatGeneralCount').textContent =
+                        `${data.stats.general_count} general reviews`;
+                }
+
+                const tbody = document.getElementById('feedbackBody');
+                if (!data.entries || !data.entries.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No feedback yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.entries.map(e => {
+                    let ratingDisplay = '-';
+                    if (e.feedback_type === 'grading_rating') {
+                        ratingDisplay = e.rating === 1 ? '👍' : '👎';
+                    } else if (e.feedback_type === 'general') {
+                        ratingDisplay = '⭐'.repeat(e.rating || 0);
+                    }
+
+                    const typeLabel = e.feedback_type === 'grading_rating'
+                        ? '<span class="status-badge status-approved">Grading</span>'
+                        : '<span class="status-badge status-pending">General</span>';
+
+                    return `<tr>
+                        <td>${e.email || 'Unknown'}</td>
+                        <td>${typeLabel}</td>
+                        <td>${ratingDisplay}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.comment || '-'}</td>
+                        <td>${e.page_url || '-'}</td>
+                        <td>${formatDate(e.created_at)}</td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load feedback:', e);
             }
         }
 

@@ -252,6 +252,7 @@ from routes.signatures import signatures_bp, init_modules as signatures_init_mod
 from routes.signature_orchestrator import signatures_v2_bp, init_modules as signatures_v2_init_modules
 from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
 from routes.marketplace import marketplace_bp, init_modules as marketplace_init_modules
+from routes.feedback import feedback_bp
 
 # Import imagehash for fingerprinting
 try:
@@ -326,6 +327,7 @@ app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/
 app.register_blueprint(signatures_v2_bp)  # /api/signatures/v2/match, /api/signatures/v2/match/stats
 app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content (legacy)
 app.register_blueprint(marketplace_bp) # /api/marketplace/platforms, /api/marketplace/generate-content
+app.register_blueprint(feedback_bp)    # /api/feedback/grading, /api/feedback/general, /api/admin/feedback
 
 print("✅ All blueprints registered successfully!")
 
