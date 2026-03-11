@@ -65,21 +65,148 @@ def api_admin_dashboard():
 @admin_bp.route('/users', methods=['GET'])
 @require_admin_auth
 def api_admin_users():
-    """Get all users"""
+    """Get all users with activity data (collections, API calls, last active)"""
     users = get_all_users()
-    users_list = []
-    for u in users:
-        users_list.append({
-            'id': u['id'],
-            'email': u['email'],
-            'email_verified': u['email_verified'],
-            'is_approved': u.get('is_approved', False),
-            'is_admin': u.get('is_admin', False),
-            'beta_code_used': u.get('beta_code_used'),
-            'created_at': u['created_at'].isoformat() if u['created_at'] else None,
-            'approved_at': u['approved_at'].isoformat() if u.get('approved_at') else None
-        })
-    return jsonify({'success': True, 'users': users_list})
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+
+    try:
+        # Collection counts per user
+        cur.execute("""
+            SELECT user_id, COUNT(*) as count
+            FROM collections
+            GROUP BY user_id
+        """)
+        collection_counts = {r['user_id']: r['count'] for r in cur.fetchall()}
+
+        # Slab Guard registrations per user
+        cur.execute("""
+            SELECT cr.user_id, COUNT(*) as count
+            FROM comic_registry cr
+            GROUP BY cr.user_id
+        """)
+        registry_counts = {r['user_id']: r['count'] for r in cur.fetchall()}
+
+        # API calls per user (from request_logs) + last activity + endpoint breakdown
+        cur.execute("""
+            SELECT user_id, COUNT(*) as calls,
+                   MAX(created_at) as last_activity
+            FROM request_logs
+            WHERE user_id IS NOT NULL
+            GROUP BY user_id
+        """)
+        activity_map = {}
+        for r in cur.fetchall():
+            activity_map[r['user_id']] = {
+                'calls': r['calls'],
+                'last_activity': r['last_activity']
+            }
+
+        # Top endpoints per user (for activity breakdown)
+        cur.execute("""
+            SELECT user_id, endpoint, COUNT(*) as count
+            FROM request_logs
+            WHERE user_id IS NOT NULL
+            GROUP BY user_id, endpoint
+            ORDER BY user_id, count DESC
+        """)
+        endpoint_map = {}
+        for r in cur.fetchall():
+            uid = r['user_id']
+            if uid not in endpoint_map:
+                endpoint_map[uid] = {}
+            # Simplify endpoint names
+            ep = r['endpoint']
+            if '/grade' in ep:
+                label = 'grading'
+            elif '/valuation' in ep or '/value' in ep:
+                label = 'valuation'
+            elif '/collection' in ep:
+                label = 'collection'
+            elif '/slab-guard' in ep or '/registry' in ep:
+                label = 'slab_guard'
+            elif '/signature' in ep:
+                label = 'signatures'
+            elif '/search' in ep or '/lookup' in ep:
+                label = 'search'
+            elif '/sell' in ep or '/listing' in ep:
+                label = 'sell'
+            else:
+                label = ep.split('/')[-1] if '/' in ep else ep
+            endpoint_map[uid][label] = endpoint_map[uid].get(label, 0) + r['count']
+
+        # AI usage cost per user
+        cur.execute("""
+            SELECT user_id, COUNT(*) as calls,
+                   SUM(COALESCE(estimated_cost_usd, 0)) as total_cost
+            FROM api_usage
+            WHERE user_id IS NOT NULL
+            GROUP BY user_id
+        """)
+        ai_usage_map = {}
+        for r in cur.fetchall():
+            ai_usage_map[r['user_id']] = {
+                'ai_calls': r['calls'],
+                'ai_cost': float(r['total_cost'] or 0)
+            }
+
+        # Feedback count per user
+        cur.execute("""
+            SELECT user_id, COUNT(*) as count, AVG(rating) as avg_rating
+            FROM user_feedback
+            WHERE user_id IS NOT NULL
+            GROUP BY user_id
+        """)
+        feedback_map = {}
+        for r in cur.fetchall():
+            feedback_map[r['user_id']] = {
+                'count': r['count'],
+                'avg_rating': round(float(r['avg_rating'] or 0), 1)
+            }
+
+        users_list = []
+        for u in users:
+            uid = u['id']
+            act = activity_map.get(uid, {})
+            ai = ai_usage_map.get(uid, {})
+            fb = feedback_map.get(uid, {})
+            last_act = act.get('last_activity')
+
+            users_list.append({
+                'id': uid,
+                'email': u['email'],
+                'display_name': u.get('display_name'),
+                'email_verified': u['email_verified'],
+                'is_approved': u.get('is_approved', False),
+                'is_admin': u.get('is_admin', False),
+                'beta_code_used': u.get('beta_code_used'),
+                'created_at': u['created_at'].isoformat() if u['created_at'] else None,
+                'approved_at': u['approved_at'].isoformat() if u.get('approved_at') else None,
+                'last_login': u['last_login'].isoformat() if u.get('last_login') else None,
+                # Activity data
+                'collections': collection_counts.get(uid, 0),
+                'slab_guard': registry_counts.get(uid, 0),
+                'api_calls': act.get('calls', 0),
+                'last_activity': last_act.isoformat() if last_act else None,
+                'top_actions': endpoint_map.get(uid, {}),
+                'ai_calls': ai.get('ai_calls', 0),
+                'ai_cost': round(ai.get('ai_cost', 0), 4),
+                'feedback_count': fb.get('count', 0),
+                'feedback_avg': fb.get('avg_rating', 0)
+            })
+
+        # Sort by most recent activity first
+        users_list.sort(key=lambda u: u['last_activity'] or u['created_at'] or '', reverse=True)
+
+        return jsonify({'success': True, 'users': users_list})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 
 @admin_bp.route('/users/<int:user_id>/approve', methods=['POST'])

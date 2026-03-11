@@ -395,20 +395,25 @@
         <!-- Users Tab -->
         <div class="tab-panel" id="tab-users">
             <div class="section">
-                <h2 class="section-title">👥 User Management</h2>
+                <h2 class="section-title">👥 User Insights</h2>
                 <div class="table-container">
                     <table class="data-table" id="usersTable">
                         <thead>
                             <tr>
-                                <th>Email</th>
+                                <th>User</th>
                                 <th>Status</th>
                                 <th>Beta Code</th>
-                                <th>Signed Up</th>
+                                <th>Collection</th>
+                                <th>Slab Guard</th>
+                                <th>API Calls</th>
+                                <th>AI Cost</th>
+                                <th>Last Active</th>
+                                <th>Joined</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="usersBody">
-                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                            <tr><td colspan="10" class="loading"><div class="spinner"></div>Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -616,6 +621,18 @@
             }
         }
 
+        function timeAgo(dateStr) {
+            if (!dateStr) return 'Never';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 60) return `${mins}m ago`;
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return `${hrs}h ago`;
+            const days = Math.floor(hrs / 24);
+            if (days < 7) return `${days}d ago`;
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
         async function loadUsers() {
             try {
                 const res = await fetch(`${API_BASE}/api/admin/users`, {
@@ -625,30 +642,82 @@
 
                 const tbody = document.getElementById('usersBody');
                 if (!data.success || !data.users.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No users found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No users found</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = data.users.map(u => `
-                    <tr>
-                        <td>${u.email}</td>
+                    <tr style="cursor:pointer" onclick="toggleUserDetail(${u.id})">
+                        <td>
+                            <div>${u.email}</div>
+                            ${u.display_name ? `<div style="color:#71717a;font-size:11px">${u.display_name}</div>` : ''}
+                        </td>
                         <td>
                             ${u.is_admin ? '<span class="status-badge status-admin">Admin</span>' :
                               u.is_approved ? '<span class="status-badge status-approved">Approved</span>' :
                               '<span class="status-badge status-pending">Pending</span>'}
+                            ${u.email_verified ? '' : '<span style="color:#f59e0b;font-size:10px;margin-left:4px">unverified</span>'}
                         </td>
-                        <td>${u.beta_code_used || '-'}</td>
-                        <td>${formatDate(u.created_at)}</td>
-                        <td class="action-btns">
+                        <td><code style="font-size:11px">${u.beta_code_used || '-'}</code></td>
+                        <td style="text-align:center">${u.collections || 0}</td>
+                        <td style="text-align:center">${u.slab_guard || 0}</td>
+                        <td style="text-align:center">${u.api_calls || 0}</td>
+                        <td style="text-align:center">$${(u.ai_cost || 0).toFixed(2)}</td>
+                        <td style="font-size:11px;color:#a1a1aa">${timeAgo(u.last_activity || u.last_login)}</td>
+                        <td style="font-size:11px;color:#71717a">${timeAgo(u.created_at)}</td>
+                        <td class="action-btns" onclick="event.stopPropagation()">
                             ${!u.is_approved && !u.is_admin ? `
                                 <button class="btn btn-sm btn-success" onclick="approveUser(${u.id})">Approve</button>
                                 <button class="btn btn-sm btn-danger" onclick="rejectUser(${u.id})">Reject</button>
                             ` : ''}
                         </td>
                     </tr>
+                    <tr id="detail-${u.id}" style="display:none;background:rgba(99,102,241,0.05)">
+                        <td colspan="10" style="padding:12px 16px">
+                            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:12px;margin-bottom:8px">
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Last Login</div>
+                                    <div style="color:#e4e4e7">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Last Activity</div>
+                                    <div style="color:#e4e4e7">${u.last_activity ? new Date(u.last_activity).toLocaleString() : 'None'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">AI API Calls</div>
+                                    <div style="color:#e4e4e7">${u.ai_calls || 0} calls · $${(u.ai_cost || 0).toFixed(4)}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Feedback</div>
+                                    <div style="color:#e4e4e7">${u.feedback_count || 0} entries${u.feedback_avg > 0 ? ` · avg ${u.feedback_avg} ⭐` : ''}</div>
+                                </div>
+                            </div>
+                            ${u.top_actions && Object.keys(u.top_actions).length > 0 ? `
+                                <div style="margin-top:8px">
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Activity Breakdown</div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                                        ${Object.entries(u.top_actions)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([action, count]) => `
+                                                <span style="padding:3px 8px;border-radius:4px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);color:#a1a1aa;font-size:11px;font-family:monospace">
+                                                    ${action}: <span style="color:#e4e4e7">${count}</span>
+                                                </span>
+                                            `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </td>
+                    </tr>
                 `).join('');
             } catch (e) {
                 console.error('Failed to load users:', e);
+            }
+        }
+
+        function toggleUserDetail(userId) {
+            const row = document.getElementById(`detail-${userId}`);
+            if (row) {
+                row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
             }
         }
 
