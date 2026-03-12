@@ -207,15 +207,17 @@ def submit_suspected_scam():
 def check_listing():
     """
     Extension checks a listing against the approved scam image DB.
+    Runs ALL three checks and returns every match found.
 
     Body:
-      ebay_item_id  str   Check for exact item match first (fast path)
-      image_url     str   (optional) URL of listing image to pHash-check
+      ebay_item_id  str   eBay item ID
+      image_url     str   (optional) URL of listing image for pHash check
+      seller_id     str   (optional) Seller username
 
     Returns:
       matched       bool
-      match_type    "item_id" | "phash" | null
-      risk_boost    int   additional risk points to add to extension score
+      match_types   list  e.g. ["item_id", "seller_id", "phash"]
+      risk_boost    int   total additional risk points (capped contribution per type)
     """
     data = request.get_json() or {}
     ebay_item_id = str(data.get('ebay_item_id', '')).strip()
@@ -227,7 +229,10 @@ def check_listing():
         conn = _get_db()
         cur = conn.cursor()
 
-        # ── Fast path: item ID already approved ──
+        match_types = []
+        total_boost = 0
+
+        # ── Check 1: item ID match ──
         if ebay_item_id:
             cur.execute("""
                 SELECT id FROM slabguard_submissions
@@ -235,9 +240,10 @@ def check_listing():
                 LIMIT 1
             """, (ebay_item_id,))
             if cur.fetchone():
-                return jsonify({'success': True, 'matched': True, 'match_type': 'item_id', 'risk_boost': 40})
+                match_types.append('item_id')
+                total_boost += 40
 
-        # ── Seller ID check against flagged sellers ──
+        # ── Check 2: seller ID match ──
         if seller_id:
             cur.execute("""
                 SELECT id FROM slabguard_flagged_images
@@ -245,9 +251,10 @@ def check_listing():
                 LIMIT 1
             """, (seller_id,))
             if cur.fetchone():
-                return jsonify({'success': True, 'matched': True, 'match_type': 'seller_id', 'risk_boost': 35})
+                match_types.append('seller_id')
+                total_boost += 35
 
-        # ── pHash check against approved flagged images ──
+        # ── Check 3: pHash image match ──
         if image_url and PHASH_AVAILABLE:
             try:
                 resp = http_requests.get(image_url, timeout=8)
@@ -257,17 +264,20 @@ def check_listing():
                         cur.execute("SELECT phash FROM slabguard_flagged_images")
                         for row in cur.fetchall():
                             if _hamming_distance(incoming_hash, row['phash']) <= PHASH_MATCH_THRESHOLD:
-                                return jsonify({
-                                    'success': True,
-                                    'matched': True,
-                                    'match_type': 'phash',
-                                    'risk_boost': 40
-                                })
+                                match_types.append('phash')
+                                total_boost += 40
+                                break
             except Exception as e:
                 print(f"[SlabGuard] pHash check error: {e}")
-                # Non-fatal — continue
 
-        return jsonify({'success': True, 'matched': False, 'match_type': None, 'risk_boost': 0})
+        matched = len(match_types) > 0
+        return jsonify({
+            'success': True,
+            'matched': matched,
+            'match_types': match_types,           # list of all matches
+            'match_type': match_types[0] if match_types else None,  # legacy compat
+            'risk_boost': min(total_boost, 75)    # cap total DB boost at 75
+        })
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
