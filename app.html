@@ -2259,7 +2259,8 @@
                     throw new Error(result.error);
                 }
                 
-                // Store in gradingState
+                // Store in gradingState with a grading_id for feedback tracking
+                result.grading_id = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 window.gradingState.finalGrade = result;
                 window.gradingState.confidence = result.confidence || baseConfidence;
 
@@ -2521,7 +2522,12 @@
                     body: JSON.stringify({
                         rating: rating,
                         comment: commentText,
-                        grading_id: window.gradingState?.finalGrade?.id || null
+                        grading_id: window.gradingState?.finalGrade?.grading_id || null,
+                        page_context: [
+                            window.gradingState?.extractedData?.title,
+                            window.gradingState?.extractedData?.issue ? `#${window.gradingState.extractedData.issue}` : null,
+                            window.gradingState?.finalGrade?.final_grade ? `Grade: ${window.gradingState.finalGrade.final_grade}` : null
+                        ].filter(Boolean).join(' ') || null
                     })
                 });
             } catch (e) {

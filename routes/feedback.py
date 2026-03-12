@@ -20,6 +20,7 @@ def api_feedback_grading():
     rating = data.get('rating')  # 1 = thumbs up, 0 = thumbs down
     comment = data.get('comment', '').strip()
     grading_id = data.get('grading_id')
+    page_context = data.get('page_context', '').strip()
 
     if rating is None or rating not in (0, 1):
         return jsonify({'success': False, 'error': 'Rating must be 0 or 1'}), 400
@@ -30,9 +31,10 @@ def api_feedback_grading():
         conn = psycopg2.connect(database_url)
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO user_feedback (user_id, feedback_type, rating, comment, grading_id)
+            """INSERT INTO user_feedback (user_id, feedback_type, rating, comment, page_url)
                VALUES (%s, 'grading_rating', %s, %s, %s)""",
-            (g.user_id, rating, comment or None, grading_id)
+            (g.user_id, rating, comment or None,
+             page_context or (f'Grading #{grading_id}' if grading_id else None))
         )
         conn.commit()
         cur.close()
@@ -97,12 +99,23 @@ def api_admin_feedback():
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
         cur = conn.cursor()
 
-        # Get all feedback entries with user email
+        # Get all feedback entries with user email + nearby collection context
         cur.execute("""
             SELECT f.id, f.feedback_type, f.rating, f.comment, f.page_url,
-                   f.grading_id, f.created_at, u.email
+                   f.grading_id, f.created_at, f.user_id, u.email,
+                   c.title AS comic_title, c.issue AS comic_issue,
+                   c.grade AS comic_grade, c.grade_label, c.photos AS comic_photos
             FROM user_feedback f
             LEFT JOIN users u ON f.user_id = u.id
+            LEFT JOIN LATERAL (
+                SELECT title, issue, grade, grade_label, photos
+                FROM collections
+                WHERE collections.user_id = f.user_id
+                  AND collections.created_at BETWEEN f.created_at - INTERVAL '10 minutes'
+                                                AND f.created_at + INTERVAL '10 minutes'
+                ORDER BY ABS(EXTRACT(EPOCH FROM (collections.created_at - f.created_at)))
+                LIMIT 1
+            ) c ON f.feedback_type = 'grading_rating'
             ORDER BY f.created_at DESC
             LIMIT 200
         """)
@@ -110,14 +123,31 @@ def api_admin_feedback():
 
         entries = []
         for r in rows:
+            # Build context: prefer page_url (new format), fall back to matched collection
+            context = r['page_url']
+            comic_info = None
+            if r.get('comic_title'):
+                comic_info = {
+                    'title': r['comic_title'],
+                    'issue': r['comic_issue'],
+                    'grade': float(r['comic_grade']) if r['comic_grade'] else None,
+                    'grade_label': r['grade_label'],
+                    'photos': r['comic_photos']
+                }
+                if not context:
+                    context = f"{r['comic_title']} #{r['comic_issue']}" if r['comic_issue'] else r['comic_title']
+                    if r['comic_grade']:
+                        context += f" Grade: {r['comic_grade']}"
+
             entries.append({
                 'id': r['id'],
                 'email': r['email'],
                 'feedback_type': r['feedback_type'],
                 'rating': r['rating'],
                 'comment': r['comment'],
-                'page_url': r['page_url'],
+                'page_url': context,
                 'grading_id': r['grading_id'],
+                'comic': comic_info,
                 'created_at': r['created_at'].isoformat() if r['created_at'] else None
             })
 
