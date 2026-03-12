@@ -175,13 +175,14 @@ def submit_suspected_scam():
         # ── 4. Insert into queue ──
         cur.execute("""
             INSERT INTO slabguard_submissions
-                (submitted_by, ebay_item_id, ebay_url, risk_score, signals)
-            VALUES (%s, %s, %s, %s, %s)
+                (submitted_by, ebay_item_id, ebay_url, seller_id, risk_score, signals)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             g.user_id,
             ebay_item_id,
             ebay_url,
+            seller_id,
             data.get('risk_score', 0),
             psycopg2.extras.Json(data.get('signals', {}))
         ))
@@ -219,6 +220,7 @@ def check_listing():
     data = request.get_json() or {}
     ebay_item_id = str(data.get('ebay_item_id', '')).strip()
     image_url = str(data.get('image_url', '')).strip()
+    seller_id = str(data.get('seller_id', '')).strip() or None
 
     conn = None
     try:
@@ -234,6 +236,16 @@ def check_listing():
             """, (ebay_item_id,))
             if cur.fetchone():
                 return jsonify({'success': True, 'matched': True, 'match_type': 'item_id', 'risk_boost': 40})
+
+        # ── Seller ID check against flagged sellers ──
+        if seller_id:
+            cur.execute("""
+                SELECT id FROM slabguard_flagged_images
+                WHERE seller_id = %s
+                LIMIT 1
+            """, (seller_id,))
+            if cur.fetchone():
+                return jsonify({'success': True, 'matched': True, 'match_type': 'seller_id', 'risk_boost': 35})
 
         # ── pHash check against approved flagged images ──
         if image_url and PHASH_AVAILABLE:
@@ -386,7 +398,7 @@ def approve_submission(submission_id):
 
         # Get submission
         cur.execute("""
-            SELECT id, ebay_item_id, ebay_url, status
+            SELECT id, ebay_item_id, ebay_url, seller_id, status
             FROM slabguard_submissions WHERE id = %s
         """, (submission_id,))
         sub = cur.fetchone()
@@ -429,14 +441,15 @@ def approve_submission(submission_id):
         # ── Insert into approved DB ──
         cur.execute("""
             INSERT INTO slabguard_flagged_images
-                (phash, ebay_item_id, ebay_url, submission_id, notes, added_by)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (phash, ebay_item_id, ebay_url, seller_id, submission_id, notes, added_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (phash) DO NOTHING
             RETURNING id
         """, (
             phash_value or f"manual_{submission_id}",  # fallback key if hash failed
             sub['ebay_item_id'],
             sub['ebay_url'],
+            sub.get('seller_id'),
             submission_id,
             note or image_fetch_error,
             g.admin_id
