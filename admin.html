@@ -364,6 +364,7 @@
             <button class="tab" data-tab="usage">📊 API Usage</button>
             <button class="tab" data-tab="waitlist">📋 Waitlist</button>
             <button class="tab" data-tab="feedback">💬 Feedback</button>
+            <button class="tab" data-tab="slabguard">🛡️ SlabGuard</button>
         </div>
 
         <!-- NLQ Tab -->
@@ -542,6 +543,126 @@
                 </div>
             </div>
         </div>
+
+        <!-- ═══ SlabGuard Review Queue ═══ -->
+        <div class="tab-panel" id="tab-slabguard">
+            <div class="section">
+                <h2 class="section-title">🛡️ SlabGuard — Scam Review Queue</h2>
+
+                <!-- Queue stats -->
+                <div class="stats-grid" id="sgStatsGrid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Pending Review</div>
+                        <div class="stat-value warning" id="sgStatPending">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Approved (Scams)</div>
+                        <div class="stat-value error" id="sgStatApproved">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Rejected</div>
+                        <div class="stat-value" id="sgStatRejected">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Image Hashes in DB</div>
+                        <div class="stat-value success" id="sgStatFlagged">-</div>
+                    </div>
+                </div>
+
+                <!-- Filter bar -->
+                <div style="display:flex; gap:10px; margin-bottom:1rem; flex-wrap:wrap; align-items:center;">
+                    <select id="sgStatusFilter" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <button class="btn" onclick="loadSlabGuardQueue()" style="padding:6px 16px;font-size:0.85rem;">Refresh</button>
+                    <span id="sgQueueCount" style="color:var(--text-muted);font-size:0.85rem;"></span>
+                </div>
+
+                <!-- Queue table -->
+                <div class="table-container">
+                    <table class="data-table" id="sgTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>eBay Listing</th>
+                                <th>Risk Score</th>
+                                <th>Signals</th>
+                                <th>Submitted By</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sgBody">
+                            <tr><td colspan="7" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Review modal -->
+            <div id="sgModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;">
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:680px;width:90%;max-height:90vh;overflow-y:auto;">
+                    <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                        🛡️ Review Submission <span id="sgModalId" style="color:var(--text-muted);font-size:0.85rem;"></span>
+                    </h3>
+
+                    <!-- Listing preview -->
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">LISTING URL</div>
+                        <a id="sgModalUrl" href="#" target="_blank" style="color:var(--primary);word-break:break-all;font-size:0.9rem;"></a>
+                    </div>
+
+                    <!-- eBay listing embedded preview button -->
+                    <div style="margin-bottom:16px;">
+                        <button onclick="sgOpenListing()" class="btn" style="background:var(--bg-card-hover);border:1px solid var(--border);">
+                            🔗 Open eBay Listing in New Tab
+                        </button>
+                        <span style="font-size:0.8rem;color:var(--text-muted);margin-left:10px;">Review the live listing before deciding</span>
+                    </div>
+
+                    <!-- Signals -->
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">RISK SIGNALS</div>
+                        <div id="sgModalSignals" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                    </div>
+
+                    <!-- Submitter info -->
+                    <div style="margin-bottom:16px;padding:10px 14px;background:var(--bg-dark);border-radius:8px;font-size:0.85rem;">
+                        <span style="color:var(--text-muted);">Submitted by: </span>
+                        <span id="sgModalSubmitter" style="color:var(--text-primary);"></span>
+                        <span style="color:var(--text-muted);"> · Account age: </span>
+                        <span id="sgModalAccountAge" style="color:var(--text-primary);"></span>
+                        <span style="color:var(--text-muted);"> · Risk score: </span>
+                        <span id="sgModalRiskScore" style="color:var(--warning);font-weight:600;"></span>
+                    </div>
+
+                    <!-- Review note -->
+                    <div style="margin-bottom:20px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">REVIEW NOTE (optional)</div>
+                        <textarea id="sgModalNote" rows="2" placeholder="Optional note about this decision..."
+                            style="width:100%;background:var(--bg-dark);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:10px;font-family:inherit;font-size:0.9rem;resize:vertical;"></textarea>
+                    </div>
+
+                    <!-- Approve / Reject / Cancel -->
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button onclick="sgApprove()" class="btn" style="background:#dc2626;flex:1;">
+                            ✅ Approve — Add to Scam DB
+                        </button>
+                        <button onclick="sgReject()" class="btn" style="background:var(--bg-card-hover);border:1px solid var(--border);flex:1;">
+                            ❌ Reject — Not a Scam
+                        </button>
+                        <button onclick="sgCloseModal()" class="btn" style="background:transparent;border:1px solid var(--border);">
+                            Cancel
+                        </button>
+                    </div>
+
+                    <div id="sgModalStatus" style="margin-top:12px;font-size:0.85rem;color:var(--text-muted);text-align:center;"></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div class="toast" id="toast"></div>
@@ -593,6 +714,8 @@
             loadUsage();
             loadWaitlist();
             loadFeedback();
+            loadSlabGuardStats();
+            loadSlabGuardQueue();
         }
 
         async function loadStats() {
@@ -1113,6 +1236,197 @@
                 showToast('Failed to create code', 'error');
             }
         }
+
+        // ═══════════════════════════════════════════════════════
+        // SLABGUARD — Scam Review Queue
+        // ═══════════════════════════════════════════════════════
+
+        let sgCurrentSubmission = null;
+
+        async function loadSlabGuardStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('sgStatPending').textContent  = data.pending ?? '-';
+                    document.getElementById('sgStatApproved').textContent = data.approved ?? '-';
+                    document.getElementById('sgStatRejected').textContent = data.rejected ?? '-';
+                    document.getElementById('sgStatFlagged').textContent  = data.flagged_images ?? '-';
+                }
+            } catch (e) {
+                console.error('[SlabGuard] Stats error:', e);
+            }
+        }
+
+        async function loadSlabGuardQueue() {
+            const status = document.getElementById('sgStatusFilter').value;
+            const body = document.getElementById('sgBody');
+            body.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div>Loading...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/queue?status=${status}&limit=100`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                const subs = data.submissions || [];
+                document.getElementById('sgQueueCount').textContent = `${subs.length} ${status} submission${subs.length !== 1 ? 's' : ''}`;
+
+                if (subs.length === 0) {
+                    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">No ${status} submissions</td></tr>`;
+                    return;
+                }
+
+                body.innerHTML = subs.map(s => {
+                    const signalKeys = s.signals ? Object.keys(s.signals).filter(k => s.signals[k]) : [];
+                    const signalPills = signalKeys.slice(0, 4).map(k =>
+                        `<span style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);border-radius:4px;padding:2px 6px;font-size:0.7rem;">${k.replace(/_/g,' ')}</span>`
+                    ).join(' ');
+
+                    const riskColor = s.risk_score >= 60 ? 'var(--error)' : s.risk_score >= 30 ? 'var(--warning)' : 'var(--success)';
+                    const statusBadge = s.status === 'pending'
+                        ? `<span style="color:var(--warning);">⏳ pending</span>`
+                        : s.status === 'approved'
+                        ? `<span style="color:var(--error);">🚨 approved</span>`
+                        : `<span style="color:var(--text-muted);">✗ rejected</span>`;
+
+                    const actions = s.status === 'pending'
+                        ? `<button onclick="sgOpenModal(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn" style="padding:4px 10px;font-size:0.78rem;">Review →</button>`
+                        : `<span style="color:var(--text-muted);font-size:0.8rem;">${s.reviewer_email ? `by ${s.reviewer_email}` : ''}</span>`;
+
+                    return `<tr>
+                        <td style="color:var(--text-muted);font-size:0.8rem;">#${s.id}</td>
+                        <td>
+                            <a href="${s.ebay_url}" target="_blank" style="color:var(--primary);font-size:0.85rem;">Item ${s.ebay_item_id}</a>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">${statusBadge}</div>
+                        </td>
+                        <td style="color:${riskColor};font-weight:700;font-size:1.1rem;">${s.risk_score}</td>
+                        <td style="max-width:200px;">${signalPills}${signalKeys.length > 4 ? `<span style="color:var(--text-muted);font-size:0.7rem;"> +${signalKeys.length-4} more</span>` : ''}</td>
+                        <td style="font-size:0.8rem;">${s.submitter_email}<br><span style="color:var(--text-muted);">${s.submitter_account_age_days ?? '?'}d old acct</span></td>
+                        <td style="font-size:0.8rem;color:var(--text-muted);">${formatDate(s.created_at)}</td>
+                        <td>${actions}</td>
+                    </tr>`;
+                }).join('');
+
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="7" style="color:var(--error);padding:16px;">Error: ${e.message}</td></tr>`;
+            }
+        }
+
+        // Status filter triggers reload
+        document.getElementById('sgStatusFilter')?.addEventListener('change', loadSlabGuardQueue);
+
+        function sgOpenModal(sub) {
+            sgCurrentSubmission = sub;
+            document.getElementById('sgModalId').textContent = `#${sub.id}`;
+            document.getElementById('sgModalUrl').textContent = sub.ebay_url;
+            document.getElementById('sgModalUrl').href = sub.ebay_url;
+            document.getElementById('sgModalSubmitter').textContent = sub.submitter_email;
+            document.getElementById('sgModalAccountAge').textContent = `${sub.submitter_account_age_days ?? '?'} days`;
+            document.getElementById('sgModalRiskScore').textContent = sub.risk_score;
+            document.getElementById('sgModalNote').value = '';
+            document.getElementById('sgModalStatus').textContent = '';
+
+            // Build signal pills
+            const signalsDiv = document.getElementById('sgModalSignals');
+            const signals = sub.signals || {};
+            const keys = Object.keys(signals).filter(k => signals[k]);
+            if (keys.length) {
+                signalsDiv.innerHTML = keys.map(k => {
+                    const highRisk = ['zero_feedback','image_match'].includes(k);
+                    const color = highRisk ? '#fca5a5' : '#fde68a';
+                    const bg = highRisk ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)';
+                    const border = highRisk ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)';
+                    return `<span style="background:${bg};color:${color};border:1px solid ${border};border-radius:4px;padding:3px 9px;font-size:0.8rem;">${k.replace(/_/g,' ')}</span>`;
+                }).join('');
+            } else {
+                signalsDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No signals recorded</span>';
+            }
+
+            document.getElementById('sgModal').style.display = 'flex';
+        }
+
+        function sgCloseModal() {
+            document.getElementById('sgModal').style.display = 'none';
+            sgCurrentSubmission = null;
+        }
+
+        function sgOpenListing() {
+            if (sgCurrentSubmission) window.open(sgCurrentSubmission.ebay_url, '_blank');
+        }
+
+        async function sgApprove() {
+            if (!sgCurrentSubmission) return;
+            const note = document.getElementById('sgModalNote').value.trim();
+            const statusEl = document.getElementById('sgModalStatus');
+            statusEl.textContent = '⏳ Fetching image and computing hash…';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/${sgCurrentSubmission.id}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const hashMsg = data.phash_available
+                        ? `✅ Approved — image hash stored (${data.phash?.slice(0,12)}…)`
+                        : `⚠️ Approved — image hash unavailable (${data.image_fetch_error || 'unknown error'})`;
+                    showToast(hashMsg, 'success');
+                    sgCloseModal();
+                    loadSlabGuardQueue();
+                    loadSlabGuardStats();
+                } else {
+                    statusEl.textContent = `Error: ${data.error}`;
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                showToast('Approve failed', 'error');
+            }
+        }
+
+        async function sgReject() {
+            if (!sgCurrentSubmission) return;
+            const note = document.getElementById('sgModalNote').value.trim();
+            const statusEl = document.getElementById('sgModalStatus');
+            statusEl.textContent = '⏳ Rejecting…';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/${sgCurrentSubmission.id}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Submission rejected', 'success');
+                    sgCloseModal();
+                    loadSlabGuardQueue();
+                    loadSlabGuardStats();
+                } else {
+                    statusEl.textContent = `Error: ${data.error}`;
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                showToast('Reject failed', 'error');
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('sgModal')?.addEventListener('click', function(e) {
+            if (e.target === this) sgCloseModal();
+        });
 
         function formatDate(dateStr) {
             if (!dateStr) return '-';
