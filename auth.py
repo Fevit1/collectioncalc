@@ -336,16 +336,16 @@ def get_all_users(include_pending=True):
     try:
         if include_pending:
             cur.execute("""
-                SELECT id, email, created_at, email_verified, is_approved, is_admin, 
-                       approved_at, beta_code_used
-                FROM users 
+                SELECT id, email, created_at, email_verified, is_approved, is_admin,
+                       approved_at, beta_code_used, last_login, display_name
+                FROM users
                 ORDER BY created_at DESC
             """)
         else:
             cur.execute("""
                 SELECT id, email, created_at, email_verified, is_approved, is_admin,
-                       approved_at, beta_code_used
-                FROM users 
+                       approved_at, beta_code_used, last_login, display_name
+                FROM users
                 WHERE is_approved = TRUE
                 ORDER BY created_at DESC
             """)
@@ -641,14 +641,25 @@ def login(email, password):
             'pending_approval': True
         }
     
+    # Update last_login timestamp
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user['id'],))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception:
+        pass  # Don't block login if update fails
+
     # Generate JWT with admin/approval info
     token = generate_jwt(
-        user['id'], 
+        user['id'],
         user['email'],
         is_admin=user.get('is_admin', False),
         is_approved=user.get('is_approved', False)
     )
-    
+
     return {
         'success': True,
         'token': token,
