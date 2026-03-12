@@ -257,7 +257,7 @@ def check_listing():
         # ── Check 3: pHash image match ──
         if image_url and PHASH_AVAILABLE:
             try:
-                resp = http_requests.get(image_url, timeout=8)
+                resp = http_requests.get(image_url, timeout=3)
                 if resp.status_code == 200:
                     incoming_hash = _compute_phash(resp.content)
                     if incoming_hash:
