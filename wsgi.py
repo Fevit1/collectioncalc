@@ -253,6 +253,7 @@ from routes.signature_orchestrator import signatures_v2_bp, init_modules as sign
 from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
 from routes.marketplace import marketplace_bp, init_modules as marketplace_init_modules
 from routes.feedback import feedback_bp
+from routes.slabguard_routes import slabguard_bp, admin_slabguard_bp
 
 # Import imagehash for fingerprinting
 try:
@@ -328,6 +329,8 @@ app.register_blueprint(signatures_v2_bp)  # /api/signatures/v2/match, /api/signa
 app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content (legacy)
 app.register_blueprint(marketplace_bp) # /api/marketplace/platforms, /api/marketplace/generate-content
 app.register_blueprint(feedback_bp)    # /api/feedback/grading, /api/feedback/general, /api/admin/feedback
+app.register_blueprint(slabguard_bp)        # /api/slabguard/submit, /api/slabguard/check
+app.register_blueprint(admin_slabguard_bp)  # /api/admin/slabguard/*
 
 print("✅ All blueprints registered successfully!")
 
