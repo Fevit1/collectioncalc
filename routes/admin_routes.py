@@ -813,7 +813,7 @@ def api_admin_waitlist():
     try:
         # Get all entries
         cur.execute("""
-            SELECT id, email, interests, verified, created_at, verified_at, ip_address, invited, invited_at
+            SELECT id, email, interests, verified, created_at, verified_at, ip_address, invited, invited_at, registered, registered_at
             FROM waitlist
             ORDER BY created_at DESC
         """)
@@ -830,7 +830,9 @@ def api_admin_waitlist():
                 'verified_at': r['verified_at'].isoformat() if r['verified_at'] else None,
                 'ip_address': r['ip_address'],
                 'invited': r.get('invited', False) or False,
-                'invited_at': r['invited_at'].isoformat() if r.get('invited_at') else None
+                'invited_at': r['invited_at'].isoformat() if r.get('invited_at') else None,
+                'registered': r.get('registered', False) or False,
+                'registered_at': r['registered_at'].isoformat() if r.get('registered_at') else None
             })
 
         # Summary stats
@@ -838,6 +840,7 @@ def api_admin_waitlist():
         verified = sum(1 for e in entries if e['verified'])
         unverified = total - verified
         invited = sum(1 for e in entries if e['invited'])
+        registered = sum(1 for e in entries if e['registered'])
 
         return jsonify({
             'success': True,
@@ -846,7 +849,8 @@ def api_admin_waitlist():
                 'total': total,
                 'verified': verified,
                 'unverified': unverified,
-                'invited': invited
+                'invited': invited,
+                'registered': registered
             }
         })
     except Exception as e:

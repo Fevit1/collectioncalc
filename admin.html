@@ -206,6 +206,34 @@
             border-bottom: 1px solid var(--border);
         }
 
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .data-table th.sortable:hover {
+            color: var(--primary);
+        }
+
+        .data-table th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.3;
+            font-size: 0.75em;
+        }
+
+        .data-table th.sortable.sort-asc::after {
+            content: ' ▲';
+            opacity: 0.8;
+            color: var(--primary);
+        }
+
+        .data-table th.sortable.sort-desc::after {
+            content: ' ▼';
+            opacity: 0.8;
+            color: var(--primary);
+        }
+
         .data-table td {
             padding: 12px;
             border-bottom: 1px solid var(--border);
@@ -401,15 +429,15 @@
                     <table class="data-table" id="usersTable">
                         <thead>
                             <tr>
-                                <th>User</th>
-                                <th>Status</th>
-                                <th>Beta Code</th>
-                                <th>Collection</th>
-                                <th>Slab Guard</th>
-                                <th>API Calls</th>
-                                <th>AI Cost</th>
-                                <th>Last Active</th>
-                                <th>Joined</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 0, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 1, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 2, 'string')">Beta Code</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 3, 'number')">Collection</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 4, 'number')">Slab Guard</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 5, 'number')">API Calls</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 6, 'number')">AI Cost</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 7, 'date')">Last Active</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 8, 'date')">Joined</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -432,11 +460,11 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Code</th>
-                                <th>Note</th>
-                                <th>Uses</th>
-                                <th>Status</th>
-                                <th>Created</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 0, 'string')">Code</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 1, 'string')">Note</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 2, 'number')">Uses</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 3, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 4, 'date')">Created</th>
                             </tr>
                         </thead>
                         <tbody id="codesBody">
@@ -455,11 +483,11 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>Endpoint</th>
-                                <th>User</th>
-                                <th>Device</th>
-                                <th>Error</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 0, 'date')">Time</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 1, 'string')">Endpoint</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 2, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 3, 'string')">Device</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 4, 'string')">Error</th>
                             </tr>
                         </thead>
                         <tbody id="errorsBody">
@@ -487,17 +515,18 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Invited</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 0, 'string')">Email</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 1, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 2, 'string')">Invited</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 3, 'string')">Registered</th>
                                 <th>Interests</th>
-                                <th>Signed Up</th>
-                                <th>Verified At</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 5, 'date')">Signed Up</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 6, 'date')">Verified At</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="waitlistBody">
-                            <tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                            <tr><td colspan="8" class="loading"><div class="spinner"></div>Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -529,12 +558,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>User</th>
-                                <th>Type</th>
-                                <th>Rating</th>
-                                <th>Comment</th>
-                                <th>Page</th>
-                                <th>Date</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 0, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 1, 'string')">Type</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 2, 'string')">Rating</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 3, 'string')">Comment</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 4, 'string')">Page</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 5, 'date')">Date</th>
                             </tr>
                         </thead>
                         <tbody id="feedbackBody">
@@ -586,12 +615,12 @@
                     <table class="data-table" id="sgTable">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>eBay Listing</th>
-                                <th>Risk Score</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 0, 'number')">#</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 1, 'string')">eBay Listing</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 2, 'number')">Risk Score</th>
                                 <th>Signals</th>
-                                <th>Submitted By</th>
-                                <th>Submitted</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 4, 'string')">Submitted By</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 5, 'date')">Submitted</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -974,12 +1003,12 @@
                 // Update stats card
                 if (data.success && data.stats) {
                     document.getElementById('statWaitlist').textContent = data.stats.total;
-                    document.getElementById('statWaitlistSub').textContent = `${data.stats.verified} verified · ${data.stats.invited} invited · ${data.stats.unverified} pending`;
+                    document.getElementById('statWaitlistSub').textContent = `${data.stats.verified} verified · ${data.stats.invited} invited · ${data.stats.registered} registered · ${data.stats.unverified} pending`;
                 }
 
                 const tbody = document.getElementById('waitlistBody');
                 if (!data.success || !data.entries.length) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No waitlist signups yet</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No waitlist signups yet</td></tr>';
                     return;
                 }
 
@@ -996,13 +1025,20 @@
                                 ? `<span class="status-badge status-approved">Invited</span><br><small style="color:#a1a1aa;">${formatDate(e.invited_at)}</small>`
                                 : '<span class="status-badge status-pending">Not Invited</span>'}
                         </td>
+                        <td>
+                            ${e.registered
+                                ? `<span class="status-badge status-approved">Registered</span><br><small style="color:#a1a1aa;">${formatDate(e.registered_at)}</small>`
+                                : '-'}
+                        </td>
                         <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
                         <td>${formatDate(e.created_at)}</td>
                         <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
                         <td class="action-btns">
-                            ${e.invited
-                                ? '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Invited</button>'
-                                : `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`}
+                            ${e.registered
+                                ? '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Registered</button>'
+                                : e.invited
+                                    ? '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Invited</button>'
+                                    : `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`}
                         </td>
                     </tr>
                 `).join('');
@@ -1441,6 +1477,55 @@
             if (!dateStr) return '-';
             const d = new Date(dateStr);
             return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        // Generic sortable table function
+        const sortState = {};
+        function sortTable(tbodyId, colIndex, dataType) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            // Toggle sort direction
+            const key = `${tbodyId}-${colIndex}`;
+            sortState[key] = sortState[key] === 'asc' ? 'desc' : 'asc';
+            const dir = sortState[key];
+
+            // Update header indicators
+            const thead = tbody.closest('table').querySelector('thead');
+            thead.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            const ths = thead.querySelectorAll('th');
+            if (ths[colIndex]) {
+                ths[colIndex].classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+
+            // Get rows (skip detail/expandable rows)
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('detail-row'));
+
+            rows.sort((a, b) => {
+                const cellA = a.cells[colIndex]?.textContent.trim() || '';
+                const cellB = b.cells[colIndex]?.textContent.trim() || '';
+
+                let valA, valB;
+                if (dataType === 'number') {
+                    valA = parseFloat(cellA.replace(/[^0-9.\-]/g, '')) || 0;
+                    valB = parseFloat(cellB.replace(/[^0-9.\-]/g, '')) || 0;
+                } else if (dataType === 'date') {
+                    valA = cellA === '-' ? 0 : new Date(cellA).getTime() || 0;
+                    valB = cellB === '-' ? 0 : new Date(cellB).getTime() || 0;
+                } else {
+                    valA = cellA.toLowerCase();
+                    valB = cellB.toLowerCase();
+                }
+
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
         }
 
         function showToast(message, type = 'success') {

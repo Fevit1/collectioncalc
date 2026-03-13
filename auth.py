@@ -593,7 +593,18 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
         # Mark beta code as used
         if beta_code:
             use_beta_code(beta_code, user_id)
-        
+
+        # If this email is on the waitlist, mark as registered
+        try:
+            wl_conn = get_db_connection()
+            wl_cur = wl_conn.cursor()
+            wl_cur.execute("UPDATE waitlist SET registered = TRUE, registered_at = NOW() WHERE email = %s", (email,))
+            wl_conn.commit()
+            wl_cur.close()
+            wl_conn.close()
+        except Exception:
+            pass  # Don't block signup if waitlist update fails
+
         # Send verification email
         send_verification_email(email, verification_token)
         
