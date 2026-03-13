@@ -1087,6 +1087,14 @@
                         
                         <!-- Generate Button -->
                         <div class="grading-actions">
+                            <!-- Signature ID Coming Soon -->
+                            <div id="signatureCheckboxRow" style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem; opacity: 0.45; cursor: not-allowed;" title="Coming soon — signature identification will use AI to detect and attribute creator signatures on your cover">
+                                <input type="checkbox" id="identifySignaturesChk" disabled style="width: 16px; height: 16px; cursor: not-allowed; accent-color: var(--accent, #6c63ff);">
+                                <label for="identifySignaturesChk" style="font-size: 0.875rem; color: var(--text-secondary); cursor: not-allowed; user-select: none;">
+                                    Identify signatures
+                                    <span style="font-size: 0.75rem; font-weight: 600; background: var(--border-color, #e0e0e0); color: var(--text-muted, #888); border-radius: 4px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.03em; vertical-align: middle;">COMING SOON</span>
+                                </label>
+                            </div>
                             <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
                                 Generate Slab Report →
                             </button>
