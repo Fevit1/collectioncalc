@@ -1012,36 +1012,34 @@
                     return;
                 }
 
-                tbody.innerHTML = data.entries.map(e => `
-                    <tr>
+                tbody.innerHTML = data.entries.map(e => {
+                    // Determine the funnel stage
+                    let statusBadge, actionBtn;
+                    if (e.registered) {
+                        statusBadge = `<span class="status-badge status-approved">Registered</span>`;
+                        actionBtn = '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Registered</button>';
+                    } else if (e.invited) {
+                        statusBadge = `<span class="status-badge" style="background:#f59e0b22;color:#f59e0b;">Invited</span>`;
+                        actionBtn = '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Invited</button>';
+                    } else if (e.verified) {
+                        statusBadge = `<span class="status-badge status-approved">Verified</span>`;
+                        actionBtn = `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`;
+                    } else {
+                        statusBadge = `<span class="status-badge status-pending">Pending</span>`;
+                        actionBtn = `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`;
+                    }
+
+                    return `<tr>
                         <td>${e.email}</td>
-                        <td>
-                            ${e.verified
-                                ? '<span class="status-badge status-approved">Verified</span>'
-                                : '<span class="status-badge status-pending">Pending</span>'}
-                        </td>
-                        <td>
-                            ${e.invited
-                                ? `<span class="status-badge status-approved">Invited</span><br><small style="color:#a1a1aa;">${formatDate(e.invited_at)}</small>`
-                                : '<span class="status-badge status-pending">Not Invited</span>'}
-                        </td>
-                        <td>
-                            ${e.registered
-                                ? `<span class="status-badge status-approved">Registered</span><br><small style="color:#a1a1aa;">${formatDate(e.registered_at)}</small>`
-                                : '-'}
-                        </td>
+                        <td>${statusBadge}</td>
+                        <td style="white-space:nowrap;">${e.invited ? formatDate(e.invited_at) : '-'}</td>
+                        <td style="white-space:nowrap;">${e.registered ? formatDate(e.registered_at) : '-'}</td>
                         <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
-                        <td>${formatDate(e.created_at)}</td>
-                        <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
-                        <td class="action-btns">
-                            ${e.registered
-                                ? '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Registered</button>'
-                                : e.invited
-                                    ? '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Invited</button>'
-                                    : `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`}
-                        </td>
-                    </tr>
-                `).join('');
+                        <td style="white-space:nowrap;">${formatDate(e.created_at)}</td>
+                        <td style="white-space:nowrap;">${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
+                        <td class="action-btns">${actionBtn}</td>
+                    </tr>`;
+                }).join('');
             } catch (e) {
                 console.error('Failed to load waitlist:', e);
             }
