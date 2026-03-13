@@ -234,10 +234,16 @@
             color: var(--primary);
         }
 
+        .data-table th, .data-table td {
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
         .data-table td {
             padding: 12px;
             border-bottom: 1px solid var(--border);
             color: var(--text-secondary);
+            font-size: 0.82rem;
         }
 
         .data-table tr:hover td { background: var(--bg-card-hover); }
@@ -1032,11 +1038,11 @@
                     return `<tr>
                         <td>${e.email}</td>
                         <td>${statusBadge}</td>
-                        <td style="white-space:nowrap;">${e.invited ? formatDate(e.invited_at) : '-'}</td>
-                        <td style="white-space:nowrap;">${e.registered ? formatDate(e.registered_at) : '-'}</td>
+                        <td>${e.invited ? formatDate(e.invited_at) : '-'}</td>
+                        <td>${e.registered ? formatDate(e.registered_at) : '-'}</td>
                         <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
-                        <td style="white-space:nowrap;">${formatDate(e.created_at)}</td>
-                        <td style="white-space:nowrap;">${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
+                        <td>${formatDate(e.created_at)}</td>
+                        <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
                         <td class="action-btns">${actionBtn}</td>
                     </tr>`;
                 }).join('');
@@ -1474,7 +1480,11 @@
         function formatDate(dateStr) {
             if (!dateStr) return '-';
             const d = new Date(dateStr);
-            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const month = d.getMonth() + 1;
+            const day = d.getDate();
+            const yr = String(d.getFullYear()).slice(2);
+            const time = d.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+            return `${month}/${day}/${yr} ${time}`;
         }
 
         // Generic sortable table function
