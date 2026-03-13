@@ -55,6 +55,18 @@ def migrate():
     else:
         print("  EXISTS: waitlist table (no changes needed)")
 
+    # Add invited tracking columns (safe to re-run)
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'waitlist' AND column_name = 'invited'
+    """)
+    if not cur.fetchone():
+        cur.execute("ALTER TABLE waitlist ADD COLUMN invited BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE waitlist ADD COLUMN invited_at TIMESTAMPTZ")
+        print("  ADDED: invited, invited_at columns to waitlist")
+    else:
+        print("  EXISTS: invited columns (no changes needed)")
+
     conn.commit()
     cur.close()
     conn.close()

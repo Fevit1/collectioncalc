@@ -813,7 +813,7 @@ def api_admin_waitlist():
     try:
         # Get all entries
         cur.execute("""
-            SELECT id, email, interests, verified, created_at, verified_at, ip_address
+            SELECT id, email, interests, verified, created_at, verified_at, ip_address, invited, invited_at
             FROM waitlist
             ORDER BY created_at DESC
         """)
@@ -828,13 +828,16 @@ def api_admin_waitlist():
                 'verified': r['verified'],
                 'created_at': r['created_at'].isoformat() if r['created_at'] else None,
                 'verified_at': r['verified_at'].isoformat() if r['verified_at'] else None,
-                'ip_address': r['ip_address']
+                'ip_address': r['ip_address'],
+                'invited': r.get('invited', False) or False,
+                'invited_at': r['invited_at'].isoformat() if r.get('invited_at') else None
             })
 
         # Summary stats
         total = len(entries)
         verified = sum(1 for e in entries if e['verified'])
         unverified = total - verified
+        invited = sum(1 for e in entries if e['invited'])
 
         return jsonify({
             'success': True,
@@ -842,7 +845,8 @@ def api_admin_waitlist():
             'stats': {
                 'total': total,
                 'verified': verified,
-                'unverified': unverified
+                'unverified': unverified,
+                'invited': invited
             }
         })
     except Exception as e:
@@ -869,6 +873,16 @@ def api_admin_waitlist_invite():
         # Send invite email via Resend
         if not RESEND_API_KEY:
             print(f"[DEV MODE] Invite email for {email} with code {code}")
+            # Still mark as invited in dev mode
+            database_url = os.environ.get('DATABASE_URL')
+            dev_conn = psycopg2.connect(database_url)
+            dev_cur = dev_conn.cursor()
+            try:
+                dev_cur.execute("UPDATE waitlist SET invited = TRUE, invited_at = NOW() WHERE email = %s", (email,))
+                dev_conn.commit()
+            finally:
+                dev_cur.close()
+                dev_conn.close()
             return jsonify({'success': True, 'code': code, 'email_sent': False, 'dev_mode': True})
 
         resend.Emails.send({
@@ -924,6 +938,17 @@ def api_admin_waitlist_invite():
                 </div>
             """
         })
+
+        # Mark waitlist entry as invited
+        database_url = os.environ.get('DATABASE_URL')
+        inv_conn = psycopg2.connect(database_url)
+        inv_cur = inv_conn.cursor()
+        try:
+            inv_cur.execute("UPDATE waitlist SET invited = TRUE, invited_at = NOW() WHERE email = %s", (email,))
+            inv_conn.commit()
+        finally:
+            inv_cur.close()
+            inv_conn.close()
 
         return jsonify({'success': True, 'code': code, 'email_sent': True})
     except Exception as e:
