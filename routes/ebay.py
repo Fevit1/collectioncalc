@@ -11,6 +11,7 @@ ebay_bp = Blueprint('ebay', __name__, url_prefix='/api/ebay')
 # Import auth decorators
 from auth import require_auth, require_approved
 from admin import log_api_usage
+from models import SONNET
 
 # Module imports (will be set by wsgi.py)
 get_auth_url = None
@@ -217,7 +218,7 @@ def api_generate_description():
         data.get('price', 0)
     )
     if result.get('success'):
-        log_api_usage(g.user_id, '/api/ebay/generate-description', 'claude-sonnet-4-20250514',
+        log_api_usage(g.user_id, '/api/ebay/generate-description', SONNET,
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
     return jsonify(result)
 

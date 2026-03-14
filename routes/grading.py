@@ -13,6 +13,7 @@ grading_bp = Blueprint('grading', __name__, url_prefix='/api')
 # These will be imported from wsgi.py when needed
 from auth import require_auth, require_approved
 from admin import log_api_usage
+from models import SONNET
 
 # Module imports with fallbacks (set by wsgi.py)
 get_valuation_with_ebay = None
@@ -62,7 +63,7 @@ def api_valuate():
     
     # Log API usage if result indicates web search was used
     if isinstance(result, dict) and result.get('source') == 'web_search':
-        log_api_usage(g.user_id, '/api/valuate', 'claude-sonnet-4-20250514', 
+        log_api_usage(g.user_id, '/api/valuate', SONNET, 
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
     
     # Convert dataclass to dict if needed
@@ -173,7 +174,7 @@ def api_extract():
     result = extract_from_base64(image_data, media_type)
     
     if result.get('success'):
-        log_api_usage(g.user_id, '/api/extract', 'claude-sonnet-4-20250514',
+        log_api_usage(g.user_id, '/api/extract', SONNET,
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
     
     return jsonify(result)
@@ -398,7 +399,7 @@ def api_grade():
     def run_grading():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
-            model='claude-sonnet-4-20250514',
+            model=SONNET,
             max_tokens=2048,
             temperature=0,
             messages=[{
@@ -439,7 +440,7 @@ def api_grade():
             result = parse_multi_run_responses(raw_responses)
 
         # Log total API usage
-        log_api_usage(g.user_id, '/api/grade', 'claude-sonnet-4-20250514',
+        log_api_usage(g.user_id, '/api/grade', SONNET,
                       total_input_tokens, total_output_tokens)
 
         # Increment grading counter for usage cap

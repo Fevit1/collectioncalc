@@ -12,6 +12,7 @@ import time
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
+from models import SONNET
 
 # Optional: Anthropic for NLQ
 try:
@@ -305,7 +306,7 @@ Tables in the CollectionCalc database:
    - id (SERIAL PRIMARY KEY)
    - user_id (INTEGER FK users.id)
    - endpoint (TEXT)
-   - model (TEXT) - 'claude-sonnet-4-20250514', etc.
+   - model (TEXT) - SONNET, etc.
    - input_tokens (INTEGER)
    - output_tokens (INTEGER)
    - estimated_cost_usd (NUMERIC)
@@ -419,7 +420,7 @@ Return ONLY the SQL query, nothing else."""
         start_time = time.time()
         
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=SONNET,
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}]
         )

@@ -7,6 +7,7 @@ ComicConnect, MyComicShop, COMC, Hip Comics
 
 import os
 import anthropic
+from models import SONNET
 
 
 # Platform configurations
@@ -223,7 +224,7 @@ Respond in this exact format:
 {response_format}"""
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=SONNET,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )

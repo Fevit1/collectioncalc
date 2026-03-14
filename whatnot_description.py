@@ -5,6 +5,7 @@ Generates listing content and show prep notes optimized for Whatnot live auction
 
 import os
 import anthropic
+from models import SONNET
 
 
 def generate_whatnot_content(title, issue, grade, price,
@@ -89,7 +90,7 @@ SHOW_NOTES:
 [your show notes]"""
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=SONNET,
             max_tokens=600,
             messages=[{"role": "user", "content": prompt}]
         )

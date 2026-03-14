@@ -5,6 +5,7 @@ Generates professional, eBay-compliant descriptions for comic book listings.
 
 import os
 import anthropic
+from models import SONNET
 
 # eBay description constraints
 MAX_DESCRIPTION_LENGTH = 4000
@@ -88,7 +89,7 @@ Do NOT include:
 Generate only the description, nothing else."""
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=SONNET,
             max_tokens=200,
             messages=[{"role": "user", "content": prompt}]
         )

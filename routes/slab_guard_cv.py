@@ -405,6 +405,7 @@ LPQ_WIN_SIZE = 5               # STFT window size for LPQ computation
 
 # Session 53: Shared auto-orient — single source of truth in fingerprint_utils.py
 from routes.fingerprint_utils import auto_orient_pil as _auto_orient_image
+from models import SONNET
 
 
 def _download_image(url, timeout=15):
@@ -1305,7 +1306,7 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
 def compare_covers_with_vision(ref_url, test_url,
                                 extra_ref_photos=None,
                                 anthropic_api_key=None,
-                                model="claude-sonnet-4-20250514",
+                                model=SONNET,
                                 timeout=15,
                                 marketplace_mode=False):
     """

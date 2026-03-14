@@ -12,6 +12,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from auth import require_auth, require_approved
+from models import SONNET_NEW, HAIKU
 
 # Create blueprint
 signatures_bp = Blueprint('signatures', __name__, url_prefix='/api/signatures')
@@ -219,7 +220,7 @@ Rules:
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model=SONNET_NEW,
             system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
             max_tokens=2000,
             messages=[{"role": "user", "content": content}]
@@ -451,7 +452,7 @@ RULES:
     ]
 
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=HAIKU,
         max_tokens=800,
         messages=[{"role": "user", "content": content}]
     )
@@ -580,7 +581,7 @@ RULES:
 """})
 
     response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model=SONNET_NEW,
         system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
         max_tokens=2000,
         messages=[{"role": "user", "content": content}]

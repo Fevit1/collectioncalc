@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import List, Optional
 import anthropic
+from models import SONNET
 
 # Try to import psycopg2 for PostgreSQL
 try:
@@ -748,7 +749,7 @@ IMPORTANT:
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model=SONNET,
             max_tokens=1024,
             timeout=60.0,
             tools=[{

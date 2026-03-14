@@ -19,6 +19,7 @@ from functools import wraps
 from flask import Blueprint, jsonify, request, g
 from auth import require_auth, require_approved
 from admin import log_api_usage
+from models import SONNET
 
 # Create blueprint
 vision_bp = Blueprint('vision', __name__, url_prefix='/api/vision')
@@ -276,7 +277,7 @@ def analyze_vision():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
         response = client.messages.create(
-            model='claude-sonnet-4-20250514',
+            model=SONNET,
             max_tokens=600,
             temperature=0,  # Deterministic for consistent grading
             messages=[{
@@ -301,7 +302,7 @@ def analyze_vision():
         # Log token usage
         input_tokens = response.usage.input_tokens
         output_tokens = response.usage.output_tokens
-        log_api_usage(g.user_id, '/api/vision/analyze', 'claude-sonnet-4-20250514',
+        log_api_usage(g.user_id, '/api/vision/analyze', SONNET,
                       input_tokens, output_tokens)
 
         # Parse response

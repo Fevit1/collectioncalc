@@ -25,6 +25,7 @@ import base64
 import argparse
 import random
 from pathlib import Path
+from models import SONNET_NEW
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -259,7 +260,7 @@ def match_signature(unknown_image_path, api_key=None, verbose=True, exclude_imag
         print("Calling Claude Vision API...")
 
     response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model=SONNET_NEW,
         system=SIGNATURE_MATCHING_SYSTEM_PROMPT,
         max_tokens=2000,
         messages=[{

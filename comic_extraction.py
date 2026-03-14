@@ -8,6 +8,7 @@ import base64
 import json
 import requests
 from io import BytesIO
+from models import HAIKU
 
 # Try to import barcode scanning library
 try:
@@ -363,7 +364,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 "anthropic-version": "2023-06-01"
             },
             json={
-                "model": "claude-haiku-4-5-20251001",
+                "model": HAIKU,
                 "max_tokens": 1000,
                 "temperature": 0,
                 "messages": [{

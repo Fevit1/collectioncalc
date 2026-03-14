@@ -32,6 +32,7 @@ from flask import Blueprint, jsonify, request, g
 from psycopg2.extras import RealDictCursor
 
 from auth import require_auth, require_approved
+from models import OPUS
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def init_modules(anthropic_key, anthropic_lib=None, anthropic_avail=None):
 # Configuration
 # ---------------------------------------------------------------------------
 
-OPUS_MODEL = "claude-opus-4-6"
+OPUS_MODEL = OPUS
 MAX_CANDIDATES = 15          # Pre-filter target before vision calls
 REFERENCE_IMAGES_PER_CREATOR = 4
 PASS_TEMPERATURES = [0.2, 0.5, 0.7]
