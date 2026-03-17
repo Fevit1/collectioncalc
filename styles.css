@@ -1206,20 +1206,19 @@
             display: flex;
             gap: 0;
             margin-bottom: 20px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            padding: 4px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .auth-tab {
             flex: 1;
             padding: 10px;
             border: none;
+            border-bottom: 2px solid transparent;
             background: transparent;
             color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
-            border-radius: 6px;
             transition: all 0.2s;
             width: auto;
         }
@@ -1229,8 +1228,9 @@
             box-shadow: none;
         }
         .auth-tab.active {
-            background: var(--brand-gradient);
+            background: transparent;
             color: white;
+            border-bottom: 2px solid #ef4444;
         }
         .auth-form {
             display: none;
