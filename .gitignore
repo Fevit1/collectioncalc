@@ -65,3 +65,4 @@ PhotosofPhotosTest/
 # USPTO receipts and screenshots
 docs/business/N417.PYMT*
 docs/business/patentapplicationsingatures*
+.claude/
