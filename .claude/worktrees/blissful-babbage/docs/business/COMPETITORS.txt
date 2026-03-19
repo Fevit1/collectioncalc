@@ -1,0 +1,288 @@
+﻿# CollectionCalc Competitive Analysis
+
+*Last updated: January 31, 2026*
+
+## Quick Comparison Matrix
+
+| Feature | CollectionCalc | CovrPrice | GoCollect | Key Collector | CLZ | ComicMint AI | Tabi |
+|---------|---------------|-----------|-----------|---------------|-----|--------------|------|
+| **AI Grading** | ✅ Multi-photo | ❌ | ❌ | ❌ | ❌ | ✅ Single photo | ✅ Single photo |
+| **"Should I Slab?" ROI** | ✅ **UNIQUE** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Real Sales Data** | ✅ eBay + Whatnot | ✅ Multi-marketplace | ✅ CGC census | ❌ Estimates | Via CovrPrice | ❌ | ⚠️ "Wildly off" |
+| **Raw + Slabbed Values** | ✅ | ✅ | ⚠️ CGC focus | ❌ | Via CovrPrice | ❌ | ⚠️ |
+| **Collection Management** | ✅ | ✅ | ✅ | ✅ | ✅ Best-in-class | ❌ | ✅ |
+| **Cover Scanning/ID** | ✅ AI Vision | ❌ | ❌ | ✅ Premium | ✅ | ❌ | ✅ |
+| **Key Issue Database** | ❌ | ❌ | ✅ | ✅ **Best** | ✅ | ❌ | ❌ |
+| **Web App** | ✅ | ✅ | ✅ | ❌ Mobile only | ✅ | ✅ | ❌ Mobile only |
+| **Free Tier** | ✅ | Limited | Limited | ✅ Basic | 100 comics | Limited | ~40 comics |
+| **Pricing** | TBD | $3-7/mo | ~$90/yr | $5-10/mo | $20/yr + $90 CovrPrice | Credits | Subscription |
+
+---
+
+## Detailed Competitor Profiles
+
+### 1. CovrPrice
+**Website:** covrprice.com  
+**Primary Focus:** Valuation/pricing data  
+**Pricing:** Free (5/day), $3/mo, $7/mo premium
+
+**Strengths:**
+- Real sales data from multiple marketplaces (not just eBay)
+- Both raw AND slabbed values (unique vs GoCollect)
+- Clean, modern UI
+- Integrates with CLZ Comics app
+- Daily sales capture (tens of thousands)
+
+**Weaknesses:**
+- Some users report slow/bloated performance
+- Accuracy questions on CGC forums
+- No AI grading
+- No "should I slab?" analysis
+
+**User Complaints:**
+- "Generally slow and bloated"
+- Accuracy concerns vs actual sales
+- Subscription required for meaningful use
+
+**Threat Level:** MEDIUM - Good valuation data, but no AI grading or ROI analysis
+
+---
+
+### 2. GoCollect
+**Website:** comics.gocollect.com  
+**Primary Focus:** CGC/graded comic valuations  
+**Pricing:** ~$90/year
+
+**Strengths:**
+- Strong focus on CGC census data
+- Historical price trends and charts
+- Portfolio tracking
+- Market analysis tools
+
+**Weaknesses:**
+- CGC-focused = limited raw comic coverage
+- Lost CLZ integration (partnership ended Oct 2021)
+- No mobile app
+- No AI grading
+- Website-only
+
+**User Complaints:**
+- "Worth it?" debates on forums
+- API issues caused CLZ partnership collapse
+- Limited raw book coverage
+
+**Threat Level:** LOW-MEDIUM - Different market (investors/high-end), not collectors
+
+---
+
+### 3. Key Collector Comics
+**Website:** keycollectorcomics.com  
+**Primary Focus:** Key issue identification and speculation  
+**Pricing:** Free basic, Premium $5-10/mo
+
+**Strengths:**
+- **Best key issue database** (~30,000+ flagged keys)
+- "Hot keys" and speculation alerts
+- Daily updated content
+- Cover image search (premium)
+- Strong community/engagement
+- Endorsed by Alex Ross, Neal Adams
+
+**Weaknesses:**
+- "Price guide doesn't accurately reflect market" (multiple reviews)
+- Mobile-only (no web app)
+- Speculation-focused = can drive artificial demand
+- No AI grading
+- No actual sales data
+
+**User Complaints:**
+- "Not good for pricing comics" (Google Play)
+- Prices don't reflect real market
+- Premium required for best features
+
+**Threat Level:** MEDIUM - Great for key ID, weak on valuation (our strength)
+
+---
+
+### 4. CLZ Comics
+**Website:** clz.com/comics  
+**Primary Focus:** Collection management/cataloging  
+**Pricing:** $20/year + optional $90/year CovrPrice
+
+**Strengths:**
+- **Best-in-class collection management**
+- Barcode AND cover scanning
+- Massive comic database
+- Cross-device sync
+- Excellent customer support (praised repeatedly)
+- Desktop + mobile + web
+- 10+ years in market, loyal user base
+
+**Weaknesses:**
+- No native valuation (requires CovrPrice add-on = $90 extra)
+- No AI grading
+- "Windows 2005 vibes" (some users)
+- Cloud sync issues reported
+- No "should I slab?" analysis
+
+**User Complaints:**
+- Sync breaks weekly (some users)
+- Interface dated/confusing
+- Pricing add-on expensive ($90/yr for CovrPrice)
+
+**Threat Level:** HIGH - They dominate collection management. If they add AI grading, big threat.
+
+---
+
+### 5. ComicMint AI
+**Website:** comicmintai.com  
+**Primary Focus:** AI-powered grading  
+**Pricing:** Credit-based (1 credit = 1 grading)
+
+**Strengths:**
+- AI grading with CGC-style reports
+- Subgrade breakdown (spine, corners, surface, centering)
+- Instant results
+- Resale value estimates
+- Bulk grading support
+
+**Weaknesses:**
+- Single photo only (we do 4 photos = higher confidence)
+- No collection management
+- No real sales data backing valuations
+- No "should I slab?" ROI analysis
+- Credit-based = cost per grade
+
+**User Complaints:**
+- New entrant, limited reviews
+- Accuracy vs CGC unclear
+
+**Threat Level:** HIGH - Direct competitor on AI grading. We differentiate with multi-photo and ROI analysis.
+
+---
+
+### 6. Tabi Comic Collection
+**Website:** heytabi.com  
+**Developer:** DocuMind Corporation (aiden.le@juststrings.ai)  
+**Primary Focus:** Collection management + AI grading  
+**Pricing:** Free (~40 comics), then subscription
+
+**Strengths:**
+- AI cover scanning/identification
+- AI grading assessment
+- Collection management
+- Pull list / new releases
+- Audio recaps (unique novelty)
+- Slab scanning
+
+**Weaknesses:**
+- **"Prices are wildly off of real life values"** (multiple reviews)
+- Scanner accuracy issues ("Scanned Scooby, got Transformers")
+- Laggy UI after updates
+- Subscription bugs (paying but not getting Pro)
+- Mobile-only
+
+**User Complaints:**
+- "I'd rather have no prices than incredibly misleading prices"
+- "Scanner needs work"
+- "Laggy/stuttering scrolling"
+- Free trial not working properly
+
+**Threat Level:** MEDIUM - Similar AI approach, but their valuation weakness is our strength
+
+---
+
+## Universal Competitor Weaknesses (Our Opportunities)
+
+### 1. **Valuation Accuracy** 🎯
+Almost every competitor has complaints about pricing:
+- Tabi: "Wildly off"
+- Key Collector: "Doesn't accurately reflect market"
+- CovrPrice: Accuracy debates
+- GoCollect: CGC-only, misses raw market
+
+**Our edge:** Real eBay + Whatnot sales data, exponential recency weighting, outlier filtering
+
+### 2. **No ROI Analysis** 🎯
+**NOBODY does "Should I Slab?"**
+- Competitors show value, but don't calculate:
+  - Grading costs
+  - Slab premium by value tier
+  - Break-even analysis
+  - ROI recommendation
+
+**Our edge:** Patent pending multi-photo grading with economic recommendation
+
+### 3. **Single Photo Grading** 🎯
+AI competitors (ComicMint, Tabi) use single photo:
+- Can't see spine
+- Can't see back
+- Can't see centerfold
+- Lower confidence
+
+**Our edge:** 4-photo system = higher confidence, more defect detection
+
+### 4. **Raw Comic Coverage** 🎯
+GoCollect = CGC focused
+Most others = weak raw data
+
+**Our edge:** We value raw comics well, AND show slab premium
+
+### 5. **Mobile-Only Limitations** 🎯
+Key Collector, Tabi = mobile only
+Many collectors want desktop for serious work
+
+**Our edge:** Web-first, works everywhere
+
+---
+
+## Competitive Positioning
+
+### Our Unique Value Proposition
+**"The only tool that tells you IF you should grade, not just what it's worth"**
+
+1. **AI grading** (like ComicMint, Tabi) +
+2. **Real sales data** (like CovrPrice) +
+3. **ROI analysis** (unique) +
+4. **Multi-photo confidence** (unique)
+
+### Primary Competitors to Watch
+1. **CLZ** - If they add AI grading, serious threat
+2. **ComicMint AI** - Direct AI grading competitor
+3. **Tabi** - Similar AI approach, gaining users
+
+### Competitors We Can Ignore (For Now)
+- **GoCollect** - Different market (CGC investors)
+- **Key Collector** - Different focus (speculation/keys)
+
+---
+
+## Feature Roadmap Implications
+
+Based on competitor gaps, prioritize:
+
+1. ✅ **Valuation accuracy** - Already our focus, keep improving
+2. ✅ **"Should I Slab?"** - DONE, patent pending
+3. ⬜ **Key issue database** - Consider adding (Key Collector's strength)
+4. ⬜ **Pull list / new releases** - Consider adding (Tabi's feature)
+5. ⬜ **Better collection management** - CLZ is gold standard
+
+---
+
+## Appendix: Pricing Comparison
+
+| Service | Free Tier | Paid Tier |
+|---------|-----------|-----------|
+| CollectionCalc | TBD | TBD |
+| CovrPrice | 5 lookups/day | $3-7/month |
+| GoCollect | Limited | ~$90/year |
+| Key Collector | Basic features | $5-10/month |
+| CLZ | 100 comics | $20/year (+$90 CovrPrice) |
+| ComicMint AI | Limited credits | Credit packages |
+| Tabi | ~40 comics | Subscription |
+| GPA | None | ~$99/year |
+
+---
+
+*Note: This analysis is based on public information, app store reviews, and web research as of January 2026. Competitor features and pricing may change.*
+

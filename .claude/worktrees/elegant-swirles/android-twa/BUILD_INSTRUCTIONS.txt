@@ -1,0 +1,119 @@
+============================================================
+SLAB WORTHY - Google Play Store TWA Build Instructions
+============================================================
+
+WHAT THIS IS:
+A Trusted Web Activity (TWA) wrapper that makes slabworthy.com
+installable from the Google Play Store. It opens your PWA in
+Chrome without the browser bar — looks and feels like a native app.
+
+============================================================
+OPTION A: PWABuilder (Easiest — No Android Studio Required)
+============================================================
+
+1. Go to https://pwabuilder.com
+2. Enter: https://slabworthy.com
+3. Click "Package for stores" → "Android"
+4. It will generate a signed AAB (Android App Bundle)
+5. Download the AAB
+6. Upload to Google Play Console
+
+NOTE: PWABuilder generates its OWN signing key. You'll need to
+update .well-known/assetlinks.json with the SHA256 fingerprint
+from the PWABuilder-generated key (they provide it in the download).
+
+============================================================
+OPTION B: Android Studio (Full Control)
+============================================================
+
+1. Install Android Studio: https://developer.android.com/studio
+2. Open this folder (android-twa/) as an Android project
+3. Let Gradle sync (may take a few minutes first time)
+4. Build > Generate Signed Bundle/APK
+   - Choose AAB (Android App Bundle)
+   - Use keystore: slabworthy.keystore (in this folder)
+   - Keystore password: slabworthy2026
+   - Key alias: slabworthy
+   - Key password: slabworthy2026
+5. Build release AAB
+6. Upload to Google Play Console
+
+============================================================
+SIGNING KEY INFO
+============================================================
+
+Keystore: slabworthy.keystore
+Alias: slabworthy
+Passwords: slabworthy2026
+
+SHA256 Fingerprint:
+BF:42:7B:D0:80:BA:2D:AE:10:E6:A0:F1:33:90:F1:89:76:F6:6D:C9:55:6C:64:FB:60:EF:F7:15:6D:03:DC:A5
+
+⚠️  IMPORTANT: Change the keystore password before publishing!
+    keytool -storepasswd -keystore slabworthy.keystore
+    keytool -keypasswd -alias slabworthy -keystore slabworthy.keystore
+
+⚠️  IMPORTANT: Back up slabworthy.keystore somewhere safe!
+    If you lose this key, you can NEVER update the app on Google Play.
+
+============================================================
+DIGITAL ASSET LINKS (ALREADY DONE)
+============================================================
+
+File: .well-known/assetlinks.json (in website root)
+This tells Chrome that your Android app is authorized to
+open slabworthy.com as a TWA (no browser bar).
+
+Verify it works after deploy:
+https://slabworthy.com/.well-known/assetlinks.json
+
+Google validation tool:
+https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://slabworthy.com&relation=delegate_permission/common.handle_all_urls
+
+============================================================
+GOOGLE PLAY CONSOLE SETUP
+============================================================
+
+1. Create developer account: https://play.google.com/console
+   - One-time $25 registration fee
+   - Requires Google account
+
+2. Create new app:
+   - App name: Slab Worthy
+   - Default language: English (US)
+   - App type: App (not game)
+   - Free
+
+3. Store listing details:
+   - Title: Slab Worthy - AI Comic Grading & Valuation
+   - Short description (80 chars max):
+     "AI-powered comic grading, valuation, and theft protection for collectors."
+   - Full description (4000 chars max):
+     See STORE_LISTING.txt
+
+4. Graphics required:
+   - App icon: 512x512 PNG (use icons/icon-512x512.png)
+   - Feature graphic: 1024x500 PNG (need to create)
+   - Phone screenshots: 2-8 screenshots, 16:9 or 9:16
+     → Take screenshots of grading flow on your Pixel 7 Pro
+   - 7-inch tablet screenshots: Optional but recommended
+
+5. Content rating: Complete the questionnaire
+   - No violence, no sexual content, no gambling
+   - Should get "Everyone" rating
+
+6. Upload AAB to Production track (or Internal Testing first)
+
+7. Review typically takes 1-7 days (first app can take longer)
+
+============================================================
+TIMELINE TO OAKLAND (May 9-10)
+============================================================
+
+Week 1: Submit to Play Store (allow 7 days for review)
+Week 2: Address any review feedback
+Week 3+: Update store listing with real screenshots
+
+Get it submitted by mid-March to have plenty of buffer.
+
+============================================================

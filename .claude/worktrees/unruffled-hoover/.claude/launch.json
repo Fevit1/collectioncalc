@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tfo-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/mberr/TheFormOf/dev.js"],
+      "port": 5173
+    }
+  ]
+}

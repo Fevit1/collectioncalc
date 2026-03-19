@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "masse-backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3001,
+      "cwd": "C:/Users/mberr/MUSE/mas-sprint/backend"
+    }
+  ]
+}

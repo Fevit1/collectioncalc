@@ -1,0 +1,96 @@
+diff --git a/collection.html b/collection.html
+index 38b4dbd..3bb68fd 100644
+--- a/collection.html
++++ b/collection.html
+@@ -2892,9 +2892,16 @@ async function createListing(publish) {
+     }
+     .copyable-field textarea.form-input {
+         min-height: 80px;
++        max-height: 200px;
+         resize: vertical;
+         font-family: 'Inter', sans-serif;
++        overflow-y: auto;
++        scrollbar-width: thin;
++        scrollbar-color: rgba(124,58,237,0.3) transparent;
+     }
++    .copyable-field textarea.form-input::-webkit-scrollbar { width: 6px; }
++    .copyable-field textarea.form-input::-webkit-scrollbar-track { background: transparent; }
++    .copyable-field textarea.form-input::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); border-radius: 3px; }
+     .copyable-field .form-input:focus {
+         outline: none;
+         border-color: #ff6b35;
+@@ -3059,7 +3066,7 @@ async function createListing(publish) {
+             <div class="copyable-field">
+                 <label>Listing Title</label>
+                 <div class="copy-row">
+-                    <input type="text" class="form-input" id="mpTitle" maxlength="80" readonly>
++                    <input type="text" class="form-input" id="mpTitle" maxlength="80" placeholder="Generating...">
+                     <button class="copy-btn" onclick="copyMpField('mpTitle', this)">📋</button>
+                 </div>
+                 <div class="field-hint" id="mpTitleHint">Paste into the listing title field</div>
+@@ -3069,7 +3076,7 @@ async function createListing(publish) {
+             <div class="copyable-field">
+                 <label>Description</label>
+                 <div class="copy-row">
+-                    <textarea class="form-input" id="mpDescription" rows="3" readonly></textarea>
++                    <textarea class="form-input" id="mpDescription" rows="4" placeholder="Generating..."></textarea>
+                     <button class="copy-btn" onclick="copyMpField('mpDescription', this)">📋</button>
+                 </div>
+                 <div class="field-hint" id="mpDescHint">Platform-optimized description</div>
+@@ -3079,7 +3086,7 @@ async function createListing(publish) {
+             <div class="copyable-field" id="mpShowNotesSection" style="display:none;">
+                 <label id="mpShowNotesLabel">Prep Notes</label>
+                 <div class="copy-row">
+-                    <textarea class="form-input" id="mpShowNotes" rows="5" readonly></textarea>
++                    <textarea class="form-input" id="mpShowNotes" rows="4" placeholder="Generating..."></textarea>
+                     <button class="copy-btn" onclick="copyMpField('mpShowNotes', this)">📋</button>
+                 </div>
+                 <div class="field-hint" id="mpShowNotesHint">Talking points and key details</div>
+@@ -3222,11 +3229,23 @@ async function openMarketplacePrepModal(comicId, platformKey) {
+     const copyBtn = document.getElementById('mpCopyAllBtn');
+     copyBtn.style.background = `linear-gradient(135deg, ${platform.color}, ${adjustColor(platform.color, -20)})`;
+ 
++    // Pre-populate with fallback content immediately (never leave fields empty)
++    const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
++    document.getElementById('mpTitle').value = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
++    document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
++    if (platform.hasNotes) {
++        document.getElementById('mpShowNotes').value = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
++    }
++    const preStartEl = document.getElementById('mpStartPrice');
++    if (preStartEl) preStartEl.textContent = platformKey === 'whatnot' ? '$0.99' : `$${(fmv * 0.5).toFixed(2)}`;
++    const preBuyEl = document.getElementById('mpBuyNow');
++    if (preBuyEl) preBuyEl.textContent = `$${fmv.toFixed(2)}`;
++
+     // Show modal
+     document.getElementById('mpModalOverlay').classList.add('active');
+ 
+-    // Generate content
+-    await generateMarketplaceContent(platformKey);
++    // Try AI generation (will overwrite fallback content on success)
++    generateMarketplaceContent(platformKey);
+ }
+ 
+ function closeMarketplaceModal() {
+@@ -3299,19 +3318,8 @@ async function generateMarketplaceContent(platformKey) {
+     } catch (error) {
+         console.error(`${platform.name} content generation error:`, error);
+         aiStatus.className = 'mp-ai-status error';
+-        aiText.textContent = '✗ Failed — using fallback template';
+-
+-        // Fallback
+-        const fmv = mpComic.slabbed_value || mpComic.raw_value || 9.99;
+-        document.getElementById('mpTitle').value = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
+-        document.getElementById('mpDescription').value = `${mpComic.title} #${mpComic.issue || '?'} — a great pickup for any collection!`;
+-        if (platform.hasNotes) {
+-            document.getElementById('mpShowNotes').value = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+-        }
+-        const buyEl = document.getElementById('mpBuyNow');
+-        if (buyEl) buyEl.textContent = `$${fmv.toFixed(2)}`;
+-        const startEl = document.getElementById('mpStartPrice');
+-        if (startEl && platformKey === 'whatnot') startEl.textContent = '$0.99';
++        aiText.textContent = '✗ AI unavailable — edit the pre-filled content below';
++        // Fallback content was already pre-populated in openMarketplacePrepModal
+     }
+ }
+ 

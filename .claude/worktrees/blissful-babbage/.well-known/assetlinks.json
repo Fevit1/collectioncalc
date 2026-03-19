@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.slabworthy.app",
+      "sha256_cert_fingerprints": [
+        "0A:E8:2E:95:84:42:60:D1:11:C1:39:CC:C3:1B:02:58:BB:BB:6F:90:E3:AC:D4:73:8B:21:C9:66:14:F0:DC:AE"
+      ]
+    }
+  }
+]

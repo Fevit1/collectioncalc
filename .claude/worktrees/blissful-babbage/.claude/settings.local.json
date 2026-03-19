@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:/Users/mberr/CC/SW -maxdepth 3 -type f -name package.json ! -path */node_modules/*)",
+      "Bash(find C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage -maxdepth 2 -type f -name *.toml -o -name package.json)",
+      "Bash(find C:/Users/mberr/CC/SW -name package.json -not -path */node_modules/*)",
+      "Bash(grep -r \"health\\\\|stripe\" C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage --include=*.ts --include=*.js)",
+      "Bash(cat C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/migrations/*.sql)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"api.*health\\\\|health.*endpoint\\\\|/health\" C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/routes --include=*.py)",
+      "Bash(grep -r stripe C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/routes --include=*.py)",
+      "Bash(grep -E \"\\\\.py$|\\\\.json$|\\\\.toml$|\\\\.yaml$|\\\\.yml$|\\\\.config\")",
+      "Bash(xargs basename:*)",
+      "Bash(grep -l \"supabase\\\\|postgresql\\\\|postgres\" C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/*.py)",
+      "Bash(grep -n \"CREATE TABLE\\\\|CREATE VIEW\" C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/routes/*.py C:/Users/mberr/CC/SW/.claude/worktrees/blissful-babbage/db_migrate*.py)",
+      "Bash(find C:/Users/mberr/CC/SW -name requirements.txt -not -path */node_modules/*)",
+      "Bash(curl -s https://theformof.com/health)",
+      "Bash(curl -s http://theformof.com/health)",
+      "Bash(curl -s https://collectioncalc-api.onrender.com/health)",
+      "Bash(curl -s https://collectioncalc-docker.onrender.com/health)",
+      "mcp__2af6e9f1-59d6-4ec2-9cde-ce8d4426c2c3__execute_sql",
+      "mcp__2af6e9f1-59d6-4ec2-9cde-ce8d4426c2c3__list_tables",
+      "Bash(node generate_exec_summary.js)",
+      "Bash(mv \"C:/Users/mberr/TheFormOf/generate_exec_summary.js\" \"C:/Users/mberr/TheFormOf/generate_exec_summary.cjs\")",
+      "Bash(node generate_exec_summary.cjs)",
+      "Bash(npm install:*)",
+      "Bash(python \"C:/Users/mberr/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e1ab4680-3cb6-4f2f-96d2-ba1596f7463b/cd69e388-fab8-4699-bca9-f9bea64bde13/skills/docx/scripts/office/validate.py\" \"C:/Users/mberr/TheFormOf/TFO_EXECUTIVE_SUMMARY.docx\")"
+    ]
+  }
+}

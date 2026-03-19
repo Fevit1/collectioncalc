@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Slab Worthy™</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+            text-decoration: none;
+        }
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover { color: var(--purple-light); }
+
+        .main {
+            flex: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Plan Card */
+        .plan-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .plan-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .plan-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.75rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .badge-trialing {
+            background: rgba(124, 58, 237, 0.15);
+            color: var(--purple-light);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+        .badge-past-due {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .badge-free {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .plan-details {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .plan-details span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Usage Bars */
+        .usage-section {
+            margin-bottom: 1.5rem;
+        }
+        .usage-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .usage-item {
+            margin-bottom: 1rem;
+        }
+        .usage-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+        .usage-label .count { color: var(--text-secondary); }
+
+        .usage-bar {
+            height: 8px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .usage-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .fill-green { background: var(--green); }
+        .fill-purple { background: var(--purple-brand); }
+        .fill-orange { background: var(--orange); }
+        .fill-red { background: var(--red); }
+
+        /* Feature Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .feature-item .icon-yes { color: var(--green); }
+        .feature-item .icon-no { color: #475569; }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.15s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+
+        .btn-primary {
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            box-shadow: 2px 2px 0px var(--purple-brand);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            color: var(--purple-light);
+        }
+        .btn-danger {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--red);
+            font-size: 0.8rem;
+        }
+
+        /* Sighting Alerts */
+        /* eBay Integration Section */
+        .integrations-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .integrations-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 1.25rem 0; }
+        .integration-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .integration-info { display: flex; align-items: center; gap: 0.75rem; }
+        .integration-logo { width: 36px; height: 36px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .integration-name { font-weight: 600; font-size: 0.95rem; }
+        .integration-status { font-size: 0.8rem; margin-top: 0.15rem; }
+        .integration-status.connected { color: #10b981; }
+        .integration-status.disconnected { color: var(--text-secondary); }
+        .integration-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .btn-connect { background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-connect:hover { opacity: 0.85; }
+        .btn-disconnect { background: transparent; color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .btn-disconnect:hover { border-color: #ef4444; color: #ef4444; }
+
+        /* My Selling Platforms */
+        .platforms-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .platforms-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+        .platforms-card .platforms-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
+        .platform-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+        }
+        .platform-toggle-row:last-child { border-bottom: none; }
+        .platform-toggle-info { display: flex; align-items: center; gap: 0.75rem; }
+        .platform-toggle-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .platform-toggle-name { font-size: 0.9rem; font-weight: 500; }
+        .platform-toggle-type { font-size: 0.7rem; color: var(--text-secondary); margin-left: 0.5rem; }
+        .platform-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        .platform-toggle input { opacity: 0; width: 0; height: 0; }
+        .platform-toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 22px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .platform-toggle .slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .platform-toggle input:checked + .slider { background: #7c3aed; }
+        .platform-toggle input:checked + .slider::before { transform: translateX(18px); }
+        .platform-toggle input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+        .sighting-section {
+            margin-bottom: 1.5rem;
+        }
+        .sighting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .sighting-header h2 {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sighting-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.6rem;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .sighting-empty {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .sighting-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .sighting-card.unresponded {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .sighting-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        .sighting-comic {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .sighting-serial {
+            font-size: 0.75rem;
+            color: var(--purple-light);
+            font-family: monospace;
+        }
+        .sighting-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .sighting-url {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--gold-mid);
+            text-decoration: none;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        .sighting-url:hover { text-decoration: underline; }
+        .sighting-message {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            font-style: italic;
+        }
+        .sighting-reporter {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .sighting-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .sighting-btn {
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+        }
+        .sighting-btn:hover { opacity: 0.85; }
+        .sighting-btn.confirmed {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .sighting-btn.not-mine {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .sighting-btn.investigating {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .sighting-response-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+        }
+        .response-confirmed_mine {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+        }
+        .response-not_mine {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+        }
+        .response-investigating {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--orange);
+        }
+
+        /* Success Banner */
+        .success-banner {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+        .success-banner.show { display: block; }
+        .success-banner strong { color: var(--green); }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 0.5rem; }
+        .footer-col ul { list-style: none; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a { color: var(--text-primary); text-decoration: none; font-size: 0.75rem; }
+        .footer-col a:hover { color: var(--purple-light); }
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        @media (max-width: 550px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .actions { flex-direction: column; }
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body data-sidebar-page="account" data-no-universal-footer>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">$LAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/#how-it-works">How It Works</a>
+                <a href="/pricing.html">Pricing</a>
+                <a href="#" id="logoutLink">Log Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <h1>My Account</h1>
+
+        <div class="success-banner" id="successBanner">
+            <strong>Welcome!</strong> Your subscription is now active. Time to protect your collection.
+        </div>
+
+        <div class="loading" id="loadingState">Loading your account...</div>
+
+        <div id="accountContent" style="display: none;">
+            <!-- Plan Card -->
+            <div class="plan-card">
+                <div class="plan-header">
+                    <div class="plan-name" id="planName">Free</div>
+                    <div class="plan-badge badge-free" id="planBadge">Free</div>
+                </div>
+
+                <div class="plan-details" id="planDetails"></div>
+
+                <!-- Usage -->
+                <div class="usage-section">
+                    <h3>Usage This Month</h3>
+
+                    <div class="usage-item" id="valuationUsage">
+                        <div class="usage-label">
+                            <span>Valuations</span>
+                            <span class="count" id="valuationCount">0 / 10</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill fill-green" id="valuationBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="usage-item" id="registrationUsage">
+                        <div class="usage-label">
+                            <span>Slab Guard Registrations</span>
+                            <span class="count" id="registrationCount">0 / 3</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill fill-purple" id="registrationBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="features-grid" id="featuresGrid"></div>
+
+                <!-- Actions -->
+                <div class="actions" id="actionButtons"></div>
+            </div>
+
+            <!-- eBay Integration Section -->
+            <div class="integrations-card">
+                <h3>Connected Accounts</h3>
+                <div class="integration-row">
+                    <div class="integration-info">
+                        <div class="integration-logo">🛒</div>
+                        <div>
+                            <div class="integration-name">eBay</div>
+                            <div class="integration-status disconnected" id="ebayStatus">Not connected</div>
+                        </div>
+                    </div>
+                    <div class="integration-actions" id="ebayActions">
+                        <button class="btn-connect" id="ebayConnectBtn" onclick="connectEbay()">Connect eBay</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Selling Platforms -->
+            <div class="platforms-card" id="platforms">
+                <h3>My Selling Platforms</h3>
+                <div class="platforms-subtitle">Toggle on the platforms you sell on. Only enabled platforms appear in your Sell menu.</div>
+                <div id="platformToggles"></div>
+            </div>
+
+            <!-- Sighting Alerts Section -->
+            <div class="sighting-section" id="sightingSection" style="display: none;">
+                <div class="sighting-header">
+                    <h2>Sighting Alerts <span class="sighting-badge" id="sightingBadge" style="display:none;">0</span></h2>
+                </div>
+                <div id="sightingList"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'https://collectioncalc-docker.onrender.com';
+
+        function getToken() {
+            return localStorage.getItem('cc_token');
+        }
+
+        // Redirect if not logged in
+        const token = getToken();
+        if (!token) {
+            window.location.href = '/login.html?redirect=account';
+        }
+
+        // Check for success return from Stripe
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('status') === 'success') {
+            document.getElementById('successBanner').classList.add('show');
+            // Clean URL
+            window.history.replaceState({}, '', '/account.html');
+        }
+
+        // Load account data
+        async function loadAccount() {
+            try {
+                const res = await fetch(`${API_BASE}/api/billing/my-plan`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        localStorage.removeItem('cc_token');
+                        window.location.href = '/login.html?redirect=account';
+                        return;
+                    }
+                    throw new Error('Failed to load account');
+                }
+
+                const data = await res.json();
+                renderAccount(data);
+            } catch (err) {
+                console.error('Account load error:', err);
+                document.getElementById('loadingState').textContent =
+                    'Unable to load account info. Please try again.';
+            }
+        }
+
+        function renderAccount(data) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('accountContent').style.display = 'block';
+
+            // Plan name
+            const planNames = {
+                free: 'Free', pro: 'Pro',
+                guard: 'Collector + Guard', dealer: 'Dealer'
+            };
+            document.getElementById('planName').textContent = planNames[data.plan] || 'Free';
+
+            // Badge
+            const badge = document.getElementById('planBadge');
+            const status = data.subscription_status || 'none';
+            if (data.plan === 'free') {
+                badge.textContent = 'Free';
+                badge.className = 'plan-badge badge-free';
+            } else if (status === 'trialing') {
+                badge.textContent = 'Trial';
+                badge.className = 'plan-badge badge-trialing';
+            } else if (status === 'active') {
+                badge.textContent = 'Active';
+                badge.className = 'plan-badge badge-active';
+            } else if (status === 'past_due') {
+                badge.textContent = 'Past Due';
+                badge.className = 'plan-badge badge-past-due';
+            } else {
+                badge.textContent = status;
+                badge.className = 'plan-badge badge-free';
+            }
+
+            // Details
+            const details = document.getElementById('planDetails');
+            if (data.plan !== 'free' && data.current_period_end) {
+                const endDate = new Date(data.current_period_end).toLocaleDateString();
+                const period = data.billing_period === 'annual' ? 'annually' : 'monthly';
+                details.innerHTML = `Billed <span>${period}</span> · Next billing date: <span>${endDate}</span>`;
+            } else if (data.plan === 'free') {
+                details.textContent = 'Upgrade to unlock unlimited valuations and Slab Guard protection.';
+            }
+
+            // Valuations usage
+            const vUsed = data.usage.valuations_used || 0;
+            const vLimit = data.usage.valuations_limit;
+            const vUnlimited = vLimit === -1;
+            document.getElementById('valuationCount').textContent =
+                vUnlimited ? `${vUsed} (Unlimited)` : `${vUsed} / ${vLimit}`;
+            const vPct = vUnlimited ? Math.min(vUsed * 2, 100) : Math.min((vUsed / vLimit) * 100, 100);
+            const vBar = document.getElementById('valuationBar');
+            vBar.style.width = vPct + '%';
+            vBar.className = 'usage-fill ' + (vPct > 90 ? 'fill-red' : vPct > 70 ? 'fill-orange' : 'fill-green');
+
+            // Registrations usage
+            const rUsed = data.usage.registrations_used || 0;
+            const rLimit = data.usage.registrations_limit;
+            const rUnlimited = rLimit === -1;
+            document.getElementById('registrationCount').textContent =
+                rUnlimited ? `${rUsed} (Unlimited)` : `${rUsed} / ${rLimit}`;
+            const rPct = rUnlimited ? Math.min(rUsed, 100) : Math.min((rUsed / rLimit) * 100, 100);
+            const rBar = document.getElementById('registrationBar');
+            rBar.style.width = rPct + '%';
+            rBar.className = 'usage-fill ' + (rPct > 90 ? 'fill-red' : rPct > 70 ? 'fill-orange' : 'fill-purple');
+
+            // Features grid
+            const features = data.features || {};
+            const featureLabels = {
+                marketplace_monitoring: 'Marketplace Monitoring',
+                chrome_extension: 'Chrome Extension',
+                api_access: 'API Access',
+                export: 'Excel/CSV Export',
+                multi_photo: 'Multi-Photo Grading',
+                ownership_certificates: 'Ownership Certificates',
+                priority_support: 'Priority Support'
+            };
+            const grid = document.getElementById('featuresGrid');
+            grid.innerHTML = '';
+            for (const [key, label] of Object.entries(featureLabels)) {
+                const enabled = features[key];
+                grid.innerHTML += `
+                    <div class="feature-item">
+                        <span class="${enabled ? 'icon-yes' : 'icon-no'}">${enabled ? '✓' : '—'}</span>
+                        ${label}
+                    </div>`;
+            }
+
+            // Action buttons
+            const actions = document.getElementById('actionButtons');
+            actions.innerHTML = '';
+            if (data.plan === 'free') {
+                actions.innerHTML = `<a href="/pricing.html" class="btn btn-primary">Upgrade Plan</a>`;
+            } else {
+                actions.innerHTML = `
+                    <button class="btn btn-secondary" onclick="openPortal()">Manage Billing</button>
+                    <a href="/pricing.html" class="btn btn-secondary">Change Plan</a>`;
+            }
+        }
+
+        async function openPortal() {
+            try {
+                const res = await fetch(`${API_BASE}/api/billing/customer-portal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.portal_url) {
+                    window.location.href = data.portal_url;
+                } else {
+                    alert(data.error || 'Unable to open billing portal.');
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        // ── Sighting Alerts ──────────────────────────────────────────
+        async function loadSightings() {
+            try {
+                const res = await fetch(`${API_BASE}/api/registry/my-sightings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) return;
+
+                const data = await res.json();
+                if (!data.success) return;
+
+                const section = document.getElementById('sightingSection');
+                const list = document.getElementById('sightingList');
+                const badge = document.getElementById('sightingBadge');
+
+                // Always show the section (even if empty, so users know it exists)
+                section.style.display = 'block';
+
+                if (data.sightings.length === 0) {
+                    list.innerHTML = `
+                        <div class="sighting-empty">
+                            No sighting reports yet. When someone spots one of your registered comics
+                            on a marketplace, it will appear here.
+                        </div>`;
+                    return;
+                }
+
+                // Show unresponded count badge
+                if (data.unresponded > 0) {
+                    badge.textContent = data.unresponded;
+                    badge.style.display = 'inline-block';
+                }
+
+                list.innerHTML = data.sightings.map(s => {
+                    const date = new Date(s.created_at).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                    const time = new Date(s.created_at).toLocaleTimeString('en-US', {
+                        hour: 'numeric', minute: '2-digit'
+                    });
+
+                    // Truncate URL for display
+                    let displayUrl = s.listing_url;
+                    try {
+                        const urlObj = new URL(s.listing_url);
+                        displayUrl = urlObj.hostname + urlObj.pathname.substring(0, 40) +
+                            (urlObj.pathname.length > 40 ? '...' : '');
+                    } catch {}
+
+                    // Response labels
+                    const responseLabels = {
+                        'confirmed_mine': 'Confirmed Mine',
+                        'not_mine': 'Not My Comic',
+                        'investigating': 'Investigating'
+                    };
+
+                    let actionsHtml = '';
+                    if (s.owner_response) {
+                        actionsHtml = `
+                            <span class="sighting-response-tag response-${s.owner_response}">
+                                ${responseLabels[s.owner_response] || s.owner_response}
+                            </span>`;
+                    } else {
+                        actionsHtml = `
+                            <div class="sighting-actions">
+                                <button class="sighting-btn confirmed" onclick="respondToSighting(${s.id}, 'confirmed_mine', this)">
+                                    That's Mine
+                                </button>
+                                <button class="sighting-btn not-mine" onclick="respondToSighting(${s.id}, 'not_mine', this)">
+                                    Not Mine
+                                </button>
+                                <button class="sighting-btn investigating" onclick="respondToSighting(${s.id}, 'investigating', this)">
+                                    Investigating
+                                </button>
+                            </div>`;
+                    }
+
+                    const messageHtml = s.message
+                        ? `<div class="sighting-message">"${s.message}"</div>`
+                        : '';
+
+                    return `
+                        <div class="sighting-card ${s.owner_response ? '' : 'unresponded'}">
+                            <div class="sighting-card-top">
+                                <div>
+                                    <div class="sighting-comic">${s.title} #${s.issue}</div>
+                                    <div class="sighting-serial">${s.serial_number}</div>
+                                </div>
+                                <div class="sighting-date">${date} ${time}</div>
+                            </div>
+                            <a href="${s.listing_url}" target="_blank" rel="noopener" class="sighting-url">${displayUrl}</a>
+                            ${messageHtml}
+                            <div class="sighting-reporter">
+                                Reported by: ${s.reporter_email || 'Anonymous'}
+                            </div>
+                            ${actionsHtml}
+                        </div>`;
+                }).join('');
+
+            } catch (err) {
+                console.error('Sighting load error:', err);
+            }
+        }
+
+        async function respondToSighting(sightingId, response, btn) {
+            // Disable all buttons in this card
+            const card = btn.closest('.sighting-card');
+            const buttons = card.querySelectorAll('.sighting-btn');
+            buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+            try {
+                const res = await fetch(`${API_BASE}/api/registry/sighting-response`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        sighting_id: sightingId,
+                        response: response
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    // Reload sightings to reflect the change
+                    loadSightings();
+                } else {
+                    alert(data.error || 'Failed to save response.');
+                    buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+                buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('cc_token');
+            window.location.href = '/login.html';
+        });
+
+        // ── eBay Integration ─────────────────────────────────────
+        async function loadEbayStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const statusEl = document.getElementById('ebayStatus');
+                const actionsEl = document.getElementById('ebayActions');
+                if (data.connected) {
+                    const username = data.ebay_username ? `@${data.ebay_username}` : 'Connected';
+                    statusEl.textContent = `✓ ${username}`;
+                    statusEl.className = 'integration-status connected';
+                    actionsEl.innerHTML = `<button class="btn-disconnect" onclick="disconnectEbay()">Disconnect</button>`;
+                } else {
+                    statusEl.textContent = 'Not connected';
+                    statusEl.className = 'integration-status disconnected';
+                    actionsEl.innerHTML = `<button class="btn-connect" onclick="connectEbay()">Connect eBay</button>`;
+                }
+            } catch (e) { console.error('eBay status error:', e); }
+        }
+
+        async function connectEbay() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/auth`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+            } catch (e) { alert('Could not start eBay authorization. Please try again.'); }
+        }
+
+        async function disconnectEbay() {
+            if (!confirm('Disconnect your eBay account? You can reconnect anytime.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/ebay/disconnect`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) loadEbayStatus();
+                else alert('Could not disconnect eBay. Please try again.');
+            } catch (e) { alert('Connection error. Please try again.'); }
+        }
+
+        // ── My Selling Platforms ────────────────────────────────
+        const SELL_PLATFORM_LIST = [
+            { key: 'ebay', name: 'eBay', color: '#e53238', type: 'Direct Listing', alwaysOn: true },
+            { key: 'whatnot', name: 'Whatnot', color: '#e67e22', type: 'Live Auction Prep' },
+            { key: 'mercari', name: 'Mercari', color: '#4dc0b5', type: 'Fixed Price Prep' },
+            { key: 'facebook', name: 'Facebook Marketplace', color: '#1877f2', type: 'Fixed Price Prep' },
+            { key: 'heritage', name: 'Heritage Auctions', color: '#1a3c6e', type: 'Consignment Prep' },
+            { key: 'comicconnect', name: 'ComicConnect', color: '#cc0000', type: 'Consignment Prep' },
+            { key: 'mycomicshop', name: 'MyComicShop', color: '#336699', type: 'Consignment Prep' },
+            { key: 'comc', name: 'COMC', color: '#e67e22', type: 'Consignment Prep' },
+            { key: 'hipcomic', name: 'Hip Comics', color: '#8b5cf6', type: 'Consignment Prep' }
+        ];
+
+        function getSellPlatformPrefs() {
+            try { return JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); }
+            catch (e) { localStorage.removeItem('sw_sell_platforms'); return {}; }
+        }
+
+        function loadPlatformPrefs() {
+            const saved = getSellPlatformPrefs();
+            const container = document.getElementById('platformToggles');
+            container.innerHTML = SELL_PLATFORM_LIST.map(p => {
+                const isOn = p.alwaysOn || saved[p.key] === true;
+                return `<div class="platform-toggle-row">
+                    <div class="platform-toggle-info">
+                        <div class="platform-toggle-dot" style="background:${p.color}"></div>
+                        <span class="platform-toggle-name">${p.name}</span>
+                        <span class="platform-toggle-type">${p.type}</span>
+                    </div>
+                    <label class="platform-toggle">
+                        <input type="checkbox" ${isOn ? 'checked' : ''} ${p.alwaysOn ? 'disabled' : ''}
+                               onchange="savePlatformPref('${p.key}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>`;
+            }).join('');
+        }
+
+        function savePlatformPref(key, enabled) {
+            const saved = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}');
+            saved[key] = enabled;
+            localStorage.setItem('sw_sell_platforms', JSON.stringify(saved));
+        }
+
+        // Load
+        loadAccount();
+        loadSightings();
+        loadEbayStatus();
+        loadPlatformPrefs();
+    </script>
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

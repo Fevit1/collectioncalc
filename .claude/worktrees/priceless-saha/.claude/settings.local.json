@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/mberr/CC/SW/*.html)",
+      "Bash(node -c backend/lib/scout.js)"
+    ]
+  }
+}

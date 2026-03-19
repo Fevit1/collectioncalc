@@ -1,0 +1,66 @@
+diff --git a/ebay_description.py b/ebay_description.py
+index f7a156e..528e54e 100644
+--- a/ebay_description.py
++++ b/ebay_description.py
+@@ -1,5 +1,5 @@
+ """
+-eBay Description Generator for CollectionCalc
++eBay Description Generator for Slab Worthy
+ Generates professional, eBay-compliant descriptions for comic book listings.
+ """
+ 
+diff --git a/ebay_listing.py b/ebay_listing.py
+index 63c5bad..11ffe15 100644
+--- a/ebay_listing.py
++++ b/ebay_listing.py
+@@ -236,7 +236,7 @@ def get_or_create_listing_policies(access_token: str) -> dict:
+     
+     try:
+         # Get fulfillment policies
+-        print("Get fulfillment policies: 400")
++        # Get fulfillment policies
+         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
+         response = requests.get(fulfillment_url, headers=headers)
+         print(f"Get fulfillment response: {response.status_code}")
+@@ -456,20 +456,28 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
+         # Build pricing summary based on format
+         if fmt == 'AUCTION':
+             auction_start = start_price if start_price else price
++            if auction_start <= 0:
++                return {'success': False, 'error': 'Starting bid must be greater than $0.00'}
+             pricing_summary = {
+                 "auctionStartPrice": {
+                     "value": str(round(auction_start, 2)),
+                     "currency": "USD"
+                 }
+             }
+-            # Optional reserve price
+-            if reserve_price and reserve_price > auction_start:
++            # Optional reserve price (must be > start price)
++            if reserve_price:
++                if reserve_price <= auction_start:
++                    return {'success': False, 'error': f'Reserve price (${reserve_price:.2f}) must be higher than starting bid (${auction_start:.2f})'}
+                 pricing_summary["auctionReservePrice"] = {
+                     "value": str(round(reserve_price, 2)),
+                     "currency": "USD"
+                 }
+-            # Optional Buy It Now price (must be > start price)
+-            if buy_it_now_price and buy_it_now_price > auction_start:
++            # Optional Buy It Now price (must be > reserve if set, otherwise > start)
++            if buy_it_now_price:
++                bin_threshold = reserve_price if reserve_price else auction_start
++                if buy_it_now_price <= bin_threshold:
++                    threshold_label = 'reserve price' if reserve_price else 'starting bid'
++                    return {'success': False, 'error': f'Buy It Now price (${buy_it_now_price:.2f}) must be higher than {threshold_label} (${bin_threshold:.2f})'}
+                 pricing_summary["price"] = {
+                     "value": str(round(buy_it_now_price, 2)),
+                     "currency": "USD"
+@@ -586,7 +594,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
+                 'auction_duration': auction_duration if fmt == 'AUCTION' else None,
+                 'draft': True,
+                 'drafts_url': drafts_url,
+-                'message': 'Draft created. Visit Seller Hub to add photos and publish.'
++                'message': 'Draft created. Visit Seller Hub to review and publish.'
+             }
+         
+     except requests.exceptions.RequestException as e:

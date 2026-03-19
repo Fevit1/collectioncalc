@@ -1,0 +1,2985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slab Worthy&trade; - AI Comic Grading</title>
+    <link rel="icon" type="image/svg+xml" href="/8ball.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Auth gate — redirect to login if not authenticated
+        (function() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                window.location.replace('/login.html');
+            }
+        })();
+    </script>
+    <style>
+        /* Gold Bangers logo for app header */
+        .header-brand h1 {
+            font-family: 'Bangers', cursive !important;
+            font-size: clamp(1.8rem, 5vw, 2.5rem) !important;
+            letter-spacing: 2px !important;
+            color: #facc15 !important;
+            -webkit-text-fill-color: #facc15 !important;
+            background: none !important;
+            -webkit-background-clip: unset !important;
+            background-clip: unset !important;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b !important;
+            margin: 0;
+            line-height: 1.1;
+            white-space: nowrap;
+        }
+        .header-brand .subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+        
+        /* Updated header layout - centered logo with avatar on right */
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 1.5rem 0;
+        }
+        
+        .header-brand {
+            text-align: center;
+        }
+        
+        /* Hide My Collection button from header (it's in dropdown menu) */
+        .save-collection-btn {
+            display: none !important;
+        }
+
+        /* Save Toast Notification */
+        .save-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: var(--bg-secondary, #1a1a2e);
+            border: 2px solid var(--brand-indigo, #4f46e5);
+            border-radius: 16px;
+            padding: 2rem 3rem;
+            text-align: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(79, 70, 229, 0.4);
+        }
+        .save-toast.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        .save-toast.error {
+            border-color: var(--status-error, #ef4444);
+            box-shadow: 0 20px 60px rgba(239, 68, 68, 0.3);
+        }
+        .save-toast-icon {
+            font-size: 3rem;
+            margin-bottom: 0.75rem;
+            animation: toastPop 0.4s ease;
+        }
+        .save-toast-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary, #fff);
+        }
+        .save-toast-sub {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #94a3b8);
+            margin-top: 0.25rem;
+        }
+        @keyframes toastPop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        /* User menu positioning - absolute right */
+        .header-auth {
+            position: absolute;
+            right: 0;
+        }
+        
+        /* Circular user avatar */
+        .user-menu-btn {
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(139, 92, 246, 0.3);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e7ff;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .user-avatar:hover {
+            background: rgba(139, 92, 246, 0.5);
+            border-color: rgba(139, 92, 246, 0.8);
+        }
+        
+        /* Hide email and arrow on desktop, show just avatar */
+        .user-menu-btn #userEmail,
+        .user-menu-btn > span:last-child {
+            display: none;
+        }
+        
+        /* Camera/Upload Toggle */
+        .photo-mode-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .mode-toggle-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+        
+        .mode-toggle-label.active {
+            color: #facc15;
+        }
+        
+        /* Toggle switch - hide on mobile */
+        .mode-toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        @media (max-width: 767px) {
+            .mode-toggle-switch {
+                display: none;
+            }
+            
+            .photo-mode-toggle {
+                gap: 24px;
+            }
+            
+            .mode-toggle-label {
+                padding: 8px 16px;
+                border-radius: 8px;
+                transition: all 0.3s;
+            }
+            
+            .mode-toggle-label.active {
+                background: rgba(250, 204, 21, 0.15);
+                color: #facc15;
+            }
+        }
+        
+        .mode-toggle-switch.active {
+            background: #6366f1;
+        }
+        
+        .mode-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mode-toggle-switch.active .mode-toggle-slider {
+            transform: translateX(24px);
+        }
+
+        /* Hide Take Photo button on desktop - only show on mobile */
+        @media (min-width: 768px) {
+            .photo-option-btn.camera {
+                display: none !important;
+            }
+            .mobile-only {
+                display: none !important;
+            }
+        }
+        @media (max-width: 767px) {
+            .desktop-only {
+                display: none !important;
+            }
+        }
+        
+        /* Comic-shaped upload boxes */
+        #gradingUpload1, #gradingUpload3 {
+            /* Front & Back Cover - 7:10 comic ratio */
+            aspect-ratio: 7 / 10;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        #gradingUpload2 {
+            /* Spine - narrow and tall */
+            aspect-ratio: 1 / 6;
+            max-width: 80px;
+            margin: 0 auto;
+        }
+        #gradingUpload4 {
+            /* Centerfold - open book landscape */
+            aspect-ratio: 14 / 10;
+            max-width: 450px;
+            margin: 0 auto;
+            position: relative;
+        }
+        #gradingUpload4::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 10%;
+            height: 80%;
+            border-left: 2px dashed rgba(99, 102, 241, 0.4);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Adjust button layout for narrow spine */
+        #gradingUpload2 .photo-option-btn {
+            padding: 8px 4px;
+            font-size: 12px;
+        }
+        #gradingUpload2 .photo-option-icon {
+            font-size: 1.2rem;
+        }
+        #gradingUpload2 .photo-option-text {
+            display: none;
+        }
+        
+        /* Slab Worthy? - Vertical calculation flow */
+        .slab-calc-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: var(--bg-primary, #0f0f1a);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .calc-label {
+            font-size: 0.95rem;
+            color: var(--text-primary, #fff);
+            font-weight: 600;
+        }
+        .calc-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary, #fff);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .calc-row.calc-modifier {
+            padding: 4px 0 4px 12px;
+        }
+        .calc-row.calc-modifier .calc-label {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-secondary, #94a3b8);
+        }
+        .calc-row.calc-modifier .calc-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .calc-divider {
+            height: 2px;
+            background: linear-gradient(90deg, var(--brand-indigo, #4f46e5), var(--brand-purple, #7c3aed));
+            margin: 6px 0;
+            border-radius: 1px;
+        }
+        .calc-row.calc-total .calc-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .calc-row.calc-total .calc-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Photo diagram container */
+        .photo-diagram-container {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Photo diagram grid */
+        .photo-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Top row: Front, Spine, Back */
+        .photo-diagram-row-top {
+            display: flex;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        /* Bottom row: Centerfold (centered) */
+        .photo-diagram-row-bottom {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Individual photo boxes */
+        .photo-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(168, 85, 247, 0.4);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        /* Front and Back - tall rectangles (7:10 ratio) */
+        .photo-front,
+        .photo-back {
+            width: 38px;
+            height: 54px;
+        }
+
+        /* Spine - narrow strip */
+        .photo-spine {
+            width: 12px;
+            height: 54px;
+            font-size: 6px;
+            line-height: 1;
+            padding: 2px 0;
+            letter-spacing: 0;
+            word-break: break-all;
+        }
+
+        /* Centerfold - wider horizontal */
+        .photo-centerfold {
+            width: 76px;
+            height: 54px;
+        }
+
+        /* Active state - highlighted box */
+        .photo-box.active {
+            border-color: rgb(168, 85, 247);
+            background: rgba(168, 85, 247, 0.2);
+            color: rgb(168, 85, 247);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        /* Pulse animation for active box */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            }
+        }
+
+        /* Diagram label */
+        .photo-diagram-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mobile adjustments for photo diagram */
+        @media (max-width: 767px) {
+            /* Keep header as single row on mobile */
+            header {
+                justify-content: space-between;
+                padding: 1rem;
+            }
+            
+            .header-brand {
+                text-align: left;
+            }
+            
+            .header-auth {
+                position: static;
+            }
+            
+            .photo-diagram {
+                padding: 0.75rem;
+            }
+            
+            .photo-front,
+            .photo-back {
+                width: 32px;
+                height: 46px;
+            }
+            
+            .photo-spine {
+                width: 10px;
+                height: 46px;
+                font-size: 5px;
+            }
+            
+            .photo-centerfold {
+                width: 64px;
+                height: 46px;
+            }
+            
+            .photo-box {
+                font-size: 7px;
+            }
+            
+            .photo-diagram-label {
+                font-size: 10px;
+            }
+        }
+
+        /* ========================================== 
+           INTERACTIVE UPLOAD DIAGRAM 
+           ========================================== */
+        .photo-upload-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            margin: 2rem 0;
+        }
+
+        .photo-upload-row-top {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .photo-upload-row-bottom {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Upload boxes - interactive */
+        .photo-upload-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid rgba(168, 85, 247, 0.4);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .photo-upload-box:hover {
+            transform: scale(1.05);
+            border-color: rgb(168, 85, 247);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+        
+        .photo-upload-box:hover .upload-box-hint {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        /* Sizing */
+        .photo-upload-box {
+            width: 120px;
+            height: 170px;
+        }
+
+        .photo-spine-upload {
+            width: 40px;
+            height: 170px;
+        }
+
+        .photo-centerfold-upload {
+            width: 296px;
+            height: 170px;
+        }
+
+        /* Upload box content (before upload) */
+        .upload-box-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .upload-box-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .upload-box-label-vertical {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1.4;
+        }
+
+        .upload-box-icon {
+            font-size: 32px;
+            opacity: 0.6;
+        }
+
+        .upload-box-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+        }
+
+        /* Required indicator for front */
+        .photo-upload-box[data-required="true"] {
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .photo-upload-box[data-required="true"]:hover {
+            border-color: rgb(245, 158, 11);
+        }
+
+        /* Highlight state - suggests next upload */
+        .photo-upload-box.highlight {
+            border-color: rgb(168, 85, 247);
+            background: rgba(168, 85, 247, 0.15);
+            animation: pulse-upload 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-upload {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(168, 85, 247, 0.7);
+            }
+        }
+
+        /* Uploaded state */
+        .photo-upload-box.uploaded .upload-box-content {
+            display: none;
+        }
+
+        .upload-box-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .photo-upload-box.uploaded .upload-box-thumbnail {
+            display: block;
+        }
+
+        .upload-box-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-checkmark {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            background: rgb(16, 185, 129);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Hidden file inputs */
+        .upload-input-hidden {
+            display: none;
+        }
+
+        /* Upload progress indicator */
+        .upload-progress-indicator {
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 400px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgb(168, 85, 247), rgb(99, 102, 241));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Warning banner */
+        .upload-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 767px) {
+            .photo-upload-diagram {
+                padding: 1rem;
+            }
+
+            .photo-upload-box {
+                width: 90px;
+                height: 130px;
+            }
+
+            .photo-spine-upload {
+                width: 30px;
+                height: 130px;
+            }
+
+            .photo-centerfold-upload {
+                width: 226px;
+                height: 130px;
+            }
+
+            .upload-box-label {
+                font-size: 11px;
+            }
+
+            .upload-box-icon {
+                font-size: 24px;
+            }
+
+            .upload-box-hint {
+                font-size: 9px;
+            }
+        }
+
+        /* ========================================== 
+           DEFECT PILLS 
+           ========================================== */
+        .defect-section {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .defect-section strong {
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            padding-top: 0.25rem;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .defect-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        /* Slab Guard Icon */
+        @keyframes slab-guard-glow {
+            0%, 100% {
+                filter: drop-shadow(0 0 6px rgba(124, 58, 237, 0.5));
+            }
+            50% {
+                filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.8));
+            }
+        }
+
+        .slab-guard-icon {
+            animation: slab-guard-glow 2s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .defect-pill {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            background: rgba(232, 121, 249, 0.1);
+            border: 1.5px solid #e879f9;
+            border-radius: 6px;
+            color: #e879f9;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+        }
+
+        .defect-pill:hover {
+            background: rgba(232, 121, 249, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* ========================================== 
+           ANIMATED ELLIPSIS 
+           ========================================== */
+        .loading-dots::after {
+            content: '';
+            animation: ellipsis 1.5s infinite;
+        }
+
+        @keyframes ellipsis {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+        
+        /* ========================================== 
+           MOBILE NAVIGATION
+           ========================================== */
+        @media (max-width: 767px) {
+            /* Remove fixed positioning - make buttons regular */
+            .grading-actions {
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+                display: flex;
+                gap: 8px;
+            }
+            
+            .grading-actions button {
+                flex: 1;
+                margin: 0;
+            }
+        }
+        
+        /* Landscape mode optimization (no reload needed) */
+        @media (max-width: 767px) and (orientation: landscape) {
+            /* Compact header for landscape */
+            header {
+                padding: 0.5rem 1rem;
+            }
+            
+            .header-brand h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            .header-brand .subtitle {
+                font-size: 0.65rem;
+            }
+            
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Theft Protection Section */
+        .grade-report-protection {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .grade-report-protection h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
+        }
+
+        .btn-register:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body data-sidebar-page="grade" data-no-universal-footer>
+    <div class="container">
+        <header>
+            <div class="header-brand">
+                <h1>$LAB WORTHY<span style="font-size: 0.6em; vertical-align: super;">™</span></h1>
+                <p class="subtitle">AI for Collectors <span style="opacity: 0.5; font-size: 0.65rem;">• Patent Pending</span></p>
+            </div>
+            <div class="header-auth" id="headerAuth">
+                <!-- Logged out state -->
+                <div id="authLoggedOut">
+                    <button class="auth-btn auth-btn-login" onclick="openAuthModal('login')">Log In</button>
+                    <button class="auth-btn auth-btn-signup" onclick="openAuthModal('signup')">Sign Up</button>
+                </div>
+                <!-- Logged in state -->
+                <div id="authLoggedIn" style="display: none;">
+                    <button class="save-collection-btn" onclick="showCollection()" title="My Collection">
+                        📚 My Collection
+                    </button>
+                    <div class="user-menu">
+                        <button class="user-menu-btn" onclick="toggleUserMenu()">
+                            <div class="user-avatar" id="userAvatar">?</div>
+                            <span id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2f5a5c4a5d6f4a574e425f434a014c4042">[email&#160;protected]</a></span>
+                            <span>▾</span>
+                        </button>
+                        <div class="user-menu-dropdown" id="userMenuDropdown">
+                            <button class="user-menu-item" onclick="showCollection()">📚 My Collection</button>
+                            <button class="user-menu-item admin-only" id="adminMenuItem" onclick="window.location.href='/admin.html'" style="display:none;">🔧 Admin</button>
+                            <div class="user-menu-divider"></div>
+                            <button class="user-menu-item danger" onclick="logout()">Log Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div id="mainApp">
+            <div class="mode-toggle" style="display: none;">
+                <button class="mode-btn active" id="modeGrading" onclick="setMode('grading')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 4px;"><rect x="3" y="1" width="18" height="22" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><rect x="6" y="4" width="12" height="13" rx="1" fill="rgba(99, 102, 241, 0.15)" stroke="currentColor" stroke-width="1"/><text x="12" y="14" text-anchor="middle" fill="currentColor" font-size="10" font-weight="bold" font-family="Arial">?</text><rect x="6" y="18" width="12" height="3" rx="0.5" fill="currentColor"/></svg> Slab Worthy&trade;?</button>
+                <button class="mode-btn" id="modeManual" onclick="setMode('manual')">✏️ Manual Entry</button>
+            </div>
+            
+            <div class="card">
+                <!-- Manual Entry Mode -->
+                <div id="manualMode" style="display: none;">
+                    <form id="valuationForm">
+                        <div class="form-group">
+                            <label for="title">Comic Title</label>
+                            <input type="text" id="title" placeholder="e.g. Amazing Spider-Man (or ASM)" required>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="issue">Issue #</label>
+                                <input type="text" id="issue" placeholder="e.g. 300" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="grade">Grade</label>
+                                <select id="grade">
+                                    <option value="NM">Near Mint (NM)</option>
+                                    <option value="VF" selected>Very Fine (VF)</option>
+                                    <option value="FN">Fine (FN)</option>
+                                    <option value="VG">Very Good (VG)</option>
+                                    <option value="G">Good (G)</option>
+                                    <option value="FR">Fair (FR)</option>
+                                    <option value="PR">Poor (PR)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" id="submitBtn">Get Valuation</button>
+                    </form>
+                </div>
+                
+                <!-- Photo Upload Mode -->
+                <div id="photoMode" style="display: none;">
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click();">
+                        <input type="file" id="photoInput" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.heic" multiple onchange="handlePhotoUpload(this.files)">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-title">Click to upload or drag & drop</div>
+                        <div class="upload-subtitle">Select one or multiple comic photos</div>
+                    </div>
+                </div>
+                
+                <!-- ========================================== -->
+                <!-- GRADE MY COMIC MODE - DEFAULT -->
+                <!-- ========================================== -->
+                <div id="gradingMode">
+                    
+                    <!-- Single Page Upload Interface -->
+                    <div class="grading-step-content active" id="gradingContent1">
+                        <div class="grading-header">
+                            <p class="grading-subtitle" style="text-align: center; margin: 0 auto 1.5rem; max-width: 600px;">Click each section to upload. Front cover is required.</p>
+                        </div>
+                        
+                        <!-- Camera/Upload Mode Toggle -->
+                        <div class="photo-mode-toggle">
+                            <span class="mode-toggle-label" id="cameraModeLabel" onclick="togglePhotoInputMode()">📷 Camera</span>
+                            <div class="mode-toggle-switch" id="photoModeToggle" onclick="togglePhotoInputMode()">
+                                <div class="mode-toggle-slider"></div>
+                            </div>
+                            <span class="mode-toggle-label active" id="uploadModeLabel" onclick="togglePhotoInputMode()">📁 Upload</span>
+                        </div>
+                        
+                        <!-- Interactive Photo Diagram -->
+                        <div class="photo-upload-diagram">
+                            <!-- Top Row: Front, Spine, Back -->
+                            <div class="photo-upload-row-top">
+                                <div class="photo-upload-box" id="uploadBoxFront" data-photo-type="front" data-required="true" onclick="triggerPhotoUpload('front')">
+                                    <input type="file" id="uploadInputFront" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('front', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">FRONT*</div>
+                                                                                <div class="upload-box-hint">Click to upload</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailFront" style="display: none;">
+                                        <img id="imgFront" src="" alt="Front cover">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="photo-upload-box photo-spine-upload" id="uploadBoxSpine" data-photo-type="spine" onclick="triggerPhotoUpload('spine')">
+                                    <input type="file" id="uploadInputSpine" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('spine', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label-vertical">S<br>P<br>I<br>N<br>E</div>
+                                                                            </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailSpine" style="display: none;">
+                                        <img id="imgSpine" src="" alt="Spine">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="photo-upload-box" id="uploadBoxBack" data-photo-type="back" onclick="triggerPhotoUpload('back')">
+                                    <input type="file" id="uploadInputBack" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('back', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">BACK</div>
+                                                                                <div class="upload-box-hint">Click to upload</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailBack" style="display: none;">
+                                        <img id="imgBack" src="" alt="Back cover">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bottom Row: Centerfold -->
+                            <div class="photo-upload-row-bottom">
+                                <div class="photo-upload-box photo-centerfold-upload" id="uploadBoxCenterfold" data-photo-type="centerfold" onclick="triggerPhotoUpload('centerfold')">
+                                    <input type="file" id="uploadInputCenterfold" class="upload-input-hidden" accept="image/*" capture="environment" onchange="handlePhotoUpload('centerfold', this.files)">
+                                    <div class="upload-box-content">
+                                        <div class="upload-box-label">CENTERFOLD</div>
+                                                                                <div class="upload-box-hint">Click to upload</div>
+                                    </div>
+                                    <div class="upload-box-thumbnail" id="thumbnailCenterfold" style="display: none;">
+                                        <img id="imgCenterfold" src="" alt="Centerfold">
+                                        <div class="thumbnail-checkmark">✓</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div class="upload-progress-indicator">
+                            <div class="progress-text" id="uploadProgressText">0 of 4 photos uploaded</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="uploadProgressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Warning Banner -->
+                        <div class="upload-warning" id="uploadWarning" style="display: none;">
+                            <span class="warning-icon">⚠️</span>
+                            <span class="warning-text">Upload all 4 photos for the most accurate assessment. Analysis with fewer photos will have limited accuracy.</span>
+                        </div>
+                        
+                        <!-- Generate Button -->
+                        <div class="grading-actions">
+                            <!-- Signature ID Coming Soon -->
+                            <div id="signatureCheckboxRow" style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem; opacity: 0.45; cursor: not-allowed;" title="Coming soon — signature identification will use AI to detect and attribute creator signatures on your cover">
+                                <input type="checkbox" id="identifySignaturesChk" disabled style="width: 16px; height: 16px; cursor: not-allowed; accent-color: var(--accent, #6c63ff);">
+                                <label for="identifySignaturesChk" style="font-size: 0.875rem; color: var(--text-secondary); cursor: not-allowed; user-select: none;">
+                                    Identify signatures
+                                    <span style="font-size: 0.75rem; font-weight: 600; background: var(--border-color, #e0e0e0); color: var(--text-muted, #888); border-radius: 4px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.03em; vertical-align: middle;">COMING SOON</span>
+                                </label>
+                            </div>
+                            <button type="button" class="btn-primary btn-large" id="generateReportBtn" onclick="generateGradeReport()" disabled>
+                                Generate Slab Report →
+                            </button>
+                            <div id="gradingUsageCounter" style="display: none; text-align: center; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                                <span id="gradingUsageText"></span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Step 2: Grade Report -->
+                    <div class="grading-step-content" id="gradingContent5">
+                        <div class="results-screen" id="resultsScreen">
+
+                            <!-- Comic ID Strip -->
+                            <div class="comic-id" id="resultComicId">
+                                <div class="comic-thumb" id="resultComicThumb">
+                                    <!-- Filled with cover photo -->
+                                </div>
+                                <div class="comic-info">
+                                    <div class="comic-title" id="resultComicTitle">--</div>
+                                    <div class="comic-meta" id="resultComicMeta"></div>
+                                </div>
+                            </div>
+
+                            <!-- Grade + Verdict Hero -->
+                            <div class="grade-hero" id="resultGradeHero">
+                                <div class="grade-circle">
+                                    <div class="grade-circle-inner">
+                                        <div class="grade-number" id="resultGradeNumber">--</div>
+                                        <div class="grade-label" id="resultGradeLabel">...</div>
+                                    </div>
+                                </div>
+                                <div class="verdict-section" id="resultVerdictSection">
+                                    <div class="verdict-badge" id="resultVerdictBadge">ANALYZING...</div>
+                                    <div class="verdict-tagline" id="resultVerdictTagline">Calculating valuation...</div>
+                                </div>
+                            </div>
+
+                            <!-- Quality Warning (shown if < 75% confidence) -->
+                            <div class="grade-quality-warning" id="gradeQualityWarning" style="display: none;">
+                                <span class="warning-text">Grade based on limited photos. Add more angles for higher confidence.</span>
+                            </div>
+
+                            <!-- Valuation Triptych -->
+                            <div class="valuation-strip" id="resultValuationStrip">
+                                <div class="val-card">
+                                    <div class="val-label">Raw FMV</div>
+                                    <div class="val-amount raw" id="resultRawFmv">--</div>
+                                </div>
+                                <div class="val-card">
+                                    <div class="val-label">Slabbed FMV</div>
+                                    <div class="val-amount slabbed" id="resultSlabbedFmv">--</div>
+                                </div>
+                                <div class="val-card">
+                                    <div class="val-label">Net ROI</div>
+                                    <div class="val-amount" id="resultNetRoi">--</div>
+                                </div>
+                            </div>
+                            <div class="valuation-confidence" style="text-align: center; margin-top: 0.25rem;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Data confidence: </span>
+                                <span id="resultConfidence" style="font-size: 0.75rem; font-weight: 600; display: none;"></span>
+                            </div>
+
+                            <!-- Category Scores Breakdown -->
+                            <div class="category-scores-section" id="resultCategoryScores" style="display: none;">
+                                <div class="defects-header">
+                                    <div class="defects-title">Grade Breakdown</div>
+                                </div>
+                                <div class="category-scores-grid" id="categoryScoresGrid">
+                                    <!-- Populated by grading flow -->
+                                </div>
+                            </div>
+
+                            <!-- Defects 2x2 Grid -->
+                            <div class="defects-section" id="resultDefectsSection">
+                                <div class="defects-header">
+                                    <div class="defects-title">Defects Found</div>
+                                </div>
+                                <div class="defects-grid" id="resultDefectsGrid">
+                                    <!-- Populated by renderGradeReport -->
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="results-actions">
+                                <button type="button" class="results-btn results-btn-primary" onclick="saveGradeToCollection()">Save to Collection</button>
+                                <button type="button" class="results-btn results-btn-secondary" onclick="window.location.href='/app'">Grade Next</button>
+                            </div>
+
+                            <!-- Post-grading Feedback -->
+                            <div id="gradingFeedback" style="text-align: center; margin: 1rem 0; padding: 1rem; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <span style="color: var(--text-muted); font-size: 0.85rem; margin-right: 0.5rem;">Was this grade helpful?</span>
+                                <button type="button" id="feedbackThumbUp" onclick="submitGradingFeedback(1)" style="background: none; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 1.1rem; margin: 0 0.25rem; transition: all 0.2s;">👍</button>
+                                <button type="button" id="feedbackThumbDown" onclick="submitGradingFeedback(0)" style="background: none; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 1.1rem; margin: 0 0.25rem; transition: all 0.2s;">👎</button>
+                                <button type="button" id="feedbackCommentBtn" onclick="toggleFeedbackComment()" style="background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; margin-left: 0.5rem; text-decoration: underline;">Add comment</button>
+                                <div id="feedbackCommentArea" style="display: none; margin-top: 0.75rem;">
+                                    <textarea id="feedbackCommentText" placeholder="What could be improved?" style="width: 100%; max-width: 400px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); resize: vertical; min-height: 60px; font-family: inherit; font-size: 0.85rem;"></textarea>
+                                </div>
+                                <div id="feedbackThanks" style="display: none; color: #10b981; font-size: 0.85rem; margin-top: 0.5rem;">✓ Thanks for your feedback!</div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="results-footer-note">
+                                Estimates for informational purposes only
+                            </div>
+
+                        </div>
+
+                        <!-- Signature Detection — shown after automatic check -->
+                        <div class="grade-report-signature" id="gradeReportSignature" style="display: none;">
+                            <div id="signatureInfo">
+                                <!-- Populated by runSignatureCheck() -->
+                            </div>
+                        </div>
+
+                        <!-- Slab Guard — below the fold, shown after save -->
+                        <div class="grade-report-protection" id="gradeReportProtection" style="display: none;">
+                            <svg width="0" height="0" style="position: absolute;">
+                                <defs>
+                                    <linearGradient id="slabGuardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <h4>
+                                <svg class="slab-guard-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2L4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z"
+                                          fill="none"
+                                          stroke="url(#slabGuardGrad)"
+                                          stroke-width="2"/>
+                                </svg>
+                                Slab Guard™
+                            </h4>
+                            <p style="color: var(--text-muted); font-size: 14px; margin: 8px 0 12px 0; line-height: 1.5;">
+                                Register this comic for theft recovery monitoring across eBay, Whatnot, and other marketplaces. <strong>Patent pending.</strong>
+                            </p>
+                            <button type="button" class="btn-register" onclick="registerComic()" id="registerBtn">
+                                Register This Comic
+                            </button>
+                            <div id="registrationStatus" style="display: none; margin-top: 12px; padding: 12px; background: var(--success-bg, #d4edda); border: 1px solid var(--success-border, #c3e6cb); border-radius: 8px;">
+                                <!-- Shows registration confirmation with serial number -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                <!-- END GRADE MY COMIC MODE -->
+                
+                <!-- Bulk Extracted Items -->
+                <div id="bulkMode" style="display: none;">
+                    <div class="progress-container" id="progressContainer" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Calculating...</div>
+                    </div>
+                    
+                    <div id="itemsList"></div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="btn-secondary" onclick="resetToPhoto()">← Add More Photos</button>
+                        <button type="button" id="valuateAllBtn" onclick="valuateAll()">Get All Valuations</button>
+                    </div>
+                </div>
+                
+                <!-- Results Summary (for bulk) -->
+                <div id="resultsMode" style="display: none;">
+                    <div class="summary-card">
+                        <div class="result-label">Total Collection Value</div>
+                        <div class="summary-total" id="totalValue">$0.00</div>
+                        <div class="summary-count" id="itemCount">0 items valued</div>
+                    </div>
+                    
+                    <div class="sort-controls">
+                        <label for="sortSelect">Sort by:</label>
+                        <select id="sortSelect" onchange="sortResults(this.value)">
+                            <option value="default">Order Added</option>
+                            <option value="value-high">Value (High to Low)</option>
+                            <option value="value-low">Value (Low to High)</option>
+                            <option value="title">Title (A-Z)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="resultsList"></div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="btn-secondary" onclick="resetApp()">← Start Over</button>
+                        <button type="button" onclick="downloadExcel()">📥 Download Excel</button>
+                        <button type="button" class="save-collection-btn" onclick="saveAllToCollection()" id="saveCollectionBtn">
+                            💾 Save to Collection
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Single Result (for manual entry) -->
+                <div class="result" id="result">
+                    <div class="result-card" id="resultCard">
+                        <div id="resultContent"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Thinking Indicator -->
+            <div class="thinking-indicator" id="thinkingIndicator" style="display: none;">
+                <div class="thinking-header">
+                    <div class="thinking-calc">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Calculator body -->
+                            <rect x="4" y="2" width="24" height="28" rx="3" stroke="url(#calcGrad)" stroke-width="2.5" fill="var(--bg-card)"/>
+                            <!-- Display -->
+                            <rect x="7" y="5" width="18" height="7" rx="1" fill="var(--bg-primary)" stroke="var(--brand-indigo)" stroke-width="1"/>
+                            <text x="9" y="10.5" class="calc-display">$---</text>
+                            <!-- Buttons row 1 -->
+                            <rect class="calc-btn1" x="7" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn2" x="14" y="15" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn3" x="21" y="15" width="4" height="3" rx="0.5" fill="var(--brand-purple)"/>
+                            <!-- Buttons row 2 -->
+                            <rect class="calc-btn4" x="7" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn5" x="14" y="20" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect class="calc-btn6" x="21" y="20" width="4" height="3" rx="0.5" fill="var(--brand-cyan)"/>
+                            <!-- Buttons row 3 -->
+                            <rect x="7" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="14" y="25" width="4" height="3" rx="0.5" fill="var(--brand-indigo)"/>
+                            <rect x="21" y="25" width="4" height="3" rx="0.5" fill="var(--status-success)"/>
+                            <defs>
+                                <linearGradient id="calcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="var(--brand-indigo)"/>
+                                    <stop offset="100%" stop-color="var(--brand-purple)"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="thinking-title" id="thinkingTitle">Calculating...</span>
+                </div>
+                <div class="thinking-steps">
+                    <div class="thinking-step pending" id="step1"><span class="icon"></span><span id="step1Text">Checking database for matches</span></div>
+                    <div class="thinking-step pending" id="step2"><span class="icon"></span><span id="step2Text">Searching market data</span></div>
+                    <div class="thinking-step pending" id="step3"><span class="icon"></span><span id="step3Text">Crunching the numbers</span></div>
+                    <div class="thinking-step pending" id="step4"><span class="icon"></span><span id="step4Text">Calculating confidence score</span></div>
+                    <div class="thinking-step pending" id="step5"><span class="icon"></span><span id="step5Text">Generating valuation</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Photo Tips Modal -->
+    <div class="tips-modal-overlay" id="photoTipsModal">
+        <div class="tips-modal">
+            <div class="tips-modal-header">
+                <h3>📸 How to Take Great Comic Photos</h3>
+                <button class="tips-modal-close" onclick="closePhotoTips()">&times;</button>
+            </div>
+            <div class="tips-modal-body">
+                <div class="tips-section">
+                    <h4>🔆 Lighting</h4>
+                    <ul>
+                        <li><strong>Do:</strong> Use natural light or bright, even lighting</li>
+                        <li><strong>Don't:</strong> Use flash (causes glare) or dim lighting</li>
+                    </ul>
+                </div>
+                <div class="tips-section">
+                    <h4>📐 Angle</h4>
+                    <ul>
+                        <li><strong>Do:</strong> Shoot straight on, perpendicular to the comic</li>
+                        <li><strong>Don't:</strong> Shoot at an angle (distorts proportions)</li>
+                    </ul>
+                </div>
+                <div class="tips-section">
+                    <h4>🔍 Focus</h4>
+                    <ul>
+                        <li><strong>Do:</strong> Tap to focus, hold steady, ensure sharp image</li>
+                        <li><strong>Don't:</strong> Move while shooting (causes blur)</li>
+                    </ul>
+                </div>
+                <div class="tips-section">
+                    <h4>📏 Framing</h4>
+                    <ul>
+                        <li><strong>Do:</strong> Include entire cover/spine with small margin</li>
+                        <li><strong>Don't:</strong> Cut off edges or get too close</li>
+                    </ul>
+                </div>
+                <div class="tips-section">
+                    <h4>🎯 By Photo Type</h4>
+                    <ul>
+                        <li><strong>Front Cover:</strong> Full cover, all corners visible</li>
+                        <li><strong>Spine:</strong> Turn comic sideways, spine fills frame vertically</li>
+                        <li><strong>Back Cover:</strong> Same as front, full cover visible</li>
+                        <li><strong>Centerfold:</strong> Open flat, show both staples clearly</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="tips-modal-footer">
+                <button class="btn-primary" onclick="closePhotoTips()">Got it!</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Auth Modal -->
+    <div class="auth-modal-overlay" id="authModal">
+        <div class="auth-modal">
+            <button class="auth-modal-close" onclick="closeAuthModal()">&times;</button>
+            <div class="auth-modal-header">
+                <h2 id="authModalTitle">Welcome Back</h2>
+                <p id="authModalSubtitle">Log in to save your collection</p>
+            </div>
+            <div class="auth-modal-body">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log In</button>
+                    <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+                </div>
+                
+                <div class="auth-error" id="authError"></div>
+                <div class="auth-success" id="authSuccess"></div>
+                
+                <!-- Login Form -->
+                <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="loginBtn">Log In</button>
+                    <div class="auth-footer">
+                        <button type="button" class="auth-link" onclick="showForgotPassword()">Forgot password?</button>
+                    </div>
+                </form>
+                
+                <!-- Signup Form -->
+                <form class="auth-form" id="signupForm" onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label for="signupDisplayName">Name</label>
+                        <input type="text" id="signupDisplayName" placeholder="What should we call you?" maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPhone">Phone <span style="font-weight: normal; opacity: 0.5; font-size: 0.8em;">(optional)</span></label>
+                        <input type="tel" id="signupPhone" placeholder="(555) 555-5555">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPasswordConfirm">Confirm Password</label>
+                        <input type="password" id="signupPasswordConfirm" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="signupMarketing" style="width: auto;">
+                        <label for="signupMarketing" style="font-size: 0.8rem; color: var(--text-secondary);">Send me updates about new features and deals</label>
+                    </div>
+                    <button type="submit" id="signupBtn">Create Account</button>
+                    <div class="auth-footer">
+                        Already have an account? <button type="button" class="auth-link" onclick="switchAuthTab('login')">Log in</button>
+                    </div>
+                </form>
+                
+                <!-- Forgot Password Form -->
+                <form class="auth-form" id="forgotForm" onsubmit="handleForgotPassword(event)">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+                        Enter your email and we'll send you a link to reset your password.
+                    </p>
+                    <div class="form-group">
+                        <label for="forgotEmail">Email</label>
+                        <input type="email" id="forgotEmail" placeholder="you@example.com" required>
+                    </div>
+                    <button type="submit" id="forgotBtn">Send Reset Link</button>
+                    <div class="auth-footer">
+                        <button type="button" class="auth-link" onclick="switchAuthTab('login')">← Back to login</button>
+                    </div>
+                </form>
+                
+                <!-- Reset Password Form -->
+                <form class="auth-form" id="resetForm" onsubmit="handleResetPassword(event)">
+                    <div class="form-group">
+                        <label for="resetPassword">New Password</label>
+                        <input type="password" id="resetPassword" placeholder="At least 8 characters" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="resetPasswordConfirm">Confirm New Password</label>
+                        <input type="password" id="resetPasswordConfirm" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="resetBtn">Reset Password</button>
+                </form>
+                
+                <!-- Verification Needed -->
+                <div class="auth-form" id="verificationNeeded">
+                    <div style="text-align: center; padding: 20px 0;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📧</div>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                            Please verify your email to continue. Check your inbox for a verification link.
+                        </p>
+                        <button type="button" class="btn-secondary" onclick="resendVerification()">Resend Verification Email</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- eBay Listing Preview Modal -->
+    <div class="listing-modal-overlay" id="listingModal">
+        <div class="listing-modal">
+            <div class="listing-modal-header">
+                <h3>📦 Preview eBay Listing</h3>
+                <button class="listing-modal-close" onclick="closeListingModal()">&times;</button>
+            </div>
+            <div class="listing-modal-body" id="listingModalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="listing-modal-footer">
+                <button class="listing-btn-cancel" onclick="closeListingModal()">Cancel</button>
+                <button class="listing-btn-confirm" id="confirmListingBtn" onclick="confirmListing()">
+                    Confirm & List on eBay
+                        </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/grading.js"></script>
+    
+    <!-- Single Page Upload JavaScript -->
+    <script>
+        // Toggle between camera and upload modes
+        function togglePhotoInputMode() {
+            const toggle = document.getElementById('photoModeToggle');
+            const cameraLabel = document.getElementById('cameraModeLabel');
+            const uploadLabel = document.getElementById('uploadModeLabel');
+            const allInputs = document.querySelectorAll('.upload-input-hidden');
+            
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                // Upload mode
+                cameraLabel.classList.remove('active');
+                uploadLabel.classList.add('active');
+                // Remove capture attribute from inputs
+                allInputs.forEach(input => input.removeAttribute('capture'));
+            } else {
+                // Camera mode
+                cameraLabel.classList.add('active');
+                uploadLabel.classList.remove('active');
+                // Add capture attribute to inputs
+                allInputs.forEach(input => input.setAttribute('capture', 'environment'));
+            }
+        }
+        
+        // Initialize toggle based on device type
+        function initializePhotoMode() {
+            const isMobile = window.innerWidth < 768;
+            const toggle = document.getElementById('photoModeToggle');
+            const cameraLabel = document.getElementById('cameraModeLabel');
+            const uploadLabel = document.getElementById('uploadModeLabel');
+            
+            if (isMobile) {
+                // Mobile: default to camera mode (toggle OFF)
+                toggle.classList.remove('active');
+                cameraLabel.classList.add('active');
+                uploadLabel.classList.remove('active');
+            } else {
+                // Desktop: default to upload mode (toggle ON)
+                toggle.classList.add('active');
+                cameraLabel.classList.remove('active');
+                uploadLabel.classList.add('active');
+                // Remove capture attribute on desktop
+                document.querySelectorAll('.upload-input-hidden').forEach(input => {
+                    input.removeAttribute('capture');
+                });
+            }
+        }
+        
+        // Call on page load
+        initializePhotoMode();
+        
+        // Trigger file input when box is clicked
+        function triggerPhotoUpload(photoType) {
+            document.getElementById(`uploadInput${capitalize(photoType)}`).click();
+        }
+        
+        // Handle photo upload
+        async function handlePhotoUpload(photoType, files) {
+            if (!files || files.length === 0) return;
+            
+            const file = files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                // Get photo type number (front=1, spine=2, back=3, centerfold=4)
+                const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
+                const photoNum = photoMap[photoType];
+                
+                // Store in gradingState.photos with base64 (without data:image prefix)
+                const base64Data = e.target.result.split(',')[1];
+                const mediaType = e.target.result.split(';')[0].split(':')[1];
+                
+                window.gradingState.photos[photoNum] = {
+                    base64: base64Data,
+                    mediaType: mediaType,
+                    file: file
+                };
+                
+                // Update UI
+                const box = document.getElementById(`uploadBox${capitalize(photoType)}`);
+                const thumbnail = document.getElementById(`thumbnail${capitalize(photoType)}`);
+                const img = document.getElementById(`img${capitalize(photoType)}`);
+                
+                // Read EXIF orientation and apply rotation
+                const orientation = await getOrientation(e.target.result);
+                
+                // Show thumbnail
+                img.src = e.target.result;
+                applyOrientation(img, orientation);
+                thumbnail.style.display = 'block';
+                box.classList.add('uploaded');
+                box.classList.remove('highlight');
+                
+                // Update progress
+                updateUploadProgress();
+                
+                // Highlight next box
+                highlightNextBox(photoType);
+                
+                // Special handling for FRONT photo - extract comic data
+                if (photoType === 'front') {
+                    await extractComicData(e.target.result);
+                }
+                
+                // Enable generate button if front is uploaded AND extracted
+                if (window.gradingState.photos[1] && window.gradingState.extractedData) {
+                    document.getElementById('generateReportBtn').disabled = false;
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Read EXIF orientation from image data URL
+        function getOrientation(dataUrl) {
+            return new Promise((resolve) => {
+                const base64 = dataUrl.split(',')[1];
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                
+                // Check for JPEG signature
+                if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) {
+                    resolve(1); // Not a JPEG, no rotation needed
+                    return;
+                }
+                
+                let offset = 2;
+                while (offset < bytes.length) {
+                    if (bytes[offset] !== 0xFF) break;
+                    if (bytes[offset + 1] === 0xE1) { // APP1 marker (EXIF)
+                        const exifOffset = offset + 4;
+                        if (bytes[exifOffset] === 0x45 && bytes[exifOffset + 1] === 0x78 && 
+                            bytes[exifOffset + 2] === 0x69 && bytes[exifOffset + 3] === 0x66) {
+                            // Found EXIF data
+                            const tiffOffset = exifOffset + 6;
+                            const littleEndian = bytes[tiffOffset] === 0x49;
+                            
+                            // Read IFD0 offset
+                            const ifd0Offset = tiffOffset + (littleEndian ? 
+                                bytes[tiffOffset + 4] + (bytes[tiffOffset + 5] << 8) :
+                                (bytes[tiffOffset + 4] << 8) + bytes[tiffOffset + 5]);
+                            
+                            // Read number of entries
+                            const entries = littleEndian ?
+                                bytes[ifd0Offset] + (bytes[ifd0Offset + 1] << 8) :
+                                (bytes[ifd0Offset] << 8) + bytes[ifd0Offset + 1];
+                            
+                            // Search for orientation tag (0x0112)
+                            for (let i = 0; i < entries; i++) {
+                                const entryOffset = ifd0Offset + 2 + (i * 12);
+                                const tag = littleEndian ?
+                                    bytes[entryOffset] + (bytes[entryOffset + 1] << 8) :
+                                    (bytes[entryOffset] << 8) + bytes[entryOffset + 1];
+                                
+                                if (tag === 0x0112) { // Orientation tag
+                                    const orientation = littleEndian ?
+                                        bytes[entryOffset + 8] + (bytes[entryOffset + 9] << 8) :
+                                        (bytes[entryOffset + 8] << 8) + bytes[entryOffset + 9];
+                                    resolve(orientation);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    offset += 2 + (bytes[offset + 2] << 8) + bytes[offset + 3];
+                }
+                resolve(1); // No orientation tag found
+            });
+        }
+        
+        // Apply CSS transform based on EXIF orientation
+        function applyOrientation(img, orientation) {
+            const transforms = {
+                1: 'none',
+                2: 'scaleX(-1)',
+                3: 'rotate(180deg)',
+                4: 'scaleY(-1)',
+                5: 'rotate(90deg) scaleX(-1)',
+                6: 'rotate(90deg)',
+                7: 'rotate(270deg) scaleX(-1)',
+                8: 'rotate(270deg)'
+            };
+            img.style.transform = transforms[orientation] || 'none';
+        }
+        
+        // Extract comic data from front cover
+        async function extractComicData(dataUrl) {
+            const progressText = document.getElementById('uploadProgressText');
+            const generateBtn = document.getElementById('generateReportBtn');
+            
+            try {
+                // Show simple extracting state
+                progressText.innerHTML = `<span class="loading-dots">Extracting metadata...</span>`;
+                generateBtn.disabled = true;
+                
+                // Get auth token
+                const authToken = localStorage.getItem('cc_token');
+                if (!authToken) {
+                    throw new Error('Not authenticated');
+                }
+                
+                // Extract base64 data (remove data:image/...;base64, prefix)
+                const base64Data = dataUrl.split(',')[1];
+                const mediaType = dataUrl.split(';')[0].split(':')[1];
+                
+                // Call extraction API (using API_URL from utils.js)
+                const response = await fetch(`${API_URL}/api/extract`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        image: base64Data,
+                        media_type: mediaType
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Extraction failed');
+                }
+                
+                // Store extracted data in gradingState
+                window.gradingState.extractedData = data.extracted;
+                
+                // Update progress text with comic info and edit button
+                const title = data.extracted.title || 'Unknown';
+                const issue = data.extracted.issue || '?';
+                const publisher = data.extracted.publisher || '';
+                const year = data.extracted.year || '';
+                
+                // Create display with inline edit icon next to title
+                progressText.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span id="extractedDisplay">✓ Identified: ${title} #${issue}</span>
+                        <span onclick="showEditForm()" title="Edit details" style="
+                            color: var(--brand-purple);
+                            cursor: pointer;
+                            font-size: 11px;
+                            opacity: 0.7;
+                            transition: opacity 0.2s;
+                        " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✏️</span>
+                    </div>
+                    <div id="editExtractedForm" style="display: none; margin-top: 12px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title</label>
+                            <input type="text" id="editTitle" value="${title}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                            <input type="text" id="editIssue" value="${issue}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                            <input type="text" id="editPublisher" value="${publisher}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                            <input type="text" id="editYear" value="${year}" style="
+                                width: 100%;
+                                background: var(--bg-primary);
+                                border: 1px solid rgba(99, 102, 241, 0.3);
+                                border-radius: 4px;
+                                padding: 8px;
+                                color: white;
+                                font-size: 14px;
+                            ">
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button type="button" onclick="cancelEdit()" style="
+                                background: rgba(255,255,255,0.1);
+                                border: 1px solid rgba(255,255,255,0.2);
+                                color: rgba(255,255,255,0.8);
+                                border-radius: 4px;
+                                padding: 8px 16px;
+                                font-size: 13px;
+                                cursor: pointer;
+                            ">Cancel</button>
+                            <button type="button" onclick="saveEdit()" style="
+                                background: var(--brand-purple);
+                                border: none;
+                                color: white;
+                                border-radius: 4px;
+                                padding: 8px 16px;
+                                font-size: 13px;
+                                cursor: pointer;
+                                font-weight: 500;
+                            ">✓ Save</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Enable button now that extraction is complete
+                generateBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Extraction error:', error);
+                // Set default extractedData so the rest of the flow works
+                window.gradingState.extractedData = {
+                    title: '',
+                    issue: '',
+                    publisher: '',
+                    year: null
+                };
+
+                // Show inline edit form so user can enter comic details
+                progressText.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="color: #f59e0b; margin-bottom: 8px;">⚠️ Could not identify comic automatically</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Enter the details below for accurate grading &amp; valuation</div>
+                    </div>
+                    <div id="editExtractedForm" style="display: block; margin-top: 4px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title *</label>
+                                <input type="text" id="editTitle" placeholder="e.g. Amazing Spider-Man" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                                <input type="text" id="editIssue" placeholder="#" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                                <input type="text" id="editPublisher" placeholder="e.g. Marvel" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                                <input type="text" id="editYear" placeholder="1985" style="
+                                    width: 100%;
+                                    background: var(--bg-primary);
+                                    border: 1px solid rgba(99, 102, 241, 0.3);
+                                    border-radius: 4px;
+                                    padding: 8px;
+                                    color: white;
+                                    font-size: 14px;
+                                ">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button onclick="saveExtractEdit()" style="
+                                background: var(--brand-purple);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 6px 14px;
+                                cursor: pointer;
+                                font-size: 12px;
+                                font-weight: 500;
+                            ">✓ Save Details</button>
+                        </div>
+                    </div>
+                `;
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // Show edit form for extracted data
+        function showEditForm() {
+            document.getElementById('editExtractedBtn').style.display = 'none';
+            document.getElementById('extractedDisplay').style.display = 'none';
+            document.getElementById('editExtractedForm').style.display = 'block';
+        }
+        
+        // Cancel editing
+        function cancelEdit() {
+            document.getElementById('editExtractedBtn').style.display = 'flex';
+            document.getElementById('extractedDisplay').style.display = 'inline';
+            document.getElementById('editExtractedForm').style.display = 'none';
+        }
+        
+        // Save details from extraction failure form
+        function saveExtractEdit() {
+            const title = document.getElementById('editTitle').value.trim();
+            const issue = document.getElementById('editIssue').value.trim();
+            const publisher = document.getElementById('editPublisher').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+
+            // Update gradingState
+            window.gradingState.extractedData.title = title || 'Unknown';
+            window.gradingState.extractedData.issue = issue || '?';
+            window.gradingState.extractedData.publisher = publisher;
+            window.gradingState.extractedData.year = year ? parseInt(year) : null;
+
+            // Replace form with confirmation
+            const progressText = document.getElementById('uploadProgressText');
+            if (title) {
+                progressText.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span id="extractedDisplay">✓ ${title} #${issue || '?'}</span>
+                        <span onclick="showExtractEditAgain()" title="Edit details" style="
+                            color: var(--brand-purple);
+                            cursor: pointer;
+                            font-size: 11px;
+                            opacity: 0.7;
+                        ">✏️</span>
+                    </div>
+                `;
+            } else {
+                progressText.innerHTML = '<span style="color: #f59e0b;">⚠️ No title entered — grading will proceed as Unknown</span>';
+            }
+        }
+
+        // Re-show the extract edit form after saving
+        function showExtractEditAgain() {
+            const ed = window.gradingState.extractedData;
+            const progressText = document.getElementById('uploadProgressText');
+            // Re-trigger the form with current values
+            progressText.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #f59e0b; margin-bottom: 8px;">⚠️ Edit comic details</div>
+                </div>
+                <div id="editExtractedForm" style="display: block; margin-top: 4px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title *</label>
+                            <input type="text" id="editTitle" value="${ed.title || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                            <input type="text" id="editIssue" value="${ed.issue || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                            <input type="text" id="editPublisher" value="${ed.publisher || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                            <input type="text" id="editYear" value="${ed.year || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick="saveExtractEdit()" style="background:var(--brand-purple);color:white;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:500;">✓ Save Details</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Save edited data
+        function saveEdit() {
+            const title = document.getElementById('editTitle').value.trim();
+            const issue = document.getElementById('editIssue').value.trim();
+            const publisher = document.getElementById('editPublisher').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+            
+            // Update gradingState
+            window.gradingState.extractedData.title = title || 'Unknown';
+            window.gradingState.extractedData.issue = issue || '?';
+            window.gradingState.extractedData.publisher = publisher;
+            window.gradingState.extractedData.year = year ? parseInt(year) : null;
+            
+            // Update display text
+            document.getElementById('extractedDisplay').textContent = 
+                `✓ Identified: ${window.gradingState.extractedData.title} #${window.gradingState.extractedData.issue}`;
+            
+            // Hide form
+            cancelEdit();
+        }
+        
+        // Update upload progress indicator
+        function updateUploadProgress() {
+            const uploadCount = Object.values(window.gradingState.photos).filter(p => p !== null).length;
+            const progressText = document.getElementById('uploadProgressText');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const warning = document.getElementById('uploadWarning');
+            
+            // Don't overwrite extraction message (if it contains "Identifying" or "Identified")
+            if (!progressText.textContent.includes('Identifying') && 
+                !progressText.textContent.includes('Identified') && 
+                !progressText.textContent.includes('Could not identify')) {
+                progressText.textContent = `${uploadCount} of 4 photos uploaded`;
+            }
+            
+            progressBar.style.width = `${(uploadCount / 4) * 100}%`;
+            
+            // Show warning if less than 4 photos and at least 1 uploaded
+            if (uploadCount > 0 && uploadCount < 4) {
+                warning.style.display = 'flex';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+        
+        // Highlight next box in sequence
+        function highlightNextBox(currentType) {
+            // Remove all highlights
+            document.querySelectorAll('.photo-upload-box').forEach(box => {
+                box.classList.remove('highlight');
+            });
+            
+            // Sequence: front -> spine -> back -> centerfold
+            const sequence = ['front', 'spine', 'back', 'centerfold'];
+            const photoMap = { 'front': 1, 'spine': 2, 'back': 3, 'centerfold': 4 };
+            const currentIndex = sequence.indexOf(currentType);
+            
+            // Find next unuploaded box
+            for (let i = currentIndex + 1; i < sequence.length; i++) {
+                const nextType = sequence[i];
+                const nextNum = photoMap[nextType];
+                if (!window.gradingState.photos[nextNum]) {
+                    document.getElementById(`uploadBox${capitalize(nextType)}`).classList.add('highlight');
+                    break;
+                }
+            }
+        }
+        
+        // Capitalize first letter
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+        
+        // Initialize - highlight front box
+        document.addEventListener('DOMContentLoaded', function() {
+            const frontBox = document.getElementById('uploadBoxFront');
+            if (frontBox) {
+                frontBox.classList.add('highlight');
+            }
+        });
+        
+        // Initialize gradingState if it doesn't exist
+        if (typeof window.gradingState === 'undefined') {
+            window.gradingState = {
+                photos: {},
+                additionalPhotos: [],
+                extractedData: null,
+                currentStep: 1
+            };
+        }
+        
+        // Store original generateGradeReport from grading.js (we won't use it)
+        const originalGenerateGradeReport = window.generateGradeReport;
+        
+        // Complete standalone grading function
+        window.generateGradeReport = async function() {
+            // Check if at least front is uploaded
+            if (!window.gradingState.photos[1]) {
+                alert('Please upload at least the front cover photo.');
+                return;
+            }
+            
+            // Update UI: Switch from upload to report
+            const step1 = document.getElementById('gradingStep1');
+            const step2 = document.getElementById('gradingStep2');
+            const content1 = document.getElementById('gradingContent1');
+            const content5 = document.getElementById('gradingContent5');
+            
+            if (step1) {
+                step1.classList.remove('active');
+                step1.classList.add('completed');
+            }
+            if (step2) step2.classList.add('active');
+            if (content1) content1.classList.remove('active');
+            if (content5) content5.classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Show loading state in new results screen
+            const gradeResultBig = document.getElementById('resultGradeNumber');
+            const gradeResultLabel = document.getElementById('resultGradeLabel');
+            const defectsGrid = document.getElementById('resultDefectsGrid');
+            const verdictBadge = document.getElementById('resultVerdictBadge');
+            const verdictTagline = document.getElementById('resultVerdictTagline');
+
+            if (gradeResultBig) gradeResultBig.textContent = '...';
+            if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing...';
+            if (defectsGrid) defectsGrid.innerHTML = '<span style="color: var(--text-muted);" class="loading-dots">Finding defects</span>';
+            if (verdictBadge) { verdictBadge.textContent = 'ANALYZING...'; verdictBadge.className = 'verdict-badge'; }
+            if (verdictTagline) verdictTagline.textContent = 'Calculating valuation...';
+            
+            try {
+                // Build image array from gradingState.photos
+                const imageContent = [];
+                const photoLabels = [];
+                const labels = { 1: 'Front Cover', 2: 'Spine', 3: 'Back Cover', 4: 'Centerfold' };
+                
+                Object.entries(window.gradingState.photos).forEach(([step, photo]) => {
+                    if (photo && photo.base64) {
+                        imageContent.push({
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: photo.mediaType,
+                                data: photo.base64
+                            }
+                        });
+                        photoLabels.push(labels[step]);
+                    }
+                });
+                
+                // Get comic info from extractedData
+                const title = window.gradingState.extractedData?.title || 'Unknown';
+                const issue = window.gradingState.extractedData?.issue || '?';
+                const publisher = window.gradingState.extractedData?.publisher || 'Unknown';
+                
+                // Count photos for confidence
+                const photosUsed = imageContent.length;
+                const baseConfidence = { 1: 65, 2: 78, 3: 88, 4: 94 }[photosUsed] || 65;
+                
+                // Get auth token
+                const authToken = localStorage.getItem('cc_token');
+                if (!authToken) {
+                    throw new Error('Not authenticated');
+                }
+                
+                // Build images array for new /api/grade endpoint
+                const gradeImages = [];
+                Object.entries(window.gradingState.photos).forEach(([step, photo]) => {
+                    if (photo && photo.base64) {
+                        gradeImages.push({
+                            base64: photo.base64,
+                            media_type: photo.mediaType,
+                            label: labels[step]
+                        });
+                    }
+                });
+
+                // Make structured grading API call
+                const response = await fetch(`${API_URL}/api/grade`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        images: gradeImages,
+                        title: title,
+                        issue: issue,
+                        publisher: publisher,
+                        year: window.gradingState.extractedData?.year || '',
+                        runs: 1  // Single run by default; set to 2-3 for higher confidence
+                    })
+                });
+
+                // Check for monthly grading limit
+                if (response.status === 429) {
+                    const limitData = await response.json().catch(() => ({}));
+                    if (limitData.error === 'monthly_limit') {
+                        // Show limit reached UI instead of error
+                        const resultsScreen = document.getElementById('resultsScreen');
+                        if (resultsScreen) {
+                            // Switch to results view
+                            document.querySelectorAll('.grading-step-content').forEach(c => c.classList.remove('active'));
+                            document.getElementById('gradingContent5').classList.add('active');
+
+                            resultsScreen.innerHTML = `
+                                <div style="text-align: center; padding: 3rem 1.5rem;">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🚫</div>
+                                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Monthly Limit Reached</h2>
+                                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                                        You've used <strong style="color: #f59e0b;">${limitData.used}</strong> of <strong>${limitData.limit}</strong> free gradings this month.
+                                    </p>
+                                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; max-width: 320px; margin: 0 auto 1.5rem;">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Resets on</div>
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;">${limitData.resets_at}</div>
+                                    </div>
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+                                        Want more gradings? Premium plans coming soon!
+                                    </p>
+                                    <button type="button" class="btn-primary" onclick="window.location.href='/app'" style="padding: 0.75rem 2rem;">
+                                        ← Back to Home
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+                }
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `API returned ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                // Store in gradingState with a grading_id for feedback tracking
+                result.grading_id = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                window.gradingState.finalGrade = result;
+                window.gradingState.confidence = result.confidence || baseConfidence;
+
+                // Display results in new results screen
+                if (gradeResultBig) gradeResultBig.textContent = result.final_grade || '?';
+                if (gradeResultLabel) gradeResultLabel.textContent = result.grade_label || 'Unknown';
+
+                // Display comic info
+                const comicTitle = document.getElementById('resultComicTitle');
+                const comicMeta = document.getElementById('resultComicMeta');
+                if (comicTitle) comicTitle.textContent = `${result.title || 'Unknown'} #${result.issue || '?'}`;
+                if (comicMeta) comicMeta.textContent = [result.publisher, result.year].filter(Boolean).join(' \u2022 ');
+
+                // Display cover thumbnail
+                const thumbEl = document.getElementById('resultComicThumb');
+                if (thumbEl && window.gradingState.photos[1]) {
+                    const photo = window.gradingState.photos[1];
+                    thumbEl.innerHTML = `<img src="data:${photo.mediaType};base64,${photo.base64}" alt="Cover">`;
+                }
+
+                // Display category scores breakdown (new structured grading)
+                const catScoresSection = document.getElementById('resultCategoryScores');
+                const catScoresGrid = document.getElementById('categoryScoresGrid');
+                if (catScoresGrid && result.category_scores) {
+                    catScoresSection.style.display = 'block';
+                    const catLabels = {
+                        cover_front: 'Front Cover',
+                        spine: 'Spine',
+                        corners: 'Corners',
+                        edges: 'Edges',
+                        cover_back: 'Back Cover',
+                        color_gloss: 'Color/Gloss',
+                        structural: 'Structural',
+                        interior: 'Interior'
+                    };
+                    const getBarColor = (score) => {
+                        if (score >= 9.0) return '#10b981'; // green
+                        if (score >= 7.0) return '#3b82f6'; // blue
+                        if (score >= 5.0) return '#f59e0b'; // amber
+                        if (score >= 3.0) return '#f97316'; // orange
+                        return '#ef4444'; // red
+                    };
+                    catScoresGrid.innerHTML = Object.entries(catLabels).map(([key, label]) => {
+                        const score = result.category_scores[key] || 0;
+                        const pct = (score / 10) * 100;
+                        const color = getBarColor(score);
+                        return `<div class="cat-score-row">
+                            <div class="cat-score-label">${label}</div>
+                            <div class="cat-score-bar-bg">
+                                <div class="cat-score-bar-fill" style="width: ${pct}%; background: ${color};"></div>
+                            </div>
+                            <div class="cat-score-value">${score}</div>
+                        </div>`;
+                    }).join('');
+                }
+
+                // Display defects in 2x2 grid
+                if (defectsGrid) {
+                    const getSeverity = (text) => {
+                        const lower = text.toLowerCase();
+                        if (lower.includes('clean') || lower.includes('no defect') || lower.includes('attached') || lower.includes('intact')) return 'clean';
+                        if (lower.includes('moderate') || lower.includes('significant') || lower.includes('heavy') || lower.includes('tanning')) return 'moderate';
+                        if (lower.includes('major') || lower.includes('severe') || lower.includes('missing') || lower.includes('torn')) return 'major';
+                        return 'minor';
+                    };
+                    const buildArea = (label, items) => {
+                        if (!items || items.length === 0) {
+                            return `<div class="defect-area"><div class="defect-area-label">${label}</div><div class="defect-item"><span class="defect-dot clean"></span>Clean — no defects</div></div>`;
+                        }
+                        return `<div class="defect-area"><div class="defect-area-label">${label}</div>${items.map(d => `<div class="defect-item"><span class="defect-dot ${getSeverity(d)}"></span>${d}</div>`).join('')}</div>`;
+                    };
+                    defectsGrid.innerHTML = [
+                        buildArea('Front Cover', result.front_defects),
+                        buildArea('Spine', result.spine_defects),
+                        buildArea('Back Cover', result.back_defects),
+                        buildArea('Interior', result.interior_defects)
+                    ].join('');
+                }
+                
+                // Call valuation if function exists
+                if (window.calculateGradingRecommendation && typeof window.calculateGradingRecommendation === 'function') {
+                    await window.calculateGradingRecommendation(result);
+                }
+
+                // Check for signatures on front cover (runs in background, doesn't block)
+                if (window.gradingState.photos[1]) {
+                    runSignatureCheck(window.gradingState.photos[1]);
+                }
+
+                // Update grading usage counter
+                if (result.grading_usage) {
+                    updateGradingUsageCounter(result.grading_usage);
+                }
+
+                // Reset feedback state for this grading session
+                feedbackSubmitted = false;
+
+            } catch (error) {
+                console.error('Grading error:', error);
+                if (gradeResultBig) gradeResultBig.textContent = 'Error';
+                if (gradeResultLabel) gradeResultLabel.textContent = 'Failed';
+                if (defectsGrid) {
+                    defectsGrid.innerHTML = `<p style="color: #ef4444; grid-column: 1/-1;">Error: ${error.message}</p><p style="color: var(--text-muted); margin-top: 0.5rem; grid-column: 1/-1;">Please try again or contact support.</p>`;
+                }
+                if (verdictBadge) { verdictBadge.textContent = 'ERROR'; verdictBadge.className = 'verdict-badge'; }
+                if (verdictTagline) verdictTagline.textContent = 'Grading failed. Please try again.';
+            }
+        };
+        
+        // Calculate grading recommendation (FMV, ROI, verdict)
+        // Uses /api/sales/valuation — grade-specific pricing with interpolation
+        window.calculateGradingRecommendation = async function(gradeResult) {
+            try {
+                const token = localStorage.getItem('cc_token');
+                if (!token) return;
+
+                // Build valuation API URL with query parameters
+                const params = new URLSearchParams({
+                    title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
+                    issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
+                    grade: gradeResult.final_grade || '5.0',
+                    publisher: gradeResult.publisher || window.gradingState.extractedData?.publisher || '',
+                    year: gradeResult.year || window.gradingState.extractedData?.year || ''
+                });
+
+                // Call grade-specific valuation API
+                const response = await fetch(`${API_URL}/api/sales/valuation?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('Valuation API failed:', response.status);
+                    return;
+                }
+
+                const valData = await response.json();
+                if (!valData.success) {
+                    console.error('Valuation API error:', valData.error);
+                    return;
+                }
+
+                // Extract values — valuation endpoint returns graded_fmv (slabbed) and raw_fmv
+                const raw_value = valData.raw_fmv || 0;
+                const slabbed_value = valData.graded_fmv || 0;
+                const grading_cost = valData.grading_cost || 30;
+                const roi = valData.slabbing_roi != null ? valData.slabbing_roi : (slabbed_value - raw_value - grading_cost);
+                const isEstimated = valData.estimated || false;
+                const confidence = valData.confidence || 'unknown';
+                const fmvMethod = valData.fmv_method || 'unknown';
+                const sources = valData.sources || {};
+
+                // Update the grade result object
+                gradeResult.raw_value = raw_value;
+                gradeResult.slabbed_value = slabbed_value;
+                gradeResult.grading_cost = grading_cost;
+                gradeResult.roi = roi;
+                gradeResult.verdict = roi > 0 ? 'worth' : 'keep-raw';
+                gradeResult.confidence = confidence;
+                gradeResult.fmv_method = fmvMethod;
+                gradeResult.estimated = isEstimated;
+
+                // Also update gradingState.finalGrade
+                window.gradingState.finalGrade.raw_value = raw_value;
+                window.gradingState.finalGrade.slabbed_value = slabbed_value;
+                window.gradingState.finalGrade.grading_cost = grading_cost;
+                window.gradingState.finalGrade.roi = roi;
+                window.gradingState.finalGrade.verdict = gradeResult.verdict;
+
+                // Update results UI
+                const rawFmvEl = document.getElementById('resultRawFmv');
+                const slabbedFmvEl = document.getElementById('resultSlabbedFmv');
+                const netRoiEl = document.getElementById('resultNetRoi');
+                const verdictBadge = document.getElementById('resultVerdictBadge');
+                const verdictTagline = document.getElementById('resultVerdictTagline');
+
+                if (rawFmvEl) rawFmvEl.textContent = `$${Math.round(raw_value)}`;
+                if (slabbedFmvEl) slabbedFmvEl.textContent = `$${Math.round(slabbed_value)}`;
+                if (netRoiEl) {
+                    netRoiEl.textContent = `${roi > 0 ? '+' : '\u2212'}$${Math.abs(Math.round(roi))}`;
+                    netRoiEl.className = `val-amount ${roi > 0 ? 'roi-positive' : 'roi-negative'}`;
+                }
+                if (verdictBadge) {
+                    verdictBadge.textContent = roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW';
+                    verdictBadge.className = `verdict-badge ${roi > 0 ? 'worth' : 'not-worth'}`;
+                }
+                if (verdictTagline) {
+                    // Build tagline with confidence context
+                    const estimateNote = isEstimated ? ' (estimate)' : '';
+                    const salesNote = sources.total ? ` Based on ${sources.total} sales.` : '';
+
+                    if (roi > 0) {
+                        verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees${estimateNote}.${salesNote}`;
+                    } else {
+                        verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase${estimateNote}. Better to enjoy it unslabbed.${salesNote}`;
+                    }
+                }
+
+                // Show confidence indicator if we have one
+                const confidenceEl = document.getElementById('resultConfidence');
+                if (confidenceEl) {
+                    const confLabels = { high: 'High', medium: 'Medium', low: 'Low', very_low: 'Limited' };
+                    const confColors = { high: '#10b981', medium: '#3b82f6', low: '#f59e0b', very_low: '#ef4444' };
+                    confidenceEl.textContent = confLabels[confidence] || confidence;
+                    confidenceEl.style.color = confColors[confidence] || 'var(--text-muted)';
+                    confidenceEl.style.display = '';
+                }
+
+            } catch (error) {
+                console.error('Error calculating recommendation:', error);
+                // Don't fail the whole grading if valuation lookup fails
+            }
+        };
+        
+        // Navigate to My Collection page
+        function showCollection() {
+            window.location.href = '/collection.html';
+        }
+        
+        // ── Grading Feedback Functions ──
+        let feedbackSubmitted = false;
+
+        function toggleFeedbackComment() {
+            const area = document.getElementById('feedbackCommentArea');
+            if (area) area.style.display = area.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function submitGradingFeedback(rating) {
+            if (feedbackSubmitted) return;
+            feedbackSubmitted = true;
+
+            const upBtn = document.getElementById('feedbackThumbUp');
+            const downBtn = document.getElementById('feedbackThumbDown');
+            const commentBtn = document.getElementById('feedbackCommentBtn');
+            const thanksEl = document.getElementById('feedbackThanks');
+            const commentText = document.getElementById('feedbackCommentText')?.value?.trim() || '';
+
+            // Visual feedback — highlight selected thumb
+            if (rating === 1 && upBtn) {
+                upBtn.style.background = '#10b98133'; upBtn.style.borderColor = '#10b981';
+            } else if (rating === 0 && downBtn) {
+                downBtn.style.background = '#ef444433'; downBtn.style.borderColor = '#ef4444';
+            }
+            if (upBtn) upBtn.disabled = true;
+            if (downBtn) downBtn.disabled = true;
+            if (commentBtn) commentBtn.style.display = 'none';
+
+            try {
+                const authToken = localStorage.getItem('cc_token');
+                await fetch(`${API_URL}/api/feedback/grading`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        rating: rating,
+                        comment: commentText,
+                        grading_id: window.gradingState?.finalGrade?.grading_id || null,
+                        page_context: [
+                            window.gradingState?.extractedData?.title,
+                            window.gradingState?.extractedData?.issue ? `#${window.gradingState.extractedData.issue}` : null,
+                            window.gradingState?.finalGrade?.final_grade ? `Grade: ${window.gradingState.finalGrade.final_grade}` : null
+                        ].filter(Boolean).join(' ') || null
+                    })
+                });
+            } catch (e) {
+                console.error('Feedback submit error:', e);
+            }
+
+            if (thanksEl) thanksEl.style.display = 'block';
+            const commentArea = document.getElementById('feedbackCommentArea');
+            if (commentArea) commentArea.style.display = 'none';
+        }
+
+        // Update grading usage counter after successful grade
+        function updateGradingUsageCounter(usageData) {
+            const counter = document.getElementById('gradingUsageCounter');
+            const text = document.getElementById('gradingUsageText');
+            if (counter && text && usageData) {
+                const remaining = usageData.limit - usageData.used;
+                text.textContent = `${remaining} of ${usageData.limit} free gradings remaining this month`;
+                if (remaining <= 5) text.style.color = '#f59e0b';
+                if (remaining <= 2) text.style.color = '#ef4444';
+                counter.style.display = 'block';
+            }
+        }
+
+        // Save current grading to collection
+        async function saveGradeToCollection() {
+            return await saveToCollection();
+        }
+        
+        // Save all grading data to collection (same as above)
+        async function saveAllToCollection() {
+            return await saveToCollection();
+        }
+
+        // Register comic for theft protection
+        async function registerComic() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                showSaveToast('Please log in first', 'error');
+                setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                return;
+            }
+
+            // Get the saved comic ID (from most recent save or window.gradingState)
+            const comicId = window.lastSavedComicId;
+            if (!comicId) {
+                showSaveToast('Please save to collection first', 'error', 'Comics must be saved before registration.');
+                return;
+            }
+
+            const registerBtn = document.getElementById('registerBtn');
+            const registrationStatus = document.getElementById('registrationStatus');
+
+            try {
+                // Disable button and show loading
+                registerBtn.disabled = true;
+                registerBtn.textContent = '🔄 Registering...';
+
+                const response = await fetch(`${API_URL}/api/registry/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ comic_id: comicId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success
+                    registerBtn.style.display = 'none';
+                    registrationStatus.style.display = 'block';
+                    registrationStatus.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 2rem;">✅</span>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">
+                                    Registered as <strong style="color: #6366f1;">${result.serial_number}</strong>
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 4px;">
+                                    Monitoring enabled for theft recovery
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    showSaveToast('Comic Registered!', 'success', `Serial: ${result.serial_number}`);
+                } else if (result.upgrade_required) {
+                    showSaveToast('Registration Failed', 'error', 'Please upgrade to a paid account to register comics.');
+                    registerBtn.disabled = false;
+                    registerBtn.onclick = () => { window.location.href = '/pricing.html'; };
+                    registerBtn.textContent = '⬆️ Upgrade to Register';
+                } else {
+                    throw new Error(result.error || 'Registration failed');
+                }
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                const msg = error.message || 'Unknown error';
+                if (msg.includes('not found') || msg.includes('access denied')) {
+                    showSaveToast('Registration Failed', 'error', 'Please save to your collection first, then try registering.');
+                } else if (msg.includes('fingerprint')) {
+                    showSaveToast('Registration Failed', 'error', 'Could not generate fingerprint from photos. Please re-upload and save again.');
+                } else {
+                    showSaveToast('Registration Failed', 'error', msg);
+                }
+                registerBtn.disabled = false;
+                registerBtn.textContent = '🔒 Register This Comic';
+            }
+        }
+
+        // Toast notification helper
+        function showSaveToast(message, type, sub) {
+            // Remove existing toast
+            const existing = document.getElementById('saveToast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'saveToast';
+            toast.className = `save-toast ${type === 'error' ? 'error' : ''}`;
+            toast.innerHTML = `
+                <div class="save-toast-icon">${type === 'error' ? '⚠️' : '✅'}</div>
+                <div class="save-toast-text">${message}</div>
+                ${sub ? `<div class="save-toast-sub">${sub}</div>` : ''}
+            `;
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            requestAnimationFrame(() => toast.classList.add('show'));
+
+            // Auto-dismiss success after 2s, errors after 4s
+            const delay = type === 'error' ? 4000 : 2000;
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, delay);
+        }
+
+        // Core save to collection function
+        // Run signature identification on the front cover photo (non-blocking)
+        async function runSignatureCheck(photo) {
+            const sigSection = document.getElementById('gradeReportSignature');
+            const sigInfo = document.getElementById('signatureInfo');
+            if (!sigSection || !sigInfo) return;
+
+            try {
+                // Show loading state
+                sigSection.style.display = 'block';
+                sigInfo.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border-left: 3px solid var(--brand-indigo);">
+                        <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                        <span style="font-size: 13px; color: var(--text-secondary);">Checking for signatures...</span>
+                    </div>`;
+
+                const token = localStorage.getItem('cc_token');
+                if (!token) { sigSection.style.display = 'none'; return; }
+
+                // Build metadata from grading state
+                const ext = window.gradingState.extractedData || {};
+                const yearStr = ext.year || '';
+                let eraDecade = '';
+                const yr = parseInt(yearStr);
+                if (yr) {
+                    if (yr < 1970) eraDecade = 'pre-1970';
+                    else eraDecade = `${Math.floor(yr / 10) * 10}s`;
+                }
+
+                // Build multipart form data for v2 endpoint
+                const formData = new FormData();
+                formData.append('image', photo.base64);
+                if (ext.publisher) formData.append('publisher', ext.publisher);
+                if (eraDecade) formData.append('era_decade', eraDecade);
+                if (ext.title) formData.append('title', ext.title);
+                formData.append('signature_location', 'cover');
+
+                const response = await fetch(`${API_URL}/api/signatures/v2/match`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        // Sig check limit reached — show subtle note instead of hiding
+                        const limitData = await response.json().catch(() => ({}));
+                        sigInfo.innerHTML = `
+                            <div style="padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border-left: 3px solid #f59e0b; font-size: 12px; color: var(--text-muted);">
+                                Signature ID limit reached (${limitData.used || ''}/${limitData.limit || 10} this month). Resets ${limitData.resets_at || 'next month'}.
+                            </div>`;
+                        return;
+                    }
+                    console.warn('Signature check failed:', response.status);
+                    sigSection.style.display = 'none';
+                    return;
+                }
+
+                const result = await response.json();
+
+                // Check if we got a meaningful result
+                const topMatch = result.top5 && result.top5[0];
+                if (!topMatch || topMatch.confidence < 0.40) {
+                    // No confident match — hide section
+                    sigSection.style.display = 'none';
+                    window.gradingState.signatureResult = null;
+                    return;
+                }
+
+                // Store result for saving to collection later
+                window.gradingState.signatureResult = result;
+
+                // Build the signature display
+                const conf = topMatch.confidence;
+                const confLabel = topMatch.confidence_label || (conf >= 0.85 ? 'high' : conf >= 0.65 ? 'medium' : 'low');
+                const confColor = conf >= 0.85 ? '#10b981' : conf >= 0.65 ? '#3b82f6' : conf >= 0.40 ? '#f59e0b' : '#ef4444';
+                const confPct = Math.round(conf * 100);
+
+                const flags = result.flags || {};
+                const flagWarnings = [];
+                if (flags.high_confusion_pair) flagWarnings.push('Similar to another creator — verify carefully');
+                if (flags.low_confidence_match) flagWarnings.push('Low confidence — treat as tentative');
+
+                const stability = result.stability_scores && result.stability_scores[topMatch.creator];
+                const stabilityNote = stability && stability < 0.8
+                    ? `<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">Identification varied across analysis passes</div>`
+                    : '';
+
+                sigInfo.innerHTML = `
+                    <div style="padding: 14px; background: rgba(16, 185, 129, 0.08); border-radius: 8px; border-left: 3px solid ${confColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: var(--text-primary);">
+                                Signature Detected
+                            </div>
+                            <div style="padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; background: ${confColor};">
+                                ${confPct}% ${confLabel}
+                            </div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+                            ${topMatch.creator}
+                        </div>
+                        ${topMatch.match_evidence && topMatch.match_evidence.length > 0
+                            ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">${topMatch.match_evidence.slice(0, 3).join(' · ')}</div>`
+                            : ''}
+                        <div style="font-size: 12px; color: var(--status-success); font-weight: 500; margin-bottom: 4px;">
+                            Signed copies typically sell for +40-57% more
+                        </div>
+                        ${stabilityNote}
+                        ${flagWarnings.map(w => `<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">${w}</div>`).join('')}
+                        ${result.top5 && result.top5.length > 1 && result.top5[1].confidence >= 0.25 ? `
+                        <div style="font-size: 11px; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);">
+                            Other candidates: ${result.top5.slice(1, 3).map(c =>
+                                `${c.creator} (${Math.round(c.confidence * 100)}%)`
+                            ).join(', ')}
+                        </div>` : ''}
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);">
+                            For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature
+                        </div>
+                    </div>`;
+
+            } catch (error) {
+                console.warn('Signature check error:', error);
+                sigSection.style.display = 'none';
+                window.gradingState.signatureResult = null;
+            }
+        }
+
+        async function saveToCollection() {
+            // Check if we have grade data
+            if (!window.gradingState || !window.gradingState.finalGrade) {
+                showSaveToast('No grade data to save', 'error', 'Please complete the grading process first.');
+                return;
+            }
+
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                showSaveToast('Please log in first', 'error');
+                setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                return;
+            }
+
+            // Show saving state (not success yet — wait for API confirmation)
+            showSaveToast('Saving to Collection...', 'success', 'Uploading photos...');
+
+            // Show theft protection section with disabled button until save completes
+            const protectionSection = document.getElementById('gradeReportProtection');
+            const registerBtn = document.getElementById('registerBtn');
+            if (protectionSection) {
+                protectionSection.style.display = 'block';
+                if (registerBtn) {
+                    registerBtn.disabled = true;
+                    registerBtn.textContent = '⏳ Saving...';
+                }
+            }
+
+            // Do all the work in the background
+            try {
+                const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                // Upload photos to R2 with timeout — save proceeds even if uploads fail
+                const photoMap = { 1: 'front', 2: 'spine', 3: 'back', 4: 'centerfold' };
+                const photoUrls = { front: null, spine: null, back: null, centerfold: null };
+
+                try {
+                    const uploadWithTimeout = (promise, ms) => Promise.race([
+                        promise,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timeout')), ms))
+                    ]);
+
+                    const uploadPromises = Object.entries(photoMap).map(async ([num, type]) => {
+                        const photo = window.gradingState.photos[num];
+                        if (photo && photo.base64) {
+                            try {
+                                const uploadResp = await uploadWithTimeout(
+                                    fetch(`${API_URL}/api/images/submission`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            image: photo.base64,
+                                            submission_id: gradingId,
+                                            type: type
+                                        })
+                                    }),
+                                    30000  // 30 second timeout per photo
+                                );
+                                const uploadResult = await uploadResp.json();
+                                if (uploadResult.success && uploadResult.url) {
+                                    photoUrls[type] = uploadResult.url;
+                                }
+                            } catch (uploadErr) {
+                                console.warn(`Photo upload failed for ${type}:`, uploadErr);
+                            }
+                        }
+                    });
+
+                    await Promise.all(uploadPromises);
+                    console.log('Photo uploads complete:', photoUrls);
+                } catch (photoErr) {
+                    console.warn('Photo upload phase failed, saving without photos:', photoErr);
+                }
+
+                // Gather all the data
+                const itemData = {
+                    title: window.gradingState.extractedData?.title || 'Unknown',
+                    issue: window.gradingState.extractedData?.issue || '?',
+                    publisher: window.gradingState.extractedData?.publisher || null,
+                    year: window.gradingState.extractedData?.year || null,
+                    grade: window.gradingState.finalGrade.final_grade || null,
+                    grade_label: window.gradingState.finalGrade.grade_label || null,
+                    confidence: window.gradingState.confidence || null,
+                    defects: {
+                        front: window.gradingState.finalGrade.front_defects || [],
+                        spine: window.gradingState.finalGrade.spine_defects || [],
+                        back: window.gradingState.finalGrade.back_defects || [],
+                        interior: window.gradingState.finalGrade.interior_defects || []
+                    },
+                    photos: photoUrls,
+                    raw_value: window.gradingState.finalGrade.raw_value || null,
+                    slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
+                    roi: window.gradingState.finalGrade.roi || null,
+                    verdict: window.gradingState.finalGrade.verdict || null,
+                    grading_id: gradingId,
+                    signature_data: (() => {
+                        const sr = window.gradingState.signatureResult;
+                        if (!sr || !sr.top5 || !sr.top5[0] || sr.top5[0].confidence < 0.40) return null;
+                        const top = sr.top5[0];
+                        return {
+                            creator: top.creator,
+                            confidence: top.confidence,
+                            confidence_label: top.confidence_label || 'unknown',
+                            flags: sr.flags || {},
+                            stability: sr.stability_scores && sr.stability_scores[top.creator] || null,
+                            pass_count: sr.pass_count || 0,
+                            detected_at: new Date().toISOString()
+                        };
+                    })()
+                };
+
+                // Wrap in items array as backend expects
+                const saveData = {
+                    items: [itemData]
+                };
+
+                console.log('Sending save request...', { title: itemData.title, issue: itemData.issue });
+
+                // Send to API
+                const response = await fetch(`${API_URL}/api/collection/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save');
+                }
+
+                const result = await response.json();
+                console.log('Save complete:', result);
+
+                // NOW show actual success — save confirmed by server
+                showSaveToast('Saved to Collection!', 'success', 'Your comic has been saved.');
+
+                // Store comic ID for registration
+                if (result.ids && result.ids.length > 0) {
+                    window.lastSavedComicId = result.ids[0];
+
+                    // Enable the register button now that we have the comic ID
+                    const registerBtn = document.getElementById('registerBtn');
+                    if (registerBtn) {
+                        registerBtn.disabled = false;
+                        registerBtn.textContent = '🔒 Register This Comic';
+                    }
+                }
+
+            } catch (error) {
+                console.error('Save error:', error);
+                console.error('Save details:', error.stack || error);
+                showSaveToast('Save failed — please try again', 'error', error.message);
+
+                // Hide theft protection section if save failed
+                const protectionSection = document.getElementById('gradeReportProtection');
+                if (protectionSection) {
+                    protectionSection.style.display = 'none';
+                }
+            }
+        }
+    </script>
+    
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
+
+    <!-- Floating feedback widget -->
+    <script src="/js/feedback-widget.js"></script>
+
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html> 

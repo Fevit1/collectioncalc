@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Option C — Collapsible Sidebar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --red: #ef4444;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --bg-card-hover: #1a1a2e;
+            --bg-sidebar: #0e0e1a;
+            --border: rgba(124, 58, 237, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --sidebar-width: 240px;
+            --sidebar-collapsed: 64px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* App Shell */
+        .app-shell {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            min-height: 100vh;
+            transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .app-shell.collapsed {
+            grid-template-columns: var(--sidebar-collapsed) 1fr;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 1.25rem 0;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Toggle Button */
+        .sidebar-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem 0 1.25rem;
+            margin-bottom: 1.5rem;
+            min-height: 36px;
+        }
+        .sidebar-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .collapsed .sidebar-logo {
+            opacity: 0;
+            transform: translateX(-10px);
+            position: absolute;
+            pointer-events: none;
+        }
+        .sidebar-logo-icon {
+            font-family: 'Bangers', cursive;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+            display: none;
+            width: 100%;
+            text-align: center;
+        }
+        .collapsed .sidebar-logo-icon {
+            display: block;
+        }
+        .toggle-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(124, 58, 237, 0.06);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .toggle-btn:hover {
+            background: rgba(124, 58, 237, 0.15);
+            color: var(--text-primary);
+        }
+        .collapsed .toggle-btn {
+            margin: 0 auto;
+        }
+
+        /* Sidebar Sections */
+        .sidebar-section {
+            margin-bottom: 1.25rem;
+        }
+        .sidebar-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            padding: 0 1.25rem;
+            margin-bottom: 0.4rem;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.2s;
+        }
+        .collapsed .sidebar-label {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-left: 3px solid transparent;
+            white-space: nowrap;
+            position: relative;
+        }
+        .sidebar-item:hover {
+            background: rgba(124, 58, 237, 0.06);
+            color: var(--text-primary);
+        }
+        .sidebar-item.active {
+            background: rgba(124, 58, 237, 0.08);
+            color: var(--text-primary);
+            border-left-color: var(--purple-brand);
+        }
+        .sidebar-item .icon {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .sidebar-item .label {
+            overflow: hidden;
+            transition: opacity 0.2s, width 0.3s;
+        }
+        .collapsed .sidebar-item .label {
+            opacity: 0;
+            width: 0;
+        }
+        .sidebar-item .badge {
+            margin-left: auto;
+            font-size: 0.65rem;
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--purple-light);
+            padding: 1px 7px;
+            border-radius: 99px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .collapsed .sidebar-item .badge {
+            opacity: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+        .collapsed .sidebar-item {
+            justify-content: center;
+            padding: 0.6rem 0;
+            border-left-width: 0;
+        }
+        .collapsed .sidebar-item.active {
+            border-left-width: 0;
+            background: rgba(124, 58, 237, 0.12);
+            border-radius: 0;
+        }
+
+        /* Tooltip on collapsed hover */
+        .collapsed .sidebar-item:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: calc(var(--sidebar-collapsed) - 4px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 200;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .sidebar-spacer { flex: 1; }
+
+        /* User Section */
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+            overflow: hidden;
+        }
+        .sidebar-user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .sidebar-user-info {
+            flex: 1;
+            min-width: 0;
+            transition: opacity 0.2s;
+        }
+        .collapsed .sidebar-user-info {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        .collapsed .sidebar-user {
+            justify-content: center;
+            padding: 1rem 0;
+        }
+        .sidebar-user-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar-user-plan {
+            font-size: 0.65rem;
+            color: var(--gold-mid);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            padding: 2rem 2.5rem;
+            overflow-y: auto;
+            transition: padding 0.3s;
+        }
+
+        /* Welcome Row */
+        .welcome-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .welcome-row h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .welcome-row h1 span {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-row p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.15rem;
+        }
+        .grade-btn {
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.75rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .grade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+        }
+
+        /* Portfolio Overview */
+        .portfolio-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .portfolio-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .portfolio-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .portfolio-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .portfolio-value.gold {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .portfolio-sub {
+            font-size: 0.7rem;
+            color: var(--green);
+            margin-top: 0.15rem;
+        }
+
+        /* Two-Panel Layout */
+        .two-panel {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .panel-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .panel-header a {
+            font-size: 0.75rem;
+            color: var(--purple-light);
+            text-decoration: none;
+        }
+
+        /* Top Comics Mini-Table */
+        .mini-table-row {
+            display: grid;
+            grid-template-columns: 36px 1fr auto auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.7rem 1.25rem;
+            border-bottom: 1px solid rgba(124,58,237,0.07);
+            font-size: 0.8rem;
+        }
+        .mini-table-row:last-child { border-bottom: none; }
+        .mini-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(124, 58, 237, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--purple-light);
+        }
+        .mini-title {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mini-title span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .mini-grade {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        .mini-value {
+            font-weight: 700;
+            text-align: right;
+        }
+
+        /* Market Movers */
+        .mover-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid rgba(124,58,237,0.07);
+        }
+        .mover-item:last-child { border-bottom: none; }
+        .mover-info { font-size: 0.8rem; }
+        .mover-info strong { display: block; }
+        .mover-info span {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .mover-change {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+        .mover-change.up {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--green);
+        }
+        .mover-change.down {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--red);
+        }
+
+        /* Mobile: sidebar becomes overlay */
+        @media (max-width: 900px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: var(--sidebar-width);
+                transform: translateX(-100%);
+                z-index: 1000;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6);
+                z-index: 999;
+            }
+            .mobile-overlay.visible { display: block; }
+            .mobile-topbar {
+                display: flex !important;
+            }
+            .portfolio-row { grid-template-columns: repeat(2, 1fr); }
+            .two-panel { grid-template-columns: 1fr; }
+            .collapsed .sidebar { transform: translateX(-100%); }
+        }
+        @media (min-width: 901px) {
+            .mobile-overlay { display: none !important; }
+            .mobile-topbar { display: none !important; }
+        }
+
+        /* Mobile top bar */
+        .mobile-topbar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border);
+        }
+        .mobile-topbar .nav-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hamburger {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileNav()"></div>
+
+    <!-- Mobile top bar -->
+    <div class="mobile-topbar">
+        <button class="hamburger" onclick="openMobileNav()">&#9776;</button>
+        <div class="nav-logo">$LAB WORTHY</div>
+        <div style="width:36px"></div>
+    </div>
+
+    <div class="app-shell" id="appShell">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle-row">
+                <div class="sidebar-logo">$LAB WORTHY</div>
+                <div class="sidebar-logo-icon">SW</div>
+                <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+                    <span id="toggleIcon">&#171;</span>
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Main</div>
+                <div class="sidebar-item active" data-tooltip="Dashboard">
+                    <span class="icon">&#127968;</span> <span class="label">Dashboard</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Grade a Comic">
+                    <span class="icon">&#128248;</span> <span class="label">Grade a Comic</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="My Collection">
+                    <span class="icon">&#128218;</span> <span class="label">My Collection</span>
+                    <span class="badge">47</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Sell</div>
+                <div class="sidebar-item" data-tooltip="eBay Listings">
+                    <span class="icon">&#128176;</span> <span class="label">eBay Listings</span>
+                    <span class="badge">3</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Whatnot Prep">
+                    <span class="icon">&#127908;</span> <span class="label">Whatnot Prep</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Tools</div>
+                <div class="sidebar-item" data-tooltip="Slab Guard">
+                    <span class="icon">&#128737;&#65039;</span> <span class="label">Slab Guard</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Signature ID">
+                    <span class="icon">&#9997;&#65039;</span> <span class="label">Signature ID</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Market Pulse">
+                    <span class="icon">&#128200;</span> <span class="label">Market Pulse</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Price Lookup">
+                    <span class="icon">&#128202;</span> <span class="label">Price Lookup</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">More</div>
+                <div class="sidebar-item" data-tooltip="FAQ">
+                    <span class="icon">&#10067;</span> <span class="label">FAQ</span>
+                </div>
+                <div class="sidebar-item" data-tooltip="Account">
+                    <span class="icon">&#9881;&#65039;</span> <span class="label">Account</span>
+                </div>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">MB</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">Mike Berry</div>
+                    <div class="sidebar-user-plan">Pro Plan</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="welcome-row">
+                <div>
+                    <h1>Welcome back, <span>Mike</span></h1>
+                    <p>Your collection is up 2.8% this month.</p>
+                </div>
+                <button class="grade-btn">&#128248; Grade a Comic</button>
+            </div>
+
+            <div class="portfolio-row">
+                <div class="portfolio-card">
+                    <div class="portfolio-label">Comics</div>
+                    <div class="portfolio-value">47</div>
+                </div>
+                <div class="portfolio-card">
+                    <div class="portfolio-label">Total FMV</div>
+                    <div class="portfolio-value gold">$12,340</div>
+                    <div class="portfolio-sub">+$340 this month</div>
+                </div>
+                <div class="portfolio-card">
+                    <div class="portfolio-label">Worth Slabbing</div>
+                    <div class="portfolio-value" style="color: var(--green)">12</div>
+                    <div class="portfolio-sub">$4,280 in ROI potential</div>
+                </div>
+                <div class="portfolio-card">
+                    <div class="portfolio-label">Avg Grade</div>
+                    <div class="portfolio-value">8.4</div>
+                </div>
+            </div>
+
+            <div class="two-panel">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Most Valuable Comics</h3>
+                        <a href="#">View all &rarr;</a>
+                    </div>
+                    <div class="mini-table-row">
+                        <div class="mini-rank">1</div>
+                        <div class="mini-title">Amazing Spider-Man #300<span>Marvel &middot; 1988</span></div>
+                        <div class="mini-grade">9.6</div>
+                        <div class="mini-value">$992</div>
+                    </div>
+                    <div class="mini-table-row">
+                        <div class="mini-rank">2</div>
+                        <div class="mini-title">X-Men #1<span>Marvel &middot; 1963</span></div>
+                        <div class="mini-grade">9.6</div>
+                        <div class="mini-value">$1,480</div>
+                    </div>
+                    <div class="mini-table-row">
+                        <div class="mini-rank">3</div>
+                        <div class="mini-title">Spawn #1<span>Image &middot; 1992</span></div>
+                        <div class="mini-grade">9.8</div>
+                        <div class="mini-value">$291</div>
+                    </div>
+                    <div class="mini-table-row">
+                        <div class="mini-rank">4</div>
+                        <div class="mini-title">Incredible Hulk #181<span>Marvel &middot; 1974</span></div>
+                        <div class="mini-grade">7.5</div>
+                        <div class="mini-value">$2,100</div>
+                    </div>
+                    <div class="mini-table-row">
+                        <div class="mini-rank">5</div>
+                        <div class="mini-title">New Mutants #98<span>Marvel &middot; 1991</span></div>
+                        <div class="mini-grade">9.4</div>
+                        <div class="mini-value">$420</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Market Movers</h3>
+                        <a href="#">Full report &rarr;</a>
+                    </div>
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <strong>ASM #300</strong>
+                            <span>CGC 9.8</span>
+                        </div>
+                        <div class="mover-change up">+12.3%</div>
+                    </div>
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <strong>New Mutants #98</strong>
+                            <span>CGC 9.6</span>
+                        </div>
+                        <div class="mover-change up">+8.1%</div>
+                    </div>
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <strong>Batman #423</strong>
+                            <span>CGC 9.4</span>
+                        </div>
+                        <div class="mover-change up">+5.7%</div>
+                    </div>
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <strong>Spawn #1</strong>
+                            <span>CGC 9.8</span>
+                        </div>
+                        <div class="mover-change down">-3.4%</div>
+                    </div>
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <strong>TMNT #1</strong>
+                            <span>CGC 9.2</span>
+                        </div>
+                        <div class="mover-change down">-1.8%</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const shell = document.getElementById('appShell');
+            const icon = document.getElementById('toggleIcon');
+            shell.classList.toggle('collapsed');
+            icon.innerHTML = shell.classList.contains('collapsed') ? '&#187;' : '&#171;';
+        }
+
+        // Mobile nav
+        function openMobileNav() {
+            document.getElementById('sidebar').classList.add('mobile-open');
+            document.getElementById('mobileOverlay').classList.add('visible');
+        }
+        function closeMobileNav() {
+            document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('mobileOverlay').classList.remove('visible');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+diff --git a/ebay_listing.py b/ebay_listing.py
+index 11ffe15..a941373 100644
+--- a/ebay_listing.py
++++ b/ebay_listing.py
+@@ -235,7 +235,6 @@ def get_or_create_listing_policies(access_token: str) -> dict:
+     }
+     
+     try:
+-        # Get fulfillment policies
+         # Get fulfillment policies
+         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
+         response = requests.get(fulfillment_url, headers=headers)

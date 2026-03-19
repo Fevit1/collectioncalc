@@ -1,0 +1,819 @@
+<!-- eBay Listing Modal Component -->
+<!-- Include this file in collection.html and call openEbayListingModal(comicId) -->
+
+<style>
+    /* Modal Overlay */
+    .ebay-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        overflow-y: auto;
+        padding: 2rem 1rem;
+    }
+    
+    .ebay-modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Modal Container */
+    .ebay-modal {
+        background: var(--bg-primary);
+        border: 2px solid rgba(124, 58, 237, 0.5);
+        border-radius: 16px;
+        max-width: 700px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Modal Header */
+    .ebay-modal-header {
+        background: linear-gradient(135deg, var(--brand-purple), var(--purple-dark));
+        padding: 1.5rem;
+        border-bottom: 2px solid rgba(124, 58, 237, 0.3);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .ebay-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .ebay-logo {
+        background: white;
+        color: #e53238;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    
+    .modal-close {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+    
+    .modal-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Modal Body */
+    .ebay-modal-body {
+        padding: 1.5rem;
+    }
+    
+    /* Connection Status */
+    .ebay-connection-status {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .connection-status-text {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-indicator.disconnected {
+        background: #ef4444;
+        animation: none;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    /* Comic Preview */
+    .comic-preview {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .comic-preview-image {
+        width: 80px;
+        height: 114px;
+        background: var(--bg-primary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+    
+    .comic-preview-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    
+    .comic-preview-details {
+        flex: 1;
+    }
+    
+    .comic-preview-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .comic-preview-meta {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comic-preview-grade {
+        display: inline-block;
+        background: rgba(124, 58, 237, 0.2);
+        color: #a855f7;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    /* Form Fields */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+    
+    .form-help {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 8px;
+        color: white;
+        font-size: 0.95rem;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--brand-purple);
+    }
+    
+    textarea.form-input {
+        min-height: 100px;
+        resize: vertical;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .char-counter {
+        text-align: right;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    .char-counter.warning {
+        color: #f59e0b;
+    }
+    
+    .char-counter.error {
+        color: #ef4444;
+    }
+    
+    /* Price Input with FMV Suggestion */
+    .price-input-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .price-input-group .form-input {
+        flex: 1;
+    }
+    
+    .price-suggestion {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #10b981;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    
+    /* AI Generation Status */
+    .ai-status {
+        background: rgba(124, 58, 237, 0.1);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .ai-status.generating {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #3b82f6;
+    }
+    
+    .ai-status.success {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: #10b981;
+    }
+    
+    .ai-status.error {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+    
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Photos Upload Status */
+    .photos-status {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .photo-status-item {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 8px;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+    
+    .photo-status-item.uploading {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+    
+    .photo-status-item.success {
+        border-color: #10b981;
+        color: #10b981;
+    }
+    
+    .photo-status-item.error {
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+    
+    /* Modal Footer */
+    .ebay-modal-footer {
+        padding: 1.5rem;
+        border-top: 1px solid rgba(124, 58, 237, 0.3);
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+    
+    .btn-draft {
+        background: transparent;
+        border: 1px solid rgba(124, 58, 237, 0.5);
+        color: var(--brand-purple);
+    }
+    
+    .btn-draft:hover {
+        background: rgba(124, 58, 237, 0.1);
+    }
+    
+    .btn-publish {
+        background: linear-gradient(135deg, #facc15, #ca8a04);
+        color: #1e1b4b;
+        font-weight: 700;
+    }
+    
+    .btn-publish:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 767px) {
+        .ebay-modal {
+            max-height: 95vh;
+        }
+        
+        .price-input-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .price-suggestion {
+            text-align: center;
+        }
+        
+        .photos-status {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<!-- Modal HTML -->
+<div class="ebay-modal-overlay" id="ebayModalOverlay" onclick="closeModalOnBackdrop(event)">
+    <div class="ebay-modal">
+        <!-- Header -->
+        <div class="ebay-modal-header">
+            <div class="ebay-modal-title">
+                <span class="ebay-logo">eBay</span>
+                Create Listing
+            </div>
+            <button class="modal-close" onclick="closeEbayModal()">&times;</button>
+        </div>
+        
+        <!-- Body -->
+        <div class="ebay-modal-body">
+            <!-- Connection Status -->
+            <div class="ebay-connection-status" id="ebayConnectionStatus">
+                <div class="connection-status-text">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="statusText">Checking eBay connection...</span>
+                </div>
+                <button class="btn-secondary btn-small" id="connectBtn" style="display: none;" onclick="connectToEbay()">
+                    Connect eBay
+                </button>
+            </div>
+            
+            <!-- Comic Preview -->
+            <div class="comic-preview" id="comicPreview">
+                <!-- Will be populated by JS -->
+            </div>
+            
+            <!-- Form -->
+            <form id="ebayListingForm" onsubmit="return false;">
+                <!-- Title -->
+                <div class="form-group">
+                    <label class="form-label">Listing Title</label>
+                    <input type="text" class="form-input" id="listingTitle" maxlength="80" required>
+                    <span class="form-help">Max 80 characters. Be specific (e.g., "Amazing Spider-Man #300 VF+ White Pages")</span>
+                    <div class="char-counter" id="titleCounter">0 / 80</div>
+                </div>
+                
+                <!-- Price -->
+                <div class="form-group">
+                    <label class="form-label">Price (USD)</label>
+                    <div class="price-input-group">
+                        <input type="number" class="form-input" id="listingPrice" min="0.99" step="0.01" required>
+                        <div class="price-suggestion" id="priceSuggestion">
+                            FMV: $--
+                        </div>
+                    </div>
+                    <span class="form-help">eBay minimum: $0.99. Consider grading fees (~$20-$40) if listing as slabbed.</span>
+                </div>
+                
+                <!-- Description -->
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    
+                    <!-- AI Status -->
+                    <div class="ai-status" id="aiStatus" style="display: none;">
+                        <span class="spinner"></span>
+                        <span id="aiStatusText">Generating description...</span>
+                    </div>
+                    
+                    <textarea class="form-input" id="listingDescription" maxlength="4000" rows="6"></textarea>
+                    <span class="form-help">AI-generated for you! Edit if needed. 250-300 chars recommended for mobile.</span>
+                    <div class="char-counter" id="descCounter">0 / 4000</div>
+                </div>
+                
+                <!-- Photos Upload Status -->
+                <div class="form-group">
+                    <label class="form-label">Photos (4 images)</label>
+                    <div class="photos-status" id="photosStatus">
+                        <div class="photo-status-item">Front: ⏳</div>
+                        <div class="photo-status-item">Spine: ⏳</div>
+                        <div class="photo-status-item">Back: ⏳</div>
+                        <div class="photo-status-item">Center: ⏳</div>
+                    </div>
+                    <span class="form-help">Photos will be uploaded automatically when you publish.</span>
+                </div>
+                
+                <!-- Grading ID (included in description) -->
+                <div class="form-group">
+                    <label class="form-label">Slab Worthy™ Assessment</label>
+                    <input type="text" class="form-input" id="gradingIdDisplay" readonly disabled>
+                    <span class="form-help">This ID is included in your description so buyers can verify the assessment.</span>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="ebay-modal-footer">
+            <button class="btn-secondary" onclick="closeEbayModal()">Cancel</button>
+            <button class="btn-draft" onclick="saveAsDraft()" id="draftBtn">
+                💾 Save as Draft
+            </button>
+            <button class="btn-publish cta-button" onclick="publishListing()" id="publishBtn" disabled>
+                🚀 Publish Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// eBay Listing Modal Logic
+let currentComic = null;
+let ebayConnected = false;
+let uploadedImageUrls = [];
+
+async function openEbayListingModal(comicId) {
+    // Find comic in collection
+    currentComic = collection.find(c => c.id === comicId);
+    if (!currentComic) {
+        alert('Comic not found');
+        return;
+    }
+    
+    // Show modal
+    document.getElementById('ebayModalOverlay').classList.add('active');
+    
+    // Check eBay connection
+    await checkEbayConnection();
+    
+    // Populate form
+    populateListingForm();
+    
+    // Generate description
+    await generateDescription();
+}
+
+function closeEbayModal() {
+    document.getElementById('ebayModalOverlay').classList.remove('active');
+    currentComic = null;
+    uploadedImageUrls = [];
+}
+
+function closeModalOnBackdrop(event) {
+    if (event.target === event.currentTarget) {
+        closeEbayModal();
+    }
+}
+
+async function checkEbayConnection() {
+    const token = localStorage.getItem('cc_token');
+    
+    try {
+        const response = await fetch(`${API_URL}/api/ebay/status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        ebayConnected = data.connected || false;
+        
+        const indicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const connectBtn = document.getElementById('connectBtn');
+        const publishBtn = document.getElementById('publishBtn');
+        
+        if (ebayConnected) {
+            indicator.classList.remove('disconnected');
+            statusText.textContent = `Connected to eBay as ${data.ebay_username || 'Connected'}`;
+            connectBtn.style.display = 'none';
+            publishBtn.disabled = false;
+        } else {
+            indicator.classList.add('disconnected');
+            statusText.textContent = 'Not connected to eBay';
+            connectBtn.style.display = 'block';
+            publishBtn.disabled = true;
+        }
+    } catch (error) {
+        console.error('Error checking eBay connection:', error);
+    }
+}
+
+function connectToEbay() {
+    // Redirect to eBay OAuth
+    window.location.href = `${API_URL}/api/ebay/auth`;
+}
+
+function populateListingForm() {
+    // Comic preview
+    const preview = document.getElementById('comicPreview');
+    preview.innerHTML = `
+        <div class="comic-preview-image">
+            ${currentComic.front_image ? `<img src="${currentComic.front_image}" alt="${currentComic.title}">` : '📖'}
+        </div>
+        <div class="comic-preview-details">
+            <div class="comic-preview-title">${currentComic.title}</div>
+            <div class="comic-preview-meta">
+                #${currentComic.issue || '?'} • ${currentComic.publisher || 'Unknown'} • ${currentComic.year || '?'}
+            </div>
+            <span class="comic-preview-grade">${currentComic.grade || 'N/A'}</span>
+        </div>
+    `;
+    
+    // Title - auto-generate
+    const title = `${currentComic.title} #${currentComic.issue || '?'} - ${currentComic.grade || 'VG'} ${currentComic.publisher || 'Comic'}`;
+    document.getElementById('listingTitle').value = title.substring(0, 80);
+    updateCharCounter('title');
+    
+    // Price - suggest FMV or slightly below
+    const suggestedPrice = currentComic.slabbed_value || currentComic.raw_value || 9.99;
+    document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
+    document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
+    
+    // Grading ID
+    const gradingId = currentComic.grading_id || 'SW-' + currentComic.id;
+    document.getElementById('gradingIdDisplay').value = gradingId;
+}
+
+async function generateDescription() {
+    const aiStatus = document.getElementById('aiStatus');
+    const descriptionField = document.getElementById('listingDescription');
+    const token = localStorage.getItem('cc_token');
+    
+    aiStatus.style.display = 'flex';
+    aiStatus.className = 'ai-status generating';
+    document.getElementById('aiStatusText').textContent = 'Generating description with AI...';
+    
+    try {
+        const response = await fetch(`${API_URL}/api/ebay/generate-description`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: currentComic.title,
+                issue: currentComic.issue,
+                grade: currentComic.grade,
+                price: parseFloat(document.getElementById('listingPrice').value),
+                publisher: currentComic.publisher,
+                year: currentComic.year
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add grading ID to description
+            const gradingId = document.getElementById('gradingIdDisplay').value;
+            const fullDescription = data.description + 
+                `\n\nSlab Worthy™ Assessment ID: ${gradingId}\nVerify at: slabworthy.com/verify/${gradingId}`;
+            
+            descriptionField.value = fullDescription;
+            updateCharCounter('desc');
+            
+            aiStatus.className = 'ai-status success';
+            document.getElementById('aiStatusText').textContent = '✓ Description generated';
+            setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
+        } else {
+            throw new Error(data.error || 'Failed to generate');
+        }
+    } catch (error) {
+        console.error('Description generation error:', error);
+        aiStatus.className = 'ai-status error';
+        document.getElementById('aiStatusText').textContent = '✗ Failed - edit manually';
+        
+        // Fallback description
+        const gradingId = document.getElementById('gradingIdDisplay').value;
+        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nSlab Worthy™ Assessment ID: ${gradingId}\nVerify at: slabworthy.com/verify/${gradingId}`;
+        updateCharCounter('desc');
+    }
+}
+
+function updateCharCounter(field) {
+    if (field === 'title') {
+        const input = document.getElementById('listingTitle');
+        const counter = document.getElementById('titleCounter');
+        const length = input.value.length;
+        counter.textContent = `${length} / 80`;
+        if (length > 70) counter.classList.add('warning');
+        else counter.classList.remove('warning');
+    } else if (field === 'desc') {
+        const input = document.getElementById('listingDescription');
+        const counter = document.getElementById('descCounter');
+        const length = input.value.length;
+        counter.textContent = `${length} / 4000`;
+        if (length > 3500) counter.classList.add('warning');
+        else counter.classList.remove('warning');
+    }
+}
+
+// Add event listeners for char counters
+document.addEventListener('DOMContentLoaded', () => {
+    const titleInput = document.getElementById('listingTitle');
+    const descInput = document.getElementById('listingDescription');
+    
+    if (titleInput) titleInput.addEventListener('input', () => updateCharCounter('title'));
+    if (descInput) descInput.addEventListener('input', () => updateCharCounter('desc'));
+});
+
+async function uploadPhotosToEbay() {
+    const token = localStorage.getItem('cc_token');
+    const photos = [
+        { name: 'Front', url: currentComic.front_image },
+        { name: 'Spine', url: currentComic.spine_image },
+        { name: 'Back', url: currentComic.back_image },
+        { name: 'Center', url: currentComic.centerfold_image }
+    ];
+    
+    uploadedImageUrls = [];
+    const statusItems = document.querySelectorAll('.photo-status-item');
+    
+    for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        const statusItem = statusItems[i];
+        
+        if (!photo.url) {
+            statusItem.textContent = `${photo.name}: ⚠️ Missing`;
+            statusItem.classList.add('error');
+            continue;
+        }
+        
+        statusItem.textContent = `${photo.name}: ⏳`;
+        statusItem.classList.add('uploading');
+        
+        try {
+            // Fetch image data
+            const imageResponse = await fetch(photo.url);
+            const imageBlob = await imageResponse.blob();
+            
+            // Upload to eBay
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'comic.jpg');
+            
+            const uploadResponse = await fetch(`${API_URL}/api/ebay/upload-image`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            
+            const data = await uploadResponse.json();
+            
+            if (data.success && data.image_url) {
+                uploadedImageUrls.push(data.image_url);
+                statusItem.textContent = `${photo.name}: ✓`;
+                statusItem.classList.remove('uploading');
+                statusItem.classList.add('success');
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (error) {
+            console.error(`Error uploading ${photo.name}:`, error);
+            statusItem.textContent = `${photo.name}: ✗`;
+            statusItem.classList.remove('uploading');
+            statusItem.classList.add('error');
+        }
+    }
+    
+    return uploadedImageUrls.length > 0;
+}
+
+async function saveAsDraft() {
+    if (!ebayConnected) {
+        alert('Please connect to eBay first');
+        return;
+    }
+    
+    await createListing(false); // false = draft
+}
+
+async function publishListing() {
+    if (!ebayConnected) {
+        alert('Please connect to eBay first');
+        return;
+    }
+    
+    await createListing(true); // true = publish
+}
+
+async function createListing(publish) {
+    const token = localStorage.getItem('cc_token');
+    const publishBtn = document.getElementById('publishBtn');
+    const draftBtn = document.getElementById('draftBtn');
+    
+    // Disable buttons
+    publishBtn.disabled = true;
+    draftBtn.disabled = true;
+    publishBtn.textContent = publish ? '⏳ Publishing...' : '⏳ Creating...';
+    
+    try {
+        // Upload photos first
+        const photosUploaded = await uploadPhotosToEbay();
+        if (!photosUploaded) {
+            throw new Error('Failed to upload photos');
+        }
+        
+        // Create listing
+        const listingData = {
+            title: currentComic.title,
+            issue: currentComic.issue,
+            price: parseFloat(document.getElementById('listingPrice').value),
+            grade: currentComic.grade,
+            publisher: currentComic.publisher,
+            year: currentComic.year,
+            description: document.getElementById('listingDescription').value,
+            image_urls: uploadedImageUrls,
+            publish: publish,
+            grading_id: document.getElementById('gradingIdDisplay').value
+        };
+        
+        const response = await fetch(`${API_URL}/api/ebay/list`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(listingData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (publish && data.listing_url) {
+                alert(`✓ Listed on eBay!\n\nView at: ${data.listing_url}`);
+                window.open(data.listing_url, '_blank');
+            } else {
+                alert(`✓ Draft saved!\n\nView in eBay Seller Hub: ${data.drafts_url || 'eBay dashboard'}`);
+            }
+            closeEbayModal();
+        } else {
+            throw new Error(data.error || 'Listing failed');
+        }
+    } catch (error) {
+        console.error('Listing error:', error);
+        alert(`Failed to create listing:\n${error.message}\n\nPlease try again or check your eBay connection.`);
+    } finally {
+        // Re-enable buttons
+        publishBtn.disabled = !ebayConnected;
+        draftBtn.disabled = false;
+        publishBtn.textContent = '🚀 Publish Now';
+    }
+}
+</script>

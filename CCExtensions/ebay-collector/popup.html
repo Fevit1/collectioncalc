@@ -3,11 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       width: 320px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,50 +11,26 @@
       color: #fff;
       padding: 16px;
     }
-    h1 {
-      font-size: 16px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    h1 span {
-      font-size: 20px;
-    }
+    h1 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    h1 span { font-size: 20px; }
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       margin-bottom: 16px;
     }
-    .stat-box {
-      background: rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #4ecdc4;
-    }
-    .stat-label {
-      font-size: 11px;
-      color: #aaa;
-      margin-top: 4px;
-    }
+    .stat-box { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #4ecdc4; }
+    .stat-label { font-size: 11px; color: #aaa; margin-top: 4px; }
     .recent {
       background: rgba(255,255,255,0.05);
       border-radius: 8px;
       padding: 12px;
-      max-height: 200px;
+      max-height: 160px;
       overflow-y: auto;
+      margin-bottom: 12px;
     }
-    .recent h3 {
-      font-size: 12px;
-      color: #aaa;
-      margin-bottom: 8px;
-    }
+    .recent h3 { font-size: 12px; color: #aaa; margin-bottom: 8px; }
     .sale-item {
       display: flex;
       justify-content: space-between;
@@ -66,72 +38,79 @@
       border-bottom: 1px solid rgba(255,255,255,0.1);
       font-size: 12px;
     }
-    .sale-item:last-child {
-      border-bottom: none;
+    .sale-item:last-child { border-bottom: none; }
+    .sale-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 8px; }
+    .sale-price { color: #4ecdc4; font-weight: bold; }
+
+    /* SlabGuard section */
+    .sg-section {
+      background: rgba(185, 28, 28, 0.1);
+      border: 1px solid rgba(185, 28, 28, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
     }
-    .sale-title {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 8px;
-    }
-    .sale-price {
-      color: #4ecdc4;
-      font-weight: bold;
-    }
-    .buttons {
+    .sg-section-header {
       display: flex;
-      gap: 8px;
-      margin-top: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
     }
-    button {
-      flex: 1;
-      padding: 10px;
+    .sg-section-title { font-size: 12px; font-weight: 700; color: #fca5a5; display: flex; align-items: center; gap: 6px; }
+    .sg-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .sg-stat-box { background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; text-align: center; }
+    .sg-stat-value { font-size: 20px; font-weight: bold; color: #f87171; }
+    .sg-stat-label { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .sg-login-msg { font-size: 11px; color: #888; text-align: center; padding: 8px 0; }
+
+    /* Login section */
+    .login-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .login-section h3 { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+    .login-input {
+      width: 100%;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 5px;
+      color: white;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .login-input::placeholder { color: #666; }
+    .btn-login {
+      width: 100%;
+      padding: 8px;
+      background: #7C3AED;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 5px;
+      color: white;
       font-size: 12px;
       font-weight: 600;
-      transition: all 0.2s;
+      cursor: pointer;
     }
-    .btn-sync {
-      background: #4ecdc4;
-      color: #1a1a2e;
-    }
-    .btn-sync:hover {
-      background: #3dbdb5;
-    }
-    .btn-clear {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-    }
-    .btn-clear:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .status {
-      text-align: center;
-      font-size: 11px;
-      color: #888;
-      margin-top: 12px;
-    }
-    .status.success {
-      color: #4ecdc4;
-    }
-    .status.error {
-      color: #e74c3c;
-    }
-    .empty {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-      font-size: 13px;
-    }
+    .btn-login:hover { background: #6D28D9; }
+    .login-status { font-size: 11px; margin-top: 6px; text-align: center; }
+
+    .buttons { display: flex; gap: 8px; margin-top: 12px; }
+    button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .btn-sync { background: #4ecdc4; color: #1a1a2e; }
+    .btn-sync:hover { background: #3dbdb5; }
+    .btn-clear { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-clear:hover { background: rgba(255,255,255,0.2); }
+    .status { text-align: center; font-size: 11px; color: #888; margin-top: 12px; }
+    .status.success { color: #4ecdc4; }
+    .status.error { color: #e74c3c; }
+    .empty { text-align: center; padding: 16px; color: #666; font-size: 13px; }
   </style>
 </head>
 <body>
   <h1><span>📊</span> eBay Comic Collector</h1>
-  
+
   <div class="stats">
     <div class="stat-box">
       <div class="stat-value" id="totalCount">0</div>
@@ -146,22 +125,59 @@
       <div class="stat-label">Pending Sync</div>
     </div>
   </div>
-  
+
   <div class="recent">
     <h3>Recent Sales</h3>
     <div id="recentList">
       <div class="empty">Browse eBay sold listings to collect data</div>
     </div>
   </div>
-  
+
+  <!-- SlabGuard Section -->
+  <div class="sg-section" id="sg-section">
+    <div class="sg-section-header">
+      <span class="sg-section-title">🛡️ SlabGuard</span>
+    </div>
+    <div id="sg-logged-in" style="display:none">
+      <div class="sg-stats">
+        <div class="sg-stat-box">
+          <div class="sg-stat-value" id="sg-flagged">0</div>
+          <div class="sg-stat-label">Flagged DB</div>
+        </div>
+        <div class="sg-stat-box">
+          <div class="sg-stat-value" id="sg-my-reports">0</div>
+          <div class="sg-stat-label">My Reports</div>
+        </div>
+      </div>
+    </div>
+    <div id="sg-logged-out">
+      <p class="sg-login-msg">Log in below to enable scam detection on eBay listings</p>
+    </div>
+  </div>
+
+  <!-- Login Section -->
+  <div class="login-section" id="login-section">
+    <h3 id="login-section-title">🔐 Slab Worthy Login</h3>
+    <div id="login-form">
+      <input type="email" class="login-input" id="login-email" placeholder="Email">
+      <input type="password" class="login-input" id="login-password" placeholder="Password">
+      <button class="btn-login" id="login-btn">Log In</button>
+      <div class="login-status" id="login-status"></div>
+    </div>
+    <div id="logged-in-info" style="display:none">
+      <div style="font-size:12px; color:#4ecdc4; text-align:center; padding: 4px 0" id="logged-in-email"></div>
+      <button class="btn-clear" id="logout-btn" style="margin-top:8px; width:100%; padding:7px">Log Out</button>
+    </div>
+  </div>
+
   <div class="buttons">
     <button class="btn-sync" id="syncBtn">Sync Now</button>
     <button class="btn-clear" id="resetSessionBtn">Reset Session</button>
     <button class="btn-clear" id="clearBtn">Clear All</button>
   </div>
-  
+
   <div class="status" id="status">Ready</div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Option B — Card Grid</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --red: #ef4444;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --bg-card-hover: #1a1a2e;
+            --border: rgba(124, 58, 237, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Top Nav */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background: rgba(18, 18, 31, 0.95);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .nav-link:hover { color: var(--text-primary); }
+        .nav-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+        }
+
+        /* Welcome + Value Banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--purple-mid), var(--purple-dark));
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            border-radius: 20px;
+            padding: 2rem 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(rgba(124, 58, 237, 0.1) 1px, transparent 1px);
+            background-size: 6px 6px;
+            pointer-events: none;
+        }
+        .welcome-banner h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .welcome-banner h1 span {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .banner-stats {
+            display: flex;
+            gap: 2.5rem;
+            position: relative;
+        }
+        .banner-stat {
+            display: flex;
+            flex-direction: column;
+        }
+        .banner-stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.5);
+        }
+        .banner-stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        .banner-stat-value.gold {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Equal-Weight Grid — all cards same size */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .grid-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            min-height: 180px;
+        }
+        .grid-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--purple-brand);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.15);
+        }
+        .grid-card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .grid-card-icon.grade {
+            background: linear-gradient(135deg, rgba(250,204,21,0.15), rgba(202,138,4,0.1));
+        }
+        .grid-card-icon.collection {
+            background: rgba(124, 58, 237, 0.12);
+        }
+        .grid-card-icon.sell {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .grid-card-icon.verify {
+            background: rgba(56, 189, 248, 0.1);
+        }
+        .grid-card-icon.signature {
+            background: rgba(244, 114, 182, 0.1);
+        }
+        .grid-card-icon.market {
+            background: rgba(251, 146, 60, 0.1);
+        }
+        .grid-card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+        .grid-card p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            flex: 1;
+        }
+        .grid-card .card-footer {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--purple-light);
+            font-weight: 500;
+        }
+
+        /* Highlight the primary action */
+        .grid-card.primary {
+            background: linear-gradient(135deg, rgba(76, 29, 149, 0.3), var(--bg-card));
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+        .grid-card.primary h3 {
+            font-family: 'Bangers', cursive;
+            font-size: 1.25rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Recent Activity */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .section-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .activity-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(124, 58, 237, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .activity-text {
+            flex: 1;
+        }
+        .activity-text strong {
+            font-size: 0.85rem;
+        }
+        .activity-text span {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .activity-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .card-grid { grid-template-columns: 1fr; }
+            .banner-stats { flex-wrap: wrap; gap: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-logo">$LAB WORTHY</div>
+        <div class="nav-right">
+            <a href="#" class="nav-link">FAQ</a>
+            <a href="#" class="nav-link">Pricing</a>
+            <div class="nav-avatar">MB</div>
+        </div>
+    </nav>
+
+    <div class="dashboard">
+        <!-- Welcome Banner with Stats -->
+        <div class="welcome-banner">
+            <h1>Welcome back, <span>Mike</span></h1>
+            <div class="banner-stats">
+                <div class="banner-stat">
+                    <span class="banner-stat-label">Collection</span>
+                    <span class="banner-stat-value">47 comics</span>
+                </div>
+                <div class="banner-stat">
+                    <span class="banner-stat-label">Total FMV</span>
+                    <span class="banner-stat-value gold">$12,340</span>
+                </div>
+                <div class="banner-stat">
+                    <span class="banner-stat-label">Worth Slabbing</span>
+                    <span class="banner-stat-value" style="color: var(--green)">12</span>
+                </div>
+                <div class="banner-stat">
+                    <span class="banner-stat-label">This Month</span>
+                    <span class="banner-stat-value" style="color: var(--green); font-size: 1rem;">+$340 (+2.8%)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6-Card Equal Grid -->
+        <div class="card-grid">
+            <div class="grid-card primary">
+                <div class="grid-card-icon grade">📸</div>
+                <h3>Grade a Comic</h3>
+                <p>Upload 4 photos, get an AI grade, FMV, and slabbing recommendation.</p>
+                <div class="card-footer">Start grading &rarr;</div>
+            </div>
+
+            <div class="grid-card">
+                <div class="grid-card-icon collection">📚</div>
+                <h3>My Collection</h3>
+                <p>Browse, sort, and manage your 47 comics. Search by title, era, or grade.</p>
+                <div class="card-footer">View collection &rarr;</div>
+            </div>
+
+            <div class="grid-card">
+                <div class="grid-card-icon sell">💰</div>
+                <h3>Sell on eBay</h3>
+                <p>List comics as fixed-price or auction directly from your collection.</p>
+                <div class="card-footer">3 active listings &rarr;</div>
+            </div>
+
+            <div class="grid-card">
+                <div class="grid-card-icon market">📈</div>
+                <h3>Market Pulse</h3>
+                <p>Trending titles, biggest movers, and hot books from 24K+ eBay sales.</p>
+                <div class="card-footer">View trends &rarr;</div>
+            </div>
+
+            <div class="grid-card">
+                <div class="grid-card-icon verify">🛡️</div>
+                <h3>Slab Guard</h3>
+                <p>Register comics with fingerprinting or verify a slab's authenticity.</p>
+                <div class="card-footer">Verify a comic &rarr;</div>
+            </div>
+
+            <div class="grid-card">
+                <div class="grid-card-icon signature">✍️</div>
+                <h3>Signature ID</h3>
+                <p>Identify autographs and see how a signature impacts your comic's value.</p>
+                <div class="card-footer">Check a signature &rarr;</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section-header">
+            <h2>Recent Activity</h2>
+        </div>
+        <div class="activity-list">
+            <div class="activity-item">
+                <div class="activity-icon">📸</div>
+                <div class="activity-text">
+                    <strong>Graded Amazing Spider-Man #361</strong>
+                    <span>Grade: 8.5 &middot; FMV: $145 &middot; Worth slabbing</span>
+                </div>
+                <div class="activity-time">2 hours ago</div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon">💰</div>
+                <div class="activity-text">
+                    <strong>Listed Spawn #1 on eBay</strong>
+                    <span>Auction: $0.99 start &middot; 7 day &middot; $50 reserve</span>
+                </div>
+                <div class="activity-time">Yesterday</div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon">📚</div>
+                <div class="activity-text">
+                    <strong>Added Batman #423 to collection</strong>
+                    <span>Grade: 7.0 &middot; FMV: $89 &middot; Keep raw</span>
+                </div>
+                <div class="activity-time">2 days ago</div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon">🛡️</div>
+                <div class="activity-text">
+                    <strong>Registered ASM #300 with Slab Guard</strong>
+                    <span>Serial #SG-2026-0047 &middot; Fingerprinted</span>
+                </div>
+                <div class="activity-time">3 days ago</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

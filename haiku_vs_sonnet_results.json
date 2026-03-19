@@ -1,0 +1,712 @@
+[
+  {
+    "model": "sonnet",
+    "task": "extraction",
+    "comic": "Batman #251 (1973 Bronze Age)",
+    "result": {
+      "title": "Batman",
+      "issue": "251",
+      "issue_type": "Regular",
+      "publisher": "DC",
+      "year": 1973,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VG",
+      "defects": [
+        "Corner wear",
+        "Edge wear",
+        "Surface scuffing",
+        "Minor spine stress"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VG 4.0 - Visible corner rounding, edge wear throughout, surface scuffing on cover, minor spine stress lines. Colors still decent but showing age and handling wear typical of Bronze Age comics."
+    },
+    "usage": {
+      "input_tokens": 3026,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 263,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 4.91
+  },
+  {
+    "model": "haiku",
+    "task": "extraction",
+    "comic": "Batman #251 (1973 Bronze Age)",
+    "result": {
+      "title": "Batman",
+      "issue": "251",
+      "issue_type": "Regular",
+      "publisher": "DC",
+      "year": 1973,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VG",
+      "defects": [
+        "Moderate cover wear",
+        "Color fading",
+        "Corner wear",
+        "Spine stress visible"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VG (4.0) - This is Batman #251 from September 1973, featuring the iconic Joker cover. The comic shows moderate wear consistent with a 50+ year old newsstand copy. Cover has noticeable color fading, particularly in the purple tones, visible corner rounding, and spine stress lines. The cover stock shows age-appropriate wear but no major tears or missing pieces. The glossy finish has dulled with time. Overall a solid vintage copy with character but showing its age."
+    },
+    "usage": {
+      "input_tokens": 3026,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 341,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 3.75
+  },
+  {
+    "model": "sonnet",
+    "task": "grading",
+    "comic": "Batman #251 (1973 Bronze Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 6.5,
+        "spine": 5.0,
+        "corners": 6.0,
+        "edges": 6.5,
+        "cover_back": 7.0,
+        "color_gloss": 6.0,
+        "structural": 7.5,
+        "interior": 7.0
+      },
+      "defects": {
+        "front": [
+          "moderate surface wear and soiling",
+          "light creasing across cover",
+          "minor color fading",
+          "slight foxing spots"
+        ],
+        "spine": [
+          "multiple spine stress lines/ticks",
+          "moderate spine roll",
+          "staple stress visible",
+          "edge wear along spine"
+        ],
+        "back": [
+          "light surface wear",
+          "minor edge wear"
+        ],
+        "interior": [
+          "pages show age toning",
+          "centerfold appears intact"
+        ],
+        "other": [
+          "overall age-related wear consistent with vintage comic"
+        ]
+      },
+      "observations": "This Batman #251 shows moderate wear consistent with a well-read vintage comic from the 1970s. The cover retains good color but shows handling wear, creasing, and soiling. The spine exhibits multiple stress lines and roll. Corners show blunting and wear. Overall structural integrity appears sound.",
+      "photos_evaluated": [
+        "front cover",
+        "spine",
+        "back cover",
+        "centerfold"
+      ],
+      "areas_not_visible": [
+        "complete interior pages",
+        "detailed edge examination"
+      ],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 1690,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 356,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 7.34
+  },
+  {
+    "model": "haiku",
+    "task": "grading",
+    "comic": "Batman #251 (1973 Bronze Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 6.5,
+        "spine": 6.0,
+        "corners": 6.0,
+        "edges": 6.5,
+        "cover_back": 5.5,
+        "color_gloss": 6.0,
+        "structural": 6.5,
+        "interior": 6.0
+      },
+      "defects": {
+        "front": [
+          "Moderate surface wear and handling marks visible",
+          "Color fading present, particularly in background areas",
+          "Light creasing visible across cover surface",
+          "Minor stress marks around Joker figure",
+          "General dust/dirt accumulation on surface"
+        ],
+        "spine": [
+          "Multiple spine stress lines visible",
+          "Moderate spine roll evident",
+          "Staples appear intact but show age/oxidation",
+          "Light spine splitting at top and bottom edges"
+        ],
+        "back": [
+          "Moderate wear exceeding front cover",
+          "Visible creasing and stress marks",
+          "Color fading more pronounced than front",
+          "Dust and dirt accumulation",
+          "Advertisement area shows wear"
+        ],
+        "interior": [
+          "Centerfold shows moderate tanning/yellowing",
+          "Interior pages display age-appropriate tan coloration",
+          "Light subscription crease visible in centerfold",
+          "Page quality consistent with 1970s publication"
+        ],
+        "other": [
+          "Overall paper stock shows tan/cream coloration consistent with age",
+          "Comic exhibits typical wear for a 50+ year old Bronze Age book"
+        ]
+      },
+      "observations": "Batman #251 (September 1973) presents in Below Average to Average condition. This is a well-read, handled copy showing consistent wear throughout. The front cover displays moderate surface wear, color fading, and creasing typical of a book that has been read and stored without protective measures. The spine shows multiple stress lines and light splitting, with staples intact but oxidized. Corners are rounded with visible bending. The back cover is noticeably more worn than the front, with heavier creasing and fading. Interior pages show appropriate tanning for the era with a visible subscription crease in the centerfold. The book remains structurally sound with all pages attached and no missing content. This copy would likely grade in the 6.0-6.5 range by professional standards\u2014a solid mid-grade Bronze Age book suitable for reading collections rather than high-grade investment.",
+      "photos_evaluated": [
+        "front cover",
+        "spine",
+        "back cover",
+        "centerfold/interior"
+      ],
+      "areas_not_visible": [
+        "Individual interior pages beyond centerfold",
+        "All four corners simultaneously (assessed from available angles)",
+        "Complete edge condition of all three edges (right edge partially visible)"
+      ],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 1690,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 707,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 8.14
+  },
+  {
+    "model": "sonnet",
+    "task": "extraction",
+    "comic": "Iron Man #198 (1985 Copper Age)",
+    "result": {
+      "title": "Iron Man",
+      "issue": "198",
+      "issue_type": "Regular",
+      "publisher": "Marvel",
+      "year": 1985,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VG",
+      "defects": [
+        "Corner wear",
+        "Edge wear",
+        "Surface scuffing",
+        "Minor spine stress"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VG 4.0 - Visible corner rounding, edge wear throughout, surface scuffing on cover, minor spine stress lines. Colors still decent but showing wear consistent with reading/handling."
+    },
+    "usage": {
+      "input_tokens": 4343,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 261,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 5.27
+  },
+  {
+    "model": "haiku",
+    "task": "extraction",
+    "comic": "Iron Man #198 (1985 Copper Age)",
+    "result": {
+      "title": "Iron Man",
+      "issue": "198",
+      "issue_type": "Regular",
+      "publisher": "Marvel",
+      "year": 1985,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "00111",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VF",
+      "defects": [
+        "Minor wear on cover edges",
+        "Light creasing visible on front cover"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VF (8.0) - Cover shows minor wear consistent with age and handling. Colors remain vibrant with good gloss. Corners show slight rounding. No major creases, tears, or structural damage. Light surface wear typical of a well-kept newsstand copy from the mid-1980s."
+    },
+    "usage": {
+      "input_tokens": 4343,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 292,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 3.13
+  },
+  {
+    "model": "sonnet",
+    "task": "grading",
+    "comic": "Iron Man #198 (1985 Copper Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 6.5,
+        "spine": 5.0,
+        "corners": 6.0,
+        "edges": 6.5,
+        "cover_back": 7.5,
+        "color_gloss": 6.0,
+        "structural": 8.0,
+        "interior": 7.5
+      },
+      "defects": {
+        "front": [
+          "multiple stress lines and creases across cover",
+          "surface wear and handling marks",
+          "minor color fading",
+          "light soiling"
+        ],
+        "spine": [
+          "significant spine stress lines/ticks",
+          "spine roll present",
+          "staple stress visible",
+          "multiple vertical stress marks"
+        ],
+        "back": [
+          "light surface wear",
+          "minor handling marks"
+        ],
+        "interior": [
+          "slight page tanning",
+          "minor handling wear"
+        ],
+        "other": [
+          "overall moderate handling wear throughout"
+        ]
+      },
+      "observations": "This is a moderately worn copy showing typical reading wear. The spine shows significant stress with multiple stress lines and some roll. The front cover has several creases and stress marks but retains decent color. The back cover is in better condition than the front. Pages show slight tanning but remain intact. Overall structural integrity is good despite the wear.",
+      "photos_evaluated": [
+        "front cover",
+        "spine",
+        "back cover",
+        "centerfold"
+      ],
+      "areas_not_visible": [],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 7522,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 346,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 8.87
+  },
+  {
+    "model": "haiku",
+    "task": "grading",
+    "comic": "Iron Man #198 (1985 Copper Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 7.5,
+        "spine": 7.0,
+        "corners": 7.0,
+        "edges": 7.0,
+        "cover_back": 7.5,
+        "color_gloss": 7.5,
+        "structural": 8.0,
+        "interior": 7.5
+      },
+      "defects": {
+        "front": [
+          "Light surface wear and handling marks visible across cover",
+          "Minor creasing visible in upper right quadrant",
+          "Slight color fading consistent with age",
+          "Light dust/dirt accumulation on surface",
+          "Minor stress marks around edges of cover"
+        ],
+        "spine": [
+          "Multiple light stress lines visible along spine",
+          "Slight spine roll evident",
+          "Staples appear intact but show minor oxidation",
+          "Light creasing along spine length"
+        ],
+        "back": [
+          "Light surface wear consistent with front",
+          "Minor creasing visible",
+          "Slight color fading",
+          "General handling wear appropriate for age"
+        ],
+        "interior": [
+          "Centerfold shows light tanning/aging of paper",
+          "Interior pages show age-appropriate yellowing",
+          "No tears or major defects visible in centerfold",
+          "Subscription crease visible but not severe"
+        ],
+        "other": [
+          "Overall paper stock shows cream/tan coloration consistent with 1985 publication",
+          "No writing, stamps, or stickers detected",
+          "No missing pages or coupons detected"
+        ]
+      },
+      "observations": "Iron Man #198 presents in Above Average to Very Good condition. This is a well-handled but carefully preserved copy from 1985. The front and back covers show consistent, light wear typical of a comic that has been read and stored but not abused. Spine stress is moderate with visible creasing but no splits. Corners show rounding consistent with age and handling. The centerfold is intact and attached properly. Paper stock shows expected tanning for a 39-year-old comic. No major defects, tears, or missing elements detected. The book would likely grade in the VG+ (8.5) to VG (8.0) range with CGC, though conservative grading suggests VG (8.0) is more probable given the visible wear across all surfaces.",
+      "photos_evaluated": [
+        "front cover",
+        "spine detail",
+        "back cover",
+        "centerfold/interior pages"
+      ],
+      "areas_not_visible": [
+        "Individual interior page quality beyond centerfold",
+        "Detailed staple condition (close-up not provided)",
+        "Bottom edge condition (not clearly visible in photos)"
+      ],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 7522,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 687,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 7.22
+  },
+  {
+    "model": "sonnet",
+    "task": "extraction",
+    "comic": "Avengers #145 (1976 Bronze Age)",
+    "result": {
+      "title": "The Avengers",
+      "issue": "145",
+      "issue_type": "Regular",
+      "publisher": "Marvel Comics Group",
+      "year": 1976,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VG",
+      "defects": [
+        "Corner wear",
+        "Edge wear",
+        "Surface wear",
+        "Minor spine stress"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VG 4.0 - Visible corner rounding, edge wear throughout, surface scuffing on cover, minor spine stress lines. Colors remain decent but showing age and handling wear typical of newsstand copies from this era."
+    },
+    "usage": {
+      "input_tokens": 4343,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 269,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 5.39
+  },
+  {
+    "model": "haiku",
+    "task": "extraction",
+    "comic": "Avengers #145 (1976 Bronze Age)",
+    "result": {
+      "title": "The Avengers",
+      "issue": "145",
+      "issue_type": "Regular",
+      "publisher": "Marvel Comics Group",
+      "year": 1976,
+      "writer": "",
+      "artist": "",
+      "edition": "newsstand",
+      "printing": "1st",
+      "is_facsimile": false,
+      "cover": "",
+      "variant": "",
+      "barcode_digits": "00145",
+      "is_slabbed": false,
+      "slab_cert_number": "",
+      "slab_company": "",
+      "slab_grade": "",
+      "slab_label_type": "",
+      "suggested_grade": "VG",
+      "defects": [
+        "Creasing on cover",
+        "Corner wear",
+        "Spine stress lines",
+        "General age wear"
+      ],
+      "signatures": [],
+      "grade_reasoning": "VG (4.0) - Significant wear visible throughout. Cover shows creasing, corner rounding, and stress marks consistent with a well-read vintage comic from the 1970s. Spine shows stress lines. No major tears or missing pieces, but overall condition reflects typical handling of a newsstand copy from this era."
+    },
+    "usage": {
+      "input_tokens": 4343,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 310,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 3.83
+  },
+  {
+    "model": "sonnet",
+    "task": "grading",
+    "comic": "Avengers #145 (1976 Bronze Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 6.5,
+        "spine": 5.0,
+        "corners": 6.0,
+        "edges": 6.5,
+        "cover_back": 7.0,
+        "color_gloss": 6.0,
+        "structural": 8.0,
+        "interior": 7.5
+      },
+      "defects": {
+        "front": [
+          "moderate surface wear and soiling",
+          "light creasing throughout",
+          "minor color fading",
+          "general handling wear"
+        ],
+        "spine": [
+          "significant spine stress lines/ticks",
+          "moderate spine roll",
+          "staple stress",
+          "edge wear along spine"
+        ],
+        "back": [
+          "light surface wear",
+          "minor soiling"
+        ],
+        "interior": [
+          "light tanning of pages",
+          "minor handling wear"
+        ],
+        "other": [
+          "overall moderate wear consistent with reading copy"
+        ]
+      },
+      "observations": "This is a solid reading copy with moderate wear throughout. The comic shows typical handling and storage wear with spine stress being the most significant condition issue. Colors remain reasonably vibrant despite some fading. No major structural damage or missing pieces.",
+      "photos_evaluated": [
+        "front cover",
+        "spine",
+        "back cover",
+        "centerfold"
+      ],
+      "areas_not_visible": [
+        "individual corner close-ups",
+        "edge detail shots"
+      ],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 7523,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 334,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 8.04
+  },
+  {
+    "model": "haiku",
+    "task": "grading",
+    "comic": "Avengers #145 (1976 Bronze Age)",
+    "result": {
+      "category_scores": {
+        "cover_front": 7.0,
+        "spine": 6.5,
+        "corners": 6.5,
+        "edges": 6.5,
+        "cover_back": 6.0,
+        "color_gloss": 7.5,
+        "structural": 7.0,
+        "interior": 7.0
+      },
+      "defects": {
+        "front": [
+          "Light surface wear and handling marks visible",
+          "Minor creasing visible on cover surface",
+          "Slight color fading consistent with age",
+          "Light foxing/discoloration spots present",
+          "Cover shows general age-appropriate wear"
+        ],
+        "spine": [
+          "Multiple spine stress lines visible",
+          "Slight spine roll evident",
+          "Staples appear intact but show age",
+          "Minor stress marks at staple areas"
+        ],
+        "back": [
+          "Back cover shows more wear than front",
+          "Light creasing and handling marks",
+          "Color slightly more faded than front",
+          "General wear consistent with age"
+        ],
+        "interior": [
+          "Pages show light tanning/aging",
+          "Centerfold appears intact and attached",
+          "Minor subscription crease visible",
+          "No tears or major defects observed in visible pages"
+        ],
+        "other": [
+          "Overall book appears to have been read and handled regularly",
+          "No missing pages or coupons detected",
+          "Book structure appears sound"
+        ]
+      },
+      "observations": "Avengers #145 (March 1976) presents as a well-read, collectible-grade copy with age-appropriate wear throughout. The front cover maintains good color vibrancy with the iconic orange and yellow tones still vibrant, though light surface wear and minor creasing are evident from handling. The spine shows typical stress lines consistent with a 48+ year old comic that has been read. Corners show moderate rounding and light creasing. The back cover exhibits slightly more wear than the front, which is typical. Paper quality shows expected tanning for a Bronze Age comic of this age. The centerfold is intact and attached. No major structural issues, tears, or missing content detected. This copy would likely grade in the VG (7.0-7.5) range, representing a solid mid-grade collectible with honest wear from reading and handling.",
+      "photos_evaluated": [
+        "front cover",
+        "spine (side view)",
+        "back cover with advertisement",
+        "interior centerfold pages"
+      ],
+      "areas_not_visible": [
+        "Individual interior pages beyond centerfold",
+        "Top and bottom edge detail",
+        "Right edge detail",
+        "Staple tightness (close inspection)"
+      ],
+      "signature_detected": false,
+      "signature_info": null
+    },
+    "usage": {
+      "input_tokens": 7523,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 684,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "elapsed": 7.92
+  }
+]

@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# Database (don't commit the actual DB with pricing data)
+*.db
+!schema.sql
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+~$*.docx
+
+# Cleanup trash (safe to delete)
+_cleanup_trash/
+
+# Logs
+*.log
+
+# Local config
+config.local.py
+secrets.py
+
+# API keys, tokens, passwords - catch any file with these in the name
+*API_KEY*
+*api_key*
+*api*token*
+*APIKey*
+*pwd*
+*password*
+*secret*
+*credential*
+*.pem
+*.key
+
+# Sensitive project files (by name)
+ComicBookImages/ANTHROPIC_API_KEY*
+ComicBookImages/RenderAPIKey*
+ComicBookImages/RenderR2Info*
+ComicBookImages/gocollect*
+ComicBookImages/supabase*
+ComicBookImages/CLaduePromptRestart*
+
+# Large binary folders - don't belong in git
+ComicBookImages/
+_cleanup_candidates/
+WV/
+
+# Test photos (personal images, eBay grabs - not for repo)
+PhotosOfPhotosTest/
+PhotosofPhotosTest/
+
+# USPTO receipts and screenshots
+docs/business/N417.PYMT*
+docs/business/patentapplicationsingatures*

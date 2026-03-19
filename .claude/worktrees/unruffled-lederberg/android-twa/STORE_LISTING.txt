@@ -1,0 +1,59 @@
+============================================================
+GOOGLE PLAY STORE LISTING COPY
+============================================================
+
+APP TITLE (30 chars max):
+Slab Worthy
+
+SHORT DESCRIPTION (80 chars max):
+AI-powered comic grading, valuation, and theft protection for collectors.
+
+FULL DESCRIPTION:
+
+Should you slab it? Now you'll know before you spend the money.
+
+Slab Worthy uses AI to grade your comics in seconds. Just snap 4 photos — front cover, spine, back cover, and centerfold — and get an instant condition grade, fair market value, and a clear verdict on whether professional grading is worth the investment.
+
+KEY FEATURES:
+
+AI Comic Grading
+Upload 4 photos and get a professional-quality grade in under 30 seconds. Our patent-pending multi-angle analysis detects spine stress, corner wear, color breaks, and dozens of other defects that affect your comic's value.
+
+Fair Market Value
+Get real-time valuations based on actual eBay and marketplace sales data. See what your comic is worth raw vs. slabbed, so you can make informed decisions.
+
+Slab Guard Theft Protection
+Register your comics with our patent-pending fingerprinting system. If your comics are ever stolen, Slab Guard monitors online marketplaces and alerts you when a match is found.
+
+My Collection
+Build and track your entire comic collection. See your total portfolio value, filter by era, sort by grade or value, and export your collection.
+
+WHO IS THIS FOR?
+
+Whether you're a casual collector wondering about that old box in the attic, or a serious dealer evaluating hundreds of books, Slab Worthy gives you the data you need to make smart decisions.
+
+Two patents pending. Built by collectors, for collectors.
+
+============================================================
+
+TAGS/KEYWORDS:
+comic books, comic grading, CGC, CBCS, comic book value, comic collection,
+slab, grading, comic book app, comic collector, fair market value,
+comic book price guide, comic appraisal
+
+CATEGORY:
+Entertainment (primary)
+Tools (secondary, if available)
+
+CONTENT RATING:
+Everyone
+
+CONTACT EMAIL:
+support@slabworthy.com
+
+WEBSITE:
+https://slabworthy.com
+
+PRIVACY POLICY URL:
+https://slabworthy.com/privacy.html
+============================================================

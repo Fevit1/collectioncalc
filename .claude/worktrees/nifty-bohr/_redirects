@@ -1,0 +1,9 @@
+# Cloudflare Pages Redirects
+# Docs: https://developers.cloudflare.com/pages/configuration/redirects/
+
+# CollectionCalc.com → Coming Soon placeholder
+/mockup-results.html  /mockup-results.html  200
+https://collectioncalc.com/*  /collectioncalc.html  200
+https://www.collectioncalc.com/*  /collectioncalc.html  200
+
+# SlabWorthy.com continues to serve index.html (default behavior - no redirect needed)

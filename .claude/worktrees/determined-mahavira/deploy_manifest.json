@@ -1,0 +1,159 @@
+{
+  "site_name": "Slab Worthy",
+  "base_url": "https://slabworthy.com",
+  "checks": [
+    {
+      "name": "Homepage loads",
+      "type": "page_status",
+      "path": "/",
+      "expected_status": 200
+    },
+    {
+      "name": "Login page loads",
+      "type": "page_status",
+      "path": "/login.html",
+      "expected_status": 200
+    },
+    {
+      "name": "App page loads",
+      "type": "page_status",
+      "path": "/app.html",
+      "expected_status": 200
+    },
+    {
+      "name": "FAQ page loads",
+      "type": "page_status",
+      "path": "/faq.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Pricing page loads",
+      "type": "page_status",
+      "path": "/pricing.html",
+      "expected_status": 200
+    },
+    {
+      "name": "About page loads",
+      "type": "page_status",
+      "path": "/about.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Account page loads",
+      "type": "page_status",
+      "path": "/account.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Check page loads",
+      "type": "page_status",
+      "path": "/check.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Verify page loads",
+      "type": "page_status",
+      "path": "/verify.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Privacy page loads",
+      "type": "page_status",
+      "path": "/privacy.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Terms page loads",
+      "type": "page_status",
+      "path": "/terms.html",
+      "expected_status": 200
+    },
+    {
+      "name": "Footer JS serves JavaScript (not HTML)",
+      "type": "asset_not_html",
+      "path": "/js/footer.js"
+    },
+    {
+      "name": "Styles CSS serves CSS (not HTML)",
+      "type": "asset_not_html",
+      "path": "/styles.css"
+    },
+    {
+      "name": "App JS serves JavaScript (not HTML)",
+      "type": "asset_not_html",
+      "path": "/js/app.js"
+    },
+    {
+      "name": "Auth JS serves JavaScript (not HTML)",
+      "type": "asset_not_html",
+      "path": "/js/auth.js"
+    },
+    {
+      "name": "Utils JS serves JavaScript (not HTML)",
+      "type": "asset_not_html",
+      "path": "/js/utils.js"
+    },
+    {
+      "name": "Homepage contains Slab Worthy branding",
+      "type": "content_contains",
+      "path": "/",
+      "expected_strings": ["Slab Worthy", "Patent Pending"]
+    },
+    {
+      "name": "All pages reference footer.js",
+      "type": "content_contains",
+      "path": "/login.html",
+      "expected_strings": ["/js/footer.js"]
+    },
+    {
+      "name": "App page references footer.js",
+      "type": "content_contains",
+      "path": "/app.html",
+      "expected_strings": ["/js/footer.js"]
+    },
+    {
+      "name": "FAQ page references footer.js",
+      "type": "content_contains",
+      "path": "/faq.html",
+      "expected_strings": ["/js/footer.js"]
+    },
+    {
+      "name": "About page references footer.js",
+      "type": "content_contains",
+      "path": "/about.html",
+      "expected_strings": ["/js/footer.js"]
+    },
+    {
+      "name": "Pricing page references footer.js",
+      "type": "content_contains",
+      "path": "/pricing.html",
+      "expected_strings": ["/js/footer.js"]
+    },
+    {
+      "name": "API health check responds",
+      "type": "api_json",
+      "url": "https://collectioncalc-docker.onrender.com/health",
+      "expected_keys": ["status"]
+    },
+    {
+      "name": "Homepage does not reference old footer path",
+      "type": "content_not_contains",
+      "path": "/index.html",
+      "unexpected_strings": ["src=\"/footer.js\""]
+    },
+    {
+      "name": "Login does not reference old footer path",
+      "type": "content_not_contains",
+      "path": "/login.html",
+      "unexpected_strings": ["src=\"/footer.js\""]
+    }
+  ],
+  "manual_checks": [
+    "Open homepage in incognito — verify branded footer renders with Slab Worthy TM, nav links, copyright, and CGC/CBCS disclaimer",
+    "Check login.html footer matches homepage footer",
+    "Check about.html footer — no 'Check a Comic' link, Slab Worthy has TM",
+    "Check verify.html has simplified footer with link back to Slab Worthy",
+    "Login flow works end-to-end (login.html -> app.html)",
+    "Spot-check one grading submission (app.html)"
+  ]
+}

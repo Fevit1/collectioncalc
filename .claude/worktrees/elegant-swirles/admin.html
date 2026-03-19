@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CollectionCalc</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .admin-badge {
+            background: var(--warning);
+            color: black;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px; }
+        .stat-value { font-size: 2rem; font-weight: 700; }
+        .stat-sub { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.error { color: var(--error); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* NLQ Section */
+        .nlq-input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .nlq-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .nlq-input:focus { outline: none; border-color: var(--primary); }
+        .nlq-input::placeholder { color: var(--text-muted); }
+
+        .btn {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--error); }
+        .btn-secondary { background: var(--bg-card-hover); border: 1px solid var(--border); }
+
+        .nlq-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .suggestion-chip {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .suggestion-chip:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .nlq-result {
+            background: var(--bg-dark);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .nlq-sql {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .data-table th.sortable:hover {
+            color: var(--primary);
+        }
+
+        .data-table th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.3;
+            font-size: 0.75em;
+        }
+
+        .data-table th.sortable.sort-asc::after {
+            content: ' ▲';
+            opacity: 0.8;
+            color: var(--primary);
+        }
+
+        .data-table th.sortable.sort-desc::after {
+            content: ' ▼';
+            opacity: 0.8;
+            color: var(--primary);
+        }
+
+        .data-table th, .data-table td {
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+
+        .data-table tr:hover td { background: var(--bg-card-hover); }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-approved { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .status-admin { background: rgba(99, 102, 241, 0.2); color: var(--primary); }
+
+        .action-btns { display: flex; gap: 8px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-dark);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .tab.active { background: var(--primary); color: white; }
+        .tab:hover:not(.active) { color: var(--text-primary); }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        /* Scrollable table container */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--error); }
+    </style>
+</head>
+<body data-sidebar-page="admin" data-no-universal-footer>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1 class="logo">CollectionCalc</h1>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <a href="/signatures.html" class="back-link">🖊️ Signatures</a>
+                <a href="/app.html" class="back-link">← Back to App</a>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="statUsers">-</div>
+                <div class="stat-sub" id="statUsersSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Approval</div>
+                <div class="stat-value warning" id="statPending">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">API Calls (24h)</div>
+                <div class="stat-value" id="statRequests">-</div>
+                <div class="stat-sub" id="statRequestsSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">API Cost (Month)</div>
+                <div class="stat-value" id="statCost">-</div>
+                <div class="stat-sub" id="statCostSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sales Tracked</div>
+                <div class="stat-value" id="statSales">-</div>
+                <div class="stat-sub" id="statSalesSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Beta Codes</div>
+                <div class="stat-value" id="statCodes">-</div>
+                <div class="stat-sub" id="statCodesSub"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Waitlist Signups</div>
+                <div class="stat-value" id="statWaitlist">-</div>
+                <div class="stat-sub" id="statWaitlistSub"></div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="nlq">🔍 Query</button>
+            <button class="tab" data-tab="users">👥 Users</button>
+            <button class="tab" data-tab="codes">🎟️ Beta Codes</button>
+            <button class="tab" data-tab="errors">⚠️ Errors</button>
+            <button class="tab" data-tab="usage">📊 API Usage</button>
+            <button class="tab" data-tab="waitlist">📋 Waitlist</button>
+            <button class="tab" data-tab="feedback">💬 Feedback</button>
+            <button class="tab" data-tab="slabguard">🛡️ SlabGuard</button>
+        </div>
+
+        <!-- NLQ Tab -->
+        <div class="tab-panel active" id="tab-nlq">
+            <div class="section">
+                <h2 class="section-title">🔍 Natural Language Query</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Ask questions about your data in plain English. Claude will convert it to SQL and show you the results.
+                </p>
+                
+                <div class="nlq-suggestions">
+                    <span class="suggestion-chip" onclick="setQuery('Show me all users who signed up this week')">Users this week</span>
+                    <span class="suggestion-chip" onclick="setQuery('How many valuations happened today?')">Valuations today</span>
+                    <span class="suggestion-chip" onclick="setQuery('Which endpoints have the most errors?')">Error hotspots</span>
+                    <span class="suggestion-chip" onclick="setQuery('Top 10 users by API usage')">Top users</span>
+                    <span class="suggestion-chip" onclick="setQuery('Show me failed requests from mobile devices')">Mobile failures</span>
+                    <span class="suggestion-chip" onclick="setQuery('Average response time by endpoint')">Response times</span>
+                </div>
+
+                <form class="nlq-input-row" onsubmit="runQuery(event)">
+                    <input type="text" class="nlq-input" id="nlqInput" placeholder="Ask a question about your data...">
+                    <button type="submit" class="btn" id="nlqBtn">Run Query</button>
+                </form>
+
+                <div id="nlqResult"></div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-panel" id="tab-users">
+            <div class="section">
+                <h2 class="section-title">👥 User Insights</h2>
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('usersBody', 0, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 1, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 2, 'string')">Beta Code</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 3, 'number')">Collection</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 4, 'number')">Slab Guard</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 5, 'number')">API Calls</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 6, 'number')">AI Cost</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 7, 'date')">Last Active</th>
+                                <th class="sortable" onclick="sortTable('usersBody', 8, 'date')">Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <tr><td colspan="10" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beta Codes Tab -->
+        <div class="tab-panel" id="tab-codes">
+            <div class="section">
+                <h2 class="section-title">🎟️ Beta Codes</h2>
+                <div style="margin-bottom: 16px;">
+                    <button class="btn btn-sm" onclick="createBetaCode()">+ Create New Code</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('codesBody', 0, 'string')">Code</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 1, 'string')">Note</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 2, 'number')">Uses</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 3, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('codesBody', 4, 'date')">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="codesBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Errors Tab -->
+        <div class="tab-panel" id="tab-errors">
+            <div class="section">
+                <h2 class="section-title">⚠️ Recent Errors</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('errorsBody', 0, 'date')">Time</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 1, 'string')">Endpoint</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 2, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 3, 'string')">Device</th>
+                                <th class="sortable" onclick="sortTable('errorsBody', 4, 'string')">Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="errorsBody">
+                            <tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Tab -->
+        <div class="tab-panel" id="tab-usage">
+            <div class="section">
+                <h2 class="section-title">📊 API Usage (Last 30 Days)</h2>
+                <div id="usageContent">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </div>
+        </div>
+        <!-- Waitlist Tab -->
+        <div class="tab-panel" id="tab-waitlist">
+            <div class="section">
+                <h2 class="section-title">📋 Waitlist Signups</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 0, 'string')">Email</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 1, 'string')">Status</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 2, 'string')">Invited</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 3, 'string')">Registered</th>
+                                <th>Interests</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 5, 'date')">Signed Up</th>
+                                <th class="sortable" onclick="sortTable('waitlistBody', 6, 'date')">Verified At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waitlistBody">
+                            <tr><td colspan="8" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Tab -->
+        <div class="tab-panel" id="tab-feedback">
+            <div class="section">
+                <h2 class="section-title">💬 User Feedback</h2>
+                <!-- Feedback Stats -->
+                <div class="stats-grid" id="feedbackStatsGrid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Feedback</div>
+                        <div class="stat-value" id="fbStatTotal">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Grading Thumbs Up</div>
+                        <div class="stat-value" id="fbStatThumbsUp">-</div>
+                        <div class="stat-sub" id="fbStatPositivePct"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg General Rating</div>
+                        <div class="stat-value" id="fbStatAvgRating">-</div>
+                        <div class="stat-sub" id="fbStatGeneralCount"></div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 0, 'string')">User</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 1, 'string')">Type</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 2, 'string')">Rating</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 3, 'string')">Comment</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 4, 'string')">Page</th>
+                                <th class="sortable" onclick="sortTable('feedbackBody', 5, 'date')">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackBody">
+                            <tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SlabGuard Review Queue ═══ -->
+        <div class="tab-panel" id="tab-slabguard">
+            <div class="section">
+                <h2 class="section-title">🛡️ SlabGuard — Scam Review Queue</h2>
+
+                <!-- Queue stats -->
+                <div class="stats-grid" id="sgStatsGrid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Pending Review</div>
+                        <div class="stat-value warning" id="sgStatPending">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Approved (Scams)</div>
+                        <div class="stat-value error" id="sgStatApproved">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Rejected</div>
+                        <div class="stat-value" id="sgStatRejected">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Image Hashes in DB</div>
+                        <div class="stat-value success" id="sgStatFlagged">-</div>
+                    </div>
+                </div>
+
+                <!-- Filter bar -->
+                <div style="display:flex; gap:10px; margin-bottom:1rem; flex-wrap:wrap; align-items:center;">
+                    <select id="sgStatusFilter" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <button class="btn" onclick="loadSlabGuardQueue()" style="padding:6px 16px;font-size:0.85rem;">Refresh</button>
+                    <span id="sgQueueCount" style="color:var(--text-muted);font-size:0.85rem;"></span>
+                </div>
+
+                <!-- Queue table -->
+                <div class="table-container">
+                    <table class="data-table" id="sgTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('sgBody', 0, 'number')">#</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 1, 'string')">eBay Listing</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 2, 'number')">Risk Score</th>
+                                <th>Signals</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 4, 'string')">Submitted By</th>
+                                <th class="sortable" onclick="sortTable('sgBody', 5, 'date')">Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sgBody">
+                            <tr><td colspan="7" class="loading"><div class="spinner"></div>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Review modal -->
+            <div id="sgModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;">
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:680px;width:90%;max-height:90vh;overflow-y:auto;">
+                    <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                        🛡️ Review Submission <span id="sgModalId" style="color:var(--text-muted);font-size:0.85rem;"></span>
+                    </h3>
+
+                    <!-- Listing preview -->
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">LISTING URL</div>
+                        <a id="sgModalUrl" href="#" target="_blank" style="color:var(--primary);word-break:break-all;font-size:0.9rem;"></a>
+                    </div>
+
+                    <!-- eBay listing embedded preview button -->
+                    <div style="margin-bottom:16px;">
+                        <button onclick="sgOpenListing()" class="btn" style="background:var(--bg-card-hover);border:1px solid var(--border);">
+                            🔗 Open eBay Listing in New Tab
+                        </button>
+                        <span style="font-size:0.8rem;color:var(--text-muted);margin-left:10px;">Review the live listing before deciding</span>
+                    </div>
+
+                    <!-- Signals -->
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">RISK SIGNALS</div>
+                        <div id="sgModalSignals" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                    </div>
+
+                    <!-- Submitter info -->
+                    <div style="margin-bottom:16px;padding:10px 14px;background:var(--bg-dark);border-radius:8px;font-size:0.85rem;">
+                        <span style="color:var(--text-muted);">Submitted by: </span>
+                        <span id="sgModalSubmitter" style="color:var(--text-primary);"></span>
+                        <span style="color:var(--text-muted);"> · Account age: </span>
+                        <span id="sgModalAccountAge" style="color:var(--text-primary);"></span>
+                        <span style="color:var(--text-muted);"> · Risk score: </span>
+                        <span id="sgModalRiskScore" style="color:var(--warning);font-weight:600;"></span>
+                    </div>
+
+                    <!-- Review note -->
+                    <div style="margin-bottom:20px;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">REVIEW NOTE (optional)</div>
+                        <textarea id="sgModalNote" rows="2" placeholder="Optional note about this decision..."
+                            style="width:100%;background:var(--bg-dark);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:10px;font-family:inherit;font-size:0.9rem;resize:vertical;"></textarea>
+                    </div>
+
+                    <!-- Approve / Reject / Cancel -->
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button onclick="sgApprove()" class="btn" style="background:#dc2626;flex:1;">
+                            ✅ Approve — Add to Scam DB
+                        </button>
+                        <button onclick="sgReject()" class="btn" style="background:var(--bg-card-hover);border:1px solid var(--border);flex:1;">
+                            ❌ Reject — Not a Scam
+                        </button>
+                        <button onclick="sgCloseModal()" class="btn" style="background:transparent;border:1px solid var(--border);">
+                            Cancel
+                        </button>
+                    </div>
+
+                    <div id="sgModalStatus" style="margin-top:12px;font-size:0.85rem;color:var(--text-muted);text-align:center;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = 'https://collectioncalc-docker.onrender.com';
+        let token = localStorage.getItem('cc_token');
+
+        // Check admin access
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.user.is_admin) {
+                    showToast('Admin access required', 'error');
+                    setTimeout(() => window.location.href = '/app.html', 2000);
+                    return;
+                }
+
+                loadDashboard();
+            } catch (e) {
+                window.location.href = '/';
+            }
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        async function loadDashboard() {
+            loadStats();
+            loadUsers();
+            loadBetaCodes();
+            loadErrors();
+            loadUsage();
+            loadWaitlist();
+            loadFeedback();
+            loadSlabGuardStats();
+            loadSlabGuardQueue();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const s = data.stats;
+                    document.getElementById('statUsers').textContent = s.users.total_users;
+                    document.getElementById('statUsersSub').textContent = `${s.users.new_users_week} this week`;
+                    document.getElementById('statPending').textContent = s.users.pending_users;
+                    document.getElementById('statRequests').textContent = s.requests_24h.total.toLocaleString();
+                    document.getElementById('statRequestsSub').textContent = `${s.requests_24h.failed} failed`;
+                    document.getElementById('statCost').textContent = `$${s.api_usage_month.estimated_cost_usd.toFixed(2)}`;
+                    document.getElementById('statCostSub').textContent = `${s.api_usage_month.api_calls} calls`;
+                    document.getElementById('statSales').textContent = s.sales.total.toLocaleString();
+                    document.getElementById('statSalesSub').textContent = `${(s.sales.ebay_count || 0).toLocaleString()} eBay · ${(s.sales.market_count || 0).toLocaleString()} Whatnot`;
+                    document.getElementById('statCodes').textContent = s.beta_codes.available_codes;
+                    document.getElementById('statCodesSub').textContent = `${s.beta_codes.used_codes} used`;
+                }
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        function timeAgo(dateStr) {
+            if (!dateStr) return 'Never';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 60) return `${mins}m ago`;
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return `${hrs}h ago`;
+            const days = Math.floor(hrs / 24);
+            if (days < 7) return `${days}d ago`;
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('usersBody');
+                if (!data.success || !data.users.length) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No users found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.users.map(u => `
+                    <tr style="cursor:pointer" onclick="toggleUserDetail(${u.id})">
+                        <td>
+                            <div>${u.email}</div>
+                            ${u.display_name ? `<div style="color:#71717a;font-size:11px">${u.display_name}</div>` : ''}
+                        </td>
+                        <td>
+                            ${u.is_admin ? '<span class="status-badge status-admin">Admin</span>' :
+                              u.is_approved ? '<span class="status-badge status-approved">Approved</span>' :
+                              '<span class="status-badge status-pending">Pending</span>'}
+                            ${u.email_verified ? '' : '<span style="color:#f59e0b;font-size:10px;margin-left:4px">unverified</span>'}
+                        </td>
+                        <td><code style="font-size:11px">${u.beta_code_used || '-'}</code></td>
+                        <td style="text-align:center">${u.collections || 0}</td>
+                        <td style="text-align:center">${u.slab_guard || 0}</td>
+                        <td style="text-align:center">${u.api_calls || 0}</td>
+                        <td style="text-align:center">$${(u.ai_cost || 0).toFixed(2)}</td>
+                        <td style="font-size:11px;color:#a1a1aa">${timeAgo(u.last_activity || u.last_login)}</td>
+                        <td style="font-size:11px;color:#71717a">${timeAgo(u.created_at)}</td>
+                        <td class="action-btns" onclick="event.stopPropagation()">
+                            ${!u.is_approved && !u.is_admin ? `
+                                <button class="btn btn-sm btn-success" onclick="approveUser(${u.id})">Approve</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectUser(${u.id})">Reject</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                    <tr id="detail-${u.id}" style="display:none;background:rgba(99,102,241,0.05)">
+                        <td colspan="10" style="padding:12px 16px">
+                            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:12px;margin-bottom:8px">
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Last Login</div>
+                                    <div style="color:#e4e4e7">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Last Activity</div>
+                                    <div style="color:#e4e4e7">${u.last_activity ? new Date(u.last_activity).toLocaleString() : 'None'}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">AI API Calls</div>
+                                    <div style="color:#e4e4e7">${u.ai_calls || 0} calls · $${(u.ai_cost || 0).toFixed(4)}</div>
+                                </div>
+                                <div>
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px">Feedback</div>
+                                    <div style="color:#e4e4e7">${u.feedback_count || 0} entries${u.feedback_avg > 0 ? ` · avg ${u.feedback_avg} ⭐` : ''}</div>
+                                </div>
+                            </div>
+                            ${u.top_actions && Object.keys(u.top_actions).length > 0 ? `
+                                <div style="margin-top:8px">
+                                    <div style="color:#71717a;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Activity Breakdown</div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                                        ${Object.entries(u.top_actions)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([action, count]) => `
+                                                <span style="padding:3px 8px;border-radius:4px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);color:#a1a1aa;font-size:11px;font-family:monospace">
+                                                    ${action}: <span style="color:#e4e4e7">${count}</span>
+                                                </span>
+                                            `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load users:', e);
+            }
+        }
+
+        function toggleUserDetail(userId) {
+            const row = document.getElementById(`detail-${userId}`);
+            if (row) {
+                row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+            }
+        }
+
+        async function loadBetaCodes() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('codesBody');
+                if (!data.success || !data.codes.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No beta codes</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.codes.map(c => `
+                    <tr>
+                        <td><code>${c.code}</code></td>
+                        <td>${c.note || '-'}</td>
+                        <td>${c.uses_remaining}/${c.uses_allowed}</td>
+                        <td>
+                            ${c.uses_remaining > 0 ? 
+                                '<span class="status-badge status-approved">Available</span>' :
+                                '<span class="status-badge status-pending">Used</span>'}
+                        </td>
+                        <td>${formatDate(c.created_at)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load beta codes:', e);
+            }
+        }
+
+        async function loadErrors() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/errors`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const tbody = document.getElementById('errorsBody');
+                if (!data.success || !data.errors.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No recent errors 🎉</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.errors.map(e => `
+                    <tr>
+                        <td>${formatDate(e.created_at)}</td>
+                        <td><code>${e.endpoint}</code></td>
+                        <td>${e.user_email || 'Anonymous'}</td>
+                        <td>${e.device_type || 'Unknown'}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${e.error_message}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load errors:', e);
+            }
+        }
+
+        async function loadUsage() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/usage`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                const container = document.getElementById('usageContent');
+                if (!data.success) {
+                    container.innerHTML = '<div class="empty-state">Failed to load usage data</div>';
+                    return;
+                }
+
+                const u = data.usage;
+                container.innerHTML = `
+                    <div class="stats-grid" style="margin-bottom: 24px;">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Cost</div>
+                            <div class="stat-value">$${u.totals.cost_usd.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Input Tokens</div>
+                            <div class="stat-value">${(u.totals.input_tokens / 1000).toFixed(1)}K</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Output Tokens</div>
+                            <div class="stat-value">${(u.totals.output_tokens / 1000).toFixed(1)}K</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">API Calls</div>
+                            <div class="stat-value">${u.totals.api_calls.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <h3 style="margin-bottom: 12px;">By Endpoint</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Endpoint</th><th>Calls</th><th>Cost</th></tr>
+                        </thead>
+                        <tbody>
+                            ${u.by_endpoint.map(e => `
+                                <tr>
+                                    <td><code>${e.endpoint}</code></td>
+                                    <td>${e.api_calls}</td>
+                                    <td>$${parseFloat(e.cost).toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (e) {
+                console.error('Failed to load usage:', e);
+            }
+        }
+
+        const INTEREST_LABELS = {
+            'grading': 'AI Grading',
+            'slab_guard': 'Slab Guard',
+            'sell_alerts': 'Sell Alerts',
+            'collection': 'Collection'
+        };
+
+        async function loadWaitlist() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/waitlist`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                // Update stats card
+                if (data.success && data.stats) {
+                    document.getElementById('statWaitlist').textContent = data.stats.total;
+                    document.getElementById('statWaitlistSub').textContent = `${data.stats.verified} verified · ${data.stats.invited} invited · ${data.stats.registered} registered · ${data.stats.unverified} pending`;
+                }
+
+                const tbody = document.getElementById('waitlistBody');
+                if (!data.success || !data.entries.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No waitlist signups yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.entries.map(e => {
+                    // Determine the funnel stage
+                    let statusBadge, actionBtn;
+                    if (e.registered) {
+                        statusBadge = `<span class="status-badge status-approved">Registered</span>`;
+                        actionBtn = '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Registered</button>';
+                    } else if (e.invited) {
+                        statusBadge = `<span class="status-badge" style="background:#f59e0b22;color:#f59e0b;">Invited</span>`;
+                        actionBtn = '<button class="btn btn-sm" disabled style="opacity:0.5;">✅ Invited</button>';
+                    } else if (e.verified) {
+                        statusBadge = `<span class="status-badge status-approved">Verified</span>`;
+                        actionBtn = `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`;
+                    } else {
+                        statusBadge = `<span class="status-badge status-pending">Pending</span>`;
+                        actionBtn = `<button class="btn btn-sm btn-success" onclick="inviteWaitlistUser('${e.email}')">📧 Invite</button>`;
+                    }
+
+                    return `<tr>
+                        <td>${e.email}</td>
+                        <td>${statusBadge}</td>
+                        <td>${e.invited ? formatDate(e.invited_at) : '-'}</td>
+                        <td>${e.registered ? formatDate(e.registered_at) : '-'}</td>
+                        <td>${(e.interests || []).map(i => INTEREST_LABELS[i] || i).join(', ') || '-'}</td>
+                        <td>${formatDate(e.created_at)}</td>
+                        <td>${e.verified_at ? formatDate(e.verified_at) : '-'}</td>
+                        <td class="action-btns">${actionBtn}</td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load waitlist:', e);
+            }
+        }
+
+        async function inviteWaitlistUser(email) {
+            if (!confirm(`Send beta invite to ${email}?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/waitlist/invite`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    showToast(data.error || 'Failed to invite', 'error');
+                    return;
+                }
+
+                if (data.email_sent) {
+                    showToast(`Invite sent to ${email} (code: ${data.code})`, 'success');
+                } else {
+                    showToast(`Code ${data.code} created (dev mode — no email sent)`, 'success');
+                }
+                loadBetaCodes();
+                loadStats();
+                loadWaitlist();
+            } catch (e) {
+                showToast('Failed to invite user', 'error');
+            }
+        }
+
+        async function loadFeedback() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/feedback`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success) return;
+
+                // Update feedback stats
+                if (data.stats) {
+                    document.getElementById('fbStatTotal').textContent = data.stats.total;
+                    document.getElementById('fbStatThumbsUp').textContent =
+                        `${data.stats.thumbs_up} / ${data.stats.thumbs_up + data.stats.thumbs_down}`;
+                    document.getElementById('fbStatPositivePct').textContent =
+                        data.stats.thumbs_up + data.stats.thumbs_down > 0
+                            ? `${data.stats.positive_pct}% positive`
+                            : 'No grading feedback yet';
+                    document.getElementById('fbStatAvgRating').textContent =
+                        data.stats.avg_general_rating ? `${data.stats.avg_general_rating} / 5` : '-';
+                    document.getElementById('fbStatGeneralCount').textContent =
+                        `${data.stats.general_count} general reviews`;
+                }
+
+                const tbody = document.getElementById('feedbackBody');
+                if (!data.entries || !data.entries.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No feedback yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.entries.map(e => {
+                    let ratingDisplay = '-';
+                    if (e.feedback_type === 'grading_rating') {
+                        ratingDisplay = e.rating === 1 ? '👍' : '👎';
+                    } else if (e.feedback_type === 'general') {
+                        ratingDisplay = '⭐'.repeat(e.rating || 0);
+                    }
+
+                    const typeLabel = e.feedback_type === 'grading_rating'
+                        ? '<span class="status-badge status-approved">Grading</span>'
+                        : '<span class="status-badge status-pending">General</span>';
+
+                    return `<tr>
+                        <td>${e.email || 'Unknown'}</td>
+                        <td>${typeLabel}</td>
+                        <td>${ratingDisplay}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.comment || '-'}</td>
+                        <td>${e.page_url || '-'}</td>
+                        <td>${formatDate(e.created_at)}</td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load feedback:', e);
+            }
+        }
+
+        // NLQ
+        function setQuery(q) {
+            document.getElementById('nlqInput').value = q;
+        }
+
+        async function runQuery(event) {
+            event.preventDefault();
+            const query = document.getElementById('nlqInput').value.trim();
+            if (!query) return;
+
+            const btn = document.getElementById('nlqBtn');
+            const result = document.getElementById('nlqResult');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            result.innerHTML = '<div class="loading"><div class="spinner"></div>Analyzing question...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/nlq`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: query })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    let tableHtml = '';
+                    if (data.results.length > 0) {
+                        const cols = Object.keys(data.results[0]);
+                        tableHtml = `
+                            <table class="data-table">
+                                <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+                                <tbody>
+                                    ${data.results.slice(0, 50).map(row => `
+                                        <tr>${cols.map(c => {
+                                            const val = row[c];
+                                            // Check if this looks like an image URL
+                                            if (c.includes('image') && val && typeof val === 'string' && val.startsWith('http')) {
+                                                return `<td><a href="${val}" target="_blank"><img src="${val}" style="max-height: 50px; max-width: 80px; border-radius: 4px; cursor: pointer;" onerror="this.style.display='none'; this.parentElement.textContent='⚠️ Failed';"></a></td>`;
+                                            }
+                                            // Check if any URL (make clickable)
+                                            if (val && typeof val === 'string' && val.startsWith('http')) {
+                                                return `<td><a href="${val}" target="_blank" style="color: var(--primary);">🔗 Link</a></td>`;
+                                            }
+                                            return `<td>${val ?? '-'}</td>`;
+                                        }).join('')}</tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            ${data.results.length > 50 ? `<p style="color: var(--text-muted); margin-top: 8px;">Showing 50 of ${data.result_count} results</p>` : ''}
+                        `;
+                    } else {
+                        tableHtml = '<div class="empty-state">No results found</div>';
+                    }
+
+                    result.innerHTML = `
+                        <div class="nlq-result">
+                            <div class="nlq-sql">${data.generated_sql}</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">
+                                ${data.result_count} results in ${data.execution_time_ms}ms
+                            </div>
+                            <div class="table-container">${tableHtml}</div>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="nlq-result" style="border-color: var(--error);">
+                            <p style="color: var(--error);">Error: ${data.error}</p>
+                            ${data.generated_sql ? `<div class="nlq-sql">${data.generated_sql}</div>` : ''}
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                result.innerHTML = `<div class="nlq-result" style="border-color: var(--error);"><p style="color: var(--error);">Network error: ${e.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Run Query';
+            }
+        }
+
+        async function approveUser(id) {
+            if (!confirm('Approve this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('User approved!', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to approve user', 'error');
+            }
+        }
+
+        async function rejectUser(id) {
+            if (!confirm('Reject and delete this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('User rejected', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to reject user', 'error');
+            }
+        }
+
+        async function createBetaCode() {
+            const note = prompt('Note for this code (optional):');
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/beta-codes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Created: ${data.code}`, 'success');
+                    loadBetaCodes();
+                    loadStats();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to create code', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // SLABGUARD — Scam Review Queue
+        // ═══════════════════════════════════════════════════════
+
+        let sgCurrentSubmission = null;
+
+        async function loadSlabGuardStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('sgStatPending').textContent  = data.pending ?? '-';
+                    document.getElementById('sgStatApproved').textContent = data.approved ?? '-';
+                    document.getElementById('sgStatRejected').textContent = data.rejected ?? '-';
+                    document.getElementById('sgStatFlagged').textContent  = data.flagged_images ?? '-';
+                }
+            } catch (e) {
+                console.error('[SlabGuard] Stats error:', e);
+            }
+        }
+
+        async function loadSlabGuardQueue() {
+            const status = document.getElementById('sgStatusFilter').value;
+            const body = document.getElementById('sgBody');
+            body.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div>Loading...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/queue?status=${status}&limit=100`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                const subs = data.submissions || [];
+                document.getElementById('sgQueueCount').textContent = `${subs.length} ${status} submission${subs.length !== 1 ? 's' : ''}`;
+
+                if (subs.length === 0) {
+                    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">No ${status} submissions</td></tr>`;
+                    return;
+                }
+
+                body.innerHTML = subs.map(s => {
+                    const signalKeys = s.signals ? Object.keys(s.signals).filter(k => s.signals[k]) : [];
+                    const signalPills = signalKeys.slice(0, 4).map(k =>
+                        `<span style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);border-radius:4px;padding:2px 6px;font-size:0.7rem;">${k.replace(/_/g,' ')}</span>`
+                    ).join(' ');
+
+                    const riskColor = s.risk_score >= 60 ? 'var(--error)' : s.risk_score >= 30 ? 'var(--warning)' : 'var(--success)';
+                    const statusBadge = s.status === 'pending'
+                        ? `<span style="color:var(--warning);">⏳ pending</span>`
+                        : s.status === 'approved'
+                        ? `<span style="color:var(--error);">🚨 approved</span>`
+                        : `<span style="color:var(--text-muted);">✗ rejected</span>`;
+
+                    const actions = s.status === 'pending'
+                        ? `<button onclick="sgOpenModal(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn" style="padding:4px 10px;font-size:0.78rem;">Review →</button>`
+                        : `<span style="color:var(--text-muted);font-size:0.8rem;">${s.reviewer_email ? `by ${s.reviewer_email}` : ''}</span>`;
+
+                    return `<tr>
+                        <td style="color:var(--text-muted);font-size:0.8rem;">#${s.id}</td>
+                        <td>
+                            <a href="${s.ebay_url}" target="_blank" style="color:var(--primary);font-size:0.85rem;">Item ${s.ebay_item_id}</a>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">${statusBadge}</div>
+                        </td>
+                        <td style="color:${riskColor};font-weight:700;font-size:1.1rem;">${s.risk_score}</td>
+                        <td style="max-width:200px;">${signalPills}${signalKeys.length > 4 ? `<span style="color:var(--text-muted);font-size:0.7rem;"> +${signalKeys.length-4} more</span>` : ''}</td>
+                        <td style="font-size:0.8rem;">${s.submitter_email}<br><span style="color:var(--text-muted);">${s.submitter_account_age_days ?? '?'}d old acct</span></td>
+                        <td style="font-size:0.8rem;color:var(--text-muted);">${formatDate(s.created_at)}</td>
+                        <td>${actions}</td>
+                    </tr>`;
+                }).join('');
+
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="7" style="color:var(--error);padding:16px;">Error: ${e.message}</td></tr>`;
+            }
+        }
+
+        // Status filter triggers reload
+        document.getElementById('sgStatusFilter')?.addEventListener('change', loadSlabGuardQueue);
+
+        function sgOpenModal(sub) {
+            sgCurrentSubmission = sub;
+            document.getElementById('sgModalId').textContent = `#${sub.id}`;
+            document.getElementById('sgModalUrl').textContent = sub.ebay_url;
+            document.getElementById('sgModalUrl').href = sub.ebay_url;
+            document.getElementById('sgModalSubmitter').textContent = sub.submitter_email;
+            document.getElementById('sgModalAccountAge').textContent = `${sub.submitter_account_age_days ?? '?'} days`;
+            document.getElementById('sgModalRiskScore').textContent = sub.risk_score;
+            document.getElementById('sgModalNote').value = '';
+            document.getElementById('sgModalStatus').textContent = '';
+
+            // Build signal pills
+            const signalsDiv = document.getElementById('sgModalSignals');
+            const signals = sub.signals || {};
+            const keys = Object.keys(signals).filter(k => signals[k]);
+            if (keys.length) {
+                signalsDiv.innerHTML = keys.map(k => {
+                    const highRisk = ['zero_feedback','image_match'].includes(k);
+                    const color = highRisk ? '#fca5a5' : '#fde68a';
+                    const bg = highRisk ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)';
+                    const border = highRisk ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)';
+                    return `<span style="background:${bg};color:${color};border:1px solid ${border};border-radius:4px;padding:3px 9px;font-size:0.8rem;">${k.replace(/_/g,' ')}</span>`;
+                }).join('');
+            } else {
+                signalsDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No signals recorded</span>';
+            }
+
+            document.getElementById('sgModal').style.display = 'flex';
+        }
+
+        function sgCloseModal() {
+            document.getElementById('sgModal').style.display = 'none';
+            sgCurrentSubmission = null;
+        }
+
+        function sgOpenListing() {
+            if (sgCurrentSubmission) window.open(sgCurrentSubmission.ebay_url, '_blank');
+        }
+
+        async function sgApprove() {
+            if (!sgCurrentSubmission) return;
+            const note = document.getElementById('sgModalNote').value.trim();
+            const statusEl = document.getElementById('sgModalStatus');
+            statusEl.textContent = '⏳ Fetching image and computing hash…';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/${sgCurrentSubmission.id}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const hashMsg = data.phash_available
+                        ? `✅ Approved — image hash stored (${data.phash?.slice(0,12)}…)`
+                        : `⚠️ Approved — image hash unavailable (${data.image_fetch_error || 'unknown error'})`;
+                    showToast(hashMsg, 'success');
+                    sgCloseModal();
+                    loadSlabGuardQueue();
+                    loadSlabGuardStats();
+                } else {
+                    statusEl.textContent = `Error: ${data.error}`;
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                showToast('Approve failed', 'error');
+            }
+        }
+
+        async function sgReject() {
+            if (!sgCurrentSubmission) return;
+            const note = document.getElementById('sgModalNote').value.trim();
+            const statusEl = document.getElementById('sgModalStatus');
+            statusEl.textContent = '⏳ Rejecting…';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/slabguard/${sgCurrentSubmission.id}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Submission rejected', 'success');
+                    sgCloseModal();
+                    loadSlabGuardQueue();
+                    loadSlabGuardStats();
+                } else {
+                    statusEl.textContent = `Error: ${data.error}`;
+                    showToast(data.error, 'error');
+                }
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                showToast('Reject failed', 'error');
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('sgModal')?.addEventListener('click', function(e) {
+            if (e.target === this) sgCloseModal();
+        });
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            const month = d.getMonth() + 1;
+            const day = d.getDate();
+            const yr = String(d.getFullYear()).slice(2);
+            const time = d.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+            return `${month}/${day}/${yr} ${time}`;
+        }
+
+        // Generic sortable table function
+        const sortState = {};
+        function sortTable(tbodyId, colIndex, dataType) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            // Toggle sort direction
+            const key = `${tbodyId}-${colIndex}`;
+            sortState[key] = sortState[key] === 'asc' ? 'desc' : 'asc';
+            const dir = sortState[key];
+
+            // Update header indicators
+            const thead = tbody.closest('table').querySelector('thead');
+            thead.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            const ths = thead.querySelectorAll('th');
+            if (ths[colIndex]) {
+                ths[colIndex].classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+
+            // Get rows (skip detail/expandable rows)
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('detail-row'));
+
+            rows.sort((a, b) => {
+                const cellA = a.cells[colIndex]?.textContent.trim() || '';
+                const cellB = b.cells[colIndex]?.textContent.trim() || '';
+
+                let valA, valB;
+                if (dataType === 'number') {
+                    valA = parseFloat(cellA.replace(/[^0-9.\-]/g, '')) || 0;
+                    valB = parseFloat(cellB.replace(/[^0-9.\-]/g, '')) || 0;
+                } else if (dataType === 'date') {
+                    valA = cellA === '-' ? 0 : new Date(cellA).getTime() || 0;
+                    valB = cellB === '-' ? 0 : new Date(cellB).getTime() || 0;
+                } else {
+                    valA = cellA.toLowerCase();
+                    valB = cellB.toLowerCase();
+                }
+
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
+</body>
+</html>

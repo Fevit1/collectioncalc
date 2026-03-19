@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "eBay Comic Collector",
-  "version": "1.1.0",
-  "description": "Passively collects comic book sale data from eBay sold listings",
+  "version": "1.3.5",
+  "description": "Passively collects comic book sale data from eBay sold listings + SlabGuard scam detection",
   "permissions": [
     "storage",
     "activeTab"

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAS — Job Search Sprint</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Password gate styles — visible before React loads */
+    #login-gate {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #login-gate .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    #login-gate h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+    #login-gate .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 28px;
+    }
+    #login-gate input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    #login-gate input:focus {
+      border-color: #667eea;
+    }
+    #login-gate button {
+      width: 100%;
+      padding: 12px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #login-gate button:hover {
+      background: #4338ca;
+    }
+    #login-gate .error {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 8px;
+      display: none;
+    }
+    #app-root { display: none; }
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <!-- Password Gate — shown first, no content visible before auth -->
+  <div id="login-gate">
+    <div class="card">
+      <h1>MAS</h1>
+      <p class="subtitle">Job Search Sprint — Multi-Agent System</p>
+      <form id="login-form" onsubmit="return handleLogin(event)">
+        <input type="password" id="password-input" placeholder="Enter password" autocomplete="off" autofocus />
+        <button type="submit" id="login-btn">Sign In</button>
+        <p class="error" id="login-error">Invalid password. Try again.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- React App Root — hidden until authenticated -->
+  <div id="app-root"></div>
+
+  <script>
+    // API URL configuration
+    // For production: set to your Render backend URL
+    // For local dev: leave empty (same-origin proxy)
+    window.MAS_API_URL = '';
+
+    function handleLogin(e) {
+      e.preventDefault();
+      var pw = document.getElementById('password-input').value;
+      if (!pw) return false;
+
+      var btn = document.getElementById('login-btn');
+      btn.innerHTML = '<span class="loading-spinner"></span>';
+      btn.disabled = true;
+
+      // Validate password against the proxy
+      fetch((window.MAS_API_URL || '') + '/api/health', {
+        headers: { 'x-mas-password': pw }
+      })
+      .then(function() {
+        // Health endpoint doesn't require auth, so test with a lightweight call
+        return fetch((window.MAS_API_URL || '') + '/api/claude', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-mas-password': pw
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'ping' }]
+          })
+        });
+      })
+      .then(function(res) {
+        if (res.status === 401) {
+          throw new Error('unauthorized');
+        }
+        // Password is valid — store and load app
+        sessionStorage.setItem('mas_password', pw);
+        showApp();
+      })
+      .catch(function(err) {
+        if (err.message === 'unauthorized') {
+          document.getElementById('login-error').style.display = 'block';
+        } else {
+          // Network error but password might be valid — store and try
+          sessionStorage.setItem('mas_password', pw);
+          showApp();
+        }
+        btn.innerHTML = 'Sign In';
+        btn.disabled = false;
+      });
+
+      return false;
+    }
+
+    function showApp() {
+      document.getElementById('login-gate').style.display = 'none';
+      document.getElementById('app-root').style.display = 'block';
+      loadReactApp();
+    }
+
+    function loadReactApp() {
+      // Load React, ReactDOM, Babel standalone, then our app
+      var scripts = [
+        'https://unpkg.com/react@18/umd/react.production.min.js',
+        'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+        'https://unpkg.com/@babel/standalone/babel.min.js'
+      ];
+
+      var loaded = 0;
+      scripts.forEach(function(src) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = function() {
+          loaded++;
+          if (loaded === scripts.length) {
+            loadAppScripts();
+          }
+        };
+        document.head.appendChild(s);
+      });
+    }
+
+    function loadAppScripts() {
+      // Load data first (plain JS), then JSX components via Babel
+      var dataScript = document.createElement('script');
+      dataScript.src = 'data/tier1.js';
+      dataScript.onload = function() {
+        // Load JSX files sequentially to preserve dependency order
+        var jsxFiles = [
+          'tabs/Dashboard.jsx',
+          'tabs/Muse.jsx',
+          'tabs/Compass.jsx',
+          'App.jsx'
+        ];
+
+        function loadNext(index) {
+          if (index >= jsxFiles.length) {
+            mountApp();
+            return;
+          }
+          var file = jsxFiles[index];
+          fetch(file)
+            .then(function(r) { return r.text(); })
+            .then(function(code) {
+              var transformed = Babel.transform(code, {
+                presets: ['react'],
+                filename: file
+              }).code;
+
+              var s = document.createElement('script');
+              s.textContent = transformed;
+              s.dataset.file = file;
+              document.body.appendChild(s);
+
+              loadNext(index + 1);
+            })
+            .catch(function(err) {
+              console.error('Failed to load ' + file + ':', err);
+              loadNext(index + 1);
+            });
+        }
+
+        loadNext(0);
+      };
+      document.body.appendChild(dataScript);
+    }
+
+    function mountApp() {
+      var root = ReactDOM.createRoot(document.getElementById('app-root'));
+      root.render(React.createElement(window.App));
+    }
+
+    // Check for existing session
+    if (sessionStorage.getItem('mas_password')) {
+      showApp();
+    }
+  </script>
+</body>
+</html>

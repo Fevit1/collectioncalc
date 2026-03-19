@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1 span {
+      font-size: 20px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4ecdc4;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+    .recent {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .recent h3 {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .sale-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 12px;
+    }
+    .sale-item:last-child {
+      border-bottom: none;
+    }
+    .sale-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
+    }
+    .sale-price {
+      color: #4ecdc4;
+      font-weight: bold;
+    }
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-sync {
+      background: #4ecdc4;
+      color: #1a1a2e;
+    }
+    .btn-sync:hover {
+      background: #3dbdb5;
+    }
+    .btn-clear {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .btn-clear:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .status {
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+      margin-top: 12px;
+    }
+    .status.success {
+      color: #4ecdc4;
+    }
+    .status.error {
+      color: #e74c3c;
+    }
+    .empty {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1><span>📊</span> eBay Comic Collector</h1>
+  
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-value" id="totalCount">0</div>
+      <div class="stat-label">Total Collected</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="sessionCount">0</div>
+      <div class="stat-label">This Session</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="pendingCount">0</div>
+      <div class="stat-label">Pending Sync</div>
+    </div>
+  </div>
+  
+  <div class="recent">
+    <h3>Recent Sales</h3>
+    <div id="recentList">
+      <div class="empty">Browse eBay sold listings to collect data</div>
+    </div>
+  </div>
+  
+  <div class="buttons">
+    <button class="btn-sync" id="syncBtn">Sync Now</button>
+    <button class="btn-clear" id="resetSessionBtn">Reset Session</button>
+    <button class="btn-clear" id="clearBtn">Clear All</button>
+  </div>
+  
+  <div class="status" id="status">Ready</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

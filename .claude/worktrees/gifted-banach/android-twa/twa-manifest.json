@@ -1,0 +1,29 @@
+{
+  "packageId": "com.slabworthy.app",
+  "host": "slabworthy.com",
+  "name": "Slab Worthy - AI for Collectors",
+  "launcherName": "Slab Worthy",
+  "display": "standalone",
+  "themeColor": "#1e1b4b",
+  "navigationColor": "#0a0a12",
+  "navigationColorDark": "#0a0a12",
+  "navigationDividerColor": "#0a0a12",
+  "navigationDividerColorDark": "#0a0a12",
+  "backgroundColor": "#0a0a12",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://slabworthy.com/icons/icon-512x512.png",
+  "maskableIconUrl": "https://slabworthy.com/icons/icon-512x512.png",
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./slabworthy.keystore",
+    "alias": "slabworthy"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "orientation": "any",
+  "fingerprints": []
+}

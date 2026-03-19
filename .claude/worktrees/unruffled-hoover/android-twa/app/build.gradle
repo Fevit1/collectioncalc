@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.slabworthy.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.slabworthy.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        // TWA metadata
+        manifestPlaceholders = [
+            hostName: "slabworthy.com",
+            defaultUrl: "https://slabworthy.com",
+            launcherName: "Slab Worthy",
+            assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "web", "site": "https://slabworthy.com" } }]'
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('../slabworthy.keystore')
+            storePassword 'slabworthy2026'
+            keyAlias 'slabworthy'
+            keyPassword 'slabworthy2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    implementation 'androidx.browser:browser:1.7.0'
+}

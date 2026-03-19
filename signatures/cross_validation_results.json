@@ -1,0 +1,560 @@
+{
+  "date": "2026-03-07",
+  "total": 23,
+  "correct": 16,
+  "accuracy": 69.56521739130434,
+  "results": [
+    {
+      "artist": "Adam Hughes",
+      "test_image": "AdamaHughesSignature6.jpg",
+      "predicted": "Adam Hughes",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Adam Hughes",
+          "confidence": 0.92,
+          "reasoning": "Very strong match. The unknown signature shows the distinctive 'AH!' construction with vertical strokes and exclamation point that is characteristic of Adam Hughes. The letter forms match precisely: the tall vertical 'A' stroke, the parallel lines forming the 'H', and the emphatic exclamation point. The stroke weight, spacing, and overall gestural quality are consistent with both reference examples provided for Hughes."
+        },
+        {
+          "artist": "Art Adams",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Art Adams signs with a full 'Art Adams' or 'A Adams' in cursive script with connected letters and distinctive loops. The unknown signature is an abbreviation/monogram style that bears no structural resemblance to Adams' flowing cursive style."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.1,
+          "reasoning": "No match. Alex Ross uses large, sweeping vertical strokes followed by 'Ross' in cursive. While both signatures have vertical elements, the construction, letter forms, and overall structure are completely different. The unknown signature is a compact monogram; Ross's is an expansive full-name signature."
+        }
+      ]
+    },
+    {
+      "artist": "Alan Moore",
+      "test_image": "AlanMooreSignature3.jpg",
+      "predicted": "Alan Moore",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Alan Moore",
+          "confidence": 0.92,
+          "reasoning": "Exceptional match in all key characteristics: The distinctive overlapping loop structure forming the 'A' and 'M', the specific angle and curvature of the connecting strokes, the underlining flourish with characteristic terminal hook, and the overall compact composition. The letter construction, proportions, and flow pattern are consistent across both reference examples and match the unknown signature precisely."
+        },
+        {
+          "artist": "Adam Hughes",
+          "confidence": 0.15,
+          "reasoning": "No structural similarity. Hughes uses separate vertical strokes for 'AH!' with exclamation points, completely different letter formation style, and no overlapping loops or continuous flow pattern seen in the unknown."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.1,
+          "reasoning": "Ross signature shows tall, separate parallel strokes followed by 'Ross' text - fundamentally different structure. No overlapping loop construction or similar flow to the unknown signature."
+        }
+      ]
+    },
+    {
+      "artist": "Alex Ross",
+      "test_image": "AlexRossSignature2.jpg",
+      "predicted": "Alex Ross",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows distinctive parallel vertical strokes forming an 'M' or 'Al' initial, followed by a flowing 'Ross' with characteristic features: the rightward-leaning slant, the connected flow between letters, the way the 'R' connects to subsequent letters, and the distinctive terminal stroke. The reference images show this exact construction pattern - tall vertical strokes followed by 'Ross' with a horizontal underline or trailing stroke. The proportions, stroke weight, and overall gestural quality are consistent."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "While Jim Lee's signature also features vertical strokes forming 'Jm', his signature has distinctly different characteristics: his vertical strokes are more tightly packed and create a denser 'Jm' cluster, and his trailing horizontal line extends much further with different pressure patterns. The overall flow and letter construction differs significantly from the unknown."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.1,
+          "reasoning": "Morrison's signature features horizontal sweeping strokes with multiple parallel lines, but the letter construction is fundamentally different. The unknown shows clear vertical initial strokes forming distinct letters, while Morrison's is more of a unified horizontal gesture without the same structural letter formation."
+        }
+      ]
+    },
+    {
+      "artist": "Art Adams",
+      "test_image": "ArtAdamsSignature1_2018.jpg",
+      "predicted": "Art Adams",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Art Adams",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows 'A' followed by 'adams' in a distinctive style that closely matches Reference 5. Key matching features: (1) The capital 'A' has the same angular, pointed construction with a leftward lean; (2) The lowercase letters 'adams' show identical loose, casual formation with similar spacing; (3) The 'd' has the same open loop structure; (4) The 's' terminal stroke matches; (5) Overall flow, slant, and proportions are consistent across both reference examples of Art Adams' signature."
+        },
+        {
+          "artist": "Adam Hughes",
+          "confidence": 0.15,
+          "reasoning": "No significant match. Reference 2 shows 'AH!' with stylized vertical strokes and exclamation marks - completely different structure from the unknown signature. The letterforms, style, and execution are entirely dissimilar."
+        },
+        {
+          "artist": "Alan Moore",
+          "confidence": 0.1,
+          "reasoning": "No match. Reference 3 shows elaborate cursive loops and flourishes forming 'AM' monogram style signatures. The unknown signature has a completely different structure with no such looping patterns."
+        }
+      ]
+    },
+    {
+      "artist": "Bill Finger",
+      "test_image": "BillFingerSignature4.jpg",
+      "predicted": "Bill Finger",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Bill Finger",
+          "confidence": 0.92,
+          "reasoning": "Excellent match. The unknown signature shows 'Bill Finger' in cursive script with distinctive characteristics that align closely with Reference 6: Connected cursive letterforms with consistent rightward slant, the characteristic 'B' with large upper loop, flowing 'ill' combination, the 'F' with extended upper loop crossing back, distinctive 'ing' ligature, and similar 'er' terminal formation. The overall proportions, baseline consistency, and natural cursive rhythm match Reference 6's examples."
+        },
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity only due to cursive style, but significant structural differences. Reference 21 shows Siegel's signature with much rounder letter formations, particularly in the 'J' and 'y', different baseline treatment, and distinct 'S' construction. The unknown signature's letters are more angular and compressed compared to Siegel's more flowing, open style."
+        },
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.15,
+          "reasoning": "Not a match. While both are cursive signatures, Reference 18 shows Kirby's distinctive large capital letters with different proportions, more separated word spacing, and a very different 'K' construction. The flow and rhythm are fundamentally different from the unknown signature."
+        }
+      ]
+    },
+    {
+      "artist": "Bob Kane",
+      "test_image": "BobKaneSignature4_1994.jpg",
+      "predicted": "Bob Kane",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Bob Kane",
+          "confidence": 0.92,
+          "reasoning": "Very strong match. The unknown signature shows 'KANE' with distinctive characteristics that align with Bob Kane's reference signatures: the angular 'K' with sharp vertex, the bold 'A' with prominent crossbar, the compressed 'N', and the terminal 'E'. The small Batman head sketch above the signature is Kane's characteristic embellishment. The overall bold, blocky style with heavy stroke weight matches Kane's autograph pattern perfectly."
+        },
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Kirby's signatures show flowing cursive script with connected letters and elegant loops. The unknown signature has printed block capitals with angular construction - completely different structural approach and letterform style."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.1,
+          "reasoning": "No match. Jim Lee's signatures feature distinctive vertical compressed letters with multiple downstrokes in the 'Jim' portion and a long horizontal terminal stroke. The unknown signature shows 'KANE' in bold block capitals with completely different construction and no similarity in letter formation."
+        }
+      ]
+    },
+    {
+      "artist": "Brian Michael Bendis",
+      "test_image": "BrianMichaelBendis_Signature_3_2001.jpg",
+      "predicted": "Chris Claremont",
+      "confidence": 0.88,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.88,
+          "reasoning": "The unknown signature shows strong structural similarities to Claremont's autograph: a large, flowing initial letter with a sweeping rightward extension, followed by looped elements that create an elaborate gestural design. The signature has the characteristic single continuous motion with dramatic curves and loops. The proportions, baseline angle, and overall flourish pattern match Claremont's known signatures closely."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.35,
+          "reasoning": "Some superficial similarity in the flowing, abstract quality, but Morrison's signature has more horizontal emphasis with parallel strokes and lacks the tight looping structure seen in the unknown. The letter construction is fundamentally different."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.25,
+          "reasoning": "Both have flowing qualities, but P\u00e9rez's signature shows more elongated oval formations and lacks the complex internal looping structure present in the unknown signature. The stroke patterns don't align."
+        }
+      ]
+    },
+    {
+      "artist": "Chris Claremont",
+      "test_image": "ChrisClaremontSignature2.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "Excellent match. The unknown signature shows Jim Lee's characteristic features: the distinctive tall 'J' with forward slant, the compressed 'im' section with overlapping vertical strokes, the rightward-sweeping horizontal terminal stroke, and the overall flowing, energetic execution. The letter construction, proportions, and dynamic movement are highly consistent with the reference examples."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity as both are 'Jim' signatures, but Starlin's signature has a more compact, looped structure with distinctive tight curves and a different terminal flourish. The letter formation and overall architecture are fundamentally different from the unknown."
+        },
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.15,
+          "reasoning": "Also a 'Jim' signature but Steranko's is contained within elaborate decorative loops and flourishes, creating a completely different visual structure. The unknown lacks these ornamental elements and has a much more streamlined, aggressive stroke pattern."
+        }
+      ]
+    },
+    {
+      "artist": "Ed Brubaker",
+      "test_image": "EdBrubakerSignature1.jpg",
+      "predicted": "Ed Brubaker",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Ed Brubaker",
+          "confidence": 0.92,
+          "reasoning": "Excellent match in all key characteristics: compact cursive style with connected letters, distinctive backward-slanting 'E', characteristic loop in the 'B', similar pressure and flow pattern, and matching terminal stroke extending to the right. The unknown signature shows the same construction method and proportions as both Ed Brubaker reference examples."
+        },
+        {
+          "artist": "James Tynion IV",
+          "confidence": 0.25,
+          "reasoning": "Both show angular strokes and forward movement, but the letter construction is fundamentally different. Tynion's signature has distinctive vertical strokes and a very different 'J' formation that doesn't match the rounded, flowing style of the unknown."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Both have flowing cursive elements, but Morrison's signature shows much more elongation, dramatically different letter forms, and lacks the compact, connected structure seen in the unknown signature."
+        }
+      ]
+    },
+    {
+      "artist": "Frank Miller",
+      "test_image": "Frank_Miller_Signature_4.jpg",
+      "predicted": "Frank Miller",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.92,
+          "reasoning": "Very strong match. The unknown signature shows Frank Miller's distinctive horizontal elongated style with minimal vertical elements. The characteristic flowing horizontal stroke with slight upward curve at the end matches Miller's known signatures. The overall proportions, the way the letters compress into a horizontal band, and the terminal flourish are consistent with both reference examples."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity in horizontal orientation and flowing style, but Morrison's signatures show more vertical height variation, more pronounced angular elements, and different stroke rhythm. The letter construction is fundamentally different."
+        },
+        {
+          "artist": "Jae Lee",
+          "confidence": 0.2,
+          "reasoning": "Both have minimalist horizontal approaches, but Jae Lee's signatures show distinct cross-stroke elements and different proportional relationships. The flow and pressure patterns don't match the unknown signature's characteristics."
+        }
+      ]
+    },
+    {
+      "artist": "Gabriele Dell'Otto",
+      "test_image": "Gabrielle_DellOtto_Signature_2.jpg",
+      "predicted": "Gabriele Dell'Otto",
+      "confidence": 0.95,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Gabriele Dell'Otto",
+          "confidence": 0.95,
+          "reasoning": "Extremely strong match. The unknown signature shows the distinctive rapid diagonal slashing strokes characteristic of Dell'Otto's style. Both exhibit: (1) Similar angular, aggressive stroke patterns with multiple overlapping diagonal lines; (2) The same flowing rightward motion with dramatic upward sweeps; (3) Comparable pressure distribution creating thick, bold lines; (4) The signature's overall gestural quality and construction method matches Dell'Otto's reference examples precisely, including the characteristic underlining flourish."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity only in the horizontal flowing nature and multiple overlapping strokes. However, Morrison's signatures show more controlled, parallel stroke patterns with clearer letterform structure. The unknown signature's aggressive diagonal slashing and less structured approach differs significantly from Morrison's more deliberate parallel-line technique."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.15,
+          "reasoning": "Both signatures feature flowing rightward motion and elongated horizontal elements. However, P\u00e9rez's signatures show much clearer letterform definition with distinct loops and recognizable character shapes. The unknown signature's aggressive, overlapping diagonal strokes and lack of clear letter construction are inconsistent with P\u00e9rez's more legible autograph style."
+        }
+      ]
+    },
+    {
+      "artist": "Geoff Johns",
+      "test_image": "Geoff_Johns_Signature_2.jpg",
+      "predicted": "Ed Brubaker",
+      "confidence": 0.92,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Ed Brubaker",
+          "confidence": 0.92,
+          "reasoning": "The unknown signature shows an excellent match with Ed Brubaker's characteristic style: a distinctive initial 'E' formed with a leftward curved stroke, followed by connected lowercase letters forming 'dB'. The flowing, connected script with consistent stroke weight, the specific way the 'd' connects to the 'B', and the overall rightward slant all align precisely with the reference examples. The 'B' formation with its looped upper portion is particularly distinctive and matches well."
+        },
+        {
+          "artist": "Brian Michael Bendis",
+          "confidence": 0.15,
+          "reasoning": "While Bendis uses connected script, his signature has much more elaborate looping and circular motions, with multiple overlapping strokes creating a denser, more compact appearance. The unknown signature is more linear and open, lacking Bendis's characteristic tight loops and overlapping elements."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.1,
+          "reasoning": "Claremont's signature features much more elaborate flourishes, particularly a large sweeping underline and more pronounced vertical elements. The unknown signature is simpler and more compact without these dramatic embellishments."
+        }
+      ]
+    },
+    {
+      "artist": "George P\u00e9rez",
+      "test_image": "George_Perez_Signature_1.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows Jim Lee's distinctive characteristics: the tall, angular initial 'J' with forward slant, the compressed middle strokes forming 'im', the characteristic double vertical strokes in the 'm', and the long horizontal terminal stroke extending to the right. The overall flow, proportions, and stroke weight match Jim Lee's reference signatures very closely."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.15,
+          "reasoning": "While both are 'Jim' signatures, Jim Starlin's autograph has a completely different structure: more circular letterforms, distinctive looping in the 'J', and a different terminal stroke pattern. The unknown signature lacks these characteristics."
+        },
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.1,
+          "reasoning": "Jim Steranko's signature is highly stylized with elaborate flourishes forming heart-like shapes around 'STERANKO' written in block letters. The unknown signature bears no resemblance to this ornate style and shows a completely different structural approach."
+        }
+      ]
+    },
+    {
+      "artist": "Grant Morrison",
+      "test_image": "Grant_Morrison_Signature_2.jpg",
+      "predicted": "George P\u00e9rez",
+      "confidence": 0.92,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows the characteristic flowing style with multiple overlapping parallel strokes forming the 'G', the distinctive swooping motion through the name, and the long horizontal terminal stroke extending to the right. The letter construction, baseline angle, stroke weight variation, and overall gestural quality are consistent with both P\u00e9rez reference examples. The signature exhibits his signature fast, confident execution with overlapping downstrokes."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.35,
+          "reasoning": "Superficial similarity in the flowing, connected style and rightward extension, but lacks Claremont's distinctive looping structures and more circular letter forms. The stroke pattern and letter construction are fundamentally different - Claremont's signature shows more deliberate loops and curves, while the unknown has aggressive parallel strokes."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Both show flowing rightward movement, but Morrison's signatures display more angular, scratchy strokes and less smooth flow. The unknown signature has overlapping parallel strokes creating density that Morrison's more open, linear style lacks. Letter construction is incompatible."
+        }
+      ]
+    },
+    {
+      "artist": "Greg Capullo",
+      "test_image": "Greg_Capullo_Signature_3.jpg",
+      "predicted": "Jim Steranko",
+      "confidence": 0.95,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.95,
+          "reasoning": "Exceptional match. The unknown signature shows Steranko's distinctive features: large decorative loop enclosing the signature, the characteristic way 'STERANKO' is written with angular letters, the flowing S-curve baseline stroke beneath, and the small circular terminal. Both reference examples show identical construction with the elaborate loop framework and interior text placement. The red ink doesn't affect structural analysis - the letterforms, proportions, and decorative elements are unmistakably consistent."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Jim Lee's signature features distinctive 'm' repetition with vertical strokes and a horizontal terminal line, completely different structure from the enclosed loop design seen in the unknown. The letterforms and overall architecture are incompatible."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.1,
+          "reasoning": "No match. Starlin's signature has connected cursive letters forming 'Jim' with a long horizontal underline, lacking any enclosing loops or the specific letter construction visible in the unknown signature."
+        }
+      ]
+    },
+    {
+      "artist": "Ivan Reis",
+      "test_image": "Ivan_Reis_Signature_2.jpg",
+      "predicted": "Ivan Reis",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Ivan Reis",
+          "confidence": 0.92,
+          "reasoning": "Strong structural match with the unknown signature. Both show: distinctive 'I' or 'N' letterform with angular construction, vertical strokes with similar spacing, characteristic angular 'R' formation, and consistent stroke weight. The reference examples show natural variation that encompasses the unknown signature's style. The angular, geometric quality and letter proportions are highly consistent."
+        },
+        {
+          "artist": "Art Adams",
+          "confidence": 0.25,
+          "reasoning": "Some superficial similarity in having vertical strokes, but fundamentally different construction. Adams' signature shows rounded 'A' forms with distinctive loops and more organic curves. The unknown signature is much more angular and lacks the characteristic looping terminal strokes seen in Adams' work."
+        },
+        {
+          "artist": "Adam Hughes",
+          "confidence": 0.2,
+          "reasoning": "Both show vertical elements and exclamation-point-like marks, but the structural DNA differs significantly. Hughes' 'AH!' signature has a more playful, exclamatory quality with rounded dots and different letter construction. The unknown signature is more compact and angular with different stroke relationships."
+        }
+      ]
+    },
+    {
+      "artist": "Jack Kirby",
+      "test_image": "Jack_Kirby_Signature_4.jpg",
+      "predicted": "Jack Kirby",
+      "confidence": 0.95,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.95,
+          "reasoning": "Excellent structural match. The signature clearly reads 'Jack Kirby' with characteristic features: the 'J' with its distinctive curved initial stroke, the connected 'ack' formation, the separated 'K' with tall vertical stroke and angular leg, the 'irby' with flowing connections. Letter proportions, slant angle, baseline consistency, and overall rhythm match the reference examples extremely well. Both reference examples show the same natural variation in size and pressure that's evident here."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Jim Lee's signature features highly stylized overlapping vertical strokes forming 'Jm' with a distinctive horizontal underline. The unknown signature shows clear individual letters spelling out a full name in cursive script, completely different structure and style."
+        },
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.1,
+          "reasoning": "No match. Jerry Siegel's signature shows very different letter construction - more rounded, looping style with distinct 'Jerry' and 'Siegel' formations. The unknown signature has different stroke patterns, slant, and letter shapes throughout."
+        }
+      ]
+    },
+    {
+      "artist": "Jae Lee",
+      "test_image": "Jae_Lee_Signature_4.jpg",
+      "predicted": "Jae Lee",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Jae Lee",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows the distinctive horizontal baseline with extended right terminal stroke that is Jae Lee's hallmark. The vertical element with angular construction and the compressed, stylized letterforms crossing the horizontal line match both reference examples perfectly. The stroke weight, angular quality, and overall minimalist aesthetic are consistent."
+        },
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.15,
+          "reasoning": "While both signatures feature horizontal elements with extended strokes, Frank Miller's signature shows a more fluid, rounded sword-like design with circular loops. The unknown signature has sharper angles and different structural components - particularly the vertical crossing element that doesn't appear in Miller's style."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.1,
+          "reasoning": "Morrison's signature features multiple parallel strokes and a more flowing cursive quality. The unknown signature has a distinctly different structure with angular intersections rather than parallel flowing lines. The construction method and letter formation are fundamentally different."
+        }
+      ]
+    },
+    {
+      "artist": "James Tynion IV",
+      "test_image": "James_Tynion_IV_Signature_3.jpg",
+      "predicted": "James Tynion IV",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "James Tynion IV",
+          "confidence": 0.92,
+          "reasoning": "Excellent structural match. Both signatures show distinctive stylized 'JT' monogram with similar construction: tall angular 'J' with leftward lean, overlapping 'T' with characteristic crossbar, flowing rightward tail. Letter proportions, slant angle, and execution style are highly consistent with reference examples."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "Poor match. Jim Lee's signature shows rounded 'J', multiple 'm' humps, and horizontal extension. Unknown signature has angular construction and different letter forms entirely. Structure is fundamentally different."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.12,
+          "reasoning": "No meaningful match. Starlin's signature shows cursive style with loops and different letter construction. Unknown signature is more angular and geometric with different flow pattern."
+        }
+      ]
+    },
+    {
+      "artist": "Jerry Siegel",
+      "test_image": "Jerry_Siegel_Signature_2.jpg",
+      "predicted": "Jerry Siegel",
+      "confidence": 0.95,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.95,
+          "reasoning": "Exceptional match across all structural features. The unknown signature matches Reference 21's Jerry Siegel signatures in: (1) distinctive cursive 'J' with rightward-leaning loop and extended tail, (2) double-loop 'r' formation in 'Jerry', (3) the characteristic way the 'y' descends and connects, (4) the 'S' in 'Siegel' with its specific loop structure and angle, (5) the flowing connection between first and last name, (6) the overall slant angle (~60-70 degrees right), (7) the 'i' dot placement and 'e' construction, (8) terminal stroke on final 'l' with rightward flourish. The writing instrument (appears to be pencil or gray marker) and natural variation in pressure are consistent with authentic signing conditions."
+        },
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.15,
+          "reasoning": "Superficial similarity only in that both write in cursive script. However, Kirby's signatures show distinctly different letterforms: his 'J' has a more vertical stem, his 'K' has characteristic angular construction with sharp crossbar, and his overall hand is more open and less connected. The flow patterns and letter proportions do not match the unknown signature."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.1,
+          "reasoning": "Both are cursive signatures with rightward slant, but the structural elements differ significantly. Claremont's signatures show much larger loops, different 'C' construction, and more exaggerated flourishes. The letter spacing and proportions are inconsistent with the unknown signature's characteristics."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Lee",
+      "test_image": "Jim_Lee_Signature_3.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.95,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.95,
+          "reasoning": "Extremely strong match. The unknown signature shows the distinctive Jim Lee characteristics: the large looping 'J' that flows into aggressive vertical 'm' strokes, followed by a long horizontal tail. The letter construction, proportions, stroke weight, and overall flow are virtually identical to the Reference 22 examples. The rapid vertical hatching in the middle section and the extended baseline stroke are signature elements."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.15,
+          "reasoning": "Both are 'Jim' signatures with elongated tails, but the letter construction is fundamentally different. Starlin's signature has more rounded, connected loops with a different 'm' structure that lacks the aggressive vertical strokes seen in the unknown. The overall flow is less angular."
+        },
+        {
+          "artist": "James Tynion IV",
+          "confidence": 0.1,
+          "reasoning": "Shows stylized initials with vertical elements, but the structure is completely different. Tynion's signature features distinctive crossed verticals forming 'JT' whereas the unknown clearly shows 'Jim' letter forms with multiple 'm' strokes."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Starlin",
+      "test_image": "Jim_Starlin_Signature_3.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": false,
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "Excellent match across multiple characteristics: The distinctive initial 'J' with its tall ascending loop and leftward lean; the clustered vertical strokes forming the 'm' portion; the characteristic horizontal exit stroke; the overall rightward slant and fluid execution. The letter construction, stroke weight distribution, and signature flow are highly consistent with Jim Lee's known autograph pattern."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.25,
+          "reasoning": "Both signatures contain 'Jim' and show some fluidity, but Jim Starlin's signature has distinctly different letter construction: his 'J' curves more openly, the 'i' dots are often visible, and his terminal stroke angles differently. The middle letter cluster in the unknown signature doesn't match Starlin's more angular 'St' connection pattern."
+        },
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.15,
+          "reasoning": "While also a 'Jim' signature, Steranko's style is dramatically different with elaborate decorative loops forming a balloon-like enclosure around 'STERANKO' text. The unknown signature is much more streamlined and lacks any of Steranko's ornamental flourishes or his distinctive surname presentation."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Steranko",
+      "test_image": "Jim_Steranko_Signature_1.jpg",
+      "predicted": "Jim Steranko",
+      "confidence": 0.92,
+      "correct": true,
+      "top_matches": [
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows the distinctive 'STERANK' letterforms with characteristic angular capitals, the elaborate flourish loop encompassing the name, and the crossing diagonal underline. The letter construction, particularly the 'S', 'T', 'R', 'A', 'N', and 'K' formations, are consistent with Steranko's reference examples. The ornate looping flourish that begins above and wraps around the signature is a hallmark of his autograph style."
+        },
+        {
+          "artist": "Greg Capullo",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Capullo's signature features completely different letterforms with flowing cursive style and a distinctive loop structure. The angular block lettering in the unknown signature is incompatible with Capullo's rounded, cursive approach."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.1,
+          "reasoning": "No match. Claremont's signature is cursive and flowing with connected letters, while the unknown signature has distinct, separated angular capitals. The overall construction and style are completely different."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,418 @@
+{
+  "version": "1.0",
+  "created": "2026-02-28",
+  "description": "Reference database mapping signature image files to creator metadata",
+  "artists": [
+    {
+      "id": "adam_hughes",
+      "name": "Adam Hughes",
+      "display_name": "Adam Hughes",
+      "role": "artist",
+      "style_notes": "Clean, often AH monogram. Very minimalist — sometimes just 'AH!'",
+      "aliases": ["Adam Hughes", "AH"],
+      "quality_rating": "low",
+      "quality_notes": "Very small files (1-3KB), minimal detail. May need higher-res samples.",
+      "preferred_images": ["AdamaHughesSignature3.jpg", "AdamaHughesSignature2.jpg"],
+      "images": [
+        "AdamaHughesSignature.jpg",
+        "AdamaHughesSignature2.jpg",
+        "AdamaHughesSignature3.jpg",
+        "AdamaHughesSignature4.jpg",
+        "AdamaHughesSignature5.jpg",
+        "AdamaHughesSignature6.jpg"
+      ]
+    },
+    {
+      "id": "alan_moore",
+      "name": "Alan Moore",
+      "display_name": "Alan Moore",
+      "role": "writer",
+      "style_notes": "Rare, distinctive. Flowing cursive.",
+      "aliases": ["Alan Moore"],
+      "quality_rating": "medium",
+      "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["AlanMooreSignature3.jpg", "AlanMooreSignature1.jpg"],
+      "images": [
+        "AlanMooreSignature1.jpg",
+        "AlanMooreSignature2.jpg",
+        "AlanMooreSignature3.jpg",
+        "AlanMooreSignature4.jpg"
+      ]
+    },
+    {
+      "id": "alex_ross",
+      "name": "Alex Ross",
+      "display_name": "Alex Ross",
+      "role": "artist",
+      "style_notes": "Elegant, sometimes painted. Large flowing signature.",
+      "aliases": ["Alex Ross"],
+      "quality_rating": "high",
+      "quality_notes": "Good resolution (15-17KB), clear images, consistent style visible.",
+      "preferred_images": ["AlexRossSignature2.jpg", "AlexRossSignature4.jpg"],
+      "images": [
+        "AlexRossSignature1.jpg",
+        "AlexRossSignature2.jpg",
+        "AlexRossSignature3.jpg",
+        "AlexRossSignature4.jpg"
+      ]
+    },
+    {
+      "id": "art_adams",
+      "name": "Art Adams",
+      "display_name": "Art Adams",
+      "role": "artist",
+      "style_notes": "Detailed, often with character sketch.",
+      "aliases": ["Art Adams", "Arthur Adams"],
+      "quality_rating": "medium",
+      "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["ArtAdamsSignature3.jpg", "ArtAdamsSignature4.jpg"],
+      "images": [
+        "ArtAdamsSignature1_2018.jpg",
+        "ArtAdamsSignature2.jpg",
+        "ArtAdamsSignature3.jpg",
+        "ArtAdamsSignature4.jpg"
+      ]
+    },
+    {
+      "id": "bill_finger",
+      "name": "Bill Finger",
+      "display_name": "Bill Finger",
+      "role": "creator",
+      "style_notes": "Extremely rare. Batman co-creator.",
+      "aliases": ["Bill Finger"],
+      "quality_rating": "medium",
+      "quality_notes": "Small files but legible.",
+      "preferred_images": ["BillFingerSignature4.jpg", "BillFingerSignature1.jpg"],
+      "images": [
+        "BillFingerSignature1.jpg",
+        "BillFingerSignature2.jpg",
+        "BillFingerSignature3.jpg",
+        "BillFingerSignature4.jpg"
+      ]
+    },
+    {
+      "id": "bob_kane",
+      "name": "Bob Kane",
+      "display_name": "Bob Kane",
+      "role": "creator",
+      "style_notes": "Historic, rare. Batman creator. Often dated.",
+      "aliases": ["Bob Kane"],
+      "quality_rating": "high",
+      "quality_notes": "Good range of sizes, one large sample (23KB). Dated samples useful for era comparison.",
+      "preferred_images": ["BobKaneSignature3.jpg", "BobKaneSignature2_1988.jpg"],
+      "images": [
+        "BobKaneSignature1_1994.jpg",
+        "BobKaneSignature2_1988.jpg",
+        "BobKaneSignature3.jpg",
+        "BobKaneSignature4_1994.jpg"
+      ]
+    },
+    {
+      "id": "brian_michael_bendis",
+      "name": "Brian Michael Bendis",
+      "display_name": "Brian Michael Bendis",
+      "role": "writer",
+      "style_notes": "Bold, readable. Sometimes abbreviated BMB.",
+      "aliases": ["Brian Bendis", "Brian Michael Bendis", "BMB"],
+      "quality_rating": "high",
+      "quality_notes": "Best collection — 8 samples with varied contexts, some dated. Wide size range shows consistency.",
+      "preferred_images": ["BrianMichaelBendis_Signature_3_2001.jpg", "BrianMichaelBendis_Signature_1.jpg"],
+      "images": [
+        "BrianMichaelBendis_Signature_1.jpg",
+        "BrianMichaelBendis_Signature_2.jpg",
+        "BrianMichaelBendis_Signature_3_2001.jpg",
+        "BrianMichaelBendis_Signature_4.jpg",
+        "BrianMichaelBendis_Signature_5_2003.jpg",
+        "BrianMichaelBendis_Signature_6.jpg",
+        "BrianMichaelBendis_Signature_7.jpg",
+        "BrianMichaelBendis_Signature_8.jpg"
+      ]
+    },
+    {
+      "id": "chris_claremont",
+      "name": "Chris Claremont",
+      "display_name": "Chris Claremont",
+      "role": "writer",
+      "style_notes": "Neat cursive. X-Men legend.",
+      "aliases": ["Chris Claremont"],
+      "quality_rating": "high",
+      "quality_notes": "Good variety, includes one large sample (17KB).",
+      "preferred_images": ["ChrisClaremontSignature4.jpg", "ChrisClaremontSignature1.jpg"],
+      "images": [
+        "ChrisClaremontSignature1.jpg",
+        "ChrisClaremontSignature2.jpg",
+        "ChrisClaremontSignature3.jpg",
+        "ChrisClaremontSignature4.jpg"
+      ]
+    },
+    {
+      "id": "ed_brubaker",
+      "name": "Ed Brubaker",
+      "display_name": "Ed Brubaker",
+      "role": "writer",
+      "style_notes": "Professional. Captain America/Criminal writer.",
+      "aliases": ["Ed Brubaker"],
+      "quality_rating": "medium",
+      "quality_notes": "Decent, 4 samples.",
+      "preferred_images": ["EdBrubakerSignature3.jpg", "EdBrubakerSignature1.jpg"],
+      "images": [
+        "EdBrubakerSignature1.jpg",
+        "EdBrubakerSignature2.jpg",
+        "EdBrubakerSignature3.jpg",
+        "EdBrubakerSignature4.jpg"
+      ]
+    },
+    {
+      "id": "frank_miller",
+      "name": "Frank Miller",
+      "display_name": "Frank Miller",
+      "role": "artist",
+      "style_notes": "Bold, angular. Dark Knight/Sin City creator.",
+      "aliases": ["Frank Miller"],
+      "quality_rating": "medium",
+      "quality_notes": "Small files (2-4KB) but recognizable style.",
+      "preferred_images": ["Frank_Miller_Signature3.jpg", "Frank_Miller_Signature_4.jpg"],
+      "images": [
+        "Frank_Miller_Signature1.jpg",
+        "Frank_Miller_Signature2.jpg",
+        "Frank_Miller_Signature3.jpg",
+        "Frank_Miller_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "gabriele_dellotto",
+      "name": "Gabriele Dell'Otto",
+      "display_name": "Gabriele Dell'Otto",
+      "role": "cover_artist",
+      "style_notes": "European style. Prominent variant cover artist.",
+      "aliases": ["Gabriele Dell'Otto", "Gabrielle Dell'Otto", "Dell'Otto"],
+      "quality_rating": "low",
+      "quality_notes": "Small files (2-5KB). May need better samples.",
+      "preferred_images": ["Gabrielle_DellOtto_Signature_1.jpg", "Gabrielle_DellOtto_Signature_4.jpg"],
+      "images": [
+        "Gabrielle_DellOtto_Signature_1.jpg",
+        "Gabrielle_DellOtto_Signature_2.jpg",
+        "Gabrielle_DellOtto_Signature_3.jpg",
+        "Gabrielle_DellOtto_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "geoff_johns",
+      "name": "Geoff Johns",
+      "display_name": "Geoff Johns",
+      "role": "writer",
+      "style_notes": "Clean, professional. Green Lantern/JSA writer.",
+      "aliases": ["Geoff Johns"],
+      "quality_rating": "medium",
+      "quality_notes": "Decent resolution, 4 samples.",
+      "preferred_images": ["Geoff_Johns_Signature_1.jpg", "Geoff_Johns_Signature_2.jpg"],
+      "images": [
+        "Geoff_Johns_Signature_1.jpg",
+        "Geoff_Johns_Signature_2.jpg",
+        "Geoff_Johns_Signature_3.jpg",
+        "Geoff_Johns_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "george_perez",
+      "name": "George Pérez",
+      "display_name": "George Pérez",
+      "role": "artist",
+      "style_notes": "Detailed, often includes date. Crisis/New Teen Titans legend.",
+      "aliases": ["George Perez", "George Pérez"],
+      "quality_rating": "high",
+      "quality_notes": "Good variety of sizes, one large (13KB). Deceased — signatures increasingly valuable.",
+      "preferred_images": ["George_Perez_Signature_4.jpg", "George_Perez_Signature_3.jpg"],
+      "images": [
+        "George_Perez_Signature_1.jpg",
+        "George_Perez_Signature_2.jpg",
+        "George_Perez_Signature_3.jpg",
+        "George_Perez_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "grant_morrison",
+      "name": "Grant Morrison",
+      "display_name": "Grant Morrison",
+      "role": "writer",
+      "style_notes": "Artistic, sometimes with sigil. Batman/All-Star Superman writer.",
+      "aliases": ["Grant Morrison"],
+      "quality_rating": "high",
+      "quality_notes": "Large, clear files (8-16KB). Good quality collection.",
+      "preferred_images": ["Grant_Morrison_Signature_2.jpg", "Grant_Morrison_Signature_4.jpg"],
+      "images": [
+        "Grant_Morrison_Signature_1.jpg",
+        "Grant_Morrison_Signature_2.jpg",
+        "Grant_Morrison_Signature_3.jpg",
+        "Grant_Morrison_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "greg_capullo",
+      "name": "Greg Capullo",
+      "display_name": "Greg Capullo",
+      "role": "artist",
+      "style_notes": "Flowing, energetic. Batman/Spawn artist.",
+      "aliases": ["Greg Capullo"],
+      "quality_rating": "high",
+      "quality_notes": "Good resolution (5-12KB), clear examples.",
+      "preferred_images": ["Greg_Capullo_Signature_3.jpg", "Greg_Capullo_Signature_2.jpg"],
+      "images": [
+        "Greg_Capullo_Signature_1.jpg",
+        "Greg_Capullo_Signature_2.jpg",
+        "Greg_Capullo_Signature_3.jpg",
+        "Greg_Capullo_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "ivan_reis",
+      "name": "Ivan Reis",
+      "display_name": "Ivan Reis",
+      "role": "artist",
+      "style_notes": "Professional, often dated. Green Lantern/Aquaman artist.",
+      "aliases": ["Ivan Reis"],
+      "quality_rating": "low",
+      "quality_notes": "Very small files (1-2KB). Needs better resolution samples.",
+      "preferred_images": ["Ivan_Reis_Signature_1.jpg", "Ivan_Reis_Signature_3.jpg"],
+      "images": [
+        "Ivan_Reis_Signature_1.jpg",
+        "Ivan_Reis_Signature_2.jpg",
+        "Ivan_Reis_Signature_3.jpg",
+        "Ivan_Reis_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jack_kirby",
+      "name": "Jack Kirby",
+      "display_name": "Jack Kirby",
+      "role": "creator",
+      "style_notes": "Simple block signature. King of Comics. Deceased — extremely valuable.",
+      "aliases": ["Jack Kirby"],
+      "quality_rating": "high",
+      "quality_notes": "Good variety including one large (22KB). Important for high-value authentication.",
+      "preferred_images": ["Jack_Kirby_Signature_3.jpg", "Jack_Kirby_Signature_4.jpg"],
+      "images": [
+        "Jack_Kirby_Signature_1.jpg",
+        "Jack_Kirby_Signature_2.jpg",
+        "Jack_Kirby_Signature_3.jpg",
+        "Jack_Kirby_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jae_lee",
+      "name": "Jae Lee",
+      "display_name": "Jae Lee",
+      "role": "artist",
+      "style_notes": "Minimalist. Batman/Inhumans artist.",
+      "aliases": ["Jae Lee"],
+      "quality_rating": "medium",
+      "quality_notes": "Mixed sizes, some good detail.",
+      "preferred_images": ["Jae_Lee_Signature_4.jpg", "Jae_Lee_Signature_3.jpg"],
+      "images": [
+        "Jae_Lee_Signature_1.jpg",
+        "Jae_Lee_Signature_2.jpg",
+        "Jae_Lee_Signature_3.jpg",
+        "Jae_Lee_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "james_tynion_iv",
+      "name": "James Tynion IV",
+      "display_name": "James Tynion IV",
+      "role": "writer",
+      "style_notes": "Contemporary style. Batman/Something is Killing the Children writer.",
+      "aliases": ["James Tynion", "James Tynion IV"],
+      "quality_rating": "medium",
+      "quality_notes": "One good large sample (10KB), rest small.",
+      "preferred_images": ["James_Tynion_IV_Signature_4.jpg", "James_Tynion_IV_Signature_3.jpg"],
+      "images": [
+        "James_Tynion_IV_Signature_1.jpg",
+        "James_Tynion_IV_Signature_2.jpg",
+        "James_Tynion_IV_Signature_3.jpg",
+        "James_Tynion_IV_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jerry_siegel",
+      "name": "Jerry Siegel",
+      "display_name": "Jerry Siegel",
+      "role": "creator",
+      "style_notes": "Historic Superman creator. Deceased — extremely valuable and rare.",
+      "aliases": ["Jerry Siegel"],
+      "quality_rating": "high",
+      "quality_notes": "One very large sample (81KB), good variety. High-value authentication target.",
+      "preferred_images": ["Jerry_Siegel_Signature_1.jpg", "Jerry_Siegel_Signature_2.jpg"],
+      "images": [
+        "Jerry_Siegel_Signature_1.jpg",
+        "Jerry_Siegel_Signature_2.jpg",
+        "Jerry_Siegel_Signature_3.jpg",
+        "Jerry_Siegel_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jim_lee",
+      "name": "Jim Lee",
+      "display_name": "Jim Lee",
+      "role": "artist",
+      "style_notes": "Large flowing signature, often dated. DC Chief Creative Officer. Convention staple.",
+      "aliases": ["Jim Lee"],
+      "quality_rating": "high",
+      "quality_notes": "Excellent collection — large clear files (7-34KB). Top priority for convention matching.",
+      "preferred_images": ["Jim_Lee_Signature_1.jpg", "Jim_Lee_Signature_2.jpg"],
+      "images": [
+        "Jim_Lee_Signature_1.jpg",
+        "Jim_Lee_Signature_2.jpg",
+        "Jim_Lee_Signature_3.jpg",
+        "Jim_Lee_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jim_starlin",
+      "name": "Jim Starlin",
+      "display_name": "Jim Starlin",
+      "role": "artist",
+      "style_notes": "Thanos/Infinity Gauntlet creator. Often signs with character sketches.",
+      "aliases": ["Jim Starlin"],
+      "quality_rating": "high",
+      "quality_notes": "Large files (10-47KB) but only 3 samples — MISSING signature #1.",
+      "preferred_images": ["Jim_Starlin_Signature_4.jpg", "Jim_Starlin_Signature_3.jpg"],
+      "images": [
+        "Jim_Starlin_Signature_2.jpg",
+        "Jim_Starlin_Signature_3.jpg",
+        "Jim_Starlin_Signature_4.jpg"
+      ]
+    },
+    {
+      "id": "jim_steranko",
+      "name": "Jim Steranko",
+      "display_name": "Jim Steranko",
+      "role": "artist",
+      "style_notes": "Stylized, artistic. Nick Fury legend.",
+      "aliases": ["Jim Steranko", "Steranko"],
+      "quality_rating": "high",
+      "quality_notes": "Large, detailed files (5-42KB). Distinctive style should match well.",
+      "preferred_images": ["Jim_Steranko_Signature_3.jpg", "Jim_Steranko_Signature_1.jpg"],
+      "images": [
+        "Jim_Steranko_Signature_1.jpg",
+        "Jim_Steranko_Signature_2.jpg",
+        "Jim_Steranko_Signature_3.jpg",
+        "Jim_Steranko_Signature_4.jpg"
+      ]
+    }
+  ],
+  "missing_priority_artists": [
+    {"name": "Todd McFarlane", "reason": "#1 convention signer, Spawn creator. MUST HAVE for GalaxyCon."},
+    {"name": "Stan Lee", "reason": "Most recognized comic signature in the world. Tons in eBay data."},
+    {"name": "Rob Liefeld", "reason": "Signs at every con, very active. Easy to collect samples."},
+    {"name": "Scott Snyder", "reason": "Batman run, convention regular."},
+    {"name": "J. Scott Campbell", "reason": "Huge variant cover artist, signs constantly."}
+  ],
+  "stats": {
+    "total_artists": 23,
+    "total_images": 97,
+    "high_quality": 11,
+    "medium_quality": 7,
+    "low_quality": 3,
+    "incomplete": 1
+  }
+}

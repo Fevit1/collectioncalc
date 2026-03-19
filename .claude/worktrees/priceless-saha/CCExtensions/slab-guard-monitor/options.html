@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Slab Guard Monitor - Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      padding: 40px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 32px; }
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #374151;
+    }
+    .option-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .option-row:last-child { border-bottom: none; }
+    .option-label { font-size: 14px; font-weight: 500; }
+    .option-desc { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    select {
+      padding: 6px 10px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      background: white;
+    }
+    select:focus { border-color: #667eea; }
+    .toggle { position: relative; width: 44px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #d1d5db; border-radius: 12px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px;
+      left: 2px; top: 2px;
+      background: white; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #667eea; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .save-msg {
+      text-align: center; padding: 12px;
+      color: #16a34a; font-size: 13px; font-weight: 600;
+      display: none;
+    }
+    .footer {
+      text-align: center; margin-top: 32px;
+      color: #9ca3af; font-size: 12px;
+    }
+    .footer a { color: #667eea; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>\u{1F6E1}\u{FE0F} Slab Guard Settings</h1>
+  <p class="subtitle">Configure your marketplace monitoring preferences</p>
+
+  <div class="card">
+    <div class="card-title">Scanning</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Auto-scan eBay listings</div>
+        <div class="option-desc">Automatically check listings when browsing search results</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoScan" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Scan sensitivity</div>
+        <div class="option-desc">Higher = more matches but more false positives</div>
+      </div>
+      <select id="sensitivity">
+        <option value="low">Low (5 bits)</option>
+        <option value="medium" selected>Medium (10 bits)</option>
+        <option value="high">High (15 bits)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Notifications</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Desktop notifications</div>
+        <div class="option-desc">Show alerts when a stolen comic match is found</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="notifications" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Sound alerts</div>
+        <div class="option-desc">Play a sound for stolen comic matches</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="soundAlerts">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cache</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Stolen hash cache</div>
+        <div class="option-desc" id="cacheInfo">Loading...</div>
+      </div>
+      <button id="refreshCache" style="padding: 6px 14px; border: 1.5px solid #667eea; border-radius: 6px; background: white; color: #667eea; font-size: 12px; font-weight: 600; cursor: pointer;">Refresh Now</button>
+    </div>
+  </div>
+
+  <div class="save-msg" id="saveMsg">\u{2705} Settings saved</div>
+
+  <div class="footer">
+    Slab Guard\u2122 by <a href="https://slabworthy.com" target="_blank">SlabWorthy.com</a> &bull; v1.0.0
+  </div>
+
+  <script>
+    // Load settings
+    chrome.storage.local.get([
+      'autoScanEnabled', 'scanSensitivity', 'notificationsEnabled',
+      'soundAlerts', 'stolenHashCount', 'stolenHashesLastUpdated'
+    ], (data) => {
+      document.getElementById('autoScan').checked = data.autoScanEnabled !== false;
+      document.getElementById('sensitivity').value = data.scanSensitivity || 'medium';
+      document.getElementById('notifications').checked = data.notificationsEnabled !== false;
+      document.getElementById('soundAlerts').checked = data.soundAlerts || false;
+
+      const count = data.stolenHashCount || 0;
+      const updated = data.stolenHashesLastUpdated
+        ? new Date(data.stolenHashesLastUpdated).toLocaleString()
+        : 'Never';
+      document.getElementById('cacheInfo').textContent = `${count} hashes cached \u{2022} Last updated: ${updated}`;
+    });
+
+    // Save on change
+    function save() {
+      chrome.storage.local.set({
+        autoScanEnabled: document.getElementById('autoScan').checked,
+        scanSensitivity: document.getElementById('sensitivity').value,
+        notificationsEnabled: document.getElementById('notifications').checked,
+        soundAlerts: document.getElementById('soundAlerts').checked
+      });
+      const msg = document.getElementById('saveMsg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 2000);
+    }
+
+    document.getElementById('autoScan').addEventListener('change', save);
+    document.getElementById('sensitivity').addEventListener('change', save);
+    document.getElementById('notifications').addEventListener('change', save);
+    document.getElementById('soundAlerts').addEventListener('change', save);
+
+    // Refresh cache
+    document.getElementById('refreshCache').addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'refreshHashes' }, () => {
+        setTimeout(() => {
+          chrome.storage.local.get(['stolenHashCount', 'stolenHashesLastUpdated'], (data) => {
+            document.getElementById('cacheInfo').textContent =
+              `${data.stolenHashCount || 0} hashes cached \u{2022} Last updated: ${data.stolenHashesLastUpdated ? new Date(data.stolenHashesLastUpdated).toLocaleString() : 'Just now'}`;
+          });
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

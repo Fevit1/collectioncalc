@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Collection - Slab Worthy™</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="js/collection.css">
+    <script>
+        // Auth gate
+        (function() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                window.location.replace('/login.html');
+            }
+        })();
+    </script>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body data-sidebar-page="collection" data-no-universal-footer>
+    <div class="container collection-container">
+        <!-- Header -->
+        <header style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">📚 My Collection</h1>
+            <p style="color: var(--text-secondary);">Your assessed comics</p>
+        </header>
+
+        <!-- Summary Dashboard -->
+        <div class="collection-summary" id="collectionSummary">
+            <div class="summary-card">
+                <div class="summary-label">Total Comics</div>
+                <div class="summary-value" id="totalComics">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Raw Value</div>
+                <div class="summary-value" id="rawValue">$0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Slabbed Value</div>
+                <div class="summary-value" id="slabbedValue">$0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Potential Profit</div>
+                <div class="summary-value positive" id="potentialProfit">$0</div>
+                <div class="summary-subtitle" id="worthSlabbingCount">0 worth slabbing</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="collection-controls">
+            <div class="controls-row">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by title or issue...">
+                </div>
+
+                <div class="controls-group" id="listSortGroup">
+                    <span class="control-label">Sort:</span>
+                    <select id="listSortSelect">
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="value-desc">Value (High-Low)</option>
+                        <option value="value-asc">Value (Low-High)</option>
+                        <option value="grade-desc">Grade (High-Low)</option>
+                        <option value="title-asc">Title (A-Z)</option>
+                    </select>
+                </div>
+
+                <div class="controls-group">
+                    <span class="control-label">Filter:</span>
+                    <select id="filterSelect">
+                        <option value="all">All Comics</option>
+                        <option value="worth-it">Worth Slabbing</option>
+                        <option value="keep-raw">Keep Raw</option>
+                    </select>
+                </div>
+
+                <div class="controls-group">
+                    <span class="control-label">Era:</span>
+                    <select id="eraFilter">
+                        <option value="all">All Eras</option>
+                        <option value="golden">Golden Age (1938-1956)</option>
+                        <option value="silver">Silver Age (1956-1970)</option>
+                        <option value="bronze">Bronze Age (1970-1985)</option>
+                        <option value="copper">Copper Age (1985-1992)</option>
+                        <option value="modern">Modern Age (1992+)</option>
+                    </select>
+                </div>
+
+                <div class="controls-group" id="gallerySortGroup" style="display:none;">
+                    <span class="control-label">Sort:</span>
+                    <select id="gallerySortSelect">
+                        <option value="series">Series & Issue</option>
+                        <option value="value-high">Value: High to Low</option>
+                        <option value="value-low">Value: Low to High</option>
+                        <option value="grade-high">Grade: High to Low</option>
+                        <option value="grade-low">Grade: Low to High</option>
+                        <option value="recent">Recently Added</option>
+                    </select>
+                </div>
+
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="list" title="List View">
+                        <span>☰</span>
+                    </button>
+                    <button class="view-btn" data-view="gallery" title="Gallery View">
+                        <span>🖼️</span>
+                    </button>
+                    <button class="export-btn" id="exportGallery" title="Export Gallery Image" style="display: none;">
+                        📸 Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Headers (List View Only) -->
+        <div class="table-headers" id="tableHeaders" style="display: none;">
+            <div>Cover</div>
+            <div class="sortable active asc" data-sort="title" onclick="columnSort('title')">Title <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="year" onclick="columnSort('year')" style="justify-content:center;">Year <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="issue" onclick="columnSort('issue')" style="justify-content:center;">Issue <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="grade" onclick="columnSort('grade')" style="justify-content:center;">Grade <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="fmv" onclick="columnSort('fmv')" style="justify-content:flex-end; padding-right:0.5rem;">FMV <span class="sort-arrow">▲</span></div>
+            <div class="sortable" data-sort="valuation" onclick="columnSort('valuation')" style="justify-content:flex-end;">My Val <span class="sort-arrow">▲</span></div>
+            <div style="border-left: 1px solid var(--border-default); padding-left: 1rem;">Actions</div>
+        </div>
+
+        <!-- Comics Grid/List -->
+        <div class="comics-grid" id="comicsContainer">
+            <!-- Comics will be populated here by JavaScript -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📦</div>
+            <h2 class="empty-title">Your collection is empty</h2>
+            <p class="empty-text">Grade your first comic to get started!</p>
+            <a href="/app.html" class="cta-button" style="display: inline-block; text-decoration: none;">Grade a Comic</a>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-actions" id="bulkActions">
+            <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
+            <button class="action-btn" onclick="exportSelected()">📥 Export</button>
+            <button class="action-btn" onclick="deleteSelected()">🗑️ Delete</button>
+            <button class="action-btn" onclick="clearSelection()">✕ Cancel</button>
+        </div>
+    </div>
+
+    <!-- Back to App Button -->
+    <div style="text-align: center; margin: 2rem 0;">
+        <a href="/app.html" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">← Back to App</a>
+    </div>
+
+    <!-- eBay Listing Modal -->
+    <div class="ebay-modal-overlay" id="ebayModalOverlay" onclick="closeModalOnBackdrop(event)">
+        <div class="ebay-modal">
+            <!-- Header -->
+            <div class="ebay-modal-header">
+                <div class="ebay-modal-title">
+                    <span class="ebay-logo">eBay</span>
+                    Create Listing
+                </div>
+                <button class="modal-close" onclick="closeEbayModal()">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div class="ebay-modal-body">
+                <!-- Connection Status -->
+                <div class="ebay-connection-status" id="ebayConnectionStatus">
+                    <div class="connection-status-text">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">Checking eBay connection...</span>
+                    </div>
+                    <button class="btn-secondary btn-small" id="connectBtn" style="display: none;" onclick="connectToEbay()">
+                        Connect eBay
+                    </button>
+                </div>
+
+                <!-- Comic Preview -->
+                <div class="comic-preview" id="comicPreview">
+                    <!-- Will be populated by JS -->
+                </div>
+
+                <!-- Form -->
+                <form id="ebayListingForm" onsubmit="return false;">
+                    <!-- Title -->
+                    <div class="form-group">
+                        <label class="form-label">Listing Title</label>
+                        <input type="text" class="form-input" id="listingTitle" maxlength="80" required>
+                        <span class="form-help">Max 80 characters. Be specific (e.g., "Amazing Spider-Man #300 VF+ White Pages")</span>
+                        <div class="char-counter" id="titleCounter">0 / 80</div>
+                    </div>
+
+                    <!-- Listing Format Toggle -->
+                    <div class="form-group">
+                        <label class="form-label">Listing Format</label>
+                        <div class="format-toggle" id="formatToggle">
+                            <button type="button" class="format-btn active" data-format="FIXED_PRICE" onclick="setListingFormat('FIXED_PRICE')">
+                                Fixed Price
+                            </button>
+                            <button type="button" class="format-btn" data-format="AUCTION" onclick="setListingFormat('AUCTION')">
+                                Auction
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Fixed Price fields -->
+                    <div id="fixedPriceFields">
+                        <div class="form-group">
+                            <label class="form-label">Price (USD)</label>
+                            <div class="price-input-group">
+                                <input type="number" class="form-input" id="listingPrice" min="0.99" step="0.01" required>
+                                <div class="price-suggestion" id="priceSuggestion">
+                                    FMV: $--
+                                </div>
+                            </div>
+                            <span class="form-help">eBay minimum: $0.99. Consider grading fees (~$20-$40) if listing as slabbed.</span>
+                        </div>
+                    </div>
+
+                    <!-- Auction fields (hidden by default) -->
+                    <div id="auctionFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Starting Bid (USD)</label>
+                            <div class="price-input-group">
+                                <input type="number" class="form-input" id="auctionStartPrice" min="0.99" step="0.01" placeholder="0.99">
+                                <div class="price-suggestion" id="auctionFmvHint">
+                                    FMV: $--
+                                </div>
+                            </div>
+                            <span class="form-help">Low start = more bids. Many sellers start at $0.99 to drive bidding wars.</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duration</label>
+                            <select class="form-input" id="auctionDuration">
+                                <option value="DAYS_1">1 Day</option>
+                                <option value="DAYS_3">3 Days</option>
+                                <option value="DAYS_5">5 Days</option>
+                                <option value="DAYS_7" selected>7 Days (Recommended)</option>
+                                <option value="DAYS_10">10 Days</option>
+                            </select>
+                            <span class="form-help">7-day auctions get the most visibility. End on Sunday evenings for best results.</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reserve Price (Optional)</label>
+                            <input type="number" class="form-input" id="auctionReservePrice" min="0" step="0.01" placeholder="Leave blank for no reserve">
+                            <span class="form-help">Minimum price you'll accept. Item won't sell below this. eBay charges a reserve fee.</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Buy It Now Price (Optional)</label>
+                            <input type="number" class="form-input" id="auctionBuyItNow" min="0" step="0.01" placeholder="Leave blank for auction only">
+                            <span class="form-help">Let buyers skip the auction and buy immediately at this price. Removed once bidding starts.</span>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+
+                        <!-- AI Status -->
+                        <div class="ai-status" id="aiStatus" style="display: none;">
+                            <span class="spinner"></span>
+                            <span id="aiStatusText">Generating description...</span>
+                        </div>
+
+                        <textarea class="form-input" id="listingDescription" maxlength="4000" rows="6"></textarea>
+                        <span class="form-help">AI-generated for you! Edit if needed. 250-300 chars recommended for mobile.</span>
+                        <div class="char-counter" id="descCounter">0 / 4000</div>
+                    </div>
+
+                    <!-- Photos Upload Status -->
+                    <div class="form-group">
+                        <label class="form-label">Photos (4 images)</label>
+                        <div class="photos-status" id="photosStatus">
+                            <div class="photo-status-item">Front: ⏳</div>
+                            <div class="photo-status-item">Spine: ⏳</div>
+                            <div class="photo-status-item">Back: ⏳</div>
+                            <div class="photo-status-item">Center: ⏳</div>
+                        </div>
+                        <span class="form-help">Photos will be uploaded automatically when you publish.</span>
+                    </div>
+
+                    <!-- Grading ID (included in description) -->
+                    <div class="form-group">
+                        <label class="form-label">Slab Worthy™ Assessment</label>
+                        <input type="text" class="form-input" id="gradingIdDisplay" readonly disabled>
+                        <span class="form-help">This ID is included in your description so buyers can verify the assessment.</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="ebay-modal-footer">
+                <button class="btn-secondary" onclick="closeEbayModal()">Cancel</button>
+                <button class="btn-draft" onclick="saveAsDraft()" id="draftBtn">
+                    💾 Save as Draft
+                </button>
+                <button class="btn-publish cta-button" onclick="publishListing()" id="publishBtn" disabled>
+                    🚀 Publish Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marketplace Prep Modal (generic for all platforms) -->
+    <div class="mp-modal-overlay" id="mpModalOverlay" onclick="if(event.target===event.currentTarget) closeMarketplaceModal()">
+        <div class="mp-modal">
+            <div class="mp-modal-header" id="mpModalHeader">
+                <div class="mp-modal-title">
+                    <span class="mp-platform-badge" id="mpPlatformBadge">Platform</span>
+                    <span id="mpModalSubtitle">Prep Listing</span>
+                </div>
+                <button class="modal-close" onclick="closeMarketplaceModal()" style="background:transparent;border:none;color:white;font-size:2rem;cursor:pointer;">&times;</button>
+            </div>
+
+            <div class="mp-modal-body">
+                <div class="comic-preview" id="mpComicPreview"></div>
+
+                <div class="mp-ai-status generating" id="mpAiStatus" style="display:none;">
+                    <span class="spinner"></span>
+                    <span id="mpAiStatusText">Generating content...</span>
+                </div>
+
+                <!-- Pricing (dynamic labels) -->
+                <div id="mpPricingSection">
+                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Suggested Pricing</label>
+                    <div class="pricing-suggestions" id="mpPricingCards"></div>
+                </div>
+
+                <!-- Listing Title -->
+                <div class="copyable-field">
+                    <label>Listing Title</label>
+                    <div class="copy-row">
+                        <div class="form-input mp-editable" id="mpTitle" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
+                        <button class="copy-btn" onclick="copyMpField('mpTitle', this)">📋</button>
+                    </div>
+                    <div class="field-hint" id="mpTitleHint">Paste into the listing title field</div>
+                </div>
+
+                <!-- Description -->
+                <div class="copyable-field">
+                    <label>Description</label>
+                    <div class="copy-row">
+                        <div class="form-input mp-editable mp-multiline" id="mpDescription" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
+                        <button class="copy-btn" onclick="copyMpField('mpDescription', this)">📋</button>
+                    </div>
+                    <div class="field-hint" id="mpDescHint">Platform-optimized description</div>
+                </div>
+
+                <!-- Show/Prep Notes (shown only for platforms that have them) -->
+                <div class="copyable-field" id="mpShowNotesSection" style="display:none;">
+                    <label id="mpShowNotesLabel">Prep Notes</label>
+                    <div class="copy-row">
+                        <div class="form-input mp-editable mp-multiline" id="mpShowNotes" contenteditable="true" role="textbox" data-placeholder="Generating..."></div>
+                        <button class="copy-btn" onclick="copyMpField('mpShowNotes', this)">📋</button>
+                    </div>
+                    <div class="field-hint" id="mpShowNotesHint">Talking points and key details</div>
+                </div>
+
+                <!-- Photos -->
+                <div style="margin-bottom:0.5rem;">
+                    <button class="mp-download-photos-btn" id="mpDownloadAllPhotos" onclick="downloadAllMpPhotos()" style="display:none;width:100%;">
+                        ⬇ Download All Photos
+                    </button>
+                </div>
+                <div class="photo-downloads" id="mpPhotos"></div>
+
+                <!-- Debug strip (hidden — enable by setting display:block in console) -->
+                <div id="mpDebugStrip" style="margin-top:1rem;padding:0.5rem;background:rgba(255,107,53,0.15);border:1px solid rgba(255,107,53,0.3);border-radius:6px;font-size:0.75rem;color:#ff6b35;font-family:monospace;display:none;word-break:break-all;"></div>
+            </div>
+
+            <div class="mp-modal-footer">
+                <div class="mp-footer-buttons">
+                    <button class="btn-secondary" onclick="closeMarketplaceModal()">Close</button>
+                    <button class="btn-copy-all" id="mpCopyAllBtn" onclick="copyAllMp(this)">
+                        📋 Copy All
+                    </button>
+                </div>
+                <div class="mp-paste-hint" id="mpPasteHint"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/collection.js"></script>
+    <script src="js/ebay-modal.js"></script>
+    <script src="js/marketplace-modal.js"></script>
+
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

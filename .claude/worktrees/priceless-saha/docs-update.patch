@@ -1,0 +1,182 @@
+diff --git a/README.md b/README.md
+index f7a8d71..0b2fd1d 100644
+--- a/README.md
++++ b/README.md
+@@ -14,6 +14,8 @@ Slab Worthy helps collectors answer the question every comic owner asks: "Is thi
+ 
+ **eBay Listing Integration** — List comics directly to eBay from your collection. Supports fixed-price and auction formats with OAuth 2.0 authentication.
+ 
++**Multi-Platform Selling** — "Sell" dropdown with AI-generated content optimized for 9 marketplaces: eBay (direct listing), Whatnot, Mercari, Facebook Marketplace, Heritage Auctions, ComicConnect, MyComicShop, COMC, and Hip Comics. Copy-to-clipboard for platforms without APIs.
++
+ **Signature Identification** — Reference database of 23+ artists with 97 signature images. AI-powered matching with premium analysis (signing adds ~40-57% to value).
+ 
+ **Slab Guard Registration** — Register comics with perceptual fingerprinting for theft detection and provenance tracking. Patent pending (Application #63/990,743).
+@@ -22,7 +24,7 @@ Slab Worthy helps collectors answer the question every comic owner asks: "Is thi
+ 
+ ## Tech Stack
+ 
+-- **Backend**: Python / Flask (19 blueprints, 87 routes)
++- **Backend**: Python / Flask (20 blueprints, 89+ routes)
+ - **Database**: PostgreSQL on Render (16 tables)
+ - **Frontend**: Vanilla HTML/CSS/JS on Cloudflare Pages
+ - **Image Storage**: Cloudflare R2
+diff --git a/TODO.md b/TODO.md
+index 8faa190..9091632 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -1,5 +1,5 @@
+ # Slab Worthy — Master To-Do List
+-**Updated:** March 4, 2026 (Session 75)
++**Updated:** March 4, 2026 (Session 76)
+ **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~25 weeks out)
+ **Soft Launch:** July 21, 2026 (~21 weeks out)
+ **Solo Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
+@@ -13,8 +13,13 @@
+ 
+ ---
+ 
+-## ✅ DONE (Session 64-74)
++## ✅ DONE (Session 64-76)
+ 
++- [x] **Multi-platform marketplace selling prep** — Session 76: Built "Sell ▾" dropdown consolidating eBay (direct) + 8 prep-tool platforms: Whatnot, Mercari, Facebook Marketplace, Heritage Auctions, ComicConnect, MyComicShop, COMC, Hip Comics. Generic modal adapts colors/fields/pricing per platform. AI-generated content optimized for each audience. Copy-to-clipboard UX. New files: `marketplace_prep.py`, `routes/marketplace.py`. Switched dev workflow from local mounted drive to GitHub clone + patch-based ops.
++- [x] **Whatnot integration** — Session 76: Built standalone "Prep for Whatnot" tool, then immediately refactored into generic multi-platform system above. Whatnot-specific: live auction format, talking points for stream, low starting bid suggestions.
++- [x] **eBay auction backend validation hardened** — Session 76: Fixed BIN validation (only checked > start, not > reserve). Fixed silent drops of invalid reserve/BIN → now returns explicit errors. Removed stale debug print. Fixed draft message ("add photos" → "review and publish"). Fixed "CollectionCalc" branding in ebay_description.py.
++- [x] **eBay username fix verified** — Session 76: Deployed `commerce.identity.readonly` scope fix, Mike disconnected/reconnected eBay to get new token.
++- [x] **Dev workflow: local → GitHub clone + patch ops** — Session 76: Switched from mounted local drive (causing crashes from `.git/index.lock` and Word temp files) to GitHub clone workflow. Claude codes + commits in clone, generates `.patch` files, Mike applies with `git apply` and pushes from PowerShell.
+ - [x] **First successful eBay listing published!** — Session 74: Fixed grade type crash (numeric grades like 8.5 crashed `.upper()`), added NUMERIC_TO_LETTER mapping for all CGC grades. Fixed eBay URL policy violation (removed external URL from description). Added KEY ISSUE detection in listing titles. Synced frontend editable title to backend. Fixed OAuth callback redirect to account.html. Added eBay Identity API username fetch. Fixed closeUserMenu null reference.
+ - [x] **eBay listing image upload fixes** — Session 73: Fixed photo URL mismatch (currentComic.photos.* vs flat properties). Fixed CORS by switching to server-side R2 proxy fetch. Added sell.marketing OAuth scope. Added disconnect endpoint + Connected Accounts UI to account.html.
+ - [x] **Test sidebar + footer across all pages** ✅ Session 73
+@@ -82,17 +87,20 @@
+   - ✅ Fixed-price publish working — first listing live! (Session 74)
+   - ✅ KEY ISSUE detection in titles working (Session 74)
+   - ✅ AI description generation working (Session 74)
+-  - ✅ eBay username root cause found & fixed (Session 75) — missing `commerce.identity.readonly` scope. Needs deploy + disconnect/reconnect to verify.
++  - ✅ eBay username fix deployed & verified (Session 76)
++  - ✅ Auction backend validation hardened (Session 76)
+   - 🔜 Pick new favicon (options in `favicon-options.html`)
+   - 🔜 Test fixed-price draft listing
+   - 🔜 Test auction listing (all field combos)
+ 
+-- [ ] **Plan Whatnot integration** ⏱ 1 session
+-  - Research Whatnot seller tools, API availability, common seller workflows
+-  - Design "Prep for Whatnot" feature: title gen, description, suggested starting bid
+-  - Copy-to-clipboard for pasting into Whatnot seller dashboard
+-  - Whatnot has no public listing API — determine best UX approach
+-  - 🔗 No blockers
++- [x] ~~**Plan Whatnot integration**~~ ✅ Session 76 — Built + expanded to 8-platform marketplace system
++
++- [ ] **Test marketplace prep tools** 👤⏱ 1 session ⚠️
++  - Open Sell dropdown for a comic, verify all 8 platforms appear
++  - Generate AI content for each platform, verify tone/length adapts
++  - Test copy-to-clipboard (individual fields + Copy All)
++  - Verify paste into Whatnot/Mercari/Facebook dashboards
++  - 🔗 Depends on: marketplace-platforms.patch deployed
+ 
+ ### Testing ⚠️
+ 
+@@ -269,7 +277,7 @@
+ 
+ ### Bugs to Fix
+ - [x] ~~**eBay OAuth callback redirect**~~ ✅ Session 74 — now redirects to account.html
+-- [ ] **eBay username shows as "user"** ⏱ 15 min — Backend backfill + frontend key fix (`data.ebay_username`) deployed in Session 74 but still showing "user". May need disconnect/reconnect to trigger Identity API call, or scope may be missing. Code is in place — just needs debugging.
++- [x] ~~**eBay username shows as "user"**~~ ✅ Session 76 — Root cause: missing `commerce.identity.readonly` scope. Fixed in Session 75, verified working after disconnect/reconnect in Session 76.
+ - [ ] **Comic identification bug** ⏱ 1 session — Ghost Rider reboot vs original
+ - [ ] **Auto-rotation steps 2-4** ⏱ 30 min — Code added but not working
+ - [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API
+@@ -282,7 +290,7 @@
+ - [ ] Second opinion mode (run extraction twice, compare)
+ - [ ] Slab label valuation adjustments (signature series, restored, etc.)
+ - [ ] Two-factor authentication
+-- [ ] Multi-vertical expansion (baseball cards, coins, sneakers)
++- [ ] Multi-vertical expansion (baseball cards v2 — marketplace platforms already overlap: Heritage, COMC, Hip Comics)
+ - [ ] Add display_name to /api/auth/me (replace email-derived name)
+ - [ ] Backend trending endpoint for Market Movers panel (real ebay_sales data)
+ 
+@@ -298,7 +306,8 @@ WEEKS 1-2 (P0):
+                             │
+ WEEKS 3-6 (P1):            ▼
+   eBay auction support ✅    Sig page deletion ✅
+-  eBay e2e testing ⚠️ 🔜    Whatnot prep tool
++  Whatnot + 8 platforms ✅   Auction validation ✅
++  eBay e2e testing ⚠️ 🔜    Marketplace testing ⚠️
+   Mobile testing ⚠️
+                             │
+ WEEKS 7-16 (P2):           ▼
+diff --git a/WHERE_WE_LEFT_OFF.md b/WHERE_WE_LEFT_OFF.md
+index 7da1324..bec2b5a 100644
+--- a/WHERE_WE_LEFT_OFF.md
++++ b/WHERE_WE_LEFT_OFF.md
+@@ -1,5 +1,73 @@
+ # Where We Left Off - Mar 4, 2026
+ 
++## Session 76 (Mar 4, 2026) — Multi-Platform Marketplace + Dev Workflow Overhaul
++
++### Dev Workflow Change: Local Drive → GitHub Clone + Patch Ops
++Claude was crashing when connecting to the local mounted drive (`.git/index.lock` stuck, Word temp files `~$TODO.md`, large repo I/O over mount). Switched to a new workflow:
++- **Claude** clones from GitHub (`https://github.com/Fevit1/collectioncalc`), codes + commits in the clone
++- **Generates `.patch` files** to Mike's mounted drive
++- **Mike** applies patches in PowerShell: `git apply <patch> ; git add <files> ; git commit -m "msg" ; git push ; deploy ; purge`
++- This is now the standard workflow going forward
++
++### eBay Auction Validation Hardened
++- Fixed BIN validation: was only checking `> start_price`, now correctly checks `> reserve_price` when reserve is set
++- Fixed backend silently dropping invalid reserve/BIN prices → now returns explicit JSON error messages
++- Removed stale debug print "Get fulfillment policies: 400"
++- Fixed draft message: was "add photos and publish" → now "review and publish" (photos already uploaded)
++- Fixed "CollectionCalc" branding in `ebay_description.py` → "Slab Worthy"
++
++### eBay Username Fix Verified
++- Mike deployed the `commerce.identity.readonly` scope fix from Session 75
++- Disconnected and reconnected eBay to get new token with updated scope
++- Username now displaying correctly
++
++### Multi-Platform Marketplace Selling (Major Feature)
++Built a "Sell ▾" dropdown menu replacing individual eBay + Whatnot buttons. Supports 9 platforms total:
++
++| Platform | Type | API? | Integration |
++|----------|------|------|-------------|
++| **eBay** | Direct listing | Yes (Inventory API) | Full OAuth + publish |
++| **Whatnot** | Live auction | No | Prep tool (copy/paste) |
++| **Mercari** | Fixed price | No | Prep tool |
++| **Facebook Marketplace** | Fixed price | No | Prep tool |
++| **Heritage Auctions** | Consignment auction | No | Prep tool |
++| **ComicConnect** | Consignment auction | No | Prep tool |
++| **MyComicShop** | Consignment | No | Prep tool |
++| **COMC** | Consignment | No | Prep tool |
++| **Hip Comics** | Consignment auction | No | Prep tool |
++
++**How it works:**
++- Each platform gets AI-generated content (title, description, pricing, prep notes) optimized for its audience and format
++- Whatnot gets casual live-stream talking points; Heritage gets formal auction-house language
++- Generic modal adapts header color, pricing cards, and fields per platform
++- Copy individual fields or "Copy All" for pasting into platform dashboards
++- eBay still uses the direct listing modal with OAuth
++
++**New files created:**
++- `marketplace_prep.py` — Platform configs + AI content generator (8 platforms, Claude Sonnet 4)
++- `routes/marketplace.py` — Flask blueprint (`GET /platforms`, `POST /generate-content`)
++
++**Files modified:**
++- `collection.html` — Sell dropdown, generic marketplace prep modal (~540 lines changed)
++- `wsgi.py` — Marketplace blueprint registration
++- `ebay_listing.py` — Auction validation fixes
++- `ebay_description.py` — Branding fix
++
++### Patches Generated This Session
++1. `auction-validation-fix.patch` — eBay auction backend fixes (applied + deployed)
++2. `marketplace-platforms.patch` — Multi-platform marketplace system (applied, awaiting deploy confirmation)
++
++### What's Next (Priority Order)
++1. **Confirm marketplace deploy** — verify Sell dropdown renders on production
++2. **Test marketplace prep tools** — open each platform, generate content, test copy/paste
++3. **Pick favicon** — Mike to choose from `favicon-options.html`
++4. **Test eBay draft listing** — Save as Draft flow
++5. **Test eBay auction listing** — all field combos (start/reserve/BIN)
++6. **Valuation endpoint testing** — 12-case test plan
++7. **Mobile testing** — full grading flow on real devices
++
++---
++
+ ## Session 75 (Mar 4, 2026) — eBay Username Root Cause + Favicon Redesign
+ 
+ ### eBay Username Bug — Root Cause Found & Fixed

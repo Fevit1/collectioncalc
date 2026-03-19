@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"Compass\\\\|compass\" /c/Users/mberr/CC/SW/.claude/worktrees/unruffled-lederberg --include=*.jsx --include=*.tsx --include=*.js --include=*.py)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js|py|css\\)$\")",
+      "Bash(find /c/Users/mberr/CC/SW/.claude/worktrees/goofy-wright/mas-sprint -not -path */node_modules* -type f -o -type d)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const k = process.env.ENCRYPTION_KEY; console.log\\(''Key exists:'', !!k\\); console.log\\(''Key length:'', k ? k.length : 0\\);\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const k = process.env.ENCRYPTION_KEY; console.log\\(''Key exists:'', Boolean\\(k\\)\\); console.log\\(''Key length:'', k ? k.length : 0\\);\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(''SUPABASE_URL set:'', Boolean\\(process.env.SUPABASE_URL\\)\\); console.log\\(''ANTHROPIC_API_KEY set:'', Boolean\\(process.env.ANTHROPIC_API_KEY\\)\\);\")",
+      "Bash(curl -s http://localhost:3001/tabs/Compass.jsx)",
+      "Bash(node -e \":*)",
+      "Bash(curl -s http://localhost:3001/app)",
+      "Bash(npx -y @babel/cli@7 --presets @babel/preset-react tabs/Compass.jsx)",
+      "Bash(pandoc \"C:/Users/mberr/Downloads/masse_pipeline_opus_brief \\(1\\).docx\" -o /tmp/masse_pipeline_brief.md)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

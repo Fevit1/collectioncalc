@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup — Waitlist Confirmed (Personalized)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a12; color: #fff; min-height: 100vh; }
+
+        /* Switcher */
+        .switcher {
+            position: fixed; top: 12px; left: 12px; right: 12px; z-index: 100;
+            display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+            background: rgba(10,10,18,0.95); padding: 10px; border-radius: 10px;
+            border: 1px solid #222;
+        }
+        .switcher-label { width: 100%; text-align: center; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+        .switcher button {
+            padding: 6px 12px; border: 1px solid #333; background: #1a1a2e;
+            color: #94a3b8; font-size: 11px; border-radius: 6px; cursor: pointer;
+        }
+        .switcher button.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+        .page {
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 5rem 1rem 2rem; position: relative;
+        }
+        .page::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(124,58,237,0.15) 0%, transparent 60%),
+                        radial-gradient(ellipse at 30% 70%, rgba(99,102,241,0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .container { position: relative; max-width: 560px; width: 100%; text-align: center; }
+
+        .check-circle {
+            width: 90px; height: 90px; border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 28px;
+            box-shadow: 0 0 40px rgba(16,185,129,0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0; transform: scale(0.5);
+        }
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+        .check-circle svg {
+            width: 44px; height: 44px; stroke: white; stroke-width: 3;
+            fill: none; stroke-linecap: round; stroke-linejoin: round;
+            stroke-dasharray: 60; stroke-dashoffset: 60;
+            animation: drawCheck 0.4s ease-out 0.4s forwards;
+        }
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+
+        .title {
+            font-family: 'Bangers', cursive; font-size: 2.6rem; color: #facc15;
+            letter-spacing: 2px; margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(250,204,21,0.2);
+            animation: fadeUp 0.5s ease-out 0.2s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        .subtitle {
+            font-size: 1.1rem; color: #94a3b8; margin-bottom: 36px; line-height: 1.7;
+            animation: fadeUp 0.5s ease-out 0.35s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+
+        .highlight-card {
+            background: linear-gradient(135deg, rgba(30,27,75,0.8), rgba(18,18,31,0.9));
+            border: 1px solid rgba(250,204,21,0.25);
+            border-radius: 16px; padding: 24px 24px;
+            margin-bottom: 16px; text-align: left;
+            animation: fadeUp 0.5s ease-out 0.45s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+        .highlight-card .highlight-label {
+            font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase;
+            color: #facc15; font-weight: 700; margin-bottom: 10px;
+        }
+        .highlight-card .highlight-title {
+            font-size: 1.15rem; font-weight: 800; color: #fff; margin-bottom: 6px;
+        }
+        .highlight-card .highlight-desc {
+            color: #94a3b8; font-size: 0.93rem; line-height: 1.6;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, rgba(30,27,75,0.6), rgba(18,18,31,0.8));
+            border: 1px solid rgba(124,58,237,0.2);
+            border-radius: 16px; padding: 28px 24px;
+            margin-bottom: 28px; text-align: left;
+            animation: fadeUp 0.5s ease-out 0.5s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+        .info-card h3 {
+            font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase;
+            color: #a855f7; font-weight: 700; margin-bottom: 16px;
+        }
+        .info-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .info-item:last-child { margin-bottom: 0; }
+        .info-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .info-text { color: #94a3b8; font-size: 0.93rem; line-height: 1.5; }
+        .info-text strong { color: #fff; }
+
+        .patent-line {
+            font-size: 0.8rem; color: #475569; margin-bottom: 28px; letter-spacing: 1px;
+            animation: fadeUp 0.5s ease-out 0.6s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+        .home-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #7c3aed, #4c1d95);
+            color: white; text-decoration: none;
+            padding: 14px 36px; border-radius: 8px;
+            font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(124,58,237,0.25);
+            animation: fadeUp 0.5s ease-out 0.7s forwards;
+            opacity: 0; transform: translateY(12px);
+        }
+        .home-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(124,58,237,0.35); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="switcher">
+        <div class="switcher-label">Simulate different interest selections</div>
+        <button class="active" onclick="simulate('grading,slab_guard,sell_alerts,collection')">All 4 Checked</button>
+        <button onclick="simulate('grading')">Grading Only</button>
+        <button onclick="simulate('slab_guard')">Slab Guard Only</button>
+        <button onclick="simulate('sell_alerts,collection')">Sell + Collection</button>
+        <button onclick="simulate('')">No Interests</button>
+    </div>
+
+    <div class="page">
+        <div class="container" id="main">
+            <div class="check-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h1 class="title">You're On the List!</h1>
+            <p class="subtitle">Your spot is saved. We'll send you updates as we get closer to launch — including early access before anyone else.</p>
+
+            <div id="content-area"></div>
+
+            <p class="patent-line">Three patent-pending technologies. Built by a collector, for collectors.</p>
+            <a href="#" class="home-btn">Explore Slab Worthy</a>
+        </div>
+    </div>
+
+    <script>
+        const featureData = {
+            grading: {
+                icon: '&#x1F4F7;',
+                label: "You're interested in AI Grading",
+                title: '&#x1F4F7; Snap 4 Photos. Get a Grade.',
+                desc: "Our AI analyzes front, back, spine, and centerfold — detecting spine ticks, color breaks, and corner wear that affect your comic's grade. You'll get a CGC-equivalent score plus fair market value so you know exactly what your book is worth and whether it's worth the slab.",
+                short: '<strong>AI Grading</strong> — CGC-equivalent grade estimates from 4 photos, with defect analysis and fair market value.'
+            },
+            slab_guard: {
+                icon: '&#x1F6E1;',
+                label: "You're interested in Slab Guard",
+                title: '&#x1F6E1; Fingerprint. Register. Protect.',
+                desc: "Every comic has unique physical defects — like a fingerprint. Slab Guard uses patent-pending technology to create a digital identity for your books. If one ever goes missing, our marketplace monitoring scans eBay, Whatnot, and more to find it. Registration takes seconds.",
+                short: '<strong>Slab Guard&trade;</strong> — patent-pending fingerprinting and theft recovery for your comics.'
+            },
+            sell_alerts: {
+                icon: '&#x1F4C8;',
+                label: "You're interested in Sell Alerts",
+                title: '&#x1F4C8; Know When to Sell — and Where.',
+                desc: "We track real sales data across eBay and Whatnot to spot pricing trends. When your book hits a high, we'll let you know — and you can list directly through our auction partners. No more guessing whether to hold or sell.",
+                short: '<strong>Sell Alerts</strong> — know when to sell, and list directly through auction partners.'
+            },
+            collection: {
+                icon: '&#x1F4B0;',
+                label: "You're interested in Collection Tracking",
+                title: '&#x1F4B0; Your Collection. Always Valued.',
+                desc: "Track every book you own with AI-powered fair market values that update automatically. Gallery view, list view, sortable by grade, title, or value. Export to CSV. See your total collection value at a glance — and watch it grow.",
+                short: '<strong>Live Valuations</strong> — AI-powered fair market values updated daily for every book you own.'
+            }
+        };
+
+        function simulate(interestsStr) {
+            // Update active button
+            document.querySelectorAll('.switcher button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const interests = interestsStr ? interestsStr.split(',') : [];
+            const area = document.getElementById('content-area');
+            let html = '';
+
+            if (interests.length > 0) {
+                // Show ALL selected interests as highlight cards
+                interests.forEach(key => {
+                    const f = featureData[key];
+                    if (f) {
+                        html += `<div class="highlight-card">
+                            <div class="highlight-label">${f.label}</div>
+                            <div class="highlight-title">${f.title}</div>
+                            <div class="highlight-desc">${f.desc}</div>
+                        </div>`;
+                    }
+                });
+
+                // "What happens next" — just the inbox reminder, no feature list
+                html += `<div class="info-card"><h3>What happens next</h3>`;
+                html += `<div class="info-item"><span class="info-icon">&#x1F4E7;</span><span class="info-text"><strong>Check your inbox</strong> — we'll email you with launch updates, sneak peeks, and early access invites.</span></div>`;
+                html += `</div>`;
+            } else {
+                // No interests — show all four as compact items so they know what's coming
+                html += `<div class="info-card"><h3>What happens next</h3>`;
+                html += `<div class="info-item"><span class="info-icon">&#x1F4E7;</span><span class="info-text"><strong>Check your inbox</strong> — we'll email you with launch updates, sneak peeks, and early access invites.</span></div>`;
+                Object.keys(featureData).forEach(key => {
+                    const f = featureData[key];
+                    html += `<div class="info-item"><span class="info-icon">${f.icon}</span><span class="info-text">${f.short}</span></div>`;
+                });
+                html += `</div>`;
+            }
+
+            area.innerHTML = html;
+
+            // Re-trigger animations
+            area.querySelectorAll('.highlight-card, .info-card').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight;
+                el.style.animation = '';
+            });
+        }
+
+        // Initial render with all 4 checked
+        simulate('grading,slab_guard,sell_alerts,collection');
+    </script>
+</body>
+</html>

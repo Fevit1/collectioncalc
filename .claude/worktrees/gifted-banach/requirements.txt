@@ -1,0 +1,29 @@
+# CollectionCalc Backend Dependencies
+# Web Framework
+flask>=2.0.0
+flask-cors>=4.0.0
+gunicorn>=20.0.0
+# HTTP Requests
+requests>=2.25.0
+# Database
+psycopg2-binary>=2.9.0
+# Authentication
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+resend>=0.7.0
+# Anthropic API (for AI extraction and descriptions)
+anthropic>=0.18.0
+# R2/S3 Storage (for images)
+boto3>=1.28.0
+# Barcode scanning
+pyzbar>=0.1.9
+Pillow>=9.0.0
+rapidfuzz>=3.0.0
+# Comic Fingerprinting (pHash for theft recovery)
+imagehash>=4.3.0
+# SIFT-based copy matching (Session 48 — edge IoU)
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+scipy>=1.11.0
+# Stripe payments
+stripe>=7.0.0

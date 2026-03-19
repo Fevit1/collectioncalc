@@ -1,0 +1,143 @@
+{
+  "site_name": "Slab Worthy",
+  "base_url": "https://slabworthy.com",
+  "timestamp": "2026-02-22 05:01:04",
+  "total": 25,
+  "passed": 19,
+  "failed": 6,
+  "results": [
+    {
+      "name": "Homepage loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Login page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "App page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "FAQ page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Pricing page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "About page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Account page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Check page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Verify page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Privacy page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Terms page loads",
+      "passed": true,
+      "detail": "Status 200 OK"
+    },
+    {
+      "name": "Footer JS serves JavaScript (not HTML)",
+      "passed": false,
+      "detail": "Asset is returning HTML content: <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta nam..."
+    },
+    {
+      "name": "Styles CSS serves CSS (not HTML)",
+      "passed": true,
+      "detail": "Asset is not returning HTML"
+    },
+    {
+      "name": "App JS serves JavaScript (not HTML)",
+      "passed": true,
+      "detail": "Asset is not returning HTML"
+    },
+    {
+      "name": "Auth JS serves JavaScript (not HTML)",
+      "passed": true,
+      "detail": "Asset is not returning HTML"
+    },
+    {
+      "name": "Utils JS serves JavaScript (not HTML)",
+      "passed": true,
+      "detail": "Asset is not returning HTML"
+    },
+    {
+      "name": "Homepage contains Slab Worthy branding",
+      "passed": true,
+      "detail": "All 2 expected strings found"
+    },
+    {
+      "name": "All pages reference footer.js",
+      "passed": false,
+      "detail": "Missing expected content: ['/js/footer.js']"
+    },
+    {
+      "name": "App page references footer.js",
+      "passed": false,
+      "detail": "Missing expected content: ['/js/footer.js']"
+    },
+    {
+      "name": "FAQ page references footer.js",
+      "passed": false,
+      "detail": "Missing expected content: ['/js/footer.js']"
+    },
+    {
+      "name": "About page references footer.js",
+      "passed": false,
+      "detail": "Missing expected content: ['/js/footer.js']"
+    },
+    {
+      "name": "Pricing page references footer.js",
+      "passed": false,
+      "detail": "Missing expected content: ['/js/footer.js']"
+    },
+    {
+      "name": "API health check responds",
+      "passed": true,
+      "detail": "Valid JSON with all 1 expected keys"
+    },
+    {
+      "name": "Homepage does not reference old footer path",
+      "passed": true,
+      "detail": "None of 1 unexpected strings found"
+    },
+    {
+      "name": "Login does not reference old footer path",
+      "passed": true,
+      "detail": "None of 1 unexpected strings found"
+    }
+  ],
+  "manual_checks": [
+    "Open homepage in incognito \u2014 verify branded footer renders with Slab Worthy TM, nav links, copyright, and CGC/CBCS disclaimer",
+    "Check login.html footer matches homepage footer",
+    "Check about.html footer \u2014 no 'Check a Comic' link, Slab Worthy has TM",
+    "Check verify.html has simplified footer with link back to Slab Worthy",
+    "Login flow works end-to-end (login.html -> app.html)",
+    "Spot-check one grading submission (app.html)"
+  ]
+}

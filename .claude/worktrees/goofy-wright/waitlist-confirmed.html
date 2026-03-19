@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're In! — Slab Worthy™</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <meta name="description" content="Your spot on the Slab Worthy waitlist is confirmed.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Main content area grows to push footer down */
+        .page-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            width: 100%;
+        }
+
+        /* Background gradient */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(124,58,237,0.15) 0%, transparent 60%),
+                        radial-gradient(ellipse at 30% 70%, rgba(99,102,241,0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Checkmark animation */
+        .check-circle {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--green), #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 28px;
+            box-shadow: 0 0 40px rgba(16,185,129,0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .check-circle svg {
+            width: 44px;
+            height: 44px;
+            stroke: white;
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 60;
+            stroke-dashoffset: 60;
+            animation: drawCheck 0.4s ease-out 0.4s forwards;
+        }
+
+        @keyframes drawCheck {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .title {
+            font-family: 'Bangers', cursive;
+            font-size: 2.6rem;
+            color: var(--gold-mid);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(250,204,21,0.2);
+            animation: fadeUp 0.5s ease-out 0.2s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 36px;
+            line-height: 1.7;
+            animation: fadeUp 0.5s ease-out 0.35s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        /* Info card */
+        .info-card {
+            background: linear-gradient(135deg, rgba(30,27,75,0.6), rgba(18,18,31,0.8));
+            border: 1px solid rgba(124,58,237,0.2);
+            border-radius: 16px;
+            padding: 28px 24px;
+            margin-bottom: 28px;
+            text-align: left;
+            animation: fadeUp 0.5s ease-out 0.5s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        .info-card h3 {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--purple-light);
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .info-text {
+            color: var(--text-secondary);
+            font-size: 0.93rem;
+            line-height: 1.5;
+        }
+
+        .info-text strong {
+            color: var(--text-primary);
+        }
+
+        /* Patent badge */
+        .patent-line {
+            font-size: 0.8rem;
+            color: #475569;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+            animation: fadeUp 0.5s ease-out 0.6s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        /* CTA button */
+        .home-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-mid));
+            color: white;
+            text-decoration: none;
+            padding: 14px 36px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(124,58,237,0.25);
+            animation: fadeUp 0.5s ease-out 0.7s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        .home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(124,58,237,0.35);
+        }
+
+        /* Highlight card (primary interest) */
+        .highlight-card {
+            background: linear-gradient(135deg, rgba(30,27,75,0.8), rgba(18,18,31,0.9));
+            border: 1px solid rgba(250,204,21,0.25);
+            border-radius: 16px;
+            padding: 24px 24px;
+            margin-bottom: 16px;
+            text-align: left;
+            animation: fadeUp 0.5s ease-out 0.45s forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        .highlight-card .highlight-label {
+            font-size: 0.65rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--gold-mid);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .highlight-card .highlight-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .highlight-card .highlight-desc {
+            color: var(--text-secondary);
+            font-size: 0.93rem;
+            line-height: 1.6;
+        }
+
+        /* Already confirmed state */
+        .already-text {
+            display: none;
+        }
+
+        /* Error state */
+        .error-state {
+            display: none;
+        }
+
+        .error-state .check-circle {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 0 40px rgba(239,68,68,0.3);
+        }
+
+        /* Hidden items */
+        .hidden { display: none !important; }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .title { font-size: 2rem; }
+            .subtitle { font-size: 1rem; }
+            .info-card { padding: 20px 18px; }
+            .highlight-card { padding: 20px 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content">
+    <!-- Confirmed state (default) -->
+    <div class="container" id="confirmed-state">
+        <div class="check-circle">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h1 class="title" id="page-title">You're On the List!</h1>
+        <p class="subtitle" id="page-subtitle">Your spot is saved. We'll send you updates as we get closer to launch — including early access before anyone else.</p>
+
+        <!-- Personalized highlight card (shown for primary interest) -->
+        <div class="highlight-card hidden" id="highlight-grading" data-interest="grading">
+            <div class="highlight-label">You're interested in AI Grading</div>
+            <div class="highlight-title">&#x1F4F7; Snap 4 Photos. Get a Grade.</div>
+            <div class="highlight-desc">Our AI analyzes front, back, spine, and centerfold — detecting spine ticks, color breaks, and corner wear that affect your comic's grade. You'll get a CGC-equivalent score plus fair market value so you know exactly what your book is worth and whether it's worth the slab.</div>
+        </div>
+
+        <div class="highlight-card hidden" id="highlight-slab_guard" data-interest="slab_guard">
+            <div class="highlight-label">You're interested in Slab Guard</div>
+            <div class="highlight-title">&#x1F6E1; Fingerprint. Register. Protect.</div>
+            <div class="highlight-desc">Every comic has unique physical defects — like a fingerprint. Slab Guard uses patent-pending technology to create a digital identity for your books. If one ever goes missing, our marketplace monitoring scans eBay, Whatnot, and more to find it. Registration takes seconds.</div>
+        </div>
+
+        <div class="highlight-card hidden" id="highlight-sell_alerts" data-interest="sell_alerts">
+            <div class="highlight-label">You're interested in Sell Alerts</div>
+            <div class="highlight-title">&#x1F4C8; Know When to Sell — and Where.</div>
+            <div class="highlight-desc">We track real sales data across eBay and Whatnot to spot pricing trends. When your book hits a high, we'll let you know — and you can list directly through our auction partners. No more guessing whether to hold or sell.</div>
+        </div>
+
+        <div class="highlight-card hidden" id="highlight-collection" data-interest="collection">
+            <div class="highlight-label">You're interested in Collection Tracking</div>
+            <div class="highlight-title">&#x1F4B0; Your Collection. Always Valued.</div>
+            <div class="highlight-desc">Track every book you own with AI-powered fair market values that update automatically. Gallery view, list view, sortable by grade, title, or value. Export to CSV. See your total collection value at a glance — and watch it grow.</div>
+        </div>
+
+        <!-- General "what happens next" card (always shown) -->
+        <div class="info-card">
+            <h3>What happens next</h3>
+            <div class="info-item">
+                <span class="info-icon">&#x1F4E7;</span>
+                <span class="info-text"><strong>Check your inbox</strong> — we'll email you with launch updates, sneak peeks, and early access invites.</span>
+            </div>
+            <div class="info-item hidden" id="other-grading" data-interest="grading">
+                <span class="info-icon">&#x1F4F7;</span>
+                <span class="info-text"><strong>AI Grading</strong> — CGC-equivalent grade estimates from 4 photos, with defect analysis and fair market value.</span>
+            </div>
+            <div class="info-item hidden" id="other-slab_guard" data-interest="slab_guard">
+                <span class="info-icon">&#x1F6E1;</span>
+                <span class="info-text"><strong>Slab Guard&#8482;</strong> — patent-pending fingerprinting and theft recovery for your comics.</span>
+            </div>
+            <div class="info-item hidden" id="other-sell_alerts" data-interest="sell_alerts">
+                <span class="info-icon">&#x1F4C8;</span>
+                <span class="info-text"><strong>Sell Alerts</strong> — know when to sell, and list directly through auction partners.</span>
+            </div>
+            <div class="info-item hidden" id="other-collection" data-interest="collection">
+                <span class="info-icon">&#x1F4B0;</span>
+                <span class="info-text"><strong>Live Valuations</strong> — AI-powered fair market values updated daily for every book you own.</span>
+            </div>
+        </div>
+
+        <p class="patent-line">Three patent-pending technologies. Built by a collector, for collectors.</p>
+
+        <a href="/" class="home-btn">Explore Slab Worthy</a>
+    </div>
+
+    <!-- Error/invalid state -->
+    <div class="container error-state" id="error-state">
+        <div class="check-circle">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+        <h1 class="title" style="color: #ef4444;">Something Went Wrong</h1>
+        <p class="subtitle">That confirmation link doesn't seem to be valid. It may have already been used or expired.</p>
+        <a href="/" class="home-btn">Back to Slab Worthy</a>
+    </div>
+    </div><!-- end page-content -->
+
+    <!-- FOOTER -->
+    <script src="/js/footer.js"></script>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('status');
+        const interestsParam = params.get('interests') || '';
+        const interests = interestsParam ? interestsParam.split(',').filter(Boolean) : [];
+
+        if (status === 'already') {
+            document.getElementById('page-title').textContent = "You're Already Confirmed!";
+            document.getElementById('page-subtitle').textContent = "Looks like you've already confirmed your spot. You're all set — we'll be in touch soon.";
+        } else if (status === 'invalid' || status === 'error') {
+            document.getElementById('confirmed-state').style.display = 'none';
+            document.getElementById('error-state').style.display = 'block';
+        }
+
+        // Personalize based on interests
+        if (interests.length > 0) {
+            // Show ALL selected interests as highlight cards
+            interests.forEach(function(interest) {
+                var highlightCard = document.getElementById('highlight-' + interest);
+                if (highlightCard) {
+                    highlightCard.classList.remove('hidden');
+                }
+            });
+            // Don't show feature items in "what happens next" — just the inbox reminder
+        } else {
+            // No interests selected — show all features in compact form so they know what's coming
+            document.querySelectorAll('.info-item[data-interest]').forEach(function(item) {
+                item.classList.remove('hidden');
+            });
+        }
+
+        // Clean URL
+        if (status || interestsParam) {
+            history.replaceState(null, '', window.location.pathname);
+        }
+    </script>
+</body>
+</html>

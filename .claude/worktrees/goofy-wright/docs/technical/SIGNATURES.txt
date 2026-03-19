@@ -1,0 +1,91 @@
+﻿# Creator Signature Reference Database
+
+## Purpose
+Collect verified creator signatures for future AI-powered signature identification.
+When a user uploads a signed comic, we can compare against these references to improve "WHO signed" accuracy.
+
+## Research Sources
+
+### Authentication Services (have reference databases)
+- **AutographCOA (ACOA)** - https://www.autographcoa.com/authentication/[creator-name]/
+  - Example: https://www.autographcoa.com/authentication/stan-lee/
+  - Example: https://www.autographcoa.com/authentication/todd-mcfarlane/
+  - Has "master signature exemplar database" with verified examples
+
+### eBay Searches
+- Search: `[creator name] signed CGC` - Shows signatures on slabbed comics
+- Search: `[creator name] autograph comic` - Raw signed comics
+- Look for JSA/CBCS verified listings for authenticity
+
+### Forums (signature verification discussions with photos)
+- **CGC Boards** - https://boards.cgccomics.com (search "signature" + creator name)
+- **CBCS Forums** - https://forum.cbcscomics.com (search creator name)
+
+### Other Sources
+- **RACC (Real Autograph Collectors Club)** - https://www.racctrusted.com/c/[creator-name]/
+- Convention photos (Google Images: "[creator name] signing comic con")
+
+## How to Collect
+1. Find verified signatures from sources above
+2. Buy cheap signed comics on eBay (~$1-5 each) for physical reference
+3. Photograph/scan the signature cleanly
+4. Crop to just the signature
+5. Save to `/signatures/` folder
+6. Add entry to this file
+7. Filename format: `firstname_lastname_01.jpg` (number for multiple samples)
+
+## Collection Status
+
+| Creator | Role | Samples | Verified Source | Notes |
+|---------|------|---------|-----------------|-------|
+| Danny Miki | Inker | 1 | eBay/Facebook | Long horizontal stroke with loop |
+| David Finch | Artist | 1 | eBay/Facebook | Writes "Finch" clearly readable |
+
+## Priority Creators to Collect
+High-frequency signers at conventions:
+
+### Artists (Most Common Signers)
+- [ ] Jim Lee
+- [ ] Todd McFarlane
+- [ ] Rob Liefeld
+- [ ] Greg Capullo
+- [ ] Alex Ross
+- [ ] J. Scott Campbell
+- [ ] Stanley "Artgerm" Lau
+- [ ] Frank Miller
+- [ ] John Romita Jr.
+- [ ] Mark Bagley
+
+### Writers
+- [ ] Stan Lee (deceased - historical reference)
+- [ ] Chris Claremont
+- [ ] Scott Snyder
+- [ ] Geoff Johns
+- [ ] Brian Michael Bendis
+- [ ] Tom King
+- [ ] Donny Cates
+
+### Inkers/Colorists
+- [x] Danny Miki ✓
+- [ ] Klaus Janson
+- [ ] Scott Williams
+- [ ] Alex Sinclair
+
+## Implementation Notes
+- Store images in a `/signatures/` folder when ready to implement
+- Each creator can have multiple samples for better matching
+- Include both "clean" signatures and "on cover" examples if possible
+- Consider storing signature characteristics (ink color preferences, style notes)
+
+## Future Feature: Signature Comparison
+When implementing:
+1. User uploads signed comic
+2. Opus detects signature exists
+3. Pass signature crop + reference images to Claude
+4. Claude compares: "Does this match Danny Miki, David Finch, or neither?"
+5. Return higher-confidence identification
+
+---
+
+*Last updated: January 22, 2026 (Session 7)*
+

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Slab Worthy™</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #6b7280;
+            --border-color: rgba(124, 58, 237, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-secondary);
+            line-height: 1.7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 1rem 1.5rem;
+            background: var(--purple-dark);
+            border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            color: #facc15;
+            text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+            text-decoration: none;
+        }
+
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-left: 1.5rem;
+            transition: color 0.2s;
+        }
+
+        .header-nav a:hover {
+            color: var(--purple-light);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--gold-mid), var(--purple-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 3rem;
+        }
+
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            border-radius: 2px;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        a {
+            color: var(--purple-light);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .important-box {
+            background: rgba(124, 58, 237, 0.1);
+            border-left: 4px solid var(--purple-brand);
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .important-box p {
+            margin: 0;
+        }
+
+        /* Footer - Matching index.html */
+        .footer {
+            padding: 2rem 1.5rem;
+            background: var(--purple-dark);
+            border-top: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .footer-cta {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold-mid) 50%, var(--gold-dark) 100%);
+            color: var(--purple-dark);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0px var(--purple-brand);
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--purple-brand);
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+
+        .footer-brand { flex: 1; min-width: 140px; }
+        .footer-logo {
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold-mid));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.2rem;
+        }
+        .footer-tagline { color: var(--text-secondary); font-size: 0.7rem; }
+
+        .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .footer-col h4 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .footer-col ul { list-style: none; padding-left: 0; margin: 0; }
+        .footer-col li { margin-bottom: 0.3rem; }
+        .footer-col a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        .footer-col a:hover { color: var(--purple-light); text-decoration: none; }
+
+        .footer-bottom {
+            max-width: 600px;
+            margin: 1.5rem auto 0;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(124, 58, 237, 0.1);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .content-card {
+                padding: 1.5rem;
+            }
+
+            .header-nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="header-logo">$LAB WORTHY</a>
+            <nav class="header-nav">
+                <a href="/login.html">Log In</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Terms of Service</h1>
+        <p class="last-updated">Last Updated: February 16, 2026</p>
+
+        <div class="content-card">
+            <h2>Agreement to Terms</h2>
+            <p>By accessing or using Slab Worthy (slabworthy.com), a service provided by CollectionCalc, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.</p>
+            <p>These Terms of Service, together with our <a href="/privacy.html">Privacy Policy</a>, form the complete agreement between you and Slab Worthy regarding your use of the service.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Eligibility</h2>
+            <p>You must be at least <span class="highlight">16 years of age</span> to use Slab Worthy. By creating an account, you represent that you are at least 16 years old. If you are under 18, you represent that your parent or legal guardian has reviewed and agrees to these Terms on your behalf.</p>
+            <p>If we learn that a user is under 16, we will terminate their account and delete their data promptly.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>What Slab Worthy Does</h2>
+            <p>Slab Worthy is an AI-powered tool that helps comic book collectors:</p>
+            <ul>
+                <li>Estimate the condition/grade of raw (ungraded) comics using photo analysis</li>
+                <li>Calculate fair market value based on recent sales data</li>
+                <li>Determine whether professional grading (CGC®, CBCS®) makes financial sense</li>
+                <li>Generate auction listings for platforms like eBay and Whatnot</li>
+                <li>Register comics with Slab Guard for theft protection and marketplace monitoring</li>
+            </ul>
+            <div class="important-box">
+                <p><span class="highlight">Important:</span> Our "Slab Worthy?" feature is patent pending.</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2>Slab Guard: Theft Protection Service</h2>
+            <p>Slab Guard is a comic registration and marketplace monitoring feature. By using Slab Guard, you understand and agree that:</p>
+            <ul>
+                <li><span class="highlight">Slab Guard is a monitoring tool, not insurance.</span> We do not insure your comics or guarantee recovery of stolen property. We provide alerts when potential matches are detected on supported marketplaces.</li>
+                <li><span class="highlight">We do not guarantee detection of all listings.</span> Marketplace scanning depends on available listing data, image quality, and matching algorithms. Some listings may not be scanned or may not trigger a match.</li>
+                <li><span class="highlight">Match notifications are not legal proof of theft.</span> A match indicates visual similarity between a registered comic and a marketplace listing. It does not constitute legal evidence of ownership or theft. You are responsible for verifying matches and contacting law enforcement if appropriate.</li>
+                <li><span class="highlight">Registrations are based on the information you provide.</span> You represent that you are the lawful owner of any comic you register with Slab Guard. Filing false registrations or attempting to use Slab Guard to harass sellers, interfere with legitimate sales, or make fraudulent claims is a violation of these terms and may result in immediate account termination and referral to law enforcement.</li>
+                <li><span class="highlight">Marketplace coverage is limited.</span> We currently monitor eBay. Additional marketplaces may be added over time. We do not guarantee coverage of any specific marketplace.</li>
+            </ul>
+            <div class="important-box">
+                <p><span class="highlight">Slab Guard is not a substitute for homeowners or renters insurance.</span> We strongly recommend insuring high-value comics through your insurance provider. Slab Guard is an additional layer of protection, not a replacement for insurance coverage.</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2>What Slab Worthy Is NOT</h2>
+            <p>To set clear expectations:</p>
+            <ul>
+                <li><span class="highlight">We are NOT a grading company.</span> CGC® and CBCS® are the professional grading services. We help you decide <em>if</em> you should use them.</li>
+                <li><span class="highlight">We do NOT guarantee grades or values.</span> Our assessments are estimates based on AI analysis and market data. Actual grades and sale prices may differ.</li>
+                <li><span class="highlight">We are NOT a marketplace.</span> We do not buy, sell, or facilitate transactions of comics.</li>
+                <li><span class="highlight">We do NOT provide financial advice.</span> Our valuations are for informational purposes only.</li>
+            </ul>
+        </div>
+
+        <div class="content-card">
+            <h2>How We Process Your Images</h2>
+            <p>When you upload comic images to Slab Worthy, those images are processed using a combination of our own systems and third-party cloud services, including:</p>
+            <ul>
+                <li><span class="highlight">AI Analysis (Anthropic Claude):</span> Your images are sent to Anthropic's AI to identify the comic, assess condition, and generate grading estimates.</li>
+                <li><span class="highlight">Content Safety Screening (AWS Rekognition):</span> All uploaded images are automatically screened using Amazon Web Services' image analysis technology to detect prohibited content, including explicit material, violence, and other content that violates our Prohibited Content policy. This screening helps us maintain a safe platform and comply with our legal obligations.</li>
+                <li><span class="highlight">Fingerprint Generation:</span> For Slab Guard registrations, a perceptual hash (digital fingerprint) is generated from your comic's image. This fingerprint is a mathematical representation of the image — it cannot be used to reconstruct the original photo, but it can be compared against other images to detect visual matches.</li>
+            </ul>
+            <p>By uploading images, you consent to this processing. For full details on how your image data is handled, stored, and retained, see our <a href="/privacy.html">Privacy Policy</a>.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>User Accounts</h2>
+            <p>To use certain features, you may need to create an account. You agree to:</p>
+            <ul>
+                <li>Provide accurate information when creating your account</li>
+                <li>Keep your password secure and confidential</li>
+                <li>Notify us immediately if you suspect unauthorized access to your account</li>
+                <li>Be responsible for all activity under your account</li>
+            </ul>
+            <p>We reserve the right to suspend or terminate accounts that violate these terms.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Acceptable Use</h2>
+            <p>You agree NOT to:</p>
+            <ul>
+                <li>Use the service for any illegal purpose</li>
+                <li>Upload images you don't have the right to use</li>
+                <li>Attempt to reverse-engineer our AI or algorithms</li>
+                <li>Scrape, crawl, or collect data from our service without permission</li>
+                <li>Impersonate others or misrepresent your identity</li>
+                <li>Interfere with or disrupt the service</li>
+                <li>Use automated tools to access the service beyond normal usage</li>
+            </ul>
+        </div>
+
+        <div class="content-card">
+            <h2>Subscriptions and Payments</h2>
+            <p><span class="highlight">Free Tier:</span> Slab Worthy offers a free tier with limited features. No credit card is required to use the free tier.</p>
+            <p><span class="highlight">Paid Plans:</span> Paid subscriptions (Pro, Collector + Guard, Dealer) are billed on a monthly or annual basis, as selected during checkout. All paid plans include a 14-day free trial.</p>
+            <p><span class="highlight">Auto-Renewal:</span> Subscriptions automatically renew at the end of each billing period unless you cancel before the renewal date. You can cancel at any time through your account settings or the Stripe customer portal.</p>
+            <p><span class="highlight">Refunds:</span> If you are not satisfied with a paid plan within the first 30 days, contact us for a full refund. After 30 days, refunds are not available, but you may cancel to prevent future charges.</p>
+            <p><span class="highlight">Price Changes:</span> We may change subscription pricing with at least 30 days' notice. Price changes will take effect at the start of your next billing period. If you do not agree with a price change, you may cancel your subscription before the new price takes effect.</p>
+            <p><span class="highlight">Failed Payments:</span> If a payment fails, we will attempt to process it again. If payment continues to fail, your account may be downgraded to the free tier. Your data, including Slab Guard registrations, will be retained.</p>
+            <p><span class="highlight">Payment Processing:</span> All payments are processed securely by Stripe. We never see, store, or have access to your full credit card number. Stripe's privacy policy governs the handling of your payment information.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Feature Limits and Fair Use</h2>
+            <p>Each subscription tier includes specific usage limits (valuations per month, Slab Guard registration limits, etc.) as described on our <a href="/pricing.html">pricing page</a>. These limits are enforced automatically.</p>
+            <p>If you downgrade your plan, your existing data (including Slab Guard registrations) will be retained, but you may not be able to add new registrations or access premium features until you upgrade. Marketplace monitoring alerts will pause if your plan does not include that feature.</p>
+            <p>We reserve the right to enforce fair use limits on any feature to prevent abuse, excessive automated access, or activity that degrades the service for other users.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Prohibited Content</h2>
+            <p>Slab Worthy is designed for uploading photos of comic books only. You may NOT upload:</p>
+            <ul>
+                <li>Sexually explicit or pornographic material</li>
+                <li>Child sexual abuse material (CSAM) or any content exploiting minors</li>
+                <li>Content depicting graphic violence, gore, or illegal activity</li>
+                <li>Content that promotes hate, harassment, or discrimination</li>
+                <li>Any content unrelated to comic book assessment</li>
+            </ul>
+            <div class="important-box">
+                <p><span class="highlight">Zero Tolerance Policy:</span> We will immediately terminate accounts that upload prohibited content. For illegal content, including CSAM, we will preserve evidence and fully cooperate with law enforcement authorities. We report CSAM to the National Center for Missing & Exploited Children (NCMEC) as required by law.</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2>Intellectual Property</h2>
+            <p><span class="highlight">Our Content:</span> Slab Worthy, CollectionCalc, and all related logos, designs, and content are owned by us or our licensors. You may not use our branding without permission.</p>
+            <p><span class="highlight">Your Content:</span> You retain ownership of images you upload. By uploading images, you grant us a license to process them for providing our services and improving our AI.</p>
+            <p><span class="highlight">Comic Publishers:</span> Comic book characters, artwork, titles, and related imagery depicted in user-uploaded content are trademarks and copyrights of their respective publishers, including but not limited to Marvel, DC, Image Comics, Dark Horse, and others. Slab Worthy is an independent service and is not affiliated with, endorsed by, or sponsored by any comic book publisher.</p>
+            <p><span class="highlight">Grading Companies:</span> CGC® is a registered trademark of Certified Guaranty Company. CBCS® is a registered trademark of Comic Book Certification Service. These marks are used for informational purposes only; we are not affiliated with either company.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Disclaimer of Warranties</h2>
+            <p>Slab Worthy is provided <span class="highlight">"as is"</span> and <span class="highlight">"as available"</span> without warranties of any kind, either express or implied.</p>
+            <p>We do not warrant that:</p>
+            <ul>
+                <li>Our grade estimates will match professional grading results</li>
+                <li>Our valuations reflect actual sale prices you will achieve</li>
+                <li>The service will be uninterrupted or error-free</li>
+                <li>Market data is complete or current</li>
+            </ul>
+            <div class="important-box">
+                <p>Comic values fluctuate based on market conditions. Past sales data does not guarantee future values. Always do your own research before making financial decisions.</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2>Limitation of Liability</h2>
+            <p>To the maximum extent permitted by law, Slab Worthy and CollectionCalc shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:</p>
+            <ul>
+                <li>Loss of profits from comic transactions</li>
+                <li>Decisions made based on our assessments or valuations</li>
+                <li>Grading fees paid based on our recommendations</li>
+                <li>Any other financial losses related to your use of the service</li>
+            </ul>
+            <p>Our total liability shall not exceed the amount you paid us in the 12 months preceding the claim, or $50, whichever is greater.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Indemnification</h2>
+            <p>You agree to indemnify and hold harmless Slab Worthy, CollectionCalc, and our officers, directors, employees, and agents from any claims, damages, or expenses arising from your use of the service or violation of these terms.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Service Changes</h2>
+            <p>We reserve the right to:</p>
+            <ul>
+                <li>Modify, add, or discontinue features at any time</li>
+                <li>Change subscription pricing with 30 days' notice</li>
+                <li>Update these Terms of Service</li>
+                <li>Change which marketplaces Slab Guard monitors</li>
+            </ul>
+            <p>If we make changes that significantly alter your rights or obligations, we will notify you by email and/or a notice on the service at least 14 days before the changes take effect. Continued use after the effective date constitutes acceptance. If you do not agree, you may cancel your subscription and delete your account.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Termination</h2>
+            <p>You may stop using Slab Worthy at any time by canceling your subscription and/or deleting your account. We may suspend or terminate your access if you violate these terms, engage in fraudulent activity, or for any other reason at our discretion.</p>
+            <p><span class="highlight">What happens to your data:</span> If you delete your account, we will retain your Slab Guard registrations in our monitoring database for 90 days in case you return. After 90 days, registrations are permanently removed. You may request immediate deletion of all data by emailing us. We also offer data export before account deletion — contact <a href="mailto:support@slabworthy.com">support@slabworthy.com</a> to request an export.</p>
+            <p><span class="highlight">Immediate termination:</span> We reserve the right to immediately terminate accounts without notice for: uploading prohibited content, filing fraudulent Slab Guard registrations, attempting to interfere with legitimate marketplace sales, reverse-engineering our systems, or any activity that we believe may expose us or other users to legal liability.</p>
+            <p>Upon termination, your right to use the service ceases immediately. Sections regarding intellectual property, disclaimers, limitations of liability, indemnification, and Slab Guard disclaimers survive termination.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Governing Law</h2>
+            <p>These Terms are governed by the laws of the State of California, without regard to conflict of law principles. Any disputes shall be resolved in the courts of California.</p>
+        </div>
+
+        <div class="content-card">
+            <h2>Contact</h2>
+            <p>Questions about these Terms? Contact us at:</p>
+            <p><a href="mailto:support@slabworthy.com">support@slabworthy.com</a></p>
+        </div>
+    </div>
+
+    <script src="/js/footer.js"></script>
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

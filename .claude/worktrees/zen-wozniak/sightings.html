@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sighting Reports - Slab Guard™</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) window.location.replace('/login.html');
+        })();
+    </script>
+    <style>
+        .sightings-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .sightings-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .sightings-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .back-link {
+            color: var(--brand-purple);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .comic-info-bar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .comic-info-bar img {
+            width: 60px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .comic-info-bar .comic-details h2 {
+            font-size: 1.1rem;
+            margin: 0 0 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .comic-info-bar .comic-details p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .serial-tag {
+            margin-left: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--brand-purple);
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge.stolen {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--status-error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .status-badge.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--status-success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status-badge.recovered {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--status-warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .sightings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .sighting-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: border-color 0.2s;
+        }
+        .sighting-card:hover {
+            border-color: var(--brand-indigo);
+        }
+
+        .sighting-card .sighting-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .sighting-card .sighting-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .sighting-card .sighting-reporter {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .sighting-card .sighting-url {
+            display: block;
+            margin: 0.5rem 0;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            word-break: break-all;
+        }
+
+        .sighting-card .sighting-url a {
+            color: var(--brand-cyan, #06b6d4);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .sighting-card .sighting-url a:hover { text-decoration: underline; }
+
+        .sighting-card .sighting-message {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0.5rem 0;
+        }
+
+        .sighting-card .response-section {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .response-btn {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+        }
+        .response-btn:hover {
+            border-color: var(--brand-indigo);
+            background: rgba(79, 70, 229, 0.1);
+        }
+        .response-btn.active {
+            border-color: var(--brand-purple);
+            color: var(--brand-purple);
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        .response-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .no-sightings {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        .no-sightings .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div id="sidebar-placeholder"></div>
+
+    <main class="main-content">
+        <div class="sightings-container">
+            <a href="/collection.html" class="back-link">← Back to Collection</a>
+
+            <div class="sightings-header">
+                <h1>🔍 Sighting Reports</h1>
+            </div>
+
+            <div id="comicInfoBar" class="comic-info-bar" style="display:none;"></div>
+
+            <div id="sightingsContent" class="loading">Loading sightings...</div>
+        </div>
+    </main>
+
+    <script src="/js/auth.js"></script>
+    <script src="/footer.js"></script>
+    <script>
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:10000'
+            : 'https://collectioncalc-docker.onrender.com';
+
+        // Parse URL params
+        const params = new URLSearchParams(window.location.search);
+        const comicId = params.get('comic_id');
+        const serial = params.get('serial');
+
+        async function loadSightings() {
+            const content = document.getElementById('sightingsContent');
+            const infoBar = document.getElementById('comicInfoBar');
+
+            try {
+                const token = localStorage.getItem('cc_token');
+
+                // Load sightings from my-sightings API
+                const response = await fetch(`${API_URL}/api/registry/my-sightings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    content.innerHTML = `<div class="no-sightings"><div class="icon">⚠️</div>Failed to load sightings</div>`;
+                    return;
+                }
+
+                // Filter to this comic if serial provided
+                let sightings = data.sightings || [];
+                let comicTitle = '';
+                let comicIssue = '';
+
+                if (serial) {
+                    sightings = sightings.filter(s => s.serial_number === serial);
+                    if (sightings.length > 0) {
+                        comicTitle = sightings[0].title || '';
+                        comicIssue = sightings[0].issue || '';
+                    }
+                }
+
+                // Show comic info bar if we have a specific comic
+                if (serial && comicTitle) {
+                    const statusClass = sightings[0]?.registration_status === 'reported_stolen' ? 'stolen'
+                        : sightings[0]?.registration_status === 'recovered' ? 'recovered' : 'active';
+                    const statusLabel = sightings[0]?.registration_status?.replace('_', ' ') || 'active';
+                    infoBar.innerHTML = `
+                        <div class="comic-details">
+                            <h2>${escapeHtml(comicTitle)} #${escapeHtml(comicIssue)}</h2>
+                            <p><span class="status-badge ${statusClass}">${escapeHtml(statusLabel)}</span></p>
+                        </div>
+                        <div class="serial-tag">${escapeHtml(serial)}</div>
+                    `;
+                    infoBar.style.display = 'flex';
+                }
+
+                if (sightings.length === 0) {
+                    content.innerHTML = `
+                        <div class="no-sightings">
+                            <div class="icon">🔍</div>
+                            <p>No sighting reports yet${serial ? ' for this comic' : ''}.</p>
+                            <p style="font-size:0.85rem; margin-top:0.5rem;">
+                                When someone spots your registered comic for sale online,<br>
+                                their report will appear here.
+                            </p>
+                        </div>`;
+                    return;
+                }
+
+                // Render sighting cards
+                content.innerHTML = `<div class="sightings-list">
+                    ${sightings.map(s => {
+                        const date = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        }) : 'Unknown date';
+
+                        const urlHtml = s.listing_url
+                            ? `<div class="sighting-url"><a href="${escapeHtml(s.listing_url)}" target="_blank" rel="noopener">${escapeHtml(s.listing_url)}</a></div>`
+                            : '';
+
+                        const messageHtml = s.message
+                            ? `<div class="sighting-message">${escapeHtml(s.message)}</div>`
+                            : '';
+
+                        // Response buttons
+                        let responseHtml = '';
+                        if (s.owner_response) {
+                            const labels = {
+                                confirmed_mine: '✅ Confirmed mine',
+                                not_mine: '❌ Not mine',
+                                investigating: '🔍 Investigating'
+                            };
+                            responseHtml = `<div class="response-section">
+                                <div class="response-label">Your response:</div>
+                                <span class="response-btn active">${labels[s.owner_response] || s.owner_response}</span>
+                            </div>`;
+                        } else {
+                            responseHtml = `<div class="response-section">
+                                <div class="response-label">Respond to this sighting:</div>
+                                <button class="response-btn" onclick="respondToSighting(${s.id}, 'confirmed_mine', this)">✅ That's mine</button>
+                                <button class="response-btn" onclick="respondToSighting(${s.id}, 'not_mine', this)">❌ Not mine</button>
+                                <button class="response-btn" onclick="respondToSighting(${s.id}, 'investigating', this)">🔍 Investigating</button>
+                            </div>`;
+                        }
+
+                        // Show comic title if showing all sightings (no serial filter)
+                        const titleLine = !serial
+                            ? `<div style="font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">${escapeHtml(s.title || '')} #${escapeHtml(s.issue || '')} <span style="font-family:monospace; font-size:0.75rem; color:var(--text-muted);">${escapeHtml(s.serial_number)}</span></div>`
+                            : '';
+
+                        return `<div class="sighting-card">
+                            ${titleLine}
+                            <div class="sighting-top">
+                                <div>
+                                    <div class="sighting-reporter">Reported by: ${escapeHtml(s.reporter_email || 'Anonymous')}</div>
+                                </div>
+                                <div class="sighting-date">${date}</div>
+                            </div>
+                            ${urlHtml}
+                            ${messageHtml}
+                            ${responseHtml}
+                        </div>`;
+                    }).join('')}
+                </div>`;
+
+            } catch (error) {
+                console.error('Error loading sightings:', error);
+                content.innerHTML = `<div class="no-sightings"><div class="icon">⚠️</div>Error loading sightings</div>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function respondToSighting(sightingId, responseValue, btn) {
+            const section = btn.closest('.response-section');
+            const buttons = section.querySelectorAll('.response-btn');
+            buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+            btn.style.opacity = '1';
+            btn.classList.add('active');
+
+            try {
+                const token = localStorage.getItem('cc_token');
+                const response = await fetch(`${API_URL}/api/registry/sighting-response`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sighting_id: sightingId, response: responseValue })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Reload to show updated state
+                    setTimeout(() => loadSightings(), 500);
+                }
+            } catch (error) {
+                console.error('Error responding to sighting:', error);
+                buttons.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            }
+        }
+
+        // Load on page init
+        loadSightings();
+    </script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+# SLAB WORTHY - CLAUDE SESSION NOTES
+
+**Last Updated:** March 9, 2026 (Session 89)
+**Founder:** Don Michael Berry II (Don Berry) - Preferred name Mike Berry or "Mike"
+
+---
+
+## EXECUTIVE SUMMARY
+
+### What Slab Worthy Is
+AI-powered grading tool for comic book collectors. Upload 4 photos (front, spine, back, centerfold) → Get instant condition assessment with CGC-equivalent grade, defect detection, and Fair Market Value.
+
+**Live:** slabworthy.com
+**Status:** Pre-alpha, targeting GalaxyCon San Jose (Aug 21-23, 2026) for alpha launch
+**Tech Stack:** Flask/Python backend, HTML/CSS/JS frontend, PostgreSQL, Cloudflare R2, Claude API
+
+### Three Patent-Pending Product Lines
+
+**1. Multi-Angle Grading System**
+- Filed: January 27, 2026
+- 4-photo capture with AI defect detection
+- CGC-equivalent grading scale
+- Fair Market Value from 50k+ sales database
+
+**2. Comic Fingerprinting Theft Recovery**
+- Filed: February 12, 2026
+- Uses unique defect patterns to identify individual comics
+- Proof-of-concept validated (Iron Man #200 test)
+- $3.3M ARR potential by Year 3
+- Covers comics ($1.5B) + baseball cards ($5B)
+- No competitive services exist
+
+**3. Signature Identification & Authentication** ✅
+- **Filed: February 25, 2026 — Application # 63/990,743**
+- Confirmation # 9241, Patent Center # 74618571
+- Filing fee: $65 (micro entity)
+- AI-powered detection of creator signatures on comic covers
+- Reference database matching (137 target creators; 23 of 42 priority artists done, 19 to go)
+- Forgery detection via size/position/style anomaly analysis
+- Valuation integration (signature premium calculation)
+- Ties into Slab Guard for registered signature ownership proof
+- **12-month deadline:** File non-provisional by February 25, 2027 (set reminder Month 10 = December 2026)
+
+### Key Metrics
+- **Database:** ~19,632 eBay + Whatnot sales records, ~1,890 graded with grade-specific pricing
+- **Normalization:** Title normalizer working on ingestion; 369 legacy NULLs pending backfill
+- **Grade Coverage:** 70+ titles with grade-level pricing data, 792 records at 9.8 alone
+- **Users:** Pre-launch (building email list)
+- **Revenue:** $0 (pre-revenue, targeting GalaxyCon San Jose alpha Aug 2026)
+
+### Current Priorities (GalaxyCon San Jose Alpha - Aug 21-23, 2026)
+1. **Waitlist Feature** - ✅ DEPLOYED & PRODUCTION TESTED (all 4 pages verified live: waitlist.html, confirmation flow, login CTA, homepage section)
+2. **Signature Patent** - ✅ FILED on USPTO (Application # 63/990,743, Feb 25, 2026)
+3. **Valuation Endpoint** - ✅ BUILT, testing pending (`/api/sales/valuation` - grade-specific FMV with slabbing ROI)
+4. **Vision API Backend Proxy** - ✅ DEPLOYED (routes/vision.py, JWT auth, plan gating, daily scan caps)
+5. **Contact Form** - ✅ DEPLOYED (contact.html + routes/contact.py, Turnstile + rate limiting)
+6. **GalaxyCon Sprint Plan** - 🔜 NEXT: 25-week plan with milestones leading to Aug 21
+7. **Grading Flow Polish** - Mobile-first, end-to-end bullet-proof for booth demo
+8. **Data Collection Ramp** - More eBay/Whatnot sales data for better valuations
+9. **Session 59 Test Plan** - ~40 of 47 tests still formally untested
+
+### Completed Foundations
+- ✅ Stripe Billing (4-tier pricing), ✅ Bot Protection (Turnstile), ✅ PWA Support
+- ✅ Composite Fingerprinting (4-algorithm), ✅ Universal Footer System
+- ✅ Slab Guard (registration, monitoring, sighting reports, owner dashboard)
+- ✅ Chrome Extensions (Slab Guard Monitor, Whatnot Valuator v2.42.0, eBay Collector)
+
+---
+
+## RECENT MAJOR MILESTONES
+
+### ✅ Collection Save Fixed — Beta Tester Blocker Resolved (Mar 9, 2026 — Session 89)
+- **Root cause:** Multi-MB photo uploads hung indefinitely, blocking `await Promise.all()` which prevented save request from executing
+- **Premature toast:** "Saved to Collection!" showed before API call, masking the failure entirely
+- **Fix 1:** 30-second timeout per photo via `Promise.race` + extra try/catch so save proceeds without photos
+- **Fix 2:** Two-phase toast: "Saving..." → "Saved!" only after server 200 response
+- **Fix 3:** Extraction failure now shows inline edit form (Title/Issue/Publisher/Year) instead of dead-end text
+- Beta tester flow now works end-to-end: grade → save → appears in collection ✅
+
+### eBay Username Root Cause Fixed + Favicon Redesign (Mar 4, 2026 — Session 75)
+- **Root cause:** OAuth scopes missing `commerce.identity.readonly` — Identity API returned 403 silently
+- Added scope to EBAY_SCOPES in ebay_oauth.py, changed fallback from "user" to "Connected"
+- Mike needs to disconnect/reconnect eBay after deploy for new token with updated scope
+- Created favicon-options.html with 6 options (indigo/purple/dark/gradient × white/gold text)
+- Current circle+gradient favicon is blurry at 16px; new options use LinkedIn-style rounded square
+- Code-reviewed draft + auction flows — no bugs found, ready for live testing
+
+### ✅ First Successful eBay Listing Published! (Mar 4, 2026 — Session 74)
+- **Listing live at:** https://www.ebay.com/itm/147183901233
+- Fixed grade type crash (numeric grades → NUMERIC_TO_LETTER mapping for all CGC grades)
+- Fixed eBay URL policy violation (removed slabworthy.com URL from description footer)
+- Added KEY ISSUE detection in listing titles (auto-detected from AI description)
+- Frontend editable title now synced to backend (user can edit before publish)
+- Fixed OAuth callback redirect (now goes to account.html)
+- Added eBay Identity API username fetch + backfill on status check
+- Fixed closeUserMenu null reference on pages without dropdown
+- **Remaining:** Draft listing test, auction listing test, username display fix
+
+### ✅ Homepage Sign In / Sign Up Nav (Feb 28, 2026 — Session 68b)
+- Added top-right auth nav to hero section — "Sign In" text link + gold "Sign Up" pill
+- Matches brand (gold gradient, purple shadow), standard web convention (top-right for auth)
+- Zero impact on hero layout — logo, tagline, main CTA all untouched
+- Sign Up links to `/login.html?signup=true` for future auto-toggle to registration form
+
+### ✅ Valuation Endpoint Upgrade (Feb 28, 2026 — Session 68b)
+- **Applied premium analysis methodology to `/api/sales/valuation`** — the endpoint powering grading results page
+- Replaced arithmetic mean with **median + 5% percentile outlier trimming** everywhere: exact grade match, grade interpolation, raw FMV, price curve
+- Added **bootstrap 95% confidence intervals** (`ci_95_low`, `ci_95_high`) for exact grade matches with 5+ sales
+- Added utility functions: `percentile_trim()`, `compute_median()`, `bootstrap_ci_median()`
+- **Backward compatible** — all existing response fields preserved, new CI fields additive, no frontend changes needed
+- **Impact**: A single $5K outlier sale among ten $50 sales now gives ~$50 (median) instead of ~$500 (mean)
+
+### ✅ Signature Matching + Premium Analysis Engine (Feb 28, 2026 — Session 68)
+- **Signature system**: Reference DB (23 artists, 97 images), API blueprint (4 endpoints), test suite, standalone CLI — all deployed and verified
+- **Title year collision fix**: Added `title_year` column + server-side SQL backfill (15,381/24,629 rows = 62.5%). Collisions dropped from hundreds to 4.
+- **Professional-grade premium analysis engine** deployed with:
+  - Time-windowed comps (±90 days) — controls for market shifts
+  - Log-transformed geometric mean — resistant to outliers
+  - Bootstrap 95% confidence intervals (1000 iterations)
+  - Percentile outlier trimming (top/bottom 5%)
+- **Results**: Signing adds +40-57% to value (median to geo mean), 95% CI [+27%, +59%], 72% positive. High grade 9+: +69% median. Raw: +36% median.
+- **Next**: Apply methodology to general `/api/sales/valuation`, run cross-validation, collect 5 missing priority artists
+
+### ✅ Valuation Endpoint Upgrade + Grading Flow Polish Complete (Feb 28, 2026 — Session 67)
+- **Tested both valuation endpoints** against production with 8 comics — found `/api/sales/fmv` has grade-blind tier bucketing (treats 2.0 same as 7.5). The `/api/sales/valuation` endpoint does exact-grade matching with interpolation — much better.
+- **Switched grading results page** from `/api/sales/fmv` to `/api/sales/valuation` in `app.html`
+- **Added fallback estimate logic** to valuation endpoint for no-data comics (grade/publisher/era baselines) and raw-only data (1.5x estimate)
+- **Added confidence indicator** (High/Medium/Low/Limited) below valuation triptych
+- **Grading flow polish items all confirmed done**: delay removed (S66), photo instructions not needed (Mike confirmed UI intuitive), Grade Another button already exists (Mike confirmed), valuation now wired with smarter endpoint
+- **P1 "Grading flow polish" and "Wire valuation into results" both marked complete** — unblocks booth demo mode and onboarding
+
+### ✅ Grading Consistency Fix + CGC 2026 Pricing (Feb 28, 2026 — Session 66)
+- **Rebuilt AI grading from holistic to structured 8-category scoring** — the #1 credibility killer (P0)
+- New `grading_engine.py`: 8 weighted categories (cover 25%, spine 20%, corners 15%, etc.), snap-to-CGC-grade, catastrophic cap, multi-run median averaging
+- New `/api/grade` endpoint with parallel multi-run via ThreadPoolExecutor
+- Frontend updated: calls `/api/grade`, displays category score bars
+- 10 unit tests passing + live API consistency test harness
+- **CGC 2026 pricing**: Modern $30, Vintage $45, High Value $105, Unlimited 4% ($135 min). Centralized `get_cgc_grading_cost()` replaces 3 hardcoded locations. Now factors in modern vs vintage era.
+- Added automated CGC price checker + admin approval to P2 roadmap
+- Signature DB: 23 of 42 priority artists done (19 to go)
+
+### ✅ Photo Authenticity Detector & White Paper (Feb 27, 2026 — Session 65)
+- **7-check photo authenticity detector** (`utils/photo_authenticity.py`): EXIF, moiré (FFT), compression, lighting, resolution/dimensions, edge sharpness, Error Level Analysis (ELA)
+- Tested against real eBay screengrabs vs original Pixel 7 Pro photos — correctly identifies originals (75.8) vs screengrabs (50-52) vs WhatsApp-compressed (56)
+- **Slab Guard white paper draft** (`docs/business/SlabGuard_WhitePaper_DRAFT.docx`) — audience: collectors, moderate technical detail, awaiting Mike's line-by-line review
+- **FAQ updated** with 3 new Slab Guard entries: photo quality for registration, how verification works, what happens when flagged
+- **TODO.md rewritten** with dependency tracking, time estimates (2x speed), critical path to GalaxyCon
+- Signature DB progress: 23 of 42 artists collected (4 signatures each) — updated Session 66
+- All waitlist pages production-tested and passing
+
+### ✅ Signature Identification Patent FILED (Feb 25, 2026)
+- **12-page provisional patent** with 15 claims, matching Slab Guard filing format
+- Covers: signature detection, extraction, reference DB matching, confidence scoring, forgery detection, valuation integration, Slab Guard tie-in
+- Cross-references both existing patents
+- **Status:** ✅ FILED — Application # 63/990,743, Confirmation # 9241
+
+### ✅ Waitlist Feature Deployed & Tested (Feb 25, 2026)
+- **Backend:** routes/waitlist.py (subscribe, verify email, public counter)
+- **Database:** db_migrate_waitlist.py (waitlist table with email, interests, verification) — migrated on Render
+- **Frontend:** Waitlist section on index.html (moved to bottom, above footer) + added to login.html
+- **Email:** Branded dark theme confirmation email via Resend (lands in Promotions tab — expected)
+- **Confirmation Page:** NEW `waitlist-confirmed.html` — animated checkmark, personalized interest cards, sticky footer
+- **Counter:** Starts at 7 (existing beta testers), purple gradient pill badge
+- **Status:** ✅ LIVE and working end-to-end
+
+### ✅ Composite Fingerprinting Upgrade (Feb 17, 2026)
+- **Problem:** Single pHash had only 4-bit margin between same-comic re-photo and different copies
+- **Solution:** Multi-algorithm composite (pHash + dHash + aHash + wHash)
+- **Test Results:** 13-bit margin per angle, 187-bit margin full multi-angle composite
+- **End-to-end test:** Same comic re-photo = 99/1024 (MATCH), different copy = 408/1024 (NOT MATCH)
+- **Marketplace scenario (front cover only):** 83-bit separation — works with just one eBay photo
+- **Code updated:** registry.py (composite generation), monitor.py (composite matching), new migration
+- **Database migrated:** fingerprint_composite JSONB column added to comic_registry on production
+- **Backward compatible:** Legacy pHash registrations still matched via fallback
+
+### ✅ Stripe Billing Integration Complete (Feb 15, 2026)
+- **4-tier pricing:** Free ($0), Pro ($4.99/mo or $49.99/yr), Guard ($9.99/mo or $89.99/yr), Dealer ($24.99/mo or $239.99/yr)
+- **Stripe Live:** Test mode - checkout, customer portal, webhooks verified
+- **Plan Enforcement:** check_feature_access() blocks overage features
+- **Features:** 14-day free trial, 30-day refund policy, annual pricing transparent (no misleading per-month numbers)
+- **Database:** 8 new billing columns on users table + stripe_customer_id index
+- **API Endpoints:** 7 endpoints (plans, my-plan, check-feature, create-checkout, customer-portal, webhook, record-valuation)
+- **Pricing Page:** Complete rewrite with monthly/annual toggle, comparison table, FAQ
+- **Annual Savings:** Pro 17% off ($49.99), Guard 25% off ($89.99), Dealer 20% off ($239.99)
+
+### ✅ Cloudflare Turnstile Integration (Feb 15, 2026)
+- **Bot Protection:** Site key 0x4AAAAAACdOGsvR1ei9aXB7 deployed on verify page
+- **Verify Page:** Fixed publication_year column mismatch, removed username field, token validation
+- **Verified:** Working end-to-end with backend verification
+
+### ✅ PWA Support Added (Feb 15, 2026)
+- **manifest.json:** App name, colors, 8 icon sizes (72px to 512px)
+- **Service Worker:** sw.js with network-first caching, offline fallback
+- **Icons:** Purple background with gold "SW" logo
+- **Coverage:** Meta tags added to all 11 user-facing HTML pages
+- **User Ability:** "Add to Home Screen" on Android and iOS
+
+### ✅ Legal Documents Updated (Feb 15, 2026)
+- **Terms of Service:** 6 new sections (eligibility, Slab Guard disclaimers, image processing, subscriptions, feature limits, termination)
+- **Privacy Policy:** Payment info (Stripe), Slab Guard registration, image processing (explicitly names AWS Rekognition to deter bad actors), third-party services, data retention (90 days Slab Guard, 7 years payments, 12 months moderation), children's privacy changed 13→16
+
+### ✅ Patent #2 Filed (Feb 12, 2026)
+- **Title:** System and Method for Identifying and Recovering Stolen Collectibles Using Photographic Defect Pattern Analysis
+- **Status:** Provisional filed, awaiting serial number (24-48 hours)
+- **Cost:** $65 (micro entity)
+- **Coverage:** Comics AND baseball cards
+- **Deadline:** File full patent by February 12, 2027
+
+### ✅ Proof-of-Concept Validated (Feb 12, 2026)
+- Tested 2 copies of Iron Man #200 with pHash fingerprinting
+- Result: 27 bits average difference (distinct fingerprints confirmed)
+- Technology proven for theft recovery system
+
+### ✅ Title Normalization Deployed (Feb 11, 2026)
+- 24,366 historical sales normalized
+- Backend integration live (routes/sales.py modified)
+- New sales automatically normalized on import
+
+### ✅ Patent #1 Filed (Jan 27, 2026)
+- **Title:** System and Method for Automated Comic Book Condition Assessment
+- **Deadline:** File full patent by January 27, 2027
+
+### ✅ My Collection Feature Complete (Feb 10, 2026)
+- Gallery view with framed covers
+- List view with sortable columns
+- Filters: grade, title, value, era
+- Export to CSV and Instagram gallery
+- My Valuation column (editable pricing)
+- Delete functionality
+
+### ✅ Slab Worthy Rebrand (Feb 2, 2026)
+- slabworthy.com live as custom domain
+- New branding throughout
+- CollectionCalc.com placeholder page
+
+---
+
+## CURRENT SESSION (SESSION 89) - Mar 9, 2026
+
+### What Happened
+**COLLECTION SAVE FIX — BETA TESTER BLOCKER RESOLVED!**
+
+Three critical bugs in `app.html` fixed:
+1. **Premature save toast** — "Saved to Collection!" showed before API call, masking silent failures. Now shows "Saving..." first, "Saved!" only after server confirms.
+2. **Photo uploads hanging** — Multi-MB photos caused uploads to hang indefinitely, blocking the save request from ever executing. Added 30s timeout per photo via `Promise.race`, wrapped upload phase in try/catch so save proceeds even without photos.
+3. **Extraction failure dead-end** — When AI couldn't identify a comic, users saw a dead-end message with no way to enter details manually. "Unknown #?" propagated through entire report. Added inline edit form (Title/Issue/Publisher/Year) with `saveExtractEdit()` and `showExtractEditAgain()` functions.
+
+**Result:** Beta tester flow now works end-to-end (grade → save → collection). Ready to invite beta testers.
+
+See WHERE_WE_LEFT_OFF.md for full investigation details.
+
+---
+
+## PREVIOUS SESSION (SESSION 74) - Mar 4, 2026
+
+### What Happened
+**FIRST SUCCESSFUL EBAY LISTING PUBLISHED VIA SLAB WORTHY!**
+
+See WHERE_WE_LEFT_OFF.md for full details. Key: fixed 7 bugs, published first listing, added KEY ISSUE title detection.
+
+---
+
+## PREVIOUS SESSION (SESSION 64) - Feb 25, 2026
+
+### What Happened
+**WAITLIST DEPLOYED, DEBUGGED, CONFIRMATION PAGE BUILT, HOMEPAGE & LOGIN UPDATED**
+
+1. Deployed waitlist (Session 63 code) — fixed 500 error (DB migration not run), confirmed emails sending via Resend
+2. Built dedicated waitlist confirmation landing page (`waitlist-confirmed.html`) with animated checkmark, personalized interest cards
+3. Fixed confirmation page: shows ALL selected interests as highlight cards (not just first), "What happens next" simplified to just "Check your inbox"
+4. Fixed confirmation page scrolling (`overflow: hidden` → `overflow-x: hidden`) and sticky footer (flexbox `page-content` wrapper)
+5. Moved waitlist section from middle of homepage to bottom (above footer, below Slab Guard)
+6. Created standalone `waitlist.html` page — full waitlist form with feature grid, shareable URL
+7. Login page: removed inline waitlist, added clean CTA inside Private Beta card linking to `/waitlist.html`
+8. Updated docs checkpoint
+
+---
+
+## PREVIOUS SESSION (SESSION 46) - Feb 17, 2026
+
+### What Happened
+**COMPOSITE FINGERPRINTING UPGRADE - TESTED, CODED, AND DEPLOYED!**
+
+**Fingerprint Testing (Comprehensive):**
+1. Built test suite comparing pHash robustness across 9 photo variations (rotation, brightness, crop, resize, compression, color shift, combined)
+2. Found pHash alone has only 4-bit separation margin (fragile, especially with cropping)
+3. Tested 4 alternative algorithms: pHash, dHash, aHash, wHash — all individually have thin margins
+4. Discovered multi-algorithm composite (sum of all 4) provides 13-bit margin per angle
+5. Full multi-angle composite (4 angles × 4 algorithms = 1024 bits) provides 187-bit separation gap
+
+**End-to-End Test Results:**
+1. Registered Copy 1 of Iron Man #200 (simulated, all 4 angles)
+2. Same comic re-photographed → 99/1024 bits = MATCH CONFIRMED (every angle CRITICAL)
+3. Different copy uploaded → 408/1024 bits = NOT A MATCH (every angle LOW)
+4. Marketplace scenario (front cover only) → 83-bit separation = CLEAR discrimination
+5. Separation gap: 309 bits between match and non-match — EXCELLENT
+
+**Registry Code Updated (routes/registry.py):**
+1. generate_fingerprint() now returns 4-algo dict {phash, dhash, ahash, whash}
+2. NEW: generate_all_fingerprints() generates composite for all 4 photo angles
+3. Registration stores composite JSON in new fingerprint_composite column
+4. Confidence score scales with angles (1=70%, 2=80%, 3=88%, 4=95%)
+5. fingerprint_algorithm set to 'composite_v1' (was 'phash')
+
+**Monitor Code Updated (routes/monitor.py):**
+1. NEW: generate_composite_from_url() generates all 4 hashes from image URL
+2. NEW: composite_distance() calculates sum-of-4-algos distance
+3. find_matches() uses composite matching when available, falls back to pHash legacy
+4. check-image endpoint generates composite query fingerprint
+5. stolen-hashes endpoint includes composite data for Chrome extension
+6. New threshold constants: CRITICAL <70, PROBABLE <73, DISMISS >77
+
+**Database Migration (DEPLOYED on Render):**
+1. Added fingerprint_composite JSONB column to comic_registry
+2. Marked 1 existing record as phash_legacy
+3. Created GIN index on fingerprint_composite
+4. Backward compatible: legacy pHash registrations still work
+
+**New Files Created:**
+- db_migrate_composite_fingerprints.py (migration script)
+- COMPOSITE_FINGERPRINT_TEST_RESULTS.txt (comprehensive test results)
+
+---
+
+## PREVIOUS SESSION (SESSION 45) - Feb 16, 2026
+
+### What Happened
+**HOMEPAGE REDESIGN, VERIFY PAGE UPDATES, REGISTRY BUG FIX, FAQ EXPANSION, APP FIXES!**
+
+**Homepage Redesign:**
+1. Patent Pending badge - Fixed positioning (display:inline-block, removed width:100%)
+2. Hero section shrunk from 100vh to 70vh (How It Works shows above fold)
+3. How It Works condensed: 4 steps → 2 steps (Snap 4 Photos → Get Your Results), removed Step 01/02 labels, subtitle changed to "Snap. Scan. Know."
+4. NEW section: "Track Your Collection" (My Collection) with dashboard mockup image, FMV/24-7/PDF stat highlights, "Start Your Collection" CTA
+5. NEW section: "Slab Guard - Protect Your Collection" with shield icon, fingerprint description, "Verify a Comic" CTA
+6. Removed footer "Check a Comic" CTA (too many CTAs)
+7. New homepage flow: Hero → How It Works → Track Your Collection → Protect Your Collection → Footer
+
+**Verify Page Updates:**
+1. Removed "Slab Worthy" from header - Now just "Slab Guard™"
+2. Updated page title to "Verify Comic - Slab Guard™"
+3. Fixed all 4 instances: "SlabWorthy" → "Slab Worthy" (spacing)
+4. Updated copy: "Slab Guard™ uses..." instead of "Slab Worthy's Slab Guard™..."
+5. Updated copy: "Each comic registered with Slab Worthy receives..."
+
+**App.html Updates:**
+1. Removed camera icons from all 4 upload boxes
+2. Fixed registration error handling: upgrade_required shows "Please upgrade to a paid account to register comics" with "Upgrade to Register" button
+3. Generic catch shows "Please save to your collection first, then try registering"
+
+**Registry Bug Fix (CRITICAL - backend):**
+1. registry.py was querying `graded_comics` table but save returns IDs from `collections` table → FIXED to query `collections`
+2. Fixed column name: `issue_number` → `issue` to match collections table
+
+**FAQ Updates:**
+1. Added new "Slab Guard™" category with 6 questions
+
+**Known Bugs Discovered:**
+1. AI grading inconsistency: Same 4 images gave 8.5, then 9.2, then 8.5 on different runs
+2. Comic identification inconsistency: Ghost Rider reboot #1 sometimes identified as original series #1
+3. Registration was broken due to collections vs graded_comics table mismatch (FIXED)
+
+---
+
+## PREVIOUS SESSION (SESSION 44) - Feb 15, 2026
+
+### What Happened
+**BILLING, BOT PROTECTION, & PWA LAUNCH COMPLETE!**
+
+**Stripe Billing System:**
+1. Four-tier pricing finalized (Free/Pro/Guard/Dealer)
+2. Created routes/billing.py (450 lines) with 7 API endpoints
+3. Modified wsgi.py to register billing blueprint
+4. Added stripe requirement to requirements.txt (>=7.0.0)
+5. Stripe Checkout Sessions (hosted payment page)
+6. Customer Portal for subscription management
+7. Webhook handling (5 events: customer.created, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, charge.succeeded)
+8. Plan enforcement via check_feature_access() - blocks features for unpaid tiers
+9. Test purchase completed, webhooks verified working
+10. Pricing page redesigned with monthly/annual toggle
+11. Annual prices show transparent savings (Pro 17%, Guard 25%, Dealer 20%)
+12. Database: Added 8 billing columns (plan, stripe_customer_id, stripe_subscription_id, subscription_status, billing_period, current_period_end, valuations_this_month, valuations_reset_date)
+
+**Cloudflare Turnstile Bot Protection:**
+1. Site key obtained: 0x4AAAAAACdOGsvR1ei9aXB7
+2. verify.html: Turnstile widget + token validation
+3. routes/verify.py: Backend verification with Cloudflare API
+4. Fixed column mismatches (publication_year→year, removed username)
+5. End-to-end tested and verified working
+
+**PWA (Progressive Web App):**
+1. manifest.json: App name, display mode, colors, 8 icon sizes
+2. sw.js service worker: Network-first caching, offline fallback
+3. 8 PNG icons (72px to 512px): Purple background, gold "SW" logo
+4. Meta tags added to all 11 user-facing HTML pages
+5. Users can "Add to Home Screen" on mobile devices
+
+**Bug Fixes (Session 44):**
+1. Token name mismatch: pricing.html and account.html used jwt_token, but login stored cc_token - FIXED
+2. Login redirect: Added getRedirectUrl() to login.html, updated all 4 redirect locations
+3. Stripe env var naming: Code expected _PRICE_ID but Render had _PRICE - FIXED in billing.py
+4. Annual prices in cents: Updated billing.py (4999, 8999, 23999)
+5. verify.py: publication_year column doesn't exist - FIXED to year
+6. verify.py: username column doesn't exist - REMOVED from query
+7. Git lock files from shared folder - RESOLVED, won't commit from Claude going forward
+
+**Stripe Setup (Mike completed all steps):**
+- Account created with proper tax setup
+- 4 products created with pricing
+- API keys obtained and added to Render
+- Webhook configured and tested
+- Environment variables set in Render
+- Migration script run successfully
+
+---
+
+## PREVIOUS SESSION (SESSION 43) - Feb 12, 2026
+
+### What Happened
+**COMIC FINGERPRINTING PATENT FILED!**
+
+1. **Origin:** Mike asked about ownership verification after comic store robbery
+2. **Concept:** Every comic has unique defect patterns (spine ticks, color breaks, etc.) that act like fingerprints
+3. **Proof-of-Concept:** Tested 2 copies of Iron Man #200 (8 photos total)
+4. **Results:** 27 bits average difference - DISTINCT fingerprints confirmed
+5. **Patent:** Drafted 14-page provisional patent with 15 claims
+6. **Competitive Analysis:** No existing theft recovery services found
+7. **Filed:** USPTO provisional patent filed, $65 paid, awaiting serial number
+
+### Business Model
+- **FREE:** Register up to 10 comics
+- **PRO ($10/mo):** Unlimited registration, auto-monitoring, alerts
+- **STORE ($50/mo):** Bulk upload, API access, police reports
+- **ENTERPRISE:** Custom pricing for insurance/grading companies
+
+### Revenue Projections
+- Year 1: $150k ARR
+- Year 2: $720k ARR
+- Year 3: $3.3M ARR
+- Exit potential: $16.5M valuation
+
+### Integration with Slab Worthy
+**Already Have:**
+- 4-photo capture system ✅
+- High-res image storage (Cloudflare R2) ✅
+- User database ✅
+- Collection management ✅
+
+**Need to Build:**
+- `comic_registry` database table
+- pHash fingerprint generation on upload
+- "Register" button in grade report
+- Ownership certificate PDF generator
+- Marketplace monitoring (eBay/Whatnot/Mercari)
+- Email alert system for matches
+
+### Next Steps
+1. Wait for USPTO filing receipt (24-48 hours)
+2. Test with slabbed baseball cards (validate holder scratches)
+3. Test with 3-5 more comic pairs (calibrate accuracy)
+4. Design database schema (Week 3)
+5. Build MVP registry feature (Week 4)
+6. Consider LinkedIn post after building out MVP
+
+### Files Created
+- `COMIC_FINGERPRINTING_CONCEPT.txt` - Business plan
+- `FINGERPRINTING_PROJECT_SUMMARY.md` - Executive summary
+- `FINGERPRINT_TEST_RESULTS.txt` - Test results
+- `PATENT_FILING_GUIDE.md` - USPTO instructions
+- `provisional_patent_comic_fingerprinting.docx` - Filed patent
+- `comic_fingerprint_test.py` - Proof-of-concept script
+- `SESSION_43_PATENT_FILED.txt` - Session summary
+- Updated `ROADMAP.txt` with fingerprinting roadmap
+
+### Key Quote
+Mike: "DONE!!!! AND PAID FOR!!!!!"
+
+---
+
+## ARCHITECTURE OVERVIEW
+
+### Backend (Flask/Python)
+- **wsgi.py** - Main app (~305 lines after v4.3.0 refactor)
+- **Blueprints:** auth_routes.py, admin_routes.py, sales.py, grading.py, images.py, barcodes.py, ebay.py, collection.py, billing.py, verify.py
+- **Services:** billing.py (Stripe), content_moderation.py (AWS Rekognition), ebay_oauth.py, ebay_valuation.py, ebay_listing.py, comic_extraction.py, r2_storage.py
+- **Database:** PostgreSQL on Render
+- **External APIs:** Claude API (grading), Stripe (payments), Cloudflare R2 (images), Resend (email), AWS Rekognition (content moderation), Cloudflare Turnstile (bot protection)
+
+### Frontend
+- **HTML/CSS/JS** - Custom responsive design
+- **No frameworks** - Vanilla JS for simplicity
+- **Mobile-first** - Works on all devices
+
+### Data Pipeline
+1. User uploads 4 photos
+2. Cloudflare R2 stores images
+3. Claude Vision API extracts title/issue/year
+4. Claude analyzes defects (spine ticks, color breaks, etc.)
+5. Custom grading algorithm assigns CGC-equivalent grade
+6. PostgreSQL stores result
+7. FMV calculated from sales database (eBay + Whatnot + market data)
+
+### Chrome Extensions (Separate Repos)
+- **eBay Collector** - Scrapes eBay sold listings
+- **Whatnot Collector** - Scrapes Whatnot auction data
+- **Extension shared:** Uploads data to backend API
+
+---
+
+## DATABASE STRUCTURE
+
+### Key Tables
+- `users` - Authentication, email verification, **8 NEW billing columns** (plan, stripe_customer_id, stripe_subscription_id, subscription_status, billing_period, current_period_end, valuations_this_month, valuations_reset_date)
+- `graded_comics` - User's graded comics with photos
+- `market_sales` - Historical sales data (generic)
+- `ebay_sales` - eBay sold listings with normalization
+- `ebay_sales_staging` - Raw eBay data before normalization
+- `whatnot_sales` - Whatnot auction results
+- `comic_registry` - Fingerprint registry (pHash, serial numbers)
+- `match_reports` - ✅ NEW (Session 44) - Stolen comics matching reports
+
+### Normalization Fields (ebay_sales)
+- `canonical_title` - Standardized series name
+- `issue_number` - Parsed issue number
+- `variant_info` - Cover variant details
+- `creator_info` - Writer/artist attribution
+- `publisher` - Marvel, DC, Image, etc.
+- `condition_grade` - Extracted grade
+- (13 total normalized fields)
+
+---
+
+## FEATURE STATUS
+
+### ✅ Completed
+- User authentication with email verification
+- 4-photo upload with comic-shaped boxes
+- AI-powered grading with defect detection
+- Fair Market Value from 50k+ sales
+- My Collection (gallery + list views)
+- Export to CSV and Instagram gallery
+- Era filters (Golden, Silver, Bronze, Copper, Modern)
+- My Valuation column (editable pricing)
+- Privacy policy + Terms of Service (updated Feb 15)
+- Email system (Resend + support@slabworthy.com)
+- Forgot password flow
+- eBay + Whatnot Chrome extensions
+- Title normalization (24,366 sales processed)
+- Barcode scanning (UPC detection)
+- Reprint filtering
+- **Stripe Billing System** (4-tier pricing, checkout, customer portal, webhooks)
+- **Plan Enforcement** (check_feature_access() blocks overages)
+- **Pricing Page Redesign** (monthly/annual toggle, comparison table, FAQ)
+- **Cloudflare Turnstile** (bot protection on verify page)
+- **PWA Support** (manifest, service worker, installable on mobile)
+- **Content Moderation** (AWS Rekognition integration)
+- **Slab Guard™ Registration** (fingerprinting, serial generation)
+- **Contact Form** (contact.html + routes/contact.py, Turnstile + rate limiting)
+- **Vision API Backend Proxy** (routes/vision.py, JWT auth, plan gating, daily scan caps)
+
+### 🔜 Built, Awaiting Deploy/Test
+- **Valuation Endpoint** — `/api/sales/valuation` grade-specific FMV with slabbing ROI. Needs: testing per 12-case plan
+- **Title Normalizer Backfill** — `POST /api/ebay-sales/backfill-titles` to fix 369 legacy NULLs. Needs: deploy + run
+
+### 🚨 High Priority (Testing Phase)
+- **Live Slab Guard test** - Register a comic on production, verify composite fingerprinting works end-to-end
+- **Mobile testing** - Pricing page, verify page, full app flow
+- **PWA testing** - Actual devices (Android, iOS)
+
+### 📋 Backlog
+- Two-factor authentication (TOTP)
+- AI-powered support inbox
+- Grade report sharing/export
+- Batch grading (multiple comics)
+- Price alerts
+- NLQ database queries for premium users
+- Social features
+
+---
+
+## KNOWN BUGS
+
+1. **🐛 Auto-rotation steps 2-4** - Code added but not working
+2. **🐛 Single-page upload missing extraction** - Front photo doesn't call extraction API
+3. **🔴 AI grading inconsistency** - Same 4 images: 8.5 → 9.2 → 8.5 (different runs)
+4. **🔴 Comic identification inconsistency** - Ghost Rider reboot #1 vs original #1
+
+**Session 89 Fixes:**
+- ✅ Collection save silently failing (photo uploads hanging → Promise.race 30s timeout)
+- ✅ Premature "Saved!" toast masking failures (now two-phase: Saving... → Saved!)
+- ✅ Extraction failure dead-end UX (added inline edit form for manual entry)
+
+**Session 45 Fixes:**
+- ✅ Registry bug: collections vs graded_comics table mismatch (was querying wrong table)
+- ✅ Registry column: issue_number → issue (to match collections table)
+
+**Session 44 Fixes:**
+- ✅ Token name mismatch (jwt_token vs cc_token)
+- ✅ Login redirect inconsistency (4 locations)
+- ✅ Stripe env var naming (_PRICE_ID vs _PRICE)
+- ✅ verify.py column mismatches (publication_year, username)
+
+---
+
+## BUSINESS MODEL (LIVE - Stripe Pricing)
+
+### Free Tier ($0)
+- Grade up to unlimited comics (no paywall during free trial)
+- Basic FMV lookup
+- Register up to 10 comics per month (fingerprinting)
+- 14-day free trial for premium features
+
+### Pro Tier ($4.99/month or $49.99/year)
+- Unlimited grading
+- Full collection management
+- Unlimited fingerprint registration
+- Auto-monitoring for stolen comics (coming Phase 2)
+- Email alerts
+- NLQ database queries (50/month)
+
+### Guard Tier ($9.99/month or $89.99/year)
+- Everything in Pro
+- Priority support
+- Advanced matching (Phase 2)
+- Police report generation
+- White-label certificates (future)
+
+### Dealer Tier ($24.99/month or $239.99/year)
+- Everything in Guard
+- Bulk upload (unlimited inventory)
+- API access for marketplace integrations
+- Whatnot listing creation (coming)
+- Custom integrations
+- Dedicated support
+
+**Annual Pricing (Live):**
+- Pro: $49.99/year (17% off monthly)
+- Guard: $89.99/year (25% off monthly)
+- Dealer: $239.99/year (20% off monthly)
+- 30-day refund policy
+- 14-day free trial on all paid tiers
+
+---
+
+## CONTACT INFO
+
+**Email:** support@slabworthy.com (forwards to mberry133@yahoo.com)
+**Domain:** slabworthy.com
+**Deployment:** Render (backend + database)
+**CDN:** Cloudflare R2 (images)
+
+---
+
+## NEXT SESSION PRIORITIES
+
+### Beta Launch (Immediate)
+1. **Invite verified beta testers** from waitlist — save flow now works end-to-end ✅
+2. **Grading cap implementation** — 25/month for beta users, admin exempt (plan exists in .claude/plans/)
+3. **Feedback system** — Post-grading thumbs up/down + floating feedback button + admin tab
+4. **Signature ID cap** — 10/month for beta users
+
+### Signature System
+5. **Upload reference images for 57 new creators** — ongoing from previous sessions
+6. **End-to-end signature test on production** — changes from Session 82 need deploy + test
+7. **Fix style_notes metadata** — Mike needs to correct Claude-written descriptions
+
+### GalaxyCon San Jose Sprint (Aug 21-23)
+8. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
+9. **Grading flow polish** — Booth demo mode, offline fallback
+10. **Sign-up/onboarding flow** — Under 60 seconds for booth visitors
+
+### Technical Debt
+11. **AI Grading Consistency** — Same images give different grades (8.5 → 9.2 → 8.5)
+12. **Comic identification bug** — Ghost Rider reboot #1 vs original #1
+13. **Mobile testing** — Full app flow on real devices
+
+---
+
+## MULTI-VERTICAL EXPANSION VISION
+
+| Vertical | Brand | Market Size | Timeline |
+|----------|-------|-------------|----------|
+| Comics | Slab Worthy | $1.5B | 2026 ✅ |
+| Cards | CardWorthy? | $5B | 2027 |
+| Coins | CoinWorthy? | $15B | 2028 |
+| Sneakers | SoleWorthy? | $10B | 2029+ |
+
+**"Worthy" Brand Family** - AI-powered condition assessment + theft recovery for all collectibles
+
+---
+
+*Note: This is a streamlined version of CLAUDE_NOTES. Previous session-by-session history removed for brevity. Only most recent session (Session 43) retained. Full detailed history available in ROADMAP.txt and individual session files.*

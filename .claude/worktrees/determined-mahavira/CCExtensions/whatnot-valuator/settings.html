@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Whatnot Valuator Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-width: 400px;
+      padding: 24px;
+    }
+    h2 {
+      color: #fff;
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      color: #e94560;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1a2e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    input:focus {
+      border-color: #e94560;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: #e94560;
+      color: #fff;
+      width: 100%;
+    }
+    .btn-secondary {
+      background: #333;
+      color: #ccc;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .status-connected {
+      background: rgba(46, 213, 115, 0.15);
+      border: 1px solid rgba(46, 213, 115, 0.3);
+      color: #2ed573;
+    }
+    .status-disconnected {
+      background: rgba(233, 69, 96, 0.15);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      color: #e94560;
+    }
+    .user-info {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+    .user-info span {
+      color: #fff;
+    }
+    .plan-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .plan-free { background: #333; color: #888; }
+    .plan-pro { background: #1e3a5f; color: #5dade2; }
+    .plan-guard { background: #2d1f3d; color: #bb86fc; }
+    .plan-dealer { background: #3d2d1f; color: #ffb74d; }
+    .error-msg {
+      color: #e94560;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .info-msg {
+      color: #888;
+      font-size: 12px;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #0f3460;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Whatnot Comic Valuator</h2>
+  <p class="subtitle">Extension Settings</p>
+
+  <!-- Login Form (shown when not authenticated) -->
+  <div id="login-section" style="display:none;">
+    <div class="card">
+      <h3>Login to Slab Worthy</h3>
+      <p class="info-msg" style="margin-top:0; margin-bottom:16px;">
+        Sign in with your Slab Worthy account to enable Vision scanning.
+        Requires Guard or Dealer plan.
+      </p>
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+      <button class="btn btn-primary" id="login-btn">Sign In</button>
+      <div id="error" class="error-msg"></div>
+      <p class="info-msg">
+        Don't have an account? Sign up at
+        <a href="https://slabworthy.com/pricing.html" target="_blank" style="color:#e94560;">slabworthy.com</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Authenticated Status (shown when logged in) -->
+  <div id="auth-section" style="display:none;">
+    <div class="status-bar status-connected">
+      ✅ Connected to Slab Worthy
+    </div>
+    <div class="card">
+      <div class="user-info">
+        Email: <span id="user-email"></span><br>
+        Plan: <span id="user-plan" class="plan-badge"></span>
+      </div>
+      <div id="feature-status"></div>
+      <hr class="divider">
+      <button class="btn btn-secondary" id="logout-btn">Sign Out</button>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

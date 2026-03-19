@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: mas-proxy
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MAS_PASSWORD
+        sync: false
+      - key: NODE_ENV
+        value: production

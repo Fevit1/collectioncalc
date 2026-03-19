@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slab Worthy™ - AI for Collectors</title>
-    <link rel="icon" type="image/svg+xml" href="/8ball.svg">
     <meta name="description" content="AI-powered comic grading estimates. Snap 4 photos, get a grade prediction, and find out if your comic is worth the slab.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,19 +64,6 @@
             bottom: 0;
             background-image: radial-gradient(rgba(124, 58, 237, 0.08) 1px, transparent 1px);
             background-size: 6px 6px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* 8-ball hero mark — large, behind headline */
-        .hero-8ball {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(50vw, 320px);
-            height: min(50vw, 320px);
-            opacity: 0.10;
             pointer-events: none;
             z-index: 0;
         }
@@ -952,7 +938,6 @@
 <body>
     <!-- HERO -->
     <section class="hero">
-        <img src="/8ball.svg" alt="" class="hero-8ball" aria-hidden="true">
         <nav class="hero-auth-nav">
             <a href="/login.html" class="auth-sign-in">Sign In</a>
             <span class="auth-divider">|</span>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Slab Worthy™</title>
+    <link rel="icon" type="image/svg+xml" href="/8ball.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables */
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --card-bg: #12121f;
+            --primary: #7c3aed;
+            --gold: #facc15;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(124, 58, 237, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+        }
+        /* Header & Logo */
+        header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .header-brand {
+            text-align: center;
+        }
+        
+        .header-brand h1 {
+            font-family: 'Bangers', cursive;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            letter-spacing: 2px;
+            color: var(--gold);
+            text-shadow: 1px 1px 0 var(--primary), 2px 2px 0 #1e1b4b;
+            margin: 0;
+            line-height: 1.1;
+        }
+        
+        .header-brand .subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+        
+        /* FAQ specific styles */
+        .faq-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .faq-intro {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .faq-intro h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .faq-intro p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        
+        .faq-category {
+            margin-bottom: 2.5rem;
+        }
+        
+        .faq-category-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .faq-item {
+            background: rgba(124, 58, 237, 0.08);
+            border: 2px solid rgba(124, 58, 237, 0.4);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .faq-item:hover {
+            border-color: rgba(168, 85, 247, 0.7);
+            background: rgba(124, 58, 237, 0.12);
+        }
+        
+        .faq-question {
+            width: 100%;
+            text-align: left;
+            padding: 1rem 1.25rem;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: color 0.3s;
+        }
+        
+        .faq-question:hover {
+            color: var(--primary);
+        }
+        
+        .faq-icon {
+            font-size: 1.25rem;
+            transition: transform 0.3s;
+            color: var(--primary);
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            padding: 0 1.25rem;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 1000px;
+            padding: 0 1.25rem 1.25rem 1.25rem;
+        }
+        
+        .faq-answer p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+        
+        .faq-answer p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .faq-answer ul {
+            margin: 0.5rem 0 0.75rem 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .faq-answer li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        
+        .faq-cta {
+            text-align: center;
+            margin: 3rem 0;
+            padding: 2rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .faq-cta h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .faq-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .faq-cta a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 767px) {
+            .faq-intro h2 {
+                font-size: 1.5rem;
+            }
+            
+            .faq-question {
+                font-size: 0.95rem;
+                padding: 0.875rem 1rem;
+            }
+            
+            .faq-answer {
+                padding: 0 1rem;
+            }
+            
+            .faq-item.active .faq-answer {
+                padding: 0 1rem 1rem 1rem;
+            }
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slab Worthy">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="header-brand" style="text-decoration: none; display: block;">
+                <h1>$LAB WORTHY<span style="font-size: 0.6em; vertical-align: super;">™</span></h1>
+                <p class="subtitle">AI for Collectors</p>
+            </a>
+        </header>
+        
+        <div class="faq-container">
+            <div class="faq-intro">
+                <h2>Frequently Asked Questions</h2>
+                <p>Everything you need to know about Slab Worthy™</p>
+            </div>
+            
+            <!-- About Slab Worthy -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">About Slab Worthy™</h3>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What is Slab Worthy™?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Slab Worthy™ is a pre-assessment tool that helps comic collectors decide whether professional grading makes financial sense. We analyze photos of your comic to estimate its condition and compare the cost of grading against the likely value increase.</p>
+                        <p>Think of us as a knowledgeable friend helping you make informed decisions before spending money on professional grading services like CGC or CBCS.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How does it work?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Upload 4 photos of your comic (front cover, spine, back cover, and centerfold). Our AI analyzes these images to:</p>
+                        <ul>
+                            <li>Identify the comic title and issue</li>
+                            <li>Detect visible defects (creases, tears, spine stress, etc.)</li>
+                            <li>Estimate the likely grade range</li>
+                            <li>Calculate current market values (raw and slabbed)</li>
+                            <li>Recommend whether professional grading is worth the cost</li>
+                        </ul>
+                        <p>You'll get a detailed Slab Report with our assessment and recommendation.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How much does it cost?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Pricing details are available on our website. We offer different tiers depending on how many comics you want to assess.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How long does an assessment take?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Most assessments complete in 1-2 minutes after you upload all 4 photos, though it can be faster if we've previously assessed this comic in similar condition. The process involves identifying your comic, analyzing photos for defects, and querying market data to calculate values.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Taking Photos -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">Taking Photos</h3>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What photos do I need to take?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>You need 4 photos:</p>
+                        <ul>
+                            <li><strong>Front Cover:</strong> Full front of the comic (required)</li>
+                            <li><strong>Spine:</strong> The comic's spine/edge</li>
+                            <li><strong>Back Cover:</strong> Full back of the comic</li>
+                            <li><strong>Centerfold:</strong> Open the comic to the middle pages</li>
+                        </ul>
+                        <p>Click "Photo tips" during upload for detailed guidance on lighting, angle, and focus.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What if I can't photograph the spine or centerfold?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>While all 4 photos provide the most accurate assessment, you can proceed with fewer photos. The front cover is required at minimum.</p>
+                        <p>Note that assessments with fewer photos will be less accurate, particularly for detecting spine stress, interior defects, and centerfold issues. We'll note this limitation in your Slab Report.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What makes a good photo for assessment?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Good photos are:</p>
+                        <ul>
+                            <li>Well-lit with natural, indirect light (avoid glare and shadows)</li>
+                            <li>In focus with sharp, readable text</li>
+                            <li>Taken straight-on (camera parallel to comic)</li>
+                            <li>Framed with the comic filling most of the image</li>
+                            <li>Shot on a plain, neutral background (white or black preferred)</li>
+                        </ul>
+                        <p>Blurry, dark, or angled photos may reduce assessment accuracy.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Can I assess multiple comics at once?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Currently, you assess one comic at a time. After completing an assessment, click "Check Another" to start a new one. All your assessments are saved in "My Collection" for easy reference.</p>
+                        <p>We're considering batch upload and video upload features for future updates to make the process even faster.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assessment & Valuation -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">Assessment & Valuation</h3>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How accurate are your assessments and valuations?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Our assessments are designed to give you informed guidance, not guarantees. Accuracy depends on several factors:</p>
+                        <ul>
+                            <li><strong>Photo quality:</strong> Clear, well-lit photos produce better results</li>
+                            <li><strong>Visible defects:</strong> We can only detect what's visible in photos (hidden defects like interior foxing may not be caught)</li>
+                            <li><strong>Market data:</strong> Values are based on recent sales, which can fluctuate</li>
+                        </ul>
+                        <p>Use our assessments as a helpful guide for decision-making, not as a replacement for professional grading. Think of it like getting advice from a knowledgeable collector friend—valuable insight, but the final decision is yours.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How is Fair Market Value calculated?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Our algorithm analyzes many factors to estimate what your comic would realistically sell for, including:</p>
+                        <ul>
+                            <li>Recent sales data from tens of thousands of sales and growing every day</li>
+                            <li>Comparable condition and grade ranges</li>
+                            <li>Edition variations and variants</li>
+                            <li>Current market demand and trends</li>
+                            <li>Time-based pricing patterns</li>
+                        </ul>
+                        <p>Market values can fluctuate based on demand, recent movie announcements, comic events, and other factors.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What's the difference between raw value and slabbed value?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p><strong>Raw value</strong> is what your comic is worth as-is, ungraded and unencapsulated.</p>
+                        <p><strong>Slabbed value</strong> is the estimated worth if professionally graded and encapsulated by CGC or CBCS. Slabbing typically increases value because:</p>
+                        <ul>
+                            <li>The grade is verified by a trusted third party</li>
+                            <li>The comic is protected from further damage</li>
+                            <li>It's more marketable to serious collectors</li>
+                        </ul>
+                        <p>However, slabbing costs money. Our recommendation factors in whether the value increase justifies the grading cost.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Why does it recommend "Keep it raw" for my valuable comic?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We recommend keeping a comic raw when the cost of professional grading would exceed the likely value increase. This happens when:</p>
+                        <ul>
+                            <li>The comic has significant defects that would result in a low grade</li>
+                            <li>The market value difference between raw and slabbed is small</li>
+                            <li>Grading fees (typically $20-100+) wouldn't be recovered in resale value</li>
+                        </ul>
+                        <p>Of course, if you want to slab it for personal enjoyment or long-term collection value, that's a valid choice too. Our recommendation is purely financial.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Professional Grading Companies -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">Professional Grading Companies</h3>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Is Slab Worthy™ a grading company?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. We're a pre-assessment tool, not a grading service. CGC and CBCS are the companies that professionally grade comics. We help you decide <em>whether</em> to use their services.</p>
+                        <p>We are not affiliated with CGC, CBCS, or any other grading company.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How does this compare to CGC or CBCS?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>CGC and CBCS are professional grading services staffed by expert human graders. They physically inspect your comic and assign an official grade that's recognized industry-wide.</p>
+                        <p>Slab Worthy™ is an AI-powered pre-screening tool. We analyze photos to give you an estimate <em>before</em> you spend money on professional grading. Use us to decide which comics are worth submitting, then send those to CGC or CBCS for official grading.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Will CGC/CBCS give me the same grade you show?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Not necessarily. Professional graders physically inspect the comic and can detect defects not visible in photos (like interior foxing, interior tears, or subtle spine issues). They also use their years of expertise and handle thousands of comics.</p>
+                        <p>Our estimate gives you a reasonable expectation, but the final professional grade may differ. Think of us as helping you set realistic expectations and avoid costly surprises.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slab Guard -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">Slab Guard™</h3>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What is Slab Guard™?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Slab Guard is our comic authentication and theft protection service. When you register a comic, our AI generates a unique visual fingerprint using Amazon Rekognition and assigns a serial number that can be publicly verified by anyone.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How does the fingerprint work?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Every physical comic is unique — microscopic differences in printing, wear patterns, and paper texture make each copy one-of-a-kind. Our AI analyzes your comic's photos to create a visual fingerprint tied to that specific physical copy, not just the title or issue number.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How do I register a comic?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>After grading a comic, save it to your collection. You'll see a "Register This Comic" button on the grade report. Click it and your comic will be assigned a unique serial number (format: SW-YYYY-NNNNNN). Registration is available on the Guard plan and above.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How can buyers verify a comic?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Anyone can verify a comic at <a href="/verify.html" style="color: var(--primary);">slabworthy.com/verify</a> — no login required. Enter the serial number and you'll see the comic's details, registration date, and current status. If the status shows "Reported Stolen," do not purchase and report to authorities.</p>
+                        <p>You can also <a href="/check.html" style="color: var(--primary);">upload a photo</a> to check it against the entire registry — no serial number needed.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Is Slab Guard included in the free plan?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The free plan includes 3 comic registrations so you can try it out. The Guard plan includes 25 registrations, and Dealer plans include unlimited registrations. See our <a href="/pricing.html" style="color: var(--primary);">pricing page</a> for details.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What about stolen comics on eBay?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Slab Guard includes a free Chrome extension that monitors eBay listings in real time. When you browse eBay comic search results, the extension automatically checks listing images against the Slab Guard registry and overlays status badges directly on the page — red for reported stolen, green for registered and verified.</p>
+                        <p>You can also manually check any individual eBay listing with one click. The extension is available in the Chrome Web Store and works with any Slab Worthy account.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Why should I use the highest quality photos for registration?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>When registering a comic with Slab Guard, photo quality is your proof of ownership. High-resolution photos taken directly with your phone's camera contain rich detail that simply can't be replicated from a screenshot or web-saved image. A 12-megapixel photo captures ink lines, paper texture, and unique wear patterns with a level of fidelity that a 0.3-megapixel eBay screenshot never could.</p>
+                        <p>Think of it this way: <strong>if you have the comic in your hands, you can always take a high-quality photo. If you don't, you can't.</strong> That's what makes original, full-resolution photos the strongest ownership evidence in the registry.</p>
+                        <p>For the best registration:</p>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.5rem; color: var(--text-secondary);">
+                            <li>Use your phone's camera at full resolution (don't reduce image quality in settings)</li>
+                            <li>Upload directly from your camera roll or Google Photos/iCloud — not from messaging apps</li>
+                            <li>Don't crop, filter, or edit photos before uploading</li>
+                            <li>Good lighting helps — but resolution matters more than perfect lighting for registration</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How does Slab Guard verify my photos are real?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>When you register a comic, our system performs multi-signal forensic analysis on your uploaded photos to verify they were taken directly with your camera. We analyze metadata, image quality, compression patterns, lighting characteristics, and other indicators to detect screenshots, web-saved images, or photos of screens.</p>
+                        <p>This protects the registry from bad actors who might try to claim ownership of someone else's comic using photos grabbed from online listings.</p>
+                        <p><strong>Tip:</strong> For the best results, upload photos directly from your phone's camera roll or cloud photos (Google Photos, iCloud). Photos sent through messaging apps like WhatsApp lose quality and metadata, which may trigger additional verification steps.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What if my photo gets flagged during registration?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>If our system flags your photo as potentially not being an original camera photo, don't worry — it doesn't mean you did anything wrong. Photos sent through messaging apps, downloaded from cloud services, or heavily compressed may trigger a review.</p>
+                        <p>If flagged, you may be asked to provide additional proof of possession, such as taking a new photo of the comic with a specific item next to it. This extra step helps keep the registry trustworthy for everyone.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical & Support -->
+            <div class="faq-category">
+                <h3 class="faq-category-title">Technical & Support</h3>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Why won't my photo upload?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Common issues:</p>
+                        <ul>
+                            <li><strong>File size:</strong> Very large photos (over 10MB) may time out. Try compressing or resizing the image.</li>
+                            <li><strong>File format:</strong> We support JPG, PNG, and WEBP. Other formats may not work.</li>
+                            <li><strong>Connection:</strong> Slow internet can cause uploads to fail. Try again on a better connection.</li>
+                        </ul>
+                        <p>If the problem persists, contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c2b1b7b2b2adb0b682b1aea3a0b5adb0b6aabbeca1adaf">[email&#160;protected]</a>.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>It didn't recognize my comic - what should I do?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Try these steps:</p>
+                        <ul>
+                            <li>Retake the front cover photo with better lighting and focus</li>
+                            <li>Make sure the title and issue number are clearly visible</li>
+                            <li>For variant covers or obscure issues, our database may not have complete data</li>
+                        </ul>
+                        <p>If we still can't identify it, you can manually edit the comic details using the edit button next to the extracted information.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How do I contact support?</span>
+                        <span class="faq-icon">▼</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Email us at <a href="/cdn-cgi/l/email-protection#a3d0d6d3d3ccd1d7e3d0cfc2c1d4ccd1d7cbda8dc0ccce" style="color: var(--primary);"><span class="__cf_email__" data-cfemail="2b585e5b5b44595f6b58474a495c44595f435205484446">[email&#160;protected]</span></a></p>
+                        <p>We typically respond within 24 hours. Please include:</p>
+                        <ul>
+                            <li>A description of the issue</li>
+                            <li>The comic you were trying to assess (if relevant)</li>
+                            <li>Any error messages you saw</li>
+                            <li>Screenshots if possible</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CTA -->
+            <div class="faq-cta">
+                <h3>Still have questions?</h3>
+                <p>We're here to help!</p>
+                <p><a href="/cdn-cgi/l/email-protection#b9caccc9c9d6cbcdf9cad5d8dbced6cbcdd1c097dad6d4">Contact Support</a> or <a href="/app.html">Try Slab Worthy™</a></p>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="/js/footer.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>

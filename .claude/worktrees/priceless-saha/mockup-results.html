@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>Slab Worthy™ — Results Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --brand-indigo: #4f46e5;
+    --brand-purple: #7c3aed;
+    --brand-cyan: #06b6d4;
+    --brand-gold: #facc15;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --brand-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px 8px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .header-brand h1 {
+    font-family: 'Bangers', cursive;
+    font-size: clamp(1.4rem, 5vw, 1.8rem);
+    letter-spacing: 2px;
+    color: var(--brand-gold);
+    text-shadow: 1px 1px 0 #7c3aed, 2px 2px 0 #1e1b4b;
+    line-height: 1;
+  }
+  .header-brand .tm {
+    font-size: 0.5em;
+    vertical-align: super;
+    color: var(--brand-gold);
+    opacity: 0.7;
+  }
+  .header-brand .subtitle {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== RESULTS SCREEN ===== */
+  .results-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px 16px;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  /* ===== COMIC ID STRIP ===== */
+  .comic-id {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .comic-thumb {
+    width: 42px;
+    height: 60px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #2a1a4e, #1a2a5e);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .comic-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
+  }
+  .comic-info { flex: 1; min-width: 0; }
+  .comic-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .comic-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* ===== GRADE + VERDICT HERO ===== */
+  .grade-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(79, 70, 229, 0.2);
+  }
+  .grade-circle {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--brand-indigo) 0deg,
+      var(--brand-purple) 120deg,
+      var(--brand-cyan) 240deg,
+      var(--brand-indigo) 360deg
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .grade-circle-inner {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .grade-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .grade-label {
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .verdict-section { flex: 1; }
+  .verdict-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .verdict-badge.worth {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .verdict-badge.not-worth {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .verdict-tagline {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+  }
+
+  /* ===== VALUATION STRIP ===== */
+  .valuation-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .val-card {
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 10px 8px 8px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .val-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .val-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .val-amount.raw { color: var(--text-secondary); }
+  .val-amount.slabbed { color: var(--brand-cyan); }
+  .val-amount.roi-positive { color: var(--success); }
+  .val-amount.roi-negative { color: var(--error); }
+  .val-sub {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ===== DEFECTS SECTION ===== */
+  .defects-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.04);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .defects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .defects-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .defects-count {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.06);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .defects-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .defect-area {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .defect-area-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--brand-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .defect-item {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .defect-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+  .defect-dot.minor { background: var(--warning); }
+  .defect-dot.moderate { background: #f97316; }
+  .defect-dot.clean { background: var(--success); }
+
+  /* ===== ACTION BUTTONS ===== */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn {
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-primary {
+    background: var(--brand-gradient);
+    color: white;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ===== FOOTER ===== */
+  .footer-note {
+    text-align: center;
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+
+  /* Hide variant */
+  .variant.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ===== VARIANT 1: WORTH THE SLAB ===== -->
+<div class="variant" id="v-worth">
+
+  <div class="header">
+    <div class="header-brand">
+      <h1>$LAB WORTHY<span class="tm">&trade;</span></h1>
+      <div class="subtitle">AI-Powered Grading &bull; Patent Pending</div>
+    </div>
+  </div>
+
+  <div class="results-screen">
+
+    <div class="comic-id">
+      <div class="comic-thumb">
+        <img src="https://upload.wikimedia.org/wikipedia/en/e/ef/Amazing_Spider-Man_300.jpg" alt="Cover">
+      </div>
+      <div class="comic-info">
+        <div class="comic-title">Amazing Spider-Man #300</div>
+        <div class="comic-meta">Marvel &bull; 1988 &bull; First Venom</div>
+      </div>
+    </div>
+
+    <div class="grade-hero">
+      <div class="grade-circle">
+        <div class="grade-circle-inner">
+          <div class="grade-number">9.2</div>
+          <div class="grade-label">NM&minus;</div>
+        </div>
+      </div>
+      <div class="verdict-section">
+        <div class="verdict-badge worth">WORTH THE SLAB</div>
+        <div class="verdict-tagline">You'll gain an estimated <strong style="color: #10b981;">$481</strong> after grading fees. Strong ROI at this grade.</div>
+      </div>
+    </div>
+
+    <div class="valuation-strip">
+      <div class="val-card">
+        <div class="val-label">Raw FMV</div>
+        <div class="val-amount raw">$140</div>
+      </div>
+      <div class="val-card">
+        <div class="val-label">Slabbed FMV</div>
+        <div class="val-amount slabbed">$625</div>
+      </div>
+      <div class="val-card">
+        <div class="val-label">Net ROI</div>
+        <div class="val-amount roi-positive">+$481</div>
+      </div>
+    </div>
+
+    <div class="defects-section">
+      <div class="defects-header">
+        <div class="defects-title">Defects Found</div>
+      </div>
+      <div class="defects-grid">
+        <div class="defect-area">
+          <div class="defect-area-label">Front Cover</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Light corner crease, top-right</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Minor color break on spine edge</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Spine</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Two small stress lines</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Back Cover</div>
+          <div class="defect-item"><span class="defect-dot clean"></span>Clean &mdash; no defects</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Interior</div>
+          <div class="defect-item"><span class="defect-dot moderate"></span>Light tanning on first page</div>
+          <div class="defect-item"><span class="defect-dot clean"></span>Centerfold attached</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary">Save to Collection</button>
+      <button class="btn btn-secondary">Grade Next</button>
+    </div>
+
+    <div class="footer-note">
+      Estimates for informational purposes only
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== VARIANT 2: KEEP IT RAW ===== -->
+<div class="variant hidden" id="v-raw">
+
+  <div class="header">
+    <div class="header-brand">
+      <h1>$LAB WORTHY<span class="tm">&trade;</span></h1>
+      <div class="subtitle">AI-Powered Grading &bull; Patent Pending</div>
+    </div>
+  </div>
+
+  <div class="results-screen">
+
+    <div class="comic-id">
+      <div class="comic-thumb" style="font-size: 0.45rem; color: var(--text-muted);">COVER</div>
+      <div class="comic-info">
+        <div class="comic-title">Conqueror of the Barren Earth #1</div>
+        <div class="comic-meta">DC &bull; 1985</div>
+      </div>
+    </div>
+
+    <div class="grade-hero">
+      <div class="grade-circle">
+        <div class="grade-circle-inner">
+          <div class="grade-number">7.0</div>
+          <div class="grade-label">FN/VF</div>
+        </div>
+      </div>
+      <div class="verdict-section">
+        <div class="verdict-badge not-worth">KEEP IT RAW</div>
+        <div class="verdict-tagline">Grading costs <strong style="color: #ef4444;">exceed</strong> the expected value increase. Better to enjoy it unslabbed.</div>
+      </div>
+    </div>
+
+    <div class="valuation-strip">
+      <div class="val-card">
+        <div class="val-label">Raw FMV</div>
+        <div class="val-amount raw">$8</div>
+      </div>
+      <div class="val-card">
+        <div class="val-label">Slabbed FMV</div>
+        <div class="val-amount slabbed">$22</div>
+      </div>
+      <div class="val-card">
+        <div class="val-label">Net ROI</div>
+        <div class="val-amount roi-negative">&minus;$16</div>
+      </div>
+    </div>
+
+    <div class="defects-section">
+      <div class="defects-header">
+        <div class="defects-title">Defects Found</div>
+      </div>
+      <div class="defects-grid">
+        <div class="defect-area">
+          <div class="defect-area-label">Front Cover</div>
+          <div class="defect-item"><span class="defect-dot moderate"></span>Moderate corner wear, all 4</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Light foxing, lower margin</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Spine</div>
+          <div class="defect-item"><span class="defect-dot moderate"></span>Stress lines along length</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Small spine tick at staple</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Back Cover</div>
+          <div class="defect-item"><span class="defect-dot minor"></span>Small crease, bottom-left</div>
+        </div>
+        <div class="defect-area">
+          <div class="defect-area-label">Interior</div>
+          <div class="defect-item"><span class="defect-dot moderate"></span>Tanning throughout</div>
+          <div class="defect-item"><span class="defect-dot clean"></span>Centerfold attached</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary">Save to Collection</button>
+      <button class="btn btn-secondary">Grade Next</button>
+    </div>
+
+    <div class="footer-note">
+      Estimates for informational purposes only
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

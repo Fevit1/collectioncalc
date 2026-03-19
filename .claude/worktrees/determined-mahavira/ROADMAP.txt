@@ -1,0 +1,1111 @@
+# Slab Worthy Roadmap
+
+## Current Version: 5.5.0 (March 6, 2026)
+
+### 🎉 PATENTS PENDING
+1. Multi-angle comic grading system (Filed Jan 27, 2026)
+2. Comic fingerprinting theft recovery (Filed Feb 12, 2026)
+
+### 💰 BUSINESS PLANNING (Session 80)
+- Year 1 P&L: 15,000 users (5K comics + 10K baseball cards) → **$739K revenue, $379K net profit (51% margin)**
+- TAM: Comics ~2-5M collectors + ~4K shops | Cards ~15-20M households + ~4K shops
+- First hire planned: Marketing + Front-End Design ($97.5K/yr all-in)
+- Marketing budget: $54K/yr (ads, content, conventions, tools)
+- File: `docs/business/SlabWorthy_Year1_PnL.xlsx`
+
+---
+
+## 🚨 Immediate Priorities
+
+### Pre-Beta MUST-HAVES (COMPLETE)
+- [x] **Privacy Policy** - Updated Feb 15 with Stripe, AWS Rekognition, data retention
+- [x] **Terms of Service** - Updated Feb 15 with 6 new sections
+- [x] **Email system** - Resend configured for slabworthy.com
+- [x] **Support email** - support@slabworthy.com forwarding to Yahoo
+- [x] **Forgot password flow** - Working with Slab Worthy branding
+- [x] **Content moderation system** - AWS Rekognition integration
+- [x] **Stripe Billing** - 4-tier pricing, checkout, customer portal, webhooks
+- [x] **Bot Protection** - Cloudflare Turnstile on verify page
+- [x] **PWA Support** - Installable on mobile devices
+- [x] **Homepage Redesign** - Hero shrink, How It Works 2-step, Track Collection + Protect sections
+- [x] **Verify Page Updates** - Branding cleanup, copy updates
+- [x] **Registry Bug Fix** - Collections table mismatch resolved (critical)
+
+### 🎯 GalaxyCon San Jose Launch (Aug 21-23, 2026)
+**Event:** GalaxyCon San Jose, San Jose McEnery Convention Center
+**Goal:** Public launch with polished product + live booth demos
+**Note:** CGC on-site via One Stop Comic Shop — grading-aware audience
+
+**Timeline:**
+- **July 21** — Soft launch online (public beta, open sign-ups)
+- **Aug 21-23** — GalaxyCon San Jose (alpha launch event, in-person demo)
+
+**Already Complete:**
+- [x] **Valuation endpoint** - `/api/sales/valuation` with grade-specific FMV + slabbing ROI (Session 61)
+- [x] **Vision API backend proxy** - Server-side API key, JWT auth, daily caps (Session 61)
+- [x] **Contact form** - Full form with Turnstile + rate limiting (Session 61)
+- [x] **Grading flow polish** - Mobile-first results screen wired to live site (Session 62)
+- [x] **Results page with valuation** - Grade + value + ROI on one screen, mobile + desktop (Session 62)
+- [x] **Google Play Store (TWA)** - Live on Internal Testing, promote to production pre-launch (Session 62)
+- [x] **Sign-up/onboarding** - Name/phone/marketing fields live, DB migration run, booth codes generated (Session 62)
+- [x] **Photo quality gate** - Resolution + blur check before Claude calls; friendly "retake" message in UI (Session 63)
+- [x] **One-page results report** - Screenshot-friendly or shareable link (Session 63)
+- [x] **Slab detection fields** - is_slabbed, cert number, company, grade, label type in extraction (Session 64)
+- [x] **Sales route refactor** - Split 1,146-line sales.py into 3 domain files (Session 64)
+- [x] **Admin dashboard fix** - Sales Tracked now shows combined eBay + Whatnot totals (Session 64)
+
+**🔴 CRITICAL — Fix Before Anything Else:**
+- [x] **AI grading consistency** — ✅ RESOLVED (Session 81). Multi-run averaging and structured output schema implemented.
+- [x] **Update CGC grading costs** — ✅ RESOLVED (Session 81). Updated from hardcoded values to current CGC pricing.
+
+**Must-Have for July 21 Soft Launch:**
+- [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
+- [ ] **Sell Now Alerts (v1)** - When incoming eBay sale exceeds FMV by >25%, alert users who own that title. Email + in-app badge on My Collection. Killer feature nobody else has. (See Sell Now Alerts section below.)
+- [ ] **Waitlist / email capture** - Add email field to landing page NOW, collect leads for 5 months before soft launch
+- [ ] **Demo mode** - Avoid burning Vision API calls on repeat demos
+- [ ] **Landing page polish** - For organic traffic and post-announcement Googlers
+- [ ] **Signature identification** - Match detected signatures against creator reference DB
+- [ ] **New beta/booth codes** - Generate GalaxyCon-specific codes
+- [ ] **Google Play Store production** - Promote TWA from Internal Testing
+- [ ] **Test Haiku 4.5 for extraction** - If quality is adequate, massive cost savings. Run against 20 reference comics vs Sonnet.
+- [ ] **Second opinion mode** - Run extraction twice, compare, flag disagreements. "Both runs agreed on 9.4" builds trust.
+- [ ] **SEO / content marketing** - Blog posts like "Is my ASM #300 worth grading?" powered by real sales data. Start 2-3 months before launch.
+
+**Must-Have for Aug 21 GalaxyCon:**
+- [ ] **Booth materials** - Flyers, QR codes, demo signage
+- [ ] **Offline demo fallback** - Cached results for when convention WiFi inevitably fails
+- [ ] **Slab label valuation adjustments** - Factor label type (signature series, restored, etc.) into FMV
+- [ ] **Competitive positioning pages** - "Slab Worthy vs CLZ" and "Slab Worthy vs ComicSnap" comparison pages
+
+**Nice-to-Have for GalaxyCon:**
+- [ ] **Slab Guard live demo** - Quick registration flow for booth visitors
+- [ ] **Chrome extension demo** - Slab Guard Monitor for eBay
+- [ ] **Social proof** - Testimonials/stats from soft launch period
+- [ ] **Auction platform integrations** - Whatnot API, eBay listing API for direct "List Now" from collection
+
+### 🃏 Phase 3: Baseball Card Vertical (Post-Launch, Q4 2026)
+**TAM:** 15-20M card-collecting households in US, $2-13B market, ~3,000-5,000 card shops
+**Revenue Impact:** Projects +$493K/yr revenue from 10K card users (P&L modeled)
+**API Note:** 2× cost per call vs comics (front+back analysis, centering, surface detail)
+
+- [ ] **Card grading engine** - Centering, corners, edges, surface scoring (different from comic 8-category)
+- [ ] **Card extraction** - Player, year, set, card number, parallel/insert/auto identification
+- [ ] **PSA/BGS/SGC cost calculator** - Equivalent of CGC ROI for cards
+- [ ] **Card sales data pipeline** - eBay completed listings for baseball cards
+- [ ] **Card-specific Slab Guard** - Front+back fingerprinting for card theft protection
+- [ ] **Multi-vertical UI** - Collection page supports comics AND cards with vertical switcher
+
+### Phase 2 Testing & Bug Fixes (IN PROGRESS)
+- [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
+- [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
+- [x] **AI grading consistency** — ✅ RESOLVED (Session 81)
+- [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
+- [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
+- [x] **Live Slab Guard test** - ✅ Session 80: Full E2E on production (register → stolen → recovered → verify page)
+- [ ] **Slab Guard check UI** - User-facing page to upload a photo and check against registry (currently API-only, no frontend)
+- [ ] **Session 59 test plan** - ~40 of 47 tests still formally untested
+- [ ] **Valuation endpoint testing** - 12-test plan in Valuation_Endpoint_Test_Plan.docx
+
+---
+
+## 🛡️ Slab Guard™ - Theft Protection System (IN PROGRESS - Session 67)
+
+**Goal:** Patent-pending theft recovery system using composite fingerprinting
+
+**Phase 1: Core Registration (Session 67)** ✅
+- [x] Database schema (`comic_registry` table)
+- [x] pHash fingerprinting (imagehash library)
+- [x] Serial number generation (SW-YYYY-NNNNNN format)
+- [x] Registration API endpoint (`/api/registry/register`)
+- [x] Custom shield icon with brand gradient + glow animation
+- [x] Optimistic UI (button appears instantly on save)
+- [x] UI improvements (inline defects, cleaner layout)
+
+**Phase 1.5: Composite Fingerprinting Upgrade (Session 46)** ✅
+- [x] Multi-algorithm composite: pHash + dHash + aHash + wHash
+- [x] All 4 photo angles fingerprinted (front, spine, back, centerfold)
+- [x] JSONB storage in fingerprint_composite column
+- [x] Composite matching in monitor.py with legacy fallback
+- [x] Tested: 309-bit separation between same-comic and different-copy
+- [x] Database migration deployed on production
+- [x] Thresholds: CRITICAL <70, PROBABLE <73, DISMISS >77 (per-angle)
+
+**Phase 1: Public Verification (COMPLETE - Session 44)**
+- [x] Public lookup endpoint (`/api/verify/lookup/:serial_number`)
+- [x] Watermarked cover images (serial number + domain overlay)
+- [x] Privacy protection (email hashing: m***e@g***l.com)
+- [x] Theft status display (Active/Reported Stolen/Recovered)
+- [x] Cloudflare Turnstile bot protection (site key: 0x4AAAAAACdOGsvR1ei9aXB7)
+- [x] Beautiful verify page (slabworthy.com/verify)
+- [x] Deploy verify page (live Feb 15)
+- [x] Fixed column mismatches (publication_year→year, removed username)
+
+**Phase 1.7: SIFT + Edge IoU Copy Matching (Sessions 48-50)** ✅
+- [x] SIFT-based image alignment (geometric correction)
+- [x] Edge IoU computation (strict + 3px dilated)
+- [x] Border inlier counting (SIFT matches on physical defects in border regions)
+- [x] Claude Vision "difference finder" (structured checklist prompt, zoomed crops)
+- [x] Canny edge overlay diagnostic image
+- [x] Void region detection (black warp artifacts excluded)
+- [x] 6/6 correct on same-camera test pairs
+
+**Phase 1.8: Cross-Camera / Marketplace Mode (Sessions 51-53)** ✅
+- [x] Auto-rotation (EXIF + aspect ratio heuristic for rotated phone photos)
+- [x] Marketplace mode: Vision as primary verdict (quant unreliable cross-camera)
+- [x] Cross-camera Vision prompt (environmental warnings, specific defect requirements)
+- [x] Canny overlay removed for marketplace mode (misleads Vision cross-camera)
+- [x] Institutional knowledge embedded in slab_guard_cv.py docstring (15+ failed approaches documented)
+- [x] Refactoring Phase 1: shared fingerprint_utils.py, bare except fix, duplicate boto3 removal
+
+**Phase 1.9: LPQ Texture Fingerprinting (Sessions 54-55)** ✅
+- [x] Tested 7 texture approaches: bandpass, phase correlation, Gabor, LPQ, DCT, gradient, difference RMS
+- [x] LPQ (Local Phase Quantization) identified as only metric with cross-camera separation
+- [x] Key insight: discriminative signal is BORDER WEAR, not paper fiber/halftone
+- [x] Border-only LPQ promoted to primary metric (4.7x stronger separation than full-image)
+- [x] LPQ integrated into compare_covers() and compare_covers_with_vision()
+- [x] LPQ override logic: prevents false same_copy from spurious border inliers
+- [x] Thresholds: border chi2 < 0.25 → SAME, > 0.40 → DIFF (observed: 0.12 vs 0.59-1.38)
+- [x] 6/6 test pairs correct or acceptable
+- [x] Add marketplace_mode parameter to /compare-copies API endpoint (Session 56)
+- [x] Collect more test data — blind test on Handbook #1 (013-015): 3/3 correct (Session 56)
+- [x] Photo quality gate at registration (Session 56)
+
+**Phase 1.10: Blind Testing & Quality Gate (Session 56)** ✅
+- [x] marketplace_mode wired into /compare-copies endpoint (forces Vision, cross-camera prompt)
+- [x] Comprehensive 9-pair metric validation (Handbook #2 + Iron Man #200)
+- [x] Blind test: Handbook #1 serials 013-015 — correctly identified same-copy pair (014=015)
+- [x] 13/15 total pairs correct across 3 titles (6 same-copy, 9 different-copy)
+- [x] Photo quality gate: resolution + blur + SIFT keypoint checks at registration
+- [x] Block truly bad photos (tiny, blurry, featureless), warn marginal, pass good
+- [x] Quality warnings included in registration response with actionable tips
+- [x] PM-level product overview document (SLAB_GUARD_CV_OVERVIEW.md)
+- [x] Push Session 56 changes to deploy
+
+**Phase 1.11: Report to Owner + Anti-Abuse + Random Serials (Session 57)** ✅
+- [x] sighting_reports database table + migration script (db_migrate_sightings.py)
+- [x] POST /api/verify/report-sighting endpoint with Turnstile, rate limiting (3/serial/day)
+- [x] Sighting alert email to owner via Resend (no PII exposure)
+- [x] verify.html: "Report a Sighting" button + form (listing URL, email, message)
+- [x] 3-layer anti-abuse: per-serial (3/day), per-IP (20/day), auto-block (100/day)
+- [x] blocked_reporters table with manual + auto blocking, optional expiration
+- [x] Random alphanumeric serial numbers (SW-2026-7K3M9X, 887M combinations)
+- [x] Unambiguous charset (no 0/O/1/I/L), backward-compatible with old serials
+- [ ] Push Session 57 changes to deploy
+- [ ] Run db_migrate_sightings.py against production database
+- [ ] Frontend: display photo quality warnings to user during registration
+- [ ] Collect more blind test data on additional titles
+
+**Phase 1.12: Check UI + Owner Dashboard (Session 58)** ✅
+- [x] Slab Guard check UI (check.html): upload photo, search registry, tiered detection
+- [x] Tiered access: SIFT-only (free) vs SIFT+Vision+marketplace (logged-in)
+- [x] Cost protection: 10 req/5min rate limit, Vision disabled for anon users
+- [x] Admin stats endpoint (/api/admin/slab-guard-stats) + NLQ schema update
+- [x] Owner dashboard: sighting alerts section on account page
+- [x] GET /api/registry/my-sightings — owner sees all reports for their comics
+- [x] POST /api/registry/sighting-response — owner responds (confirmed_mine / not_mine / investigating)
+- [x] Sighting alert cards with response buttons, unresponded badge count
+- [x] Chrome extension: "Report to Owner" button on match panel, sighting alerts in Owner tab
+- [x] Auth-based Turnstile bypass for extension users (verify.py)
+
+**UX: Single-Screen Slab Report (Mobile)**
+- [ ] Redesign slab report to fit grade + value on one mobile screen
+- [ ] Prevents partial-screenshot misrepresentation (e.g. showing 3.0 grade with 9.0 value)
+- [ ] Brand protection: eliminates ability to make Slab Worthy look inaccurate
+- [ ] Consider: condensed layout, combined grade/value section, or shareable report link
+
+**UX: Footer Standardization** ✅ (Session 59)
+- [x] Audit all pages for inconsistent footers (17 files, 10 with footers, 7 without)
+- [x] Standardize footer across all main pages with: nav links, copyright, patent notice, trademark disclaimer
+- [x] Applied to: app.html, faq.html, login.html, check.html, verify.html, index.html, account.html
+- [x] Full footer already on: about.html, pricing.html, privacy.html, terms.html
+- [x] Fixed mailto links (support@slabworthy.com everywhere)
+
+**Extension: Sales Data Capture** ✅ (Session 59)
+- [x] DOM parser for eBay item pages (title, price, currency, bids, listing type, seller, condition, watchers)
+- [x] Quality filter: sold items always captured, auctions only with bids ≥ 1, zero-bid and active BIN skipped
+- [x] captureSale() in background.js (fire-and-forget), salesCaptureEnabled setting
+- [x] Backend: POST /api/monitor/capture-sale endpoint (inserts into ebay_sales, deduplicates by ebay_item_id, normalizes titles)
+- [x] No new table needed — reuses existing ebay_sales with ON CONFLICT DO NOTHING
+
+**Phase 2: Marketplace Monitoring**
+- [x] eBay extension-based sales capture with bid filter (Session 59)
+- [ ] eBay API integration for listing scraping (server-side supplement)
+- [ ] Whatnot monitoring (if API available)
+- [ ] Composite matching against registered comics (code ready, needs integration)
+- [ ] Email alerts on potential matches
+- [ ] Admin dashboard for reviewing matches
+
+**Phase 3: Reporting & Recovery**
+- [ ] "Report Stolen" button (owner verification required)
+- [ ] Police report number field
+- [ ] Recovery workflow (mark as recovered)
+- [ ] Generate theft report PDF
+- [ ] Integration with law enforcement databases (future)
+
+**Phase 4: eBay Integration**
+- [ ] Auto-include serial number in eBay listing descriptions
+- [ ] Upload watermarked cover to eBay listings
+- [ ] Template text for eBay descriptions
+- [ ] "Verify on SlabWorthy" call-to-action
+
+**Patent Status:** Provisional filed Feb 12, 2026
+
+---
+
+## High Priority
+
+### Stripe Billing & Plan Enforcement (COMPLETE - Session 44)
+
+**What's Deployed:**
+- [x] 4-tier pricing: Free, Pro ($4.99/mo | $49.99/yr), Guard ($9.99/mo | $89.99/yr), Dealer ($24.99/mo | $239.99/yr)
+- [x] Stripe Checkout Sessions (hosted payment page)
+- [x] Customer Portal (manage subscriptions)
+- [x] Webhook handling (5 events)
+- [x] Plan enforcement via check_feature_access()
+- [x] Pricing page redesign (monthly/annual toggle, comparison table, FAQ)
+- [x] 14-day free trial on all paid tiers
+- [x] 30-day refund policy
+- [x] Database: 8 new billing columns on users table
+- [x] Annual pricing shows transparent savings (Pro 17%, Guard 25%, Dealer 20%)
+- [x] Test purchase completed, webhooks verified
+
+### Content Moderation (COMPLETE - Pre-Beta)
+
+**Status:** AWS Rekognition integrated
+- [x] Blocks uploads > 75% confidence for explicit content
+- [x] Warns on suggestive content (50-75%)
+- [x] Moderation incident logging
+- [x] Admin dashboard for monitoring
+- [x] Protects /api/extract, /api/messages, /api/images/submission
+
+**Phase 2: Enhanced Protection (Future)**
+- [ ] Register for NCMEC CyberTipline ESP account (~1 week approval)
+- [ ] Apply for Microsoft PhotoDNA access (~2-4 weeks)
+- [ ] Integrate PhotoDNA for CSAM hash matching
+- [ ] Create incident response procedure document
+
+### 🔥 Sell Now Alerts — Auction Intelligence (NEW - Session 64) 🆕 HIGH PRIORITY
+**Goal:** Alert collectors when market conditions make it a great time to sell a comic they own.
+
+**Why This Is A Killer Feature:**
+- Nobody else does this. ComicSnap, CLZ, ComicBase — none of them proactively tell you when to sell.
+- Turns Slab Worthy from a one-time grading tool into an ongoing value advisor.
+- Drives daily engagement ("Did any of my comics spike?")
+- Natural upsell to paid tiers (free = weekly digest, Pro = real-time alerts)
+- Makes the My Collection page a living dashboard, not a static list.
+
+**How It Works:**
+1. eBay sale comes in via collector extension (or future API scraping)
+2. Compare sale price against current FMV for that title/issue
+3. If sale price > FMV by threshold (e.g., 25%+), it's a "hot sale"
+4. Find all users who have that title in their collection
+5. Alert them: "Amazing Spider-Man #300 just sold for $850 — 40% above FMV. Now may be a great time to sell."
+
+**Phase 1: Core Alerts**
+- [ ] Background job: scan incoming ebay_sales for price spikes vs FMV
+- [ ] `sell_alerts` table: user_id, comic_title, issue, sale_price, fmv_at_time, spike_pct, alert_type, sent_at, read_at
+- [ ] Email alert via Resend (batched daily or real-time based on tier)
+- [ ] In-app notification badge on My Collection page
+- [ ] "Hot Sales" section at top of My Collection showing comics with recent spikes
+
+**Phase 2: My Collection Integration**
+- [ ] "Sell Now" badge/indicator on comics with active price spikes
+- [ ] Sort/filter: "Recommended to sell" view
+- [ ] Show count: "3 of your comics are above FMV right now"
+- [ ] Spike history chart per comic (FMV trend + recent sales overlay)
+
+**Phase 3: Auction Platform Integration**
+- [ ] "List on eBay" button directly from Sell Now alert
+- [ ] "List on Whatnot" button (when Whatnot API available)
+- [ ] Pre-populated listing templates with title, grade, photos from collection
+- [ ] Suggested starting price based on current market spike
+
+**Phase 4: Smart Alerts**
+- [ ] Alert preferences: per-title, per-threshold, frequency (instant/daily/weekly)
+- [ ] Price drop alerts too ("Your X-Men #1 FMV dropped 15% this month")
+- [ ] Trend alerts ("Silver Age Marvel trending up 12% this quarter")
+- [ ] SMS alerts for paid tiers (via Twilio or similar)
+
+**Pricing Tiers:**
+- Free: Weekly digest email (top 3 spikes)
+- Pro: Daily alerts, in-app notifications
+- Guard/Dealer: Real-time alerts, SMS option, all comics tracked
+
+**Technical Notes:**
+- Spike detection runs as post-insert hook on ebay_sales batch endpoint
+- Match against collections table using canonical_title + issue
+- Cache FMV lookups to avoid hammering valuation endpoint
+- Rate limit alerts: max 1 per title per user per 24h
+- Store alert history for "What did I miss?" review
+
+### Whatnot Auction Integration
+**Goal:** Create Whatnot auctions directly from graded comics
+
+**Requirements:**
+- [ ] Whatnot API research / partnership inquiry
+- [ ] Authentication flow
+- [ ] Auction creation endpoint
+- [ ] Listing templates optimized for Whatnot format
+- [ ] "List to Whatnot" button in grade report
+
+**Note:** Landing page promises "Whatnot integration coming soon!" - need timeline
+
+### CSV Collection Import 🆕 HIGH PRIORITY
+**Goal:** Remove switching barrier from competitor apps (CLZ Comics, ComicBase, League of Comic Geeks)
+
+**Why This Matters:**
+- Users with 10k+ comics in other apps won't manually re-enter
+- Switching cost = massive barrier to trying SlabWorthy
+- "Try us without losing your data" is powerful pitch
+- Competitive advantage (most apps don't make this easy)
+
+**Phase 1: Basic CSV Import**
+- [ ] Upload CSV interface (drag/drop + file picker)
+- [ ] Auto-detect common formats (CLZ Comics, ComicBase)
+- [ ] Column mapping UI - Manual: "Their 'Title' → Our 'title'"
+- [ ] Data preview (first 10 rows)
+- [ ] Validation & error flagging
+- [ ] Duplicate detection
+- [ ] Bulk insert to `graded_comics` table
+- [ ] Background job with progress bar (don't block UI for 10k rows)
+- [ ] Import summary report (X imported, Y had issues)
+
+**Phase 2: Enhanced Import**
+- [ ] Platform-specific importers (auto-detect CLZ vs ComicBase format)
+- [ ] Handle photos (if URLs provided in CSV)
+- [ ] Smart field mapping (fuzzy match column names)
+- [ ] Import history/audit log
+- [ ] "Re-grade imported comics" feature (bulk upload photos)
+
+**Supported Competitors:**
+- CLZ Comics (CSV export) - Primary target
+- ComicBase (CSV export)
+- League of Comic Geeks (CSV download)
+- Generic CSV (manual mapping)
+
+**Data Mapping:**
+```
+CLZ Comics → SlabWorthy
+Title → title
+Issue # → issue_number
+Publisher → publisher
+Year → publication_year
+Grade → grade (map text to numeric)
+Purchase Price → purchase_price (custom field)
+Purchase Date → purchase_date (custom field)
+Purchase Location → purchase_location (custom field)
+Storage Location → storage_location (custom field)
+Signed By → signed_by (custom field)
+Notes → custom_notes (custom field)
+```
+
+**Note:** Import depends on Custom Fields feature being built first.
+
+**Success Metrics:**
+- X% of new users import existing collections
+- Average import size (how many comics)
+- Conversion rate: import → first grade → subscribe
+
+### Custom Fields & Enhanced Metadata 🆕 HIGH PRIORITY
+**Goal:** Feature parity with CLZ Comics - don't lose capabilities when switching
+
+**Why This Matters:**
+- CLZ users track purchase price, storage, signatures, etc.
+- If we don't support these, it's a dealbreaker for switchers
+- "Custom fields" is CLZ's main 2026 feature (Feb release)
+- We need this BEFORE users import 10k comics
+
+**Phase 1: Standard Custom Fields**
+- [ ] Purchase price (decimal)
+- [ ] Purchase date (date picker)
+- [ ] Purchase location/store (text)
+- [ ] Storage location (text - "Box 3, Row 2")
+- [ ] Personal notes (textarea)
+- [ ] Signed by (text - comma-separated)
+- [ ] Certificate of Authenticity (boolean + file upload)
+- [ ] Grading company (dropdown: CGC, CBCS, PGX, None)
+- [ ] Slab serial number (text - for CGC/CBCS certs)
+
+**Phase 2: Advanced Custom Fields**
+- [ ] User-defined custom fields (like Notion properties)
+- [ ] Field types: text, number, date, dropdown, checkbox, file
+- [ ] Conditional fields (show "Slab Serial" only if graded)
+- [ ] Bulk edit (update multiple comics at once)
+
+**UI/UX:**
+- Edit custom fields in collection view (inline editing)
+- Show custom fields in expanded comic details
+- Filter by custom fields (e.g., "Show comics in Box 3")
+- Sort by custom fields (e.g., "Most expensive purchases")
+
+### Slab Frame Visualization 🆕 PRIORITY
+**Goal:** Visual distinction for slabbed vs raw comics (like CLZ's Jan 2026 update)
+
+**Why This Matters:**
+- CLZ just added "slab frames" targeting slab collectors
+- Visual representation helps users quickly identify slabbed comics
+- Premium feel for graded comics
+- Shows grading company branding (CGC/CBCS)
+
+**Phase 1: Basic Slab Frames**
+- [ ] Detect if comic is slabbed (grading_company field not null)
+- [ ] Apply slab border/frame in gallery view
+- [ ] Show grading company logo (CGC/CBCS/PGX)
+- [ ] Display slab serial number overlay
+- [ ] Different styling for raw vs slabbed comics
+
+**Phase 2: Enhanced Visuals**
+- [ ] Realistic slab case rendering (3D effect)
+- [ ] Grading label replica (like actual CGC label)
+- [ ] Hover animation (tilt effect like real slab)
+- [ ] Filter: "Slabbed only" / "Raw only"
+- [ ] Stats: "X slabbed, Y raw, Z slab worthy"
+
+**Grading Company Colors:**
+- CGC: Blue/Gold gradient
+- CBCS: Green/Silver
+- PGX: Red/White
+
+### Gamification: Badges, Levels & Rewards 🆕
+**Goal:** Drive engagement, retention, and collection growth through achievements
+
+**Why This Matters:**
+- Collectors are natural completionists — badges tap into that mindset
+- Creates "one more upload" dopamine loops that increase engagement
+- Free month reward at high tiers converts free users to paid
+- Shareable badges = organic marketing ("I just hit Super Avenger on Slab Worthy!")
+- CLZ and competitors have nothing like this
+
+**Phase 1: Collector Badges**
+- [ ] Badge system infrastructure (badge_definitions + user_badges tables)
+- [ ] Upload milestones:
+  - Rookie Collector (1st comic graded)
+  - Rising Star (10 comics)
+  - Serious Collector (50 comics)
+  - Centurion (100 comics)
+  - Vault Keeper (500 comics)
+  - Super Avenger (1,000 comics) ← 1 free month of current plan
+  - Legendary Hoarder (5,000 comics) ← 1 free month + badge on profile
+- [ ] Badge notification toast on unlock ("You just earned Centurion!")
+- [ ] Badge display on account/profile page
+- [ ] Badge artwork (custom icons per tier)
+
+**Phase 2: Activity Badges**
+- [ ] Slab Guard badges:
+  - Guardian (1st comic registered)
+  - Shield Bearer (25 registered)
+  - Vault Master (100 registered)
+- [ ] Value badges:
+  - $1K Club (collection FMV hits $1,000)
+  - $10K Club, $50K Club, $100K Club
+- [ ] Streak badges:
+  - Weekly Grader (graded comics 7 days in a row)
+  - Monthly Maven (graded every week for a month)
+- [ ] Discovery badges:
+  - Golden Age Hunter (graded a Golden Age comic)
+  - Key Issue Finder (graded a key issue worth $500+)
+  - First Edition (graded a first printing)
+
+**Phase 3: Levels & Rewards**
+- [ ] XP system (points per grade, registration, collection action)
+- [ ] Collector levels (Bronze → Silver → Gold → Platinum → Diamond)
+- [ ] Level-up animations
+- [ ] Reward tiers:
+  - Level 5: 1 free week of Pro
+  - Level 10: 1 free month of Pro
+  - Level 20: 1 free month of Guard
+  - Level 50: Lifetime badge + featured collector spotlight
+- [ ] Leaderboard (opt-in, anonymized: "Top 50 collectors by volume")
+
+**Phase 4: Social & Sharing**
+- [ ] Share badges to social media (Instagram, Twitter/X)
+- [ ] Badge showcase on public profile (future)
+- [ ] "Flex your collection" shareable stats card
+- [ ] Referral badge: "Recruited 5 collectors"
+
+**Phase 5: UI/Visualization**
+- [ ] My Collection page badge display:
+  - Current level badge prominently shown (top of page or sidebar)
+  - Level-specific color theme and flourishes (border glow, background gradient)
+  - Progress bar to next level ("42 more comics to Gold!")
+  - Recently earned badges row with unlock animations
+- [ ] Level-based color themes:
+  - Bronze: Warm copper tones
+  - Silver: Cool metallic grays
+  - Gold: Rich gold/amber gradients
+  - Platinum: Sleek platinum/white
+  - Diamond: Prismatic/holographic effect
+- [ ] Collection page adapts to user's level (subtle theme changes, not overwhelming)
+- [ ] Badge showcase section on My Collection (grid of earned + locked badges)
+
+**Phase 6: FAQ & Education**
+- [ ] Gamification FAQ page explaining:
+  - All tiers and how to reach them
+  - Benefits at each level (free months, badges, spotlight)
+  - How XP is earned (grading, registering, streaks)
+  - What badges are available and how to unlock them
+- [ ] In-app tooltips for new users ("Grade your first comic to earn Rookie Collector!")
+- [ ] Level-up celebration modal with confetti animation
+
+**Phase 7: Lifecycle Marketing Integration**
+- [ ] Segment users by engagement level for targeted marketing:
+  - New users (0 comics): Onboarding drip campaign
+  - Casual (1-9 comics): "Upload 1 more to earn Rising Star!" nudges
+  - Active (10-49 comics): Feature education, upsell to Pro
+  - Power users (50-99 comics): Guard tier pitch, Slab Guard education
+  - Whales (100+ comics): Dealer tier, early access features, spotlight
+- [ ] Automated email triggers on badge unlocks ("Congrats! You just earned Centurion!")
+- [ ] Re-engagement campaigns based on streak breaks ("Your Weekly Grader streak is about to end!")
+- [ ] Different CTAs and landing pages per engagement tier
+- [ ] Track engagement level as key metric for conversion optimization
+- [ ] Note: Engagement level = proxy for user value, informs all marketing decisions
+
+**Technical Notes:**
+- Stripe credit system for free month rewards (apply credit to next billing cycle)
+- Badge checks run on save-to-collection and registration events
+- Store badge definitions in DB for easy updates without deploys
+- Badge images: SVG with brand colors (purple/gold/indigo)
+- Lifecycle marketing segments sync with email provider (Resend) tags
+
+### My Collection Feature ✅ COMPLETED (Sessions 38-39)
+**Goal:** Users can save, view, and manage their graded comics
+
+**Desktop:**
+- [x] Collection grid/list view - Dual view system (List default, Gallery view)
+- [x] Gallery view - Framed covers with expand-in-place details
+- [x] Filter by grade, title, value, era
+- [x] Sort options - Series & Issue, Value, Grade, Recently Added
+- [x] Total collection value - Summary stats in header
+- [x] Export to CSV - Plus gallery export (1200×1200 Facebook/Instagram image)
+- [x] Era filter - Golden, Silver, Bronze, Copper, Modern Age
+- [x] My Valuation - Editable custom pricing per comic
+- [x] Defects on hover - Grade tooltip shows detected defects
+- [x] Delete functionality - Red danger button with confirmation
+
+**Mobile:**
+- [x] Responsive gallery grid - Same column count, smaller covers
+- [ ] Swipe actions - Future enhancement
+- [ ] Quick filters - Future enhancement
+- [ ] Bottom sheet for details - Using expand-in-place instead
+
+### Mobile UX: Better Image Picker
+**Problem:** Standard file picker shows tiny thumbnails
+**Desired:** Gallery-style view like native Pixel camera app
+
+**Options:**
+- Custom image picker component with larger previews
+- PWA with File System Access API
+- Native-like gallery grid before upload
+- Consider: Is this worth the complexity?
+
+### User-Facing NLQ Database Queries
+**Goal:** Premium users can query market data using natural language
+
+**Why This Matters:**
+- Powerful research tool for serious collectors
+- Differentiation from competitors
+- Premium tier monetization opportunity
+- Leverages our massive database (market_sales, ebay_sales, grading data)
+
+**Example Queries:**
+- "How many Absolute Batman #1 sales happened in the last week? What's the average price?"
+- "Show me all comics graded 9.6+ this month with centerfold damage"
+- "What's the price trend for Amazing Spider-Man #300 over the last 6 months?"
+- "Find all sales of Spawn #1 reprints vs first prints"
+- "What percentage of X-Men #1 submissions get 9.8 or higher?"
+
+**Implementation:**
+- [ ] NLQ input window in "My Collection" or separate "Research" tab
+- [ ] Query → Claude API → SQL generation
+- [ ] Safety checks (read-only, rate limiting, user data isolation)
+- [ ] Results display (tables, charts, exports)
+- [ ] Usage tracking for billing
+- [ ] Consider: Query history, saved queries, sharing results
+
+**Pricing Considerations:**
+- Free tier: X queries/month
+- Pro tier: Y queries/month
+- Enterprise: Unlimited queries
+- Track API costs and adjust pricing accordingly
+
+**Technical Notes:**
+- Reuse existing NLQ infrastructure from admin panel
+- Add user context to SQL generation (only show their data + public market data)
+- Cache common queries to reduce API costs
+
+**Status:** Concept (noted Session 32, Feb 6 2026)
+
+### User Settings: Auto-Save & Auto-Register 🆕
+**Goal:** Power users can opt into automatic collection save and Slab Guard registration after every grading
+
+**Settings (all default to OFF):**
+- [ ] **Auto-save to My Collection** — After grading completes, automatically save to collection (skip the "Save" button)
+- [ ] **Auto-register with Slab Guard** — After save, automatically register with Slab Guard (skip the "Register" button). Requires Guard tier or higher.
+- [ ] Settings UI in account/settings page with toggle switches
+- [ ] Tooltip explaining what each toggle does
+- [ ] Plan-gate auto-register (only available on Guard/Dealer tiers)
+- [ ] Still show a brief toast notification when auto-actions fire ("Saved to collection" / "Registered with Slab Guard")
+
+**Why This Matters:**
+- Reduces friction for power users uploading many comics
+- Increases Slab Guard registration volume (more fingerprints = stronger network)
+- Feeds gamification — auto-save means faster badge progression
+- Keeps defaults off so new users aren't confused by things happening automatically
+
+---
+
+## Medium Priority
+
+### Defect Image Linking (Results Page)
+**Goal:** Each detected defect links to a cropped/annotated region of the user's cover photo
+**Why This Matters:**
+- Builds trust in the AI grade — users can see *exactly* what was found
+- Strong booth demo feature ("Look, it found this corner crease")
+- Differentiator — no competitor shows visual proof of defects
+
+**Implementation:**
+- [ ] Vision API returns location data (coordinates or quadrant) for each defect
+- [ ] Crop or annotate the original cover photo at each defect location
+- [ ] Store defect images alongside grading results (Supabase storage or R2)
+- [ ] Tappable defect items in results UI — opens overlay/bottom sheet with zoomed image
+- [ ] Bounding box or highlight overlay on the defect region
+- [ ] Fallback: quadrant-based crop if Vision only returns text like "top-right"
+
+### Two-Factor Authentication (Backlog)
+**Recommendation:** TOTP (authenticator app) - best security/simplicity balance
+
+**Options ranked by complexity:**
+1. **Email-based** (1-2 hrs) - Send 6-digit code, already have Resend
+2. **TOTP** (2-3 hrs) - Google Authenticator, use `pyotp` library ← RECOMMENDED
+3. **SMS** (ongoing cost) - Twilio, less secure than TOTP
+4. **Passkeys/WebAuthn** (complex) - Most secure, most complex
+
+### AI-Powered Support Inbox
+**Current:** support@slabworthy.com forwards to Yahoo
+**Future:** Route through Claude for auto-responses/triage
+
+```
+Email → Resend webhook → API → Claude → auto-respond or escalate
+```
+
+### Branding Consistency
+- [x] Update email templates - now say "Slab Worthy"
+- [x] CollectionCalc.com placeholder - Coming soon page with professional branding (Session 39)
+- [ ] Update Chrome extensions to reference Slab Worthy
+- [ ] Consider more playful tone - "Slab Worthy" is casual phrase
+
+### Technical Debt: wsgi.py Refactoring
+**Current:** ~1,900 lines
+**Threshold:** Refactor at ~2,500 lines
+
+**Plan:** Split using Flask Blueprints
+```
+wsgi.py (main app, ~200 lines)
+routes/
+  auth.py      - authentication endpoints
+  admin.py     - admin/NLQ endpoints
+  sales.py     - FMV, market data
+  images.py    - R2 upload, barcode scanning
+  grading.py   - extraction, grading
+```
+
+### Analytics Improvements
+Current: Basic admin console analytics
+Consider:
+- [ ] User journey tracking (where do people drop off?)
+- [ ] Grading completion rates
+- [ ] Popular comic titles
+- [ ] Time-to-grade metrics
+- [ ] A/B testing framework
+
+---
+
+## Privacy & Compliance
+
+### Completed ✅
+- [x] Privacy policy (slabworthy.com/privacy.html)
+- [x] Terms of service (slabworthy.com/terms.html)
+- [x] Email verification system
+- [x] Password reset flow
+- [x] Support email (support@slabworthy.com)
+
+### Future Enhancements
+- [ ] Add "Delete my account" option in user settings
+- [ ] Add "Export my data" option
+- [ ] Cookie consent component (if adding tracking)
+- [x] Contact form with topic routing ✅ (Session 61 — contact.html + routes/contact.py)
+
+---
+
+## Recently Completed
+
+### Session 81 - Collection Page Refactor + Sort Fix (March 6, 2026)
+- [x] Refactored collection.html from 3,925-line monolith into 5 modular files
+  - collection.html (410 lines) — Pure HTML shell + auth gate
+  - js/collection.css (1,745 lines) — All extracted styles
+  - js/collection.js (922 lines) — Core collection logic
+  - js/ebay-modal.js (453 lines) — eBay listing modal
+  - js/marketplace-modal.js (406 lines) — Marketplace prep modal
+- [x] Fixed duplicate sortSelect ID bug — list and gallery views now have separate sort dropdowns
+- [x] Sort dropdowns show/hide correctly on view toggle
+
+### Session 45 - Homepage Redesign & Registry Fix (February 16, 2026)
+- [x] Homepage redesign: Hero 100vh→70vh, How It Works 4→2 steps
+- [x] New "Track Your Collection" section with dashboard mockup
+- [x] New "Slab Guard - Protect" section with fingerprint description
+- [x] Verify page branding cleanup: "Slab Guard™" header
+- [x] App.html updates: removed camera icons, improved error messages
+- [x] Registry bug fix (CRITICAL): collections table vs graded_comics mismatch
+- [x] FAQ expanded: 6 new "Slab Guard™" questions
+- [x] Discovered AI grading inconsistency and comic ID bugs (logged for investigation)
+
+### Session 44 - Stripe Billing & PWA (February 15, 2026)
+- [x] Stripe billing system (4-tier pricing)
+- [x] Plan enforcement (check_feature_access())
+- [x] Pricing page redesign (monthly/annual toggle)
+- [x] Cloudflare Turnstile bot protection (verify page)
+- [x] PWA support (manifest, service worker, icons)
+- [x] Legal docs updated (Terms, Privacy)
+- [x] Bug fixes: token naming, login redirect, env vars, column mismatches
+- [x] Stripe setup guide completed by Mike
+- [x] Database migrations (billing columns, match_reports table)
+
+### Session 39 - Gallery View & Export (February 10, 2026)
+- [x] Gallery view with framed covers - Replaced grid view
+- [x] Expand-in-place details - Click cover to show info below
+- [x] Export gallery feature - 1200×1200 Facebook/Instagram image with watermark
+- [x] Era filter - Golden, Silver, Bronze, Copper, Modern Age (1938-2026)
+- [x] Enhanced sort options - Series & Issue (groups by title), Value, Grade, Recently Added
+- [x] List view as default - Table layout shows first instead of grid
+- [x] My Valuation column - Editable input with auto-save between FMV and Actions
+- [x] Defects on hover - Grade badge shows tooltip with detected defects
+- [x] Actions column repositioned - Widened to 3fr, delete button at far right
+- [x] CollectionCalc placeholder - Coming soon page with Tony Stark quote
+- [x] Cloudflare redirects - Routes collectioncalc.com to placeholder
+
+### Session 38 - Collection Display Fix (February 10, 2026)
+- [x] Fixed backend/frontend data mismatch - Changed data.collection to data.items
+- [x] Table layout for list view - 7-column grid with headers
+- [x] Photo display structure - front/spine/back/centerfold priority
+- [x] Delete button styling - Red danger class with hover effect
+- [x] Dual-view system - Both grid and list views working
+- [x] Summary stats - Total comics, raw value, slabbed value, potential profit
+
+### Session 35 - Mobile Polish & FAQ (February 9, 2026)
+- [x] Created comprehensive FAQ page (18 questions, 5 categories)
+- [x] Fixed mobile header layout (logo left, avatar right)
+- [x] Removed fixed button positioning (no more footer overlap)
+- [x] Moved "Patent Pending" to correct location (Slab Worthy™, not Slab Report)
+- [x] Fixed thinking messages protocol (30s serious, then 20% funny)
+- [x] Simplified mobile toggle (tap labels directly, no switch)
+- [x] Added landscape mode optimization (no reload needed)
+- [x] Fixed home page logo wrapping on desktop
+- [x] Updated page title to "AI for Comic Collectors"
+- [x] Removed duplicate logo from login page
+- [x] Enhanced BRAND_GUIDELINES.txt with technical implementation notes
+
+### Session 25 - Email System (February 3, 2026 Evening)
+- [x] Deployed privacy.html and terms.html
+- [x] Configured Resend for slabworthy.com (DKIM, SPF, MX)
+- [x] Set up support@slabworthy.com → Yahoo forwarding
+- [x] Rebranded all email templates to "Slab Worthy"
+- [x] Tested forgot password flow end-to-end
+- [x] Updated Render env vars (RESEND_FROM_EMAIL, FRONTEND_URL)
+
+### Session 24 - Legal Docs (February 3, 2026)
+- [x] Drafted privacy.html
+- [x] Drafted terms.html
+- [x] Prohibited content policy with CSAM/NCMEC language
+- [x] Trademark acknowledgments (CGC, CBCS, publishers)
+
+### v4.2.1 - Reprint Filter (Session 23)
+- [x] FMV excludes reprints (barcode + text detection)
+- [x] Filters: "2nd print", "3rd print", "reprint"
+
+### v4.2.0 - eBay Data Integration (Session 23)
+- [x] FMV queries both market_sales AND ebay_sales
+- [x] 10x more sales data for valuations
+- [x] Source breakdown in response
+
+### v4.1.0 - Slab Worthy Rebrand (Session 23)
+- [x] slabworthy.com live as custom domain
+- [x] New branding throughout
+- [x] Removed Photo Upload tab
+- [x] Slab Worthy as default tab
+- [x] Comic-shaped upload boxes
+- [x] Desktop/mobile text variants
+
+### v4.0.0 - Docker + Barcode (Session 22)
+- [x] Docker deployment with pyzbar
+- [x] Barcode scanning live
+- [x] UPC storage in database
+
+---
+
+## Known Bugs
+
+**Active:**
+- [x] ✅ **Cover not displaying** — FIXED (Session 81). Iron Man #200 photos now showing.
+- [x] ✅ **AI grading inconsistency** — FIXED (Session 81). Multi-run averaging + structured output.
+- [ ] 🔴 **Comic identification bug** - Ghost Rider reboot #1 vs original #1 confusion
+- [x] ✅ **Auto-rotation steps 2-4** — FIXED (Session 81).
+- [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
+- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API (needs verification)
+
+**Fixed in Session 45:**
+- [x] ✅ **Registry bug (CRITICAL)** - Collections table mismatch, issue_number→issue column fix
+
+**Fixed in Session 44:**
+- [x] ✅ **Token name mismatch** - pricing.html and account.html used jwt_token, but login stored cc_token
+- [x] ✅ **Login redirect inconsistency** - 4 different locations with different implementations
+- [x] ✅ **Stripe env var naming** - Code expected _PRICE_ID but Render had _PRICE
+- [x] ✅ **verify.py column mismatches** - publication_year→year, removed username field
+
+---
+
+## Backlog
+
+### Features
+- [ ] **Price trend sparklines** - Inline 30-day price history charts (Session 39)
+  - Status: Awaiting data density (need 5+ sales per comic in 30-day window)
+  - Current: 30k total sales, ~3k/day added, but spread across thousands of titles
+  - Implementation: Weekly bucketing, rolling average, outlier filtering
+  - Timeline: Re-evaluate in 3-6 months when 50%+ of collection has sufficient data
+  - Placement: Between FMV and My Valuation columns
+- [ ] Two-factor authentication (TOTP)
+- [ ] AI-powered support inbox
+- [ ] Grade report sharing/export (PDF, image)
+- [ ] Batch grading (multiple comics)
+- [ ] Price alerts ("notify me when ASM #300 drops below $X")
+- [ ] Grading history / trends
+- [ ] Social features (share grades, compare collections)
+- [ ] API for third-party integrations
+
+### Extensions
+- [ ] Update Chrome extensions to Slab Worthy branding
+- [ ] Firefox extension
+- [ ] Safari extension
+
+### Integrations
+- [ ] Whatnot API (auction creation)
+- [ ] eBay listing improvements
+- [ ] CGC submission integration
+- [ ] CBCS submission integration
+
+---
+
+## Competitive Landscape
+
+### Direct Competitors (Collector-Focused)
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **CLZ Comics** | Collection management | ~$3/mo | HIGH | Largest user base, added slab frames Jan 2026, custom fields Feb 2026, Cover Scanner v10.6 improving. No AI grading, no theft protection. If they add AI grading, they already have the user base. |
+| **ComicBase** | Desktop collection DB | One-time $50-150 | MEDIUM | Legacy desktop software. Power users love it. No mobile, no AI. |
+| **League of Comic Geeks** | Social + collection | Free/Premium | MEDIUM | Strong community, weak on grading/valuation. |
+
+### AI Grading Competitors (NEW - as of Feb 2026) 🔴
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **ComicSnap** | AI identification + grading + pricing | Free/Pro tiers | HIGH | Live on App Store + Google Play. Snap photo → ID + grade + price. Direct competitor to our core flow. No theft protection, no multi-angle, no ROI calc. |
+| **ComicMintAI** | AI grading reports | Unknown | MEDIUM | Generates CGC-style reports from photos. Newer entrant. |
+| **Comic Grader AI** | Computer vision defect detection | Unknown | MEDIUM | comicgradeai.com - Uses CV for defect detection. Feature-focused. |
+| **CGC + Accrete.ai ("Treasure Hunter")** | AI authentication + grading + valuation | Unknown | CRITICAL | CGC partnering with Accrete.ai on automated grading. If CGC launches their own AI pre-grade tool, massive threat. Our advantage: we're independent and compare across grading companies. |
+
+### Adjacent Competitors (Dealer/Inventory-Focused)
+| Competitor | Focus | Pricing | Threat Level | Notes |
+|-----------|-------|---------|--------------|-------|
+| **P.I.M. (pim-pro.com)** | Multi-channel inventory for comic shops | $40-400/mo | WATCH | Founded by Danny Haro (Kobra Comics, Whittier CA). Syncs eBay, Amazon, HipComic, Whatnot, Clover POS, Square POS. Claims AI grading with "99% accuracy." Currently dealer-focused but could expand to collectors. |
+| **HipComic** | Marketplace + inventory | Commission-based | LOW | More marketplace than tool. |
+
+### Slab Worthy Differentiators (What Nobody Else Has)
+1. **Patent-pending multi-angle AI grading** — No competitor does 4-angle composite grading
+2. **Slab Guard™ theft protection** — Fingerprinting, registration, marketplace monitoring. Completely unique.
+3. **Sell Now Alerts** — Real-time auction intelligence telling collectors WHEN to sell (see below). Nobody has this.
+4. **Slab detection + label analysis** — Extracts cert number, company, grade, and label type (sig series, restored, etc.)
+5. **FMV + AI grade + ROI in one flow** — Grade → Value → Protect in a single session
+6. **Gamification system** — Badges, levels, rewards. No competitor has engagement loops.
+
+### Competitive Strategy
+- **vs CLZ:** Win on AI intelligence (grading, valuation, sell alerts) + theft protection. They're a database; we're an AI assistant.
+- **vs ComicSnap:** We have multi-angle grading (patent-pending), Slab Guard, ROI calculator, and sell alerts. They have simpler UX. Beat them on depth and accuracy.
+- **vs CGC/Accrete.ai:** We're vendor-neutral. CGC's tool will only know CGC data. We aggregate across CGC, CBCS, eBay, Whatnot.
+- **vs P.I.M.:** Different lanes for now (collectors vs dealers). Monitor for expansion into collector market.
+- **vs All:** Slab Guard + Sell Now Alerts is the moat — nobody else has comic fingerprinting + theft recovery + auction intelligence.
+
+### Potential Partnerships & Licensing
+- [ ] **P.I.M. / Slab Guard licensing** — Dealers using P.I.M. could benefit from Slab Guard theft protection for high-value inventory. Offer Slab Guard as a white-label API or integration partner. Their dealer base = our registration volume.
+- [ ] **Comic shops** — Slab Guard API for brick-and-mortar shops to register inventory on intake
+- [ ] **Grading companies (CGC/CBCS)** — Slab Guard integration at point of grading (long-term vision)
+- [ ] **Insurance companies** — Slab Guard registration as proof of ownership for collectibles insurance
+
+---
+
+## Multi-Vertical Expansion
+
+### "Worthy" Brand Family Vision
+
+| Vertical | Brand | Grading Cos | Market Size | Revenue Potential |
+|----------|-------|-------------|-------------|-------------------|
+| **Comics** | Slab Worthy | CGC, CBCS | 500K-1M graded/year | $15-25M |
+| **Sports Cards** | CardWorthy? | PSA, BGS, SGC | $10B+ industry | $25-40M |
+| **Pokemon/TCG** | CardWorthy? | PSA, BGS, CGC | Huge Gen Z/Millennial | $15-25M |
+| **Coins** | CoinWorthy? | PCGS, NGC | Established market | $15-25M |
+| **Sneakers** | SoleWorthy? | - | Authentication focus | $10-20M |
+
+### Expansion Timeline
+- **Phase 1 (2026):** Comics - prove the model ✅ IN PROGRESS
+- **Phase 2 (2027):** Sports Cards + Pokemon
+- **Phase 3 (2028):** Coins
+- **Phase 4 (2029+):** Expand based on data
+
+---
+
+## Finance & Fundraising
+
+### Current State (Feb 15, 2026)
+- Bootstrapped, low burn (~$35-70/mo infrastructure)
+- Single founder (Mike)
+- Pricing tiers LIVE (Stripe test mode)
+- Building toward private beta with paying users
+- Collecting recurring revenue metrics for Series A pitch
+
+### Pricing Tiers LIVE
+- **Free:** $0 (14-day trial, then limited features)
+- **Pro:** $4.99/mo ($49.99/yr, 17% off)
+- **Guard:** $9.99/mo ($89.99/yr, 25% off)
+- **Dealer:** $24.99/mo ($239.99/yr, 20% off)
+
+### Financial Model (To Complete)
+- [ ] Projected revenue by tier (assume % conversions)
+- [ ] Customer acquisition cost (CAC)
+- [ ] Lifetime value (LTV)
+- [ ] Break-even timeline
+- [ ] Fundraising ask (Series A targets)
+
+---
+
+## Patent Coverage
+
+**Title:** System and Method for Automated Comic Book Condition Assessment Using Multi-Angle Imaging and Artificial Intelligence
+
+**Status:** Provisional filed January 27, 2026
+**Deadline:** File utility patent by January 27, 2027
+
+---
+
+## Version History
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| 5.3.0 | Feb 24, 2026 | Google Play Store live (Internal Testing), booth codes generated (OAKLAND2026), Play Console account created |
+| 5.2.0 | Feb 24, 2026 | Results screen wired to live site, signup fields (name/phone/marketing), TWA for Google Play, Digital Asset Links |
+| 5.0.0 | Feb 23, 2026 | Vision API backend proxy, contact form, valuation endpoint, GalaxyCon alpha planning |
+| 4.9.0 | Feb 20, 2026 | LPQ texture fingerprinting: border-only LPQ as primary cross-camera metric |
+| 4.8.0 | Feb 18-20, 2026 | SIFT + Edge IoU copy matching, marketplace mode, Vision integration |
+| 4.7.0 | Feb 17, 2026 | Composite fingerprinting upgrade (pHash + dHash + aHash + wHash) |
+| 4.6.0 | Feb 16, 2026 | Homepage redesign, registry bug fix, verify page updates, FAQ expansion |
+| 4.5.0 | Feb 15, 2026 | Stripe billing, PWA, bot protection, legal docs updated |
+| 4.4.0 | Feb 11, 2026 | Year column, performance optimization |
+| 4.3.2 | Feb 9, 2026 | Mobile polish, FAQ page, brand alignment |
+| 4.3.1 | Feb 8, 2026 | Mobile UX improvements |
+| 4.3.0 | Feb 6, 2026 | Blueprint refactor (wsgi.py split) |
+| 4.2.4 | Feb 7, 2026 | Single-page upload flow |
+| 4.2.1 | Feb 2, 2026 | Reprint filter |
+| 4.2.0 | Feb 2, 2026 | eBay data in FMV |
+| 4.1.0 | Feb 2, 2026 | Slab Worthy rebrand |
+| 4.0.0 | Feb 2, 2026 | Docker + barcode scanning |
+| 3.0.0 | Feb 1, 2026 | eBay Collector extension |
+
+# Analytics & Experimentation - ROADMAP ADDITION
+
+## Add this to Medium Priority section, replacing the current "Analytics Improvements" section:
+
+---
+
+### Analytics & Experimentation Platform
+
+**Current State:** Basic admin console analytics only
+**Goal:** Data-driven product decisions + automated optimization
+
+#### Phase 1: PostHog Integration (Post-Beta)
+**Why PostHog:** All-in-one (analytics + A/B tests + session replay), open source, generous free tier (1M events/mo)
+
+- [ ] Add PostHog JS snippet to frontend
+- [ ] Configure key events to track:
+  - `grading_started` - User begins 4-photo flow
+  - `photo_uploaded` - Each photo step (with step number)
+  - `grading_completed` - Full flow completed
+  - `grading_abandoned` - User exits mid-flow (with last step)
+  - `verdict_shown` - "Worth the slab" or "Keep it raw" displayed
+  - `save_to_collection` - User saves result
+  - `signup_started` / `signup_completed`
+- [ ] Set up conversion funnels:
+  - Landing → Signup → First Grade → Save to Collection
+  - Photo 1 → Photo 2 → Photo 3 → Photo 4 → Result
+- [ ] Enable session replay for debugging UX issues
+- [ ] Create dashboard for key metrics
+
+**Key Metrics to Track:**
+- Grading completion rate (% who finish all 4 photos)
+- Drop-off by step (where do people abandon?)
+- Time-to-grade (how long does full flow take?)
+- Verdict distribution (what % are "worth the slab"?)
+- Popular titles/issues being graded
+
+#### Phase 2: Manual A/B Testing
+- [ ] Set up first experiment: Tagline test
+  - A: "Know before you slab"
+  - B: "The pre-grade gut check"
+  - C: "Should you slab it?"
+  - Measure: Signup conversion rate
+- [ ] Test CTA button copy ("Check a Comic" vs "Grade My Comic" vs "Get Started")
+- [ ] Test pricing page layouts (when ready)
+- [ ] Document experiment results and learnings
+
+#### Phase 3: AI-Assisted Experimentation (Future)
+**Vision:** AI proposes experiments, runs them, analyzes results, proposes iterations
+
+**Architecture (integrate with RelevantSee platform):**
+```
+PostHog event data
+    ↓
+RelevantSee AI Engine
+    ↓
+Analyzes: What's underperforming? What patterns exist?
+    ↓
+Proposes: "Test headline X vs Y based on [reasoning]"
+    ↓
+Human approves (or auto-approve low-risk tests)
+    ↓
+Experiment runs via PostHog feature flags
+    ↓
+AI analyzes results, proposes next iteration
+    ↓
+Weekly digest to human: "Here's what we tested and learned"
+```
+
+**Candidate areas for AI-driven testing:**
+- Headlines and taglines
+- CTA button text and colors
+- Email subject lines
+- Onboarding flow sequence
+- Feature flag rollouts
+
+**Shared Service Vision:**
+This becomes a RelevantSee microservice that Slab Worthy, PSAWorthy, CoinWorthy, etc. all call. One AI experimentation engine powering the whole "Worthy" brand family.
+
+---
+
+## Also add to Backlog section:
+
+### AI Experimentation Service (RelevantSee Integration)
+- [ ] Define API contract between Worthy sites and RelevantSee
+- [ ] Build experiment proposal engine (AI analyzes data, suggests tests)
+- [ ] Build auto-analysis engine (AI interprets results)
+- [ ] Human-in-the-loop approval workflow
+- [ ] Weekly digest generation
+- [ ] Consider: Bandit algorithms for faster convergence
+
+---
+
+*Last updated: February 25, 2026 (Session 64)*

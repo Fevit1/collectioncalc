@@ -1,0 +1,227 @@
+diff --git a/account.html b/account.html
+index b4c0af0..821374a 100644
+--- a/account.html
++++ b/account.html
+@@ -252,6 +252,58 @@
+         .btn-disconnect { background: transparent; color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+         .btn-disconnect:hover { border-color: #ef4444; color: #ef4444; }
+ 
++        /* My Selling Platforms */
++        .platforms-card {
++            background: var(--bg-card);
++            border: 1px solid rgba(124, 58, 237, 0.2);
++            border-radius: 16px;
++            padding: 1.75rem;
++            margin-bottom: 1.5rem;
++        }
++        .platforms-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.5rem 0; }
++        .platforms-card .platforms-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.25rem; }
++        .platform-toggle-row {
++            display: flex;
++            align-items: center;
++            justify-content: space-between;
++            padding: 0.6rem 0;
++            border-bottom: 1px solid rgba(124, 58, 237, 0.08);
++        }
++        .platform-toggle-row:last-child { border-bottom: none; }
++        .platform-toggle-info { display: flex; align-items: center; gap: 0.75rem; }
++        .platform-toggle-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
++        .platform-toggle-name { font-size: 0.9rem; font-weight: 500; }
++        .platform-toggle-type { font-size: 0.7rem; color: var(--text-secondary); margin-left: 0.5rem; }
++        .platform-toggle {
++            position: relative;
++            width: 40px;
++            height: 22px;
++            flex-shrink: 0;
++        }
++        .platform-toggle input { opacity: 0; width: 0; height: 0; }
++        .platform-toggle .slider {
++            position: absolute;
++            inset: 0;
++            background: rgba(148, 163, 184, 0.3);
++            border-radius: 22px;
++            cursor: pointer;
++            transition: background 0.2s;
++        }
++        .platform-toggle .slider::before {
++            content: '';
++            position: absolute;
++            width: 16px;
++            height: 16px;
++            left: 3px;
++            bottom: 3px;
++            background: white;
++            border-radius: 50%;
++            transition: transform 0.2s;
++        }
++        .platform-toggle input:checked + .slider { background: #7c3aed; }
++        .platform-toggle input:checked + .slider::before { transform: translateX(18px); }
++        .platform-toggle input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
++
+         .sighting-section {
+             margin-bottom: 1.5rem;
+         }
+@@ -545,6 +597,13 @@
+                 </div>
+             </div>
+ 
++            <!-- My Selling Platforms -->
++            <div class="platforms-card" id="platforms">
++                <h3>My Selling Platforms</h3>
++                <div class="platforms-subtitle">Toggle on the platforms you sell on. Only enabled platforms appear in your Sell menu.</div>
++                <div id="platformToggles"></div>
++            </div>
++
+             <!-- Sighting Alerts Section -->
+             <div class="sighting-section" id="sightingSection" style="display: none;">
+                 <div class="sighting-header">
+@@ -914,10 +973,55 @@
+             } catch (e) { alert('Connection error. Please try again.'); }
+         }
+ 
++        // ── My Selling Platforms ────────────────────────────────
++        const SELL_PLATFORM_LIST = [
++            { key: 'ebay', name: 'eBay', color: '#e53238', type: 'Direct Listing', alwaysOn: true },
++            { key: 'whatnot', name: 'Whatnot', color: '#e67e22', type: 'Live Auction Prep' },
++            { key: 'mercari', name: 'Mercari', color: '#4dc0b5', type: 'Fixed Price Prep' },
++            { key: 'facebook', name: 'Facebook Marketplace', color: '#1877f2', type: 'Fixed Price Prep' },
++            { key: 'heritage', name: 'Heritage Auctions', color: '#1a3c6e', type: 'Consignment Prep' },
++            { key: 'comicconnect', name: 'ComicConnect', color: '#cc0000', type: 'Consignment Prep' },
++            { key: 'mycomicshop', name: 'MyComicShop', color: '#336699', type: 'Consignment Prep' },
++            { key: 'comc', name: 'COMC', color: '#e67e22', type: 'Consignment Prep' },
++            { key: 'hipcomic', name: 'Hip Comics', color: '#8b5cf6', type: 'Consignment Prep' }
++        ];
++
++        function getSellPlatformPrefs() {
++            try { return JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); }
++            catch (e) { localStorage.removeItem('sw_sell_platforms'); return {}; }
++        }
++
++        function loadPlatformPrefs() {
++            const saved = getSellPlatformPrefs();
++            const container = document.getElementById('platformToggles');
++            container.innerHTML = SELL_PLATFORM_LIST.map(p => {
++                const isOn = p.alwaysOn || saved[p.key] === true;
++                return `<div class="platform-toggle-row">
++                    <div class="platform-toggle-info">
++                        <div class="platform-toggle-dot" style="background:${p.color}"></div>
++                        <span class="platform-toggle-name">${p.name}</span>
++                        <span class="platform-toggle-type">${p.type}</span>
++                    </div>
++                    <label class="platform-toggle">
++                        <input type="checkbox" ${isOn ? 'checked' : ''} ${p.alwaysOn ? 'disabled' : ''}
++                               onchange="savePlatformPref('${p.key}', this.checked)">
++                        <span class="slider"></span>
++                    </label>
++                </div>`;
++            }).join('');
++        }
++
++        function savePlatformPref(key, enabled) {
++            const saved = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}');
++            saved[key] = enabled;
++            localStorage.setItem('sw_sell_platforms', JSON.stringify(saved));
++        }
++
+         // Load
+         loadAccount();
+         loadSightings();
+         loadEbayStatus();
++        loadPlatformPrefs();
+     </script>
+     <!-- Service Worker -->
+     <script>
+diff --git a/collection.html b/collection.html
+index ffd3ef9..38b4dbd 100644
+--- a/collection.html
++++ b/collection.html
+@@ -373,6 +373,23 @@
+             position: relative;
+         }
+ 
++        .sell-dropdown-item.disabled {
++            opacity: 0.35;
++            pointer-events: none;
++        }
++
++        .sell-dropdown-manage {
++            display: block;
++            text-align: center;
++            padding: 0.5rem;
++            font-size: 0.7rem;
++            color: var(--brand-purple);
++            text-decoration: none;
++            border-top: 1px solid rgba(124, 58, 237, 0.15);
++            cursor: pointer;
++        }
++        .sell-dropdown-manage:hover { text-decoration: underline; }
++
+         .sell-dropdown-item {
+             display: flex;
+             align-items: center;
+@@ -1639,17 +1656,21 @@
+ 
+             const targetDropdown = event.target.closest('.sell-dropdown-wrapper').querySelector('.sell-dropdown');
+ 
+-            // Build dropdown content if empty
+-            if (!targetDropdown.innerHTML) {
+-                targetDropdown.innerHTML = SELL_PLATFORMS.map(p => {
+-                    if (p.divider) return '<div class="sell-dropdown-divider"></div>';
+-                    return `<button class="sell-dropdown-item" onclick="event.stopPropagation(); sellAction('${p.action}', '${p.key}', ${comicId})">
+-                        <span class="platform-dot" style="background:${p.color}"></span>
+-                        ${p.name}
+-                        <span class="platform-tag">${p.tag}</span>
+-                    </button>`;
+-                }).join('');
+-            }
++            // Build dropdown content (rebuild each time to reflect preference changes)
++            let prefs = {};
++            try { prefs = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); } catch(e) {}
++            targetDropdown.innerHTML = SELL_PLATFORMS.map(p => {
++                if (p.divider) return '<div class="sell-dropdown-divider"></div>';
++                // eBay always enabled; prep platforms check prefs
++                const enabled = p.action === 'ebay' || prefs[p.key] === true;
++                const cls = enabled ? '' : ' disabled';
++                const click = enabled ? `onclick="event.stopPropagation(); sellAction('${p.action}', '${p.key}', ${comicId})"` : '';
++                return `<button class="sell-dropdown-item${cls}" ${click}>
++                    <span class="platform-dot" style="background:${p.color}"></span>
++                    ${p.name}
++                    <span class="platform-tag">${p.tag}</span>
++                </button>`;
++            }).join('') + '<a class="sell-dropdown-manage" href="/account.html#platforms" onclick="event.stopPropagation()">Manage Platforms</a>';
+ 
+             targetDropdown.classList.toggle('active');
+             // Elevate the parent card so dropdown escapes stacking context
+diff --git a/js/sidebar.js b/js/sidebar.js
+index dc2838c..92f0d8a 100644
+--- a/js/sidebar.js
++++ b/js/sidebar.js
+@@ -378,9 +378,25 @@
+             <a href="/collection.html" class="sw-sidebar-item ${isActive('ebay')}" data-tooltip="eBay Listings">
+                 <span class="sw-icon">&#128176;</span> <span class="sw-label">eBay Listings</span>
+             </a>
+-            <a href="#" onclick="alert('Whatnot Prep \u2014 coming soon!'); return false;" class="sw-sidebar-item ${isActive('whatnot')}" data-tooltip="Whatnot Prep">
+-                <span class="sw-icon">&#127908;</span> <span class="sw-label">Whatnot Prep</span>
+-            </a>
++            ${(() => {
++                let prefs = {};
++                try { prefs = JSON.parse(localStorage.getItem('sw_sell_platforms') || '{}'); } catch(e) {}
++                const platforms = [
++                    { key: 'whatnot', icon: '&#127908;', name: 'Whatnot Prep' },
++                    { key: 'mercari', icon: '&#127991;&#65039;', name: 'Mercari Prep' },
++                    { key: 'facebook', icon: '&#128172;', name: 'FB Marketplace' },
++                    { key: 'heritage', icon: '&#127963;&#65039;', name: 'Heritage' },
++                    { key: 'comicconnect', icon: '&#128279;', name: 'ComicConnect' },
++                    { key: 'mycomicshop', icon: '&#128214;', name: 'MyComicShop' },
++                    { key: 'comc', icon: '&#128230;', name: 'COMC' },
++                    { key: 'hipcomic', icon: '&#127925;', name: 'Hip Comics' }
++                ];
++                return platforms.filter(p => prefs[p.key]).map(p =>
++                    `<a href="/collection.html" class="sw-sidebar-item ${isActive(p.key)}" data-tooltip="${p.name}">
++                        <span class="sw-icon">${p.icon}</span> <span class="sw-label">${p.name}</span>
++                    </a>`
++                ).join('');
++            })()}
+         </div>
+ 
+         <div class="sw-sidebar-section">

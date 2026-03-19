@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slab Worthy — Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Auth gate — redirect to login if no token
+        (function() {
+            const token = localStorage.getItem('cc_token');
+            if (!token) { window.location.replace('/login.html'); }
+        })();
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple-dark: #1e1b4b;
+            --purple-mid: #4c1d95;
+            --purple-brand: #7c3aed;
+            --purple-light: #a855f7;
+            --gold-light: #fef08a;
+            --gold-mid: #facc15;
+            --gold-dark: #ca8a04;
+            --green: #10b981;
+            --red: #ef4444;
+            --bg-dark: #0a0a12;
+            --bg-card: #12121f;
+            --bg-card-hover: #1a1a2e;
+            --bg-sidebar: #0e0e1a;
+            --border: rgba(124, 58, 237, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --sidebar-width: 240px;
+            --sidebar-collapsed: 64px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem 2.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Welcome Row */
+        .welcome-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .welcome-row h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .welcome-row h1 span {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-row p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.15rem;
+        }
+        .grade-btn {
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.75rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .grade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+        }
+
+        /* Portfolio Stats */
+        .portfolio-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .portfolio-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .portfolio-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .portfolio-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .portfolio-value.gold {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .portfolio-sub {
+            font-size: 0.7rem;
+            color: var(--green);
+            margin-top: 0.15rem;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-text { height: 1.5rem; width: 60%; }
+        .skeleton-text.short { width: 40%; }
+
+        /* Two-Panel Layout */
+        .two-panel {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .panel-header h3 { font-size: 0.9rem; font-weight: 600; }
+        .panel-header a {
+            font-size: 0.75rem;
+            color: var(--purple-light);
+            text-decoration: none;
+        }
+
+        /* Top Comics Mini-Table */
+        .mini-table-row {
+            display: grid;
+            grid-template-columns: 36px 1fr auto auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.7rem 1.25rem;
+            border-bottom: 1px solid rgba(124,58,237,0.07);
+            font-size: 0.8rem;
+        }
+        .mini-table-row:last-child { border-bottom: none; }
+        .mini-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(124, 58, 237, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--purple-light);
+        }
+        .mini-title {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mini-title span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .mini-grade {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        .mini-value { font-weight: 700; text-align: right; }
+
+        /* Market Movers */
+        .mover-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid rgba(124,58,237,0.07);
+        }
+        .mover-item:last-child { border-bottom: none; }
+        .mover-info { font-size: 0.8rem; }
+        .mover-info strong { display: block; }
+        .mover-info span { font-size: 0.7rem; color: var(--text-secondary); }
+        .mover-change {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+        .mover-change.up { background: rgba(16,185,129,0.1); color: var(--green); }
+        .mover-change.down { background: rgba(239,68,68,0.1); color: var(--red); }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+        }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .empty-state p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .empty-state .cta-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--purple-brand), var(--purple-light));
+            color: white;
+            padding: 0.75rem 1.75rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .empty-state .cta-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+        }
+        .panel-empty {
+            padding: 2rem 1.25rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .portfolio-row { grid-template-columns: repeat(2, 1fr); }
+            .two-panel { grid-template-columns: 1fr; }
+            .welcome-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .main-content { padding: 1.5rem 1rem; }
+        }
+    </style>
+</head>
+<body data-sidebar-page="dashboard" data-no-universal-footer>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Row -->
+        <div class="welcome-row">
+            <div>
+                <h1>Welcome back, <span id="welcomeName">...</span></h1>
+                <p id="welcomeSub">Loading your collection...</p>
+            </div>
+            <a href="/app.html" class="grade-btn">&#128248; Grade a Comic</a>
+        </div>
+
+        <!-- Portfolio Stats -->
+        <div class="portfolio-row" id="portfolioRow">
+            <div class="portfolio-card">
+                <div class="portfolio-label">Comics</div>
+                <div class="portfolio-value" id="statComics"><div class="skeleton skeleton-text short"></div></div>
+            </div>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Total FMV</div>
+                <div class="portfolio-value gold" id="statFMV"><div class="skeleton skeleton-text"></div></div>
+            </div>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Worth Slabbing</div>
+                <div class="portfolio-value" id="statSlab" style="color: var(--green)"><div class="skeleton skeleton-text short"></div></div>
+            </div>
+            <div class="portfolio-card">
+                <div class="portfolio-label">Avg Grade</div>
+                <div class="portfolio-value" id="statGrade"><div class="skeleton skeleton-text short"></div></div>
+            </div>
+        </div>
+
+        <!-- Two-Panel: Top Comics + Market Movers -->
+        <div class="two-panel">
+            <!-- Top Comics -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Most Valuable Comics</h3>
+                    <a href="/collection.html">View all &rarr;</a>
+                </div>
+                <div id="topComicsBody">
+                    <div class="panel-empty">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Market Movers -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Market Movers</h3>
+                    <a href="#" style="opacity:0.5; pointer-events:none;">Coming soon</a>
+                </div>
+                <div id="marketMoversBody">
+                    <!-- Static sample data -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">&#128230;</div>
+            <h2>Your collection is empty</h2>
+            <p>Grade your first comic to get started! Upload 4 photos and get an AI grade, valuation, and slabbing recommendation.</p>
+            <a href="/app.html" class="cta-link">&#128248; Grade a Comic</a>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'https://collectioncalc-docker.onrender.com';
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUser();
+            loadDashboard();
+            renderMarketMovers();
+        });
+
+        // ==========================================
+        // USER SETUP
+        // ==========================================
+        function setupUser() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('cc_user') || '{}');
+                const email = userData.email || '';
+                const namePart = email.split('@')[0] || 'User';
+                const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
+                document.getElementById('welcomeName').textContent = displayName;
+            } catch (e) {
+                document.getElementById('welcomeName').textContent = 'User';
+            }
+        }
+
+        // ==========================================
+        // LOAD COLLECTION DATA
+        // ==========================================
+        async function loadDashboard() {
+            const token = localStorage.getItem('cc_token');
+            try {
+                const response = await fetch(`${API_URL}/api/collection`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('cc_token');
+                        window.location.replace('/login.html');
+                        return;
+                    }
+                    throw new Error('Failed to load collection');
+                }
+                const data = await response.json();
+                const collection = data.items || [];
+
+                if (collection.length === 0) {
+                    showEmptyState();
+                    return;
+                }
+
+                renderPortfolio(collection);
+                renderTopComics(collection);
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+                document.getElementById('welcomeSub').textContent = 'Could not load collection data.';
+            }
+        }
+
+        // ==========================================
+        // PORTFOLIO STATS
+        // ==========================================
+        function renderPortfolio(collection) {
+            const count = collection.length;
+            const totalFMV = collection.reduce((sum, c) =>
+                sum + (parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0), 0);
+            const worthSlabbing = collection.filter(c =>
+                c.verdict === 'worth-it' || c.verdict === 'worth_slabbing').length;
+            const avgGrade = count > 0
+                ? (collection.reduce((sum, c) => sum + (parseFloat(c.grade) || 0), 0) / count)
+                : 0;
+
+            document.getElementById('statComics').textContent = count;
+            document.getElementById('statFMV').textContent = '$' + totalFMV.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            document.getElementById('statSlab').textContent = worthSlabbing;
+            document.getElementById('statGrade').textContent = avgGrade.toFixed(1);
+
+            document.getElementById('welcomeSub').textContent =
+                `${count} comics in your collection \u00B7 $${totalFMV.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total FMV`;
+        }
+
+        // ==========================================
+        // TOP COMICS
+        // ==========================================
+        function renderTopComics(collection) {
+            const sorted = [...collection].sort((a, b) => {
+                const valA = parseFloat(a.slabbed_value) || parseFloat(a.raw_value) || 0;
+                const valB = parseFloat(b.slabbed_value) || parseFloat(b.raw_value) || 0;
+                return valB - valA;
+            });
+
+            const top5 = sorted.slice(0, 5);
+            const container = document.getElementById('topComicsBody');
+
+            if (top5.length === 0) {
+                container.innerHTML = '<div class="panel-empty">No comics yet</div>';
+                return;
+            }
+
+            container.innerHTML = top5.map((comic, i) => {
+                const val = parseFloat(comic.slabbed_value) || parseFloat(comic.raw_value) || 0;
+                const publisher = comic.publisher || '';
+                const year = comic.year || '';
+                const subtitle = [publisher, year].filter(Boolean).join(' \u00B7 ');
+                return `
+                    <div class="mini-table-row">
+                        <div class="mini-rank">${i + 1}</div>
+                        <div class="mini-title">${comic.title} #${comic.issue}<span>${subtitle}</span></div>
+                        <div class="mini-grade">${comic.grade_label || comic.grade}</div>
+                        <div class="mini-value">$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // MARKET MOVERS (static sample data for now)
+        // ==========================================
+        function renderMarketMovers() {
+            const movers = [
+                { title: "ASM #300", grade: "CGC 9.8", change: 12.3, dir: "up" },
+                { title: "New Mutants #98", grade: "CGC 9.6", change: 8.1, dir: "up" },
+                { title: "Batman #423", grade: "CGC 9.4", change: 5.7, dir: "up" },
+                { title: "Spawn #1", grade: "CGC 9.8", change: 3.4, dir: "down" },
+                { title: "TMNT #1", grade: "CGC 9.2", change: 1.8, dir: "down" }
+            ];
+
+            document.getElementById('marketMoversBody').innerHTML = movers.map(m => `
+                <div class="mover-item">
+                    <div class="mover-info">
+                        <strong>${m.title}</strong>
+                        <span>${m.grade}</span>
+                    </div>
+                    <div class="mover-change ${m.dir}">${m.dir === 'up' ? '+' : '-'}${m.change}%</div>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // EMPTY STATE
+        // ==========================================
+        function showEmptyState() {
+            document.getElementById('portfolioRow').style.display = 'none';
+            document.querySelector('.two-panel').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('statComics').textContent = '0';
+            document.getElementById('statFMV').textContent = '$0';
+            document.getElementById('statSlab').textContent = '0';
+            document.getElementById('statGrade').textContent = '0.0';
+            document.getElementById('welcomeSub').textContent = 'Grade your first comic to get started!';
+        }
+    </script>
+    <!-- Shared sidebar nav -->
+    <script src="/js/sidebar.js"></script>
+    <!-- Floating feedback widget -->
+    <script src="/js/feedback-widget.js"></script>
+</body>
+</html>

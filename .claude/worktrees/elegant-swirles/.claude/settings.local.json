@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc \"C:/Users/mberr/MUSE/mas-sprint/masse_nav_pipeline_opus_brief.docx\" -o /tmp/masse_brief.md)",
+      "Bash(python scripts/office/unpack.py \"C:/Users/mberr/MUSE/mas-sprint/masse_nav_pipeline_opus_brief.docx\" /tmp/masse_brief_unpacked/)",
+      "Bash(git -C /c/Users/mberr/CC/SW branch -a)",
+      "Bash(find /c/Users/mberr/CC/SW -path *mas-sprint* -maxdepth 3 -type d)",
+      "Bash(find /c/Users/mberr -maxdepth 4 -name server.js -path *masse* -o -name server.js -path *mas*)",
+      "Bash(node server.js)"
+    ]
+  }
+}

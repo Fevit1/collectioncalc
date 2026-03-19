@@ -1,0 +1,810 @@
+diff --git a/collection.html b/collection.html
+index e1d6eb5..5fb280d 100644
+--- a/collection.html
++++ b/collection.html
+@@ -331,6 +331,16 @@
+ 
+         .action-btn.primary:hover {
+             transform: translateY(-1px);
++        }
++
++        .action-btn.whatnot {
++            background: linear-gradient(135deg, #ff6b35, #e84118);
++            border: none;
++            color: white;
++        }
++
++        .action-btn.whatnot:hover {
++            transform: translateY(-1px);
+             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+         }
+ 
+@@ -1279,6 +1289,9 @@
+                             <button class="action-btn primary" onclick="listOnEbay(${comic.id})">
+                                 eBay
+                             </button>
++                            <button class="action-btn whatnot" onclick="prepForWhatnot(${comic.id})">
++                                Whatnot
++                            </button>
+                             <button class="action-btn danger" onclick="deleteComic(${comic.id})">
+                                 🗑️
+                             </button>
+@@ -1348,6 +1361,9 @@
+                                 <button class="action-btn primary" onclick="event.stopPropagation(); listOnEbay(${comic.id})">
+                                     eBay
+                                 </button>
++                                <button class="action-btn whatnot" onclick="event.stopPropagation(); prepForWhatnot(${comic.id})">
++                                    Whatnot
++                                </button>
+                                 <button class="action-btn danger" onclick="event.stopPropagation(); deleteComic(${comic.id})">
+                                     🗑️ Delete
+                                 </button>
+@@ -1526,6 +1542,10 @@
+             openEbayListingModal(comicId);
+         }
+ 
++        function prepForWhatnot(comicId) {
++            openWhatnotPrepModal(comicId);
++        }
++
+         function toggleGalleryExpand(comicId) {
+             const frame = document.querySelector(`.comic-frame[data-id="${comicId}"]`);
+             if (!frame) return;
+@@ -2626,6 +2646,482 @@ async function createListing(publish) {
+     }
+ }
+ </script>
++
++<!-- ============================================================ -->
++<!-- Whatnot Prep Modal -->
++<!-- ============================================================ -->
++<style>
++    .whatnot-modal-overlay {
++        display: none;
++        position: fixed;
++        top: 0; left: 0; right: 0; bottom: 0;
++        background: rgba(0, 0, 0, 0.85);
++        z-index: 9999;
++        overflow-y: auto;
++        padding: 2rem 1rem;
++    }
++    .whatnot-modal-overlay.active {
++        display: flex;
++        align-items: center;
++        justify-content: center;
++    }
++    .whatnot-modal {
++        background: var(--bg-primary);
++        border: 2px solid rgba(255, 107, 53, 0.5);
++        border-radius: 16px;
++        max-width: 700px;
++        width: 100%;
++        max-height: 90vh;
++        overflow-y: auto;
++        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
++    }
++    .whatnot-modal-header {
++        background: linear-gradient(135deg, #ff6b35, #e84118);
++        padding: 1.5rem;
++        border-bottom: 2px solid rgba(255, 107, 53, 0.3);
++        display: flex;
++        justify-content: space-between;
++        align-items: center;
++    }
++    .whatnot-modal-title {
++        font-size: 1.5rem;
++        font-weight: 700;
++        color: white;
++        display: flex;
++        align-items: center;
++        gap: 0.5rem;
++    }
++    .whatnot-logo {
++        background: white;
++        color: #ff6b35;
++        padding: 0.25rem 0.5rem;
++        border-radius: 4px;
++        font-weight: 700;
++        font-size: 1rem;
++    }
++    .whatnot-modal-body { padding: 1.5rem; }
++    .whatnot-modal-footer {
++        padding: 1.5rem;
++        border-top: 1px solid rgba(255, 107, 53, 0.3);
++        display: flex;
++        gap: 1rem;
++        justify-content: flex-end;
++    }
++
++    /* Copyable field */
++    .copyable-field {
++        position: relative;
++        margin-bottom: 1.25rem;
++    }
++    .copyable-field label {
++        display: block;
++        font-weight: 600;
++        margin-bottom: 0.5rem;
++        font-size: 0.9rem;
++        color: var(--text-primary);
++    }
++    .copyable-field .copy-row {
++        display: flex;
++        gap: 0.5rem;
++        align-items: flex-start;
++    }
++    .copyable-field .form-input {
++        flex: 1;
++        width: 100%;
++        padding: 0.75rem;
++        background: var(--bg-secondary);
++        border: 1px solid rgba(255, 107, 53, 0.3);
++        border-radius: 8px;
++        color: white;
++        font-size: 0.95rem;
++    }
++    .copyable-field textarea.form-input {
++        min-height: 80px;
++        resize: vertical;
++        font-family: 'Inter', sans-serif;
++    }
++    .copyable-field .form-input:focus {
++        outline: none;
++        border-color: #ff6b35;
++    }
++    .copy-btn {
++        padding: 0.75rem;
++        background: rgba(255, 107, 53, 0.15);
++        border: 1px solid rgba(255, 107, 53, 0.4);
++        border-radius: 8px;
++        color: #ff6b35;
++        cursor: pointer;
++        font-size: 1rem;
++        transition: all 0.2s;
++        white-space: nowrap;
++        min-width: 44px;
++        text-align: center;
++    }
++    .copy-btn:hover {
++        background: rgba(255, 107, 53, 0.25);
++    }
++    .copy-btn.copied {
++        background: rgba(16, 185, 129, 0.2);
++        border-color: #10b981;
++        color: #10b981;
++    }
++    .field-hint {
++        font-size: 0.75rem;
++        color: var(--text-muted);
++        margin-top: 0.25rem;
++    }
++
++    /* Pricing suggestions */
++    .pricing-suggestions {
++        display: grid;
++        grid-template-columns: 1fr 1fr;
++        gap: 1rem;
++        margin-bottom: 1.25rem;
++    }
++    .pricing-card {
++        background: var(--bg-secondary);
++        border: 1px solid rgba(255, 107, 53, 0.3);
++        border-radius: 12px;
++        padding: 1rem;
++        text-align: center;
++    }
++    .pricing-card .price-label {
++        font-size: 0.8rem;
++        color: var(--text-muted);
++        margin-bottom: 0.25rem;
++    }
++    .pricing-card .price-value {
++        font-size: 1.5rem;
++        font-weight: 700;
++        color: #ff6b35;
++    }
++    .pricing-card .price-hint {
++        font-size: 0.7rem;
++        color: var(--text-muted);
++        margin-top: 0.25rem;
++    }
++
++    /* Photo download grid */
++    .photo-downloads {
++        display: grid;
++        grid-template-columns: repeat(4, 1fr);
++        gap: 0.5rem;
++        margin-bottom: 1.25rem;
++    }
++    .photo-download-item {
++        background: var(--bg-secondary);
++        border: 1px solid rgba(255, 107, 53, 0.3);
++        border-radius: 8px;
++        padding: 0.5rem;
++        text-align: center;
++        font-size: 0.75rem;
++    }
++    .photo-download-item img {
++        width: 100%;
++        height: 60px;
++        object-fit: cover;
++        border-radius: 4px;
++        margin-bottom: 0.25rem;
++    }
++    .photo-download-item a {
++        color: #ff6b35;
++        text-decoration: none;
++        font-weight: 600;
++    }
++    .photo-download-item a:hover { text-decoration: underline; }
++    .photo-download-item.no-photo {
++        color: var(--text-muted);
++        display: flex;
++        align-items: center;
++        justify-content: center;
++        min-height: 80px;
++    }
++
++    /* Copy All button */
++    .btn-copy-all {
++        background: linear-gradient(135deg, #ff6b35, #e84118);
++        color: white;
++        font-weight: 700;
++        border: none;
++        padding: 0.75rem 1.5rem;
++        border-radius: 8px;
++        cursor: pointer;
++        font-size: 0.95rem;
++        transition: all 0.2s;
++    }
++    .btn-copy-all:hover { transform: translateY(-1px); }
++    .btn-copy-all.copied {
++        background: linear-gradient(135deg, #10b981, #059669);
++    }
++
++    /* AI status for Whatnot */
++    .whatnot-ai-status {
++        background: rgba(255, 107, 53, 0.1);
++        border: 1px solid rgba(255, 107, 53, 0.3);
++        border-radius: 8px;
++        padding: 0.75rem;
++        margin-bottom: 1rem;
++        display: flex;
++        align-items: center;
++        gap: 0.5rem;
++        font-size: 0.85rem;
++    }
++    .whatnot-ai-status.generating { color: #ff6b35; }
++    .whatnot-ai-status.success { color: #10b981; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
++    .whatnot-ai-status.error { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
++
++    @media (max-width: 767px) {
++        .pricing-suggestions { grid-template-columns: 1fr; }
++        .photo-downloads { grid-template-columns: repeat(2, 1fr); }
++    }
++</style>
++
++<div class="whatnot-modal-overlay" id="whatnotModalOverlay" onclick="if(event.target===event.currentTarget) closeWhatnotModal()">
++    <div class="whatnot-modal">
++        <div class="whatnot-modal-header">
++            <div class="whatnot-modal-title">
++                <span class="whatnot-logo">Whatnot</span>
++                Prep for Live Auction
++            </div>
++            <button class="modal-close" onclick="closeWhatnotModal()" style="background:transparent;border:none;color:white;font-size:2rem;cursor:pointer;">&times;</button>
++        </div>
++
++        <div class="whatnot-modal-body">
++            <!-- Comic Preview (reuse style) -->
++            <div class="comic-preview" id="whatnotComicPreview" style="border-color: rgba(255,107,53,0.3);"></div>
++
++            <!-- AI Status -->
++            <div class="whatnot-ai-status generating" id="whatnotAiStatus" style="display:none;">
++                <span class="spinner"></span>
++                <span id="whatnotAiStatusText">Generating content...</span>
++            </div>
++
++            <!-- Pricing Suggestions -->
++            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Suggested Pricing</label>
++            <div class="pricing-suggestions">
++                <div class="pricing-card">
++                    <div class="price-label">Starting Bid</div>
++                    <div class="price-value" id="whatnotStartPrice">$0.99</div>
++                    <div class="price-hint">Low starts drive bidding</div>
++                </div>
++                <div class="pricing-card">
++                    <div class="price-label">Buy Now</div>
++                    <div class="price-value" id="whatnotBuyNow">$--</div>
++                    <div class="price-hint">Based on FMV</div>
++                </div>
++            </div>
++
++            <!-- Listing Title -->
++            <div class="copyable-field">
++                <label>Listing Title</label>
++                <div class="copy-row">
++                    <input type="text" class="form-input" id="whatnotTitle" maxlength="80" readonly>
++                    <button class="copy-btn" onclick="copyWhatnotField('whatnotTitle', this)">📋</button>
++                </div>
++                <div class="field-hint">Paste into Whatnot's title field</div>
++            </div>
++
++            <!-- Description -->
++            <div class="copyable-field">
++                <label>Description</label>
++                <div class="copy-row">
++                    <textarea class="form-input" id="whatnotDescription" rows="3" readonly></textarea>
++                    <button class="copy-btn" onclick="copyWhatnotField('whatnotDescription', this)">📋</button>
++                </div>
++                <div class="field-hint">Short &amp; punchy for the listing card</div>
++            </div>
++
++            <!-- Show Prep Notes -->
++            <div class="copyable-field">
++                <label>Show Prep Notes (Talking Points)</label>
++                <div class="copy-row">
++                    <textarea class="form-input" id="whatnotShowNotes" rows="5" readonly></textarea>
++                    <button class="copy-btn" onclick="copyWhatnotField('whatnotShowNotes', this)">📋</button>
++                </div>
++                <div class="field-hint">Reference during your live stream</div>
++            </div>
++
++            <!-- Photos -->
++            <label style="display:block;font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Photos</label>
++            <div class="photo-downloads" id="whatnotPhotos"></div>
++            <div class="field-hint" style="margin-top:-0.75rem;margin-bottom:1rem;">Right-click &gt; Save Image, then upload to Whatnot</div>
++        </div>
++
++        <div class="whatnot-modal-footer">
++            <button class="btn-secondary" onclick="closeWhatnotModal()">Close</button>
++            <button class="btn-copy-all" id="whatnotCopyAllBtn" onclick="copyAllWhatnot(this)">
++                📋 Copy All
++            </button>
++        </div>
++    </div>
++</div>
++
++<script>
++// Whatnot Prep Modal Logic
++let whatnotComic = null;
++
++async function openWhatnotPrepModal(comicId) {
++    whatnotComic = collection.find(c => c.id === comicId);
++    if (!whatnotComic) { alert('Comic not found'); return; }
++
++    document.getElementById('whatnotModalOverlay').classList.add('active');
++
++    // Comic preview
++    const preview = document.getElementById('whatnotComicPreview');
++    preview.innerHTML = `
++        <div class="comic-preview-image">
++            ${whatnotComic.front_image ? `<img src="${whatnotComic.front_image}" alt="${whatnotComic.title}">` : '📖'}
++        </div>
++        <div class="comic-preview-details">
++            <div class="comic-preview-title">${whatnotComic.title}</div>
++            <div class="comic-preview-meta">
++                #${whatnotComic.issue || '?'} • ${whatnotComic.publisher || 'Unknown'} • ${whatnotComic.year || '?'}
++            </div>
++            <span class="comic-preview-grade">${whatnotComic.grade || 'N/A'}</span>
++        </div>
++    `;
++
++    // Photos
++    const photosEl = document.getElementById('whatnotPhotos');
++    const photoSlots = [
++        { name: 'Front', url: whatnotComic.front_image },
++        { name: 'Spine', url: whatnotComic.spine_image },
++        { name: 'Back', url: whatnotComic.back_image },
++        { name: 'Center', url: whatnotComic.centerfold_image }
++    ];
++    photosEl.innerHTML = photoSlots.map(p => {
++        if (p.url) {
++            return `<div class="photo-download-item">
++                <img src="${p.url}" alt="${p.name}">
++                <a href="${p.url}" target="_blank" download>${p.name}</a>
++            </div>`;
++        }
++        return `<div class="photo-download-item no-photo">${p.name}: N/A</div>`;
++    }).join('');
++
++    // Generate content via API
++    await generateWhatnotContent();
++}
++
++function closeWhatnotModal() {
++    document.getElementById('whatnotModalOverlay').classList.remove('active');
++    whatnotComic = null;
++}
++
++async function generateWhatnotContent() {
++    const aiStatus = document.getElementById('whatnotAiStatus');
++    const aiText = document.getElementById('whatnotAiStatusText');
++    const token = localStorage.getItem('cc_token');
++
++    aiStatus.style.display = 'flex';
++    aiStatus.className = 'whatnot-ai-status generating';
++    aiText.textContent = 'Generating Whatnot content with AI...';
++
++    try {
++        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
++
++        const response = await fetch(`${API_URL}/api/whatnot/generate-content`, {
++            method: 'POST',
++            headers: {
++                'Authorization': `Bearer ${token}`,
++                'Content-Type': 'application/json'
++            },
++            body: JSON.stringify({
++                title: whatnotComic.title,
++                issue: whatnotComic.issue,
++                grade: whatnotComic.grade,
++                price: fmv,
++                publisher: whatnotComic.publisher,
++                year: whatnotComic.year
++            })
++        });
++
++        const data = await response.json();
++
++        if (data.success) {
++            document.getElementById('whatnotTitle').value = data.listing_title || '';
++            document.getElementById('whatnotDescription').value = data.description || '';
++            document.getElementById('whatnotShowNotes').value = data.show_notes || '';
++            document.getElementById('whatnotStartPrice').textContent = `$${(data.suggested_start || 0.99).toFixed(2)}`;
++            document.getElementById('whatnotBuyNow').textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
++
++            aiStatus.className = 'whatnot-ai-status success';
++            aiText.textContent = '✓ Content generated';
++            setTimeout(() => { aiStatus.style.display = 'none'; }, 3000);
++        } else {
++            throw new Error(data.error || 'Generation failed');
++        }
++    } catch (error) {
++        console.error('Whatnot content generation error:', error);
++        aiStatus.className = 'whatnot-ai-status error';
++        aiText.textContent = '✗ Failed — using template';
++
++        // Fallback
++        const fmv = whatnotComic.slabbed_value || whatnotComic.raw_value || 9.99;
++        document.getElementById('whatnotTitle').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} ${whatnotComic.grade || ''}`.trim();
++        document.getElementById('whatnotDescription').value = `${whatnotComic.title} #${whatnotComic.issue || '?'} — a great pickup for any collection!`;
++        document.getElementById('whatnotShowNotes').value = `• ${whatnotComic.title} #${whatnotComic.issue || '?'}\n• ${whatnotComic.publisher || ''} ${whatnotComic.year || ''}\n• Graded ${whatnotComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}\n• Low start — let the bidders decide!`;
++        document.getElementById('whatnotStartPrice').textContent = '$0.99';
++        document.getElementById('whatnotBuyNow').textContent = `$${fmv.toFixed(2)}`;
++    }
++}
++
++function copyWhatnotField(fieldId, btn) {
++    const field = document.getElementById(fieldId);
++    navigator.clipboard.writeText(field.value).then(() => {
++        btn.textContent = '✓';
++        btn.classList.add('copied');
++        setTimeout(() => {
++            btn.textContent = '📋';
++            btn.classList.remove('copied');
++        }, 2000);
++    }).catch(() => {
++        // Fallback for older browsers
++        field.select();
++        document.execCommand('copy');
++        btn.textContent = '✓';
++        btn.classList.add('copied');
++        setTimeout(() => {
++            btn.textContent = '📋';
++            btn.classList.remove('copied');
++        }, 2000);
++    });
++}
++
++function copyAllWhatnot(btn) {
++    const title = document.getElementById('whatnotTitle').value;
++    const desc = document.getElementById('whatnotDescription').value;
++    const notes = document.getElementById('whatnotShowNotes').value;
++    const start = document.getElementById('whatnotStartPrice').textContent;
++    const buyNow = document.getElementById('whatnotBuyNow').textContent;
++
++    const allText = `Title: ${title}\nStarting Bid: ${start}\nBuy Now: ${buyNow}\n\nDescription:\n${desc}\n\nShow Notes:\n${notes}`;
++
++    navigator.clipboard.writeText(allText).then(() => {
++        btn.textContent = '✓ Copied!';
++        btn.classList.add('copied');
++        setTimeout(() => {
++            btn.textContent = '📋 Copy All';
++            btn.classList.remove('copied');
++        }, 2500);
++    }).catch(() => {
++        // Fallback
++        const ta = document.createElement('textarea');
++        ta.value = allText;
++        document.body.appendChild(ta);
++        ta.select();
++        document.execCommand('copy');
++        document.body.removeChild(ta);
++        btn.textContent = '✓ Copied!';
++        btn.classList.add('copied');
++        setTimeout(() => {
++            btn.textContent = '📋 Copy All';
++            btn.classList.remove('copied');
++        }, 2500);
++    });
++}
++</script>
++
+     <!-- Shared sidebar nav -->
+     <script src="/js/sidebar.js"></script>
+     <!-- Service Worker -->
+diff --git a/ebay_listing.py b/ebay_listing.py
+index 11ffe15..a941373 100644
+--- a/ebay_listing.py
++++ b/ebay_listing.py
+@@ -235,7 +235,6 @@ def get_or_create_listing_policies(access_token: str) -> dict:
+     }
+     
+     try:
+-        # Get fulfillment policies
+         # Get fulfillment policies
+         fulfillment_url = f"{api_url}/sell/account/v1/fulfillment_policy?marketplace_id=EBAY_US"
+         response = requests.get(fulfillment_url, headers=headers)
+diff --git a/routes/whatnot.py b/routes/whatnot.py
+new file mode 100644
+index 0000000..3a58ad9
+--- /dev/null
++++ b/routes/whatnot.py
+@@ -0,0 +1,53 @@
++"""
++Whatnot Blueprint - Content generation for Whatnot live auction prep
++Routes: /api/whatnot/*
++
++No OAuth or direct API integration (Whatnot has no public API).
++This generates optimized content for sellers to copy into Whatnot's dashboard.
++"""
++from flask import Blueprint, jsonify, request, g
++from auth import require_auth, require_approved
++
++# Create blueprint
++whatnot_bp = Blueprint('whatnot', __name__, url_prefix='/api/whatnot')
++
++# Module reference (set by init_modules)
++generate_whatnot_content = None
++
++
++def init_modules(gen_content_func):
++    """Initialize modules from wsgi.py"""
++    global generate_whatnot_content
++    generate_whatnot_content = gen_content_func
++
++
++@whatnot_bp.route('/generate-content', methods=['POST'])
++@require_auth
++@require_approved
++def api_whatnot_generate_content():
++    """Generate Whatnot-optimized listing content and show prep notes."""
++    if not generate_whatnot_content:
++        return jsonify({'success': False, 'error': 'Whatnot module not available'}), 503
++
++    data = request.get_json() or {}
++
++    title = data.get('title', '')
++    issue = data.get('issue', '')
++    grade = data.get('grade', '')
++    price = data.get('price', 0)
++    publisher = data.get('publisher')
++    year = data.get('year')
++
++    if not title:
++        return jsonify({'success': False, 'error': 'Comic title is required'}), 400
++
++    result = generate_whatnot_content(
++        title=title,
++        issue=issue,
++        grade=grade,
++        price=price,
++        publisher=publisher,
++        year=year
++    )
++
++    return jsonify(result)
+diff --git a/whatnot_description.py b/whatnot_description.py
+new file mode 100644
+index 0000000..f1569a8
+--- /dev/null
++++ b/whatnot_description.py
+@@ -0,0 +1,157 @@
++"""
++Whatnot Content Generator for Slab Worthy
++Generates listing content and show prep notes optimized for Whatnot live auctions.
++"""
++
++import os
++import anthropic
++
++
++def generate_whatnot_content(title, issue, grade, price,
++                             publisher=None, year=None) -> dict:
++    """
++    Generate Whatnot-optimized listing content and live show talking points.
++
++    Args:
++        title: Comic book title (e.g., "Amazing Spider-Man")
++        issue: Issue number (e.g., "300")
++        grade: Comic grade (NM, VF, FN, etc.)
++        price: Fair market value in USD
++        publisher: Publisher name (optional)
++        year: Publication year (optional)
++
++    Returns:
++        Dict with 'success', 'listing_title', 'description', 'show_notes',
++        'suggested_start', 'suggested_buy_now'
++    """
++    # Pricing suggestions
++    fmv = float(price) if price else 9.99
++    suggested_start = 0.99  # Whatnot convention: low starts drive engagement
++    suggested_buy_now = round(fmv, 2)
++
++    # Build listing title (Whatnot titles are shorter, punchier)
++    grade_str = str(grade).strip() if grade else ''
++    listing_title = f"{title} #{issue}"
++    if grade_str:
++        listing_title += f" {grade_str}"
++    listing_title = listing_title[:80]
++
++    api_key = os.environ.get('ANTHROPIC_API_KEY')
++
++    if not api_key:
++        return {
++            'success': True,
++            'listing_title': listing_title,
++            'description': _fallback_description(title, issue, grade_str),
++            'show_notes': _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
++            'suggested_start': suggested_start,
++            'suggested_buy_now': suggested_buy_now,
++            'source': 'template'
++        }
++
++    try:
++        client = anthropic.Anthropic(api_key=api_key)
++
++        comic_info = f"{title} #{issue}"
++        if publisher:
++            comic_info += f" ({publisher})"
++        if year:
++            comic_info += f" - {year}"
++
++        prompt = f"""Generate TWO pieces of content for a Whatnot live auction listing for this comic book.
++
++Comic: {comic_info}
++Grade: {grade_str or 'Unknown'}
++FMV: ${fmv:.2f}
++
++PIECE 1 — LISTING DESCRIPTION (target 100-150 characters):
++Short, punchy description for the Whatnot listing card. Energy and hype appropriate for live auctions.
++Include: KEY ISSUE status if applicable, era, why it's collectible.
++Exclude: grade, price, title (shown separately), shipping info.
++Plain text only, no HTML.
++
++PIECE 2 — SHOW PREP NOTES (target 200-300 characters):
++Talking points the seller can reference during their live stream. Written as bullet-style notes.
++Include:
++- What makes this comic special (first appearance, key creator, major event)
++- Recent sales context ("Recent sales in this grade range: $X-$Y")
++- One-liner hook to hype bidders
++Format as short lines separated by newlines, starting with "•"
++
++Respond in this exact format:
++DESCRIPTION: [your description]
++SHOW_NOTES:
++[your show notes]"""
++
++        response = client.messages.create(
++            model="claude-sonnet-4-20250514",
++            max_tokens=400,
++            messages=[{"role": "user", "content": prompt}]
++        )
++
++        text = response.content[0].text.strip()
++
++        # Parse the two pieces
++        description = ''
++        show_notes = ''
++
++        if 'DESCRIPTION:' in text and 'SHOW_NOTES:' in text:
++            parts = text.split('SHOW_NOTES:')
++            description = parts[0].replace('DESCRIPTION:', '').strip()
++            show_notes = parts[1].strip() if len(parts) > 1 else ''
++        else:
++            # Fallback: use whole response as description
++            description = text[:150]
++            show_notes = _fallback_show_notes(title, issue, grade_str, fmv, publisher, year)
++
++        # Clean up description
++        if len(description) > 200:
++            description = description[:197] + "..."
++
++        return {
++            'success': True,
++            'listing_title': listing_title,
++            'description': description,
++            'show_notes': show_notes,
++            'suggested_start': suggested_start,
++            'suggested_buy_now': suggested_buy_now,
++            'source': 'ai'
++        }
++
++    except Exception as e:
++        print(f"Whatnot AI content generation failed: {e}")
++        return {
++            'success': True,
++            'listing_title': listing_title,
++            'description': _fallback_description(title, issue, grade_str),
++            'show_notes': _fallback_show_notes(title, issue, grade_str, fmv, publisher, year),
++            'suggested_start': suggested_start,
++            'suggested_buy_now': suggested_buy_now,
++            'source': 'template',
++            'ai_error': str(e)
++        }
++
++
++def _fallback_description(title, issue, grade):
++    """Basic template description when AI is unavailable."""
++    parts = [f"{title} #{issue}"]
++    if grade:
++        parts.append(f"in {grade} condition")
++    parts.append("— a great pickup for any collection!")
++    return " ".join(parts)
++
++
++def _fallback_show_notes(title, issue, grade, fmv, publisher=None, year=None):
++    """Basic show notes template when AI is unavailable."""
++    notes = []
++    notes.append(f"• {title} #{issue}")
++    if publisher and year:
++        notes.append(f"• {publisher}, {year}")
++    elif publisher:
++        notes.append(f"• {publisher}")
++    if grade:
++        notes.append(f"• Graded {grade} by Slab Worthy AI")
++    if fmv and fmv > 0:
++        notes.append(f"• FMV: ${fmv:.2f} based on recent sales data")
++    notes.append("• Low start — let the bidders decide the price!")
++    return "\n".join(notes)
+diff --git a/wsgi.py b/wsgi.py
+index e504aaf..4cb05c5 100644
+--- a/wsgi.py
++++ b/wsgi.py
+@@ -81,6 +81,12 @@ except ImportError as e:
+     print(f"ebay_description import error: {e}")
+     generate_description = None
+ 
++try:
++    from whatnot_description import generate_whatnot_content
++except ImportError as e:
++    print(f"whatnot_description import error: {e}")
++    generate_whatnot_content = None
++
+ try:
+     from comic_extraction import extract_from_base64
+ except ImportError as e:
+@@ -236,6 +242,7 @@ from routes.vision import vision_bp, init_modules as vision_init_modules
+ from routes.contact import contact_bp
+ from routes.waitlist import waitlist_bp
+ from routes.signatures import signatures_bp, init_modules as signatures_init_modules
++from routes.whatnot import whatnot_bp, init_modules as whatnot_init_modules
+ 
+ # Import imagehash for fingerprinting
+ try:
+@@ -268,6 +275,7 @@ ebay_init_modules(
+     get_auth_url, exchange_code_for_token, get_user_token, is_user_connected,
+     create_listing, upload_image_to_ebay, generate_description
+ )
++whatnot_init_modules(generate_whatnot_content)
+ registry_init_modules(imagehash, Image if 'Image' in dir() else None)
+ monitor_init_modules(imagehash, Image if 'Image' in dir() else None)
+ billing_init_modules()
+@@ -304,6 +312,7 @@ app.register_blueprint(vision_bp)      # /api/vision/*
+ app.register_blueprint(contact_bp)     # /api/contact
+ app.register_blueprint(waitlist_bp)    # /api/waitlist, /api/waitlist/verify, /api/waitlist/count
+ app.register_blueprint(signatures_bp)  # /api/signatures/match, /api/signatures/db-stats, /api/signatures/signed-sales
++app.register_blueprint(whatnot_bp)     # /api/whatnot/generate-content
+ 
+ print("✅ All blueprints registered successfully!")
+ 

@@ -1,0 +1,1126 @@
+====================================================================================================
+NORMALIZATION RESULTS - First 100 Records
+====================================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[1] ID: 42227
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Sandman #25 Vol. 2 1991 DC Comics Higher Grade Comic Book RY34-159
+
+  Canonical Title:  Sandman
+  Issue Number:     25
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: Vol 2 Higher Grade RY34 159
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[2] ID: 36371
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Daredevil #189 Vol. 1 1982 Marvel Comics High Grade Comic Book X6-224
+
+  Canonical Title:  Daredevil
+  Issue Number:     189
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: Vol 1 X6 224
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[3] ID: 21882
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman #608 Jim Lee Cover Hush Story Begins DC Comics Jeph Loeb 2002 NM
+
+  Canonical Title:  Batman
+  Issue Number:     608
+  Grade:            9.4 (raw)
+  Creators:         Jim Lee
+  Publisher:        DC
+  Notes:            Condition: NM; Creators: Jim Lee; Details: Hush Story Begins Jeph Loeb
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[4] ID: 12088
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman Year One (Part 1-4) #404-407 DC Comics (1987) Complete Set
+
+  Canonical Title:  Batman Year One
+  Issue Number:     404
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: 407 Complete Set
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[5] ID: 45659
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: WildC.A.T.S. #2 (1992) CGC 9.8 [1st Appearance of Wetworks]
+
+  Canonical Title:  WildC.A.T.S
+  Issue Number:     2
+  Grade:            9.8 (CGC)
+  Notes:            Details: 1st Appearance Wetworks
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[6] ID: 22245
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Omega Men #37 Vol. 1 1986 DC Comics High Grade Comic Book X6-214
+
+  Canonical Title:  Omega Men
+  Issue Number:     37
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: Vol 1 X6 214
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[7] ID: 24560
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Cloak and Dagger Shadows and Light Marvel Trade Paperback Book  - BRAND NEW
+
+  Canonical Title:  Cloak and Dagger Shadows and Light Book - Brand New
+  Issue Number:     None
+  Grade:            None
+  Publisher:        Marvel
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[8] ID: 7198
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Miles Morales Spider-Man 1 Marvel 2018 Rare Unread NM Comic Variant ? Clean Book
+
+  Canonical Title:  Miles Morales Spider-Man
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Flags:            VARIANT
+  Publisher:        Marvel
+  Notes:            Condition: NM; Variant: Variant; Details: Unread Comic ? Clean Book
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[9] ID: 6973
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Alpha Flight #10 Vol. 1 1984 Marvel Comics High Grade Comic Book A74-224
+
+  Canonical Title:  Alpha Flight
+  Issue Number:     10
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: Vol
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[10] ID: 21171
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Edge Of Spider-Verse #5 NM 1st Print 1st Peni Parker Marvel Comics 2014
+
+  Canonical Title:  Edge of Spider-Verse
+  Issue Number:     5
+  Grade:            9.4 (raw)
+  Publisher:        Marvel
+  Notes:            Condition: NM; Details: 1st Peni Parker
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[11] ID: 28086
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman #1 Midtown Variant Cover! Matt Fraction 2025 Series NM+ Condition!
+
+  Canonical Title:  Batman
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Flags:            VARIANT
+  Creators:         Matt Fraction
+  Notes:            Condition: NM; Creators: Matt Fraction; Variant: Variant; Details: Midtown ! Series + !
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[12] ID: 44536
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Invincible 4-Issue Lot (Image/Skybound) | #121, 122, 124, 130 | Kirkman/Ottley
+
+  Canonical Title:  Invincible 4- Lot (/skybound
+  Issue Number:     121
+  Grade:            None
+  Publisher:        Image
+  Notes:            Details: 122 124 130 Kirkman/Ottley
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[13] ID: 22022
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman 655 Morrison Kubert 1st Damian Wayne Talia Al Ghul Son SEE PICS Gemini
+
+  Canonical Title:  Batman
+  Issue Number:     655
+  Grade:            None
+  Notes:            Details: Morrison Kubert 1st Damian Wayne Talia Al Ghul Son Gemini
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[14] ID: 6097
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: THE PUNISHER #5 Mini Series 1985 VF+ MIKE ZECK COVER !!
+
+  Canonical Title:  The Punisher
+  Issue Number:     5
+  Grade:            8.0 (raw)
+  Notes:            Condition: VF; Details: Mini Series + MIKE ZECK !!
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[15] ID: 15899
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Descender Vol. 2 TPB Image Comics 2001 Lemire 
+
+  Canonical Title:  Descender Vol. 2 Lemire
+  Issue Number:     None
+  Grade:            None
+  Publisher:        Image
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[16] ID: 33611
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Buffy Season 8 #1–40 Complete Set Variant A Covers Dark Horse Comics
+
+  Canonical Title:  Buffy Season
+  Issue Number:     1
+  Grade:            None
+  Flags:            VARIANT
+  Publisher:        Dark Horse
+  Notes:            Variant: Variant; Details: –40 Complete Set Covers
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[17] ID: 10711
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Swamp Thing 1 1972 CGC 7.0 OW/W PG Wrightson Art-Swamp Thing Origin, Lt Cable 
+
+  Canonical Title:  Swamp Thing
+  Issue Number:     1
+  Grade:            7.0 (CGC)
+  Notes:            Details: OW/ PG Wrightson Art Swamp Thing Origin Lt Cable
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[18] ID: 1343
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Mutant Misadventures of Cloak and Dagger #6 Marvel comics VF+ [w%
+
+  Canonical Title:  Mutant Misadventures Cloak and Dagger
+  Issue Number:     6
+  Grade:            8.0 (raw)
+  Publisher:        Marvel
+  Notes:            Condition: VF; Details: + %
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[19] ID: 39089
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: DC Detective Comics- #328 - #566, but not a complete collection
+
+  Canonical Title:  Detective Comics
+  Issue Number:     328
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: #566 but not complete collection
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[20] ID: 42574
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: CRISIS ON INFINITE EARTHS #1-12 6 7 8 Flash Supergirl FULL RUN LOT Avg VG+ 4.5
+
+  Canonical Title:  Crisis on Infinite Earths
+  Issue Number:     1
+  Grade:            4.0 (raw)
+  Notes:            Condition: VG; Details: 12 6 7 8 Flash Supergirl FULL RUN LOT Avg + 4
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[21] ID: 1379
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Cable #3 VF 1993 Stock Image
+
+  Canonical Title:  Cable
+  Issue Number:     3
+  Grade:            8.0 (raw)
+  Publisher:        Image
+  Notes:            Condition: VF; Details: Stock
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[22] ID: 37598
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Web of Spider-Man #1 Newsstand Variant - VG+/FN
+
+  Canonical Title:  Web of Spider-Man
+  Issue Number:     1
+  Grade:            4.0 (raw)
+  Flags:            VARIANT
+  Notes:            Condition: VG; Variant: Newsstand, Variant; Details: +/FN
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[23] ID: 46058
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Haunt Comic Book Lot 1, 2, 4, 5, 6, 7, 13, 18 Image Comics McFarlane 1:50 NM 
+
+  Canonical Title:  Haunt 1, 2, 4, 5, 6, 7, 13, 18 Mcfarlane
+  Issue Number:     None
+  Grade:            9.4 (raw)
+  Flags:            VARIANT, LOT
+  Publisher:        Image
+  Notes:            Condition: NM; Lot: Book Lot; Variant: 1:50
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[24] ID: 4026
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Venom the Madness #1 2 3 Spider-Man Marvel Comic Book Set 1-3 Complete jones art
+
+  Canonical Title:  Venom the Madness
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: 2 3 Spider Man Set 1 3 Complete jones art
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[25] ID: 41935
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: DC 1993 | Batman Adventures #9 | CGC 9.4 WHITE Pages
+
+  Canonical Title:  Batman Adventures
+  Issue Number:     9
+  Grade:            9.4 (CGC)
+  Publisher:        DC
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[26] ID: 7346
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Superman Batman #8 - DC 2004 Modern Age Issue - CGC NM/MT 9.8
+
+  Canonical Title:  Superman Batman
+  Issue Number:     8
+  Grade:            9.6 (raw)
+  Publisher:        DC
+  Notes:            Condition: NM/MT; Details: Modern Age CGC 9
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[27] ID: 13782
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: The Darkness #17-20 Hell House Part 1-4 IMAGE COMIC BOOK 9.2-9.4 AVG V24-83
+
+  Canonical Title:  The Darkness
+  Issue Number:     17
+  Grade:            None
+  Publisher:        Image
+  Notes:            Details: 20 Hell House Part 1 4 9 2 9 4 AVG
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[28] ID: 16199
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: MANIFEST DESTINY #1 - #18 * IMAGE COMICS 2013 * CHRIS DINGESS
+
+  Canonical Title:  Manifest Destiny
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Image
+  Notes:            Details: #18 * * CHRIS DINGESS
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[29] ID: 2693
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman In Detective Comics Lot 10 Books VF/NM DC Comics 
+
+  Canonical Title:  Batman in Detective Comics Lot
+  Issue Number:     10
+  Grade:            9.0 (raw)
+  Publisher:        DC
+  Notes:            Condition: VF/NM; Details: Books
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[30] ID: 45518
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Youngblood #1 (2025) 2nd Print Rob Liefeld Image Comics
+
+  Canonical Title:  Youngblood
+  Issue Number:     1
+  Grade:            None
+  Flags:            REPRINT
+  Creators:         Rob Liefeld
+  Publisher:        Image
+  Notes:            Creators: Rob Liefeld; Reprint: 2nd Print
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[31] ID: 4954
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Image Comics Walking Dead Deluxe #1 Gold Foil Deluxe Variant CBCS 9.8 Kirkman
+
+  Canonical Title:  The Walking Dead
+  Issue Number:     1
+  Grade:            9.8 (CBCS)
+  Flags:            VARIANT
+  Publisher:        Image
+  Notes:            Variant: Variant, Foil; Details: Gold Deluxe Kirkman
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[32] ID: 24148
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Marvel Comics Champions Volume 1 (1975) #1 (signed)-17 COMPLETE Series  
+
+  Canonical Title:  Champions Volume
+  Issue Number:     1
+  Grade:            None
+  Flags:            SIGNED
+  Publisher:        Marvel
+  Notes:            Signed; Details: 17 COMPLETE Series
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[33] ID: 38208
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: FULL SET 1984 Marvel Secret Wars with CGC graded 9.4 #8 - All Newsstand - RARE!
+
+  Canonical Title:  Full Set Secret Wars With Cgc Graded 9.4
+  Issue Number:     8
+  Grade:            None
+  Flags:            VARIANT
+  Publisher:        Marvel
+  Notes:            Variant: Newsstand; Details: All !
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[34] ID: 35221
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: 1969 INVINCIBLE IRON MAN COMIC BOOK..VOL.1..NO.9..MARVEL..HULK ANDROID/MANDARIN!
+
+  Canonical Title:  Invincible Iron Man ..vol.1..no.9....hulk Android/mandarin!
+  Issue Number:     None
+  Grade:            None
+  Publisher:        Marvel
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[35] ID: 42109
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Swamp Thing #1 1982 DC Comics VF- Comic Book Direct Edition
+
+  Canonical Title:  Swamp Thing
+  Issue Number:     1
+  Grade:            8.0 (raw)
+  Flags:            VARIANT
+  Publisher:        DC
+  Notes:            Condition: VF; Variant: Direct Edition
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[36] ID: 45866
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Cyberforce #4 Cover A Top Cow Universe 2013 Image Comics Marc Silvestri
+
+  Canonical Title:  Cyber Force
+  Issue Number:     4
+  Grade:            None
+  Flags:            VARIANT
+  Creators:         Marc Silvestri
+  Publisher:        Image
+  Notes:            Creators: Marc Silvestri; Variant: Cover A; Details: Top Cow Universe
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[37] ID: 40008
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW:  Aquaman #1 CGC 4.0 1962 1st App. Of Quisp - BEST PRICE on eBay!
+
+  Canonical Title:  Aquaman
+  Issue Number:     1
+  Grade:            4.0 (CGC)
+  Notes:            Details: 1st App Quisp BEST PRICE on eBay!
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[38] ID: 7394
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Super-Team Family #4 1976 DC Comics High Grade Comic Book P34-247
+
+  Canonical Title:  Super-Team Family
+  Issue Number:     4
+  Grade:            None
+  Publisher:        DC
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[39] ID: 14364
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Pitt Comic Book 1-5 Dale Keown Lot, Image Comics, Fast Shipping
+
+  Canonical Title:  Pitt
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Image
+  Notes:            Details: 5 Dale Keown Lot Fast Shipping
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[40] ID: 31680
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: GIDEON FALLS #4 CVR B DUSTIN NGUYEN | HALF SKULL FACE 1
+
+  Canonical Title:  Gideon Falls
+  Issue Number:     4
+  Grade:            None
+  Flags:            VARIANT
+  Notes:            Variant: CVR B; Details: DUSTIN NGUYEN HALF SKULL FACE
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[41] ID: 38825
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: IMMORTAL HULK 0, 1-50 Complete Run (Please Read Description) 
+
+  Canonical Title:  Immortal Hulk 0, 1-50 Complete Run (please
+  Issue Number:     None
+  Grade:            None
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[42] ID: 18253
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Fantastic Four #1 2nd print NM Gem Wow
+
+  Canonical Title:  Fantastic Four
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Flags:            REPRINT
+  Notes:            Condition: NM; Reprint: 2nd print; Details: Gem Wow
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[43] ID: 25824
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: 1987 DC Comics Batman Year One - Frank Miller TPB - 1st Print
+
+  Canonical Title:  Batman Year One
+  Issue Number:     None
+  Grade:            None
+  Creators:         Frank Miller
+  Publisher:        DC
+  Notes:            Creators: Frank Miller
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[44] ID: 27031
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Flash by Mark Waid Book Two DC Comics TPB 2017
+
+  Canonical Title:  Flash
+  Issue Number:     None
+  Grade:            None
+  Creators:         Mark Waid
+  Publisher:        DC
+  Notes:            Creators: Mark Waid
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[45] ID: 17022
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Incredible Hulk #181 CGC 7.0, OW to White Pages
+
+  Canonical Title:  Incredible Hulk
+  Issue Number:     181
+  Grade:            7.0 (CGC)
+  Notes:            Details: OW to
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[46] ID: 28467
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: X-Men Red by Al Ewing tpb lot Vol 1-4 Krakoa Hickman Marvel Comics Magneto Storm
+
+  Canonical Title:  X-Men Red
+  Issue Number:     1
+  Grade:            None
+  Creators:         Al Ewing
+  Publisher:        Marvel
+  Notes:            Creators: Al Ewing; Details: 4 Krakoa Hickman Magneto Storm
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[47] ID: 19516
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Marvel Spotlight #6 Comic Book 2nd Ghost Rider Johnny Blaze Low Grade
+
+  Canonical Title:  Marvel Spotlight
+  Issue Number:     6
+  Grade:            None
+  Notes:            Details: 2nd Ghost Rider Johnny Blaze
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[48] ID: 25727
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Daredevil by Frank Miller Set Vol. 1 2 3 TPB Man Without Fear, Born Again TPB
+
+  Canonical Title:  Daredevil. 1 2 3 Man Without Fear, Born Again
+  Issue Number:     None
+  Grade:            None
+  Creators:         Frank Miller
+  Notes:            Creators: Frank Miller
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[49] ID: 2425
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Wonder Woman #25 Daniel Sampere Matriarch Cardstock Variant Cover (DC Comics...
+
+  Canonical Title:  Wonder Woman
+  Issue Number:     25
+  Grade:            None
+  Flags:            VARIANT
+  Publisher:        DC
+  Notes:            Variant: Variant; Details: Daniel Sampere Matriarch Cardstock
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[50] ID: 5953
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: THE NEW MUTANTS #87 1st Print Marvel 1990 NEWSSTAND 1st App. of Cable - VF/NM
+
+  Canonical Title:  The New Mutants
+  Issue Number:     87
+  Grade:            9.0 (raw)
+  Flags:            VARIANT
+  Publisher:        Marvel
+  Notes:            Condition: VF/NM; Variant: Newsstand; Details: 1st App Cable
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[51] ID: 22348
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Strange Academy 1 J Scott Campbell Virgin Variant NM Lots Of 1st Appearances Ltd
+
+  Canonical Title:  Strange Academy
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Flags:            VARIANT
+  Creators:         J Scott Campbell
+  Notes:            Condition: NM; Creators: J Scott Campbell; Variant: Virgin, Variant; Details: Lots 1st Appearances Ltd
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[52] ID: 44365
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: D'Orc #1 (2026) VF/NM First Print Cover A Brett Bean Image Comics
+
+  Canonical Title:  'orc
+  Issue Number:     1
+  Grade:            9.0 (raw)
+  Flags:            VARIANT
+  Publisher:        Image
+  Notes:            Condition: VF/NM; Variant: Cover A; Details: Brett Bean
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[53] ID: 794
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Black Cat #1 Jonboy Meyers Variant Cover NYCC Exclusive - Sold Out! 
+
+  Canonical Title:  Black Cat
+  Issue Number:     1
+  Grade:            None
+  Flags:            VARIANT
+  Notes:            Variant: NYCC, Variant; Details: Jonboy Meyers Sold Out!
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[54] ID: 22114
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: BATMAN #666 (2007) FIRST DAMIAN WAYNE AS BATMAN, BRAND NEW UNREAD HIGH-GRAGE,
+
+  Canonical Title:  Batman
+  Issue Number:     666
+  Grade:            None
+  Notes:            Details: FIRST DAMIAN WAYNE AS BATMAN BRAND NEW UNREAD HIGH GRAGE
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[55] ID: 13881
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Youngblood #1 1992 Image Comics NM Comic Book
+
+  Canonical Title:  Youngblood
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Publisher:        Image
+  Notes:            Condition: NM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[56] ID: 35060
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Avengers #1-23 Plus Annual #1 Full Run Of 24( Marvel 2023-25)/ Free Shipping
+
+  Canonical Title:  Avengers
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: 23 Plus Annual #1 Full Run 24 25 / Free Shipping
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[57] ID: 15128
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Image Comics I Hate Fairyland #1 Skottie Young 2015
+
+  Canonical Title:  I Hate Fairyland
+  Issue Number:     1
+  Grade:            None
+  Creators:         Skottie Young
+  Publisher:        Image
+  Notes:            Creators: Skottie Young
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[58] ID: 43862
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: KINGDOM COME #4 Final Battle Between Superman & Captain Marvel 1996 CGC 9.4
+
+  Canonical Title:  Kingdom Come
+  Issue Number:     4
+  Grade:            9.4 (CGC)
+  Publisher:        Marvel
+  Notes:            Details: Final Battle Between Superman & Captain
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[59] ID: 16797
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Fire Power #22D VF 2022 Stock Image
+
+  Canonical Title:  Fire Power
+  Issue Number:     22D
+  Grade:            8.0 (raw)
+  Publisher:        Image
+  Notes:            Condition: VF; Details: Stock
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[60] ID: 5274
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Fables #1 DC Vertigo Comics 2002 First Appearance Premiere Issue High Grade
+
+  Canonical Title:  Fables
+  Issue Number:     1
+  Grade:            None
+  Flags:            KEY
+  Key Issue Claim:  First Appearance Premiere Issue High Grade
+  Publisher:        DC
+  Notes:            Key: First Appearance Premiere Issue High Grade; Details: Vertigo Comics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[61] ID: 2564
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Action Comics #1 * NM+ 9.6 * Free shipping on 2 or more items!
+
+  Canonical Title:  Action Comics
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Notes:            Condition: NM; Details: * + 9 6 * Free shipping on 2 or more items!
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[62] ID: 15032
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: ICE CREAM MAN #1 VARIANT - 2018 IMAGE COMICS
+
+  Canonical Title:  Ice Cream Man
+  Issue Number:     1
+  Grade:            None
+  Flags:            VARIANT
+  Publisher:        Image
+  Notes:            Variant: Variant
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[63] ID: 15624
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Sex Criminals #69 NM+ Matt & Chip Sealed Variant 2020 Image Comics
+
+  Canonical Title:  Sex Criminals
+  Issue Number:     69
+  Grade:            9.4 (raw)
+  Flags:            VARIANT
+  Publisher:        Image
+  Notes:            Condition: NM; Variant: Variant; Details: + Matt & Chip Sealed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[64] ID: 30755
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: 1975 DC The House of Mystery #231 Comic Book /B175
+
+  Canonical Title:  House of Mystery
+  Issue Number:     231
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: /B175
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[65] ID: 9004
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Vintage Aquaman Issue #48 Comic Book December 1962 Superman DC Comics Group
+
+  Canonical Title:  Aquaman
+  Issue Number:     48
+  Grade:            None
+  Publisher:        DC
+  Notes:            Prefix: Vintage; Details: December Superman Group
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[66] ID: 24751
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: New Warriors #4 1990 Marvel Comics VF+ Comic Book Direct Edition
+
+  Canonical Title:  New Warriors
+  Issue Number:     4
+  Grade:            8.0 (raw)
+  Flags:            VARIANT
+  Publisher:        Marvel
+  Notes:            Condition: VF; Variant: Direct Edition; Prefix: New
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[67] ID: 10938
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Watchmen #1-12 NM Complete Alan Moore Dave Gibbons 1st Prints 1986 High Grade
+
+  Canonical Title:  Watchmen
+  Issue Number:     1
+  Grade:            9.4 (raw)
+  Creators:         Alan Moore
+  Notes:            Condition: NM; Creators: Alan Moore; Details: 12 Complete Dave Gibbons 1st Prints
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[68] ID: 8611
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Justice League #1 CGC 9.8  DC Comics 1987 DeMatteis 1st Maxwell Lord Black King
+
+  Canonical Title:  Justice League
+  Issue Number:     1
+  Grade:            9.8 (CGC)
+  Publisher:        DC
+  Notes:            Details: DeMatteis 1st Maxwell Lord Black King
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[69] ID: 7413
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Super-Team Family #5 CGC 9.8 1976 4336124013
+
+  Canonical Title:  Super-Team Family
+  Issue Number:     5
+  Grade:            9.8 (CGC)
+  Notes:            Details: 4336124013
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[70] ID: 46005
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: PITT Comic #1 CGC 9.8 (Image 1/1993) First App. Near Mint / MINT - WHITE PAGES
+
+  Canonical Title:  Pitt
+  Issue Number:     1
+  Grade:            9.8 (CGC)
+  Publisher:        Image
+  Notes:            Details: 1/ First App Near Mint / MINT
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[71] ID: 879
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: THE AVENGERS #75 COMIC BOOK (MARVEL,1970) BRONZE AGE 1ST ARKON
+
+  Canonical Title:  The Avengers
+  Issue Number:     75
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: BRONZE AGE 1ST ARKON
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[72] ID: 11660
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: LEGION OF SUPER-HEROES #1 2ND PRI JIM LEE SKETCH VARIANT  VF/NM - 2010 DC COMICS
+
+  Canonical Title:  Legion Super-Heroes
+  Issue Number:     1
+  Grade:            9.0 (raw)
+  Flags:            VARIANT
+  Creators:         JIM LEE
+  Publisher:        DC
+  Notes:            Condition: VF/NM; Creators: JIM LEE; Variant: Variant, Sketch; Details: 2ND PRI
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[73] ID: 1011
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Amazing Spiderman #800 Shattered Variant Mcfarlane ASM 300 Signed COA
+
+  Canonical Title:  Amazing Spider-Man
+  Issue Number:     800
+  Grade:            None
+  Flags:            SIGNED, VARIANT
+  Notes:            Signed: COA; Variant: Variant; Details: Shattered Mcfarlane ASM 300
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[74] ID: 10126
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Batman: The Killing Joke CGC 9.8 Graded Comic Book - Alan Moore - Joker Key
+
+  Canonical Title:  Batman: the Killing Joke Graded - - Joker Key
+  Issue Number:     None
+  Grade:            9.8 (CGC)
+  Creators:         Alan Moore
+  Notes:            Creators: Alan Moore
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[75] ID: 38211
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Marvel Superheroes Secret Wars 1984 Comic Book Series Issues 1-12 Missing # 8
+
+  Canonical Title:  Superheroes Secret Wars Series 1-12 Missing
+  Issue Number:     8
+  Grade:            None
+  Publisher:        Marvel
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[76] ID: 22981
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: X-MEN #16 (Marvel, 2019) VF Jonathan Hickman
+
+  Canonical Title:  X-Men
+  Issue Number:     16
+  Grade:            8.0 (raw)
+  Creators:         Jonathan Hickman
+  Publisher:        Marvel
+  Notes:            Condition: VF; Creators: Jonathan Hickman
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[77] ID: 4722
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: NEW DC Comics Watchmen Collector's Edition Slipcase 12 Book Set Moore Gibbons
+
+  Canonical Title:  Watchmen Collector's Slipcase
+  Issue Number:     12
+  Grade:            None
+  Publisher:        DC
+  Notes:            Prefix: NEW; Details: Book Set Moore Gibbons
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[78] ID: 13981
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Wildc.A.T.S Special #1 (Image Comics Malibu Comics November 1993)
+
+  Canonical Title:  Wildc.a.. Special
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Image
+  Notes:            Details: Malibu Comics November
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[79] ID: 2426
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Wonder Woman #8 Vol. 6 2024 DC Comics 8.0 Comic Book W139-249
+
+  Canonical Title:  Wonder Woman
+  Issue Number:     8
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: Vol 6 8
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[80] ID: 2353
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: WONDER WOMAN Cosplay CGC 9.8 **Bangers Comics FULL/N VIRGIN VARIANT** SOLD OUT!!
+
+  Canonical Title:  Wonder Woman Cosplay **bangers Comics Full/ ** Sold Out!!
+  Issue Number:     None
+  Grade:            9.8 (CGC)
+  Flags:            VARIANT
+  Notes:            Variant: Virgin, Variant
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[81] ID: 17664
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Detective Comics #27 Facsimile Reprint 2022 NM 9.4 or Better UNREAD
+
+  Canonical Title:  Detective Comics
+  Issue Number:     27
+  Grade:            9.4 (raw)
+  Flags:            FACSIMILE, REPRINT
+  Notes:            Condition: NM; Facsimile; Reprint: Reprint; Details: 9 4 or Better UNREAD
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[82] ID: 30302
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Tales from the Crypt Presents: Vault of Horror #4
+
+  Canonical Title:  Tales From the Crypt Presents: Vault Horror
+  Issue Number:     4
+  Grade:            None
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[83] ID: 35067
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Avengers $1 Books Marvel Comic Lot Jonathan Hickman Key 1st Issue Hi-Grade
+
+  Canonical Title:  Avengers $1 Books Key 1st Hi Grade
+  Issue Number:     None
+  Grade:            None
+  Flags:            LOT
+  Creators:         Jonathan Hickman
+  Publisher:        Marvel
+  Notes:            Creators: Jonathan Hickman; Lot: Comic Lot
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[84] ID: 16218
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Manifest Destiny TPB Vol 1-5
+
+  Canonical Title:  Manifest Destiny
+  Issue Number:     1
+  Grade:            None
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[85] ID: 3676
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: 1980s The Incredible Hulk - Marvel Comic Lot - Issues 332 & 333
+
+  Canonical Title:  1980s the Incredible Hulk 332 &
+  Issue Number:     None
+  Grade:            None
+  Flags:            LOT
+  Publisher:        Marvel
+  Notes:            Lot: Comic Lot
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[86] ID: 31803
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Hellboy: Seed of Destruction #4 (Monkeyman&O'Brien), 6/94, Drk Hrs, CGC 9.4/NM
+
+  Canonical Title:  Hellboy: Seed Destruction
+  Issue Number:     4
+  Grade:            9.4 (CGC)
+  Notes:            Details: Monkeyman&'Brien 6/94 Drk Hrs /NM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[87] ID: 34279
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Pokémon The Electric Tale of Pikachu Complete Set #1-4 1998 Nintendo Viz Comics
+
+  Canonical Title:  Pokémon the Electric Tale Pikachu Complete Set
+  Issue Number:     1
+  Grade:            None
+  Notes:            Details: 4 Nintendo Viz Comics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[88] ID: 47716
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Deadly Class Compendium TP - Image Comics Remender Trade Paperback - NEW
+
+  Canonical Title:  Deadly Class Compendium Tp - Remender - New
+  Issue Number:     None
+  Grade:            None
+  Publisher:        Image
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[89] ID: 7348
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Action Comics #500 CGC 9.4- infinity cover - anniversary issue - Giordano cover
+
+  Canonical Title:  Action Comics
+  Issue Number:     500
+  Grade:            9.4 (CGC)
+  Notes:            Details: infinity anniversary Giordano
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[90] ID: 29406
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Falling In Love On The Path To Hell #1 Signed By Gerry Duggan W/COA
+
+  Canonical Title:  Falling in Love on the Path to Hell
+  Issue Number:     1
+  Grade:            None
+  Flags:            SIGNED
+  Notes:            Signed: By Gerry Duggan; Details: /COA
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[91] ID: 30763
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: House of Mystery #289 291 BRONZE AGE DC COMIC BOOK LOT I... Vampire Cain 1981 NM
+
+  Canonical Title:  House Mystery Bronze Age ... Vampire Cain
+  Issue Number:     None
+  Grade:            9.4 (raw)
+  Flags:            LOT
+  Publisher:        DC
+  Notes:            Condition: NM; Lot: BOOK LOT
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[92] ID: 13105
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Saga #54 - 2nd print Image Comics Variant High Grade Comic Book W210-243
+
+  Canonical Title:  Saga
+  Issue Number:     54
+  Grade:            None
+  Flags:            VARIANT, REPRINT
+  Publisher:        Image
+  Notes:            Reprint: 2nd print; Variant: Variant
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[93] ID: 30434
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Creepy # 12 - Dark Horse Comics - 2013 - Bagged / Boarded
+
+  Canonical Title:  Creepy
+  Issue Number:     12
+  Grade:            None
+  Publisher:        Dark Horse
+  Notes:            Details: Bagged / Boarded
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[94] ID: 39193
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Superman #88 1994 DC Comics Comic Book 
+
+  Canonical Title:  Superman
+  Issue Number:     88
+  Grade:            None
+  Publisher:        DC
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[95] ID: 6896
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: 1969 Silver Surfer Comic Book Marvel #1 15 Cent Cover
+
+  Canonical Title:  Silver Surfer
+  Issue Number:     1
+  Grade:            None
+  Publisher:        Marvel
+  Notes:            Details: 15 Cent
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[96] ID: 26
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: AMAZING SPIDER-MAN #300 MCFARLANE CLASSIC VF/VF+ FIRST APP VENOM
+
+  Canonical Title:  Amazing Spider-Man
+  Issue Number:     300
+  Grade:            8.0 (raw)
+  Notes:            Condition: VF; Details: MCFARLANE CLASSIC /VF+ FIRST APP VENOM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[97] ID: 17073
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Hulk 181 1st Wolverine Grail Major Key Nice Book Look👀 No Mvs Grade 5+ See Pics
+
+  Canonical Title:  Hulk
+  Issue Number:     181
+  Grade:            None
+  Notes:            Details: 1st Wolverine Grail Major Key Nice Book Look👀 No Mvs Grade 5+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[98] ID: 19413
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: Werewolf by Night #32 (1975) CGC 4.0 - 1st Moon Knight Marvel Comics Key
+
+  Canonical Title:  Werewolf
+  Issue Number:     32
+  Grade:            4.0 (CGC)
+  Publisher:        Marvel
+  Notes:            Details: 1st Moon Knight Key
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[99] ID: 22282
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: The Omega Men #3 (DC Comics June 1983)first Appearance Of Lobo!!!
+
+  Canonical Title:  Omega Men
+  Issue Number:     3
+  Grade:            None
+  Publisher:        DC
+  Notes:            Details: June first Appearance Lobo!!!
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+[100] ID: 46993
+────────────────────────────────────────────────────────────────────────────────────────────────────
+RAW: ICE CREAM MAN #1 2ND PRINT VARIANT (IMAGE COMICS 2018) 
+
+  Canonical Title:  Ice Cream Man
+  Issue Number:     1
+  Grade:            None
+  Flags:            VARIANT, REPRINT
+  Publisher:        Image
+  Notes:            Reprint: 2ND PRINT; Variant: Variant
+
+
+====================================================================================================
+SUMMARY STATISTICS
+====================================================================================================
+
+  Total Records:     100
+  Has Title:         100 (100.0%)
+  Has Issue:         86 (86.0%)
+  Has Grade:         43 (43.0%)
+  Signed:            3 (3.0%)
+  Variant:           23 (23.0%)
+  Lot:               4 (4.0%)
+  Facsimile:         1 (1.0%)
+  Reprint:           5 (5.0%)
+  Key Issue:         1 (1.0%)
+  Has Creators:      15 (15.0%)

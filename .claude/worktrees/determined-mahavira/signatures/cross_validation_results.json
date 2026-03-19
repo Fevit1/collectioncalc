@@ -1,0 +1,891 @@
+{
+  "date": "2026-03-07",
+  "method": "two_stage_haiku_sonnet",
+  "total": 23,
+  "correct": 12,
+  "accuracy": 52.17391304347826,
+  "haiku_recall": 60.86956521739131,
+  "haiku_recall_count": 14,
+  "token_totals": {
+    "haiku_input": 80195,
+    "haiku_output": 7493,
+    "sonnet_input": 57075,
+    "sonnet_output": 10954
+  },
+  "results": [
+    {
+      "artist": "Adam Hughes",
+      "test_image": "AdamaHughesSignature4.jpg",
+      "predicted": "Ivan Reis",
+      "confidence": 0.82,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Alex Ross",
+        "Jim Lee",
+        "Grant Morrison",
+        "Jim Starlin",
+        "Ivan Reis"
+      ],
+      "tokens_used": {
+        "haiku_input": 3432,
+        "haiku_output": 313,
+        "sonnet_input": 2498,
+        "sonnet_output": 476
+      },
+      "top_matches": [
+        {
+          "artist": "Ivan Reis",
+          "confidence": 0.82,
+          "reasoning": "Strong structural match: The unknown signature shows distinctive characteristics consistent with Ivan Reis's autograph style. Key similarities include: (1) The vertical ascending stroke pattern with leftward lean; (2) The angular, compressed letter formations; (3) The characteristic 'I' construction with a leftward slanting main stroke; (4) The abbreviated, stylized nature without clearly separated letters; (5) Similar stroke weight and pressure distribution. The unknown appears to be 'Ivan' or 'I Reis' written in his characteristic compressed, angular style."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.35,
+          "reasoning": "Limited similarity: Grant Morrison's signature shows flowing, connected strokes with horizontal emphasis and distinctive elongated loops. The unknown signature lacks these characteristics - it's more vertical, angular, and compact. The overall flow and construction pattern are fundamentally different."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.25,
+          "reasoning": "Poor match: Alex Ross signatures show bold vertical strokes forming 'AR' with distinctive tall parallel lines followed by 'Ross' in cursive. The unknown signature lacks the clear double-stroke 'A' pattern and the separate cursive surname component. Structure and letter construction are inconsistent."
+        }
+      ]
+    },
+    {
+      "artist": "Alan Moore",
+      "test_image": "AlanMooreSignature4.jpg",
+      "predicted": "Alan Moore",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Alan Moore",
+        "Jim Lee",
+        "Alex Ross",
+        "Jae Lee",
+        "Grant Morrison"
+      ],
+      "tokens_used": {
+        "haiku_input": 3441,
+        "haiku_output": 341,
+        "sonnet_input": 2281,
+        "sonnet_output": 459
+      },
+      "top_matches": [
+        {
+          "artist": "Alan Moore",
+          "confidence": 0.92,
+          "reasoning": "Strong structural match. The unknown signature shows the characteristic looped 'A' formation with a tall ascending stroke, followed by an 'M' with two humps, and a connecting stroke flowing into what appears to be an underline. The letter construction, proportions, baseline angle, and distinctive looping style are consistent with Moore's reference examples. All three Moore references show this same basic structure: initial loop, double-humped middle section, and flowing terminal stroke."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Ross's signatures consistently show tall vertical parallel strokes forming stylized letters followed by 'Ross' in readable script. The unknown signature has a completely different structure with looping elements and no vertical parallel strokes or legible surname component."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.12,
+          "reasoning": "No structural similarity. Morrison's signatures are characterized by wide, flowing horizontal strokes with dramatic slant and extensive rightward movement. The unknown signature is much more compact, vertical, and looping with a different construction pattern entirely."
+        }
+      ]
+    },
+    {
+      "artist": "Alex Ross",
+      "test_image": "AlexRossSignature1.jpg",
+      "predicted": "Alex Ross",
+      "confidence": 0.95,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Alex Ross",
+        "George P\u00e9rez",
+        "Jim Lee",
+        "Grant Morrison",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3558,
+        "haiku_output": 329,
+        "sonnet_input": 2591,
+        "sonnet_output": 453
+      },
+      "top_matches": [
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.95,
+          "reasoning": "Exceptional match across all structural features. The unknown signature shows identical construction: distinctive capital 'A' formed with 3-4 parallel vertical strokes on the left, tall ascending stroke for 'l', characteristic 'R' with angular top, and flowing 'oss' ending with horizontal terminal stroke. The letter proportions, baseline angle, stroke weight distribution, and overall gestural flow are consistent with all three Alex Ross reference examples."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "No structural similarity. Jim Lee's signature features a large looping 'J', distinctive 'm' formation with multiple humps, and extended horizontal tail. The unknown signature has completely different letter construction with parallel vertical strokes and angular forms not present in Jim Lee's style."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.1,
+          "reasoning": "Incompatible structure. Morrison's signature shows rapid horizontal scribbling motion with overlapping strokes and minimal vertical elements. The unknown signature has clear vertical stroke patterns and defined letter separation, fundamentally different from Morrison's compressed, horizontal style."
+        }
+      ]
+    },
+    {
+      "artist": "Art Adams",
+      "test_image": "ArtAdamsSignature3.jpg",
+      "predicted": "Art Adams",
+      "confidence": 0.88,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Art Adams",
+        "Jim Lee",
+        "Greg Capullo",
+        "Jim Starlin",
+        "Geoff Johns"
+      ],
+      "tokens_used": {
+        "haiku_input": 3454,
+        "haiku_output": 349,
+        "sonnet_input": 2289,
+        "sonnet_output": 512
+      },
+      "top_matches": [
+        {
+          "artist": "Art Adams",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: The unknown signature shows 'Art Adams' with distinctive features matching the reference samples. The capital 'A' has a characteristic leftward-leaning stroke with angular construction. The 'rt' connection in 'Art' flows into the second word. The 'Adams' portion shows consistent letter construction with a distinctive 'd' that has an upward stroke, and the 'ms' ending with similar compression and baseline characteristics seen across all Art Adams reference samples. The natural variation in size and slant falls within the range shown in the references."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.25,
+          "reasoning": "Minimal match: While both signatures contain fluid strokes, Jim Starlin's signature shows a very different structure. His 'J' has a distinctive large loop or oval beginning, and the overall signature is more compressed horizontally with heavy crosshatching in the middle section. The terminal stroke in Starlin's work extends much longer. The letter construction in the unknown signature doesn't match Starlin's characteristic style."
+        },
+        {
+          "artist": "Geoff Johns",
+          "confidence": 0.15,
+          "reasoning": "Poor match: Geoff Johns' signature is characterized by a large oval flourish encompassing the entire signature with contained lettering inside. The unknown signature lacks this distinctive oval enclosure and shows completely different letter construction. Johns' signature is more compact and contained, while the unknown is more open and spread horizontally."
+        }
+      ]
+    },
+    {
+      "artist": "Bill Finger",
+      "test_image": "BillFingerSignature1.jpg",
+      "predicted": "Bill Finger",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Bill Finger",
+        "Jerry Siegel",
+        "Jack Kirby",
+        "George P\u00e9rez",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3444,
+        "haiku_output": 336,
+        "sonnet_input": 2173,
+        "sonnet_output": 546
+      },
+      "top_matches": [
+        {
+          "artist": "Bill Finger",
+          "confidence": 0.92,
+          "reasoning": "Very strong structural match. The unknown signature shows 'Wm Finger' (William Finger). The 'W' has a distinctive construction with separated downstrokes and connecting curves at the top that matches Bill Finger's uppercase 'B' formation style. The lowercase 'm' shows similar rounded humps. Most significantly, the surname 'Finger' is nearly identical: the 'F' has the same angular crossbar and stem construction, the 'i' dot placement, the 'n' and 'g' letter forms, and especially the terminal 'r' with its distinctive finishing stroke all match the reference examples. The flowing, connected cursive style and baseline angle are consistent across all Bill Finger reference samples."
+        },
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Jerry Siegel's signature shows a very different structure: highly stylized 'J' with elaborate loop, distinctive 'y' descender, and 'Siegel' with characteristic connected letterforms. The unknown signature lacks these features entirely and shows a completely different name structure and letter construction patterns."
+        },
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.1,
+          "reasoning": "No match. Jack Kirby's signatures show angular, bold strokes with distinctive 'J' and 'K' constructions. The letterforms are more separated and geometric. The unknown signature's flowing cursive style, letter proportions, and structural elements bear no resemblance to Kirby's characteristic autograph."
+        }
+      ]
+    },
+    {
+      "artist": "Bob Kane",
+      "test_image": "BobKaneSignature4_1994.jpg",
+      "predicted": "UNKNOWN",
+      "confidence": 0.25,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "Art Adams",
+        "Greg Capullo",
+        "Brian Michael Bendis"
+      ],
+      "tokens_used": {
+        "haiku_input": 3438,
+        "haiku_output": 303,
+        "sonnet_input": 2522,
+        "sonnet_output": 466
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.25,
+          "reasoning": "The unknown signature shows fluid strokes and a possible 'J' initial, but Jim Lee's signatures are characterized by large looping 'J' and 'L' letters with multiple vertical strokes for the 'm' sounds. The unknown signature is much more compact and angular, lacking Lee's characteristic flowing loops and horizontal terminal strokes."
+        },
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.2,
+          "reasoning": "While Starlin's signatures do show angular elements and compressed letterforms, his 'J' is distinctively formed with a backwards loop or hook, and his 'S' is clearly visible. The unknown signature's structure doesn't match Starlin's characteristic letter construction or the way he connects his initials to surname."
+        },
+        {
+          "artist": "Art Adams",
+          "confidence": 0.15,
+          "reasoning": "Adams' signatures show distinct 'A' letterforms (either triangular or looped) followed by clear 'ADAMS' text with separated letters. The unknown signature appears to be a single fluid gesture without the separated letter structure or distinctive 'A' formation seen in Adams' work."
+        }
+      ]
+    },
+    {
+      "artist": "Brian Michael Bendis",
+      "test_image": "BrianMichaelBendis_Signature_5_2003.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Frank Miller",
+        "Grant Morrison",
+        "Jim Steranko",
+        "Jim Lee",
+        "George P\u00e9rez"
+      ],
+      "tokens_used": {
+        "haiku_input": 3613,
+        "haiku_output": 362,
+        "sonnet_input": 2975,
+        "sonnet_output": 445
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.88,
+          "reasoning": "The unknown signature shows Jim Lee's characteristic large initial 'J' with elongated descender, followed by multiple vertical strokes representing 'im', and a long horizontal terminal stroke. The flowing, gestural style, the specific construction of the 'J', the clustered vertical strokes in the middle, and the extended baseline match Lee's signature patterns across all reference examples. The white ink on colored background is consistent with convention signing practices."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Morrison's signatures show flowing horizontal strokes with angular elements, but lack the distinctive tall initial letter and clustered vertical strokes seen in the unknown. The overall construction is fundamentally different - Morrison uses more horizontal sweeping motions while the unknown has a prominent vertical element at the start."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.15,
+          "reasoning": "P\u00e9rez signatures feature a distinctive initial 'G' with angular zigzag strokes in the middle portion and an elongated oval loop at the end. The unknown signature lacks these characteristic angular middle strokes and the specific terminal loop formation that defines P\u00e9rez's autograph."
+        }
+      ]
+    },
+    {
+      "artist": "Chris Claremont",
+      "test_image": "ChrisClaremontSignature4.jpg",
+      "predicted": "Geoff Johns",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "Chris Claremont",
+        "George P\u00e9rez",
+        "Geoff Johns"
+      ],
+      "tokens_used": {
+        "haiku_input": 3491,
+        "haiku_output": 296,
+        "sonnet_input": 2407,
+        "sonnet_output": 444
+      },
+      "top_matches": [
+        {
+          "artist": "Geoff Johns",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: compact 'G' formation with enclosed loop, similar rightward slant of entire signature, characteristic upward-extending tail stroke that curves back. The overall compressed, efficient style matches Johns' signature pattern. The distinctive oval loop encompassing the latter portion of the signature is present in both unknown and reference examples."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.35,
+          "reasoning": "Some superficial similarity in the flowing underline, but the letter construction is fundamentally different. P\u00e9rez shows more elongated, flowing letterforms with distinctive double-loop patterns in the 'G' and 'P'. The unknown signature is more compact and angular, lacking P\u00e9rez's characteristic sweeping style."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.25,
+          "reasoning": "No meaningful match. Jim Lee's signature features very distinctive tall, overlapping vertical strokes forming the 'J' and 'm' letters, with multiple parallel downstrokes. The unknown signature lacks these characteristic vertical elements and has a completely different structural approach with its compact, looping style."
+        }
+      ]
+    },
+    {
+      "artist": "Ed Brubaker",
+      "test_image": "EdBrubakerSignature2.jpg",
+      "predicted": "Ed Brubaker",
+      "confidence": 0.88,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "Ed Brubaker",
+        "Chris Claremont",
+        "Geoff Johns"
+      ],
+      "tokens_used": {
+        "haiku_input": 3444,
+        "haiku_output": 318,
+        "sonnet_input": 2324,
+        "sonnet_output": 469
+      },
+      "top_matches": [
+        {
+          "artist": "Ed Brubaker",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match. The unknown signature shows the characteristic 'E' and 'B' formation seen in Brubaker's references - angular initial stroke forming an 'E', followed by a connected 'B' with distinctive vertical emphasis. The compact, aggressive style with quick angular strokes matches Brubaker's signature pattern. The terminal flourish/underline is consistent with his style."
+        },
+        {
+          "artist": "Geoff Johns",
+          "confidence": 0.25,
+          "reasoning": "Poor match. Johns' signature shows much more rounded, looping forms with a distinctive oval enclosure pattern. The unknown signature is more angular and compact, lacking the circular flourishes characteristic of Johns' autograph."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. Claremont's signatures show elaborate flowing forms with dramatic sweeping strokes and distinctive loops. The unknown signature is far more compact and angular, completely lacking Claremont's characteristic elaborate flourishes and vertical extensions."
+        }
+      ]
+    },
+    {
+      "artist": "Frank Miller",
+      "test_image": "Frank_Miller_Signature_4.jpg",
+      "predicted": "Grant Morrison",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Frank Miller",
+        "Grant Morrison",
+        "Jae Lee",
+        "Jim Steranko",
+        "George P\u00e9rez"
+      ],
+      "tokens_used": {
+        "haiku_input": 3444,
+        "haiku_output": 303,
+        "sonnet_input": 2078,
+        "sonnet_output": 410
+      },
+      "top_matches": [
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: The unknown signature shows multiple parallel diagonal strokes sweeping upward from left to right, which is Grant Morrison's signature characteristic. The flowing, gestural quality with minimal letterforms and emphasis on dynamic movement matches Morrison's style. The angle and rhythm of the strokes are highly consistent with the reference examples."
+        },
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity in that both use flowing horizontal strokes, but Frank Miller's signatures show distinct curved elements with hook-like terminals and more controlled arcs. The unknown signature lacks Miller's characteristic sweeping curve and rounded forms. The stroke pattern is too angular and linear."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.15,
+          "reasoning": "No significant match. P\u00e9rez signatures show clear letterforms with distinct vertical elements, zigzag patterns in the middle section, and large oval loops. The unknown signature lacks these structural features entirely and shows only parallel diagonal strokes without defined letter construction."
+        }
+      ]
+    },
+    {
+      "artist": "Gabriele Dell'Otto",
+      "test_image": "Gabrielle_DellOtto_Signature_1.jpg",
+      "predicted": "Gabriele Dell'Otto",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Alex Ross",
+        "Grant Morrison",
+        "Jim Starlin",
+        "Gabriele Dell'Otto"
+      ],
+      "tokens_used": {
+        "haiku_input": 3438,
+        "haiku_output": 323,
+        "sonnet_input": 2530,
+        "sonnet_output": 472
+      },
+      "top_matches": [
+        {
+          "artist": "Gabriele Dell'Otto",
+          "confidence": 0.92,
+          "reasoning": "Extremely strong match. The unknown signature shows the characteristic Dell'Otto features: parallel diagonal strokes forming the 'G' and 'D', rightward slant at approximately 60-70 degrees, connected flowing script with minimal pen lifts, and the distinctive compressed letterforms. The stroke weight, spacing between parallel lines, and overall gestural quality are consistent across all Dell'Otto references and match the unknown signature precisely."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Superficial similarity in the rapid, flowing style and rightward slant, but structural differences are significant. Morrison's signature shows more angular transitions, different letter construction (particularly the initial stroke), and a more horizontal baseline. The parallel strokes in the unknown are tighter and more vertical than Morrison's characteristic wide, sweeping marks."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.15,
+          "reasoning": "No structural match. Ross's signature features distinct vertical strokes forming 'M' and 'R' with clear letter separation, a legible 'Ross' ending, and much more upright orientation. The unknown signature's compressed, connected style with parallel diagonal strokes is fundamentally different from Ross's letterform construction."
+        }
+      ]
+    },
+    {
+      "artist": "Geoff Johns",
+      "test_image": "Geoff_Johns_Signature_3.jpg",
+      "predicted": "George P\u00e9rez",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "George P\u00e9rez",
+        "Grant Morrison",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3435,
+        "haiku_output": 313,
+        "sonnet_input": 2584,
+        "sonnet_output": 477
+      },
+      "top_matches": [
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match. The unknown signature shows the characteristic fluid 'G' formation with an elongated descender, flowing directly into a connected 'e' with a distinctive loop. The stroke transitions from the initial letter through the middle section show P\u00e9rez's characteristic continuous flow. The overall rightward slant, loop proportions, and the way the signature terminates with an elongated tail match the reference examples closely. The compression and connection style between letters is consistent with P\u00e9rez's signing patterns."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Minimal structural similarity. Morrison's signatures show much more aggressive angular strokes with sharp peaks and aggressive slashing movements. The unknown signature has rounder, more connected letterforms with smoother transitions, lacking Morrison's characteristic rapid zigzag patterns and the distinctive sharp angular forms seen in the 'M' and subsequent letters."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.2,
+          "reasoning": "Poor structural match. Claremont's signatures consistently show a distinctive looped 'C' at the beginning followed by more vertical letter construction. The unknown signature lacks Claremont's characteristic opening loop structure and has different proportions. The flow and connectivity pattern doesn't match Claremont's more segmented, upright style with its distinctive terminal flourishes."
+        }
+      ]
+    },
+    {
+      "artist": "George P\u00e9rez",
+      "test_image": "George_Perez_Signature_2.jpg",
+      "predicted": "George P\u00e9rez",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "George P\u00e9rez",
+        "Grant Morrison",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3444,
+        "haiku_output": 325,
+        "sonnet_input": 2593,
+        "sonnet_output": 482
+      },
+      "top_matches": [
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.92,
+          "reasoning": "Excellent structural match. The unknown signature shows the characteristic P\u00e9rez elements: distinctive elongated initial stroke forming the 'G', middle compressed/scripted section creating the 'eorge' portion with vertical emphasis and tight loops, and the sweeping oval terminal flourish that loops back. The proportions, three-part construction (initial stroke, compressed middle, large oval finale), baseline angle, and flow pattern all align closely with the reference examples."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.25,
+          "reasoning": "Significant structural differences. Jim Lee's signature features a large open oval beginning the 'J', multiple repeated vertical strokes in the middle section, and a long horizontal trailing stroke. The unknown signature lacks these characteristic elements\u2014it has a forward slanting initial stroke rather than an oval, different middle construction, and a looping rather than horizontal terminus."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Poor match. Grant Morrison's signatures show distinctive parallel diagonal strokes creating a 'stacked' appearance with sharp angles and minimal looping. The unknown signature has a completely different flow pattern with curved elements and a prominent terminal loop that Morrison's signatures lack."
+        }
+      ]
+    },
+    {
+      "artist": "Grant Morrison",
+      "test_image": "Grant_Morrison_Signature_2.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "George P\u00e9rez",
+        "Frank Miller",
+        "Jack Kirby",
+        "Jim Lee",
+        "Jerry Siegel"
+      ],
+      "tokens_used": {
+        "haiku_input": 3459,
+        "haiku_output": 340,
+        "sonnet_input": 2873,
+        "sonnet_output": 451
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "The unknown signature shows a characteristic large looping initial letter followed by multiple compressed vertical strokes ('m' letters) and a long horizontal terminal stroke. This matches Jim Lee's signature structure almost exactly: the oversized initial 'J', the cluster of vertical strokes forming the 'm' letters, and the distinctive long trailing horizontal line. The stroke weight, flow, rhythm, and proportions are consistent with the Jim Lee references provided."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.15,
+          "reasoning": "George P\u00e9rez's signatures show more angular construction with a distinctive zigzag pattern in the first name and a more controlled oval shape in the surname. The unknown signature lacks these angular elements and has a different rhythm entirely. The compressed vertical strokes in the unknown signature don't match P\u00e9rez's more open letter spacing."
+        },
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.1,
+          "reasoning": "Frank Miller's signatures are characterized by a distinctive horizontal sword-like element and a circular loop, creating a very different visual structure. The unknown signature's multiple vertical strokes and overall flow pattern bears no resemblance to Miller's stylized mark."
+        }
+      ]
+    },
+    {
+      "artist": "Greg Capullo",
+      "test_image": "Greg_Capullo_Signature_3.jpg",
+      "predicted": "Jim Steranko",
+      "confidence": 0.95,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Steranko",
+        "George P\u00e9rez",
+        "Jack Kirby",
+        "Jerry Siegel",
+        "Frank Miller"
+      ],
+      "tokens_used": {
+        "haiku_input": 3496,
+        "haiku_output": 327,
+        "sonnet_input": 2789,
+        "sonnet_output": 477
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.95,
+          "reasoning": "Extremely strong match. The unknown signature displays all the hallmark features of Steranko's distinctive autograph: (1) Large sweeping circular flourish starting from upper left, (2) Multiple concentric loops forming an elaborate opening design, (3) Name written in blocky capital letters integrated into the flourish, (4) Characteristic diagonal underline stroke crossing beneath, (5) Small circular terminal on the right side. The letter construction, proportions, and overall compositional structure are virtually identical to all three Steranko reference examples."
+        },
+        {
+          "artist": "George P\u00e9rez",
+          "confidence": 0.15,
+          "reasoning": "No meaningful match. P\u00e9rez signatures show cursive script style with flowing connected letters, an underline, and completely different structural characteristics. The unknown signature's blocky capital letters within circular flourishes bear no resemblance to P\u00e9rez's handwriting style."
+        },
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.1,
+          "reasoning": "No match. Miller's signatures are simple, flowing cursive marks with minimal flourishes - sometimes just a quick horizontal stroke with a loop. The elaborate circular design and capital letter construction of the unknown signature are completely inconsistent with Miller's minimalist approach."
+        }
+      ]
+    },
+    {
+      "artist": "Ivan Reis",
+      "test_image": "Ivan_Reis_Signature_4.jpg",
+      "predicted": "Jim Starlin",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "George P\u00e9rez",
+        "Grant Morrison",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3432,
+        "haiku_output": 337,
+        "sonnet_input": 2581,
+        "sonnet_output": 434
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Starlin",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: The unknown signature shows the distinctive 'J' with reversed opening and curved tail that flows into compact middle letterforms, followed by a long horizontal trailing stroke. The letter construction, proportions, and flowing rightward movement closely match Starlin's characteristic style across all reference examples."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.25,
+          "reasoning": "Different structural pattern: Jim Lee's signature features a large looped 'J', multiple vertical parallel strokes in the middle section, and a different terminal stroke pattern. The unknown signature lacks these distinctive vertical repetitive strokes and has a more compact, flowing construction."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Superficial similarity only: While Morrison's signature also features horizontal movement and flowing lines, the letter construction is fundamentally different. Morrison's shows more angular, overlapping strokes and lacks the distinctive reversed 'J' opening and compact letter grouping seen in the unknown."
+        }
+      ]
+    },
+    {
+      "artist": "Jack Kirby",
+      "test_image": "Jack_Kirby_Signature_1.jpg",
+      "predicted": "Jack Kirby",
+      "confidence": 0.95,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jack Kirby",
+        "Jerry Siegel",
+        "George P\u00e9rez",
+        "Chris Claremont",
+        "Grant Morrison"
+      ],
+      "tokens_used": {
+        "haiku_input": 3456,
+        "haiku_output": 312,
+        "sonnet_input": 2394,
+        "sonnet_output": 541
+      },
+      "top_matches": [
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.95,
+          "reasoning": "Excellent match across all structural features. The 'J' shows Kirby's characteristic long descender with leftward curve. The 'a' has his distinctive loop formation. The 'c' connects smoothly to 'k' with proper flow. The 'K' displays his angular construction with straight diagonal strokes. The 'i' shows proper dotting. The 'r' has his characteristic hook formation, and the 'b' shows his rounded bowl with proper proportion. The 'y' terminal stroke matches his style perfectly. All letterforms, proportions, slant angle, and connecting strokes are consistent with the reference examples."
+        },
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.15,
+          "reasoning": "No structural match. Siegel's signatures show much more rounded, cursive script with flowing loops and elaborate letter connections. His 'J' has a completely different construction with tighter loops. The unknown signature's angular, print-like quality and spacing are inconsistent with Siegel's fluid cursive style."
+        },
+        {
+          "artist": "Chris Claremont",
+          "confidence": 0.1,
+          "reasoning": "Not a match. Claremont's signatures show highly stylized, abstract letterforms with heavy flourishing and swooping strokes. The unknown signature is far more legible and structured. Letter construction, particularly of the first name, shows completely different characteristics. No similarity in formation style or execution."
+        }
+      ]
+    },
+    {
+      "artist": "Jae Lee",
+      "test_image": "Jae_Lee_Signature_2.jpg",
+      "predicted": "Jae Lee",
+      "confidence": 0.88,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jae Lee",
+        "Grant Morrison",
+        "Frank Miller",
+        "Jim Steranko",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3438,
+        "haiku_output": 305,
+        "sonnet_input": 2146,
+        "sonnet_output": 432
+      },
+      "top_matches": [
+        {
+          "artist": "Jae Lee",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: both signatures feature a distinctive vertical stroke with horizontal crossbar creating a stylized 'J' or cross-like element, followed by minimalist horizontal strokes. The angular, geometric construction, thin line weight, and sparse aesthetic are consistent with Jae Lee's reference signatures. The proportions and spatial relationships between elements align well."
+        },
+        {
+          "artist": "Frank Miller",
+          "confidence": 0.25,
+          "reasoning": "While both use elongated horizontal elements, Miller's signatures show much more flowing, curved letterforms with loops and sweeping gestures. The unknown signature is more angular and compact, lacking Miller's characteristic flourishes and rounded terminal strokes."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Morrison's signatures feature multiple parallel diagonal strokes in a rapid, energetic style. While there are some linear elements in common, the unknown signature's vertical-horizontal structure and deliberate placement differ significantly from Morrison's overlapping, dynamic strokes."
+        }
+      ]
+    },
+    {
+      "artist": "James Tynion IV",
+      "test_image": "James_Tynion_IV_Signature_3.jpg",
+      "predicted": "Alex Ross",
+      "confidence": 0.88,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Jim Starlin",
+        "Alex Ross",
+        "Jae Lee",
+        "Grant Morrison"
+      ],
+      "tokens_used": {
+        "haiku_input": 3435,
+        "haiku_output": 301,
+        "sonnet_input": 2607,
+        "sonnet_output": 434
+      },
+      "top_matches": [
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.88,
+          "reasoning": "Strong structural match: The unknown signature shows the characteristic Alex Ross pattern of tall, compressed vertical strokes forming 'Alex' with multiple parallel downstrokes, followed by a distinctive 'Ross' with an open loop 'R' and flowing 'oss'. The vertical compression, stroke angle (~70-80 degrees), and the specific way the letterforms connect are consistent with the reference examples."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.25,
+          "reasoning": "Grant Morrison's signature shows more horizontal flow with aggressive angular strokes and a dramatic underline flourish. The unknown signature lacks this horizontal emphasis and underline element. The vertical orientation and letter construction are fundamentally different."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.15,
+          "reasoning": "Jim Lee's signature features a large looping 'J', multiple vertical 'm' strokes, and a long horizontal tail. While there are vertical elements, the overall construction with the prominent initial loop and the specific 'm' formation differs significantly from the unknown signature's structure."
+        }
+      ]
+    },
+    {
+      "artist": "Jerry Siegel",
+      "test_image": "Jerry_Siegel_Signature_1.jpg",
+      "predicted": "Jerry Siegel",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jerry Siegel",
+        "Jack Kirby",
+        "George P\u00e9rez",
+        "Bill Finger",
+        "Chris Claremont"
+      ],
+      "tokens_used": {
+        "haiku_input": 3561,
+        "haiku_output": 335,
+        "sonnet_input": 2173,
+        "sonnet_output": 502
+      },
+      "top_matches": [
+        {
+          "artist": "Jerry Siegel",
+          "confidence": 0.92,
+          "reasoning": "Excellent match across all key features. The 'Jerry' shows identical construction: distinctive looped 'J' with large counter, open 'e', double-humped 'rr', and terminal 'y' with leftward tail. The 'Siegel' matches perfectly: tall looped 'S', connected flowing script, distinctive 'g' with leftward loop, characteristic 'e' formation, and terminal 'l' with upward flourish. Letter proportions, baseline angle, and natural cursive flow are consistent with reference examples."
+        },
+        {
+          "artist": "Jack Kirby",
+          "confidence": 0.15,
+          "reasoning": "No match. Kirby's signature uses angular, separated letters with distinctive 'K' construction and different baseline characteristics. The script style in the unknown is fully cursive and flowing, while Kirby's is more print-like with sharp angles. Letter formations are fundamentally different."
+        },
+        {
+          "artist": "Bill Finger",
+          "confidence": 0.12,
+          "reasoning": "No match. The reference shows 'Bill Finger' and 'Wm Finger' with completely different letterforms, baseline angles, and script style. The unknown signature's structure and flow patterns don't align with Finger's handwriting characteristics."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Lee",
+      "test_image": "Jim_Lee_Signature_2.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Alex Ross",
+        "Grant Morrison",
+        "George P\u00e9rez",
+        "Jim Lee",
+        "Gabriele Dell'Otto"
+      ],
+      "tokens_used": {
+        "haiku_input": 3610,
+        "haiku_output": 347,
+        "sonnet_input": 2357,
+        "sonnet_output": 506
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "Excellent match. The unknown signature shows Jim Lee's characteristic elements: (1) Large oval/loop opening stroke that starts the 'J', (2) Multiple parallel vertical strokes forming the 'm' letters with consistent spacing, (3) Long horizontal dash/underline extending to the right, (4) Overall leftward slant of approximately 70-75 degrees, (5) Consistent stroke weight and flow pattern. The blue ink doesn't affect structural analysis - all core letterforms match Lee's known signatures."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Poor match. Morrison's signatures show multiple angular zig-zag strokes with sharp direction changes and a different rhythm. The unknown has distinct separate vertical strokes in the middle section, while Morrison's work shows more connected, flowing angular movements without the clear 'm' letter repetition."
+        },
+        {
+          "artist": "Alex Ross",
+          "confidence": 0.12,
+          "reasoning": "Poor match. Ross signatures clearly show 'Alex Ross' with distinguishable letter groups including visible 'Ross' text. The unknown signature has a completely different structure with the opening loop and parallel vertical strokes that don't appear in Ross's work. Ross uses more connected cursive letterforms."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Starlin",
+      "test_image": "Jim_Starlin_Signature_4.jpg",
+      "predicted": "Jim Lee",
+      "confidence": 0.92,
+      "correct": false,
+      "haiku_included": false,
+      "haiku_candidates": [
+        "Jim Lee",
+        "Alex Ross",
+        "Greg Capullo",
+        "George P\u00e9rez",
+        "Grant Morrison"
+      ],
+      "tokens_used": {
+        "haiku_input": 3534,
+        "haiku_output": 316,
+        "sonnet_input": 2484,
+        "sonnet_output": 441
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.92,
+          "reasoning": "Strong structural match: Initial capital J with characteristic leftward lean and large loop, multiple vertical m-strokes in the middle section, long horizontal terminal stroke. The letter construction, stroke weight variation, and overall gestalt are highly consistent with Jim Lee's signature style across all reference examples."
+        },
+        {
+          "artist": "Grant Morrison",
+          "confidence": 0.15,
+          "reasoning": "Very different structure: Morrison's signature shows much more angular, compressed letterforms with tight loops and different rhythm. The unknown signature has distinct vertical strokes in the middle section that Morrison's flowing style lacks."
+        },
+        {
+          "artist": "Greg Capullo",
+          "confidence": 0.1,
+          "reasoning": "Capullo's signature features large circular loops encompassing the entire name with distinctive rounded forms and often a terminal dot/circle. The unknown signature lacks these characteristic rounded enclosures and has a completely different structural approach."
+        }
+      ]
+    },
+    {
+      "artist": "Jim Steranko",
+      "test_image": "Jim_Steranko_Signature_4.jpg",
+      "predicted": "Jim Steranko",
+      "confidence": 0.92,
+      "correct": true,
+      "haiku_included": true,
+      "haiku_candidates": [
+        "Jim Steranko",
+        "Greg Capullo",
+        "Jim Lee",
+        "Bob Kane",
+        "George P\u00e9rez"
+      ],
+      "tokens_used": {
+        "haiku_input": 3698,
+        "haiku_output": 362,
+        "sonnet_input": 2826,
+        "sonnet_output": 625
+      },
+      "top_matches": [
+        {
+          "artist": "Jim Steranko",
+          "confidence": 0.92,
+          "reasoning": "The unknown signature exhibits extremely strong structural matches to Steranko's reference examples: (1) The large sweeping oval loop that begins the signature and wraps around/through the name is Steranko's most distinctive feature, present in all his examples. (2) The text 'STERANKO' shows identical letter construction - particularly the angular 'S', the connected 'T-E-R-A-N-K' sequence with sharp, jagged letterforms, and the distinctive 'K' with angular strokes. (3) The terminal stroke extending down and to the left below the name matches Steranko's characteristic finishing mark. (4) The overall aggressive, bold line quality with consistent pressure matches his signing style. (5) The proportions of the decorative loop relative to the name text align perfectly with reference examples."
+        },
+        {
+          "artist": "Greg Capullo",
+          "confidence": 0.15,
+          "reasoning": "While Capullo also uses a large oval loop in his signature, critical differences eliminate this as a match: (1) Capullo's loop is smoother and more circular, (2) his name text shows much more flowing, cursive letterforms rather than the angular block letters seen in the unknown, (3) the internal structure of letters is completely different - Capullo's shows connected cursive script while the unknown shows separated, angular capitals, (4) no terminal cross-stroke in Capullo's examples."
+        },
+        {
+          "artist": "Jim Lee",
+          "confidence": 0.05,
+          "reasoning": "No meaningful similarity. Jim Lee's signature consists of a simple oval followed by cursive 'Jim' with distinctive repeated vertical strokes forming the 'm', then a long horizontal trailing line. The unknown signature shows completely different structure with angular block letters spelling a different name entirely. The decorative elements and letter construction bear no resemblance."
+        }
+      ]
+    }
+  ]
+}

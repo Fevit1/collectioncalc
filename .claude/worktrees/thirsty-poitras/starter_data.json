@@ -1,0 +1,203 @@
+[
+  {"title": "Amazing Spider-Man", "issue": "1", "publisher": "Marvel Comics", "year": 1963, "nm_value": 450000},
+  {"title": "Amazing Spider-Man", "issue": "129", "publisher": "Marvel Comics", "year": 1974, "nm_value": 6500},
+  {"title": "Amazing Spider-Man", "issue": "194", "publisher": "Marvel Comics", "year": 1979, "nm_value": 500},
+  {"title": "Amazing Spider-Man", "issue": "238", "publisher": "Marvel Comics", "year": 1983, "nm_value": 350},
+  {"title": "Amazing Spider-Man", "issue": "252", "publisher": "Marvel Comics", "year": 1984, "nm_value": 200},
+  {"title": "Amazing Spider-Man", "issue": "298", "publisher": "Marvel Comics", "year": 1988, "nm_value": 150},
+  {"title": "Amazing Spider-Man", "issue": "299", "publisher": "Marvel Comics", "year": 1988, "nm_value": 125},
+  {"title": "Amazing Spider-Man", "issue": "300", "publisher": "Marvel Comics", "year": 1988, "nm_value": 1200},
+  {"title": "Amazing Spider-Man", "issue": "301", "publisher": "Marvel Comics", "year": 1988, "nm_value": 75},
+  {"title": "Amazing Spider-Man", "issue": "316", "publisher": "Marvel Comics", "year": 1989, "nm_value": 175},
+  {"title": "Amazing Spider-Man", "issue": "361", "publisher": "Marvel Comics", "year": 1992, "nm_value": 250},
+  
+  {"title": "Uncanny X-Men", "issue": "94", "publisher": "Marvel Comics", "year": 1975, "nm_value": 4500},
+  {"title": "Uncanny X-Men", "issue": "101", "publisher": "Marvel Comics", "year": 1976, "nm_value": 1200},
+  {"title": "Uncanny X-Men", "issue": "129", "publisher": "Marvel Comics", "year": 1980, "nm_value": 600},
+  {"title": "Uncanny X-Men", "issue": "130", "publisher": "Marvel Comics", "year": 1980, "nm_value": 400},
+  {"title": "Uncanny X-Men", "issue": "131", "publisher": "Marvel Comics", "year": 1980, "nm_value": 175},
+  {"title": "Uncanny X-Men", "issue": "132", "publisher": "Marvel Comics", "year": 1980, "nm_value": 150},
+  {"title": "Uncanny X-Men", "issue": "133", "publisher": "Marvel Comics", "year": 1980, "nm_value": 150},
+  {"title": "Uncanny X-Men", "issue": "134", "publisher": "Marvel Comics", "year": 1980, "nm_value": 200},
+  {"title": "Uncanny X-Men", "issue": "135", "publisher": "Marvel Comics", "year": 1980, "nm_value": 150},
+  {"title": "Uncanny X-Men", "issue": "136", "publisher": "Marvel Comics", "year": 1980, "nm_value": 125},
+  {"title": "Uncanny X-Men", "issue": "137", "publisher": "Marvel Comics", "year": 1980, "nm_value": 250},
+  {"title": "Uncanny X-Men", "issue": "141", "publisher": "Marvel Comics", "year": 1981, "nm_value": 400},
+  {"title": "Uncanny X-Men", "issue": "142", "publisher": "Marvel Comics", "year": 1981, "nm_value": 150},
+  {"title": "Uncanny X-Men", "issue": "221", "publisher": "Marvel Comics", "year": 1987, "nm_value": 125},
+  {"title": "Uncanny X-Men", "issue": "266", "publisher": "Marvel Comics", "year": 1990, "nm_value": 400},
+  
+  {"title": "X-Men", "issue": "1", "publisher": "Marvel Comics", "year": 1991, "nm_value": 45},
+  {"title": "X-Men", "issue": "2", "publisher": "Marvel Comics", "year": 1991, "nm_value": 15},
+  {"title": "X-Men", "issue": "3", "publisher": "Marvel Comics", "year": 1991, "nm_value": 12},
+  {"title": "X-Men", "issue": "4", "publisher": "Marvel Comics", "year": 1991, "nm_value": 35},
+  
+  {"title": "New Mutants", "issue": "87", "publisher": "Marvel Comics", "year": 1990, "nm_value": 200},
+  {"title": "New Mutants", "issue": "98", "publisher": "Marvel Comics", "year": 1991, "nm_value": 600},
+  {"title": "New Mutants", "issue": "100", "publisher": "Marvel Comics", "year": 1991, "nm_value": 45},
+  
+  {"title": "Wolverine", "issue": "1", "publisher": "Marvel Comics", "year": 1988, "nm_value": 150},
+  {"title": "Wolverine", "issue": "10", "publisher": "Marvel Comics", "year": 1989, "nm_value": 40},
+  
+  {"title": "Incredible Hulk", "issue": "181", "publisher": "Marvel Comics", "year": 1974, "nm_value": 12000},
+  {"title": "Incredible Hulk", "issue": "340", "publisher": "Marvel Comics", "year": 1988, "nm_value": 200},
+  
+  {"title": "Iron Man", "issue": "1", "publisher": "Marvel Comics", "year": 1968, "nm_value": 5500},
+  {"title": "Iron Man", "issue": "55", "publisher": "Marvel Comics", "year": 1973, "nm_value": 1500},
+  {"title": "Iron Man", "issue": "128", "publisher": "Marvel Comics", "year": 1979, "nm_value": 100},
+  
+  {"title": "Avengers", "issue": "1", "publisher": "Marvel Comics", "year": 1963, "nm_value": 75000},
+  {"title": "Avengers", "issue": "4", "publisher": "Marvel Comics", "year": 1964, "nm_value": 15000},
+  {"title": "Avengers", "issue": "57", "publisher": "Marvel Comics", "year": 1968, "nm_value": 800},
+  
+  {"title": "Captain America", "issue": "100", "publisher": "Marvel Comics", "year": 1968, "nm_value": 1200},
+  {"title": "Captain America", "issue": "117", "publisher": "Marvel Comics", "year": 1969, "nm_value": 600},
+  
+  {"title": "Thor", "issue": "337", "publisher": "Marvel Comics", "year": 1983, "nm_value": 250},
+  
+  {"title": "Daredevil", "issue": "1", "publisher": "Marvel Comics", "year": 1964, "nm_value": 15000},
+  {"title": "Daredevil", "issue": "168", "publisher": "Marvel Comics", "year": 1981, "nm_value": 400},
+  {"title": "Daredevil", "issue": "181", "publisher": "Marvel Comics", "year": 1982, "nm_value": 100},
+  
+  {"title": "Fantastic Four", "issue": "1", "publisher": "Marvel Comics", "year": 1961, "nm_value": 500000},
+  {"title": "Fantastic Four", "issue": "5", "publisher": "Marvel Comics", "year": 1962, "nm_value": 40000},
+  {"title": "Fantastic Four", "issue": "48", "publisher": "Marvel Comics", "year": 1966, "nm_value": 8000},
+  {"title": "Fantastic Four", "issue": "49", "publisher": "Marvel Comics", "year": 1966, "nm_value": 2500},
+  {"title": "Fantastic Four", "issue": "50", "publisher": "Marvel Comics", "year": 1966, "nm_value": 2000},
+  {"title": "Fantastic Four", "issue": "52", "publisher": "Marvel Comics", "year": 1966, "nm_value": 8000},
+  
+  {"title": "Batman", "issue": "1", "publisher": "DC Comics", "year": 1940, "nm_value": 600000},
+  {"title": "Batman", "issue": "232", "publisher": "DC Comics", "year": 1971, "nm_value": 2000},
+  {"title": "Batman", "issue": "251", "publisher": "DC Comics", "year": 1973, "nm_value": 500},
+  {"title": "Batman", "issue": "357", "publisher": "DC Comics", "year": 1983, "nm_value": 200},
+  {"title": "Batman", "issue": "404", "publisher": "DC Comics", "year": 1987, "nm_value": 100},
+  {"title": "Batman", "issue": "405", "publisher": "DC Comics", "year": 1987, "nm_value": 50},
+  {"title": "Batman", "issue": "406", "publisher": "DC Comics", "year": 1987, "nm_value": 50},
+  {"title": "Batman", "issue": "407", "publisher": "DC Comics", "year": 1987, "nm_value": 50},
+  {"title": "Batman", "issue": "423", "publisher": "DC Comics", "year": 1988, "nm_value": 250},
+  {"title": "Batman", "issue": "426", "publisher": "DC Comics", "year": 1988, "nm_value": 75},
+  {"title": "Batman", "issue": "427", "publisher": "DC Comics", "year": 1988, "nm_value": 75},
+  {"title": "Batman", "issue": "428", "publisher": "DC Comics", "year": 1988, "nm_value": 150},
+  {"title": "Batman", "issue": "429", "publisher": "DC Comics", "year": 1989, "nm_value": 50},
+  {"title": "Batman", "issue": "436", "publisher": "DC Comics", "year": 1989, "nm_value": 45},
+  {"title": "Batman", "issue": "497", "publisher": "DC Comics", "year": 1993, "nm_value": 50},
+  
+  {"title": "Detective Comics", "issue": "27", "publisher": "DC Comics", "year": 1939, "nm_value": 2000000},
+  {"title": "Detective Comics", "issue": "38", "publisher": "DC Comics", "year": 1940, "nm_value": 200000},
+  {"title": "Detective Comics", "issue": "359", "publisher": "DC Comics", "year": 1967, "nm_value": 3000},
+  {"title": "Detective Comics", "issue": "400", "publisher": "DC Comics", "year": 1970, "nm_value": 500},
+  {"title": "Detective Comics", "issue": "411", "publisher": "DC Comics", "year": 1971, "nm_value": 200},
+  
+  {"title": "Action Comics", "issue": "1", "publisher": "DC Comics", "year": 1938, "nm_value": 5000000},
+  {"title": "Action Comics", "issue": "252", "publisher": "DC Comics", "year": 1959, "nm_value": 25000},
+  
+  {"title": "Superman", "issue": "1", "publisher": "DC Comics", "year": 1939, "nm_value": 750000},
+  {"title": "Superman", "issue": "75", "publisher": "DC Comics", "year": 1993, "nm_value": 25},
+  {"title": "Superman", "issue": "199", "publisher": "DC Comics", "year": 1967, "nm_value": 800},
+  
+  {"title": "Wonder Woman", "issue": "1", "publisher": "DC Comics", "year": 1942, "nm_value": 50000},
+  {"title": "Wonder Woman", "issue": "72", "publisher": "DC Comics", "year": 1955, "nm_value": 3000},
+  
+  {"title": "Flash", "issue": "105", "publisher": "DC Comics", "year": 1959, "nm_value": 20000},
+  {"title": "Flash", "issue": "123", "publisher": "DC Comics", "year": 1961, "nm_value": 8000},
+  
+  {"title": "Green Lantern", "issue": "1", "publisher": "DC Comics", "year": 1960, "nm_value": 25000},
+  {"title": "Green Lantern", "issue": "76", "publisher": "DC Comics", "year": 1970, "nm_value": 2500},
+  
+  {"title": "Justice League of America", "issue": "1", "publisher": "DC Comics", "year": 1960, "nm_value": 15000},
+  
+  {"title": "Spawn", "issue": "1", "publisher": "Image Comics", "year": 1992, "nm_value": 125},
+  {"title": "Spawn", "issue": "9", "publisher": "Image Comics", "year": 1993, "nm_value": 35},
+  {"title": "Spawn", "issue": "174", "publisher": "Image Comics", "year": 2007, "nm_value": 25},
+  
+  {"title": "Walking Dead", "issue": "1", "publisher": "Image Comics", "year": 2003, "nm_value": 3500},
+  {"title": "Walking Dead", "issue": "2", "publisher": "Image Comics", "year": 2003, "nm_value": 750},
+  {"title": "Walking Dead", "issue": "19", "publisher": "Image Comics", "year": 2005, "nm_value": 350},
+  {"title": "Walking Dead", "issue": "27", "publisher": "Image Comics", "year": 2006, "nm_value": 300},
+  {"title": "Walking Dead", "issue": "100", "publisher": "Image Comics", "year": 2012, "nm_value": 200},
+  
+  {"title": "Invincible", "issue": "1", "publisher": "Image Comics", "year": 2003, "nm_value": 1500},
+  
+  {"title": "Saga", "issue": "1", "publisher": "Image Comics", "year": 2012, "nm_value": 400},
+  
+  {"title": "Teenage Mutant Ninja Turtles", "issue": "1", "publisher": "Mirage Studios", "year": 1984, "nm_value": 25000},
+  
+  {"title": "Teenage Mutant Ninja Turtles Adventures", "issue": "1", "publisher": "Archie Comics", "year": 1989, "nm_value": 75},
+  
+  {"title": "Star Wars", "issue": "1", "publisher": "Marvel Comics", "year": 1977, "nm_value": 800},
+  {"title": "Star Wars", "issue": "42", "publisher": "Marvel Comics", "year": 1980, "nm_value": 150},
+  {"title": "Star Wars", "issue": "68", "publisher": "Marvel Comics", "year": 1983, "nm_value": 100},
+  
+  {"title": "G.I. Joe A Real American Hero", "issue": "1", "publisher": "Marvel Comics", "year": 1982, "nm_value": 200},
+  {"title": "G.I. Joe A Real American Hero", "issue": "21", "publisher": "Marvel Comics", "year": 1984, "nm_value": 500},
+  
+  {"title": "Transformers", "issue": "1", "publisher": "Marvel Comics", "year": 1984, "nm_value": 200},
+  
+  {"title": "Ghost Rider", "issue": "1", "publisher": "Marvel Comics", "year": 1990, "nm_value": 75},
+  {"title": "Ghost Rider", "issue": "15", "publisher": "Marvel Comics", "year": 1991, "nm_value": 25},
+  
+  {"title": "Silver Surfer", "issue": "1", "publisher": "Marvel Comics", "year": 1968, "nm_value": 2000},
+  {"title": "Silver Surfer", "issue": "44", "publisher": "Marvel Comics", "year": 1990, "nm_value": 100},
+  
+  {"title": "Venom Lethal Protector", "issue": "1", "publisher": "Marvel Comics", "year": 1993, "nm_value": 100},
+  
+  {"title": "Infinity Gauntlet", "issue": "1", "publisher": "Marvel Comics", "year": 1991, "nm_value": 100},
+  
+  {"title": "Secret Wars", "issue": "1", "publisher": "Marvel Comics", "year": 1984, "nm_value": 75},
+  {"title": "Secret Wars", "issue": "8", "publisher": "Marvel Comics", "year": 1984, "nm_value": 400},
+  
+  {"title": "Web of Spider-Man", "issue": "1", "publisher": "Marvel Comics", "year": 1985, "nm_value": 50},
+  
+  {"title": "Spectacular Spider-Man", "issue": "1", "publisher": "Marvel Comics", "year": 1976, "nm_value": 150},
+  {"title": "Spectacular Spider-Man", "issue": "64", "publisher": "Marvel Comics", "year": 1982, "nm_value": 75},
+  
+  {"title": "Spider-Man", "issue": "1", "publisher": "Marvel Comics", "year": 1990, "nm_value": 35},
+  
+  {"title": "Marvel Super Heroes Secret Wars", "issue": "8", "publisher": "Marvel Comics", "year": 1984, "nm_value": 400},
+  
+  {"title": "Punisher", "issue": "1", "publisher": "Marvel Comics", "year": 1987, "nm_value": 75},
+  
+  {"title": "Moon Knight", "issue": "1", "publisher": "Marvel Comics", "year": 1980, "nm_value": 200},
+  
+  {"title": "She-Hulk", "issue": "1", "publisher": "Marvel Comics", "year": 1980, "nm_value": 150},
+  
+  {"title": "Ms Marvel", "issue": "1", "publisher": "Marvel Comics", "year": 1977, "nm_value": 400},
+  {"title": "Ms Marvel", "issue": "18", "publisher": "Marvel Comics", "year": 1978, "nm_value": 150},
+  
+  {"title": "Marvel Spotlight", "issue": "5", "publisher": "Marvel Comics", "year": 1972, "nm_value": 2500},
+  
+  {"title": "Eternals", "issue": "1", "publisher": "Marvel Comics", "year": 1976, "nm_value": 200},
+  
+  {"title": "Black Panther", "issue": "1", "publisher": "Marvel Comics", "year": 1977, "nm_value": 350},
+  
+  {"title": "Howard the Duck", "issue": "1", "publisher": "Marvel Comics", "year": 1976, "nm_value": 100},
+  
+  {"title": "Conan the Barbarian", "issue": "1", "publisher": "Marvel Comics", "year": 1970, "nm_value": 700},
+  
+  {"title": "Swamp Thing", "issue": "1", "publisher": "DC Comics", "year": 1972, "nm_value": 600},
+  {"title": "Swamp Thing", "issue": "37", "publisher": "DC Comics", "year": 1985, "nm_value": 150},
+  
+  {"title": "Sandman", "issue": "1", "publisher": "DC Comics", "year": 1989, "nm_value": 250},
+  {"title": "Sandman", "issue": "8", "publisher": "DC Comics", "year": 1989, "nm_value": 75},
+  
+  {"title": "Watchmen", "issue": "1", "publisher": "DC Comics", "year": 1986, "nm_value": 175},
+  
+  {"title": "Crisis on Infinite Earths", "issue": "1", "publisher": "DC Comics", "year": 1985, "nm_value": 50},
+  {"title": "Crisis on Infinite Earths", "issue": "7", "publisher": "DC Comics", "year": 1985, "nm_value": 75},
+  
+  {"title": "Dark Knight Returns", "issue": "1", "publisher": "DC Comics", "year": 1986, "nm_value": 150},
+  
+  {"title": "Batman The Killing Joke", "issue": "1", "publisher": "DC Comics", "year": 1988, "nm_value": 200},
+  
+  {"title": "Harley Quinn", "issue": "1", "publisher": "DC Comics", "year": 2000, "nm_value": 200},
+  
+  {"title": "Batman Adventures", "issue": "12", "publisher": "DC Comics", "year": 1993, "nm_value": 1500},
+  
+  {"title": "Preacher", "issue": "1", "publisher": "DC Comics", "year": 1995, "nm_value": 200},
+  
+  {"title": "Y The Last Man", "issue": "1", "publisher": "DC Comics", "year": 2002, "nm_value": 400},
+  
+  {"title": "Hellboy", "issue": "1", "publisher": "Dark Horse Comics", "year": 1994, "nm_value": 150},
+  
+  {"title": "Sin City", "issue": "1", "publisher": "Dark Horse Comics", "year": 1991, "nm_value": 100}
+]

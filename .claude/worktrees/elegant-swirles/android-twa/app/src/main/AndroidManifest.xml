@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name="com.slabworthy.app.Application"
+        android:label="${launcherName}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/LaunchTheme"
+        android:allowBackup="true"
+        android:supportsRtl="true">
+
+        <meta-data
+            android:name="asset_statements"
+            android:value='${assetStatements}' />
+
+        <activity
+            android:name="com.slabworthy.app.LauncherActivity"
+            android:label="${launcherName}"
+            android:exported="true"
+            android:theme="@style/LaunchTheme">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="${hostName}" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

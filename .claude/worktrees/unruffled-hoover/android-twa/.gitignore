@@ -1,0 +1,10 @@
+# Don't commit the signing keystore to public repos
+# *.keystore
+
+# Gradle build outputs
+.gradle/
+build/
+app/build/
+
+# Local config
+local.properties
