@@ -9,6 +9,9 @@
 - Built dependency monitoring system (Anthropic + eBay + Stripe)
 - Admin dashboard warning banner + email alerts for deprecations
 - Mandatory third-party dependency rules in CLAUDE.md
+- Consolidated report loading UI (single animated spinner)
+- Fixed health endpoint crash from dependency monitor
+- Fixed grading report error (missing variable after refactor)
 
 ### Previous: v5.5.0 (March 6, 2026)
 

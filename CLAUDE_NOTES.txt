@@ -789,8 +789,14 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 ### Environment Variables Added
 - `ADMIN_EMAIL` — Required for deprecation alert emails (set to mberry133@yahoo.com)
 
+6. **Consolidated report loading UI** — Replaced 3 simultaneous loading messages (ANALYZING badge, "Calculating valuation...", "Finding defects") with a single centered gradient spinner + cycling status text ("Analyzing photos" → "Grading condition" → "Detecting defects" → "Calculating value"). Grade hero, valuation strip, and defects sections hidden during loading, revealed on completion.
+
+7. **Fixed health endpoint crash** — `dependency_monitor.py` was crashing the `/health` endpoint (500). Wrapped `check_all()` in try/except so health always returns. Made `resend` import optional. Also found deprecations.info response format mismatch (`'list' object has no attribute 'get'`).
+
+8. **Fixed grading report "Error/FAILED" bug** — The loading spinner refactor removed the `defectsGrid` variable declaration from the try block. Accessing it threw a ReferenceError caught by the error handler, which overwrote the grade circle to "Error" even though grading succeeded (category scores still rendered below). Added missing declaration.
+
 ### Next Up
-- Mobile testing with new Haiku model (extraction should work now)
+- Continue mobile testing (extraction + grading confirmed working)
 
 ### GalaxyCon San Jose Sprint (Aug 21-23)
 8. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
