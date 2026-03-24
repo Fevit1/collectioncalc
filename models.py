@@ -5,7 +5,7 @@ Centralizes all Anthropic model names. If a model returns 404,
 the wrapper automatically tries the next fallback in the chain.
 Update this file when Anthropic releases or deprecates models.
 
-Last verified: 2026-03-14
+Last verified: 2026-03-24
 
 Usage:
     from models import get_model, SONNET, HAIKU, OPUS
@@ -19,8 +19,8 @@ Usage:
 
 MODEL_CHAINS = {
     'haiku': [
-        'claude-3-5-haiku-latest',
-        'claude-3-5-haiku-20241022',
+        'claude-haiku-4-5-20251001',
+        'claude-haiku-4-5',
     ],
     'sonnet': [
         'claude-sonnet-4-20250514',
