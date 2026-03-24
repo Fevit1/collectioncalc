@@ -54,6 +54,20 @@ def init_modules(moderation_available, barcode_available, r2_available, scan_bar
     get_moderation_stats = get_mod_stats_func
 
 
+@admin_bp.route('/model-status', methods=['GET'])
+@require_admin_auth
+def api_admin_model_status():
+    """Return current model chains and any deprecation warnings."""
+    from models import MODEL_CHAINS
+    from model_deprecation_check import check_deprecations
+    warnings = check_deprecations()
+    return jsonify({
+        'success': True,
+        'models': {tier: list(chain) for tier, chain in MODEL_CHAINS.items()},
+        'warnings': warnings,
+    })
+
+
 @admin_bp.route('/dashboard', methods=['GET'])
 @require_admin_auth
 def api_admin_dashboard():

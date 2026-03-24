@@ -22,13 +22,19 @@ def init_globals(barcode_available, moderation_available):
 @utils_bp.route('/')
 @utils_bp.route('/health')
 def health():
-    """Health check endpoint"""
-    return jsonify({
+    """Health check endpoint — also triggers cached deprecation check"""
+    from model_deprecation_check import check_deprecations
+    warnings = check_deprecations()
+
+    resp = {
         'status': 'ok',
         'version': '4.2.4',
         'barcode': BARCODE_AVAILABLE,
-        'moderation': MODERATION_AVAILABLE
-    })
+        'moderation': MODERATION_AVAILABLE,
+    }
+    if warnings:
+        resp['model_warnings'] = warnings
+    return jsonify(resp)
 
 
 @utils_bp.route('/api/debug/prompt-check')

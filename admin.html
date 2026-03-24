@@ -351,6 +351,15 @@
             </div>
         </header>
 
+        <!-- Model Deprecation Warning Banner (hidden by default) -->
+        <div id="modelWarningBanner" style="display:none;background:rgba(245,158,11,0.15);border:1px solid var(--warning);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-size:1.2em;">&#9888;</span>
+                <strong style="color:var(--warning);">Model Deprecation Warning</strong>
+            </div>
+            <div id="modelWarningDetails" style="font-size:0.9em;color:var(--text-primary);"></div>
+        </div>
+
         <!-- Stats Overview -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
@@ -748,10 +757,32 @@
             loadBetaCodes();
             loadErrors();
             loadUsage();
+            checkModelDeprecations();
             loadWaitlist();
             loadFeedback();
             loadSlabGuardStats();
             loadSlabGuardQueue();
+        }
+
+        async function checkModelDeprecations() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/model-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.warnings && data.warnings.length > 0) {
+                    const banner = document.getElementById('modelWarningBanner');
+                    const details = document.getElementById('modelWarningDetails');
+                    const lines = data.warnings.map(w =>
+                        `<b>${w.our_model}</b> (${w.tiers.join(', ')}) &mdash; shutdown: <b style="color:var(--warning);">${w.shutdown_date}</b>`
+                    );
+                    details.innerHTML = lines.join('<br>') +
+                        '<br><span style="font-size:0.85em;color:var(--text-secondary);">Update <code>models.py</code> with replacement models before shutdown.</span>';
+                    banner.style.display = 'block';
+                }
+            } catch (e) {
+                // Silent fail — not critical
+            }
         }
 
         async function loadStats() {
