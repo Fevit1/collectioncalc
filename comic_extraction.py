@@ -160,6 +160,7 @@ EXTRACTION_PROMPT = """Analyze this comic book image and extract information.
 YOU MUST RETURN EXACTLY THIS JSON STRUCTURE - NO OTHER FIELDS ALLOWED:
 ```json
 {
+  "is_comic_cover": true,
   "title": "",
   "issue": "",
   "issue_type": "",
@@ -186,6 +187,9 @@ YOU MUST RETURN EXACTLY THIS JSON STRUCTURE - NO OTHER FIELDS ALLOWED:
 ```
 
 FIELD DEFINITIONS:
+
+IMAGE VALIDATION (check FIRST):
+- is_comic_cover: true if this image shows a comic book cover (front cover, slabbed comic, or trade paperback). false if it's not a comic (random photo, blank image, non-comic book, finger over lens, etc.). If false, set all other fields to their defaults and return immediately.
 
 IDENTIFICATION FIELDS:
 - title: Comic book title (largest text on cover). Main series name only - NOT "Annual" or "Special" (those go in issue_type).
@@ -411,6 +415,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
             
             # Ensure all expected fields exist with defaults
             defaults = {
+                "is_comic_cover": True,
                 "title": "",
                 "issue": "",
                 "issue_type": "Regular",
@@ -440,6 +445,14 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 if key not in extracted:
                     extracted[key] = default_value
             
+            # Check if the image is actually a comic book cover
+            if not extracted.get('is_comic_cover', True):
+                return {
+                    "success": False,
+                    "error": "This doesn't appear to be a comic book cover. Please upload a photo of a comic's front cover.",
+                    "not_comic": True
+                }
+
             # Clean up old field names if Claude returns them
             if "signature_detected" in extracted:
                 del extracted["signature_detected"]

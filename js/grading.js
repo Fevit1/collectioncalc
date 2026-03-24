@@ -1173,43 +1173,74 @@ function getOrientation(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = function(e) {
-            const view = new DataView(e.target.result);
-            if (view.getUint16(0, false) !== 0xFFD8) {
-                resolve(1); // Not a JPEG
-                return;
-            }
-            const length = view.byteLength;
-            let offset = 2;
-            while (offset < length) {
-                if (view.getUint16(offset+2, false) <= 8) {
-                    resolve(1);
+            try {
+                const view = new DataView(e.target.result);
+                if (view.getUint16(0, false) !== 0xFFD8) {
+                    resolve(1); // Not a JPEG
                     return;
                 }
-                const marker = view.getUint16(offset, false);
-                offset += 2;
-                if (marker === 0xFFE1) {
-                    // EXIF marker found
-                    if (view.getUint32(offset += 2, false) !== 0x45786966) {
+                const length = view.byteLength;
+                let offset = 2;
+                while (offset + 4 < length) {
+                    const marker = view.getUint16(offset, false);
+                    offset += 2;
+
+                    // Not a valid marker — stop scanning
+                    if ((marker & 0xFF00) !== 0xFF00) break;
+
+                    // SOS (start of scan) — no more metadata after this
+                    if (marker === 0xFFDA) break;
+
+                    // Standalone markers (no length field)
+                    if (marker === 0xFFD0 || marker === 0xFFD1 || marker === 0xFFD2 ||
+                        marker === 0xFFD3 || marker === 0xFFD4 || marker === 0xFFD5 ||
+                        marker === 0xFFD6 || marker === 0xFFD7 || marker === 0xFF01) {
+                        continue;
+                    }
+
+                    // Read segment length
+                    if (offset + 2 > length) break;
+                    const segLen = view.getUint16(offset, false);
+                    if (segLen < 2) break; // Invalid segment
+
+                    if (marker === 0xFFE1) {
+                        // APP1 — potential EXIF
+                        if (offset + 10 > length) break;
+                        if (view.getUint32(offset + 2, false) !== 0x45786966) {
+                            // Not EXIF (could be XMP), skip segment
+                            offset += segLen;
+                            continue;
+                        }
+                        const tiffStart = offset + 8; // after length(2) + "Exif"(4) + padding(2)
+                        if (tiffStart + 8 > length) break;
+                        const little = view.getUint16(tiffStart, false) === 0x4949;
+                        const ifdOffset = view.getUint32(tiffStart + 4, little);
+                        const ifdAbsolute = tiffStart + ifdOffset;
+                        if (ifdAbsolute + 2 > length) break;
+                        const tags = view.getUint16(ifdAbsolute, little);
+                        let tagOffset = ifdAbsolute + 2;
+                        for (let i = 0; i < tags; i++) {
+                            if (tagOffset + 12 > length) break;
+                            if (view.getUint16(tagOffset, little) === 0x0112) {
+                                const val = view.getUint16(tagOffset + 8, little);
+                                resolve(val >= 1 && val <= 8 ? val : 1);
+                                return;
+                            }
+                            tagOffset += 12;
+                        }
+                        // EXIF found but no orientation tag
                         resolve(1);
                         return;
+                    } else {
+                        // Skip this segment
+                        offset += segLen;
                     }
-                    const little = view.getUint16(offset += 6, false) === 0x4949;
-                    offset += view.getUint32(offset + 4, little);
-                    const tags = view.getUint16(offset, little);
-                    offset += 2;
-                    for (let i = 0; i < tags; i++) {
-                        if (view.getUint16(offset + (i * 12), little) === 0x0112) {
-                            resolve(view.getUint16(offset + (i * 12) + 8, little));
-                            return;
-                        }
-                    }
-                } else if ((marker & 0xFF00) !== 0xFF00) {
-                    break;
-                } else {
-                    offset += view.getUint16(offset, false);
                 }
+                resolve(1);
+            } catch (err) {
+                console.warn('EXIF parse error, defaulting to orientation 1:', err);
+                resolve(1);
             }
-            resolve(1);
         };
         reader.readAsArrayBuffer(file.slice(0, 64 * 1024)); // Read first 64KB
     });
@@ -1273,13 +1304,18 @@ function applyOrientation(canvas, ctx, img, orientation) {
 }
 
 /**
- * Process image file with EXIF orientation correction
+ * Process image file with EXIF orientation correction and resizing.
+ * Always passes through canvas to normalize format (JPEG) and cap
+ * resolution at MAX_IMAGE_DIM px on the longest side. This prevents
+ * oversized payloads from mobile cameras and ensures consistent format.
  * Returns promise with { base64, mediaType }
  */
+const MAX_IMAGE_DIM = 2048;
+
 async function processImageWithOrientation(file) {
     // Get EXIF orientation
     const orientation = await getOrientation(file);
-    
+
     // Read image file
     const img = new Image();
     const dataUrl = await new Promise((resolve, reject) => {
@@ -1288,37 +1324,53 @@ async function processImageWithOrientation(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
-    
+
     // Load image
     await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
         img.src = dataUrl;
     });
-    
-    // Apply orientation correction if needed
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Apply EXIF orientation (sets canvas size and transforms)
     if (orientation !== 1) {
         console.log(`Applying EXIF orientation correction: ${orientation}`);
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
         applyOrientation(canvas, ctx, img, orientation);
-        
-        const correctedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        const base64 = correctedDataUrl.split(',')[1];
-        
-        return {
-            base64: base64,
-            mediaType: 'image/jpeg'
-        };
     } else {
-        // No correction needed, return original
-        const base64 = dataUrl.split(',')[1];
-        return {
-            base64: base64,
-            mediaType: file.type
-        };
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
     }
+
+    // Downscale if either dimension exceeds MAX_IMAGE_DIM
+    if (canvas.width > MAX_IMAGE_DIM || canvas.height > MAX_IMAGE_DIM) {
+        const scale = MAX_IMAGE_DIM / Math.max(canvas.width, canvas.height);
+        const newW = Math.round(canvas.width * scale);
+        const newH = Math.round(canvas.height * scale);
+        console.log(`Resizing image from ${canvas.width}×${canvas.height} → ${newW}×${newH}`);
+
+        // Draw current canvas onto a smaller one
+        const srcData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        canvas.width = newW;
+        canvas.height = newH;
+        // Use a temp canvas to hold the full-size image for high-quality downscale
+        const tmp = document.createElement('canvas');
+        tmp.width = srcData.width;
+        tmp.height = srcData.height;
+        tmp.getContext('2d').putImageData(srcData, 0, 0);
+        ctx.drawImage(tmp, 0, 0, newW, newH);
+    }
+
+    const outputDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const base64 = outputDataUrl.split(',')[1];
+
+    return {
+        base64: base64,
+        mediaType: 'image/jpeg'
+    };
 }
 
 // Handle grading photo upload
@@ -1582,6 +1634,15 @@ async function analyzeGradingPhoto(step, processed) {
                 quality_issue: true,
                 quality_message: data.quality_message || data.error || 'Photo quality too low.',
                 tip: data.tip || 'Please retake with better lighting and focus.'
+            };
+        }
+
+        // Not a comic book cover — tell user clearly
+        if (!data.success && data.not_comic) {
+            return {
+                quality_issue: true,
+                quality_message: data.error || "This doesn't appear to be a comic book cover.",
+                tip: 'Please photograph the front cover of a comic book.'
             };
         }
 
