@@ -54,13 +54,13 @@ def init_modules(moderation_available, barcode_available, r2_available, scan_bar
     get_moderation_stats = get_mod_stats_func
 
 
-@admin_bp.route('/model-status', methods=['GET'])
+@admin_bp.route('/dependency-status', methods=['GET'])
 @require_admin_auth
-def api_admin_model_status():
-    """Return current model chains and any deprecation warnings."""
+def api_admin_dependency_status():
+    """Return dependency warnings for Anthropic, eBay, and Stripe."""
     from models import MODEL_CHAINS
-    from model_deprecation_check import check_deprecations
-    warnings = check_deprecations()
+    from dependency_monitor import check_all
+    warnings = check_all()
     return jsonify({
         'success': True,
         'models': {tier: list(chain) for tier, chain in MODEL_CHAINS.items()},

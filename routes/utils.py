@@ -22,9 +22,9 @@ def init_globals(barcode_available, moderation_available):
 @utils_bp.route('/')
 @utils_bp.route('/health')
 def health():
-    """Health check endpoint — also triggers cached deprecation check"""
-    from model_deprecation_check import check_deprecations
-    warnings = check_deprecations()
+    """Health check endpoint — also triggers cached dependency checks"""
+    from dependency_monitor import check_all
+    warnings = check_all()
 
     resp = {
         'status': 'ok',
@@ -33,7 +33,7 @@ def health():
         'moderation': MODERATION_AVAILABLE,
     }
     if warnings:
-        resp['model_warnings'] = warnings
+        resp['dependency_warnings'] = warnings
     return jsonify(resp)
 
 
