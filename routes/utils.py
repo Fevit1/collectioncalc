@@ -23,17 +23,19 @@ def init_globals(barcode_available, moderation_available):
 @utils_bp.route('/health')
 def health():
     """Health check endpoint — also triggers cached dependency checks"""
-    from dependency_monitor import check_all
-    warnings = check_all()
-
     resp = {
         'status': 'ok',
         'version': '5.6.0',
         'barcode': BARCODE_AVAILABLE,
         'moderation': MODERATION_AVAILABLE,
     }
-    if warnings:
-        resp['dependency_warnings'] = warnings
+    try:
+        from dependency_monitor import check_all
+        warnings = check_all()
+        if warnings:
+            resp['dependency_warnings'] = warnings
+    except Exception as e:
+        resp['dependency_check_error'] = str(e)
     return jsonify(resp)
 
 

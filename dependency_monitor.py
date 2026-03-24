@@ -28,8 +28,13 @@ import re
 import time
 import xml.etree.ElementTree as ET
 import requests
-import resend
 from models import MODEL_CHAINS
+
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
 
 # ── Config ──
 DEPRECATIONS_API = "https://deprecations.info/v1/deprecations.json"
@@ -41,7 +46,7 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
 
-if RESEND_API_KEY:
+if RESEND_API_KEY and RESEND_AVAILABLE:
     resend.api_key = RESEND_API_KEY
 
 # eBay APIs we depend on (from ebay_listing.py and ebay_oauth.py)
@@ -268,7 +273,7 @@ check_deprecations = check_all
 
 def _send_alert_email(warnings):
     """Send email alert for new dependency warnings. Only once per item."""
-    if not RESEND_API_KEY or not ADMIN_EMAIL:
+    if not RESEND_AVAILABLE or not RESEND_API_KEY or not ADMIN_EMAIL:
         return
 
     new_warnings = [w for w in warnings if f"{w['service']}:{w['item']}" not in _emailed_keys]
