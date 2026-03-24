@@ -28,7 +28,7 @@ def health():
 
     resp = {
         'status': 'ok',
-        'version': '4.2.4',
+        'version': '5.6.0',
         'barcode': BARCODE_AVAILABLE,
         'moderation': MODERATION_AVAILABLE,
     }

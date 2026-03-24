@@ -1,4 +1,35 @@
-# Where We Left Off - Mar 12, 2026
+# Where We Left Off - Mar 24, 2026
+
+## Session 90 (Mar 24, 2026) — Mobile Extraction Fix + Dependency Monitor
+
+### What Was Done
+
+1. **Fixed mobile image extraction** — Three bugs causing extraction failures on mobile:
+   - Images now always go through canvas (max 2048px, JPEG normalized) — fixes oversized payloads
+   - Rewrote EXIF orientation parser — was bailing early on valid JPEG segments, sending rotated photos uncorrected
+   - Added `is_comic_cover` validation to extraction prompt — non-comic photos get a clear error
+
+2. **Fixed Haiku model retirement** — `claude-3-5-haiku-latest` returned 404, broke all extraction. Updated to `claude-haiku-4-5-20251001`. Migrated `comic_extraction.py` from raw `requests.post()` to Anthropic SDK with `call_with_fallback()`.
+
+3. **Built automated dependency monitoring** — `dependency_monitor.py` checks three services:
+   - Anthropic model retirements (via deprecations.info)
+   - eBay API deprecations (via developer.ebay.com RSS)
+   - Stripe SDK version drift (via PyPI)
+   - Email alerts + admin dashboard warning banner
+   - Runs on every Render health check, cached 24h
+
+4. **Added enforcement rules** — CLAUDE.md now mandates all new third-party services be registered in dependency monitor. Saved as persistent memory.
+
+### Files Created
+- `dependency_monitor.py`
+
+### Files Modified
+- `js/grading.js`, `comic_extraction.py`, `models.py`, `routes/utils.py`, `routes/admin_routes.py`, `admin.html`, `CLAUDE.md`
+
+### Next Up
+- Mobile testing with new Haiku model
+
+---
 
 ## Session 89 (Mar 11-12, 2026) — Admin Insights + Unified AdminHub Dashboard
 

@@ -745,6 +745,53 @@ Mike: "DONE!!!! AND PAID FOR!!!!!"
 6. **Request Anthropic rate limit increase** — re-enable parallel Opus passes (~99s → ~33s)
 7. **Target 87%+ accuracy** before advertising signature feature publicly
 
+---
+
+## Session 90 (Mar 24, 2026) — Mobile Extraction Fix + Dependency Monitor
+
+### What Was Done
+
+1. **Fixed mobile image extraction** (3 issues):
+   - **Image resizing**: `processImageWithOrientation()` now always passes through canvas, caps at 2048px on longest side, normalizes to JPEG. Prevents oversized payloads from mobile cameras and HEIC format issues.
+   - **EXIF parser rewrite**: `getOrientation()` had a bug at line 1184 where it checked segment length before reading the marker, causing false early exits. Rewrote to properly scan JPEG markers, handle standalone markers, SOS termination, and non-EXIF APP1 segments.
+   - **Comic cover validation**: Added `is_comic_cover` field to extraction prompt. Claude now checks first if the image is actually a comic book cover. Returns clear "not a comic" error instead of garbage extraction data.
+
+2. **Fixed Haiku model retirement** — `claude-3-5-haiku-latest` was returning 404, breaking all comic extraction. Updated `models.py` haiku chain to `claude-haiku-4-5-20251001` → `claude-haiku-4-5`.
+
+3. **Wired extraction to use `call_with_fallback`** — `comic_extraction.py` was using raw `requests.post()` bypassing the model fallback system. Replaced with Anthropic SDK + `call_with_fallback()` so future model retirements auto-fallback without downtime.
+
+4. **Built dependency monitoring system** — `dependency_monitor.py`:
+   - **Anthropic**: Polls deprecations.info JSON API for model retirements matching our `MODEL_CHAINS`
+   - **eBay**: Polls developer.ebay.com RSS feed for deprecation/decommission notices affecting our APIs (Inventory v1, Account v1, Media v1, Identity v1)
+   - **Stripe**: Checks PyPI for latest stripe package version, warns if 2+ major versions behind
+   - All checks cached 24 hours, piggybacked on Render health check polling
+   - Email alert via Resend to ADMIN_EMAIL (grouped by service, once per item)
+   - Admin dashboard yellow warning banner at top of page
+   - New endpoint: `GET /api/admin/dependency-status`
+
+5. **Enforcement rules** — Added mandatory third-party dependency rules to CLAUDE.md: any new service integration MUST be registered in `dependency_monitor.py`. Saved as persistent memory for future sessions.
+
+### Files Created
+- `dependency_monitor.py` — Unified dependency monitoring (Anthropic + eBay + Stripe)
+
+### Files Modified
+- `js/grading.js` — Image resizing, EXIF parser rewrite, not-comic handling
+- `comic_extraction.py` — `is_comic_cover` prompt field, SDK migration, fallback wiring
+- `models.py` — Updated haiku chain to claude-haiku-4-5-20251001
+- `routes/utils.py` — Health endpoint triggers dependency checks
+- `routes/admin_routes.py` — New `/api/admin/dependency-status` endpoint
+- `admin.html` — Dependency warning banner with service badges
+- `CLAUDE.md` — Mandatory third-party dependency rules section
+
+### Files Removed
+- `model_deprecation_check.py` — Replaced by `dependency_monitor.py`
+
+### Environment Variables Added
+- `ADMIN_EMAIL` — Required for deprecation alert emails (set to mberry133@yahoo.com)
+
+### Next Up
+- Mobile testing with new Haiku model (extraction should work now)
+
 ### GalaxyCon San Jose Sprint (Aug 21-23)
 8. **GalaxyCon sprint plan** — Formal milestones leading to Aug 21 launch
 9. **Grading flow polish** — booth demo mode, offline fallback

@@ -1,11 +1,11 @@
 # Route Mapping Reference
 **Quick lookup: Which route is in which file?**
 
-**Last updated:** February 28, 2026 (Session 69)
+**Last updated:** March 24, 2026 (Session 90)
 
 ---
 
-## Complete Route Map (87 routes across 19 files)
+## Complete Route Map (88 routes across 19 files)
 
 ### utils.py (5 routes, no url_prefix)
 ```
@@ -27,8 +27,9 @@ POST /api/auth/reset-password       → api_reset_password()
 GET  /api/auth/me                   → api_get_me()               [auth]
 ```
 
-### admin_routes.py (20 routes, prefix=/api/admin) [all admin-only]
+### admin_routes.py (21 routes, prefix=/api/admin) [all admin-only]
 ```
+GET    /api/admin/dependency-status                 → api_admin_dependency_status()
 GET    /api/admin/dashboard                        → api_admin_dashboard()
 GET    /api/admin/users                            → api_admin_users()
 POST   /api/admin/users/<id>/approve               → api_approve_user()

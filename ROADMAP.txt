@@ -1,6 +1,16 @@
 # Slab Worthy Roadmap
 
-## Current Version: 5.5.0 (March 6, 2026)
+## Current Version: 5.6.0 (March 24, 2026)
+
+### v5.6.0 — Mobile Extraction Fix + Dependency Monitor (Session 90)
+- Fixed mobile image extraction (resize, EXIF parser, cover validation)
+- Fixed Haiku model retirement (claude-3-5-haiku → claude-haiku-4-5)
+- Wired comic extraction to use call_with_fallback for auto model recovery
+- Built dependency monitoring system (Anthropic + eBay + Stripe)
+- Admin dashboard warning banner + email alerts for deprecations
+- Mandatory third-party dependency rules in CLAUDE.md
+
+### Previous: v5.5.0 (March 6, 2026)
 
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)

@@ -1,5 +1,5 @@
 # Slab Worthy — Master To-Do List
-**Updated:** March 8, 2026 (Session 86)
+**Updated:** March 24, 2026 (Session 90)
 **Target:** GalaxyCon San Jose Alpha Launch — Aug 21-23, 2026 (~24 weeks out)
 **Soft Launch:** July 21, 2026 (~20 weeks out)
 **Founder:** Mike Berry — estimates assume ~15-20 hrs/week on Slab Worthy
@@ -219,7 +219,7 @@
   - Send every 3-4 weeks: feature previews, behind-the-scenes
   - 🔗 Depends on: having waitlist signups (start after marketing push)
 
-- [ ] **Test Haiku 4.5 for extraction** ⏱ 1 session
+- [x] **Test Haiku 4.5 for extraction** ⏱ 1 session — Session 90: Migrated to claude-haiku-4-5-20251001 (old model retired). Wired to call_with_fallback for auto-recovery. Mobile testing pending.
   - Run against 10-20 reference comics vs Sonnet
   - If quality is adequate, massive cost savings on API calls
   - No dependencies
