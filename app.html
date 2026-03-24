@@ -820,6 +820,59 @@
             25% { content: '.'; }
             50% { content: '..'; }
             75% { content: '...'; }
+
+        /* ==========================================
+           REPORT LOADING SPINNER
+           ========================================== */
+        .report-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1rem;
+            gap: 1.25rem;
+        }
+
+        .report-loading-circle {
+            width: 96px;
+            height: 96px;
+        }
+
+        .report-loading-circle svg {
+            width: 100%;
+            height: 100%;
+            animation: report-spin 1.8s linear infinite;
+        }
+
+        .report-loading-track {
+            fill: none;
+            stroke: rgba(79, 70, 229, 0.15);
+            stroke-width: 6;
+        }
+
+        .report-loading-spinner {
+            fill: none;
+            stroke: url(#reportGradient);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 220;
+            stroke-dashoffset: 160;
+        }
+
+        .report-loading-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+        }
+
+        .report-loading-text::after {
+            content: '';
+            animation: ellipsis 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes report-spin {
+            to { transform: rotate(360deg); }
             100% { content: ''; }
         }
         
@@ -1120,8 +1173,25 @@
                                 </div>
                             </div>
 
-                            <!-- Grade + Verdict Hero -->
-                            <div class="grade-hero" id="resultGradeHero">
+                            <!-- Loading Overlay (shown while grading) -->
+                            <div class="report-loading" id="reportLoading">
+                                <div class="report-loading-circle">
+                                    <svg viewBox="0 0 100 100">
+                                        <defs>
+                                            <linearGradient id="reportGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="var(--brand-cyan, #06b6d4)" />
+                                                <stop offset="100%" stop-color="var(--brand-purple, #8b5cf6)" />
+                                            </linearGradient>
+                                        </defs>
+                                        <circle class="report-loading-track" cx="50" cy="50" r="44" />
+                                        <circle class="report-loading-spinner" cx="50" cy="50" r="44" />
+                                    </svg>
+                                </div>
+                                <div class="report-loading-text" id="reportLoadingText">Analyzing photos</div>
+                            </div>
+
+                            <!-- Grade + Verdict Hero (hidden during loading) -->
+                            <div class="grade-hero" id="resultGradeHero" style="display:none;">
                                 <div class="grade-circle">
                                     <div class="grade-circle-inner">
                                         <div class="grade-number" id="resultGradeNumber">--</div>
@@ -1129,8 +1199,8 @@
                                     </div>
                                 </div>
                                 <div class="verdict-section" id="resultVerdictSection">
-                                    <div class="verdict-badge" id="resultVerdictBadge">ANALYZING...</div>
-                                    <div class="verdict-tagline" id="resultVerdictTagline">Calculating valuation...</div>
+                                    <div class="verdict-badge" id="resultVerdictBadge"></div>
+                                    <div class="verdict-tagline" id="resultVerdictTagline"></div>
                                 </div>
                             </div>
 
@@ -2144,18 +2214,26 @@
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Show loading state in new results screen
-            const gradeResultBig = document.getElementById('resultGradeNumber');
-            const gradeResultLabel = document.getElementById('resultGradeLabel');
-            const defectsGrid = document.getElementById('resultDefectsGrid');
-            const verdictBadge = document.getElementById('resultVerdictBadge');
-            const verdictTagline = document.getElementById('resultVerdictTagline');
+            // Show loading overlay, hide results sections
+            const reportLoading = document.getElementById('reportLoading');
+            const gradeHero = document.getElementById('resultGradeHero');
+            const valStrip = document.getElementById('resultValuationStrip');
+            const defectsSection = document.getElementById('resultDefectsSection');
+            const categorySection = document.getElementById('resultCategoryScores');
+            if (reportLoading) reportLoading.style.display = 'flex';
+            if (gradeHero) gradeHero.style.display = 'none';
+            if (valStrip) valStrip.style.display = 'none';
+            if (defectsSection) defectsSection.style.display = 'none';
+            if (categorySection) categorySection.style.display = 'none';
 
-            if (gradeResultBig) gradeResultBig.textContent = '...';
-            if (gradeResultLabel) gradeResultLabel.textContent = 'Analyzing...';
-            if (defectsGrid) defectsGrid.innerHTML = '<span style="color: var(--text-muted);" class="loading-dots">Finding defects</span>';
-            if (verdictBadge) { verdictBadge.textContent = 'ANALYZING...'; verdictBadge.className = 'verdict-badge'; }
-            if (verdictTagline) verdictTagline.textContent = 'Calculating valuation...';
+            // Cycle loading messages
+            const loadingMsgs = ['Analyzing photos', 'Grading condition', 'Detecting defects', 'Calculating value'];
+            let msgIdx = 0;
+            const loadingText = document.getElementById('reportLoadingText');
+            const loadingInterval = setInterval(() => {
+                msgIdx = (msgIdx + 1) % loadingMsgs.length;
+                if (loadingText) loadingText.textContent = loadingMsgs[msgIdx];
+            }, 3000);
             
             try {
                 // Build image array from gradingState.photos
@@ -2272,7 +2350,18 @@
                 window.gradingState.finalGrade = result;
                 window.gradingState.confidence = result.confidence || baseConfidence;
 
+                // Hide loading, reveal results
+                clearInterval(loadingInterval);
+                if (reportLoading) reportLoading.style.display = 'none';
+                if (gradeHero) gradeHero.style.display = 'flex';
+                if (valStrip) valStrip.style.display = 'flex';
+                if (defectsSection) defectsSection.style.display = 'block';
+
                 // Display results in new results screen
+                const gradeResultBig = document.getElementById('resultGradeNumber');
+                const gradeResultLabel = document.getElementById('resultGradeLabel');
+                const verdictBadge = document.getElementById('resultVerdictBadge');
+                const verdictTagline = document.getElementById('resultVerdictTagline');
                 if (gradeResultBig) gradeResultBig.textContent = result.final_grade || '?';
                 if (gradeResultLabel) gradeResultLabel.textContent = result.grade_label || 'Unknown';
 
@@ -2368,11 +2457,20 @@
 
             } catch (error) {
                 console.error('Grading error:', error);
+                clearInterval(loadingInterval);
+                if (reportLoading) reportLoading.style.display = 'none';
+                if (gradeHero) gradeHero.style.display = 'flex';
+                if (defectsSection) defectsSection.style.display = 'block';
+                const gradeResultBig = document.getElementById('resultGradeNumber');
+                const gradeResultLabel = document.getElementById('resultGradeLabel');
+                const defectsGrid = document.getElementById('resultDefectsGrid');
                 if (gradeResultBig) gradeResultBig.textContent = 'Error';
                 if (gradeResultLabel) gradeResultLabel.textContent = 'Failed';
                 if (defectsGrid) {
                     defectsGrid.innerHTML = `<p style="color: #ef4444; grid-column: 1/-1;">Error: ${error.message}</p><p style="color: var(--text-muted); margin-top: 0.5rem; grid-column: 1/-1;">Please try again or contact support.</p>`;
                 }
+                const verdictBadge = document.getElementById('resultVerdictBadge');
+                const verdictTagline = document.getElementById('resultVerdictTagline');
                 if (verdictBadge) { verdictBadge.textContent = 'ERROR'; verdictBadge.className = 'verdict-badge'; }
                 if (verdictTagline) verdictTagline.textContent = 'Grading failed. Please try again.';
             }
