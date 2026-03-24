@@ -51,6 +51,19 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 
 ---
 
+## Mandatory: Third-Party Dependency Rules
+
+When adding ANY new third-party service, API, or SDK to Slab Worthy:
+
+1. **Add monitoring** in `dependency_monitor.py` — register the service in `MONITORED_SERVICES` with its check URL/feed and the APIs or packages we depend on. This is NOT optional.
+2. **Add error handling** — every external call must have a try/except and a graceful degradation path (feature flag like `SERVICE_AVAILABLE`).
+3. **Document env vars** — add any new API keys or config to `docs/technical/ARCHITECTURE.txt`.
+4. **Test the monitor** — after adding, hit `/api/admin/dependency-status` to verify the new service appears.
+
+Current monitored services: Anthropic (models), eBay (API deprecations), Stripe (SDK version).
+
+---
+
 ## Related Project
 
 **TheFormOf (TFO)** — AI-native app dev platform. Separate repo at `C:\Users\mberr\TheFormOf`.

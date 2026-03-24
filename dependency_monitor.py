@@ -1,10 +1,26 @@
 """
 Dependency Monitor
-Checks third-party service deprecations for Anthropic models, eBay APIs,
-and Stripe SDK — alerts via email + admin dashboard.
-
+Checks third-party service deprecations and alerts via email + admin dashboard.
 Piggybacks on Render's health-check polling (no cron needed).
 Each check is cached 24 hours independently.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MONITORED SERVICES — update this when adding new third-party integrations
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Service     │ Check Method      │ Source                         │ What We Watch
+ ────────────┼───────────────────┼────────────────────────────────┼─────────────────────
+ Anthropic   │ check_anthropic() │ deprecations.info JSON API     │ Model retirements
+ eBay        │ check_ebay()      │ developer.ebay.com RSS feed    │ API deprecations
+ Stripe      │ check_stripe()    │ PyPI version check             │ SDK version drift
+
+ TO ADD A NEW SERVICE:
+ 1. Write a check_<service>() function that returns a list of warning dicts:
+    [{"service": "Name", "item": "what", "detail": "why", "date": "when",
+      "url": "link", "action": "what to do"}]
+ 2. Add a cache entry in _caches below
+ 3. Call your function from check_all()
+ 4. Update the table above
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import os
