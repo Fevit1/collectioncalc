@@ -6,9 +6,16 @@ Extracts comic book information from photos using Claude Vision.
 import os
 import base64
 import json
-import requests
 from io import BytesIO
-from models import HAIKU
+from models import call_with_fallback
+
+try:
+    import anthropic
+    _client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+    ANTHROPIC_AVAILABLE = True
+except Exception:
+    _client = None
+    ANTHROPIC_AVAILABLE = False
 
 # Try to import barcode scanning library
 try:
@@ -20,7 +27,7 @@ except ImportError:
     BARCODE_SCANNING_AVAILABLE = False
     print("pyzbar not available - barcode scanning disabled")
 
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')  # kept for backward compat checks
 
 
 def scan_barcode(image_data: bytes) -> dict:
@@ -314,9 +321,9 @@ def extract_from_photo(image_data: bytes, filename: str = "comic.jpg") -> dict:
     Returns:
         dict with extracted fields or error
     """
-    if not ANTHROPIC_API_KEY:
-        return {"success": False, "error": "ANTHROPIC_API_KEY not configured"}
-    
+    if not ANTHROPIC_AVAILABLE or not _client:
+        return {"success": False, "error": "Anthropic SDK not available"}
+
     # Determine media type from filename
     ext = filename.lower().split('.')[-1] if '.' in filename else 'jpg'
     media_type_map = {
@@ -346,9 +353,9 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
     Returns:
         dict with extracted fields or error
     """
-    if not ANTHROPIC_API_KEY:
-        return {"success": False, "error": "ANTHROPIC_API_KEY not configured"}
-    
+    if not ANTHROPIC_AVAILABLE or not _client:
+        return {"success": False, "error": "Anthropic SDK not available"}
+
     # First, try to scan barcode with pyzbar (more reliable than vision)
     scanned_barcode = None
     try:
@@ -358,53 +365,36 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
             print(f"[Extraction] Barcode scanned: {scanned_barcode}")
     except Exception as e:
         print(f"[Extraction] Barcode scan failed: {e}")
-    
+
     try:
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01"
-            },
-            json={
-                "model": HAIKU,
-                "max_tokens": 1000,
-                "temperature": 0,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64_data
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": EXTRACTION_PROMPT
+        response = call_with_fallback(
+            _client, 'haiku',
+            max_tokens=1000,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": base64_data
                         }
-                    ]
-                }]
-            },
-            timeout=60
+                    },
+                    {
+                        "type": "text",
+                        "text": EXTRACTION_PROMPT
+                    }
+                ]
+            }]
         )
-        
-        if response.status_code != 200:
-            return {
-                "success": False,
-                "error": f"Anthropic API error: {response.status_code} - {response.text}"
-            }
-        
-        data = response.json()
-        
+
         # Extract text content
         text_content = ""
-        for block in data.get("content", []):
-            if block.get("type") == "text":
-                text_content += block.get("text", "")
+        for block in response.content:
+            if block.type == "text":
+                text_content += block.text
         
         # Parse JSON from response
         import re
@@ -510,7 +500,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                 "raw": text_content
             }
             
-    except requests.exceptions.Timeout:
+    except anthropic.APITimeoutError:
         return {"success": False, "error": "Request timed out"}
     except json.JSONDecodeError as e:
         return {"success": False, "error": f"JSON parse error: {str(e)}"}
