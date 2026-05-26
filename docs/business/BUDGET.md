@@ -1,4 +1,4 @@
-# CollectionCalc Budget & Hosting Strategy
+# Slab Worthy Budget & Hosting Strategy
 
 **Priority Order: Cheap > Good > Fast**
 
@@ -21,7 +21,7 @@
 **Cost: $0**
 
 ```
-collectioncalc.com → Cloudflare Pages → Static React App
+slabworthy.com → Cloudflare Pages → Static React App
 ```
 
 **Why Cloudflare Pages:**
@@ -34,7 +34,7 @@ collectioncalc.com → Cloudflare Pages → Static React App
 **Setup:**
 1. Push frontend to GitHub repo
 2. Connect to Cloudflare Pages
-3. Point collectioncalc.com DNS to Cloudflare
+3. Point slabworthy.com DNS to Cloudflare
 
 ### Backend Hosting: PythonAnywhere or Render
 **Cost: $0 (free tier) or $7/mo (basic)**
@@ -182,7 +182,7 @@ git push -u origin main
 3. Build settings:
    - Build command: (none for static)
    - Output directory: `/`
-4. Add custom domain: collectioncalc.com
+4. Add custom domain: slabworthy.com
 
 ### 3. Render (Backend)
 
@@ -204,8 +204,8 @@ git push -u origin main
 ### 4. DNS Setup (Cloudflare)
 
 ```
-collectioncalc.com     → Cloudflare Pages (frontend)
-api.collectioncalc.com → Render (backend)
+slabworthy.com               → Cloudflare Pages (frontend)
+collectioncalc-docker.onrender.com → Render (backend)
 ```
 
 ---
@@ -216,7 +216,7 @@ api.collectioncalc.com → Render (backend)
 
 | Item | Date | Amount |
 |------|------|--------|
-| Domain (collectioncalc.com) | 2024 | ~$12/yr |
+| Domain (slabworthy.com) | 2024 | ~$12/yr |
 | Anthropic API testing | Jan 2024 | $2.85 |
 | **Total to date** | | **~$15** |
 

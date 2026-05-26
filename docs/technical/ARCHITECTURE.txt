@@ -164,10 +164,10 @@ cc/v2/
 │   └── icons/           # Extension icons
 │
 └── ─────────── DOCUMENTATION ───────────
-    ├── CLAUDE_NOTES.txt # Session notes, context for Claude
-    ├── ROADMAP.md       # Feature backlog, version history
-    ├── BRAND_GUIDELINES.md  # Colors, typography, UI standards
-    └── ARCHITECTURE.md  # This file
+    ├── docs/sessions/CLAUDE_NOTES.txt  # Session notes, context for Claude
+    ├── docs/sessions/ROADMAP.txt       # Feature backlog + version history (mixed)
+    ├── archive/old-brand/BRAND_GUIDELINES.txt  # Pre-pivot brand (archived; new brand guide overdue)
+    └── docs/technical/ARCHITECTURE.txt # This file
 ```
 
 ## Barcode Scanning Flow (NEW)

@@ -1,10 +1,10 @@
-﻿# CollectionCalc Competitive Analysis
+﻿# Slab Worthy Competitive Analysis
 
 *Last updated: January 31, 2026*
 
 ## Quick Comparison Matrix
 
-| Feature | CollectionCalc | CovrPrice | GoCollect | Key Collector | CLZ | ComicMint AI | Tabi |
+| Feature | Slab Worthy | CovrPrice | GoCollect | Key Collector | CLZ | ComicMint AI | Tabi |
 |---------|---------------|-----------|-----------|---------------|-----|--------------|------|
 | **AI Grading** | ✅ Multi-photo | ❌ | ❌ | ❌ | ❌ | ✅ Single photo | ✅ Single photo |
 | **"Should I Slab?" ROI** | ✅ **UNIQUE** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -273,7 +273,7 @@ Based on competitor gaps, prioritize:
 
 | Service | Free Tier | Paid Tier |
 |---------|-----------|-----------|
-| CollectionCalc | TBD | TBD |
+| Slab Worthy | TBD | TBD |
 | CovrPrice | 5 lookups/day | $3-7/month |
 | GoCollect | Limited | ~$90/year |
 | Key Collector | Basic features | $5-10/month |

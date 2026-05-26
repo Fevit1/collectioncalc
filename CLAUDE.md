@@ -1,9 +1,35 @@
 # Slab Worthy — Claude Code Project Context
 
 **Founder:** Mike Berry (Don Michael Berry II)
-**Last Updated:** 2026-03-14
+**Last Updated:** 2026-03-19
+
+> SESSION OPENING PROTOCOL — read in this order before any substantive work:
+> 1. This CLAUDE.md
+> 2. docs/LESSONS.md if it exists (confirm: 'Read LESSONS.md — N lessons, updated YYYY-MM-DD')
+> 3. C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md
+>    (confirm: 'Read LESSONS_CROSS_PROJECT.md — N lessons active')
+>
+> Then emit the 6-line context summary before proceeding with any substantive work.
 
 ---
+
+# ⚠️ THIS IS SLAB WORTHY (collectioncalc repo)
+# Brand: $LAB WORTHY — purple/gold, comic grading, CGC authentication
+# Favicon: /favicon.svg (gold dollar sign on black background, 8° tilt)
+# Logo font: Bangers, gold (#facc15), purple accent (#7c3aed)
+# DO NOT apply MASSÉ branding (8-ball, red #C0392B, billiards, IBM Plex)
+# DO NOT apply TFO branding (theformof.com, agentic app platform)
+# GitHub repo: Fevit1/collectioncalc
+# Deploy: Cloudflare Pages (slabworthy.com) + Render backend
+#
+# ⚠️ GIT COMMIT RULE — ALWAYS run this before git add:
+#   git status
+# Review every file listed. Ask yourself:
+#   - Does this file belong to THIS project?
+#   - Is this a .claude/ worktree file? (never commit these)
+#   - Is this a ~$ Excel temp file? (never commit these)
+# Only then run: git add [specific files] — NEVER git add -A blindly
+
 
 ## What This Is
 AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + FMV.
@@ -35,8 +61,10 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 ## Session Conventions
 
 - **Skills:** `/deploy-tfo`, `/health`, `/lesson`, `/stripe-test` (in `.claude/skills/`)
-- **Session notes:** CLAUDE_NOTES.txt (full history), WHERE_WE_LEFT_OFF.md (last session detail)
+- **Session notes:** docs/sessions/CLAUDE_NOTES.txt (full history), docs/sessions/WHERE_WE_LEFT_OFF.md (last session detail)
+- **Roadmap:** docs/sessions/ROADMAP.txt (mixed planning + session log; treat session log portions as historical)
 - **Task list:** TODO.md
+- **BO primer (Slab Worthy specific):** docs/SW_BO_PRIMER.md (mirror of the file uploaded to BO project storage)
 - **Supabase project ID:** `kgqnwfpklodyyiqariid` (TheFormOf — shared DB)
 
 ---
