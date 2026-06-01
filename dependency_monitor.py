@@ -7,11 +7,12 @@ Each check is cached 24 hours independently.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  MONITORED SERVICES — update this when adding new third-party integrations
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Service     │ Check Method      │ Source                         │ What We Watch
- ────────────┼───────────────────┼────────────────────────────────┼─────────────────────
- Anthropic   │ check_anthropic() │ deprecations.info JSON API     │ Model retirements
- eBay        │ check_ebay()      │ developer.ebay.com RSS feed    │ API deprecations
- Stripe      │ check_stripe()    │ PyPI version check             │ SDK version drift
+ Service           │ Check Method                  │ Source                      │ What We Watch
+ ──────────────────┼───────────────────────────────┼─────────────────────────────┼─────────────────────
+ Anthropic         │ check_anthropic()             │ deprecations.info JSON API  │ Model retirements
+ eBay              │ check_ebay()                  │ developer.ebay.com RSS feed │ API deprecations
+ eBay acct-del self│ check_ebay_account_deletion() │ our own live endpoint (GET) │ Notification endpoint up + valid challenge
+ Stripe            │ check_stripe()                │ PyPI version check          │ SDK version drift
 
  TO ADD A NEW SERVICE:
  1. Write a check_<service>() function that returns a list of warning dicts:
@@ -26,6 +27,7 @@ Each check is cached 24 hours independently.
 import os
 import re
 import time
+import hashlib
 import xml.etree.ElementTree as ET
 import requests
 from models import MODEL_CHAINS
@@ -41,6 +43,19 @@ DEPRECATIONS_API = "https://deprecations.info/v1/deprecations.json"
 EBAY_RSS_URL = "https://developer.ebay.com/rss/api-status"
 PYPI_STRIPE_URL = "https://pypi.org/pypi/stripe/json"
 CACHE_TTL = 86400  # 24 hours
+
+# Self-health check: our OWN eBay marketplace account-deletion endpoint.
+# This URL MUST mirror EBAY_ACCOUNT_DELETION_ENDPOINT in routes/ebay.py and the
+# URL registered in the eBay developer portal. It is intentionally kept as an
+# independent literal (not imported from routes/ebay.py): if the route's
+# constant ever drifts from this one, the recomputed challenge hash won't match
+# and this self-check will trip — which is exactly the endpoint-string drift we
+# want to catch.
+EBAY_ACCOUNT_DELETION_ENDPOINT = "https://collectioncalc-docker.onrender.com/api/ebay/account-deletion"
+# Fixed, obviously-synthetic probe. Challenge codes are never persisted or
+# matched against any state (the handler only hashes them), so this cannot
+# collide with real eBay traffic, and a GET never reaches the POST deletion path.
+EBAY_DELETION_PROBE_CODE = "slabworthy-monitor-probe-DO-NOT-DELETE"
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
@@ -68,9 +83,10 @@ DEPRECATION_KEYWORDS = re.compile(
 
 # ── Per-service caches ──
 _caches = {
-    'anthropic': {"data": [], "fetched_at": 0},
-    'ebay':      {"data": [], "fetched_at": 0},
-    'stripe':    {"data": [], "fetched_at": 0},
+    'anthropic':            {"data": [], "fetched_at": 0},
+    'ebay':                 {"data": [], "fetched_at": 0},
+    'stripe':               {"data": [], "fetched_at": 0},
+    'ebay_account_deletion': {"data": [], "fetched_at": 0},
 }
 _emailed_keys = set()  # Track what we've emailed about (service:identifier)
 
@@ -187,6 +203,103 @@ def check_ebay(force=False):
 
 
 # =============================================
+# EBAY ACCOUNT-DELETION ENDPOINT — self-health check
+# =============================================
+# NOTE: distinct from check_ebay() above. That watches eBay's RSS for API
+# deprecations (their changes break us). THIS watches our OWN registered
+# marketplace account-deletion notification endpoint (our outage breaks
+# compliance). eBay deactivates app keys if this endpoint fails their
+# validation — and they notified us before our own monitoring did once. This
+# closes that gap. Two different failure modes → two separate checks/alerts.
+
+def check_ebay_account_deletion(force=False):
+    """Probe our own eBay account-deletion endpoint's GET challenge-response.
+
+    Exercises exactly the path eBay's validator uses:
+      GET <endpoint>?challenge_code=<probe>  ->  200 {"challengeResponse": "<sha256>"}
+
+    Failure states (any of these emit a warning): non-200 (405 = GET handler
+    gone, 503 = service suspended, 5xx = token unset/error), timeout/connection
+    error, non-JSON body, missing/empty challengeResponse, or a challengeResponse
+    that doesn't match the independently recomputed canonical hash.
+    """
+    cache = _caches['ebay_account_deletion']
+    now = time.time()
+    if not force and (now - cache["fetched_at"]) < CACHE_TTL:
+        return cache["data"]
+
+    url = EBAY_ACCOUNT_DELETION_ENDPOINT
+    probe = EBAY_DELETION_PROBE_CODE
+
+    def _fail(detail):
+        result = [{
+            "service": "eBay Account-Deletion Endpoint (self)",
+            "item": "GET challenge-response",
+            "detail": detail,
+            "date": "",
+            "url": url,
+            "action": ("Our endpoint that eBay uses to validate marketplace "
+                       "account-deletion notifications is failing. Verify the route is "
+                       "deployed, EBAY_VERIFICATION_TOKEN is set on collectioncalc-docker, "
+                       "and the registered URL in the eBay developer portal matches this "
+                       "endpoint. If left unresolved, eBay will deactivate our application "
+                       "keys (kills eBay listing)."),
+        }]
+        cache["data"] = result
+        cache["fetched_at"] = now
+        return result
+
+    # Read-only GET probe. A GET never reaches the POST deletion logic, and the
+    # probe challenge_code is never persisted, so this mutates no state.
+    try:
+        resp = requests.get(url, params={"challenge_code": probe}, timeout=10)
+    except Exception as e:
+        return _fail(f"Probe request failed (timeout/connection error): {e}")
+
+    if resp.status_code != 200:
+        return _fail(
+            f"Expected HTTP 200, got HTTP {resp.status_code} "
+            f"(405 = GET challenge handler missing, 503 = service suspended, "
+            f"5xx = verification token unset or handler error)"
+        )
+
+    try:
+        body = resp.json()
+    except ValueError:
+        return _fail(f"Response was not valid JSON (Content-Type: "
+                     f"{resp.headers.get('Content-Type', 'unknown')})")
+
+    returned = (body or {}).get("challengeResponse")
+    if not returned:
+        return _fail("Response JSON missing or empty 'challengeResponse' field")
+
+    # Strongest check: independently recompute the expected hash and compare.
+    # Same formula as the live handler: sha256(challenge_code + token + endpoint).
+    # Catches handler regressions (wrong concat order, double-encoding) and
+    # endpoint-string drift between routes/ebay.py and this monitor.
+    token = os.environ.get('EBAY_VERIFICATION_TOKEN')
+    if token:
+        expected = hashlib.sha256(
+            (probe + token + url).encode('utf-8')
+        ).hexdigest()
+        if returned != expected:
+            return _fail(
+                "challengeResponse hash mismatch — the handler's challenge formula "
+                "or endpoint string has drifted from the canonical "
+                "sha256(challenge_code + EBAY_VERIFICATION_TOKEN + endpoint). eBay's "
+                "own validation would also fail."
+            )
+    # If the token isn't visible to this process we can't recompute; the 200 +
+    # non-empty challengeResponse checks above still stand (and a missing token
+    # would have produced a 500 from the handler, caught as a non-200 above).
+
+    # Healthy.
+    cache["data"] = []
+    cache["fetched_at"] = now
+    return []
+
+
+# =============================================
 # STRIPE — SDK version check via PyPI
 # =============================================
 
@@ -259,6 +372,7 @@ def check_all(force=False):
     warnings = []
     warnings.extend(check_anthropic(force))
     warnings.extend(check_ebay(force))
+    warnings.extend(check_ebay_account_deletion(force))
     warnings.extend(check_stripe(force))
 
     if warnings:

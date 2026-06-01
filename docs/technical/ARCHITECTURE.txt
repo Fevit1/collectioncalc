@@ -78,7 +78,7 @@ Set on the **`collectioncalc-docker`** Render service.
 
 | Var | Purpose |
 |-----|---------|
-| `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token entered in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. 32–80 chars, alphanumeric + `_-`. |
+| `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token entered in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. Also read by `dependency_monitor.check_ebay_account_deletion()` to independently recompute and verify the live endpoint's challenge response. 32–80 chars, alphanumeric + `_-`. |
 
 > ⚠️ eBay account-deletion challenge: the endpoint string hashed alongside the
 > token is the hard-coded constant `EBAY_ACCOUNT_DELETION_ENDPOINT` in
