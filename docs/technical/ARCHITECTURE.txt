@@ -72,6 +72,22 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 | `collectioncalc-docker` | Docker | **ACTIVE** | Production backend with barcode scanning |
 | `collectioncalc` | Python | SUSPENDED | Legacy (saved $7/mo) |
 
+## Environment Variables
+
+Set on the **`collectioncalc-docker`** Render service.
+
+| Var | Purpose |
+|-----|---------|
+| `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token entered in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. 32–80 chars, alphanumeric + `_-`. |
+
+> ⚠️ eBay account-deletion challenge: the endpoint string hashed alongside the
+> token is the hard-coded constant `EBAY_ACCOUNT_DELETION_ENDPOINT` in
+> `routes/ebay.py` (`https://collectioncalc-docker.onrender.com/api/ebay/account-deletion`,
+> no trailing slash). The registered URL in the eBay portal, that constant, and
+> the portal's verification token must all match or the challenge hash will be wrong.
+> Note: eBay's URL was historically registered against the now-SUSPENDED
+> `collectioncalc` (no `-docker`) host — it must be updated to the `-docker` host.
+
 ## File Structure
 
 ```

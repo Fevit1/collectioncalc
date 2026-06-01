@@ -3,7 +3,15 @@ eBay Blueprint - eBay OAuth, listing, and image upload endpoints
 Routes: /api/ebay/*
 """
 import os
+import hashlib
 from flask import Blueprint, jsonify, request, g
+
+# Canonical, registered eBay Marketplace Account Deletion endpoint URL.
+# This MUST exactly match the URL registered in the eBay developer portal
+# (no trailing slash, -docker host). It is part of the challenge hash input,
+# so do NOT reconstruct it from request headers — a header-derived host could
+# differ from the registered string and produce a wrong (failing) hash.
+EBAY_ACCOUNT_DELETION_ENDPOINT = "https://collectioncalc-docker.onrender.com/api/ebay/account-deletion"
 
 # Create blueprint
 ebay_bp = Blueprint('ebay', __name__, url_prefix='/api/ebay')
@@ -38,12 +46,37 @@ def init_modules(auth_url_func, exchange_func, get_token_func, is_connected_func
     generate_description = gen_desc_func
 
 
-@ebay_bp.route('/account-deletion', methods=['POST'])
+@ebay_bp.route('/account-deletion', methods=['GET', 'POST'])
 def api_ebay_account_deletion():
     """
     eBay Marketplace Account Deletion Notification endpoint.
-    Called by eBay when a user requests account deletion (GDPR compliance).
+
+    GET  - eBay's endpoint-validation challenge. eBay sends ?challenge_code=...
+           and expects {"challengeResponse": sha256(challengeCode + verificationToken + endpoint)}.
+    POST - Runtime account-deletion notification (GDPR compliance). Always 2xx.
     """
+    # --- GET: eBay challenge-response validation ---
+    if request.method == 'GET':
+        verification_token = os.environ.get('EBAY_VERIFICATION_TOKEN')
+        if not verification_token:
+            # Fail loud: a missing token would silently produce a wrong hash.
+            print("ERROR: EBAY_VERIFICATION_TOKEN is not set; cannot answer eBay challenge")
+            return jsonify({'error': 'Verification token not configured'}), 500
+
+        challenge_code = request.args.get('challenge_code')
+        if not challenge_code:
+            return jsonify({'error': 'Missing challenge_code'}), 400
+
+        # Order is exactly: challengeCode + verificationToken + endpoint
+        m = hashlib.sha256()
+        m.update((challenge_code + verification_token + EBAY_ACCOUNT_DELETION_ENDPOINT).encode('utf-8'))
+        challenge_response = m.hexdigest()
+
+        resp = jsonify({'challengeResponse': challenge_response})
+        resp.headers['Content-Type'] = 'application/json'
+        return resp, 200
+
+    # --- POST: runtime deletion notification ---
     try:
         from ebay_oauth import delete_user_by_ebay_id
         
