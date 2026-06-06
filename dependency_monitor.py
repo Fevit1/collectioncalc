@@ -91,6 +91,26 @@ _caches = {
 _emailed_keys = set()  # Track what we've emailed about (service:identifier)
 
 
+def _error_entry(service, reason):
+    """Build a loud 'this check failed' warning entry.
+
+    A check that errors (network, shape change, parse failure) must surface as a
+    visible error in the monitor output — never silently return empty/cached and
+    look healthy. Uses a stable `item` so _send_alert_email dedups repeats.
+    """
+    return {
+        "service": service,
+        "item": "monitor check",
+        "detail": f"Dependency check failed: {reason}",
+        "date": "",
+        "url": "",
+        "action": (f"The {service} dependency check raised an error and could not "
+                   f"run. Other checks still executed. Investigate dependency_monitor.py "
+                   f"(e.g. upstream response-shape change) so this service is monitored again."),
+        "status": "error",
+    }
+
+
 # =============================================
 # ANTHROPIC — via deprecations.info
 # =============================================
@@ -111,7 +131,17 @@ def _tier_for_model(model_id):
 
 
 def check_anthropic(force=False):
-    """Check deprecations.info for Anthropic model retirements."""
+    """Check deprecations.info for Anthropic model retirements.
+
+    Tolerates both response shapes:
+      - legacy: {"items": [{"_deprecation": {"provider","model_name",...}}, ...]}
+      - current (2026-06): top-level JSON array of flat records
+        [{"provider","model_id","shutdown_date","url",...}, ...]
+
+    All fetching AND parsing happen inside the try/except. If the upstream shape
+    changes again, this one check degrades to a loud error entry instead of
+    raising and killing check_all() (see _error_entry / check_all isolation).
+    """
     cache = _caches['anthropic']
     now = time.time()
     if not force and (now - cache["fetched_at"]) < CACHE_TTL:
@@ -121,29 +151,52 @@ def check_anthropic(force=False):
         resp = requests.get(DEPRECATIONS_API, timeout=10)
         resp.raise_for_status()
         data = resp.json()
+
+        # Normalize both shapes to a flat list of deprecation records.
+        if isinstance(data, dict):
+            records = data.get("items", [])
+        elif isinstance(data, list):
+            records = data
+        else:
+            records = []
+
+        our_models = _all_model_ids()
+        warnings = []
+        seen = set()  # dedup our_model — same model can appear in multiple records
+        for item in records:
+            if not isinstance(item, dict):
+                continue
+            # Current records are flat; legacy nested fields under "_deprecation".
+            dep = item.get("_deprecation", item)
+            provider = (dep.get("provider") or "").lower()
+            if provider not in ("anthropic", "ant"):
+                continue
+            # Key differs across shapes: "model_id" (current) vs "model_name" (legacy).
+            model_name = dep.get("model_id") or dep.get("model_name") or ""
+            if not model_name:
+                continue
+            for our_model in our_models:
+                if our_model in seen:
+                    continue
+                if our_model == model_name or our_model in model_name or model_name in our_model:
+                    seen.add(our_model)
+                    warnings.append({
+                        "service": "Anthropic",
+                        "item": our_model,
+                        "detail": "Model retiring",
+                        "date": dep.get("shutdown_date", "unknown"),
+                        "url": dep.get("url", ""),
+                        "action": f"Update models.py — replace in {', '.join(_tier_for_model(our_model))} tier",
+                    })
     except Exception as e:
         print(f"[DependencyMonitor] Anthropic check failed: {e}")
-        return cache["data"] or []
-
-    our_models = _all_model_ids()
-    warnings = []
-
-    for item in data.get("items", []):
-        dep = item.get("_deprecation", {})
-        provider = dep.get("provider", "")
-        if provider.lower() not in ("anthropic", "ant"):
-            continue
-        model_name = dep.get("model_name", "")
-        for our_model in our_models:
-            if our_model == model_name or our_model in model_name or model_name in our_model:
-                warnings.append({
-                    "service": "Anthropic",
-                    "item": our_model,
-                    "detail": f"Model retiring",
-                    "date": dep.get("shutdown_date", "unknown"),
-                    "url": dep.get("url", ""),
-                    "action": f"Update models.py — replace in {', '.join(_tier_for_model(our_model))} tier",
-                })
+        err = [_error_entry("Anthropic", e)]
+        # Surface the error loudly but back off: retry in ~5 min instead of on
+        # every health-check poll, so a prolonged upstream outage doesn't hammer
+        # the source (or re-enter the alert path) every 30 seconds.
+        cache["data"] = err
+        cache["fetched_at"] = now - CACHE_TTL + 300
+        return err
 
     cache["data"] = warnings
     cache["fetched_at"] = now
@@ -165,37 +218,40 @@ def check_ebay(force=False):
         resp = requests.get(EBAY_RSS_URL, timeout=10)
         resp.raise_for_status()
         root = ET.fromstring(resp.text)
+
+        warnings = []
+        # RSS items are under channel/item
+        for item in root.findall('.//item'):
+            title = (item.findtext('title') or '').strip()
+            desc = (item.findtext('description') or '').strip()
+            pub_date = (item.findtext('pubDate') or '').strip()
+            link = (item.findtext('link') or '').strip()
+            combined = f"{title} {desc}"
+
+            # Only care about deprecation-related notices
+            if not DEPRECATION_KEYWORDS.search(combined):
+                continue
+
+            # Check if any of our eBay APIs are mentioned
+            for api in EBAY_APIS_WE_USE:
+                # Match on the API path or a simplified version
+                api_short = api.split('/')[0]  # e.g. "sell", "identity", "commerce"
+                if api.lower() in combined.lower() or api_short.lower() in combined.lower():
+                    warnings.append({
+                        "service": "eBay",
+                        "item": api,
+                        "detail": title[:120],
+                        "date": pub_date,
+                        "url": link,
+                        "action": f"Review eBay notice and update {api} integration",
+                    })
+                    break  # One warning per RSS item is enough
     except Exception as e:
         print(f"[DependencyMonitor] eBay RSS check failed: {e}")
-        return cache["data"] or []
-
-    warnings = []
-    # RSS items are under channel/item
-    for item in root.findall('.//item'):
-        title = (item.findtext('title') or '').strip()
-        desc = (item.findtext('description') or '').strip()
-        pub_date = (item.findtext('pubDate') or '').strip()
-        link = (item.findtext('link') or '').strip()
-        combined = f"{title} {desc}"
-
-        # Only care about deprecation-related notices
-        if not DEPRECATION_KEYWORDS.search(combined):
-            continue
-
-        # Check if any of our eBay APIs are mentioned
-        for api in EBAY_APIS_WE_USE:
-            # Match on the API path or a simplified version
-            api_short = api.split('/')[0]  # e.g. "sell", "identity", "commerce"
-            if api.lower() in combined.lower() or api_short.lower() in combined.lower():
-                warnings.append({
-                    "service": "eBay",
-                    "item": api,
-                    "detail": title[:120],
-                    "date": pub_date,
-                    "url": link,
-                    "action": f"Review eBay notice and update {api} integration",
-                })
-                break  # One warning per RSS item is enough
+        err = [_error_entry("eBay", e)]
+        cache["data"] = err
+        cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
+        return err
 
     cache["data"] = warnings
     cache["fetched_at"] = now
@@ -337,26 +393,29 @@ def check_stripe(force=False):
         resp = requests.get(PYPI_STRIPE_URL, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        latest = data.get("info", {}).get("version", "")
+        latest = (data.get("info") or {}).get("version", "")
+
+        warnings = []
+        installed_major = _parse_major(installed)
+        latest_major = _parse_major(latest)
+
+        if installed_major is not None and latest_major is not None:
+            gap = latest_major - installed_major
+            if gap >= 2:
+                warnings.append({
+                    "service": "Stripe",
+                    "item": f"stripe=={installed}",
+                    "detail": f"Installed v{installed}, latest is v{latest} ({gap} major versions behind)",
+                    "date": "",
+                    "url": "https://github.com/stripe/stripe-python/blob/master/CHANGELOG.md",
+                    "action": f"Update stripe package: pip install stripe>={latest_major}.0.0",
+                })
     except Exception as e:
         print(f"[DependencyMonitor] Stripe PyPI check failed: {e}")
-        return cache["data"] or []
-
-    warnings = []
-    installed_major = _parse_major(installed)
-    latest_major = _parse_major(latest)
-
-    if installed_major is not None and latest_major is not None:
-        gap = latest_major - installed_major
-        if gap >= 2:
-            warnings.append({
-                "service": "Stripe",
-                "item": f"stripe=={installed}",
-                "detail": f"Installed v{installed}, latest is v{latest} ({gap} major versions behind)",
-                "date": "",
-                "url": "https://github.com/stripe/stripe-python/blob/master/CHANGELOG.md",
-                "action": f"Update stripe package: pip install stripe>={latest_major}.0.0",
-            })
+        err = [_error_entry("Stripe", e)]
+        cache["data"] = err
+        cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
+        return err
 
     cache["data"] = warnings
     cache["fetched_at"] = now
@@ -368,12 +427,27 @@ def check_stripe(force=False):
 # =============================================
 
 def check_all(force=False):
-    """Run all dependency checks. Returns unified list of warnings."""
+    """Run all dependency checks. Returns unified list of warnings.
+
+    Each check is isolated: if one raises (despite its own try/except), it is
+    converted to a loud error entry and the remaining checks still run. One
+    broken check must never blind us to the others — that regression is exactly
+    what took the whole monitor down (deprecations.info shape change, 2026-06).
+    """
+    checks = (
+        ("Anthropic", check_anthropic),
+        ("eBay", check_ebay),
+        ("eBay Account-Deletion Endpoint (self)", check_ebay_account_deletion),
+        ("Stripe", check_stripe),
+    )
+
     warnings = []
-    warnings.extend(check_anthropic(force))
-    warnings.extend(check_ebay(force))
-    warnings.extend(check_ebay_account_deletion(force))
-    warnings.extend(check_stripe(force))
+    for name, fn in checks:
+        try:
+            warnings.extend(fn(force))
+        except Exception as e:
+            print(f"[DependencyMonitor] {name} check crashed in check_all: {e}")
+            warnings.append(_error_entry(name, e))
 
     if warnings:
         _send_alert_email(warnings)

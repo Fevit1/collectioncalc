@@ -843,24 +843,81 @@ def api_identify_signatures():
 # -------------------------------------------------------------------
 @signatures_bp.route('/db-stats', methods=['GET'])
 def api_db_stats():
-    """Return stats about the local signature reference database."""
+    """Return stats about the signature reference database.
+
+    Sources the LIVE `creator_signatures` + `signature_images` tables (same data
+    the admin Signatures page shows) — NOT the bundled signatures_db.json
+    snapshot, which is stale and disagreed with production (80/97 vs 99/203 on
+    2026-06-06). The v1 matcher still reads the JSON snapshot; that is a separate,
+    larger cleanup tracked outside this fix.
+
+    Counts exclude archived creators (matching the admin UI's default view).
+    `quality` per creator is derived from reference-image coverage (no quality
+    column exists in the live schema): 4+ = high, 2-3 = medium, 1 = low, 0 = none.
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        return jsonify({'success': False, 'error': 'Database not configured'}), 503
+
     try:
-        db = load_signature_db()
-        return jsonify({
-            'success': True,
-            'version': db.get('version'),
-            'total_artists': db['stats']['total_artists'],
-            'total_images': db['stats']['total_images'],
-            'quality_breakdown': {
-                'high': db['stats']['high_quality'],
-                'medium': db['stats']['medium_quality'],
-                'low': db['stats']['low_quality']
-            },
-            'artists': [{'name': a['name'], 'quality': a['quality_rating'], 'image_count': len(a['images'])} for a in db['artists']],
-            'missing_priority': db.get('missing_priority_artists', [])
-        })
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                SELECT cs.id, cs.creator_name, cs.verified,
+                       COUNT(si.id) AS image_count
+                FROM creator_signatures cs
+                LEFT JOIN signature_images si ON si.creator_id = cs.id
+                WHERE cs.archived_at IS NULL
+                GROUP BY cs.id, cs.creator_name, cs.verified
+                ORDER BY cs.creator_name
+            """)
+            rows = cur.fetchall()
+        finally:
+            cur.close()
+            conn.close()
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    def _quality(n):
+        if n >= 4:
+            return 'high'
+        if n >= 2:
+            return 'medium'
+        if n >= 1:
+            return 'low'
+        return 'none'
+
+    artists = []
+    quality_breakdown = {'high': 0, 'medium': 0, 'low': 0, 'none': 0}
+    total_images = 0
+    verified_count = 0
+    for r in rows:
+        n = int(r['image_count'] or 0)
+        total_images += n
+        if r['verified']:
+            verified_count += 1
+        q = _quality(n)
+        if q in quality_breakdown:
+            quality_breakdown[q] += 1
+        artists.append({
+            'name': r['creator_name'],
+            'quality': q,
+            'image_count': n,
+            'verified': bool(r['verified']),
+        })
+
+    return jsonify({
+        'success': True,
+        'version': '2.0-live',  # live-DB backed; replaced the static signatures_db.json snapshot
+        'source': 'creator_signatures',
+        'total_artists': len(rows),
+        'total_images': total_images,
+        'verified': verified_count,
+        'quality_breakdown': quality_breakdown,
+        'artists': artists,
+        'missing_priority': []
+    })
 
 
 # -------------------------------------------------------------------

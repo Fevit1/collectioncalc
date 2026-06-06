@@ -17,7 +17,6 @@ Plans:
 """
 
 import os
-import json
 import psycopg2
 from datetime import datetime
 from flask import Blueprint, jsonify, request, g
@@ -123,7 +122,9 @@ PLANS = {
     }
 }
 
-WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+# NOTE: STRIPE_WEBHOOK_SECRET is read at request time inside stripe_webhook()
+# (like DATABASE_URL in get_db), not cached at import — so a secret injected
+# after process start is picked up without a restart.
 
 
 # ============================================
@@ -474,16 +475,22 @@ def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
 
-    # Verify webhook signature
+    # Read the secret per-request (not at import) so late env injection is picked
+    # up without a restart. A webhook secret is MANDATORY: without it we cannot
+    # prove the event came from Stripe, and processing an unverified event would
+    # let anyone forge subscription state (e.g. POST a checkout.session.completed
+    # to self-upgrade to a paid tier). Fail loud — never degrade to unverified.
+    webhook_secret = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+    if not webhook_secret:
+        print("[Billing] ERROR: STRIPE_WEBHOOK_SECRET is not set — refusing to "
+              "process webhook (would be unverified). Set the secret in Render.")
+        return jsonify({'error': 'Webhook secret not configured'}), 500
+
+    # Verify webhook signature. Any failure → reject, do not process.
     try:
-        if WEBHOOK_SECRET:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, WEBHOOK_SECRET
-            )
-        else:
-            # Dev mode: parse without verification
-            event = json.loads(payload)
-            print("⚠️ Webhook signature not verified (no secret configured)")
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, webhook_secret
+        )
     except (ValueError, stripe.error.SignatureVerificationError) as e:
         print(f"[Billing] Webhook verification failed: {e}")
         return jsonify({'error': 'Invalid signature'}), 400

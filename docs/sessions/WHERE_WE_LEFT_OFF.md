@@ -1,4 +1,51 @@
-# Where We Left Off - Mar 24, 2026
+# Where We Left Off - Jun 6, 2026
+
+## Session 91 (Jun 6, 2026) — Reconciliation + Fixes Batch 1
+
+### What Was Done
+
+Ran a read-only reconciliation pass (`docs/sessions/RECONCILIATION_2026-06-06.md`), then
+implemented Fixes Batch 1 (reproduce-before-fix; verified; NOT yet committed/deployed — awaiting
+Mike's authorization).
+
+1. **Fixed the dead dependency monitor** (`dependency_monitor.py`). Root cause: `deprecations.info`
+   changed its JSON from `{"items":[...]}` to a top-level array, so `check_anthropic()` crashed on
+   `data.get("items")` — and because it ran first in `check_all()`, it killed every check (eBay RSS,
+   Stripe, and the new eBay account-deletion self-check never ran). Fix: shape-tolerant parsing
+   (handles both dict+array, `model_id`/`model_name`), all parsing inside try/except, each check
+   isolated in `check_all()` so one failure can't block others, failed checks now surface a loud
+   `status: error` entry (with a ~5 min backoff so an outage doesn't hammer upstream).
+2. **Hardened the Stripe webhook** (`routes/billing.py`). Was processing events UNVERIFIED when
+   `STRIPE_WEBHOOK_SECRET` was unset (forgeable → self-upgrade to paid tier). Now: unset secret →
+   500 + refuse; bad signature → 400 + refuse; valid → process. Secret read per-request.
+3. **Repointed `/api/signatures/db-stats`** (`routes/signatures.py`) from the stale bundled
+   `signatures_db.json` snapshot to the live `creator_signatures` + `signature_images` tables (the
+   stale endpoint reported 80/97 vs the live 99/203). Graceful 503 if no DB; backward-compatible
+   response keys. The v1 matcher still reads the JSON snapshot — left untouched (separate cleanup).
+4. **Documented all env vars** in `docs/technical/ARCHITECTURE.txt` (was 1 of ~32) — name, purpose,
+   reading module, unset behavior. Flagged `JWT_SECRET`'s insecure `'change-me-in-production'`
+   default (auth.py NOT changed this batch).
+
+### Verification
+- Reproduced bugs #1 and #2 first (tracebacks / code-path quotes captured in session).
+- All fixes verified locally (monitor: all checks run + isolation + backoff; webhook: 500/400/200
+  with no handler calls when rejected; db-stats: 503 + correct aggregation). Ran a code-review
+  verification agent; its 3 findings (retry backoff, `none` quality bucket, per-request secret read)
+  were all addressed and re-verified.
+
+### Follow-ups surfaced (NOT in this batch — own briefs)
+- 🔴 **`claude-sonnet-4-20250514` retires 2026-06-15** (the now-working monitor caught it) — Sonnet
+  migration gets its own brief.
+- 🟡 **eBay RSS feed returns 403** (`developer.ebay.com/rss/api-status`) — check can't fetch; needs
+  a new URL or a User-Agent header.
+- 🟡 **v1 signature matcher** still on the stale JSON snapshot.
+- 🟡 **`JWT_SECRET` insecure default** in `auth.py` — harden separately.
+
+### Files Modified (Batch 1)
+- `dependency_monitor.py`, `routes/billing.py`, `routes/signatures.py`, `docs/technical/ARCHITECTURE.txt`
+- `docs/sessions/RECONCILIATION_2026-06-06.md` (new, from the reconciliation pass)
+
+---
 
 ## Session 90 (Mar 24, 2026) — Mobile Extraction Fix + Dependency Monitor
 

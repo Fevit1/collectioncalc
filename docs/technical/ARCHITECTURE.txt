@@ -74,11 +74,81 @@ CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 
 ## Environment Variables
 
-Set on the **`collectioncalc-docker`** Render service.
+Set on the **`collectioncalc-docker`** Render service. This table documents
+**every** env var the code reads (CLAUDE.md dependency rule #3). Columns: the var,
+what it's for, which module(s) read it, and what happens if it's unset.
 
-| Var | Purpose |
-|-----|---------|
-| `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token entered in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. Also read by `dependency_monitor.check_ebay_account_deletion()` to independently recompute and verify the live endpoint's challenge response. 32–80 chars, alphanumeric + `_-`. |
+> Maintenance: when you add code that reads a new `os.environ` / `os.getenv` var,
+> add a row here in the same PR. To re-audit the full set:
+> `grep -rhoE "os\.(environ\.get\|getenv)\(['\"][A-Z0-9_]+" --include=*.py . | sort -u`
+
+### Core (required in production)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `DATABASE_URL` | Render Postgres connection string (the entire app DB). | Nearly every module — all `routes/*`, `auth.py`, migrations, etc. | DB-backed endpoints return **503 / error**; app is effectively non-functional. No default. |
+| `JWT_SECRET` | HMAC secret for signing/verifying auth JWTs. | `auth.py:27` | ⚠️ **INSECURE DEFAULT** `'change-me-in-production'` — if unset, tokens are signed with a publicly known secret and become **forgeable** (full auth bypass). Must be set to a strong random value in prod. *(Hardening the default out is tracked separately — not changed in the 2026-06-06 fixes batch.)* |
+| `ANTHROPIC_API_KEY` | Claude API key for all AI calls (grading, comic extraction, eBay/marketplace/Whatnot descriptions). | `wsgi.py:225`, `comic_extraction.py`, `ebay_valuation.py`, `ebay_description.py`, `marketplace_prep.py`, `whatnot_description.py`, `admin.py` | AI features fail (grading/extraction/description generation error out). Defaults to `''` in some modules — calls then fail at request time. |
+| `PORT` | Port gunicorn/Flask binds to. | `wsgi.py:407` | Defaults to `5000` (Render sets this automatically). |
+
+### Stripe (billing)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `STRIPE_SECRET_KEY` | Stripe API secret key. | `routes/billing.py:39` (`stripe.api_key`) | Billing API calls fail; `STRIPE_AVAILABLE` gating returns **503**. Defaults to `''`. |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret to verify incoming Stripe webhooks. | `routes/billing.py:126` | ⚠️ Webhook endpoint **returns 500 and refuses to process** (hardened 2026-06-06 — previously it processed events unverified, which was forgeable). Defaults to `''` = treated as unset. |
+| `STRIPE_PRO_MONTHLY_PRICE` | Stripe Price ID — Pro monthly. | `routes/billing.py:74` | That checkout option can't be created (no price id → 400 on checkout). |
+| `STRIPE_PRO_ANNUAL_PRICE` | Stripe Price ID — Pro annual. | `routes/billing.py:75` | As above (Pro annual). |
+| `STRIPE_GUARD_MONTHLY_PRICE` | Stripe Price ID — Guard monthly. | `routes/billing.py:92` | As above (Guard monthly). |
+| `STRIPE_GUARD_ANNUAL_PRICE` | Stripe Price ID — Guard annual. | `routes/billing.py:93` | As above (Guard annual). |
+| `STRIPE_DEALER_MONTHLY_PRICE` | Stripe Price ID — Dealer monthly. | `routes/billing.py:110` | As above (Dealer monthly). |
+| `STRIPE_DEALER_ANNUAL_PRICE` | Stripe Price ID — Dealer annual. | `routes/billing.py:111` | As above (Dealer annual). |
+
+### Cloudflare R2 (image storage)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `R2_ACCESS_KEY_ID` | R2 S3-compatible access key. | `r2_storage.py:25` | Image upload/storage fails. |
+| `R2_SECRET_ACCESS_KEY` | R2 secret key. | `r2_storage.py:26` | Image upload/storage fails. |
+| `R2_ACCOUNT_ID` | Cloudflare account id; also used to derive endpoint/public URL. | `r2_storage.py:27` | Endpoint/public URL derivation breaks; storage fails. |
+| `R2_BUCKET_NAME` | Target R2 bucket. | `r2_storage.py:28` | Defaults to `collectioncalc-images`. |
+| `R2_ENDPOINT` | R2 S3 endpoint. | `r2_storage.py:29` | Defaults to `https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com`. |
+| `R2_PUBLIC_URL` | Public base URL for served images. | `r2_storage.py:32` | Defaults to `https://pub-{R2_ACCOUNT_ID}.r2.dev`. |
+
+### eBay (OAuth + listings + account-deletion compliance)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `EBAY_CLIENT_ID` | eBay app Client ID (App ID). Also read as `EBAY_APP_ID` alias in `slab_premium_analysis.py`. | `ebay_oauth.py:104/138/184`, `slab_premium_analysis.py:18` | eBay OAuth + listing + premium analysis fail. |
+| `EBAY_CLIENT_SECRET` | eBay app Client Secret (Cert ID). | `ebay_oauth.py:139/185` | eBay OAuth token exchange/refresh fails. |
+| `EBAY_RUNAME` | eBay OAuth RuName (redirect identifier). | `ebay_oauth.py:105/140` | OAuth authorize/redirect fails. |
+| `EBAY_SANDBOX` | Toggle eBay sandbox vs production (`'true'/'1'/'yes'`). | `ebay_oauth.py:88` | Defaults to production (falsey = live eBay). |
+| `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. Also read by `dependency_monitor.check_ebay_account_deletion()` to independently recompute/verify the live endpoint's challenge response. 32–80 chars, alphanumeric + `_-`. | `routes/ebay.py:60`, `dependency_monitor.py:327` | Challenge handler returns 500; eBay validation fails → eBay can deactivate app keys (kills eBay listing). |
+
+### Email (Resend) + alerts
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `RESEND_API_KEY` | Resend API key for transactional email (auth verification, contact, dependency alerts). | `auth.py:32`, `dependency_monitor.py:61`, `routes/admin_routes.py:12`, `routes/contact.py:18` | Emails are silently skipped (verification, contact, dependency alerts won't send). |
+| `RESEND_FROM_EMAIL` | From address for outgoing email. | `auth.py:33`, `dependency_monitor.py:62`, `routes/admin_routes.py:13`, `routes/contact.py:19` | Defaults to `noreply@slabworthy.com`. |
+| `ADMIN_EMAIL` | Recipient for dependency-monitor alert emails. | `dependency_monitor.py:60` | Dependency alert emails are not sent (monitor still runs; just no email). |
+
+### Image moderation (AWS Rekognition)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `AWS_REGION` | AWS region for Rekognition. | `content_moderation.py:22` | Defaults to `us-west-2`. |
+| `AWS_ACCESS_KEY_ID` | AWS access key for Rekognition. | `content_moderation.py:23` | Image moderation disabled/fails. |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for Rekognition. | `content_moderation.py:24` | Image moderation disabled/fails. |
+
+### URLs + misc
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `FRONTEND_URL` | Base URL for user-facing links/redirects (auth emails, billing redirects, eBay OAuth callback). | `auth.py:34`, `routes/billing.py:406/456`, `routes/admin_routes.py:14`, `routes/ebay.py:172` | Defaults to `https://slabworthy.com`. |
+| `API_BASE_URL` | Base URL used to build waitlist verification links. | `routes/waitlist.py:24` | Defaults to `https://collectioncalc-docker.onrender.com`. |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret for contact-form captcha verification. | `routes/contact.py:21` | Defaults to `''`; captcha verification effectively disabled. |
+| `SW_AUTH_TOKEN` | **Test-only.** Bearer token for local API test scripts. | `test_comic_id_bug.py:204` | Not used in production; test API calls are skipped if unset. |
 
 > ⚠️ eBay account-deletion challenge: the endpoint string hashed alongside the
 > token is the hard-coded constant `EBAY_ACCOUNT_DELETION_ENDPOINT` in
