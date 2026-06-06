@@ -580,7 +580,7 @@ When the live site isn't updating:
 git add <specific files> ; git commit -m "message" ; git push
 ```
 - **Frontend (Cloudflare Pages):** Auto-deploys on git push to main
-- **Backend (Render):** Manual deploy command or auto-deploy
+- **Backend (Render):** Manual deploy required — auto-deploy-on-push is UNRELIABLE for collectioncalc-docker; verify the deploy started (Render → Events) and trigger Manual Deploy → Deploy latest commit if it didn't
 - **CDN Cache Purge:** Cloudflare Dashboard → Caching → Purge Everything (only helps if deployment succeeded)
 
 ---

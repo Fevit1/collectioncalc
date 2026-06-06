@@ -48,7 +48,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Entry:** `wsgi.py` → gunicorn
 - **Routes:** 19 blueprints in `routes/` (~87 endpoints)
 - **Critical routes:** `/health`, `/api/grade`, `/api/billing/webhook`, `/api/signatures/v2/match`
-- **Deploy:** `git push` → Render auto-deploys
+- **Deploy:** push to `main`, then deploy on Render. Auto-deploy-on-push is UNRELIABLE for collectioncalc-docker — sometimes it fires, often it does not. After pushing, verify the deploy actually started in the Render dashboard (Events tab); if not, trigger it manually: Manual Deploy → Deploy latest commit, and confirm the commit hash matches what you pushed. Do not assume a push deployed.
 - **Health check:** `curl https://collectioncalc-docker.onrender.com/health`
 
 ### Three Patents (All Filed)
