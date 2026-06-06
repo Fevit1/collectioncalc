@@ -1738,7 +1738,7 @@ Return ONLY valid JSON, no markdown.`
             'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
+            tier: 'sonnet',  // backend resolves the actual model via models.py (with fallback)
             max_tokens: 1024,
             messages: [{
                 role: 'user',
@@ -2181,7 +2181,7 @@ async function generateGradeReport() {
                 'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
+                tier: 'sonnet',  // backend resolves the actual model via models.py (with fallback)
                 max_tokens: 2048,
                 messages: [{
                     role: 'user',

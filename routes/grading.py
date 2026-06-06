@@ -13,7 +13,7 @@ grading_bp = Blueprint('grading', __name__, url_prefix='/api')
 # These will be imported from wsgi.py when needed
 from auth import require_auth, require_approved
 from admin import log_api_usage
-from models import SONNET
+from models import SONNET, get_model, call_with_fallback
 
 # Module imports with fallbacks (set by wsgi.py)
 get_valuation_with_ebay = None
@@ -229,12 +229,19 @@ def api_messages():
                                 log_moderation_incident(g.user_id, '/api/messages', mod_result, get_image_hash(image_data))
     
     data['temperature'] = 0  # Force deterministic responses for consistent grading
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    
-    try:
-        response = client.messages.create(**data)
 
-        log_api_usage(g.user_id, '/api/messages', data.get('model', 'unknown'),
+    # Centralize model selection: ignore any client-supplied `model` (the
+    # frontend historically hard-coded a now-retiring string) and resolve the
+    # model from models.py via the requested tier (default 'sonnet'), with
+    # automatic fallback if the primary 404s. One place to update next time.
+    data.pop('model', None)
+    tier = data.pop('tier', 'sonnet')
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    try:
+        response = call_with_fallback(client, tier, **data)
+
+        log_api_usage(g.user_id, '/api/messages', get_model(tier),
                       response.usage.input_tokens, response.usage.output_tokens)
 
         response_data = {
@@ -398,8 +405,10 @@ def api_grade():
     # Function to make one grading call
     def run_grading():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model=SONNET,
+        # Route through models.py sonnet tier with automatic fallback (was a
+        # direct create(model=SONNET) with no fallback).
+        response = call_with_fallback(
+            client, 'sonnet',
             max_tokens=2048,
             temperature=0,
             messages=[{
@@ -439,8 +448,8 @@ def api_grade():
 
             result = parse_multi_run_responses(raw_responses)
 
-        # Log total API usage
-        log_api_usage(g.user_id, '/api/grade', SONNET,
+        # Log total API usage (get_model reflects the active model, incl. fallback)
+        log_api_usage(g.user_id, '/api/grade', get_model('sonnet'),
                       total_input_tokens, total_output_tokens)
 
         # Increment grading counter for usage cap

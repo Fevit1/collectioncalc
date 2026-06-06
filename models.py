@@ -5,7 +5,7 @@ Centralizes all Anthropic model names. If a model returns 404,
 the wrapper automatically tries the next fallback in the chain.
 Update this file when Anthropic releases or deprecates models.
 
-Last verified: 2026-03-24
+Last verified: 2026-06-06
 
 Usage:
     from models import get_model, SONNET, HAIKU, OPUS
@@ -22,14 +22,18 @@ MODEL_CHAINS = {
         'claude-haiku-4-5-20251001',
         'claude-haiku-4-5',
     ],
+    # 2026-06-06: claude-sonnet-4-20250514 retires 2026-06-15. Migrated to
+    # claude-sonnet-4-6 (the deprecations.info-listed replacement_models target,
+    # and the current recommended Sonnet). Removed the retiring string and the
+    # aged claude-3-5-sonnet-latest. All entries below are non-retired on the
+    # Anthropic API as of this date.
     'sonnet': [
-        'claude-sonnet-4-20250514',
+        'claude-sonnet-4-6',
         'claude-sonnet-4-latest',
-        'claude-3-5-sonnet-latest',
+        'claude-sonnet-4-5-20250929',
     ],
     'sonnet-new': [
         'claude-sonnet-4-5-20250929',
-        'claude-sonnet-4-20250514',
         'claude-sonnet-4-latest',
     ],
     'opus': [
@@ -38,8 +42,14 @@ MODEL_CHAINS = {
     ],
 }
 
+import threading
+
 # Track which model in each chain is currently working
 _active_index = {tier: 0 for tier in MODEL_CHAINS}
+# Guards _active_index mutation — /api/grade runs call_with_fallback in parallel
+# threads (multi-run grading), which could otherwise race the index past the
+# end of a chain during an actual model outage.
+_index_lock = threading.Lock()
 
 
 def get_model(tier):
@@ -56,11 +66,12 @@ def advance_fallback(tier):
     chain = MODEL_CHAINS.get(tier)
     if not chain:
         return None
-    current = _active_index.get(tier, 0)
-    next_idx = current + 1
-    if next_idx >= len(chain):
-        return None
-    _active_index[tier] = next_idx
+    with _index_lock:
+        current = _active_index.get(tier, 0)
+        next_idx = current + 1
+        if next_idx >= len(chain):
+            return None
+        _active_index[tier] = next_idx
     old_model = chain[current]
     new_model = chain[next_idx]
     print(f"[Models] {tier} tier falling back: {old_model} → {new_model}")
@@ -85,7 +96,8 @@ def call_with_fallback(client, tier, **kwargs):
     import anthropic
 
     chain = MODEL_CHAINS.get(tier, [])
-    start_idx = _active_index.get(tier, 0)
+    with _index_lock:
+        start_idx = _active_index.get(tier, 0)
     last_error = None
 
     for i in range(start_idx, len(chain)):
@@ -98,7 +110,11 @@ def call_with_fallback(client, tier, **kwargs):
         except anthropic.NotFoundError as e:
             if 'model' in str(e).lower():
                 print(f"[Models] {model} returned 404 — trying next fallback")
-                _active_index[tier] = i + 1
+                # Only advance if another thread hasn't already moved past i —
+                # prevents racing the index past the end of the chain.
+                with _index_lock:
+                    if _active_index.get(tier, 0) <= i:
+                        _active_index[tier] = i + 1
                 last_error = e
                 continue
             raise

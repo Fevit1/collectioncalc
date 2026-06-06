@@ -111,6 +111,24 @@ def _error_entry(service, reason):
     }
 
 
+def _unmonitorable_entry(service, reason, action):
+    """Build an honest 'we can't automatically watch this' entry.
+
+    Distinct from _error_entry: not a bug to fix, but a known coverage gap where
+    no automatable source exists. Surfaced visibly (so we never believe we have
+    coverage we don't) with manual-tracking guidance.
+    """
+    return {
+        "service": service,
+        "item": "monitor check",
+        "detail": f"Not automatically monitorable: {reason}",
+        "date": "",
+        "url": "",
+        "action": action,
+        "status": "unmonitorable",
+    }
+
+
 # =============================================
 # ANTHROPIC — via deprecations.info
 # =============================================
@@ -215,7 +233,31 @@ def check_ebay(force=False):
         return cache["data"]
 
     try:
-        resp = requests.get(EBAY_RSS_URL, timeout=10)
+        resp = requests.get(
+            EBAY_RSS_URL, timeout=10,
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; SlabWorthyDependencyMonitor/1.0)'},
+        )
+
+        # developer.ebay.com sits behind Akamai bot protection that 403s all
+        # server-side requests (any User-Agent, all paths) with a JS-challenge
+        # error page. This is a permanent block, not a transient error — report
+        # it honestly as unmonitorable (cached the normal 24h, so we retry daily
+        # in case the wall is ever lifted) rather than a recurring error entry.
+        if resp.status_code == 403:
+            result = [_unmonitorable_entry(
+                "eBay",
+                "developer.ebay.com RSS is Akamai bot-protected (HTTP 403) — not "
+                "pollable from a server. No automatable eBay API-deprecation feed "
+                "is currently available.",
+                "Track eBay API deprecations manually (subscribe to eBay developer "
+                "announcements / release notes by email), or revisit if eBay "
+                "publishes a machine-readable feed. The eBay account-deletion "
+                "self-check (separate) still covers our own compliance endpoint.",
+            )]
+            cache["data"] = result
+            cache["fetched_at"] = now
+            return result
+
         resp.raise_for_status()
         root = ET.fromstring(resp.text)
 

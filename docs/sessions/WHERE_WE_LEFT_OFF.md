@@ -1,5 +1,55 @@
 # Where We Left Off - Jun 6, 2026
 
+## Session 92 (Jun 6, 2026) — Batch 2: Model Migration + Hardening
+
+Three tightly-scoped items (reproduce/establish → fix → verify → verification agent). NOT yet
+committed/deployed — awaiting Mike's authorization. Batch 1 (`cf9c3a2`) is already deployed live.
+
+1. **Migrated off `claude-sonnet-4-20250514`** (retires 2026-06-15 — deadline-driven). `models.py`
+   sonnet chain → `claude-sonnet-4-6` (the deprecations.info-listed replacement), removed the
+   retiring string from both `sonnet` and `sonnet-new` plus the aged `claude-3-5-sonnet-latest`.
+   Centralized both grading paths through `models.py` + `call_with_fallback`: `/api/messages`
+   (`routes/grading.py`) now ignores any client-supplied `model` and uses tier (default 'sonnet');
+   `/api/grade` `run_grading` switched from `create(model=SONNET)` to `call_with_fallback`. Frontend
+   `js/grading.js` (2 spots) now sends `tier: 'sonnet'` instead of the hardcoded retiring model.
+   Added a thread-safety lock to `_active_index` (the threaded multi-run grading path now mutates it).
+   - **Deprecation sweep:** on the Anthropic API, ONLY `claude-sonnet-4-20250514` was on a near
+     clock. Other feed hits (3-5-sonnet/Vertex, sonnet-4/Bedrock, haiku-4-5 & sonnet-4-5/Azure,
+     opus-4-6/Azure) are OTHER platforms (Vertex/Bedrock/Azure), not our direct Anthropic API.
+   - ⚠️ **Revenue path:** grading model changed Sonnet 4 → Sonnet 4.6. Mike should spot-check a few
+     real grades after deploy (a live grading call needs ANTHROPIC_API_KEY, only set in prod).
+2. **JWT_SECRET fail-loud** (`auth.py`): if unset or == 'change-me-in-production', refuse to start in
+   production (detected via Render's `RENDER` env var); in dev, warn loudly and use the dev default.
+   ASCII-only messages (L-2026-015 — emoji crashed Windows cp1252 stdout in the dev path).
+3. **eBay RSS 403** (`dependency_monitor.py`): diagnosed as site-wide Akamai bot-wall on
+   developer.ebay.com (all paths, any User-Agent, incl. from Render). No automatable eBay
+   deprecation source exists. Reclassified the eBay check from `error` to `status: unmonitorable`
+   (honest degradation, cached 24h, retries daily in case the wall lifts) with manual-tracking
+   guidance. `check_all()` still runs all four checks isolated.
+
+### Verification
+- Reproduced/established each item first (sonnet call-site grep + deprecation sweep; JWT default;
+  eBay 403 with default + browser UA across multiple paths).
+- All verified locally: models chains clean + fallback (incl. 8-thread concurrency, no index
+  overrun); `/api/messages` overrides old model → 4-6; JWT refuse/warn across prod/dev contexts;
+  eBay → unmonitorable; monitor no longer warns about a model we use.
+- Verification agent: 3 findings. #2 (thread-unsafe `_active_index`) FIXED (lock + over-advance
+  guard). #1 (`SONNET` static constant / dead `_ModelProxy`) — pre-existing, logging-only,
+  left as-is (converting risks passing non-str to DB logging). #3 (auth import-raise on Render
+  shell) — latent only; scripts don't import auth and Render shell inherits JWT_SECRET.
+
+### Files Modified (Batch 2)
+- `models.py`, `routes/grading.py`, `js/grading.js`, `auth.py`, `dependency_monitor.py`
+
+### Still open / follow-ups
+- `_ModelProxy` dead code + `SONNET`/`HAIKU` static constants (logging accuracy in
+  `/api/valuate`, `/api/extract`) — separate cleanup.
+- Frontend `js/grading.js` deploys via Cloudflare Pages (separate from Render). Backend ignores the
+  client `model` regardless, so deploy order doesn't matter — but the JS cleanup needs a Pages deploy.
+- CLAUDE.md deploy-note fix (auto-deploy unreliable) — spawned as a separate task.
+
+---
+
 ## Session 91 (Jun 6, 2026) — Reconciliation + Fixes Batch 1
 
 ### What Was Done

@@ -24,7 +24,28 @@ import resend
 # CONFIGURATION
 # ============================================
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
+_INSECURE_JWT_DEFAULT = 'change-me-in-production'
+JWT_SECRET = os.environ.get('JWT_SECRET', '')
+# Render sets RENDER=true in the runtime environment; use it as the production
+# signal. (Local/dev has no RENDER var.)
+_IS_PRODUCTION = bool(os.environ.get('RENDER'))
+
+if not JWT_SECRET or JWT_SECRET == _INSECURE_JWT_DEFAULT:
+    # ASCII-only messages (L-2026-015: non-ASCII crashes Windows cp1252 stdout;
+    # this warning path runs on the local dev workstation).
+    _jwt_msg = ("JWT_SECRET is unset or equals the known insecure default -- auth "
+                "tokens would be signed with a public value and become forgeable")
+    if _IS_PRODUCTION:
+        # Fail loud: refuse to start rather than silently issue forgeable tokens.
+        raise RuntimeError(
+            f"FATAL: {_jwt_msg}. Refusing to start in production. Set a strong "
+            "random JWT_SECRET on the Render service "
+            "(e.g. `python -c \"import secrets; print(secrets.token_urlsafe(48))\"`)."
+        )
+    # Local/dev convenience: allow startup but warn loudly on every boot.
+    print(f"WARNING: {_jwt_msg}. Using an insecure dev default -- DO NOT deploy like this.")
+    JWT_SECRET = _INSECURE_JWT_DEFAULT
+
 JWT_EXPIRY_DAYS = 30  # Token valid for 30 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification link valid for 24 hours
 RESET_EXPIRY_HOURS = 24  # Password reset link valid for 24 hours
