@@ -29,6 +29,66 @@ except ImportError:
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')  # kept for backward compat checks
 
+# PIL for server-side orientation normalization (independent of pyzbar/barcode,
+# so it works even if barcode scanning is unavailable).
+try:
+    from PIL import Image, ImageOps
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
+
+def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -> str:
+    """Authoritative server-side orientation fix.
+
+    The Anthropic vision API ignores EXIF orientation and reads raw pixels, and
+    the primary upload path (app.html) sends the original phone photo
+    un-normalized. We must hand the model an upright image regardless of what the
+    client did, or a 90deg-rotated cover gets read as garbled/hallucinated text.
+
+    Two failure modes, handled in order:
+      1. Rotated WITH an EXIF orientation tag (typical phone → app.html upload):
+         `exif_transpose` rotates the pixels the correct way and strips the tag.
+      2. Hard-rotated WITHOUT EXIF (e.g. images re-exported by Google Photos /
+         other tools that drop the tag without baking in the rotation): there is
+         no metadata to act on. When `assume_portrait` is set (extraction only
+         ever looks at the front cover, and comic covers are always portrait), a
+         still-landscape image is rotated 90deg counter-clockwise to portrait.
+         CCW is the empirically-correct direction for the observed phone output;
+         it is best-effort for arbitrary no-EXIF inputs. (A barcode-orientation
+         signal could make this direction-exact later — see scan_barcode.)
+
+    Do NOT pass assume_portrait=True for images that may legitimately be
+    landscape (e.g. centerfold/two-page spreads).
+
+    Returns normalized base64 (always re-encoded JPEG). Raises ValueError if the
+    image can't be decoded (fail loud — never forward a garbage payload).
+    """
+    if not PIL_AVAILABLE:
+        print("[Extraction] PIL unavailable — cannot normalize orientation; sending image as-is")
+        return base64_data
+    # Tolerate a data-URL prefix (data:image/...;base64,) — matches the defensive
+    # split(',') pattern used elsewhere; reserve fail-loud for truly bad images.
+    if base64_data.startswith('data:') and ',' in base64_data:
+        base64_data = base64_data.split(',', 1)[1]
+    try:
+        raw = base64.b64decode(base64_data)
+        img = Image.open(BytesIO(raw))
+        img = ImageOps.exif_transpose(img)  # mode 1: rotate per EXIF, drop the tag
+        if assume_portrait and img.width > img.height:
+            # mode 2: no usable EXIF but still landscape — a front cover is never
+            # landscape, so this is a sideways photo. Rotate to portrait (CCW).
+            print(f"[Extraction] Cover still landscape ({img.width}x{img.height}) after EXIF "
+                  f"normalization — rotating 90deg CCW to portrait")
+            img = img.rotate(90, expand=True)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        buf = BytesIO()
+        img.save(buf, format='JPEG', quality=92)
+        return base64.b64encode(buf.getvalue()).decode('ascii')
+    except Exception as e:
+        raise ValueError(f"Could not decode/normalize image: {e}")
+
 
 def scan_barcode(image_data: bytes) -> dict:
     """
@@ -355,6 +415,17 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
     """
     if not ANTHROPIC_AVAILABLE or not _client:
         return {"success": False, "error": "Anthropic SDK not available"}
+
+    # Authoritative orientation normalization BEFORE both the barcode scan and
+    # the vision call. The client may send a rotated-with-EXIF photo and the API
+    # reads raw pixels. Fail loud if the image can't be decoded.
+    try:
+        # assume_portrait=True: extraction only looks at the front cover, which is
+        # always portrait — lets us also correct hard-rotated no-EXIF photos.
+        base64_data = normalize_orientation_b64(base64_data, assume_portrait=True)
+        media_type = "image/jpeg"  # normalize_orientation_b64 always emits JPEG
+    except ValueError as e:
+        return {"success": False, "error": f"Image could not be processed: {e}"}
 
     # First, try to scan barcode with pyzbar (more reliable than vision)
     scanned_barcode = None

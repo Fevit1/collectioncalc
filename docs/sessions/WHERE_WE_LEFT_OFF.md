@@ -1,5 +1,61 @@
 # Where We Left Off - Jun 6, 2026
 
+## Session 93 (Jun 6, 2026) — Batch 3: Extraction & Orientation Regression
+
+Four items (reproduce → fix → verify → agent → STOP). NOT committed/deployed — awaiting Mike.
+Batches 1 (`cf9c3a2`) and 2 (`7d8aad7`) already deployed.
+
+1. **Orientation pipeline (extraction) — root cause + fix.** `app.html`'s `extractComicData`
+   (line 1789) sends the RAW front photo to `/api/extract` with no normalization, bypassing the
+   client EXIF/canvas code (utils.js `processImageForExtraction`, grading.js
+   `processImageWithOrientation`). Server-side did zero normalization. The Anthropic vision API
+   ignores EXIF and reads raw pixels → 90deg-rotated covers read as garbled/hallucinated titles
+   (Hercules→"Power of The Force", Invaders→"Marvel Comics #60", Atari Force→"Sgt. Rock #5").
+   - **Fix (authoritative, server-side):** new `comic_extraction.normalize_orientation_b64()` —
+     (a) `ImageOps.exif_transpose` (handles rotated-WITH-EXIF, the real phone→app.html upload, with
+     correct direction + strips tag); (b) `assume_portrait` heuristic: if still landscape after EXIF,
+     rotate 90deg CCW to portrait (handles hard-rotated NO-EXIF images, e.g. Google Photos
+     re-exports, which the test fixtures turned out to be). Runs before BOTH barcode scan and the
+     vision call; fails loud on undecodable input; tolerates data-URL prefix. Extraction calls it
+     with `assume_portrait=True` (front cover is always portrait).
+   - **Key discovery:** the supplied test fixtures (FromGooglePhotos) are landscape `4080x3072` with
+     EXIF orientation=1 (tag stripped, rotation NOT baked) — so `exif_transpose` alone was a no-op on
+     them; that's why the portrait heuristic was needed. Real phone uploads carry EXIF and are fixed
+     by part (a). Direction empirically CCW (verified by rendering all 3 covers).
+2. **Extraction model routing.** Extraction still correctly uses the `haiku` tier
+   (`call_with_fallback(_client, 'haiku', ...)`); Batch 2 did NOT sweep it to Sonnet. Only the
+   `/api/extract` usage LOG mislabeled it `SONNET` → fixed to `get_model('haiku')`.
+3. **Re-test failing set (acceptance for 1+2).** Could not run a live extraction (no local
+   ANTHROPIC_API_KEY; prod still pre-fix). VISUAL acceptance instead: ran the actual
+   `normalize_orientation_b64(assume_portrait=True)` on all 5 covers and rendered outputs — all three
+   failing covers now upright + fully legible (Atari Force, Hercules: Prince of Power #1, The Invaders
+   #41 with 60c price clearly separate from issue 41); controls (Amethyst, Micronauts) untouched.
+   Live-API JSON confirmation is Mike's post-deploy check. PROPOSED (not built): add these 5 covers
+   as a permanent extraction regression fixture once the pinned-model test scripts are updated.
+4. **Mobile 3-photo slab report.** Reproduction in code found NO 4-photo gate: the grading-report
+   path requires only the FRONT cover (app.html:2195-2196); "of 4" is a label and "<4" a non-blocking
+   warning; FAQ confirms "front required at minimum, proceed with fewer"; git history shows no 3->4
+   change. So NOT a code regression in the visible path — likely stale cached JS, a mobile rendering
+   issue, or a different flow. Needs a device repro/screenshot from Mike. No code change.
+
+### Verification agent
+Ran twice (after core fix, then after the portrait heuristic). No critical/correctness issues.
+First-pass finding (data-URL prefix robustness) addressed. Confirmed: no double-rotation, gate
+correct, CCW direction matches intent, only the front-cover path uses assume_portrait.
+
+### Items needing Mike's call (NOT changed)
+- **Symptom #3 (preview shows un-corrected):** display is separate from the API payload (uses the
+  client raw image). Modern browsers auto-orient `<img>` by EXIF, so the raw-with-EXIF preview likely
+  shows upright already; if not, return the normalized image from `/api/extract` for the preview.
+- **Grading inputs:** brief says "before any API call," but grading is out-of-scope + passed.
+  `/api/grade` and `/api/messages` still send un-normalized images. Applying the same normalization
+  there would fix grading orientation but changes the revenue-path inputs (re-spot-check needed).
+
+### Files Modified (Batch 3)
+- `comic_extraction.py`, `routes/grading.py`
+
+---
+
 ## Session 92 (Jun 6, 2026) — Batch 2: Model Migration + Hardening
 
 Three tightly-scoped items (reproduce/establish → fix → verify → verification agent). NOT yet

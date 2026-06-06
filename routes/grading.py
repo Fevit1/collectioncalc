@@ -174,7 +174,9 @@ def api_extract():
     result = extract_from_base64(image_data, media_type)
     
     if result.get('success'):
-        log_api_usage(g.user_id, '/api/extract', SONNET,
+        # Extraction runs on the haiku tier (comic_extraction.call_with_fallback);
+        # log the actual model, not SONNET.
+        log_api_usage(g.user_id, '/api/extract', get_model('haiku'),
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
     
     return jsonify(result)
