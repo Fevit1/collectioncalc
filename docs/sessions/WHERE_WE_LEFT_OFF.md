@@ -1,5 +1,59 @@
 # Where We Left Off - Jun 6, 2026
 
+## Session 94 (Jun 6, 2026) — Batch 4 Part A: Sig-ID gating, barcode, dep-monitor email
+
+Batch 4 split into Part A (correctness/billing/monitoring) + Part B (image pipeline). Part A below;
+NOT committed/deployed — awaiting Mike. (Batch 4 items 1+2 = Part B, next; item 3 preview deferred.)
+
+**Item 4 — server-side signature-ID tier gating** (`routes/billing.py`, `routes/signature_orchestrator.py`).
+Added `signature_id_per_month` to PLANS (free=0, pro=0, guard=10, dealer=-1) and
+`get_signature_id_entitlement(user_id)` (fails CLOSED on DB error/unknown user; admin=unlimited;
+paid plans need active subscription). `match_signature` now gates BEFORE the expensive match:
+error→503, no_access→403, capped plan over limit→429 (fail CLOSED on usage-read error too),
+unlimited→proceed. Replaced the old flat `MONTHLY_SIG_LIMIT=10`-for-all + fail-OPEN logic. Usage
+Tier policy per Mike 2026-06-06. NOTE: Mike's log confirmed the earlier "flicker" was UI-only (no
+/match fired) → that's on the UI-polish list; this gating stands on code grounds.
+  - **Amendment (Mike, pre-commit):** (a) CAP SEMANTICS — the Guard cap counts CONFIDENT matches
+    only (top confidence >= LOW_CONFIDENCE_THRESHOLD 0.50). Increment happens AFTER the result is
+    known and ONLY for capped plans; no-match/below-floor/error never count; blocked calls (403/429)
+    never process/bill. Dealer/admin are NOT counted in the cap column (it never resets for them) —
+    their usage is monitored via the per-call `[SigID] match served ... cap_counted=...` log instead.
+    (b) NO-MATCH HONESTY — `/v2/match` previously force-matched (returned nearest-neighbour top5 + a
+    `low_confidence_match` flag). Now returns `matched: false` + "Signature not in our reference set"
+    when top confidence < floor, rather than attributing the nearest neighbour. `matched` is the
+    authoritative signal; top5 retained as transparency/candidates. Same no-confident-hallucination
+    rule as Batch 3 extraction. Verification agent flagged dealer counter-increment (resolved as
+    above — log-based visibility, counter is Guard-only).
+
+**Item 5 — barcode decoder addon-None** (`comic_extraction.py`). `decode_barcode` now runs ONLY when
+`barcode_source == 'pyzbar'` (a scanner-confirmed addon), never on the vision model's guessed
+`barcode_digits`. Without a confirmed addon: keep main UPC (series ID) only, mark
+`barcode_source='vision_unverified'`, don't derive issue/printing/variant. Fixes false decodes like
+Amethyst Annual #1 (no post-2008 add-on) → "issue 251".
+
+**Item 6 — dep-monitor emails on state change, not every boot** (`dependency_monitor.py`).
+`_send_alert_email` dedups against a self-creating DB table `dependency_alerts` (CREATE TABLE IF NOT
+EXISTS — no migration needed) so a permanent state (eBay `unmonitorable`) emails once, not on every
+Render restart. Prunes resolved keys so recurrence re-alerts. Falls back to in-memory `_emailed_keys`
+(now also pruned) if DB unavailable.
+
+### Verification
+All three verified locally: entitlement across all tiers incl. fail-closed; barcode gate (pyzbar
+decodes, model-guess doesn't); dep-monitor new→email, reboot→silent, resolved→prune, recurs→re-alert
+(DB + in-memory paths). Verification agent: 1 false positive (claimed tz-naive/aware datetime crash —
+code compares .year/.month ints, no datetime comparison; matches existing valuations/grading caps),
+2 real findings FIXED (Dealer usage log always said used=1 → now RETURNING true count; in-memory
+fallback didn't prune → now does).
+
+### Files Modified (Batch 4 Part A)
+- `routes/billing.py`, `routes/signature_orchestrator.py`, `comic_extraction.py`, `dependency_monitor.py`
+
+### Still to do
+- Part B: item 1 (grading-input normalization, per-photo) + item 2 (CCW 180° low-confidence fallback).
+- Deferred: item 3 (preview — only if on-device still sideways). UI-polish: sig-section flicker.
+
+---
+
 ## Session 93 (Jun 6, 2026) — Batch 3: Extraction & Orientation Regression
 
 Four items (reproduce → fix → verify → agent → STOP). NOT committed/deployed — awaiting Mike.

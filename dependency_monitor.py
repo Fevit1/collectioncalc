@@ -33,6 +33,12 @@ import requests
 from models import MODEL_CHAINS
 
 try:
+    import psycopg2
+    PSYCOPG2_AVAILABLE = True
+except ImportError:
+    PSYCOPG2_AVAILABLE = False
+
+try:
     import resend
     RESEND_AVAILABLE = True
 except ImportError:
@@ -501,13 +507,90 @@ def check_all(force=False):
 check_deprecations = check_all
 
 
+# ── Persistent alert dedup (email on STATE CHANGE, not every boot) ──
+# Render restarts/deploys frequently and the in-memory _emailed_keys resets each
+# time, which re-emailed permanent states (e.g. eBay 'unmonitorable') on every
+# boot. Persist alerted keys in a tiny self-creating DB table so an alert fires
+# once per state change. Falls back to in-memory dedup if the DB is unavailable.
+_alerts_table_ready = False
+
+
+def _alerts_conn():
+    if not PSYCOPG2_AVAILABLE:
+        return None
+    url = os.environ.get('DATABASE_URL')
+    if not url:
+        return None
+    return psycopg2.connect(url)
+
+
+def _ensure_alerts_table(conn):
+    global _alerts_table_ready
+    if _alerts_table_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dependency_alerts (
+                alert_key TEXT PRIMARY KEY,
+                detail TEXT,
+                first_alerted_at TIMESTAMPTZ DEFAULT NOW(),
+                last_seen_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+    conn.commit()
+    _alerts_table_ready = True
+
+
+def _alert_key(w):
+    return f"{w['service']}:{w['item']}"
+
+
 def _send_alert_email(warnings):
-    """Send email alert for new dependency warnings. Only once per item."""
+    """Email NEW dependency warnings only (state-change), once per item.
+
+    Dedup is DB-persisted (dependency_alerts table) so a permanent state like
+    eBay 'unmonitorable' is emailed once, not on every Render restart. Falls back
+    to the in-memory _emailed_keys (per-process) if the DB is unavailable.
+    """
     if not RESEND_AVAILABLE or not RESEND_API_KEY or not ADMIN_EMAIL:
         return
 
-    new_warnings = [w for w in warnings if f"{w['service']}:{w['item']}" not in _emailed_keys]
+    current = {_alert_key(w): w for w in warnings}
+
+    conn = None
+    persisted = None
+    try:
+        conn = _alerts_conn()
+        if conn is not None:
+            _ensure_alerts_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("SELECT alert_key FROM dependency_alerts")
+                persisted = {r[0] for r in cur.fetchall()}
+    except Exception as e:
+        print(f"[DependencyMonitor] alert-state DB unavailable, using in-memory dedup: {e}")
+        persisted = None
+
+    known = persisted if persisted is not None else _emailed_keys
+    new_warnings = [w for k, w in current.items() if k not in known]
+
+    # Prune resolved keys so a state that clears then recurs will re-alert.
+    if persisted is not None and conn is not None:
+        resolved = list(persisted - set(current.keys()))
+        if resolved:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM dependency_alerts WHERE alert_key = ANY(%s)", (resolved,))
+                conn.commit()
+            except Exception as e:
+                print(f"[DependencyMonitor] failed pruning resolved alerts: {e}")
+    else:
+        # In-memory fallback: prune resolved keys too so recurrence re-alerts.
+        for k in (set(_emailed_keys) - set(current.keys())):
+            _emailed_keys.discard(k)
+
     if not new_warnings:
+        if conn is not None:
+            conn.close()
         return
 
     # Group by service
@@ -560,8 +643,26 @@ def _send_alert_email(warnings):
             "subject": f"[Slab Worthy] Dependency alert: {len(new_warnings)} item(s) need attention",
             "html": html,
         })
-        for w in new_warnings:
-            _emailed_keys.add(f"{w['service']}:{w['item']}")
+        # Persist newly-alerted keys so we don't re-email them on the next boot.
+        if persisted is not None and conn is not None:
+            try:
+                with conn.cursor() as cur:
+                    for w in new_warnings:
+                        cur.execute(
+                            """INSERT INTO dependency_alerts (alert_key, detail)
+                               VALUES (%s, %s)
+                               ON CONFLICT (alert_key) DO UPDATE SET last_seen_at = NOW()""",
+                            (_alert_key(w), w.get('detail', '')),
+                        )
+                conn.commit()
+            except Exception as e:
+                print(f"[DependencyMonitor] failed persisting alert state: {e}")
+        else:
+            for w in new_warnings:
+                _emailed_keys.add(_alert_key(w))
         print(f"[DependencyMonitor] Email sent for {len(new_warnings)} warning(s)")
     except Exception as e:
         print(f"[DependencyMonitor] Email failed: {e}")
+    finally:
+        if conn is not None:
+            conn.close()

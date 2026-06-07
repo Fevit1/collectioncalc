@@ -70,7 +70,11 @@ OPUS_MODEL = OPUS
 MAX_CANDIDATES = 15          # Pre-filter target before vision calls
 REFERENCE_IMAGES_PER_CREATOR = 4
 PASS_TEMPERATURES = [0.2, 0.5, 0.7]
-LOW_CONFIDENCE_THRESHOLD = 0.50
+# Single source of truth: this one value defines BOTH the honest no-match floor
+# AND the Guard cap boundary (a match counts only if confidence >= this). Env
+# override lets us retune without a code change.
+# PROVISIONAL — calibrate at the signature-v2 accuracy re-measurement (87% target).
+LOW_CONFIDENCE_THRESHOLD = float(os.environ.get('SIG_LOW_CONFIDENCE_THRESHOLD', '0.50'))
 CONFUSION_PAIR_DELTA = 0.10  # rank1 vs rank2 within this → flag
 # MAX_WORKERS removed — passes run sequentially now (rate limit constraint)
 
@@ -785,25 +789,42 @@ def match_signature():
         "pass_count": int
       }
     """
-    # --- Signature ID usage cap (10/month for free users, admins exempt) ---
+    # --- Signature ID entitlement + usage cap (server-side, FAIL CLOSED) ---
+    # Tier policy (Beta): free/pro = no access (403); guard = N/month (429 at cap);
+    # dealer/admin = unlimited (usage still logged). Entitlement lives in
+    # billing.PLANS via get_signature_id_entitlement; this endpoint owns the
+    # per-month usage counter. Every gate failure refuses BEFORE the expensive
+    # match runs — no silent processing, no billing of blocked calls.
     from datetime import datetime, timezone
-    MONTHLY_SIG_LIMIT = 10
+    from routes.billing import get_signature_id_entitlement
 
+    ent = get_signature_id_entitlement(g.user_id)
+    if ent['reason'] == 'error':
+        # Fail closed: never process/bill a call we couldn't authorize.
+        return jsonify({'error': 'entitlement_unavailable',
+                        'message': 'Could not verify signature ID access. Please try again.'}), 503
+    if ent['reason'] == 'no_access':
+        return jsonify({'error': 'upgrade_required',
+                        'message': ent['message'], 'plan': ent.get('plan')}), 403
+
+    sig_limit = ent['limit']  # -1 = unlimited (dealer/admin), or N/month (guard)
     database_url = os.environ.get('DATABASE_URL')
-    try:
-        cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        cap_cur = cap_conn.cursor()
-        cap_cur.execute(
-            "SELECT is_admin, sig_checks_this_month, sig_checks_reset_date FROM users WHERE id = %s",
-            (g.user_id,)
-        )
-        cap_user = cap_cur.fetchone()
+    sig_used = 0
+    resets_at = None
 
-        if cap_user and not cap_user.get('is_admin', False):
+    if sig_limit != -1:
+        # Capped plan (guard): check monthly usage. FAIL CLOSED on any error.
+        try:
+            cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            cap_cur = cap_conn.cursor()
+            cap_cur.execute(
+                "SELECT sig_checks_this_month, sig_checks_reset_date FROM users WHERE id = %s",
+                (g.user_id,)
+            )
+            cap_user = cap_cur.fetchone()
             now = datetime.now(timezone.utc)
-            reset_date = cap_user.get('sig_checks_reset_date')
+            reset_date = cap_user.get('sig_checks_reset_date') if cap_user else None
 
-            # Reset counter if new month
             if reset_date is None or (now.year > reset_date.year or now.month > reset_date.month):
                 if now.month == 12:
                     next_reset = datetime(now.year + 1, 1, 1, tzinfo=timezone.utc)
@@ -820,20 +841,17 @@ def match_signature():
                 sig_used = cap_user.get('sig_checks_this_month', 0) or 0
                 resets_at = reset_date.strftime('%b %d') if reset_date else 'next month'
 
-            if sig_used >= MONTHLY_SIG_LIMIT:
-                cap_cur.close()
-                cap_conn.close()
-                return jsonify({
-                    'error': 'sig_limit',
-                    'limit': MONTHLY_SIG_LIMIT,
-                    'used': sig_used,
-                    'resets_at': resets_at
-                }), 429
+            cap_cur.close()
+            cap_conn.close()
+        except Exception as e:
+            logger.error("Sig cap check failed — failing CLOSED: %s", e)
+            return jsonify({'error': 'entitlement_unavailable',
+                            'message': 'Could not verify signature ID usage. Please try again.'}), 503
 
-        cap_cur.close()
-        cap_conn.close()
-    except Exception as e:
-        logger.warning("Sig cap check failed (allowing request): %s", e)
+        if sig_used >= sig_limit:
+            return jsonify({'error': 'sig_limit',
+                            'message': 'Monthly signature ID limit reached',
+                            'limit': sig_limit, 'used': sig_used, 'resets_at': resets_at}), 429
 
     # --- Parse image input ---
     image_b64 = None
@@ -881,6 +899,17 @@ def match_signature():
         logger.exception("Unexpected orchestration error")
         return jsonify({"error": "Internal server error"}), 500
 
+    # --- Confidence floor: honest no-match + cap boundary ---
+    # If the best candidate is below LOW_CONFIDENCE_THRESHOLD we report "not in
+    # reference set" rather than attributing the nearest neighbour as a match
+    # (same no-confident-hallucination rule as Batch 3 extraction). The SAME floor
+    # defines the Guard cap boundary: ONLY a confident match counts against the
+    # monthly cap. No-match / below-floor / error / unreadable results do NOT
+    # decrement the cap (per-account usage is still logged for monitoring).
+    top_match = result.top5[0] if result.top5 else None
+    top_confidence = float(top_match.get("confidence", 0.0)) if top_match else 0.0
+    is_confident_match = top_match is not None and top_confidence >= LOW_CONFIDENCE_THRESHOLD
+
     # --- Log to DB (non-blocking — don't fail the response) ---
     try:
         unknown_key = f"unknown/{int(time.time())}.jpg"
@@ -888,25 +917,52 @@ def match_signature():
     except Exception as e:
         logger.warning("DB logging failed (non-fatal): %s", e)
 
-    # --- Increment sig check counter ---
-    try:
-        inc_conn = psycopg2.connect(database_url)
-        inc_cur = inc_conn.cursor()
-        inc_cur.execute(
-            """UPDATE users
-               SET sig_checks_this_month = COALESCE(sig_checks_this_month, 0) + 1,
-                   sig_checks_reset_date = COALESCE(sig_checks_reset_date,
-                       date_trunc('month', CURRENT_TIMESTAMP + INTERVAL '1 month'))
-               WHERE id = %s""",
-            (g.user_id,)
-        )
-        inc_conn.commit()
-        inc_cur.close()
-        inc_conn.close()
-    except Exception as e:
-        logger.warning("Failed to increment sig check counter: %s", e)
+    # --- Cap accounting: a confident match counts ONLY on capped plans (guard).
+    #     Increment AFTER the result is known; no-match/below-floor/error never
+    #     count. Unlimited plans (dealer/admin) do NOT touch the cap column — that
+    #     column also never resets for them; their usage is monitored via the
+    #     per-call [SigID] log below instead. ---
+    cap_counted = is_confident_match and sig_limit != -1
+    new_count = None
+    if cap_counted:
+        try:
+            inc_conn = psycopg2.connect(database_url)
+            inc_cur = inc_conn.cursor()
+            inc_cur.execute(
+                """UPDATE users
+                   SET sig_checks_this_month = COALESCE(sig_checks_this_month, 0) + 1,
+                       sig_checks_reset_date = COALESCE(sig_checks_reset_date,
+                           date_trunc('month', CURRENT_TIMESTAMP + INTERVAL '1 month'))
+                   WHERE id = %s
+                   RETURNING sig_checks_this_month""",
+                (g.user_id,)
+            )
+            row = inc_cur.fetchone()
+            new_count = row[0] if row else None
+            inc_conn.commit()
+            inc_cur.close()
+            inc_conn.close()
+        except Exception as e:
+            logger.warning("Failed to increment sig check counter: %s", e)
+
+    # Usage visibility — log EVERY served call (incl. no-match and uncapped
+    # dealer/admin) so heavy use is monitorable; `cap_counted` says whether it
+    # decremented a cap. This is the per-account usage signal for unlimited plans.
+    logger.info("[SigID] match served: user=%s plan=%s matched=%s confidence=%.2f "
+                "cap_counted=%s cap_count=%s limit=%s",
+                g.user_id, ent.get('plan'), is_confident_match, top_confidence,
+                cap_counted,
+                new_count if new_count is not None else 'n/a',
+                ('unlimited' if sig_limit == -1 else sig_limit))
 
     return jsonify({
+        # Honest no-match: below the floor we do NOT attribute the nearest
+        # neighbour. `matched` is the authoritative signal; top5 is retained as
+        # transparency/candidates only. UI reflects `matched`, never decides it.
+        "matched": is_confident_match,
+        "message": (None if is_confident_match
+                    else "Signature not in our reference set (no confident match)"),
+        "top_confidence": round(top_confidence, 3),
         "top5": result.top5,
         "flags": result.flags,
         "analysis": result.analysis,

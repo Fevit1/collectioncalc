@@ -56,6 +56,7 @@ PLANS = {
         'annual_price': 0,
         'valuations_per_month': 10,
         'slab_guard_registrations': 3,
+        'signature_id_per_month': 0,      # No signature ID on free (Beta: Guard/Dealer only)
         'marketplace_monitoring': False,
         'chrome_extension': False,
         'api_access': False,
@@ -74,6 +75,7 @@ PLANS = {
         'stripe_annual_price_id': os.environ.get('STRIPE_PRO_ANNUAL_PRICE'),
         'valuations_per_month': -1,  # unlimited
         'slab_guard_registrations': 25,
+        'signature_id_per_month': 0,      # No signature ID on Pro (Beta: Guard/Dealer only)
         'marketplace_monitoring': False,
         'chrome_extension': False,
         'api_access': False,
@@ -92,6 +94,7 @@ PLANS = {
         'stripe_annual_price_id': os.environ.get('STRIPE_GUARD_ANNUAL_PRICE'),
         'valuations_per_month': -1,
         'slab_guard_registrations': -1,  # unlimited
+        'signature_id_per_month': 10,     # Beta: 10/month (revisit at 87% promotion)
         'marketplace_monitoring': True,
         'chrome_extension': True,
         'api_access': False,
@@ -110,6 +113,7 @@ PLANS = {
         'stripe_annual_price_id': os.environ.get('STRIPE_DEALER_ANNUAL_PRICE'),
         'valuations_per_month': -1,
         'slab_guard_registrations': -1,
+        'signature_id_per_month': -1,     # Beta: uncapped (usage logged for visibility)
         'marketplace_monitoring': True,
         'chrome_extension': True,
         'api_access': True,
@@ -266,6 +270,60 @@ def check_feature_access(user_id, feature):
         return plan[feature], "Included" if plan[feature] else "Upgrade required"
 
     return False, "Unknown feature"
+
+
+def get_signature_id_entitlement(user_id):
+    """Per-plan signature-ID (v2 match) entitlement — PURE entitlement, no usage counting.
+
+    Returns a dict:
+      {'reason': 'ok'|'no_access'|'error',
+       'limit': int,        # -1 = unlimited, 0 = none, N = N/month
+       'plan': str|None,
+       'is_admin': bool,
+       'message': str}
+
+    Policy (Beta): free/pro = no access (403), guard = 10/mo, dealer = unlimited
+    (usage still logged for visibility), admins = unlimited. FAILS CLOSED: any DB
+    error or unknown user returns reason='error' so the caller refuses the request
+    rather than processing/billing it. The per-month usage check itself lives in
+    the signature endpoint (it owns the sig_checks counter).
+    """
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT plan, subscription_status, COALESCE(is_admin, FALSE) FROM users WHERE id = %s",
+            (user_id,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"[Billing] signature entitlement check failed (failing closed): {e}")
+        return {'reason': 'error', 'limit': 0, 'plan': None, 'is_admin': False,
+                'message': 'Could not verify access'}
+
+    if not row:
+        return {'reason': 'error', 'limit': 0, 'plan': None, 'is_admin': False,
+                'message': 'User not found'}
+
+    plan_key = row[0] or 'free'
+    status = row[1] or 'none'
+    is_admin = bool(row[2])
+
+    if is_admin:
+        return {'reason': 'ok', 'limit': -1, 'plan': plan_key, 'is_admin': True, 'message': 'Admin'}
+
+    # Paid plans must have an active subscription
+    if plan_key != 'free' and status not in ('active', 'trialing'):
+        return {'reason': 'no_access', 'limit': 0, 'plan': plan_key, 'is_admin': False,
+                'message': 'Subscription not active'}
+
+    limit = PLANS.get(plan_key, PLANS['free']).get('signature_id_per_month', 0)
+    if limit == 0:
+        return {'reason': 'no_access', 'limit': 0, 'plan': plan_key, 'is_admin': False,
+                'message': 'Signature ID is available on Guard and Dealer plans'}
+    return {'reason': 'ok', 'limit': limit, 'plan': plan_key, 'is_admin': False, 'message': 'Included'}
 
 
 # ============================================

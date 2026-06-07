@@ -539,8 +539,16 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                     extracted['barcode_source'] = 'pyzbar'
                     print(f"[Extraction] Using pyzbar supplement: {scanned_barcode['supplement']}")
             
-            # Decode barcode if present
-            if extracted.get('barcode_digits'):
+            # Decode barcode ONLY from a pyzbar-confirmed 5-digit addon.
+            # The vision model is also asked to read barcode_digits, but its guess
+            # is unreliable — especially on pre-2008 books that have NO IIICP
+            # add-on at all — and must NOT derive issue/printing/variant. Trusting
+            # it produced false decodes like Amethyst Annual #1 -> "issue 251".
+            # `barcode_source` is set to 'pyzbar' only by the scanner branches
+            # above; the model never sets it. Without a confirmed addon we keep
+            # only the main UPC (series ID) and leave issue/printing/variant to the
+            # vision read (low confidence).
+            if extracted.get('barcode_digits') and extracted.get('barcode_source') == 'pyzbar':
                 barcode_decoded = decode_barcode(extracted['barcode_digits'])
                 if barcode_decoded:
                     extracted['barcode_decoded'] = barcode_decoded
@@ -559,7 +567,13 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
                             extracted['cover'] = f"Cover {barcode_decoded['cover_letter']}"
                     
                     print(f"[Extraction] Barcode decoded: {barcode_decoded}")
-            
+            elif extracted.get('barcode_digits'):
+                # Vision-model guess with no pyzbar-confirmed addon — do NOT derive
+                # issue/printing/variant from it (series ID via main UPC only).
+                print(f"[Extraction] Ignoring unverified vision barcode_digits "
+                      f"'{extracted.get('barcode_digits')}' (no pyzbar addon) — series ID only")
+                extracted['barcode_source'] = 'vision_unverified'
+
             return {
                 "success": True,
                 "extracted": extracted
