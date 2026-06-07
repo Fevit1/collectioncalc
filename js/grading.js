@@ -1622,7 +1622,8 @@ async function analyzeGradingPhoto(step, processed) {
             },
             body: JSON.stringify({
                 image: processed.base64,
-                media_type: processed.mediaType
+                media_type: processed.mediaType,
+                photo_type: 'front'  // server normalizes orientation per photo type
             })
         });
         
@@ -1740,6 +1741,8 @@ Return ONLY valid JSON, no markdown.`
         body: JSON.stringify({
             tier: 'sonnet',  // backend resolves the actual model via models.py (with fallback)
             max_tokens: 1024,
+            // Server normalizes orientation per photo type; centerfold is EXIF-only.
+            photo_type: ({ 2: 'spine', 3: 'back', 4: 'centerfold' })[step],
             messages: [{
                 role: 'user',
                 content: [

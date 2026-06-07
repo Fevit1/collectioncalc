@@ -171,7 +171,10 @@ def api_extract():
             log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
 
     media_type = data.get('media_type', 'image/jpeg')
-    result = extract_from_base64(image_data, media_type)
+    # Per-photo orientation policy is server-side (centerfold is EXIF-only).
+    # Defaults to 'front' — the app.html main extraction path is always the cover.
+    photo_type = data.get('photo_type', 'front')
+    result = extract_from_base64(image_data, media_type, photo_type)
     
     if result.get('success'):
         # Extraction runs on the haiku tier (comic_extraction.call_with_fallback);
@@ -230,6 +233,30 @@ def api_messages():
                             if mod_result.get('warnings'):
                                 log_moderation_incident(g.user_id, '/api/messages', mod_result, get_image_hash(image_data))
     
+    # --- Per-photo grading-input orientation normalization (server-side,
+    #     authoritative). The grading frontend sends `photo_type` for steps
+    #     2-4 (spine/back/centerfold); normalize each image block before the
+    #     vision call so the model never reads a sideways photo. centerfold is
+    #     EXIF-only (never force-rotated to portrait). Absent photo_type (e.g. the
+    #     follow-up-chat caller) → skip, preserving prior behavior. Strip the
+    #     field so it isn't forwarded to the Anthropic API (unknown key). ---
+    photo_type = data.pop('photo_type', None)
+    if photo_type:
+        from comic_extraction import normalize_for_photo_type
+        for msg in data.get('messages', []):
+            content = msg.get('content', [])
+            if not isinstance(content, list):
+                continue
+            for block in content:
+                if block.get('type') == 'image' and block.get('source', {}).get('type') == 'base64':
+                    src = block['source']
+                    try:
+                        src['data'] = normalize_for_photo_type(src.get('data', ''), photo_type)
+                        src['media_type'] = 'image/jpeg'  # normalizer always emits JPEG
+                    except Exception as e:
+                        # Never fail the grade over a normalize hiccup — send original.
+                        print(f"[Grading] photo normalize skipped ({photo_type}): {e}")
+
     data['temperature'] = 0  # Force deterministic responses for consistent grading
 
     # Centralize model selection: ignore any client-supplied `model` (the

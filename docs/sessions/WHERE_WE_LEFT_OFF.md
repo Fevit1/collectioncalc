@@ -1,9 +1,65 @@
-# Where We Left Off - Jun 6, 2026
+# Where We Left Off - Jun 7, 2026
+
+## Session 95 (Jun 7, 2026) — Batch 4 Part B: grading-input orientation pipeline
+
+Items 1+2 of Batch 4. Protocol: reproduce → fix → verify → verification agent → STOP (NOT
+committed — awaiting Mike). Files: `comic_extraction.py`, `routes/grading.py`, `js/grading.js`
+(+ this notes file and the Part A `(c)` doc note still staged, all ride one commit).
+
+**Item 1 — per-photo grading-input normalization (server-side, authoritative).** Grading uses 4
+photos: front/spine/back (portrait when correct) + centerfold (legitimately LANDSCAPE — two-page
+spread). Repro confirmed: `extract_from_base64` hardcoded `assume_portrait=True` (would force-rotate
+a landscape centerfold to portrait), and `/api/messages` (spine/back/centerfold, one image per call)
+did ZERO server-side normalization. Fix: new `assume_portrait_for(photo_type)` +
+`normalize_for_photo_type()` in `comic_extraction.py` — policy in ONE place: centerfold/center/interior
+→ EXIF-only, everything else (incl. unknown) → assume portrait. `photo_type` threaded from the
+frontend through `/api/extract` (default `'front'`) and `/api/messages` (popped before forwarding to
+Anthropic; absent → skip, preserving the follow-up-chat caller). Backend-first deploy is safe: old JS
+sends no `photo_type` → messages-path normalization simply no-ops (never force-rotates an unlabeled
+centerfold). Frontend (`js/grading.js`) now sends `photo_type` for all 4 steps — needs a Cloudflare
+Pages deploy for full effect.
+
+**Item 2 — 180° low-confidence extraction fallback (server-side).** Repro: a 180° flip is
+dimensionally identical, so the dimension-based heuristic can NEVER catch it. Fix: `extract_from_base64`
+runs one pass (`_run_vision_pass`); if low-confidence (`_extraction_low_confidence`: unparseable /
+model-flagged is_upside_down / not-a-cover / no-title) it re-reads ONCE on a 180°-rotated copy and
+keeps the higher-scoring pass (`_extraction_score`; ties keep pass 1). At most 2 vision calls. Every
+retry logged `[VISION CALL #2 — doubled cost]` so the doubled cost is visible. Server is now
+authoritative on orientation: the chosen result ALWAYS returns `is_upside_down=False` (pass-2 win sets
+`orientation_corrected='180'`), so the grading.js client never re-rotates on top of the server.
+
+### Verification
+- Repro harness (real `normalize_orientation_b64`): centerfold force-rotated under old behavior;
+  preserved under EXIF-only; 180° flip dimensionally invisible.
+- Verify harness drove the REAL `extract_from_base64` with `_run_vision_pass` monkeypatched to scripted
+  passes: no-retry on good pass1 (1 call); retry on each low-confidence reason (2 calls, never more);
+  better pass wins; not-a-cover pass1 gets a 180° rescue before giving up; flags set correctly. Item-1
+  policy + case/space tolerance + landscape→portrait vs centerfold-preserved all pass.
+- Verification agent (code-reviewer): 2 real findings FIXED + re-verified — (1) `json.JSONDecodeError`
+  from a regex-matched-but-invalid fragment escaped the orchestration and skipped the retry → now
+  caught in `_run_vision_pass` (returns None = unparseable → retry); (2) pass-1-kept after an
+  `is_upside_down` flag left `is_upside_down=True` → client would redundantly re-rotate → now suppressed
+  (server authoritative). Issue 3 (quality gate pre-normalization) assessed NON-issue: the gate uses
+  `min(w,h)` + Laplacian blur, both rotation-invariant. Issue 4 informational.
+- Live-API JSON (real extraction + grading) is Mike's post-deploy check — no local ANTHROPIC_API_KEY.
+
+### Revenue-path / deploy notes for Mike
+- `/api/messages` IS the live grading path (Batch 3 flagged grading-input normalization as needing a
+  re-spot-check; this is that change, now authorized). Spot-check a few real grades post-deploy.
+- `/api/grade` (the labeled comprehensive endpoint) is DEAD in the live flow — no JS calls it; left
+  untouched. Possible separate cleanup.
+- Known cosmetic trade-off: for an upside-down FRONT, the server now corrects the READ but does not
+  return the rotated image, and returns `is_upside_down=False`, so the client preview may show the
+  original orientation (data is correct). Ties into the deferred item 3 (preview). Easy follow-up:
+  return the corrected image from `/api/extract`.
+
+---
 
 ## Session 94 (Jun 6, 2026) — Batch 4 Part A: Sig-ID gating, barcode, dep-monitor email
 
-Batch 4 split into Part A (correctness/billing/monitoring) + Part B (image pipeline). Part A below;
-NOT committed/deployed — awaiting Mike. (Batch 4 items 1+2 = Part B, next; item 3 preview deferred.)
+Batch 4 split into Part A (correctness/billing/monitoring) + Part B (image pipeline). Part A
+COMMITTED + DEPLOYED as `d254309` (pushed to origin/main; Free-tier 403 + seed-email field tests
+confirmed live, per Mike 2026-06-07). Part B = items 1+2 (Session 95 above); item 3 preview deferred.
 
 **Item 4 — server-side signature-ID tier gating** (`routes/billing.py`, `routes/signature_orchestrator.py`).
 Added `signature_id_per_month` to PLANS (free=0, pro=0, guard=10, dealer=-1) and
@@ -24,6 +80,12 @@ Tier policy per Mike 2026-06-06. NOTE: Mike's log confirmed the earlier "flicker
     authoritative signal; top5 retained as transparency/candidates. Same no-confident-hallucination
     rule as Batch 3 extraction. Verification agent flagged dealer counter-increment (resolved as
     above — log-based visibility, counter is Guard-only).
+    (c) THRESHOLD CONFIG — `LOW_CONFIDENCE_THRESHOLD` now reads `SIG_LOW_CONFIDENCE_THRESHOLD`
+    (default 0.50), so floor + cap boundary retune via env, no code change. Marked PROVISIONAL —
+    calibrate at the signature-v2 accuracy re-measurement (87% target). Single-definition property
+    preserved (one constant feeds both the no-match floor and the cap boundary). Cap semantics
+    verified locally: Guard no-match → counter unchanged; confident → +1 (true RETURNING count);
+    9/10 + no-match + confident → ends at 10, not 11.
 
 **Item 5 — barcode decoder addon-None** (`comic_extraction.py`). `decode_barcode` now runs ONLY when
 `barcode_source == 'pyzbar'` (a scanner-confirmed addon), never on the vision model's guessed

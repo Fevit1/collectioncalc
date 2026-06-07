@@ -90,6 +90,48 @@ def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -
         raise ValueError(f"Could not decode/normalize image: {e}")
 
 
+# Photo types whose CORRECT orientation is LANDSCAPE — never force-rotated to
+# portrait. A comic centerfold is a two-page spread, legitimately wider than tall;
+# everything else in the grading flow (front, back, spine) is portrait when shot
+# correctly. Unknown/missing type defaults to portrait (the front-cover main path).
+_LANDSCAPE_PHOTO_TYPES = {'centerfold', 'center', 'interior'}
+
+
+def assume_portrait_for(photo_type: str) -> bool:
+    """Map a grading photo type to the assume_portrait flag for orientation
+    normalization. centerfold -> False (EXIF-only); front/back/spine/unknown -> True."""
+    return (photo_type or 'front').strip().lower() not in _LANDSCAPE_PHOTO_TYPES
+
+
+def normalize_for_photo_type(base64_data: str, photo_type: str = 'front') -> str:
+    """Photo-type-aware server-side orientation normalization for grading inputs.
+    Keeps the type->assume_portrait policy in ONE place so /api/extract and
+    /api/messages stay consistent. front/back/spine assume portrait; centerfold is
+    EXIF-only (never force-rotated). Always emits JPEG; raises ValueError on a
+    truly undecodable image (same contract as normalize_orientation_b64)."""
+    return normalize_orientation_b64(base64_data, assume_portrait=assume_portrait_for(photo_type))
+
+
+def rotate_180_b64(base64_data: str) -> str:
+    """Rotate a base64 image 180 deg; return base64 JPEG. Used by the extraction
+    low-confidence fallback — a 180 deg flip is invisible to the dimension-based
+    orientation heuristic in normalize_orientation_b64. Tolerates a data-URL
+    prefix. Raises if PIL is missing or the image can't be decoded (the caller
+    treats any failure as 'skip the retry, keep pass 1')."""
+    if not PIL_AVAILABLE:
+        raise RuntimeError("PIL unavailable — cannot rotate 180")
+    if base64_data.startswith('data:') and ',' in base64_data:
+        base64_data = base64_data.split(',', 1)[1]
+    raw = base64.b64decode(base64_data)
+    img = Image.open(BytesIO(raw))
+    img = img.rotate(180, expand=True)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    buf = BytesIO()
+    img.save(buf, format='JPEG', quality=92)
+    return base64.b64encode(buf.getvalue()).decode('ascii')
+
+
 def scan_barcode(image_data: bytes) -> dict:
     """
     Scan image for UPC barcode and extract the 5-digit supplement.
@@ -402,7 +444,107 @@ def extract_from_photo(image_data: bytes, filename: str = "comic.jpg") -> dict:
     return extract_from_base64(base64_data, media_type)
 
 
-def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dict:
+# Default field set applied to every parsed extraction so downstream code can rely
+# on every key existing. (Pulled out of extract_from_base64 so both the first pass
+# and the 180 deg re-read apply identical defaults.)
+_EXTRACTION_DEFAULTS = {
+    "is_comic_cover": True,
+    "title": "",
+    "issue": "",
+    "issue_type": "Regular",
+    "publisher": "",
+    "year": None,
+    "writer": "",
+    "artist": "",
+    "edition": "unknown",
+    "printing": "1st",
+    "is_facsimile": False,
+    "cover": "",
+    "variant": "",
+    "barcode_digits": "",
+    "is_slabbed": False,
+    "slab_cert_number": "",
+    "slab_company": "",
+    "slab_grade": "",
+    "slab_label_type": "",
+    "suggested_grade": "",
+    "defects": [],
+    "signatures": [],
+    "grade_reasoning": ""
+}
+
+
+def _run_vision_pass(b64: str, media_type: str):
+    """One Claude vision extraction pass. Returns (parsed_dict_or_None, raw_text).
+    None means the response had no parseable JSON. Defaults are applied so the
+    caller sees a complete dict. No barcode/orientation logic here — that lives in
+    extract_from_base64 so the 180 deg fallback can re-run JUST this pass."""
+    import re
+    response = call_with_fallback(
+        _client, 'haiku',
+        max_tokens=1000,
+        temperature=0,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image",
+                 "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                {"type": "text", "text": EXTRACTION_PROMPT}
+            ]
+        }]
+    )
+    text_content = ""
+    for block in response.content:
+        if block.type == "text":
+            text_content += block.text
+    json_match = re.search(r'\{[\s\S]*\}', text_content)
+    if not json_match:
+        return None, text_content
+    try:
+        parsed = json.loads(json_match.group())
+    except json.JSONDecodeError:
+        # Malformed JSON (e.g. truncated at max_tokens) counts as 'unparseable' so
+        # the 180 deg low-confidence fallback gets a chance, instead of hard-failing
+        # via the outer except and skipping the retry entirely.
+        return None, text_content
+    for key, default_value in _EXTRACTION_DEFAULTS.items():
+        if key not in parsed:
+            parsed[key] = default_value
+    return parsed, text_content
+
+
+def _extraction_score(extracted) -> int:
+    """Confidence proxy for an extraction pass (higher is better). Decides whether
+    a 180 deg re-read beat the original orientation."""
+    if not extracted:
+        return -1
+    score = 0
+    if extracted.get('is_comic_cover', True):
+        score += 2
+    if (extracted.get('title') or '').strip():
+        score += 2
+    if (extracted.get('issue') or '').strip():
+        score += 1
+    if extracted.get('is_upside_down') is True:
+        score -= 1
+    return score
+
+
+def _extraction_low_confidence(extracted):
+    """Is a first-pass extraction weak enough to warrant a one-shot 180 deg
+    re-read? Returns (is_low, reason)."""
+    if not extracted:
+        return True, 'unparseable'
+    if extracted.get('is_upside_down') is True:
+        return True, 'model_flagged_upside_down'
+    if not extracted.get('is_comic_cover', True):
+        return True, 'not_recognized_as_cover'
+    if not (extracted.get('title') or '').strip():
+        return True, 'no_title_read'
+    return False, None
+
+
+def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_type: str = "front") -> dict:
     """
     Extract comic information from a base64-encoded image.
     
@@ -416,14 +558,13 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
     if not ANTHROPIC_AVAILABLE or not _client:
         return {"success": False, "error": "Anthropic SDK not available"}
 
-    # Authoritative orientation normalization BEFORE both the barcode scan and
-    # the vision call. The client may send a rotated-with-EXIF photo and the API
-    # reads raw pixels. Fail loud if the image can't be decoded.
+    # Authoritative orientation normalization BEFORE both the barcode scan and the
+    # vision call. The client may send a rotated-with-EXIF photo and the API reads
+    # raw pixels. Per-photo policy (normalize_for_photo_type): front/back/spine
+    # assume portrait; centerfold is EXIF-only. Fail loud if undecodable.
     try:
-        # assume_portrait=True: extraction only looks at the front cover, which is
-        # always portrait — lets us also correct hard-rotated no-EXIF photos.
-        base64_data = normalize_orientation_b64(base64_data, assume_portrait=True)
-        media_type = "image/jpeg"  # normalize_orientation_b64 always emits JPEG
+        base64_data = normalize_for_photo_type(base64_data, photo_type)
+        media_type = "image/jpeg"  # normalize_for_photo_type always emits JPEG
     except ValueError as e:
         return {"success": False, "error": f"Image could not be processed: {e}"}
 
@@ -438,73 +579,44 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg") -> dic
         print(f"[Extraction] Barcode scan failed: {e}")
 
     try:
-        response = call_with_fallback(
-            _client, 'haiku',
-            max_tokens=1000,
-            temperature=0,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": base64_data
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": EXTRACTION_PROMPT
-                    }
-                ]
-            }]
-        )
+        extracted, text_content = _run_vision_pass(base64_data, media_type)
+        vision_calls = 1
 
-        # Extract text content
-        text_content = ""
-        for block in response.content:
-            if block.type == "text":
-                text_content += block.text
-        
-        # Parse JSON from response
-        import re
-        json_match = re.search(r'\{[\s\S]*\}', text_content)
-        
-        if json_match:
-            extracted = json.loads(json_match.group())
-            
-            # Ensure all expected fields exist with defaults
-            defaults = {
-                "is_comic_cover": True,
-                "title": "",
-                "issue": "",
-                "issue_type": "Regular",
-                "publisher": "",
-                "year": None,
-                "writer": "",
-                "artist": "",
-                "edition": "unknown",
-                "printing": "1st",
-                "is_facsimile": False,
-                "cover": "",
-                "variant": "",
-                "barcode_digits": "",
-                "is_slabbed": False,
-                "slab_cert_number": "",
-                "slab_company": "",
-                "slab_grade": "",
-                "slab_label_type": "",
-                "suggested_grade": "",
-                "defects": [],
-                "signatures": [],
-                "grade_reasoning": ""
-            }
-            
-            # Apply defaults for missing fields
-            for key, default_value in defaults.items():
-                if key not in extracted:
-                    extracted[key] = default_value
+        # --- Item 2: one-shot 180 deg low-confidence fallback. A 180 deg flip is
+        #     invisible to the dimension-based orientation heuristic above, so when
+        #     the first read is weak we re-read ONCE rotated 180 deg and keep
+        #     whichever pass scored higher. Every retry is logged so the doubled
+        #     vision-call cost is visible. ---
+        low, reason = _extraction_low_confidence(extracted)
+        if low:
+            print(f"[Extraction] Pass 1 low-confidence (reason={reason}) — retrying "
+                  f"with 180 deg rotation [VISION CALL #2 — doubled cost]")
+            try:
+                extracted2, text2 = _run_vision_pass(rotate_180_b64(base64_data), media_type)
+                vision_calls = 2
+                s1, s2 = _extraction_score(extracted), _extraction_score(extracted2)
+                if s2 > s1:
+                    extracted, text_content = extracted2, text2
+                    if extracted is not None:
+                        # Corrected server-side: returned data is already upright, so
+                        # the client must NOT rotate again (would re-invert).
+                        extracted['is_upside_down'] = False
+                        extracted['orientation_corrected'] = '180'
+                    print(f"[Extraction] 180 deg retry KEPT pass 2 (score {s1} -> {s2}); "
+                          f"vision_calls={vision_calls}")
+                else:
+                    # Server is authoritative on orientation: it evaluated both
+                    # rotations and kept pass 1, so the client must NOT re-rotate
+                    # (would cause a redundant 180 round-trip / wrong stored photo).
+                    # With this, a returned is_upside_down is never True.
+                    if extracted is not None:
+                        extracted['is_upside_down'] = False
+                    print(f"[Extraction] 180 deg retry discarded, kept pass 1 "
+                          f"(score {s1} vs {s2}); vision_calls={vision_calls}")
+            except Exception as e:
+                print(f"[Extraction] 180 deg retry skipped/failed (keeping pass 1): {e}")
+
+        if extracted is not None:
             
             # Check if the image is actually a comic book cover
             if not extracted.get('is_comic_cover', True):
