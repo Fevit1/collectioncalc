@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-06-06
+> **Operator:** Mike Berry · **Last updated:** 2026-06-08
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -15,25 +15,41 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 
 ## Active lessons
 
-### L-SW-2026-001 — "Looks good" is not commit/deploy authorization
+### L-SW-2026-001 — Claude NEVER runs git or deploy operations; Mike runs 100% of them
 
-- **RULE:** Passing verification, a stakeholder saying *"the batch looks good,"* or being handed a
-  task whose final step is a deploy does **not** authorize committing, pushing, or deploying. Commit,
-  push, and deploy each happen **only** when Mike explicitly says so **in that turn**, or runs them
-  himself. If an assigned deploy task requires an uncommitted prerequisite, **stop and ask** — never
-  commit/push to unblock yourself.
-- **WHY:** Authorization is per-action and per-instance, not implied by verification status, task
-  framing, or prior approvals. Mike controls exactly when code lands in git and ships to production.
-  Treating "approve the work" as "ship the work" removes his control over timing and is hard to undo.
+- **RULE:** Claude **never** executes `git add`, `git rm`, `git commit`, `git push`, `deploy`, or
+  `purge` — not after approval, not to unblock a task, not "to be helpful," **no exceptions**. Claude
+  prepares diffs and hands Mike copy-paste command blocks; **Mike runs every git and deploy/purge
+  operation himself.** Read-only inspection (`git status`, `git diff`, `git log`, `git show`) is the
+  only git Claude may run. If Claude believes a commit/deploy should happen, it **says so and waits**.
+- **WHY:** The gate is not about whether the work is good — it has been good every time. It is about
+  Mike being the one who pulls the trigger **every** time, so the gate still holds on the day the work
+  is **not** good. Any Claude-run git/deploy mutation — even staging a deletion with `git rm`, even a
+  change that was approved — defeats that. "Authorized," "looks good," and "approved" mean Mike
+  approves the **code**; they are **never** permission to execute git or deploy.
 - **HOW TO APPLY:**
-  1. After verifying a change, present the diffs + the exact `git add … ; commit ; push ; deploy`
-     command block, then **wait**. Do not run any of it.
-  2. Read "looks good" / "verification passed" as approval of *quality*, not a go signal. Get a fresh
-     explicit instruction before **each** of: commit, push, deploy.
-  3. If the task itself is "deploy X" but X isn't committed yet, surface that gap and ask how to
-     proceed — don't silently commit to satisfy the deploy step.
-  4. Distinguish the three actions: explicit authorization to commit is not authorization to push;
-     authorization to push is not authorization to deploy. Confirm each.
-- **SOURCE:** 2026-06-06 session — established as a standing protocol after the reconciliation +
-  fixes batches. Candidate for cross-project promotion (applies to every Mike project), per the
-  governance in `LESSONS_CROSS_PROJECT.md` — proposing for Mike's decision.
+  1. After verifying a change, present diffs + the exact `git add … ; git commit … ; git push ; deploy ; purge`
+     block in Mike's PowerShell format, then **stop**. Run none of it.
+  2. Never run `git add`/`git rm`/`git commit`/`git push`/`deploy`/`purge` under any phrasing of
+     approval. Staging (even `git rm` to delete a file) is Mike's, not Claude's — hand him the command.
+  3. If a task's final step is "deploy X" but X isn't committed, surface the gap and ask — do not
+     commit/push/deploy to satisfy it.
+  4. Wanting to help is not authorization. If unsure whether you may run something git/deploy-related,
+     the answer is no — prepare the block and wait.
+- **SOURCE:** Hardened 2026-06-08 after the prior version (which allowed running when "Mike explicitly
+  says so in that turn") failed to hold — commits/pushes happened without Mike running them three times
+  over the 2026-06-07/08 weekend (incl. `8e3cce0`, `a4838da`). The conditional permission was the
+  loophole; this version removes it entirely. Strong candidate for cross-project promotion (Mike's call).
+
+### L-SW-2026-002 — Commit messages must describe only what the commit actually contains
+
+- **RULE:** A commit message must match its diff exactly. Never describe a change in the message that
+  isn't staged in that commit. Draft the message from the **actually-staged file list**, not from the
+  intended scope.
+- **WHY:** `8e3cce0`'s message claimed a "stale ARCHITECTURE.txt ref" fix that the commit did not
+  contain (only the file deletion was staged) — the message was written anticipating a file that never
+  got added. A message that overclaims makes history lie and misleads anyone reading the log later.
+- **HOW TO APPLY:** When preparing a commit block, the message lists only the files in the `git add`
+  line of that same block. If a described fix isn't in the staged set, either add the file to the block
+  or remove the claim from the message. When in doubt, scope the message narrower than the intent.
+- **SOURCE:** 2026-06-08 — `8e3cce0` message/diff mismatch caught by Mike.
