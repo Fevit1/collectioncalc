@@ -1,5 +1,70 @@
 # Where We Left Off - Jun 8, 2026
 
+## Session 98 (Jun 8, 2026) — Batch 5: valuation date-filter fix + confidence-labeling audit
+
+**STATUS: code complete, verified read-only against prod corpus, NOT committed.** One file:
+`routes/sales_valuation.py`. Mike runs all git/deploy (L-SW-2026-001).
+
+**RECONCILIATION (corrects an earlier overstatement of mine).** The stall was REAL — the audit was
+right. Capture is MANUAL (Mike gathers by hand): created_at histogram shows 24,629 rows (Feb) + 13,681
+(Mar), then **ZERO in Apr and May**, then a **42-row revival on Jun 6** (Mike resumed this weekend). My
+first-pass claim that "capture is current" was wrong — I over-read `max(created_at)=2026-06-06` as
+healthy capture when it's a tiny revival after a real ~2-month gap. The audit's OTHER findings ALSO hold
+against current data: shallow distribution = **79.1% single-sale, 95.5% <5 comps** (audit said 75% /
+94.5% — confirmed, slightly worse); **Whatnot-dark** = market_sales is **19.7%** of the 47,750 corpus.
+So the audit is trustworthy; the only "discrepancy" was timing (audit = pre-revival, my read = post-).
+
+**Task 1 — date filter `created_at` → sale date (6 queries) + fmv window 90→180.** All six window
+filters now use `COALESCE(sale_date, created_at)` (ebay) / `COALESCE(sold_at, created_at)` (market) —
+4 in `/api/sales/valuation`, **2 in `/api/sales/fmv`** (brief said "4"; there were 6). COALESCE =
+documented explicit NULL fallback. Plus the fmv default lookback widened **90→180 days** (Mike's call):
+sale-date-filtered 90d is too sparse; 180d restores healthy samples without reaching stale pricing.
+Before/after comp counts (read-only prod RO replica):
+
+| key | 90d OLD | 90d NEW | **180d NEW** | 365d NEW |
+|---|---|---|---|---|
+| X-Men #1 | 172 | 106 | **592** | 670 |
+| Batman #1 | 159 | 102 | **627** | 737 |
+| Amazing Spider-Man #300 | 51 | 42 | **187** | 210 |
+| Incredible Hulk #181 | 42 | 23 | **134** | 145 |
+
+(Why the fix matters: the Feb–Mar bulk has created_at within ~90d but sale_dates spread over time, so the
+old created_at-90d window counts stale sales as "recent"; sale-date-90d is honest but sparse → 180d is
+the sweet spot. And once the Feb–Mar captures age past 90d created_at with capture stalled, the OLD
+filter would serve fallback for the WHOLE corpus — the sale-date filter is what keeps real comps flowing.)
+
+**Task 2 — confidence-labeling audit (investigate + low-risk wiring).** Findings: **in-app is fine** —
+`/api/sales/valuation` returns `confidence` (exact_count/total_graded → high/medium/low/very_low),
+app.html maps `very_low→"Limited"`, and a single-sale key resolves to very_low and always shows the
+label alongside any point estimate (+ `estimated` note on the fallback). **Gap = the Whatnot extension
+via `/api/sales/fmv`**, which returned **no confidence field at all** — just tier point-estimates (a tier
+`avg` can be one sale, rounded to the cent) with a bare count → false precision. **Low-risk wiring fix
+(done):** `/api/sales/fmv` now returns `confidence` / `fmv_sample_size` / `low_confidence`, computed from
+the count of sales in the tier the FMV was actually priced from (thresholds 10/5/2), on both the main and
+no-sales-fallback returns. Verified on real tier counts: X-Men#1@9.4 (16)→high, Batman#1@9.4 (6)→medium,
+Hulk#181@9.4 (4)→low, a real 1-sale key→very_low. **FLAGGED for Mike (NOT built — bigger):** the Whatnot
+overlay still has to *render* this new signal (a "Limited data" badge); that's an extension UI change +
+republish, his call.
+
+**Verification:** read-only harness against prod RO replica (`DATABASE_URL_RO` from `.env`, no writes);
+code-reviewer agent — **no critical/important blocking issues** (COALESCE columns match SELECTs, vars
+initialized, `used_tier=None` safe, valuation confidence untouched). Reviewer flag (out of scope, NOT
+touched per brief): future-dated `sale_date` rows now pass the window — best fixed with a `sale_date <=
+NOW()` guard in the eBay scraper at ingest, not here.
+
+**Out of scope / untouched:** capture pipeline, valuation math, sales-table writes.
+
+### Open / watch after deploy (Batch 5)
+- **Purge: NOT load-bearing** — backend-only (`routes/sales_valuation.py`); no `js/`/frontend change.
+  Render deploy only.
+- Headline live check post-deploy: value a well-covered key (X-Men #1 / Batman #1) — real FMV +
+  confidence band; fmv now uses a 180-day window.
+- **Batch 5B (approved by Mike, separate — extension code + republish):** (1) Whatnot overlay renders the
+  new `low_confidence`/`confidence` signal as a "Limited data" badge; (2) ingest-time `sale_date <= NOW()`
+  guard in the eBay scraper (future-dated rows now pass the sale-date window).
+- Bigger picture: capture is manual and currently only barely revived (42 rows Jun 6); the date-filter
+  fix uses correct semantics but does NOT substitute for resuming real capture.
+
 ## Session 97 (Jun 8, 2026) — Batch 6: collapse new-user double email-confirm + dead-code cleanup
 
 **STATUS: code complete, verified, NOT committed.** Mike runs commit/push/deploy. Files: `auth.py`,

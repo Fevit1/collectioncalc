@@ -166,13 +166,17 @@ def api_sales_valuation():
         cur = conn.cursor()
 
         # ---------- EBAY: graded sales for this title ----------
+        # Batch 5: filter on the actual SALE date, not created_at (the capture
+        # timestamp). created_at goes empty during a capture stall and silently
+        # ages out the whole corpus. COALESCE keeps rows whose sale_date is NULL
+        # by falling back to created_at (documented mixed-semantics fallback).
         ebay_graded_query = """
             SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source
             FROM ebay_sales
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
-              AND created_at > NOW() - INTERVAL '%s days'
+              AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
@@ -203,7 +207,7 @@ def api_sales_valuation():
             WHERE (graded = false OR graded IS NULL) AND sale_price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
-              AND created_at > NOW() - INTERVAL '%s days'
+              AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
@@ -229,7 +233,7 @@ def api_sales_valuation():
             WHERE grade IS NOT NULL AND price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
-              AND created_at > NOW() - INTERVAL '%s days'
+              AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
               AND (
                   LOWER(canonical_title) = LOWER(%s)
                   OR LOWER(title) LIKE LOWER(%s)
@@ -252,7 +256,7 @@ def api_sales_valuation():
             WHERE (grade IS NULL) AND price > 1
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
-              AND created_at > NOW() - INTERVAL '%s days'
+              AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
               AND (
                   LOWER(canonical_title) = LOWER(%s)
                   OR LOWER(title) LIKE LOWER(%s)
@@ -518,11 +522,15 @@ def api_sales_fmv():
     Query params:
         title: Comic title (required)
         issue: Issue number (optional)
-        days: Number of days to look back (default 90)
+        days: Number of days to look back (default 180)
     """
     title = request.args.get('title', '')
     issue = request.args.get('issue', '')
-    days = request.args.get('days', 90, type=int)
+    # Batch 5: default lookback widened 90 -> 180 days. Now that the window
+    # filters on actual sale date (not capture time), 90 days of true sales is
+    # sparser; 180 keeps tier sample sizes healthy without reaching into stale
+    # pricing. Callers may still override via ?days=.
+    days = request.args.get('days', 180, type=int)
 
     # Reject literal "null" or "undefined" issue values
     if issue in ['null', 'undefined', 'None', 'NaN']:
@@ -559,6 +567,8 @@ def api_sales_fmv():
 
         # Query 1: market_sales (Whatnot data)
         # Filter out reprints if barcode detected them
+        # Batch 5: filter on actual sale date (sold_at), fallback to created_at
+        # when NULL — created_at alone ages out the corpus during capture stalls.
         market_query = """
             SELECT grade, price, 'whatnot' as source
             FROM market_sales
@@ -569,7 +579,7 @@ def api_sales_fmv():
             )
             AND price > 0
             AND (is_reprint IS NULL OR is_reprint = false)
-            AND created_at > NOW() - INTERVAL '%s days'
+            AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
         """
         market_params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
 
@@ -591,7 +601,7 @@ def api_sales_fmv():
             )
             AND sale_price > 5
             AND (is_reprint IS NULL OR is_reprint = false)
-            AND created_at > NOW() - INTERVAL '%s days'
+            AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
             AND LOWER(parsed_title) NOT LIKE '%%facsimile%%'
             AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
             AND LOWER(parsed_title) NOT LIKE '%%reprint%%'
@@ -667,6 +677,9 @@ def api_sales_fmv():
                 'slabbed_fmv': slabbed_estimate,
                 'grading_cost': grading_cost,
                 'estimated': True,
+                'confidence': 'very_low',
+                'fmv_sample_size': 0,
+                'low_confidence': True,
                 'note': 'Estimate based on grade/publisher/era - limited sales data available'
             })
 
@@ -747,9 +760,11 @@ def api_sales_fmv():
         }
 
         raw_fmv = 0
+        used_tier = None
         for t in tier_priority.get(user_tier, ['mid']):
             if t in result_tiers:
                 raw_fmv = result_tiers[t]['avg']
+                used_tier = t
                 break
 
         # Slabbed FMV: use the next tier up if available, otherwise apply 1.5x premium
@@ -772,6 +787,23 @@ def api_sales_fmv():
         raw_fmv = round(raw_fmv, 2)
         slabbed_fmv = round(slabbed_fmv, 2)
 
+        # Batch 5: confidence signal for the displayed FMV, based on how many
+        # sales back the tier we actually priced from (mirrors the
+        # /sales/valuation thresholds). Previously fmv returned a point-estimate
+        # tier average — possibly off a SINGLE sale — with no confidence at all,
+        # so consumers like the Whatnot overlay could show false precision.
+        # NOTE: this only EXPOSES the signal; the overlay must still render it
+        # (tracked as a separate UI follow-up, see Batch 5 notes).
+        fmv_sample = result_tiers.get(used_tier, {}).get('count', 0) if used_tier else 0
+        if fmv_sample >= 10:
+            confidence = 'high'
+        elif fmv_sample >= 5:
+            confidence = 'medium'
+        elif fmv_sample >= 2:
+            confidence = 'low'
+        else:
+            confidence = 'very_low'
+
         return jsonify({
             'success': True,
             'title': title,
@@ -784,7 +816,10 @@ def api_sales_fmv():
             'tiers': result_tiers if result_tiers else None,
             'raw_fmv': raw_fmv,
             'slabbed_fmv': slabbed_fmv,
-            'grading_cost': grading_cost
+            'grading_cost': grading_cost,
+            'confidence': confidence,
+            'fmv_sample_size': fmv_sample,
+            'low_confidence': fmv_sample < 5
         })
 
     except Exception as e:
