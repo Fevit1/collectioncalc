@@ -574,9 +574,11 @@
             <div id="verifyPanel" class="form-panel">
                 <div class="pending-state">
                     <div class="pending-icon">📧</div>
-                    <h3 class="pending-title">Check Your Email</h3>
-                    <p class="pending-desc">We sent a verification link to <strong id="verifyEmail"></strong>. Click the link to verify your account.</p>
+                    <h3 class="pending-title" id="verifyTitle">Check Your Email</h3>
+                    <p class="pending-desc" id="verifyDesc">We sent a verification link to <strong id="verifyEmail"></strong>. Click the link to verify your account.</p>
                 </div>
+                <div id="verifyMessage" class="message"></div>
+                <button class="btn" id="resendBtn" onclick="resendVerification()">Resend verification email</button>
                 <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
             </div>
 
@@ -786,8 +788,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('verifyEmail').textContent = email;
-                    showPanel('verifyPanel');
+                    if (data.token) {
+                        // Pre-verified (confirmed-waitlist) — log straight in.
+                        localStorage.setItem('cc_token', data.token);
+                        localStorage.setItem('cc_user', JSON.stringify(data.user));
+                        window.location.href = getRedirectUrl();
+                        return;
+                    }
+                    showVerifyPanel(email, { sendFailed: !!data.email_send_failed, message: data.message });
                 } else {
                     showMessage('signupMessage', data.error || 'Signup failed');
                 }
@@ -828,8 +836,7 @@
                         showPanel('pendingPanel');
                     }
                 } else if (data.needs_verification) {
-                    document.getElementById('verifyEmail').textContent = email;
-                    showPanel('verifyPanel');
+                    showVerifyPanel(email);
                 } else if (data.pending_approval) {
                     showPanel('pendingPanel');
                 } else {
@@ -868,6 +875,47 @@
             
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function showVerifyPanel(email, opts) {
+            opts = opts || {};
+            showPanel('verifyPanel');  // clears messages + activates panel
+            document.getElementById('verifyEmail').textContent = email;
+            const title = document.getElementById('verifyTitle');
+            const desc = document.getElementById('verifyDesc');
+            if (opts.sendFailed) {
+                title.textContent = "Couldn't send your email";
+                desc.style.display = 'none';
+                showMessage('verifyMessage', opts.message ||
+                    "We couldn't send your verification email. Tap Resend, or email support@slabworthy.com.", true);
+            } else {
+                title.textContent = 'Check Your Email';
+                desc.style.display = '';
+            }
+        }
+
+        async function resendVerification() {
+            const email = document.getElementById('verifyEmail').textContent.trim();
+            if (!email) return;
+            const btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                showMessage('verifyMessage',
+                    data.message || data.error || (data.success ? 'Verification email sent.' : 'Could not resend.'),
+                    !data.success);
+            } catch (e) {
+                showMessage('verifyMessage', 'Network error. Please try again.', true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Resend verification email';
+            }
         }
 
         async function handleForgotPassword(e) {

@@ -1,11 +1,81 @@
-# Where We Left Off - Jun 7, 2026
+# Where We Left Off - Jun 8, 2026
+
+## Session 97 (Jun 8, 2026) — Batch 6: collapse new-user double email-confirm + dead-code cleanup
+
+**STATUS: code complete, verified, NOT committed.** Mike runs commit/push/deploy. Files: `auth.py`,
+`login.html` (Batch 6); plus `slab_premium_analysis.py` **deleted** (separate cleanup, staged).
+
+**Cleanup (pre-Batch-6).** Deleted orphaned `slab_premium_analysis.py` — standalone research script
+built entirely on eBay's decommissioned Finding API (`findCompletedItems`, dead since 2026-02-05).
+Nothing imports it (the live `search_ebay_sold` in `ebay_valuation.py` is a different function). See
+`docs/sessions/EBAY_API_SOLD_DATA_INVESTIGATION_2026-06-08.md`. Stale doc ref left at
+`docs/technical/ARCHITECTURE.txt:122` (env-var table) — flagged, not yet fixed.
+
+**Investigation (prior turns).** Mapped the full new-user flow: a beta-code stranger hits TWO gates —
+beta code → email verification — then auto-login (beta code auto-approves, so the admin-approval gate
+is dormant). The "verify twice" friction is **cross-funnel**: a waitlist person confirms their email to
+join the list (`waitlist.verified`), then verifies the SAME email again at signup. Verification-email
+non-delivery (mikeberry+5) traced to the send path being code-identical to working emails → Resend-side,
+not our code; and the send result was being silently discarded.
+
+**Task 1 — pre-verify confirmed-waitlist emails (🔴).** `signup()` now calls `_is_waitlist_confirmed(email)`
+(SELECT `verified` FROM waitlist by normalized email, **fails closed**). If confirmed: user created
+`email_verified=TRUE`, no verification token stored, **no second email**, JWT returned → frontend
+auto-logs-in. ⚠️ **SECURITY CAVEAT (documented in code, [auth.py](../../auth.py) `_is_waitlist_confirmed`):**
+email-match trusts a PAST click ("someone controlled this inbox once"), not "this signer controls it now"
+— residual email-squatting risk, bounded in beta by the beta-code wall + password-reset recovery.
+**REVISIT before public launch** when the beta wall comes down (consider a signed continuity token minted
+by the waitlist-confirm click). I surfaced this fork to Mike; proceeded with the brief's primary
+email-match approach per his stated risk tolerance.
+
+**Task 2 — auto-approve waitlist signups (🟡).** `auto_approve = bool(beta_code) or waitlist_confirmed`.
+Beta-code wall and admin-approval machinery left intact (out of scope). Confirmed-waitlist signup lands
+`is_approved=TRUE`, skips the pending panel.
+
+**Task 3 — fix swallowed send result (🔴).** `signup()` now checks `send_verification_email()`'s return.
+On failure: returns `email_send_failed=True` + honest message (account still created); frontend shows a
+"Couldn't send your email" state with a **Resend** button (hits existing `/api/auth/resend-verification`,
+which now also surfaces failures). Failures persisted to a new `email_send_failures` table (lazy-created
+once/process) + `logger.error` instead of bare `print`.
+
+**Verification.** Throwaway harness exercised all four signup paths (confirmed-waitlist → no email +
+auto-login + approved; unconfirmed-waitlist → normal verify; never-waitlisted+beta → normal verify +
+approved; send-fail → honest flag, no token) — all assertions passed. code-reviewer agent: **no critical
+bugs**; INSERT placeholders aligned, fails-closed correct, no auto-verify-without-waitlist path, XSS-safe
+(textContent). Addressed its one actionable item (moved per-call `CREATE TABLE` behind a once/process
+guard).
+
+### Open / watch after deploy (Batch 6)
+- **Purge IS load-bearing** — `login.html` (frontend signup flow) changed → Cloudflare cache purge required.
+- Post-deploy check: sign up a **fresh, copy-pasted** confirmed-waitlist test email → should NOT re-verify,
+  lands in app approved. Then a never-waitlisted email → SHOULD still get a verification email.
+- New `email_send_failures` table is lazy-created on first failure; no migration wired. If you want it
+  pre-created, add to a startup migration later.
+- Still pending (separate batches, NOT this one): Resend monitoring/webhook in `dependency_monitor.py`;
+  public-launch gating decision (beta wall + admin gate); ARCHITECTURE.txt:122 stale ref.
 
 ## Session 96 (Jun 7, 2026) — Batch 4C: signature 413 chain + grade CGC snap + calibration tooling
 
-Five tasks. Protocol: reproduce → fix → verify → verification agent → STOP (NOT committed —
-awaiting Mike). Part B shipped as `8a9e3ae`. Files this batch: `js/utils.js`, `app.html`,
-`js/grading.js`, `routes/grading.py`, `routes/signature_orchestrator.py`, `wsgi.py`, `js/app.js`,
-`test_haiku_vs_sonnet.py`, `test_grading_consistency.py`.
+Five tasks. Protocol: reproduce → fix → verify → verification agent. **SHIPPED** — Mike committed +
+pushed + deployed (Render + Cloudflare purge) + field-verified live 2026-06-07: 413 gone (/v2/match
+returns 200), eBay 401 gone on load, grade displays on-scale. HEAD has moved past `8a9e3ae`. Files:
+`js/utils.js`, `app.html`, `js/grading.js`, `routes/grading.py`, `routes/signature_orchestrator.py`,
+`wsgi.py`, `js/app.js`, `test_haiku_vs_sonnet.py`, `test_grading_consistency.py`.
+
+### ⚠️ Open for tomorrow (from Mike's live testing 2026-06-07 — do NOT act tonight)
+1. **Spinner orphan on `matched:false`.** `/v2/match` returns 200 with a correct no-match (Part A
+   floor working), but the client only handles error + confident-match — the successful-no-match case
+   orphans the "Checking for signatures…" spinner. Fix: on `matched:false`, render the `message`
+   field and clear the checking state. (app.html `runSignatureCheck` + js/utils.js `identifySignaturesV2`
+   / collection.js consumer.)
+2. **`raw_grade` not observed in the live `/api/grade` response** (Mike saw only `grade:7.5`). I added
+   `result['raw_grade']` in `routes/grading.py` before `jsonify(result)` — VERIFY tomorrow where it
+   actually lands (response field name / serialization / whether the inspected payload was the grade
+   object). Calibration (task 4) needs raw QUERYABLE → if it's not a DB column, **adding one is the
+   prerequisite** (this is the gap, not the response field).
+3. **Signature MATCHING never actually tested this weekend.** All of Mike's test comics have PRINTED
+   credits, not hand-signed autographs, so only the REJECTION/no-match path was validated. The
+   confident-match path is unverified. Mike has a reframe coming tomorrow.
 
 **Task 1 — signature match 413 (🔴 root cause found).** Client posted the cover base64 as a multipart
 TEXT field (`formData.append('image', base64)`); Werkzeug 3.1.3 caps non-file form fields at

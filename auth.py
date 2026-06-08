@@ -10,6 +10,7 @@ Uses:
 """
 
 import os
+import logging
 import secrets
 import bcrypt
 import jwt
@@ -19,6 +20,8 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import g, jsonify
 import resend
+
+logger = logging.getLogger(__name__)
 
 # ============================================
 # CONFIGURATION
@@ -386,6 +389,82 @@ def is_user_approved(user_id):
     return user and user.get('is_approved', False)
 
 # ============================================
+# WAITLIST LINKAGE / EMAIL DIAGNOSTICS
+# ============================================
+
+def _is_waitlist_confirmed(email):
+    """Return True if `email` has a CONFIRMED waitlist entry.
+
+    'Confirmed' (waitlist.verified = TRUE) means someone clicked the confirm
+    link that was sent to that inbox, so we don't make them confirm the SAME
+    address again at signup (Batch 6 task 1). `email` must already be in the
+    normalized form signup uses (lower().strip()); the waitlist stores emails
+    the same way.
+
+    SECURITY NOTE: this trusts a PAST click that proves "someone controlled
+    this inbox once," not "this signer controls it now." Acceptable during the
+    beta-code-gated beta (the beta wall + password-reset recovery bound the
+    blast radius of email-squatting). REVISIT before the public soft launch
+    when the beta wall comes down — consider a signed continuity token minted
+    by the waitlist-confirm click instead of a bare email match.
+
+    Fails CLOSED (returns False) on any DB error so a lookup problem can never
+    silently grant verification.
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT verified FROM waitlist WHERE email = %s", (email,))
+            row = cur.fetchone()
+            return bool(row and row['verified'])
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.warning(f"waitlist confirm-state lookup failed at signup: {e}")
+        return False
+
+
+_email_failures_table_ready = False  # one-time-per-process DDL guard
+
+
+def _record_email_failure(email, kind, error):
+    """Persist a transactional-email send failure so it's diagnosable beyond
+    ephemeral stdout (Batch 6 task 3). Lazily creates its table once per
+    process (so we don't take a catalog lock on every failure under load);
+    never raises into the caller.
+    """
+    global _email_failures_table_ready
+    logger.error(f"Email send failed kind={kind} to={email}: {error}")
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            if not _email_failures_table_ready:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_send_failures (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        error TEXT,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+                _email_failures_table_ready = True
+            cur.execute(
+                "INSERT INTO email_send_failures (email, kind, error) VALUES (%s, %s, %s)",
+                (email, kind, str(error)[:1000])
+            )
+            conn.commit()
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Failed to persist email-failure record: {e}")
+
+
+# ============================================
 # EMAIL HELPERS
 # ============================================
 
@@ -430,7 +509,7 @@ def send_verification_email(email, token):
         })
         return True
     except Exception as e:
-        print(f"Failed to send verification email: {e}")
+        _record_email_failure(email, 'verification', e)
         return False
 
 def send_password_reset_email(email, token):
@@ -581,15 +660,27 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
     if existing:
         return {'success': False, 'error': 'An account with this email already exists'}
     
-    # Generate verification token
+    # Batch 6 task 1: a person who already confirmed THIS email on the waitlist
+    # has proven inbox control once — don't make them confirm the same address
+    # again at signup. (See _is_waitlist_confirmed for the security caveat.)
+    waitlist_confirmed = _is_waitlist_confirmed(email)
+
+    # Generate verification token (unused / not stored when we pre-verify)
     verification_token = secrets.token_urlsafe(32)
     verification_expires = datetime.utcnow() + timedelta(hours=VERIFICATION_EXPIRY_HOURS)
-    
+
     # Hash password and create user
     password_hash = hash_password(password)
-    
-    # Auto-approve users who sign up with a valid beta code
-    auto_approve = True if beta_code else False
+
+    # Auto-approve users who sign up with a valid beta code OR who are already
+    # confirmed on the waitlist (Batch 6 task 2: open approval for waitlist).
+    auto_approve = bool(beta_code) or waitlist_confirmed
+
+    # Confirmed-waitlist signups are created already-verified and carry no
+    # pending verification token (there is nothing left to verify).
+    email_verified = waitlist_confirmed
+    stored_token = None if waitlist_confirmed else verification_token
+    stored_expires = None if waitlist_confirmed else verification_expires
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -601,16 +692,16 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
                 is_approved, is_admin, beta_code_used,
                 display_name, phone, marketing_consent
             )
-            VALUES (%s, %s, %s, %s, FALSE, %s, FALSE, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
             RETURNING id
-        """, (email, password_hash, verification_token, verification_expires,
+        """, (email, password_hash, stored_token, stored_expires, email_verified,
               auto_approve,
               beta_code.upper().strip() if beta_code else None,
               display_name, phone, bool(marketing_consent)))
-        
+
         user_id = cur.fetchone()['id']
         conn.commit()
-        
+
         # Mark beta code as used
         if beta_code:
             use_beta_code(beta_code, user_id)
@@ -626,13 +717,49 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
         except Exception:
             pass  # Don't block signup if waitlist update fails
 
-        # Send verification email
-        send_verification_email(email, verification_token)
-        
+        # Batch 6 task 1: pre-verified (confirmed-waitlist) users skip the second
+        # verification email entirely and are logged straight in.
+        if waitlist_confirmed:
+            token = generate_jwt(user_id, email, is_admin=False,
+                                 is_approved=auto_approve)
+            return {
+                'success': True,
+                'message': 'Welcome back! Your account is ready.',
+                'user_id': user_id,
+                'email': email,
+                'token': token,
+                'user': {
+                    'id': user_id,
+                    'email': email,
+                    'email_verified': True,
+                    'is_approved': auto_approve,
+                    'is_admin': False
+                },
+                'requires_approval': not auto_approve
+            }
+
+        # Batch 6 task 3: check the send result instead of pretending it worked.
+        # The account WAS created, so we still return success — but we tell the
+        # client the email didn't go out so it can offer Resend / support
+        # instead of a false "Check Your Email" screen.
+        email_sent = send_verification_email(email, verification_token)
+        if not email_sent:
+            return {
+                'success': True,
+                'email_send_failed': True,
+                'message': ("Account created, but we couldn't send your "
+                            "verification email. Tap Resend, or contact "
+                            "support@slabworthy.com if it keeps failing."),
+                'user_id': user_id,
+                'email': email,
+                'requires_approval': not auto_approve
+            }
+
         return {
             'success': True,
             'message': 'Account created! Please check your email to verify your account.',
             'user_id': user_id,
+            'email': email,
             'requires_approval': not auto_approve
         }
     except Exception as e:
@@ -813,10 +940,15 @@ def resend_verification(email):
             WHERE id = %s
         """, (verification_token, verification_expires, user['id']))
         conn.commit()
-        
-        # Send verification email
-        send_verification_email(email, verification_token)
-        
+
+        # Send verification email — surface a real failure instead of claiming
+        # success (Batch 6 task 3). The failure is also persisted/logged inside
+        # send_verification_email via _record_email_failure.
+        if not send_verification_email(email, verification_token):
+            return {'success': False, 'error': ("We couldn't send the verification "
+                    "email right now. Please try again shortly, or contact "
+                    "support@slabworthy.com.")}
+
         return {'success': True, 'message': 'Verification email sent. Please check your inbox.'}
     except Exception as e:
         conn.rollback()
