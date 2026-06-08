@@ -220,6 +220,14 @@ def scan_barcode_from_base64(image_data):
 # ============================================
 
 app = Flask(__name__)
+# Body-size limit (task 4C-1). The signature match uploads a cover image. Primary
+# fix is client-side: the cover is resized and sent as a FILE part, which is NOT
+# subject to max_form_memory_size. We raise that limit to 25 MB anyway as a
+# transitional safety net so a base64-as-text-field upload from an older client
+# reaches the route's back-compat handler instead of 413ing during form parsing.
+# This affects ONLY multipart form fields — JSON bodies (/api/grade, /api/extract)
+# are unaffected, so multi-image grade submissions are not capped.
+app.config['MAX_FORM_MEMORY_SIZE'] = 25 * 1024 * 1024
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')

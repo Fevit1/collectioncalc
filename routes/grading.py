@@ -522,6 +522,22 @@ def api_grade():
         result['grade_reasoning'] = result.get('observations', '')
         result['year'] = data.get('year', '')
 
+        # --- Task 3: enforce CGC-scale display grade + retain raw average ---
+        # grading_engine already snaps final_grade; this is a defensive guard so an
+        # off-scale value can never reach the client (the equivalence claim). We
+        # keep the unsnapped weighted average as raw_grade for calibration (task 4
+        # priors) and log it. Canonical step list lives once in grading_engine.
+        from grading_engine import snap_to_cgc_grade
+        raw_grade = result.get('raw_score', result.get('final_grade'))
+        result['raw_grade'] = raw_grade
+        if isinstance(result.get('final_grade'), (int, float)):
+            snapped, snapped_label, _ = snap_to_cgc_grade(float(result['final_grade']))
+            result['final_grade'] = snapped
+            if not result.get('grade_label'):
+                result['grade_label'] = snapped_label
+        print(f"[Grading] grade served: final={result.get('final_grade')} "
+              f"raw={raw_grade} runs={result.get('run_count')}")
+
         # Include grading usage info for frontend counter
         try:
             usage_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)

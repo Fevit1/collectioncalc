@@ -41,7 +41,15 @@ const PLACEHOLDER_IMAGE = `data:image/svg+xml;base64,${btoa(`
 
 async function checkEbayConnection() {
     try {
-        const response = await fetch(`${API_URL}/api/ebay/status?user_id=${ebayUserId}`);
+        // /api/ebay/status requires auth — skip (don't fire an unauthenticated
+        // call that 401s on page load) until the user is logged in, and send the
+        // bearer token when we do call.
+        const token = localStorage.getItem('cc_token');
+        if (!token) return false;
+        const response = await fetch(`${API_URL}/api/ebay/status?user_id=${ebayUserId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return false;
         const data = await response.json();
         ebayConnected = data.connected;
         return ebayConnected;

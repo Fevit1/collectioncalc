@@ -2186,10 +2186,8 @@
             };
         }
         
-        // Store original generateGradeReport from grading.js (we won't use it)
-        const originalGenerateGradeReport = window.generateGradeReport;
-        
-        // Complete standalone grading function
+        // app.html's standalone grading flow — posts to /api/grade, which grades
+        // and snaps to the CGC scale server-side. Overrides grading.js's stub.
         window.generateGradeReport = async function() {
             // Check if at least front is uploaded
             if (!window.gradingState.photos[1]) {
@@ -2802,19 +2800,32 @@
                     else eraDecade = `${Math.floor(yr / 10) * 10}s`;
                 }
 
-                // Build multipart form data for v2 endpoint
+                // Build multipart form data for v2 endpoint. Send the cover as a
+                // resized FILE part (not a text field): a full-res base64 field
+                // 413s at Werkzeug's max_form_memory_size, and the server reads
+                // request.files["image"]. resizeBase64ToJpegBlob lives in utils.js.
                 const formData = new FormData();
-                formData.append('image', photo.base64);
+                const sigBlob = await resizeBase64ToJpegBlob(photo.base64);
+                formData.append('image', sigBlob, 'cover.jpg');
                 if (ext.publisher) formData.append('publisher', ext.publisher);
                 if (eraDecade) formData.append('era_decade', eraDecade);
                 if (ext.title) formData.append('title', ext.title);
                 formData.append('signature_location', 'cover');
 
-                const response = await fetch(`${API_URL}/api/signatures/v2/match`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
+                // Bounded timeout so a hung request can never orphan the spinner.
+                const sigController = new AbortController();
+                const sigTimeout = setTimeout(() => sigController.abort(), 120000);
+                let response;
+                try {
+                    response = await fetch(`${API_URL}/api/signatures/v2/match`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData,
+                        signal: sigController.signal
+                    });
+                } finally {
+                    clearTimeout(sigTimeout);
+                }
 
                 if (!response.ok) {
                     if (response.status === 429) {
@@ -2826,8 +2837,17 @@
                             </div>`;
                         return;
                     }
+                    // 403/no-access: hide silently. Any other failure: clear the
+                    // spinner with a brief, non-alarming note (never orphan it).
                     console.warn('Signature check failed:', response.status);
-                    sigSection.style.display = 'none';
+                    if (response.status === 403) {
+                        sigSection.style.display = 'none';
+                    } else {
+                        sigInfo.innerHTML = `
+                            <div style="padding: 10px; background: rgba(148, 163, 184, 0.1); border-radius: 8px; font-size: 12px; color: var(--text-muted);">
+                                Signature check unavailable right now.
+                            </div>`;
+                    }
                     return;
                 }
 
@@ -2895,8 +2915,14 @@
 
             } catch (error) {
                 console.warn('Signature check error:', error);
-                sigSection.style.display = 'none';
                 window.gradingState.signatureResult = null;
+                // Never leave the spinner spinning (covers network error + timeout).
+                if (sigSection && sigInfo) {
+                    sigInfo.innerHTML = `
+                        <div style="padding: 10px; background: rgba(148, 163, 184, 0.1); border-radius: 8px; font-size: 12px; color: var(--text-muted);">
+                            Signature check unavailable right now.
+                        </div>`;
+                }
             }
         }
 
@@ -2984,6 +3010,7 @@
                     publisher: window.gradingState.extractedData?.publisher || null,
                     year: window.gradingState.extractedData?.year || null,
                     grade: window.gradingState.finalGrade.final_grade || null,
+                    raw_grade: window.gradingState.finalGrade.raw_grade || null,  // unsnapped avg, for calibration
                     grade_label: window.gradingState.finalGrade.grade_label || null,
                     confidence: window.gradingState.confidence || null,
                     defects: {

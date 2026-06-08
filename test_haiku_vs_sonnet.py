@@ -19,15 +19,18 @@ if not API_KEY:
     print("ERROR: Set ANTHROPIC_API_KEY environment variable")
     sys.exit(1)
 
-MODELS = {
-    "sonnet": "claude-sonnet-4-20250514",
-    "haiku": "claude-haiku-4-5-20251001"
-}
-
-# Import prompts from existing code
+# Import prompts + canonical model tiers from existing code. Resolve model IDs
+# from models.py (single source of truth) instead of hardcoding — keeps this
+# calibration harness off retired strings automatically.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from comic_extraction import EXTRACTION_PROMPT
 from grading_engine import STRUCTURED_GRADING_PROMPT
+from models import get_model
+
+MODELS = {
+    "sonnet": get_model("sonnet"),
+    "haiku": get_model("haiku"),
+}
 
 # Test comics — diverse era/condition range
 TEST_COMICS = {

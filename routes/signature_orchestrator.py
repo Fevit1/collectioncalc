@@ -857,11 +857,16 @@ def match_signature():
     image_b64 = None
 
     if request.content_type and "multipart" in request.content_type:
-        if "image" not in request.files:
-            return jsonify({"error": "No image file provided"}), 400
-        file = request.files["image"]
-        image_bytes = file.read()
-        image_b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+        if "image" in request.files:
+            file = request.files["image"]
+            image_bytes = file.read()
+            image_b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+        elif request.form.get("image"):
+            # Back-compat: older clients sent the base64 as a text field. Prefer the
+            # file part (smaller, bypasses the form-memory limit) — accept either.
+            image_b64 = request.form.get("image")
+        else:
+            return jsonify({"error": "No image provided"}), 400
         comic_context = {
             "publisher": request.form.get("publisher", "unknown"),
             "era_decade": request.form.get("era_decade", "unknown"),

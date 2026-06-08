@@ -1,5 +1,87 @@
 # Where We Left Off - Jun 7, 2026
 
+## Session 96 (Jun 7, 2026) — Batch 4C: signature 413 chain + grade CGC snap + calibration tooling
+
+Five tasks. Protocol: reproduce → fix → verify → verification agent → STOP (NOT committed —
+awaiting Mike). Part B shipped as `8a9e3ae`. Files this batch: `js/utils.js`, `app.html`,
+`js/grading.js`, `routes/grading.py`, `routes/signature_orchestrator.py`, `wsgi.py`, `js/app.js`,
+`test_haiku_vs_sonnet.py`, `test_grading_consistency.py`.
+
+**Task 1 — signature match 413 (🔴 root cause found).** Client posted the cover base64 as a multipart
+TEXT field (`formData.append('image', base64)`); Werkzeug 3.1.3 caps non-file form fields at
+`max_form_memory_size` = **500 KB** and raises 413 during form parsing — AFTER the entitlement gate
+(matches "gate passed, died on body size"). Server already reads `request.files["image"]` (a file), so
+the field upload was also contract-wrong. Verified: 2 MB field @500 KB → 413; file part @500 KB → 200.
+Fix: (a) `resizeBase64ToJpegBlob()` in `utils.js` resizes to 1568 px long-edge (Anthropic's vision cap
+— no model-visible loss) and returns a JPEG **Blob**; `identifySignaturesV2` + app.html
+`runSignatureCheck` append it as a FILE part. (b) `match_signature` accepts a `request.form["image"]`
+base64 fallback too. (c) `wsgi.py` sets `MAX_FORM_MEMORY_SIZE=25 MB` as a transitional safety net
+(does NOT touch `MAX_CONTENT_LENGTH`, so the JSON multi-image `/api/grade` path is uncapped). Prefer-
+shrink honored: full-res cover base64 (~MBs) → ~200–400 KB file.
+
+**Task 2 — orphan spinner (🔴, pairs with 1).** `runSignatureCheck` now wraps the fetch in an
+AbortController **120 s timeout** and resolves the "Checking for signatures…" state on EVERY outcome:
+403 → hide silently; other non-OK (413/5xx) → "Signature check unavailable"; catch (network/timeout)
+→ same. `collection.js` already cleared via `finally` (unchanged). Closes the Friday "flicker" item too.
+
+**Task 3 — grade CGC snap (🟡, "Defensive + store raw" per Mike).** KEY FINDING: the LIVE app.html
+path (`/api/grade` → `grading_engine.compute_grade` → `snap_to_cgc_grade`) ALREADY snaps and retains
+`raw_score`; the override's catch shows Error (no fallback), and grading.js's `/api/messages`
+comprehensive grade is overridden/unused by app.html. So no current live path can show 7.6 (the
+5-book grades 7.5/6.0/8.0/5.0 confirm). RESOLVED: the 7.6 was Mike's typo — a re-run displayed 7.5;
+production snapping confirmed working, drift hypothesis dead, repo read was correct. Final shape
+per Mike: (a) `api_grade` re-snaps `final_grade` via the canonical `snap_to_cgc_grade` (defensive
+belt-and-suspenders guard — kept), sets `raw_grade` = unsnapped weighted avg, logs both — the
+raw retention has real value for task-4 calibration. (b) the dead grading.js `/api/messages`
+comprehensive-grade path was DELETED (replaced with a no-op stub that points to /api/grade), NOT
+snapped client-side — confirmed app.html overrides `generateGradeReport` and nothing executes the
+stub's body (the step-skip caller at the old line 2050 resolves to the override). No duplicated
+grade list anywhere; valuation consumes the snapped `final_grade` (app.html + grading.js paths).
+(c) app.html `saveToCollection` sends `raw_grade`. Verified snap: 7.6→7.5, 7.74→7.5, 8.1→8.0,
+7.75→8.0 (ties round UP), 0.7→0.5; Python↔JS parity confirmed. NOTE: raw is currently retained via
+server LOG + response + save payload; DB persistence of `raw_grade` needs a column (follow-up — not
+done, to avoid an unscoped migration).
+
+**Task 4 — calibration tooling + protocol proposal (🟡, measure-don't-fix).** `test_haiku_vs_sonnet.py`
+and `test_grading_consistency.py` moved off the retired `claude-sonnet-4-20250514` onto `models.py`
+`get_model()` tiers (single source of truth — no future retired-string drift). No prompt changes.
+**Proposed measurement protocol for the Sonnet-4.6 grade-lean hypothesis (Mike's call to run):**
+  1. Priors = grades already stored in the collection DB (NOT memory). Pull N≥20 books with a stored
+     grade + their 4 photos (R2 URLs).
+  2. Re-grade each on the current `sonnet` tier (4.6) via `/api/grade` (or the pinned script), 3 runs
+     each, recording BOTH snapped `final_grade` and `raw_grade` (raw avoids snap-quantization masking
+     the lean).
+  3. Report delta distribution: `raw_grade − stored_prior` per book — mean, median, stdev, histogram.
+     A consistent +0.3..+0.7 mean across the upright control set ⇒ confirms the ~half-step lean.
+  4. THEN (separate decision) calibrate via a prompt nudge or a post-hoc offset; re-measure.
+
+**Task 5 — eBay 401 on load (🟢).** `checkEbayConnection` (`js/app.js`) called `/api/ebay/status`
+(which is `@require_auth`) with no token → 401 on every load. Now skips when no `cc_token` and sends
+`Authorization: Bearer` when present.
+
+### Verification
+- Task 1: Flask/Werkzeug 3.1.3 test — field @500 KB → 413 (repro), field @25 MB → 200 (safety net),
+  file part @500 KB → 200 (primary fix bypasses the limit). py_compile + `node --check` all green.
+- Task 3: `snap_to_cgc_grade` unit cases + JS parity (above).
+- Tasks 2/5: client-side, reviewed (no browser/API here); 4: scripts compile, retired string gone.
+- Verification agent (code-reviewer): no critical/important regressions. Latent note (resize assumes
+  JPEG bare-base64 — true for all callers; clarified in docstring). Pre-existing (NOT this batch):
+  `parse_multi_run_responses` bare `json.loads` → one bad pass 500s the whole multi-run (no partial
+  fallback); worth a separate fix.
+
+### Deploy / watch list for Mike
+- **Cloudflare Pages purge is LOAD-BEARING:** `js/utils.js`, `js/grading.js`, `js/app.js`, `app.html`
+  all changed — frontend must redeploy + cache purge or the 413/spinner/snap/eBay fixes won't ship.
+- Render backend: `wsgi.py` (form limit), `routes/grading.py`, `routes/signature_orchestrator.py`.
+- Correction to Part B note: app.html DOES use `/api/grade` (its inline override) — `/api/grade` is
+  NOT dead. (Part B's "dead" note was from grepping only `js/`, missing app.html's inline script.)
+- Post-deploy watch: real sig-check on the failing covers (Amethyst/Micronauts/Invaders) → 200, not
+  413; grade displays an on-scale number; no `/api/ebay/status` 401 in console on load.
+- Follow-ups surfaced (NOT this batch): persist `raw_grade` to DB (column); `parse_multi_run_responses`
+  partial-failure handling; `/api/grade` dead-code cleanup is moot (it's live).
+
+---
+
 ## Session 95 (Jun 7, 2026) — Batch 4 Part B: grading-input orientation pipeline
 
 Items 1+2 of Batch 4. Protocol: reproduce → fix → verify → verification agent → STOP (NOT

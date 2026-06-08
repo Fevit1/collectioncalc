@@ -324,9 +324,49 @@ function getSignatureConfidenceColor(confidence) {
  * @param {object} metadata - Optional: { publisher, title, year }
  * @returns {object} V2 API response with top5, flags, stability_scores, etc.
  */
+/**
+ * Resize a base64 image to a bounded long edge and return a JPEG Blob.
+ * The signature image must be sent as a FILE part, not a multipart text field:
+ * Werkzeug caps non-file form fields at max_form_memory_size (~500 KB) and 413s a
+ * full-res cover, and the server reads request.files["image"]. 1568px is
+ * Anthropic's vision long-edge cap, so no model-visible detail is lost.
+ * @param {string} base64 - a data: URL, or BARE base64 which is assumed JPEG
+ *   (all current callers store JPEG via canvas.toDataURL('image/jpeg')).
+ * @returns {Promise<Blob>}
+ */
+function resizeBase64ToJpegBlob(base64, maxEdge = 1568, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                let width = img.width, height = img.height;
+                const longEdge = Math.max(width, height);
+                if (longEdge > maxEdge) {
+                    const s = maxEdge / longEdge;
+                    width = Math.round(width * s);
+                    height = Math.round(height * s);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                canvas.toBlob(
+                    (blob) => blob ? resolve(blob) : reject(new Error('toBlob returned null')),
+                    'image/jpeg', quality
+                );
+            } catch (e) { reject(e); }
+        };
+        img.onerror = () => reject(new Error('Image decode failed'));
+        img.src = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+    });
+}
+
 async function identifySignaturesV2(imageB64, metadata = {}) {
     const formData = new FormData();
-    formData.append('image', imageB64);
+    // Send the cover as a resized FILE part (see resizeBase64ToJpegBlob) — a raw
+    // base64 text field 413s at Werkzeug's form-memory limit.
+    const imageBlob = await resizeBase64ToJpegBlob(imageB64);
+    formData.append('image', imageBlob, 'cover.jpg');
     if (metadata.publisher) formData.append('publisher', metadata.publisher);
     if (metadata.title) formData.append('title', metadata.title);
     if (metadata.year) {

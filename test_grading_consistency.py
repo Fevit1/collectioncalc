@@ -315,6 +315,7 @@ def test_live_consistency(image_path=None, num_runs=5):
     prompt = build_grading_prompt("Test Comic", "1", "Unknown", ["Front Cover"])
 
     client = anthropic.Anthropic(api_key=api_key)
+    from models import get_model  # canonical model tier (single source of truth)
     all_grades = []
     all_scores = []
 
@@ -323,7 +324,7 @@ def test_live_consistency(image_path=None, num_runs=5):
 
     for i in range(num_runs):
         response = client.messages.create(
-            model='claude-sonnet-4-20250514',
+            model=get_model('sonnet'),  # canonical tier from models.py (no retired string)
             max_tokens=2048,
             temperature=0,
             messages=[{
