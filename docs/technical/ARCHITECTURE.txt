@@ -119,7 +119,7 @@ what it's for, which module(s) read it, and what happens if it's unset.
 
 | Var | Purpose | Read by | If unset |
 |-----|---------|---------|----------|
-| `EBAY_CLIENT_ID` | eBay app Client ID (App ID). Also read as `EBAY_APP_ID` alias in `slab_premium_analysis.py`. | `ebay_oauth.py:104/138/184`, `slab_premium_analysis.py:18` | eBay OAuth + listing + premium analysis fail. |
+| `EBAY_CLIENT_ID` | eBay app Client ID (App ID). | `ebay_oauth.py:104/138/184` | eBay OAuth + listing fail. |
 | `EBAY_CLIENT_SECRET` | eBay app Client Secret (Cert ID). | `ebay_oauth.py:139/185` | eBay OAuth token exchange/refresh fails. |
 | `EBAY_RUNAME` | eBay OAuth RuName (redirect identifier). | `ebay_oauth.py:105/140` | OAuth authorize/redirect fails. |
 | `EBAY_SANDBOX` | Toggle eBay sandbox vs production (`'true'/'1'/'yes'`). | `ebay_oauth.py:88` | Defaults to production (falsey = live eBay). |
