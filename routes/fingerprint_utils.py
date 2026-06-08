@@ -149,37 +149,55 @@ def preprocess_for_fingerprint(img):
 # photos (screenshot thumbnails, shaky blurs) without rejecting imperfect
 # convention-floor shots. When in doubt, let Claude try.
 
-GRADE_QUALITY_MIN_DIMENSION = 400   # Block: smaller than 400px on shortest side
-GRADE_QUALITY_MIN_BLUR = 60         # Block: Laplacian variance < 60 (extremely blurry)
+# Batch 7: purpose-specific resolution floors. Grading needs detail to see
+# corners/edges/surface; extraction only needs to READ cover text (title/issue/
+# year), which is legible at far lower resolution. A single shared 400px floor
+# was rejecting legible eBay covers (e.g. 394×572) before the vision model was
+# ever called. Blur is shared (only catches truly unusable shots).
+GRADE_QUALITY_MIN_DIMENSION = 400     # grading: needs detail for defects
+EXTRACT_QUALITY_MIN_DIMENSION = 250   # extraction: only needs to read cover text
+GRADE_QUALITY_MIN_BLUR = 60           # Block: Laplacian variance < 60 (extremely blurry)
 
 
-def check_photo_quality_base64(base64_data):
+def check_photo_quality_base64(base64_data, purpose='grade'):
     """
-    Quick technical quality check for grading photos (base64 input).
-    Checks resolution and blur before sending to Claude Vision.
+    Quick technical quality check for a photo (base64 input). Checks resolution
+    and blur before sending to Claude Vision.
+
+    Args:
+        base64_data: base64-encoded image
+        purpose: 'grade' (default, strict — defect grading needs detail) or
+                 'extract' (lenient — only needs to read cover text). Picks the
+                 resolution floor; blur is shared.
 
     Returns dict:
-        ok (bool): True if photo is usable, False if it should be retaken
-        message (str): User-facing problem description (empty if ok)
-        tip (str): Actionable advice for retaking (empty if ok)
+        ok (bool): True if photo is usable for `purpose`
+        message (str): user-facing problem description (empty if ok)
+        tip (str): actionable advice (empty if ok)
+        width/height (int|None): measured dimensions, so callers can build a
+            purpose-specific message without re-decoding the image
     """
     import base64 as b64lib
     from io import BytesIO
 
-    # Never block grading on a check error — fail open
+    min_dim = EXTRACT_QUALITY_MIN_DIMENSION if purpose == 'extract' else GRADE_QUALITY_MIN_DIMENSION
+
+    # Never block on a check error — fail open
     try:
         img_bytes = b64lib.b64decode(base64_data)
         img_pil = Image.open(BytesIO(img_bytes)).convert('RGB')
         img_pil = auto_orient_pil(img_pil)
         width, height = img_pil.size
 
-        # ── Resolution check ──
-        if min(width, height) < GRADE_QUALITY_MIN_DIMENSION:
-            return {
-                'ok': False,
-                'message': f'Photo is too small ({width}×{height}px) — the AI needs more detail to grade accurately.',
-                'tip': 'Use your phone camera at full resolution. Avoid screenshots or cropped thumbnails.'
-            }
+        # ── Resolution check (purpose-specific floor) ──
+        if min(width, height) < min_dim:
+            if purpose == 'extract':
+                message = f'This photo is too small to read the cover ({width}×{height}px).'
+                tip = 'Upload a larger, full-resolution image — avoid tiny thumbnails.'
+            else:
+                message = f"This photo's too small for an accurate grade ({width}×{height}px) — upload a larger one for grading."
+                tip = 'Use your phone camera at full resolution. Avoid screenshots or cropped thumbnails.'
+            return {'ok': False, 'message': message, 'tip': tip, 'width': width, 'height': height}
 
         # ── Blur check (Laplacian variance via OpenCV) ──
         try:
@@ -193,13 +211,14 @@ def check_photo_quality_base64(base64_data):
             if blur_score < GRADE_QUALITY_MIN_BLUR:
                 return {
                     'ok': False,
-                    'message': 'Photo is too blurry — defects may not be visible to the AI.',
-                    'tip': 'Hold your phone steady, tap the cover to focus, and make sure the lighting is good.'
+                    'message': 'Photo is too blurry — text and defects may not be visible to the AI.',
+                    'tip': 'Hold your phone steady, tap the cover to focus, and make sure the lighting is good.',
+                    'width': width, 'height': height
                 }
         except ImportError:
             pass  # OpenCV not available — skip blur check, fail open
 
-        return {'ok': True, 'message': '', 'tip': ''}
+        return {'ok': True, 'message': '', 'tip': '', 'width': width, 'height': height}
 
     except Exception:
-        return {'ok': True, 'message': '', 'tip': ''}  # Fail open on any error
+        return {'ok': True, 'message': '', 'tip': '', 'width': None, 'height': None}  # Fail open

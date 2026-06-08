@@ -1789,7 +1789,13 @@
         async function extractComicData(dataUrl) {
             const progressText = document.getElementById('uploadProgressText');
             const generateBtn = document.getElementById('generateReportBtn');
-            
+
+            // Batch 7: default "couldn't auto-identify" copy, overridden with the
+            // backend's REAL reason (e.g. "photo too small to read the cover") when
+            // the failure is a quality rejection rather than a genuine no-read.
+            let extractFailHeadline = '⚠️ Could not identify comic automatically';
+            let extractFailSubtext = 'Enter the details below for accurate grading &amp; valuation';
+
             try {
                 // Show simple extracting state
                 progressText.innerHTML = `<span class="loading-dots">Extracting metadata...</span>`;
@@ -1818,16 +1824,18 @@
                     })
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`API returned ${response.status}`);
+                // Read the body even on a non-200 so we can surface the backend's
+                // real reason (Batch 7 — stop swallowing the specific error).
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    if (data.quality_issue || data.quality_fail) {
+                        extractFailHeadline = '⚠️ ' + (data.quality_message || data.error || "This photo can't be used");
+                        if (data.tip) extractFailSubtext = data.tip;
+                    }
+                    throw new Error(data.error || `API returned ${response.status}`);
                 }
-                
-                const data = await response.json();
-                
-                if (!data.success) {
-                    throw new Error(data.error || 'Extraction failed');
-                }
-                
+
                 // Store extracted data in gradingState
                 window.gradingState.extractedData = data.extracted;
                 
@@ -1938,8 +1946,8 @@
                 // Show inline edit form so user can enter comic details
                 progressText.innerHTML = `
                     <div style="text-align: center;">
-                        <div style="color: #f59e0b; margin-bottom: 8px;">⚠️ Could not identify comic automatically</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Enter the details below for accurate grading &amp; valuation</div>
+                        <div style="color: #f59e0b; margin-bottom: 8px;">${extractFailHeadline}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">${extractFailSubtext}</div>
                     </div>
                     <div id="editExtractedForm" style="display: block; margin-top: 4px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
                         <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
@@ -2297,9 +2305,15 @@
                     })
                 });
 
+                // Batch 7: read the response body ONCE and reuse it across the
+                // limit / quality / error / success branches — a Response body
+                // can only be consumed once (the prior code read it twice on a
+                // non-limit 429, losing the real error).
+                const body = await response.json().catch(() => ({}));
+
                 // Check for monthly grading limit
                 if (response.status === 429) {
-                    const limitData = await response.json().catch(() => ({}));
+                    const limitData = body;
                     if (limitData.error === 'monthly_limit') {
                         // Show limit reached UI instead of error
                         const resultsScreen = document.getElementById('resultsScreen');
@@ -2333,11 +2347,39 @@
                 }
 
                 if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
+                    const errData = body;
+                    // Batch 7: the book already identified (extraction passed at the
+                    // lenient floor), but this photo is below the GRADING floor.
+                    // Tell the user honestly — do NOT grade at unreliable quality and
+                    // do NOT show a scary "Error/Failed".
+                    if (response.status === 400 && (errData.quality_fail || errData.quality_issue)) {
+                        clearInterval(loadingInterval);
+                        if (reportLoading) reportLoading.style.display = 'none';
+                        if (gradeHero) gradeHero.style.display = 'flex';
+                        if (defectsSection) defectsSection.style.display = 'block';
+                        const ed = window.gradingState.extractedData || {};
+                        const ct = document.getElementById('resultComicTitle');
+                        const cm = document.getElementById('resultComicMeta');
+                        if (ct) ct.textContent = `${ed.title || 'Unknown'} #${ed.issue || '?'}`;
+                        if (cm) cm.textContent = [ed.publisher, ed.year].filter(Boolean).join(' • ');
+                        const gnum = document.getElementById('resultGradeNumber');
+                        const glabel = document.getElementById('resultGradeLabel');
+                        if (gnum) gnum.textContent = '—';
+                        if (glabel) glabel.textContent = 'Photo too small';
+                        const dgrid = document.getElementById('resultDefectsGrid');
+                        if (dgrid) dgrid.innerHTML =
+                            `<p style="color:#f59e0b; grid-column:1/-1;">${errData.error || "This photo's too small for an accurate grade."}</p>` +
+                            (errData.tip ? `<p style="color: var(--text-muted); margin-top:0.5rem; grid-column:1/-1;">${errData.tip}</p>` : '');
+                        const vbadge = document.getElementById('resultVerdictBadge');
+                        const vtag = document.getElementById('resultVerdictTagline');
+                        if (vbadge) { vbadge.textContent = 'NEEDS A LARGER PHOTO'; vbadge.className = 'verdict-badge'; }
+                        if (vtag) vtag.textContent = 'We identified the comic, but need a larger photo to grade it accurately.';
+                        return;
+                    }
                     throw new Error(errData.error || `API returned ${response.status}`);
                 }
 
-                const result = await response.json();
+                const result = body;
 
                 if (result.error) {
                     throw new Error(result.error);

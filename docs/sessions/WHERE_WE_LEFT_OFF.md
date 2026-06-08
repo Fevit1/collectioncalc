@@ -1,5 +1,52 @@
 # Where We Left Off - Jun 8, 2026
 
+## Session 99 (Jun 8, 2026) — Batch 7: decouple quality gates + surface real errors
+
+**STATUS: code complete, verified, NOT committed.** Files: `routes/fingerprint_utils.py`,
+`routes/grading.py`, `app.html`. Mike runs all git/deploy/purge (L-SW-2026-001).
+
+**Root cause recap (DO's prior trace):** Giant-Size X-Men #1 = a 394×572 eBay cover hit the
+pre-vision quality gate (`GRADE_QUALITY_MIN_DIMENSION=400`) and was rejected by 6px — vision model
+never called — and the frontend showed a generic "Could not identify comic automatically." Confirmed
+from `request_logs`: most recent `/api/extract` = HTTP 400 "Photo is too small (394×572px)".
+
+**Task 1 — decouple the gate by purpose (🔴).** `check_photo_quality_base64(base64_data, purpose='grade')`
+now takes a purpose: `extract` uses a lenient floor (`EXTRACT_QUALITY_MIN_DIMENSION=250`), `grade`
+keeps the strict `400`. Also returns measured `width`/`height`. `/api/extract` passes `purpose='extract'`;
+`/api/messages` + `/api/grade` pass `purpose='grade'`. Verified with a real 394×572 JPEG: **extract
+ok=True, grade ok=False** with message "This photo's too small for an accurate grade (394×572px)…"; a
+140×200 image still fails extract. So a legible eBay cover now identifies the book but is correctly
+held back from grading.
+
+**Task 2 — honest grade-time UX (🟡).** When `/api/grade` returns 400 `quality_fail`, app.html now shows
+an amber "we identified the comic, but need a larger photo to grade it accurately" state (with the book
+title from `extractedData` + the backend's tip), instead of a red "Error/Failed". Does NOT grade at
+unreliable quality. Check lives at grade-time using the gate's dimension data (grade endpoints now also
+return `width`/`height`).
+
+**Task 3 — stop swallowing the real error (🟡).** `extractComicData` previously threw on `!response.ok`
+before reading the body, so quality rejections showed the generic line. Now it reads the body first and,
+when `quality_issue`/`quality_fail` is set, surfaces the backend's real `quality_message` + `tip`.
+(Same swallowed-error pattern fixed in signup/Batch 6.)
+
+**Bonus fix (from review):** the grade flow read the Response body twice on a non-`monthly_limit` 429
+(body can only be consumed once → real error lost). Restructured to read the body ONCE and reuse it
+across the limit/quality/error/success branches.
+
+**Verification:** real-image gate test (above); `node` syntax check of app.html inline scripts (0
+errors); `py_compile` clean. code-reviewer agent: the double-read was the one critical item — **fixed**;
+scopes/field-names/floors confirmed correct. Noted latent (accepted, not active): backend quality
+strings are interpolated into innerHTML — currently server-static (dimensions + fixed tips), no
+user-input path; revisit if message text ever includes user content.
+
+### Open / watch after deploy (Batch 7)
+- **Purge IS load-bearing** — `app.html` changed (Tasks 2 & 3). Deploy (backend: fingerprint_utils,
+  grading) + purge (frontend).
+- Headline live check: re-run the 394px Giant-Size X-Men #1 cover → should now **identify** (reach the
+  vision model, return a title); a genuinely small cover → identifies, then at grade shows the honest
+  "too small to grade — upload larger" message; a true quality reject → shows the precise backend
+  message + tip, not the generic line.
+
 ## Session 98 (Jun 8, 2026) — Batch 5: valuation date-filter fix + confidence-labeling audit
 
 **STATUS: code complete, verified read-only against prod corpus, NOT committed.** One file:

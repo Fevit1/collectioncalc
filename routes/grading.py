@@ -144,9 +144,12 @@ def api_extract():
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
     
-    # Photo quality gate — catch blurry/tiny photos before Claude API call
+    # Photo quality gate — catch tiny/blurry photos before Claude API call.
+    # Batch 7: extraction only needs to READ the cover, so use the lenient
+    # 'extract' floor (legible eBay covers ~394px must pass here; the stricter
+    # grading floor is applied later at /api/grade).
     from routes.fingerprint_utils import check_photo_quality_base64
-    quality = check_photo_quality_base64(image_data)
+    quality = check_photo_quality_base64(image_data, purpose='extract')
     if not quality['ok']:
         return jsonify({
             'success': False,
@@ -204,12 +207,15 @@ def api_messages():
                 if block.get('type') == 'image' and block.get('source', {}).get('type') == 'base64':
                     image_data = block['source'].get('data', '')
                     if image_data:
-                        quality = check_photo_quality_base64(image_data)
+                        # Batch 7: grading keeps the strict floor (purpose='grade').
+                        quality = check_photo_quality_base64(image_data, purpose='grade')
                         if not quality['ok']:
                             return jsonify({
                                 'error': quality['message'],
                                 'quality_fail': True,
-                                'tip': quality['tip']
+                                'tip': quality['tip'],
+                                'width': quality.get('width'),
+                                'height': quality.get('height')
                             }), 400
                         break  # Only check first image — rest are same session photos
             break  # Only need to check first message block
@@ -389,12 +395,16 @@ def api_grade():
     for img in images:
         b64 = img.get('base64', '')
         if b64:
-            quality = check_photo_quality_base64(b64)
+            # Batch 7: grading keeps the strict resolution floor (defects need
+            # detail) — explicit purpose for clarity vs the lenient extract path.
+            quality = check_photo_quality_base64(b64, purpose='grade')
             if not quality['ok']:
                 return jsonify({
                     'error': quality['message'],
                     'quality_fail': True,
-                    'tip': quality['tip']
+                    'tip': quality['tip'],
+                    'width': quality.get('width'),
+                    'height': quality.get('height')
                 }), 400
             break  # Only check first image
 
