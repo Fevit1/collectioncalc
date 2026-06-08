@@ -165,12 +165,29 @@ def validate_beta_code(code):
         
         if beta_code['expires_at'] and beta_code['expires_at'] < datetime.utcnow():
             return {'success': False, 'error': 'This beta code has expired'}
-        
-        return {
+
+        result = {
             'success': True,
             'code': code,
-            'note': beta_code['note']
         }
+
+        # Batch 6: waitlist-invite codes carry the invited address in their note
+        # (set by /api/admin/waitlist/invite as "Waitlist invite: <email>").
+        # Surface ONLY the parsed invite email so the signup form can pre-fill +
+        # lock the field instead of asking the invited user to retype the address
+        # they already confirmed. We deliberately do NOT return the raw `note` —
+        # this endpoint is unauthenticated, and notes can hold the invited email
+        # or internal admin remarks that shouldn't be exposed. `email_verified`
+        # is computed server-side so the "verified" indicator can't be spoofed.
+        note = beta_code['note'] or ''
+        _invite_prefix = 'Waitlist invite: '
+        if note.startswith(_invite_prefix):
+            invite_email = note[len(_invite_prefix):].strip().lower()
+            if invite_email:
+                result['invite_email'] = invite_email
+                result['email_verified'] = _is_waitlist_confirmed(invite_email)
+
+        return result
     finally:
         cur.close()
         conn.close()

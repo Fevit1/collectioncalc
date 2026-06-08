@@ -201,6 +201,30 @@
             font-weight: 600;
         }
 
+        .email-verified-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 999px;
+            vertical-align: middle;
+        }
+
+        .email-verified-note {
+            margin: 6px 0 0;
+            font-size: 0.78rem;
+            opacity: 0.7;
+        }
+
+        input[readonly] {
+            opacity: 0.85;
+            cursor: not-allowed;
+        }
+
         .btn {
             width: 100%;
             padding: 14px 24px;
@@ -503,8 +527,9 @@
                         <input type="text" id="signupDisplayName" placeholder="What should we call you?" maxlength="100">
                     </div>
                     <div class="form-group">
-                        <label for="signupEmail">Email</label>
+                        <label for="signupEmail">Email <span id="emailVerifiedBadge" class="email-verified-badge" style="display:none;">✓ Verified</span></label>
                         <input type="email" id="signupEmail" placeholder="you@example.com" required>
+                        <p id="emailVerifiedNote" class="email-verified-note" style="display:none;"><span id="emailVerifiedNoteText"></span> To use a different one, <a href="#" onclick="unlockSignupEmail(event)">change it</a>.</p>
                     </div>
                     <div class="form-group">
                         <label for="signupPhone">Phone <span style="font-weight: normal; opacity: 0.5; font-size: 0.8em;">(optional)</span></label>
@@ -746,6 +771,14 @@
                 if (data.success) {
                     // Store code and show signup
                     document.getElementById('signupBetaCode').value = code;
+                    // Batch 6: a waitlist-invite code carries the invited address;
+                    // pre-fill + lock the email so we don't ask them to retype the
+                    // address they already confirmed.
+                    if (data.invite_email) {
+                        lockSignupEmail(data.invite_email, !!data.email_verified);
+                    } else {
+                        clearSignupEmailLock();
+                    }
                     showPanel('signupPanel');
                 } else {
                     showMessage('betaMessage', data.error || 'Invalid beta code');
@@ -758,9 +791,45 @@
             }
         }
 
+        // Batch 6: pre-fill + lock the signup email for waitlist invites.
+        function lockSignupEmail(email, verified) {
+            const input = document.getElementById('signupEmail');
+            input.value = email;
+            input.readOnly = true;
+            document.getElementById('emailVerifiedBadge').style.display = verified ? 'inline-block' : 'none';
+            // Only claim "you confirmed" when the server actually verified it;
+            // an invited-but-unconfirmed email gets neutral wording.
+            document.getElementById('emailVerifiedNoteText').textContent = verified
+                ? "This is the email you confirmed — we've got you."
+                : "This is the email from your invite.";
+            document.getElementById('emailVerifiedNote').style.display = 'block';
+        }
+
+        function clearSignupEmailLock() {
+            const input = document.getElementById('signupEmail');
+            input.readOnly = false;
+            input.value = '';
+            document.getElementById('emailVerifiedBadge').style.display = 'none';
+            document.getElementById('emailVerifiedNote').style.display = 'none';
+        }
+
+        // Escape hatch: let the user opt out of the locked address if they
+        // genuinely need to sign up with a different email. Drops the
+        // pre-verify benefit (server will require normal verification), which
+        // is correct — they're no longer using the confirmed address.
+        function unlockSignupEmail(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('signupEmail');
+            input.readOnly = false;
+            input.value = '';
+            input.focus();
+            document.getElementById('emailVerifiedBadge').style.display = 'none';
+            document.getElementById('emailVerifiedNote').style.display = 'none';
+        }
+
         async function handleSignup(event) {
             event.preventDefault();
-            
+
             const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value;
             const confirm = document.getElementById('signupConfirm').value;

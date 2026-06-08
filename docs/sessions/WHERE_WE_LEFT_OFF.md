@@ -38,6 +38,20 @@ On failure: returns `email_send_failed=True` + honest message (account still cre
 which now also surfaces failures). Failures persisted to a new `email_send_failures` table (lazy-created
 once/process) + `logger.error` instead of bare `print`.
 
+**Task 4 — pre-fill + lock email for waitlist invites (🟡, Mike add-on).** The Create Account form asked
+invited users to retype the email they'd already confirmed (felt like "they forgot me"; let them type a
+DIFFERENT address than the one verified). **Plumbing required** — the verified email wasn't available to
+the form (beta codes aren't email-bound; `/api/beta/validate` returned no email). Fix: waitlist-invite
+codes already store `note = "Waitlist invite: <email>"` (`/api/admin/waitlist/invite`), so
+`validate_beta_code` now parses that and returns `invite_email` + a **server-computed** `email_verified`
+(= `_is_waitlist_confirmed`, can't be spoofed client-side). `login.html` pre-fills + locks (`readOnly`)
+`#signupEmail`, shows a "✓ Verified" badge (only when server says so), with a **"change it" escape hatch**
+(opting out drops pre-verify — correct, it's no longer the confirmed address). Field kept (it's account
+identity), not removed. ⚠️ Privacy fix from review: `validate_beta_code` **no longer returns the raw
+`note`** (unauthenticated endpoint; note holds the invited email / internal admin remarks). Note wording
+gated on `email_verified` so an invited-but-unconfirmed email doesn't falsely read "you confirmed."
+Optional follow-up (NOT done): add `?code=...` to the invite link ([admin_routes.py:925](../../routes/admin_routes.py)) so users don't hand-type the code.
+
 **Verification.** Throwaway harness exercised all four signup paths (confirmed-waitlist → no email +
 auto-login + approved; unconfirmed-waitlist → normal verify; never-waitlisted+beta → normal verify +
 approved; send-fail → honest flag, no token) — all assertions passed. code-reviewer agent: **no critical
