@@ -15,6 +15,7 @@ from decimal import Decimal
 from flask import Blueprint, jsonify, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from title_matching import qualifier_title_clause, compose_qualified_title
 
 # Create blueprint
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
@@ -145,6 +146,7 @@ def api_sales_valuation():
     """
     title = request.args.get('title', '').strip()
     issue = request.args.get('issue', '').strip()
+    issue_type = request.args.get('issue_type', '').strip()  # Batch 8: series-type qualifier
     grade = request.args.get('grade', type=float)
     days = request.args.get('days', 365, type=int)
 
@@ -165,6 +167,14 @@ def api_sales_valuation():
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
         cur = conn.cursor()
 
+        # Batch 8: qualifier-precise title match (shared helper). A qualified
+        # query ("Giant-Size X-Men") matches only its own rows; a plain query
+        # ("X-Men") excludes Giant-Size/Annual/Special. Per-table column sets.
+        ebay_title_sql, ebay_title_params = qualifier_title_clause(
+            'canonical_title', ['parsed_title'], title, issue_type)
+        market_title_sql, market_title_params = qualifier_title_clause(
+            'canonical_title', ['title', 'series'], title, issue_type)
+
         # ---------- EBAY: graded sales for this title ----------
         # Batch 5: filter on the actual SALE date, not created_at (the capture
         # timestamp). created_at goes empty during a capture stall and silently
@@ -184,14 +194,9 @@ def api_sales_valuation():
         """
         ebay_graded_params = [days]
 
-        # Prefer canonical_title match, fall back to LIKE
-        ebay_graded_query += """
-              AND (
-                  LOWER(canonical_title) = LOWER(%s)
-                  OR LOWER(parsed_title) LIKE LOWER(%s)
-              )
-        """
-        ebay_graded_params.extend([title, f'%{title}%'])
+        # Batch 8: qualifier-precise title match (was canonical=OR parsed LIKE)
+        ebay_graded_query += f" AND {ebay_title_sql}"
+        ebay_graded_params.extend(ebay_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             ebay_graded_query += " AND issue_number = %s"
@@ -212,12 +217,10 @@ def api_sales_valuation():
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
               AND LOWER(raw_title) NOT LIKE '%%bundle%%'
-              AND (
-                  LOWER(canonical_title) = LOWER(%s)
-                  OR LOWER(parsed_title) LIKE LOWER(%s)
-              )
         """
-        ebay_raw_params = [days, title, f'%{title}%']
+        # Batch 8: qualifier-precise title match
+        ebay_raw_query += f" AND {ebay_title_sql}"
+        ebay_raw_params = [days] + list(ebay_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             ebay_raw_query += " AND issue_number = %s"
@@ -234,13 +237,10 @@ def api_sales_valuation():
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
-              AND (
-                  LOWER(canonical_title) = LOWER(%s)
-                  OR LOWER(title) LIKE LOWER(%s)
-                  OR LOWER(series) LIKE LOWER(%s)
-              )
         """
-        market_graded_params = [days, title, f'%{title}%', f'%{title}%']
+        # Batch 8: qualifier-precise title match
+        market_graded_query += f" AND {market_title_sql}"
+        market_graded_params = [days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_graded_query += " AND (issue = %s OR issue = %s)"
@@ -257,13 +257,10 @@ def api_sales_valuation():
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
-              AND (
-                  LOWER(canonical_title) = LOWER(%s)
-                  OR LOWER(title) LIKE LOWER(%s)
-                  OR LOWER(series) LIKE LOWER(%s)
-              )
         """
-        market_raw_params = [days, title, f'%{title}%', f'%{title}%']
+        # Batch 8: qualifier-precise title match
+        market_raw_query += f" AND {market_title_sql}"
+        market_raw_params = [days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_raw_query += " AND (issue = %s OR issue = %s)"
@@ -526,6 +523,7 @@ def api_sales_fmv():
     """
     title = request.args.get('title', '')
     issue = request.args.get('issue', '')
+    issue_type = request.args.get('issue_type', '').strip()  # Batch 8: series-type qualifier
     # Batch 5: default lookback widened 90 -> 180 days. Now that the window
     # filters on actual sale date (not capture time), 90 days of true sales is
     # sparser; 180 keeps tier sample sizes healthy without reaching into stale
@@ -565,23 +563,26 @@ def api_sales_fmv():
         conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
         cur = conn.cursor()
 
+        # Batch 8: qualifier-precise title match (shared helper). fmv column sets
+        # add raw_title to the LIKE fallback vs the valuation endpoint.
+        fmv_ebay_title_sql, fmv_ebay_title_params = qualifier_title_clause(
+            'canonical_title', ['parsed_title', 'raw_title'], title, issue_type)
+        fmv_market_title_sql, fmv_market_title_params = qualifier_title_clause(
+            'canonical_title', ['title', 'series', 'raw_title'], title, issue_type)
+
         # Query 1: market_sales (Whatnot data)
         # Filter out reprints if barcode detected them
         # Batch 5: filter on actual sale date (sold_at), fallback to created_at
         # when NULL — created_at alone ages out the corpus during capture stalls.
-        market_query = """
+        market_query = f"""
             SELECT grade, price, 'whatnot' as source
             FROM market_sales
-            WHERE (
-                LOWER(title) LIKE LOWER(%s)
-                OR LOWER(series) LIKE LOWER(%s)
-                OR LOWER(raw_title) LIKE LOWER(%s)
-            )
+            WHERE {fmv_market_title_sql}
             AND price > 0
             AND (is_reprint IS NULL OR is_reprint = false)
             AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
         """
-        market_params = [f'%{title}%', f'%{title}%', f'%{title}%', days]
+        market_params = list(fmv_market_title_params) + [days]
 
         if issue:
             market_query += " AND (issue = %s OR issue = %s)"
@@ -592,13 +593,11 @@ def api_sales_fmv():
 
         # Query 2: ebay_sales (eBay Collector data)
         # Filter out facsimiles, lots, bundles, reprints, and very low prices
-        ebay_query = """
+        # Batch 8: qualifier-precise title match (replaces the parsed/raw LIKE pair).
+        ebay_query = f"""
             SELECT grade, sale_price as price, 'ebay' as source
             FROM ebay_sales
-            WHERE (
-                LOWER(parsed_title) LIKE LOWER(%s)
-                OR LOWER(raw_title) LIKE LOWER(%s)
-            )
+            WHERE {fmv_ebay_title_sql}
             AND sale_price > 5
             AND (is_reprint IS NULL OR is_reprint = false)
             AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
@@ -614,7 +613,7 @@ def api_sales_fmv():
             AND LOWER(parsed_title) NOT LIKE '%%set of%%'
             AND LOWER(raw_title) NOT LIKE '%%bundle%%'
         """
-        ebay_params = [f'%{title}%', f'%{title}%', days]
+        ebay_params = list(fmv_ebay_title_params) + [days]
 
         if issue:
             ebay_query += " AND issue_number = %s"

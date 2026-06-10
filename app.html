@@ -1785,6 +1785,29 @@
             img.style.transform = transforms[orientation] || 'none';
         }
         
+        // Batch 8: mirror server-side compose_qualified_title for DISPLAY only
+        // (matching/valuation composition is server-side). Giant-Size/King-Size
+        // are prefixes; Annual/Special are suffixes; Regular/"" = bare title.
+        function composeQualifiedTitle(title, issueType) {
+            title = (title || '').trim();
+            const it = (issueType || '').trim();
+            if (!it || it.toLowerCase() === 'regular') return title;
+            const lower = it.toLowerCase();
+            if (['giant-size', 'giant size', 'king-size', 'king size'].includes(lower)) {
+                return `${it} ${title}`.trim();
+            }
+            return `${title} ${it}`.trim();
+        }
+
+        // Batch 8: escape model-derived (AI-read) values before innerHTML
+        // interpolation — safe for BOTH text and attribute (value="...") contexts.
+        // The bundled escapeHtml() does not encode quotes, which attributes need.
+        function escAttr(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // Extract comic data from front cover
         async function extractComicData(dataUrl) {
             const progressText = document.getElementById('uploadProgressText');
@@ -1848,7 +1871,7 @@
                 // Create display with inline edit icon next to title
                 progressText.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span id="extractedDisplay">✓ Identified: ${title} #${issue}</span>
+                        <span id="extractedDisplay">✓ Identified: ${escAttr(composeQualifiedTitle(title, data.extracted.issue_type))} #${escAttr(issue)}</span>
                         <span onclick="showEditForm()" title="Edit details" style="
                             color: var(--brand-purple);
                             cursor: pointer;
@@ -1860,7 +1883,7 @@
                     <div id="editExtractedForm" style="display: none; margin-top: 12px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
                         <div style="margin-bottom: 8px;">
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title</label>
-                            <input type="text" id="editTitle" value="${title}" style="
+                            <input type="text" id="editTitle" value="${escAttr(title)}" style="
                                 width: 100%;
                                 background: var(--bg-primary);
                                 border: 1px solid rgba(99, 102, 241, 0.3);
@@ -1872,7 +1895,7 @@
                         </div>
                         <div style="margin-bottom: 8px;">
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
-                            <input type="text" id="editIssue" value="${issue}" style="
+                            <input type="text" id="editIssue" value="${escAttr(issue)}" style="
                                 width: 100%;
                                 background: var(--bg-primary);
                                 border: 1px solid rgba(99, 102, 241, 0.3);
@@ -1884,7 +1907,7 @@
                         </div>
                         <div style="margin-bottom: 8px;">
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
-                            <input type="text" id="editPublisher" value="${publisher}" style="
+                            <input type="text" id="editPublisher" value="${escAttr(publisher)}" style="
                                 width: 100%;
                                 background: var(--bg-primary);
                                 border: 1px solid rgba(99, 102, 241, 0.3);
@@ -1896,7 +1919,7 @@
                         </div>
                         <div style="margin-bottom: 12px;">
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
-                            <input type="text" id="editYear" value="${year}" style="
+                            <input type="text" id="editYear" value="${escAttr(year)}" style="
                                 width: 100%;
                                 background: var(--bg-primary);
                                 border: 1px solid rgba(99, 102, 241, 0.3);
@@ -2052,7 +2075,7 @@
             if (title) {
                 progressText.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span id="extractedDisplay">✓ ${title} #${issue || '?'}</span>
+                        <span id="extractedDisplay">✓ ${escAttr(title)} #${escAttr(issue || '?')}</span>
                         <span onclick="showExtractEditAgain()" title="Edit details" style="
                             color: var(--brand-purple);
                             cursor: pointer;
@@ -2079,21 +2102,21 @@
                     <div style="display: grid; grid-template-columns: 1fr 80px; gap: 8px; margin-bottom: 8px;">
                         <div>
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title *</label>
-                            <input type="text" id="editTitle" value="${ed.title || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            <input type="text" id="editTitle" value="${escAttr(ed.title)}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
                         </div>
                         <div>
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
-                            <input type="text" id="editIssue" value="${ed.issue || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            <input type="text" id="editIssue" value="${escAttr(ed.issue)}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 8px;">
                         <div>
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
-                            <input type="text" id="editPublisher" value="${ed.publisher || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            <input type="text" id="editPublisher" value="${escAttr(ed.publisher)}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
                         </div>
                         <div>
                             <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
-                            <input type="text" id="editYear" value="${ed.year || ''}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            <input type="text" id="editYear" value="${escAttr(ed.year)}" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -2360,7 +2383,7 @@
                         const ed = window.gradingState.extractedData || {};
                         const ct = document.getElementById('resultComicTitle');
                         const cm = document.getElementById('resultComicMeta');
-                        if (ct) ct.textContent = `${ed.title || 'Unknown'} #${ed.issue || '?'}`;
+                        if (ct) ct.textContent = `${composeQualifiedTitle(ed.title || 'Unknown', ed.issue_type)} #${ed.issue || '?'}`;
                         if (cm) cm.textContent = [ed.publisher, ed.year].filter(Boolean).join(' • ');
                         const gnum = document.getElementById('resultGradeNumber');
                         const glabel = document.getElementById('resultGradeLabel');
@@ -2409,7 +2432,7 @@
                 // Display comic info
                 const comicTitle = document.getElementById('resultComicTitle');
                 const comicMeta = document.getElementById('resultComicMeta');
-                if (comicTitle) comicTitle.textContent = `${result.title || 'Unknown'} #${result.issue || '?'}`;
+                if (comicTitle) comicTitle.textContent = `${composeQualifiedTitle(result.title || 'Unknown', window.gradingState.extractedData?.issue_type)} #${result.issue || '?'}`;
                 if (comicMeta) comicMeta.textContent = [result.publisher, result.year].filter(Boolean).join(' \u2022 ');
 
                 // Display cover thumbnail
@@ -2528,6 +2551,9 @@
                 const params = new URLSearchParams({
                     title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
                     issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
+                    // Batch 8: send the qualifier separately; the server composes the
+                    // qualified identity and matches precisely (title stays bare here).
+                    issue_type: gradeResult.issue_type || window.gradingState.extractedData?.issue_type || '',
                     grade: gradeResult.final_grade || '5.0',
                     publisher: gradeResult.publisher || window.gradingState.extractedData?.publisher || '',
                     year: gradeResult.year || window.gradingState.extractedData?.year || ''
