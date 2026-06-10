@@ -32,6 +32,7 @@ _cleanup_trash/
 # Local config
 config.local.py
 secrets.py
+.env
 
 # API keys, tokens, passwords - catch any file with these in the name
 *API_KEY*
