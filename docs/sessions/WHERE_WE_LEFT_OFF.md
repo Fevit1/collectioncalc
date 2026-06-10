@@ -1,5 +1,65 @@
 # Where We Left Off - Jun 8, 2026
 
+## Session 100 (Jun 8, 2026) — Batch 8: series-type qualifier plumbing + qualifier-precise valuation matching
+
+**STATUS: code complete, WIRED + verified end-to-end, NOT committed (checkpoint hold for Mike's review).**
+Files: NEW `title_matching.py`; `routes/sales_valuation.py` (6 query sites + `issue_type` param, both
+endpoints); `app.html` (display composition + send `issue_type`); NEW `docs/technical/EXTRACTION_ROBUSTNESS_NOTES.md`.
+Mike runs all git/deploy/purge (L-SW-2026-001).
+
+**Problem:** qualifiers (Giant-Size/Annual/Special) read into `issue_type` but orphaned; display +
+`/api/sales/valuation` used bare `title`; and the `parsed_title LIKE` fallback BLENDED books (X-Men #1
+query mixed 1991 + 1963 + Giant-Size → one median). Corpus stores qualifiers cleanly in `canonical_title`
+('Giant-Size X-Men' = 112 rows) → app-side plumbing + matching precision, no backfill.
+
+**Solution — `title_matching.py` (single source of truth, no Flask dep):**
+- `compose_qualified_title(title, issue_type)` — **per-qualifier position**: Giant-Size/King-Size =
+  PREFIX, Annual/Special = SUFFIX. ("X-Men"+"Giant-Size"→"Giant-Size X-Men"; "Star Wars"+"Annual"→
+  "Star Wars Annual"; Regular/""→bare.)
+- `qualifier_title_clause(exact_col, like_cols, title, issue_type)` — exact normalized canonical match
+  OR a qualifier-GATED LIKE fallback. Qualified query requires its qualifier token; plain query excludes
+  ANY qualifier. Hyphen/space normalized on both sides (`coalesce→lower→hyphens→collapse`), so
+  'Giant-Size'≡'Giant Size'. **COALESCE null-safety** (caught at checkpoint — NULL canonical was silently
+  dropping legit plain rows; control fell 203→179, fixed → 203).
+
+**Wired:** server-side composition/matching in both endpoints (4 valuation queries + 2 fmv queries),
+`issue_type` request param on both. Frontend composes for DISPLAY only (`composeQualifiedTitle` JS mirror)
+and SENDS `issue_type` to valuation (title stays bare; server composes). `js/grading.js` legacy
+`calculateGradingRecommendation` is OVERRIDDEN by app.html inline (line 2212) — not plumbed (dead path).
+
+**Security fix (folded in per Mike, pre-public-signup):** the AI-read title/issue/publisher/year went into
+`innerHTML` UNescaped in the extraction-display flow (pre-existing; the line was touched here). Added an
+`escAttr()` helper (quote-safe for text AND `value="..."` attribute contexts — the bundled `escapeHtml`
+doesn't encode quotes) and applied it to all 10 sinks across both display templates (extract success +
+saveEdit/showExtractEditAgain). A crafted cover title (or user-typed title) can no longer inject HTML.
+
+**Verification (read-only RO replica + WIRED endpoints via Flask-stub):**
+
+| key | OLD n / median | NEW n / median | wired valuation graded_fmv | wired fmv raw |
+|---|---|---|---|---|
+| Giant-Size X-Men #1 | 629 / **$40** | 141 / **$1,500** | **$2,150** | **$1,633** |
+| X-Men #1 (plain) | 629 / $40 | 481 / $25 | $750 | $52 |
+| Spider-Gwen Annual #1 | 91 / $14.99 | 10 / $54.75 | — | — |
+| ASM #300 (CONTROL) | 203 / $360 | **203 / $360 ✅** | 205 (unchanged) | 208 (unchanged) |
+
+(OLD shows the bug: Giant-Size and plain X-Men were identical 629/$40 because both sent bare "X-Men".)
+
+**⚠️ KNOWN LIMITATION (logged per Mike):** the qualifier detector is a COARSE regex
+(`giant size|king size|annual|special`). A real series literally named with one of those words (e.g.
+"Giant Days", a standalone "Special") could be over-excluded from an unrelated plain query. Control
+unchanged → not biting in practice; first place to look if a weird title misfires later.
+
+**Captured for the record (NOT this batch):** plain "X-Men #1" is STILL a year/edition blend (1963 key +
+1991 Jim Lee + editions share the exact title). Batch 8 fixed the QUALIFIER collision, not YEAR/EDITION.
+$25/$750 is not the final answer — next-layer disambiguation by year/era. Logged in
+[EXTRACTION_ROBUSTNESS_NOTES.md](../technical/EXTRACTION_ROBUSTNESS_NOTES.md).
+
+### Open / watch (Batch 8)
+- **Checkpoint hold:** verification agent + this writeup are the pre-commit review. Nothing committed.
+- **Purge IS load-bearing** — `app.html` changed. Deploy (backend: sales_valuation, title_matching) + purge.
+- Post-deploy: value Giant-Size X-Men #1 live → Bronze-key FMV with its own comps; plain X-Men #1 → no
+  Giant-Size; control ASM #300 → usual number.
+
 ## Session 99 (Jun 8, 2026) — Batch 7: decouple quality gates + surface real errors
 
 **STATUS: code complete, verified, NOT committed.** Files: `routes/fingerprint_utils.py`,
