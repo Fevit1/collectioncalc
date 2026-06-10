@@ -149,7 +149,8 @@ def get_user_plan(user_id):
         cur.execute("""
             SELECT plan, stripe_customer_id, stripe_subscription_id,
                    subscription_status, billing_period, current_period_end,
-                   valuations_this_month, valuations_reset_date
+                   valuations_this_month, valuations_reset_date,
+                   COALESCE(is_admin, FALSE)
             FROM users
             WHERE id = %s
         """, (user_id,))
@@ -169,10 +170,11 @@ def get_user_plan(user_id):
             'current_period_end': row[5].isoformat() if row[5] else None,
             'valuations_this_month': row[6] or 0,
             'valuations_reset_date': row[7].isoformat() if row[7] else None,
+            'is_admin': bool(row[8]),
         }
     except Exception as e:
         print(f"[Billing] Error getting user plan: {e}")
-        return {'plan': 'free', 'subscription_status': 'none'}
+        return {'plan': 'free', 'subscription_status': 'none', 'is_admin': False}
 
 
 def update_user_subscription(user_id, plan, stripe_customer_id=None,
@@ -214,18 +216,66 @@ def update_user_subscription(user_id, plan, stripe_customer_id=None,
         return False
 
 
+def _resolve_admin_view_as_tier():
+    """Admin-only 'view as tier' override for testing gated UX.
+
+    Reads the X-View-As-Tier request header (or ?view_as= query param) and
+    returns a normalized, KNOWN tier string (a PLANS key), else None. The
+    caller MUST confirm the account is_admin before honoring this — a non-admin
+    can never set their own effective tier, so this can only ever REDUCE an
+    admin's access, never escalate anyone's.
+    """
+    try:
+        raw = request.headers.get('X-View-As-Tier') or request.args.get('view_as')
+    except RuntimeError:
+        return None  # no request context (not expected for current callers)
+    if not raw:
+        return None
+    tier = raw.strip().lower()
+    return tier if tier in PLANS else None
+
+
 def check_feature_access(user_id, feature):
-    """Check if user's plan allows a specific feature"""
+    """Check if user's plan allows a specific feature.
+
+    Admin policy: admins get full access by DEFAULT ("Admin"). An admin may set
+    an X-View-As-Tier header (or ?view_as=) to EXPERIENCE a tier's gates instead
+    of bypassing — view_as=free shows the upgrade wall, view_as=dealer shows the
+    granted experience. Honored only for admins; simulates an *active*
+    subscription on the named tier so paid-tier gates are actually exercised.
+
+    NOTE: keep this admin-bypass in sync with get_signature_id_entitlement()
+    below, which uses the same is_admin short-circuit. The two drifting apart
+    (this one lacking the bypass) is exactly what caused the vision-gate bug.
+    """
     user_plan = get_user_plan(user_id)
     if not user_plan:
         return False, "User not found"
 
-    plan_key = user_plan['plan']
+    is_admin = bool(user_plan.get('is_admin'))
+    view_as = _resolve_admin_view_as_tier() if is_admin else None
+
+    # Admin, no override -> full access (the default).
+    if is_admin and not view_as:
+        return True, "Admin"
+
+    if view_as:
+        # Evaluate AS the chosen tier with a simulated active subscription.
+        plan_key = view_as
+        status = 'active'
+    else:
+        # Item 2: normalize, and surface (don't silence) unknown plan values.
+        plan_key = (user_plan['plan'] or 'free').strip().lower()
+        status = user_plan.get('subscription_status', 'none')
+        if plan_key not in PLANS:
+            print(f"[Billing] WARNING: unknown plan value "
+                  f"{user_plan['plan']!r} for user_id={user_id}; "
+                  f"falling back to 'free'")
+
     plan = PLANS.get(plan_key, PLANS['free'])
 
     # Check subscription is active (or free)
     if plan_key != 'free':
-        status = user_plan.get('subscription_status', 'none')
         if status not in ('active', 'trialing'):
             return False, "Subscription not active"
 
@@ -311,6 +361,8 @@ def get_signature_id_entitlement(user_id):
     status = row[1] or 'none'
     is_admin = bool(row[2])
 
+    # Mirrors the admin short-circuit in check_feature_access() above — keep the
+    # two in sync (their drift is what caused the vision-gate bug).
     if is_admin:
         return {'reason': 'ok', 'limit': -1, 'plan': plan_key, 'is_admin': True, 'message': 'Admin'}
 
