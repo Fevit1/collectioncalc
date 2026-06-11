@@ -1228,6 +1228,7 @@
                                 <span style="font-size: 0.75rem; color: var(--text-muted);">Data confidence: </span>
                                 <span id="resultConfidence" style="font-size: 0.75rem; font-weight: 600; display: none;"></span>
                             </div>
+                            <p id="resultVariantNote" class="result-note" style="display:none; text-align:center; color: var(--text-muted); font-size: 0.8rem; margin-top: 6px;"></p>
 
                             <!-- Category Scores Breakdown -->
                             <div class="category-scores-section" id="resultCategoryScores" style="display: none;">
@@ -2643,6 +2644,17 @@
                     confidenceEl.textContent = confLabels[confidence] || confidence;
                     confidenceEl.style.color = confColors[confidence] || 'var(--text-muted)';
                     confidenceEl.style.display = '';
+                }
+
+                // Conditional variant-exclusion disclosure (rides alongside confidence)
+                const variantNoteEl = document.getElementById('resultVariantNote');
+                if (variantNoteEl) {
+                    if (valData.variant_excluded && valData.variant_disclosure) {
+                        variantNoteEl.textContent = valData.variant_disclosure;
+                        variantNoteEl.style.display = '';
+                    } else {
+                        variantNoteEl.style.display = 'none';
+                    }
                 }
 
             } catch (error) {

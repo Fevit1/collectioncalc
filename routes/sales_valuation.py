@@ -129,6 +129,26 @@ def bootstrap_ci_median(values, n_iter=1000, ci=95):
     return round(medians[lo_idx], 2), round(medians[hi_idx], 2)
 
 
+def compute_variant_disclosure(base_count, excluded_variant_count,
+                               pct_threshold=30.0, min_excluded=3, min_total=5):
+    """Disclosure ABOUT the base-cover FMV — never changes the number itself.
+    Fires only when excluded variants are a material share AND the sample is big
+    enough that the % isn't thin-data noise (thin samples already read low via the
+    sample-size confidence score)."""
+    total = base_count + excluded_variant_count
+    pct = round(100.0 * excluded_variant_count / total, 1) if total else 0.0
+    fires = (total >= min_total and excluded_variant_count >= min_excluded
+             and pct >= pct_threshold)
+    return {
+        'variant_excluded': fires,
+        'variant_excluded_pct': pct,
+        'variant_excluded_count': excluded_variant_count,
+        'variant_disclosure': (
+            "Estimate reflects the standard cover; variant sales excluded."
+            if fires else None),
+    }
+
+
 @valuation_bp.route('/sales/valuation', methods=['GET'])
 def api_sales_valuation():
     """
@@ -181,7 +201,7 @@ def api_sales_valuation():
         # ages out the whole corpus. COALESCE keeps rows whose sale_date is NULL
         # by falling back to created_at (documented mixed-semantics fallback).
         ebay_graded_query = """
-            SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source
+            SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source, is_variant
             FROM ebay_sales
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -191,6 +211,13 @@ def api_sales_valuation():
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
               AND LOWER(raw_title) NOT LIKE '%%bundle%%'
+              AND LOWER(raw_title) NOT LIKE '%%complete set%%'
+              AND LOWER(raw_title) NOT LIKE '%%complete run%%'
+              AND LOWER(raw_title) NOT LIKE '%%full run%%'
+              AND LOWER(raw_title) NOT LIKE '%%all covers%%'
+              AND raw_title !~* '\\d+\\s+(extra|more)\\s+(book|comic|issue)s?'
+              AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d{2,4}'
+              AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
         ebay_graded_params = [days]
 
@@ -212,11 +239,19 @@ def api_sales_valuation():
             WHERE (graded = false OR graded IS NULL) AND sale_price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
+              AND (is_variant IS NULL OR is_variant = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
               AND LOWER(raw_title) NOT LIKE '%%bundle%%'
+              AND LOWER(raw_title) NOT LIKE '%%complete set%%'
+              AND LOWER(raw_title) NOT LIKE '%%complete run%%'
+              AND LOWER(raw_title) NOT LIKE '%%full run%%'
+              AND LOWER(raw_title) NOT LIKE '%%all covers%%'
+              AND raw_title !~* '\\d+\\s+(extra|more)\\s+(book|comic|issue)s?'
+              AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d{2,4}'
+              AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
         # Batch 8: qualifier-precise title match
         ebay_raw_query += f" AND {ebay_title_sql}"
@@ -231,7 +266,7 @@ def api_sales_valuation():
 
         # ---------- MARKET_SALES: graded ----------
         market_graded_query = """
-            SELECT grade, price, sold_at as sold_date, 'whatnot' as source
+            SELECT grade, price, sold_at as sold_date, 'whatnot' as source, is_variant
             FROM market_sales
             WHERE grade IS NOT NULL AND price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -256,6 +291,7 @@ def api_sales_valuation():
             WHERE (grade IS NULL) AND price > 1
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
+              AND (is_variant IS NULL OR is_variant = false)
               AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
         """
         # Batch 8: qualifier-precise title match
@@ -285,7 +321,11 @@ def api_sales_valuation():
         # ---------- Grade-specific analysis ----------
         # Group graded sales by grade
         grade_buckets = {}
+        excluded_variant_count = 0   # variants set aside from the comp pool (for disclosure only)
         for sale in all_graded:
+            if sale.get('is_variant'):
+                excluded_variant_count += 1
+                continue   # keep the priced pool to the standard cover (identical to Bucket 1)
             g = to_float(sale.get('grade'))
             p = to_float(sale.get('price'))
             if g > 0 and p > 0:
@@ -438,6 +478,8 @@ def api_sales_valuation():
 
         # ---------- Confidence score ----------
         total_graded = sum(len(v) for v in grade_buckets.values())
+        # Conditional variant-exclusion disclosure (does NOT change the FMV).
+        disclosure = compute_variant_disclosure(total_graded, excluded_variant_count)
         if exact_count >= 10:
             confidence = 'high'
         elif exact_count >= 3 or total_graded >= 10:
@@ -475,6 +517,12 @@ def api_sales_valuation():
             'graded_sample_size': exact_count,
             'graded_total_sales': total_graded,
             'fmv_method': fmv_method,
+
+            # Variant-exclusion disclosure ABOUT the base-cover number (FMV unchanged)
+            'variant_excluded': disclosure['variant_excluded'],
+            'variant_excluded_pct': disclosure['variant_excluded_pct'],
+            'variant_excluded_count': disclosure['variant_excluded_count'],
+            'variant_disclosure': disclosure['variant_disclosure'],
 
             'raw_fmv': raw_fmv,
             'raw_sample_size': raw_count,
@@ -580,6 +628,8 @@ def api_sales_fmv():
             WHERE {fmv_market_title_sql}
             AND price > 0
             AND (is_reprint IS NULL OR is_reprint = false)
+            AND (is_lot IS NULL OR is_lot = false)
+            AND (is_variant IS NULL OR is_variant = false)
             AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
         """
         market_params = list(fmv_market_title_params) + [days]
@@ -600,6 +650,7 @@ def api_sales_fmv():
             WHERE {fmv_ebay_title_sql}
             AND sale_price > 5
             AND (is_reprint IS NULL OR is_reprint = false)
+            AND (is_variant IS NULL OR is_variant = false)
             AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
             AND LOWER(parsed_title) NOT LIKE '%%facsimile%%'
             AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
