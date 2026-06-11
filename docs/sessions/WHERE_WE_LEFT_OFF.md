@@ -1,4 +1,29 @@
-# Where We Left Off - Jun 8, 2026
+# Where We Left Off - Jun 10, 2026
+
+## Session 101 (Jun 10, 2026) — Batch 8 shipped + vision-gate fix; capture resumed
+
+**Shipped + verified live:** (1) Vision-gate entitlement fix (`routes/billing.py`) — admin-default-bypass
+with `X-View-As-Tier`/`?view_as=` override + plan-string normalization/WARNING-log (root cause:
+`check_feature_access` ignored `is_admin`). Test accounts now exist: `test-pro/guard/dealer@slabworthy.test`
+(active tiers, non-admin). (2) **Batch 8** (Session 100 work) FINALLY committed + deployed — prod had been
+running pre-Batch-8 matching under the Batch 7 deploy. Verified live via the `issue_type` discriminator:
+plain "X-Men #1" ≈ $28 / 111 sales vs Giant-Size "X-Men #1" ≈ $5,345 / 128 sales (contamination gone).
+(3) Repo hygiene: `.gitignore` now ignores `.env`; dirty-tree docs committed.
+
+**CAPTURE STATE (corpus-growth assumption — keep current):** eBay capture has **resumed** (was stalled
+~Apr–May). Now running at **240 results/page** (was ~60 while signed out) ≈ **4× depth per pull**. Cumulative
+synced **~45K+**; net-new ~**70–75%** vs dupes per deep pull. So the corpus is growing again and denser per
+title — re-measure distribution fresh rather than reusing the ~6,357 queryable-graded-comps figure.
+
+**Confirmed (read-only):** core valuation flow (grade→value→verdict→save→collection) is corpus-powered via
+`/api/sales/valuation`; live `/api/valuate` only backs hidden `display:none` surfaces. Read-only DB access:
+`DATABASE_URL_RO` in `.env` (`do_readonly` role).
+
+**Queued next:** confidence-field inventory (`/api/sales/valuation` + `/api/sales/fmv` already return
+`confidence`/sample-size/`low_confidence`) → design the count-plus-dispersion High/Medium/Low label against
+the re-measured (denser) corpus. Parked: 240-capture confirmation, CP-2 billing E2E, mobile testing.
+
+---
 
 ## Session 100 (Jun 8, 2026) — Batch 8: series-type qualifier plumbing + qualifier-precise valuation matching
 
