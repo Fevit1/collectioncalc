@@ -14,6 +14,23 @@
 
 ---
 
+## 🚦 OPEN — LAUNCH-READINESS CAPTURE (Sessions 101–104)
+
+**Launch posture (decided):** public beta = **GATED / BATCHED** — keep `require_approved` + waitlist + beta codes, admit users in waves. **HARD gates:** billing end-to-end + valuation/identification honesty. Core-flow/mobile fixes are buffered by the gated intake (not hard blockers).
+
+- [ ] **1. Identification trustworthiness build** ⚠️ HARD GATE — **next session.** Extraction-flip to Sonnet tier + honesty gate, ship together. Full detail in P5 → Bugs to Fix and `docs/technical/IDENTIFICATION_FIX_PLAN_OF_RECORD.md`.
+- [ ] **2. CGC cost-sourcing investigation** (read-only, not yet started) — slab-ROI integrity. How does the slab-ROI calc source CGC grading costs — hardcoded, scraped, or DB table? Is the method robust or silently stale? Is it registered in `dependency_monitor.py`? Is the cost-**tier** selection correct for a book's value? (Relates to the parked "Automated CGC price checker" feature under P5, but this is the read-only audit of the *current* sourcing first.)
+- [ ] **3. Readiness pass — Sections C–F UN-RUN** ⚠️ — A–B done (decisions: gated/batched beta; identification = #1 gate). Remaining: **C** collection management, **D** tier gates, **E** billing end-to-end (the hard gate — ⚠️ Checkout footgun: `create-checkout` writes `stripe_customer_id` immediately; never run from a test account), **F** mobile + load.
+- [ ] **4. ID Sigs "messageToast is not defined"** ⚠️ LAUNCH-READINESS — surfaced after the R2 migration fixed its CORS/image-fetch. Open question: cosmetic toast break, or **masking** whether signature matching actually worked? Full detail in P5 → Bugs to Fix.
+- [ ] **5. Resilience gap (model audit, June 15)** — 8 of 12 model call sites pass static constants with NO `call_with_fallback` (Chrome vision, signature v1/v2, Slab Guard CV, eBay gen, admin); they'd break with no auto-fallback if a head model string retires. Harden later via `call_with_fallback`. Not urgent.
+
+### 🟡 Polish (grade-results / UX, captured Sessions 101–104)
+- [ ] Grade-results page shows "**Slab Worthy" twice** + a blank image area; **thumbs/comment appear before the grade returns** — move them to after the grade; consider dropping "add comment" (Feedback widget already exists).
+- [ ] **"Photo too small" error doesn't say WHICH photo** — name the offending photo (front/back/spine/centerfold).
+- [ ] **Duplicate "grade a comic" link** on the landing page — de-dupe.
+
+---
+
 ## ✅ DONE (Session 64-81)
 
 - [x] **Signature DB expanded 43 → 100 creators** — Session 86: Selected 57 new creators with weighted criteria + confusion risk screening. SQL migration, JSON entries, seed script, UI fix, verification queries all created. Pending: run migration on Render, then upload reference images via admin UI.
