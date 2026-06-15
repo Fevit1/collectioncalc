@@ -345,6 +345,7 @@
 - [x] ~~**Auto-rotation steps 2-4**~~ ✅ FIXED
 - [ ] **Single-page upload missing extraction** ⏱ 30 min — Front photo doesn't call API (needs verification)
 - [x] ~~**Cover not displaying**~~ ✅ FIXED — Iron Man #200 now showing
+- [ ] **ID Sigs: "messageToast is not defined"** ⚠️ LAUNCH-READINESS (Guard/Dealer paid feature) — Surfaced Session ~103 (June 15) *after* the R2 custom-domain migration fixed the ID Sigs CORS+503 image-fetch blocker. Flow now starts (shows "30-90 seconds" msg → image fetch succeeds), then throws a frontend `ReferenceError: messageToast is not defined` at the result/error DISPLAY step. Investigate (read-only first): (1) find the `messageToast` call site in the ID Sigs result-handling path (likely `js/collection.js` `handleCollectionIdentifySignatures` / the `/api/signatures/v2/match` response renderer) — typo for `showToast`/`toast`, function in an unloaded script, or scope issue? (2) **CRITICAL — does this mask the real result?** The error may fire on EITHER the success OR error toast, so we don't yet know if signature matching itself succeeded. Check the `/api/signatures/v2/match` network response: real 200 + signature data (→ cosmetic toast fix) or an error (→ deeper match problem). (3) Confirm scope: all tiers/all comics or specific. NOT launch-blocking like R2 was, but ID Sigs must work + display before launch.
 
 ### Features (Post-Launch)
 - [ ] **🃏 Baseball card vertical** ⏱ 3-5 sessions — TAM: 15-20M households, $2-13B market
