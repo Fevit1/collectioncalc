@@ -1,4 +1,41 @@
-# Where We Left Off - Jun 10, 2026
+# Where We Left Off - Jun 15, 2026
+
+## Session 104 (Jun 15, 2026) — R2 migration shipped; model audit; identification plan of record; Section C readiness
+
+**Back from Napa. Big day — multiple read-only briefs + one live migration (run by Mike). All work below is captured in `TODO.md` (🚦 launch-readiness section) and the `project_slabworthy_state.md` memory; this is the narrative.**
+
+### 1. R2 custom-domain migration — DONE & VERIFIED (Mike executed the runbook)
+- `img.slabworthy.com` attached to the bucket (Active, SSL auto-provisioned); bucket CORS policy added; `R2_PUBLIC_URL` flipped on Render to `https://img.slabworthy.com` (no trailing slash). Data rewrite ran on all 5 tables holding absolute `pub-c8c9…r2.dev` URLs (single prefix → clean REPLACE); straggler check = 0. Final counts: creator_signatures 1, collections 26 (jsonb), signature_images 207, market_sales 3,818, ebay_sales 50,493 (col = `r2_image_url`).
+- **VERIFIED LIVE:** covers load with `Cf-Cache-Status: HIT` (edge cache = the spike insurance is real). Old **ID Sigs CORS+503 image-fetch blocker is FIXED.**
+- **Ground-truth divergences:** Postgres is **PG 18.3** (not 16) → DBeaver's pg_dump 17 refused it, so the file-level dump was **skipped**; backup = in-DB snapshot tables only. **`_bak_*_20260615` tables STILL EXIST** (rollback source; drop after a few days clean). **No `.dump` file. r2.dev left ENABLED** as a safety net. Runbook committed: `docs/technical/R2_CUTOVER_RUNBOOK.md`.
+
+### 2. Model-string audit (Sonnet 4 retired June 15) — NO LIVE BREAK
+- All production call sites route through `models.py`. Grading + extraction's tier resolution use `call_with_fallback`; grading is on **`claude-sonnet-4-6`** (safe — NOT the retired `claude-sonnet-4-20250514`, which only survives in archived `.patch` files + comments). SW already migrated 2026-06-06; the dependency monitor caught it (it genuinely polls `deprecations.info` + emails on state-change).
+- **Resilience gap logged (not urgent):** 8 of 12 model call sites pass static constants (`model=SONNET`/`OPUS`/etc.) with NO fallback (Chrome vision, signature v1/v2, Slab Guard CV, eBay gen, admin) — they'd break with no auto-recovery if a head string retires. Harden later via `call_with_fallback`.
+
+### 3. Identification-honesty review → PLAN OF RECORD (build next session)
+- Full analysis: `docs/technical/IDENTIFICATION_HONESTY_REVIEW.md`. Plan: `docs/technical/IDENTIFICATION_FIX_PLAN_OF_RECORD.md` (both committed).
+- **Decision 1 — GLOBAL Sonnet extraction:** flip `comic_extraction.py:483` `'haiku'`→`'sonnet'` tier (use the TIER in the existing `call_with_fallback`, not a hardcoded string). Chosen over conditional re-read because the bench showed Haiku **fabricates confidently** (fake barcode 2/3; Sonnet empty 3/3) — a confidence-gated re-read can't catch errors Haiku never admits. Cost ~+1¢/call (~2.9× Haiku), accepted. Caveat: hard-case accuracy gain **inferred, not measured** (`haiku_vs_sonnet_results.json` had only easy books, both 100%).
+- **Decision 2 — Honesty gate (#1 launch fix, built regardless of model):** grade still shows (condition observable); **valuation + slab verdict HALT** on absent/low-confidence issue. Objective issue-confidence (`issue=='' ⇒ could_not_determine`; later barcode↔vision agreement — NOT model self-report). Frontend: drop "✓ Identified", show the already-built edit form by default, require issue, gate `/api/sales/valuation`; remove `|| '1'` default (`app.html` ~2554). Server belt: `/api/sales/valuation` must not blend-all-issues on empty issue (`sales_valuation.py` ~228). Ships as ONE change.
+- Key mechanism found: barcode-decoded issue is computed (`decode_barcode`) but the merge never writes it to `extracted['issue']` (`comic_extraction.py:663-681`) — parked writeback. Identification runs on Haiku while grading runs on Sonnet (the inversion that motivated Decision 1).
+
+### 4. TODO consolidation + launch posture
+- **Launch posture (recorded):** public beta = **GATED/BATCHED** (keep `require_approved` + waitlist + beta codes, admit in waves). HARD gates = billing E2E + valuation/identification honesty; core-flow/mobile buffered by gated intake.
+- TODO.md now has a single 🚦 launch-readiness section: identification build, CGC cost-sourcing investigation (read-only, not started), readiness D–F, ID Sigs, resilience gap, polish items.
+
+### 5. Section C readiness (collection mgmt) — run tonight
+- **ID SIGS SCOPE GREW (priority BUMPED):** earlier "cosmetic messageToast" framing was wrong. ID Sigs now throws **"Image decode failed" INSTANTLY on multiple comics** — dies UPSTREAM at the image fetch/decode. **Leading hypothesis:** `fetchImageAsBase64` (`js/utils.js:359` area) never checks `response.ok` → base64-encodes a non-image (error/403/redirect/empty) response → instant decode failure regardless of CORS. **Read-only investigation queued** (confirm response.ok gap + what the fetch returns now + whether it builds the right `img.slabworthy.com` URL). Guard/Dealer PAID feature → must work before those tiers launch.
+- **MUST-FIX before public:** DELETE (trash icon) has no confirmation/undo — data-loss trust-breaker (mobile mis-tap).
+- **DECISION:** comic detail view not built — row looks clickable but does nothing → reads "broken." Build it OR neutralize the affordance (min fix = stop implying it exists).
+- **Verified working:** covers, sort/filter/search, Slab Guard reg, eBay (saved-item) + Whatnot gen, Edit MY VAL. Readiness D (tier gates), E (billing — Checkout footgun), F (mobile+load) still UN-RUN.
+
+### NEXT SESSION — queued (Mike says go; Claude drafts, Mike runs all git/deploy)
+1. **Read-only ID Sigs fetch/decode investigation** — confirm the `response.ok` gap / URL construction; report before any fix.
+2. **Identification build** — draft extraction-flip (`comic_extraction.py:483`) + honesty gate as ONE file-specific diff for review.
+3. Other launch-readiness: CGC cost-sourcing investigation; DELETE-confirm; detail-view affordance; readiness D/E/F (careful with E — Checkout footgun); polish (Slab-Worthy-twice/blank-image/early-thumbs, "which photo", duplicate link); resilience hardening.
+- **Cleanup when confident:** drop `_bak_*_20260615` snapshot tables; optionally disable r2.dev.
+
+---
 
 ## Session 101 (Jun 10, 2026) — Batch 8 shipped + vision-gate fix; capture resumed
 
