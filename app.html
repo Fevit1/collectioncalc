@@ -1847,7 +1847,7 @@
                         media_type: mediaType
                     })
                 });
-                
+
                 // Read the body even on a non-200 so we can surface the backend's
                 // real reason (Batch 7 — stop swallowing the specific error).
                 const data = await response.json().catch(() => ({}));
@@ -2488,10 +2488,16 @@
                     await window.calculateGradingRecommendation(result);
                 }
 
-                // Check for signatures on front cover (runs in background, doesn't block)
-                if (window.gradingState.photos[1]) {
-                    runSignatureCheck(window.gradingState.photos[1]);
-                }
+                // Signature check is intentionally NOT auto-fired here. The
+                // post-grade fire-and-forget invocation was the contention source
+                // behind the re-grade hang and burned Opus (the app's most expensive
+                // call) on a feature that is still grayed-out / "coming soon", so the
+                // TRIGGER is disconnected. The machine is intact and ready for a
+                // deliberate, user-initiated path later: runSignatureCheck(), the
+                // gradeReportSignature/signatureInfo panel, signature_orchestrator.py
+                // and the whole v2 pipeline all remain. To re-enable as a user action,
+                // call runSignatureCheck(window.gradingState.photos[1]) from a
+                // "Check for signatures" control. See docs/technical/SIGNATURES_V2_DESIGN.md.
 
                 // Update grading usage counter
                 if (result.grading_usage) {
