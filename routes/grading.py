@@ -180,9 +180,10 @@ def api_extract():
     result = extract_from_base64(image_data, media_type, photo_type)
     
     if result.get('success'):
-        # Extraction runs on the haiku tier (comic_extraction.call_with_fallback);
-        # log the actual model, not SONNET.
-        log_api_usage(g.user_id, '/api/extract', get_model('haiku'),
+        # Extraction runs on the sonnet tier (comic_extraction.call_with_fallback);
+        # log the actual model so per-extract cost attribution stays accurate after
+        # the 2026-06-16 haiku→sonnet identification flip.
+        log_api_usage(g.user_id, '/api/extract', get_model('sonnet'),
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
     
     return jsonify(result)

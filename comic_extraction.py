@@ -481,7 +481,7 @@ def _run_vision_pass(b64: str, media_type: str):
     extract_from_base64 so the 180 deg fallback can re-run JUST this pass."""
     import re
     response = call_with_fallback(
-        _client, 'haiku',
+        _client, 'sonnet',
         max_tokens=1000,
         temperature=0,
         messages=[{
