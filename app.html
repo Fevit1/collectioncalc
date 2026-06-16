@@ -1864,92 +1864,46 @@
                 window.gradingState.extractedData = data.extracted;
                 
                 // Update progress text with comic info and edit button
-                const title = data.extracted.title || 'Unknown';
-                const issue = data.extracted.issue || '?';
+                const title = data.extracted.title || '';
+                const issue = data.extracted.issue || '';
                 const publisher = data.extracted.publisher || '';
                 const year = data.extracted.year || '';
-                
-                // Create display with inline edit icon next to title
+
+                // Always-visible, pre-filled identification panel. We deliberately
+                // DROP the "✓ Identified" checkmark — it told users "don't look".
+                // Editable fields signal "check this" without nagging: if the read
+                // is right the user just proceeds; if wrong they fix it inline.
+                // Whatever sits here at grade time is what we grade AND price
+                // (syncIdentityFields pulls it in — no Save click required). Issue
+                // is NOT defaulted: empty stays empty so the valuation honesty gate
+                // can refuse to price an unknown issue instead of fabricating one.
                 progressText.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span id="extractedDisplay">✓ Identified: ${escAttr(composeQualifiedTitle(title, data.extracted.issue_type))} #${escAttr(issue)}</span>
-                        <span onclick="showEditForm()" title="Edit details" style="
-                            color: var(--brand-purple);
-                            cursor: pointer;
-                            font-size: 11px;
-                            opacity: 0.7;
-                            transition: opacity 0.2s;
-                        " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✏️</span>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px; text-align: center;">
+                        Confirm the book below — we grade and price exactly what's here.
                     </div>
-                    <div id="editExtractedForm" style="display: none; margin-top: 12px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title</label>
-                            <input type="text" id="editTitle" value="${escAttr(title)}" style="
-                                width: 100%;
-                                background: var(--bg-primary);
-                                border: 1px solid rgba(99, 102, 241, 0.3);
-                                border-radius: 4px;
-                                padding: 8px;
-                                color: white;
-                                font-size: 14px;
-                            ">
+                    <div id="editExtractedForm" style="display: block; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 90px; gap: 8px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Title</label>
+                                <input type="text" id="editTitle" value="${escAttr(title)}" placeholder="e.g. Amazing Spider-Man" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
+                                <input type="text" id="editIssue" value="${escAttr(issue)}" placeholder="#" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            </div>
                         </div>
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Issue #</label>
-                            <input type="text" id="editIssue" value="${escAttr(issue)}" style="
-                                width: 100%;
-                                background: var(--bg-primary);
-                                border: 1px solid rgba(99, 102, 241, 0.3);
-                                border-radius: 4px;
-                                padding: 8px;
-                                color: white;
-                                font-size: 14px;
-                            ">
+                        <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
+                                <input type="text" id="editPublisher" value="${escAttr(publisher)}" placeholder="e.g. Marvel" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
+                                <input type="text" id="editYear" value="${escAttr(year)}" placeholder="1985" style="width:100%;background:var(--bg-primary);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:8px;color:white;font-size:14px;">
+                            </div>
                         </div>
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Publisher</label>
-                            <input type="text" id="editPublisher" value="${escAttr(publisher)}" style="
-                                width: 100%;
-                                background: var(--bg-primary);
-                                border: 1px solid rgba(99, 102, 241, 0.3);
-                                border-radius: 4px;
-                                padding: 8px;
-                                color: white;
-                                font-size: 14px;
-                            ">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">Year</label>
-                            <input type="text" id="editYear" value="${escAttr(year)}" style="
-                                width: 100%;
-                                background: var(--bg-primary);
-                                border: 1px solid rgba(99, 102, 241, 0.3);
-                                border-radius: 4px;
-                                padding: 8px;
-                                color: white;
-                                font-size: 14px;
-                            ">
-                        </div>
-                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                            <button type="button" onclick="cancelEdit()" style="
-                                background: rgba(255,255,255,0.1);
-                                border: 1px solid rgba(255,255,255,0.2);
-                                color: rgba(255,255,255,0.8);
-                                border-radius: 4px;
-                                padding: 8px 16px;
-                                font-size: 13px;
-                                cursor: pointer;
-                            ">Cancel</button>
-                            <button type="button" onclick="saveEdit()" style="
-                                background: var(--brand-purple);
-                                border: none;
-                                color: white;
-                                border-radius: 4px;
-                                padding: 8px 16px;
-                                font-size: 13px;
-                                cursor: pointer;
-                                font-weight: 500;
-                            ">✓ Save</button>
+                        <div style="font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 6px;">
+                            Issue # is needed to price the book. Leave it blank only if you don't know it — we'll still grade it, but we won't guess a value.
                         </div>
                     </div>
                 `;
@@ -2155,9 +2109,14 @@
             const progressBar = document.getElementById('uploadProgressBar');
             const warning = document.getElementById('uploadWarning');
             
-            // Don't overwrite extraction message (if it contains "Identifying" or "Identified")
-            if (!progressText.textContent.includes('Identifying') && 
-                !progressText.textContent.includes('Identified') && 
+            // Don't overwrite the identification panel once extraction has
+            // populated it. The panel no longer carries an "Identified" string to
+            // key on (the editable form replaced the checkmark), so key on the
+            // form element itself; keep the legacy text checks for the in-progress
+            // "Identifying…" / failure states.
+            if (!document.getElementById('editExtractedForm') &&
+                !progressText.textContent.includes('Identifying') &&
+                !progressText.textContent.includes('Identified') &&
                 !progressText.textContent.includes('Could not identify')) {
                 progressText.textContent = `${uploadCount} of 4 photos uploaded`;
             }
@@ -2218,6 +2177,23 @@
             };
         }
         
+        // Pull the always-visible identification panel into extractedData so
+        // whatever the user sees/edits is exactly what we grade and price — no
+        // Save click required. Issue is intentionally NOT defaulted: an empty
+        // field stays empty so the valuation honesty gate can refuse to price an
+        // unknown issue rather than silently picking issue 1 / blending the title.
+        function syncIdentityFields() {
+            if (!window.gradingState.extractedData) return;
+            const t = document.getElementById('editTitle');
+            const i = document.getElementById('editIssue');
+            const p = document.getElementById('editPublisher');
+            const y = document.getElementById('editYear');
+            if (t) window.gradingState.extractedData.title = t.value.trim();
+            if (i) window.gradingState.extractedData.issue = i.value.trim();
+            if (p) window.gradingState.extractedData.publisher = p.value.trim();
+            if (y) window.gradingState.extractedData.year = y.value.trim() ? parseInt(y.value.trim()) : null;
+        }
+
         // app.html's standalone grading flow — posts to /api/grade, which grades
         // and snaps to the CGC scale server-side. Overrides grading.js's stub.
         window.generateGradeReport = async function() {
@@ -2285,6 +2261,11 @@
                     }
                 });
                 
+                // Honesty: whatever is in the (always-visible) identification panel
+                // is the source of truth — pull it in now so edits flow to BOTH the
+                // grade request and the valuation, with no Save click required.
+                syncIdentityFields();
+
                 // Get comic info from extractedData
                 const title = window.gradingState.extractedData?.title || 'Unknown';
                 const issue = window.gradingState.extractedData?.issue || '?';
@@ -2548,10 +2529,19 @@
                 const token = localStorage.getItem('cc_token');
                 if (!token) return;
 
+                // No issue fallback to '1'/'?': an unknown issue must reach the
+                // server AS empty so the valuation honesty gate refuses to price it.
+                // A default would silently price issue 1 (or, with no filter, blend
+                // the whole title) and report a confident-but-fabricated FMV. '?' is
+                // the app's own unknown-issue sentinel — normalize it (and the
+                // null/undefined strings) to empty here.
+                const rawIssue = (gradeResult.issue || window.gradingState.extractedData?.issue || '').toString().trim();
+                const valIssue = ['?', 'null', 'undefined', 'none'].includes(rawIssue.toLowerCase()) ? '' : rawIssue;
+
                 // Build valuation API URL with query parameters
                 const params = new URLSearchParams({
                     title: gradeResult.title || window.gradingState.extractedData?.title || 'Unknown',
-                    issue: gradeResult.issue || window.gradingState.extractedData?.issue || '1',
+                    issue: valIssue,
                     // Batch 8: send the qualifier separately; the server composes the
                     // qualified identity and matches precisely (title stays bare here).
                     issue_type: gradeResult.issue_type || window.gradingState.extractedData?.issue_type || '',
@@ -2575,6 +2565,25 @@
                 }
 
                 const valData = await response.json();
+
+                // Honesty gate (server belt): the server refused to price because the
+                // issue is unknown. The grade is already rendered and stays; we just
+                // do NOT fabricate an FMV/verdict — show "—" and prompt for the issue.
+                if (valData.issue_required) {
+                    const rawFmvEl = document.getElementById('resultRawFmv');
+                    const slabbedFmvEl = document.getElementById('resultSlabbedFmv');
+                    const netRoiEl = document.getElementById('resultNetRoi');
+                    if (rawFmvEl) rawFmvEl.textContent = '—';
+                    if (slabbedFmvEl) slabbedFmvEl.textContent = '—';
+                    if (netRoiEl) { netRoiEl.textContent = '—'; netRoiEl.className = 'val-amount'; }
+                    const verdictBadge = document.getElementById('resultVerdictBadge');
+                    const verdictTagline = document.getElementById('resultVerdictTagline');
+                    if (verdictBadge) { verdictBadge.textContent = 'ISSUE # NEEDED'; verdictBadge.className = 'verdict-badge'; }
+                    if (verdictTagline) verdictTagline.textContent =
+                        "We couldn't confirm the issue number, so we're not guessing a value. Add the issue # above and grade again for pricing.";
+                    return;
+                }
+
                 if (!valData.success) {
                     console.error('Valuation API error:', valData.error);
                     return;

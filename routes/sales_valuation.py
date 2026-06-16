@@ -179,6 +179,20 @@ def api_sales_valuation():
     if len(title) < 3 or re.match(r'^[\d\s$#%.,]+$', title):
         return jsonify({'success': False, 'error': 'Invalid title'}), 400
 
+    # Honesty gate (server belt — non-negotiable backstop). Without a known issue,
+    # the per-table queries below simply OMIT the issue filter and blend EVERY
+    # issue of the title into one confident FMV. Refuse to price instead: the
+    # client shows the grade and an editable issue field. The signal is OBJECTIVE
+    # (issue empty/sentinel ⇒ unknown), never model self-report — a weak extractor
+    # reports confident-wrong, so self-report is untrustworthy. '?' is the app's
+    # own unknown-issue sentinel; treat it (and the null/undefined strings) as empty.
+    if not issue or issue in ('null', 'undefined', 'None', '?'):
+        return jsonify({
+            'success': False,
+            'issue_required': True,
+            'error': 'Issue number needed to price this comic'
+        }), 200
+
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
