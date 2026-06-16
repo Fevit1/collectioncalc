@@ -1,4 +1,33 @@
-# Where We Left Off - Jun 15, 2026
+# Where We Left Off - Jun 16, 2026
+
+## Session 105 (Jun 16, 2026) — Identification fix SHIPPED; signature auto-fire removed (re-grade hang gone); Commit 2 resilience queued
+
+**Built draft-for-review; Mike ran all git/deploy/purge/smoke-test. Read LESSONS + cross-project at open.**
+
+### 1. Identification trustworthiness — SHIPPED & VERIFIED LIVE (the #1 launch gate)
+- **Extraction flip (Haiku→Sonnet):** `comic_extraction.py` `_run_vision_pass` tier `'haiku'`→`'sonnet'`; the `/api/extract` cost-log model label moved with it (`routes/grading.py` → `get_model('sonnet')`) so per-extract cost attribution stays accurate. **VERIFIED:** Sonnet reads **Absolute Batman #19** (title no longer truncated, issue correct) and **Atari Force #4** (was #2 under Haiku) where Haiku failed.
+- **Honesty gate:** always-visible, pre-filled, editable ID field (Title/Issue/Publisher/Year) replaces the "✓ Identified" checkmark; new `syncIdentityFields()` flows edits into both the grade request and valuation with NO Save click; removed the `|| '1'` issue default; client maps `'?'`/null/undefined → empty. **Server belt:** `/api/sales/valuation` returns `{issue_required:true}` (HTTP 200, no FMV) on empty/sentinel issue instead of omitting the issue filter and blending all issues into one confident FMV. Grade still shows; FMV/ROI render "—", verdict "ISSUE # NEEDED". Happy path verified on **mobile** (Atari Force #4 → editable field pre-filled → real valuation).
+
+### 2. Signature auto-fire REMOVED — re-grade hang ROOT-CAUSED & FIXED
+- **Read-only investigation (multi-round; the test beat the first trace):** the "re-submit identical photos → spins ~5 min → 'Could not identify'" bug was **NOT** image-identity/dedup. The extract path is stateless on content; moderation (Rekognition, no cache) and image-hash logging ruled out. **Root cause:** every successful grade auto-fired `runSignatureCheck` fire-and-forget → the v2 **Opus** orchestration (3 sequential passes, already serialized for a rate-limit constraint). Resubmitting identical photos = the *fastest possible next grade* → its extract fired while the prior grade's Opus job was still consuming the Anthropic rate budget → backoff (extract client had no timeout/retries, fetch had no AbortController) → ~5 min → `APITimeoutError`, mislabeled "Could not identify." A *different* second comic is slower to set up, so its job had finished — which is why A→B worked but B→B-resubmit hung. **Wait-test confirmed:** grade B, wait ~10 min, resubmit identical → WORKS.
+- **Fix (Commit 1, `app.html` only): disconnected the post-grade auto-fire call.** Surgical — `runSignatureCheck`, the `gradeReportSignature`/`signatureInfo` panel, `signature_orchestrator.py`, the entitlement gate, and `routes/signatures.py` are ALL preserved (ready for a user-initiated control later). **VERIFIED LIVE:** quick re-grade no longer hangs.
+- **Blast radius confirmed:** the Opus job runs only for **Guard/Dealer/admin** (Free/Pro get an instant entitlement 403 — zero Opus work). Mike's account triggered it as **admin**. Normal Free/Pro users would never hit the hang.
+
+### 3. Docs + read-only findings
+- **`docs/technical/SIGNATURES_V2_DESIGN.md` — committed.** Deferred signature design: decoupled (collection-based) user-initiated delivery; **detection gate** (mirror `routes/signatures.py` Step-1 "no signatures detected" → abstain at 0 — the REAL false-positive fix + a cost saver, NOT abstain-on-zero-prefilter); confidence-verify UX; tier-gated visibility; threshold alignment (frontend 0.40 → server floor 0.50); multi-sig later.
+- **Signature false positive** (Alex Ross on unsigned Absolute Batman #19) root-caused: the v2 orchestrator has no "is a signature visually present?" step (pre-filter is era/publisher *creator* narrowing, not detection), and the frontend show-threshold (0.40) sits below the server's honest match floor (0.50) → 0.40–0.50 "tentative named artist" band renders as "Signature Detected." Both captured in the v2 doc.
+- **Year/edition is NOT in the valuation comp-query key** — `/api/sales/valuation` filters on title+issue+issue_type only; `year` affects only the CGC fee tier + the no-data fallback estimate, never comp selection. Same root as X-Men #1 edition blending. Architecture item, post-launch.
+
+### PENDING — Commit 2 (extraction resilience), QUEUED next session
+- Currently **OUT of the working tree** (Mike took Commit 1 alone first). Re-apply next session for review: `comic_extraction.py` client `timeout=30.0, max_retries=1`; `app.html` `/api/extract` AbortController (75s) + honest "Our identifier is busy right now" copy on backend-timeout/abort (not "Could not identify"). Insurance against future contention/load now the auto-fire source is gone — **not urgent.** Mike reviews → commit → deploy → purge → verify a forced timeout fails cleanly in ~30-60s with the honest message.
+
+### NEXT SESSION — queued
+1. **Re-apply Commit 2** (resilience) draft-for-review.
+2. Launch-readiness still open: readiness D (tier gates) / E (billing — ⚠️ Checkout footgun) / F (mobile+load) UN-RUN; DELETE-confirm must-fix; comic-detail-view decision; admin Feedback comment truncation; CGC cost-sourcing investigation; ID Sigs image fetch/decode bug (separate from the hang — still open); year/edition comp-key gap (post-launch).
+3. Signatures v2 build when authorized (see design doc).
+- **Cleanup when confident:** drop `_bak_*_20260615` snapshot tables; optionally disable r2.dev.
+
+---
 
 ## Session 104 (Jun 15, 2026) — R2 migration shipped; model audit; identification plan of record; Section C readiness
 
