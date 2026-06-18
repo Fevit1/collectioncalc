@@ -507,7 +507,19 @@ function displaySignatureIdentifyResults(result, container) {
  * Used by collection page to convert R2 photo URLs.
  */
 async function fetchImageAsBase64(url) {
-    const response = await fetch(url);
+    let response;
+    try {
+        response = await fetch(url);
+    } catch (e) {
+        // Network/CORS failure — fetch rejects before any response.
+        throw new Error("Couldn't load image (network error)");
+    }
+    // Guard the status. Without this, a non-200 (403/404/expired R2 URL) body was
+    // read as a data-URI → garbage base64 → server "Image decode failed". Fail
+    // honestly so the caller can show a real "couldn't load image" message.
+    if (!response.ok) {
+        throw new Error(`Couldn't load image (HTTP ${response.status})`);
+    }
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
