@@ -11,7 +11,17 @@ from models import call_with_fallback
 
 try:
     import anthropic
-    _client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+    # Resilience layer (Commit 2): bound every extraction call so a slow/overloaded
+    # Anthropic backend can't turn /api/extract into a multi-minute hang. timeout=30s
+    # caps a single attempt; max_retries=1 gives one automatic retry on a transient
+    # 429/5xx/timeout, then raises anthropic.APITimeoutError (handled in
+    # extract_from_base64 -> "Request timed out", which the client maps to honest
+    # "busy" copy). Worst case ~60s of API time, not an open-ended wait.
+    _client = anthropic.Anthropic(
+        api_key=os.environ.get('ANTHROPIC_API_KEY'),
+        timeout=30.0,
+        max_retries=1,
+    )
     ANTHROPIC_AVAILABLE = True
 except Exception:
     _client = None

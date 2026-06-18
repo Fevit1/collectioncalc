@@ -1820,6 +1820,14 @@
             let extractFailHeadline = '⚠️ Could not identify comic automatically';
             let extractFailSubtext = 'Enter the details below for accurate grading &amp; valuation';
 
+            // Commit 2: distinct copy for a load/timeout failure (backend slow or
+            // overloaded, or the 75s client cap fired) vs. a genuine no-read. "Busy"
+            // is honest and reassuring — the book is fine, the service is just under
+            // load — and steers the user straight to manual entry instead of implying
+            // their photo was unreadable.
+            const BUSY_HEADLINE = '⏳ Our identifier is busy right now';
+            const BUSY_SUBTEXT = "High demand at the moment — enter the details below and we'll grade and price it normally.";
+
             try {
                 // Show simple extracting state
                 progressText.innerHTML = `<span class="loading-dots">Extracting metadata...</span>`;
@@ -1835,25 +1843,51 @@
                 const base64Data = dataUrl.split(',')[1];
                 const mediaType = dataUrl.split(';')[0].split(':')[1];
                 
-                // Call extraction API (using API_URL from utils.js)
-                const response = await fetch(`${API_URL}/api/extract`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        image: base64Data,
-                        media_type: mediaType
-                    })
-                });
+                // Call extraction API (using API_URL from utils.js).
+                // Commit 2: hard client-side cap. Even with the server now bounding
+                // its own Anthropic calls (timeout=30s, 1 retry ~= 60s worst case),
+                // network/proxy stalls can still hang the fetch indefinitely. A 75s
+                // AbortController is the backstop — it sits just above the server's
+                // worst case so the server's honest error wins when it can respond,
+                // and the abort only fires when nothing comes back at all. The timer
+                // is ALWAYS cleared in finally so a fast success never leaks it.
+                const extractAbort = new AbortController();
+                const extractTimer = setTimeout(() => extractAbort.abort(), 75000);
+                let response, data;
+                try {
+                    response = await fetch(`${API_URL}/api/extract`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            image: base64Data,
+                            media_type: mediaType
+                        }),
+                        signal: extractAbort.signal
+                    });
 
-                // Read the body even on a non-200 so we can surface the backend's
-                // real reason (Batch 7 — stop swallowing the specific error).
-                const data = await response.json().catch(() => ({}));
+                    // Read the body even on a non-200 so we can surface the backend's
+                    // real reason (Batch 7 — stop swallowing the specific error).
+                    data = await response.json().catch(() => ({}));
+                } finally {
+                    clearTimeout(extractTimer);
+                }
 
                 if (!response.ok || !data.success) {
-                    if (data.quality_issue || data.quality_fail) {
+                    // Commit 2: a load/timeout failure gets the honest "busy" copy,
+                    // not "couldn't identify." Triggers on the server's timeout error
+                    // ("Request timed out"), an overload/busy message, or a 503/504.
+                    const errText = (data.error || '').toLowerCase();
+                    const isBusy =
+                        response.status === 503 || response.status === 504 ||
+                        errText.includes('timed out') || errText.includes('timeout') ||
+                        errText.includes('overloaded') || errText.includes('busy');
+                    if (isBusy) {
+                        extractFailHeadline = BUSY_HEADLINE;
+                        extractFailSubtext = BUSY_SUBTEXT;
+                    } else if (data.quality_issue || data.quality_fail) {
                         extractFailHeadline = '⚠️ ' + (data.quality_message || data.error || "This photo can't be used");
                         if (data.tip) extractFailSubtext = data.tip;
                     }
@@ -1913,6 +1947,14 @@
                 
             } catch (error) {
                 console.error('Extraction error:', error);
+                // Commit 2: the 75s client cap aborts the fetch with an AbortError —
+                // that's a load/timeout failure, so use the honest "busy" copy. (A
+                // busy headline already set by the non-OK branch above is preserved;
+                // a thrown API error keeps its name 'Error' and won't match here.)
+                if (error && error.name === 'AbortError') {
+                    extractFailHeadline = BUSY_HEADLINE;
+                    extractFailSubtext = BUSY_SUBTEXT;
+                }
                 // Set default extractedData so the rest of the flow works
                 window.gradingState.extractedData = {
                     title: '',
