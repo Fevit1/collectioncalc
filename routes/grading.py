@@ -316,12 +316,18 @@ def api_grade():
     if not ANTHROPIC_AVAILABLE or not ANTHROPIC_API_KEY:
         return jsonify({'error': 'Anthropic API not available'}), 503
 
-    # ── Grading cap check (beta: 25/month for free users) ──
+    # ── Grading cap check (per-tier monthly cap; admins exempt) ──
     import psycopg2
     from psycopg2.extras import RealDictCursor
     from datetime import datetime, timezone
-
-    MONTHLY_GRADING_LIMIT = 25
+    # Per-tier monthly cap sourced from billing PLANS (single source of truth
+    # shared with the pricing page + /my-plan): Free 25 / Pro 100 / Guard 250 /
+    # Dealer 1000. Enforced against the gradings_this_month counter that already
+    # gates today — the legacy billing valuations_this_month counter stays unused
+    # (the account.html usage meter still reads it; reconciling those two counters
+    # is a separate freemium-pass item, intentionally NOT bridged here).
+    from routes.billing import PLANS
+    DEFAULT_GRADING_LIMIT = PLANS['free']['valuations_per_month']
 
     database_url = os.environ.get('DATABASE_URL')
     cap_conn = None
@@ -330,12 +336,15 @@ def api_grade():
         cap_cur = cap_conn.cursor()
 
         cap_cur.execute(
-            "SELECT is_admin, gradings_this_month, gradings_reset_date FROM users WHERE id = %s",
+            "SELECT plan, is_admin, gradings_this_month, gradings_reset_date FROM users WHERE id = %s",
             (g.user_id,)
         )
         cap_user = cap_cur.fetchone()
 
         if cap_user and not cap_user.get('is_admin', False):
+            plan_key = (cap_user.get('plan') or 'free').strip().lower()
+            monthly_limit = PLANS.get(plan_key, PLANS['free']).get(
+                'valuations_per_month', DEFAULT_GRADING_LIMIT)
             now = datetime.now(timezone.utc)
             reset_date = cap_user.get('gradings_reset_date')
 
@@ -359,13 +368,13 @@ def api_grade():
                 resets_at = reset_date.strftime('%b %d') if reset_date else 'next month'
 
             # Enforce cap
-            if gradings_used >= MONTHLY_GRADING_LIMIT:
+            if gradings_used >= monthly_limit:
                 cap_cur.close()
                 cap_conn.close()
                 return jsonify({
                     'success': False,
                     'error': 'monthly_limit',
-                    'limit': MONTHLY_GRADING_LIMIT,
+                    'limit': monthly_limit,
                     'used': gradings_used,
                     'resets_at': resets_at
                 }), 429

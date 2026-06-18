@@ -9,11 +9,11 @@ Handles:
 - Plan status check (what plan is user on?)
 - Usage enforcement (registration limits, etc.)
 
-Plans:
-- free: $0 (10 valuations/mo, 3 Slab Guard registrations)
-- pro: $4.99/mo or $49.99/yr (unlimited valuations, 25 registrations)
-- guard: $9.99/mo or $89.99/yr (unlimited everything + monitoring)
-- dealer: $24.99/mo or $239.99/yr (API access, bulk ops, white-label)
+Plans (valuations_per_month = monthly grading cap, enforced in grading.py):
+- free: $0 (25 valuations/mo, 3 Slab Guard registrations)
+- pro: $4.99/mo or $49.99/yr (100 valuations/mo, 25 registrations)
+- guard: $9.99/mo or $89.99/yr (250 valuations/mo, unlimited registrations + monitoring)
+- dealer: $24.99/mo or $239.99/yr (1000 valuations/mo; API/bulk/white-label in development)
 """
 
 import os
@@ -54,7 +54,7 @@ PLANS = {
         'name': 'Free',
         'monthly_price': 0,
         'annual_price': 0,
-        'valuations_per_month': 10,
+        'valuations_per_month': 25,    # monthly grading cap, enforced in grading.py via gradings_this_month
         'slab_guard_registrations': 3,
         'signature_id_per_month': 0,      # No signature ID on free (Beta: Guard/Dealer only)
         'marketplace_monitoring': False,
@@ -73,7 +73,7 @@ PLANS = {
         'annual_price': 4999,   # cents
         'stripe_monthly_price_id': os.environ.get('STRIPE_PRO_MONTHLY_PRICE'),
         'stripe_annual_price_id': os.environ.get('STRIPE_PRO_ANNUAL_PRICE'),
-        'valuations_per_month': -1,  # unlimited
+        'valuations_per_month': 100,   # monthly grading cap (was 'unlimited' — now a real per-tier limit)
         'slab_guard_registrations': 25,
         'signature_id_per_month': 0,      # No signature ID on Pro (Beta: Guard/Dealer only)
         'marketplace_monitoring': False,
@@ -92,7 +92,7 @@ PLANS = {
         'annual_price': 8999,
         'stripe_monthly_price_id': os.environ.get('STRIPE_GUARD_MONTHLY_PRICE'),
         'stripe_annual_price_id': os.environ.get('STRIPE_GUARD_ANNUAL_PRICE'),
-        'valuations_per_month': -1,
+        'valuations_per_month': 250,   # monthly grading cap (was 'unlimited' — now a real per-tier limit)
         'slab_guard_registrations': -1,  # unlimited
         'signature_id_per_month': 10,     # Beta: 10/month (revisit at 87% promotion)
         'marketplace_monitoring': True,
@@ -111,7 +111,7 @@ PLANS = {
         'annual_price': 23999,
         'stripe_monthly_price_id': os.environ.get('STRIPE_DEALER_MONTHLY_PRICE'),
         'stripe_annual_price_id': os.environ.get('STRIPE_DEALER_ANNUAL_PRICE'),
-        'valuations_per_month': -1,
+        'valuations_per_month': 1000,  # monthly grading cap (was 'unlimited' — now a real per-tier limit)
         'slab_guard_registrations': -1,
         'signature_id_per_month': -1,     # Beta: uncapped (usage logged for visibility)
         'marketplace_monitoring': True,
