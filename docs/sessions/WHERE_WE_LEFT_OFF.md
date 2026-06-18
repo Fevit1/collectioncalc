@@ -1,4 +1,38 @@
-# Where We Left Off - Jun 16, 2026
+# Where We Left Off - Jun 18, 2026
+
+## Session 106 (Jun 18, 2026) — Tier Honesty Pass SHIPPED (storefront now matches product); extraction resilience; ID Sigs CORS bug diagnosed
+
+**Built draft-for-review; Mike ran all git/deploy/purge/smoke-test. Read LESSONS + cross-project at open.**
+
+### 1. Extraction resilience (Commit 2) — SHIPPED, deployed, purged
+- `comic_extraction.py` Anthropic client now `timeout=30.0, max_retries=1`; `app.html` `/api/extract` wrapped in a 75s `AbortController` (try/finally clears the timer); honest **"⏳ Our identifier is busy right now"** copy on backend timeout (`Request timed out` / 503 / 504 / overloaded) AND client `AbortError`, replacing the misleading "Could not identify." Insurance vs future load now the Session-105 signature auto-fire contention source is gone — turns a multi-minute hang into a clean ~30–60s honest failure.
+
+### 2. Tier Honesty Pass (Section D reconciliation → 4 commits A–D) — SHIPPED, deployed, purged
+- **Context (read-only Section D):** the four tiers were nearly indistinguishable in use. Only **3 of ~11** advertised differentiators were truly server-enforced (slab-guard regs, multi-photo, chrome-extension). Valuations were a **hardcoded flat 25/mo across ALL tiers** (the PLANS valuations field was dead — `check_feature_access('valuations')` never called); export / API / bulk / ownership-certs / white-label / LE-portal were **unbuilt**; the only upgrade prompt fires at the 4th Slab Guard registration.
+- **A — per-tier grading cap wired to PLANS** (`routes/billing.py` + `routes/grading.py`): replaced hardcoded `MONTHLY_GRADING_LIMIT=25` with `PLANS[plan]['valuations_per_month']` — **Free 25 / Pro 100 / Guard 250 / Dealer 1000**, admins exempt. Uses the live `gradings_this_month` counter; the dead `valuations_this_month` path left untouched (NOT bridged — see follow-up). **VERIFIED:** `/api/billing/plans` reads 25/100/250/1000.
+- **B — `fetchImageAsBase64` `response.ok` guard** (`js/utils.js`): honest "Couldn't load image (HTTP N / network error)" instead of the misleading "Image decode failed." **VERIFIED** — and it surfaced the REAL ID Sigs CORS bug (#3).
+- **C — `pricing.html` honesty:** real caps (no "Unlimited" anywhere), Excel/CSV export trimmed, Dealer relabeled **"Coming Soon"** with a **"Notify Me →"** CTA to `/contact.html` (no checkout), Guard "verified ownership certificates" removed, Signature ID surfaced as a Guard **coming-soon** feature + compare-table row.
+- **D — refuse Dealer checkout server-side** (`routes/billing.py`): `create-checkout` rejects `plan='dealer'` with an honest coming-soon message + `coming_soon:true` — enforces the label, not just displays it.
+- **Net headline:** the storefront now matches the product — no advertised unlimited valuations we cap, exports we haven't built, or a Dealer tier that's mostly unbuilt.
+
+### 3. ID Sigs CORS image-fetch bug — DIAGNOSED (read-only), queued to Signatures v2
+- After Commit B's honest errors, testing showed ID Sigs fails at the **image fetch** even though the cover `<img>` thumbnail loads fine (admin: `HTTP 503` on Amethyst #1; test-guard: `network error` on Micronauts #11). The thumbnail and the base64 fetch use the **same** `photoUrl` (mismatch ruled out). **Root cause = cross-origin CORS:** `<img>` display is CORS-exempt; `fetch()→blob()` is enforced, and `img.slabworthy.com` doesn't reliably return `Access-Control-Allow-Origin` for the page origin (+ the uncached fetch hits the R2 origin → 503). Two errors, one root (cache/CORS state). **Preferred fix = server-side image fetch** in `/api/signatures/v2/match` (accept `comic_id`/URL; R2 SDK or `slab_guard_cv._download_image`). Captured in `docs/technical/SIGNATURES_V2_DESIGN.md` (build-checklist item 7 + new "Image-fetch (CORS)" section). **NOT a launch blocker** (ID Sigs is coming-soon / unreachable from upload).
+- Corrects the Session 104/105 "response.ok decode" framing: the `response.ok` gap was real and is now **fixed** (Commit B); the *remaining* failure is **CORS**, a separate layer.
+
+### QUEUED FOLLOW-UPS (captured in TODO; none July-21 blockers)
+- **"0 used" usage meter:** `account.html` reads the dead `valuations_this_month` (always 0); reconcile to the live `gradings_this_month` — freemium pass.
+- **Stale PLANS booleans:** `export` / `api_access` / `ownership_certificates` still read `true` for some tiers but are read by nothing — trimmed from the PAGE; tidy the dead config later.
+- **Freemium upgrade-prompt mechanic:** only paywall that fires in normal use is the 4th Slab Guard registration; the grading-cap over-limit returns **429 with no upgrade CTA**. Decide the conversion moment(s) and wire prompts.
+- **Dealer webhook hardening (optional):** `handle_checkout_completed` still accepts any plan string; harmless post-Commit-D (no route starts a Dealer checkout), tidy later.
+
+### NEXT SESSION — queued
+1. **Section E — billing end-to-end (the HARD launch gate)** — likely the opener. ⚠️ Stripe Checkout footgun: **never** run real Checkout/portal as a `test-*` account (writes `stripe_customer_id`, lets webhooks clobber the tier). Deserves a fresh, focused block.
+2. **Section F — mobile + load.**
+3. Still open from earlier: ~30s comic-ID wait (staged-progress messaging is the committed fix; speedup parked, conditional on not costing accuracy); **DELETE-confirm** must-fix; **comic-detail-view** decision (build or de-clickify); admin Feedback ~100-char truncation; CGC cost-sourcing investigation; year/edition comp-key gap (post-launch).
+4. **Signatures v2** build when authorized (design doc — now includes the CORS server-fetch fix).
+- **Cleanup when confident:** drop `_bak_*_20260615` snapshot tables; optionally disable r2.dev.
+
+---
 
 ## Session 105 (Jun 16, 2026) — Identification fix SHIPPED; signature auto-fire removed (re-grade hang gone); Commit 2 resilience queued
 
