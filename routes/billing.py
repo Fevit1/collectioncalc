@@ -484,7 +484,16 @@ def create_checkout_session():
     plan = data.get('plan')
     billing_period = data.get('billing_period', 'monthly')
 
-    if plan not in ('pro', 'guard', 'dealer'):
+    # Dealer is "coming soon" — its features are unbuilt, so refuse checkout
+    # server-side (enforce the pricing-page label, don't just display it). The
+    # page routes Dealer to /contact.html; this is the belt for a direct API call.
+    if plan == 'dealer':
+        return jsonify({
+            'error': 'The Dealer plan is coming soon — contact us for early access.',
+            'coming_soon': True
+        }), 400
+
+    if plan not in ('pro', 'guard'):
         return jsonify({'error': 'Invalid plan'}), 400
 
     plan_config = PLANS[plan]
