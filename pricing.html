@@ -203,6 +203,30 @@
             letter-spacing: 0.5px;
         }
 
+        /* Coming-soon tier treatment (Dealer): gold badge + dimmed card */
+        .soon-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--gold-mid), var(--gold-dark));
+            color: var(--purple-dark);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 1rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-card.coming-soon { opacity: 0.9; }
+        .pricing-card.coming-soon .feature-list { opacity: 0.7; }
+        .feature-list li em {
+            font-style: normal;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+        }
+
         .card-icon {
             font-size: 1.75rem;
             margin-bottom: 0.75rem;
@@ -650,7 +674,7 @@
             <a href="/login.html" class="card-cta cta-free" data-plan="free">Get Started</a>
             <div class="features-divider"></div>
             <ul class="feature-list">
-                <li><span class="check">✓</span> 10 valuations per month</li>
+                <li><span class="check">✓</span> 25 valuations per month</li>
                 <li><span class="check">✓</span> AI grading estimates</li>
                 <li><span class="check">✓</span> "Should I Slab?" ROI analysis</li>
                 <li class="guard-feature"><span class="check">✓</span> Register 3 comics in Slab Guard</li>
@@ -671,10 +695,9 @@
             <a href="#" class="card-cta cta-primary" data-plan="pro" onclick="startCheckout('pro')">Start Free Trial</a>
             <div class="features-divider"></div>
             <ul class="feature-list">
-                <li class="highlight"><span class="check">✓</span> Unlimited valuations</li>
+                <li class="highlight"><span class="check">✓</span> 100 valuations per month</li>
                 <li><span class="check">✓</span> Everything in Free</li>
                 <li><span class="check">✓</span> Multi-photo grading (4 angles)</li>
-                <li><span class="check">✓</span> Excel/CSV export</li>
                 <li><span class="check">✓</span> Personal adjustments</li>
                 <li class="guard-feature"><span class="check">✓</span> Register 25 comics in Slab Guard</li>
             </ul>
@@ -698,30 +721,31 @@
                 <li class="highlight guard-feature"><span class="check">✓</span> Unlimited Slab Guard registrations</li>
                 <li class="guard-feature"><span class="check">✓</span> Marketplace monitoring alerts</li>
                 <li class="guard-feature"><span class="check">✓</span> Chrome extension auto-scan</li>
-                <li class="guard-feature"><span class="check">✓</span> Verified ownership certificates</li>
+                <li class="guard-feature"><span class="check">✓</span> Signature identification &mdash; 10/mo <em>(coming soon)</em></li>
                 <li><span class="check">✓</span> Priority support</li>
             </ul>
         </div>
 
-        <!-- DEALER -->
-        <div class="pricing-card">
+        <!-- DEALER (coming soon — features in development; CTA routes to contact, NOT checkout) -->
+        <div class="pricing-card coming-soon">
+            <div class="soon-badge">Coming Soon</div>
             <div class="card-icon">🏪</div>
             <div class="card-name">Dealer</div>
-            <div class="card-desc">Built for shops and high-volume sellers.</div>
+            <div class="card-desc">Built for shops and high-volume sellers. <strong style="color: var(--gold-mid);">In development — not yet available.</strong></div>
             <div class="card-price">
                 <div class="price-amount" data-monthly="24.99" data-annual="239.99"><span class="dollar">$</span><span class="price-value">24.99</span></div>
                 <div class="price-period" data-monthly-label="/month" data-annual-label="/year">/month</div>
                 <div class="price-annual" id="dealerAnnual"><strong>Save $59.89</strong> vs. monthly</div>
             </div>
-            <a href="#" class="card-cta cta-dealer" data-plan="dealer" onclick="startCheckout('dealer')">Start Free Trial</a>
+            <a href="/contact.html" class="card-cta cta-dealer" data-plan="dealer">Notify Me &rarr;</a>
             <div class="features-divider"></div>
             <ul class="feature-list">
                 <li class="highlight"><span class="check">✓</span> Everything in Guard</li>
-                <li><span class="check">✓</span> API access</li>
-                <li><span class="check">✓</span> Bulk operations</li>
-                <li class="guard-feature"><span class="check">✓</span> Serial verification tools</li>
-                <li class="guard-feature"><span class="check">✓</span> Law enforcement contact portal</li>
-                <li><span class="check">✓</span> White-label options</li>
+                <li><span class="check">✓</span> API access <em>(planned)</em></li>
+                <li><span class="check">✓</span> Bulk operations <em>(planned)</em></li>
+                <li class="guard-feature"><span class="check">✓</span> Serial verification tools <em>(planned)</em></li>
+                <li class="guard-feature"><span class="check">✓</span> Law enforcement contact portal <em>(planned)</em></li>
+                <li><span class="check">✓</span> White-label options <em>(planned)</em></li>
             </ul>
         </div>
     </div>
@@ -753,10 +777,10 @@
             <tbody>
                 <tr>
                     <td>Valuations</td>
-                    <td class="limit">10/mo</td>
-                    <td class="yes">Unlimited</td>
-                    <td class="yes">Unlimited</td>
-                    <td class="yes">Unlimited</td>
+                    <td class="limit">25/mo</td>
+                    <td class="limit">100/mo</td>
+                    <td class="limit">250/mo</td>
+                    <td class="limit">1,000/mo</td>
                 </tr>
                 <tr>
                     <td>AI Grading</td>
@@ -774,13 +798,6 @@
                 </tr>
                 <tr>
                     <td>Multi-Photo Grading</td>
-                    <td class="no">—</td>
-                    <td class="yes">✓</td>
-                    <td class="yes">✓</td>
-                    <td class="yes">✓</td>
-                </tr>
-                <tr>
-                    <td>Export (Excel/CSV)</td>
                     <td class="no">—</td>
                     <td class="yes">✓</td>
                     <td class="yes">✓</td>
@@ -808,25 +825,25 @@
                     <td class="yes">✓</td>
                 </tr>
                 <tr>
-                    <td>Ownership Certificates</td>
+                    <td>Signature ID <span style="color: var(--text-secondary);">(coming soon)</span></td>
                     <td class="no">—</td>
                     <td class="no">—</td>
-                    <td class="yes">✓</td>
-                    <td class="yes">✓</td>
+                    <td class="limit">10/mo</td>
+                    <td class="limit">Unlimited</td>
                 </tr>
                 <tr>
                     <td>API Access</td>
                     <td class="no">—</td>
                     <td class="no">—</td>
                     <td class="no">—</td>
-                    <td class="yes">✓</td>
+                    <td class="limit">Soon</td>
                 </tr>
                 <tr>
                     <td>Bulk Operations</td>
                     <td class="no">—</td>
                     <td class="no">—</td>
                     <td class="no">—</td>
-                    <td class="yes">✓</td>
+                    <td class="limit">Soon</td>
                 </tr>
             </tbody>
         </table>
