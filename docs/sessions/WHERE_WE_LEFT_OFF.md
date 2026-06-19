@@ -1,4 +1,32 @@
-# Where We Left Off - Jun 18, 2026
+# Where We Left Off - Jun 19, 2026
+
+## Session 107 (Jun 19, 2026) — Grade-submission RETENTION shipped & verified end-to-end; collection must-fixes; privacy reconciliation
+
+**Built draft-for-review; Mike ran all git/deploy/purge/migration/smoke-test. Read LESSONS + cross-project at open.**
+
+### Headline: grade-submission retention is LIVE and verified (the matbanshee gap is closed)
+- **Origin:** read-only investigation of matbanshee (user 21) "undergraded my 3 books by up to 2.6 pts" → found we retained **NOTHING** for unsaved grades (no photos/grade/subgrades/comic). Token-count forensics showed he submitted ~4 photos (multi-angle starvation excluded), leaving old-photo/photo-condition as the leading-but-unprovable hypothesis. Lesson **L-SW-2026-003** logged. Spec: `docs/technical/GRADE_RETENTION_SPEC.md`.
+- **Privacy disclosure shipped FIRST** (prerequisite — commit `245f99b`): `privacy.html` new "Grading Data & Image Retention" subsection (90-day retention incl. unsaved, deletion-on-request within 30 days, authorized-staff review), reconciled the old "Images" line (removed the "unsaved grades vanish" + "anonymized-only" framing); `login.html` signup Terms/Privacy consent line.
+- **Retention BUILT + verified live** (commits `e87b8cf` schema, `801e79d` persist, `6fb83f7` admin):
+  - `migrations/add_grade_submissions.sql` — 24-col `grade_submissions` table, applied to prod via **Render-shell Python** (psql not in container — used psycopg2 + `$DATABASE_URL`).
+  - `grade_retention.py` — background daemon-thread persist AFTER the grade response (no added latency); cascade delete + per-user erasure (R2 objects then DB rows).
+  - `/api/grade` persist hook; admin `GET /api/admin/grade-submissions` (find by email/user_id/submission_id, presigned R2 image URLs) + `DELETE` (cascades DB row **and** R2 objects, single + by-user); `r2_storage.generate_presigned_url`; `admin.html` "🔬 Grade Subs" tab + one-click hook from the Feedback tab.
+  - **Smoke-test: persist / view / delete-cascade all PASSED.**
+
+### Collection must-fixes (commits `80d34c7`, `0579326`, `1cbfd06`) — shipped earlier in the session
+- **Fix 1:** always-confirm delete — names the comic, "can't be undone" copy, removed the skip-warning bypass (no one-tap-delete). **Fix 2:** de-clickified list rows (pure CSS — no dead handler; gallery click left intact = real expand feature). **Fix 3:** admin Feedback comments expand-on-click (was CSS-truncated; backend already sent full text).
+
+### ⏰ Remaining follow-ups (only TWO real, both non-urgent)
+1. **90-day PURGE — HARD DEADLINE ~2026-09-17** (day-90 from today's persist deploy). Comfortably after soft launch (Jul 21) + GalaxyCon (Aug 21-23) — no launch-crunch competition, but a real published-policy obligation; don't let it slip the date. Columns/index (`images_purge_after`,`pinned`) + `delete_grade_submission` helper already in place → it's a scheduled job + feedback-pin away. Fresh-session work.
+2. **`saved_collection_id` backlink-on-save** — currently always NULL (grade happens before save; save path doesn't backlink). Small, not urgent.
+
+### ✅ Deletion-request runbook — resolved
+- **`docs/SW_deletion_request_runbook.md`** — the close doc believed it was already committed; it was **not in the repo** (searched names/content/all branches/uncommitted — only a TODO reference existed), so it was **drafted fresh and committed** this session. Manual erasure procedure pairing with the admin grade-submission delete tool: verify by registered-email ownership (confirm-to-account-email on mismatch), scope incl. unsaved grade submissions, R2-cascade delete (R2 first, then rows), confirm `images_deleted`, confirm back, within 30 days, never auto-delete.
+
+### NEXT SESSION OPENER
+- **Section E — billing end-to-end in Stripe TEST mode**, using the Stripe test-mode setup map + safe billing runbook (read-only prep). ⚠️ Footguns: never run Checkout/portal on the protected `test-*` accounts; `create-checkout` writes `stripe_customer_id` immediately (`billing.py:507-514`) even in test mode. Purge sits on its Sept-17 clock until separately scheduled.
+
+---
 
 ## Session 106 (Jun 18, 2026) — Tier Honesty Pass SHIPPED (storefront now matches product); extraction resilience; ID Sigs CORS bug diagnosed
 
