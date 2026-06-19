@@ -336,6 +336,19 @@
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast.success { border-color: var(--success); }
         .toast.error { border-color: var(--error); }
+        /* Feedback comment: truncated preview by default, click to expand full text */
+        .fb-comment-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .fb-comment-cell.expanded {
+            white-space: normal;
+            overflow: visible;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body data-sidebar-page="admin" data-no-universal-footer>
@@ -1162,7 +1175,7 @@
                         <td>${e.email || 'Unknown'}</td>
                         <td>${typeLabel}</td>
                         <td>${ratingDisplay}</td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.comment || '-'}</td>
+                        <td class="fb-comment-cell" onclick="this.classList.toggle('expanded')" title="Click to expand / collapse">${e.comment || '-'}</td>
                         <td>${e.page_url || '-'}</td>
                         <td>${formatDate(e.created_at)}</td>
                     </tr>`;
