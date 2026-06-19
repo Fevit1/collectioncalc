@@ -474,11 +474,12 @@ select:focus {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-default);
     background: var(--bg-secondary);
+    cursor: default; /* row itself isn't clickable — only the action buttons are (no whole-row detail view) */
 }
 
 .comics-list .comic-card:hover {
-    background: rgba(79, 70, 229, 0.05);
     transform: none; /* Override grid card transform — prevents stacking context that traps dropdown */
+    /* No hover highlight: the row isn't clickable, so don't imply it is */
 }
 
 .comics-list .comic-card:first-child {
