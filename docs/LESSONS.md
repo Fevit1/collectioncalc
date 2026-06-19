@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-06-08
+> **Operator:** Mike Berry · **Last updated:** 2026-06-19
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -53,3 +53,25 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   line of that same block. If a described fix isn't in the staged set, either add the file to the block
   or remove the claim from the message. When in doubt, scope the message narrower than the intent.
 - **SOURCE:** 2026-06-08 — `8e3cce0` message/diff mismatch caught by Mike.
+
+### L-SW-2026-003 — Unsaved grades retain nothing → grading-accuracy complaints are undiagnosable; retention is the prerequisite for calibration
+
+- **RULE:** A grade that isn't saved to a collection leaves **no diagnostic trace** — no photos
+  (images are transient base64 in the `/api/grade` request and never reach R2), no overall grade, no
+  8 subgrades, no confidence, not even which comic. Treat **grade-submission retention as the
+  prerequisite** for any grading-accuracy or calibration work: you cannot tell a *systematic
+  conservative bias* (correctable via weights/snap) from *case-by-case photo-condition issues* (old
+  photos, glare, sleeve/slab) without retained `(photos, subgrades) → eventual pro grade` pairs.
+- **WHY:** A knowledgeable beta user (matbanshee, user_id 21, 2026-06-08) reported Slab Worthy
+  undergraded 3 later-slabbed books by up to 2.6 pts. The complaint was **un-disprovable**: all three
+  grades existed only in `api_usage` token counts. The only forensic signal left was input-token
+  count (~7,532/grade) → ~4 images submitted → multi-angle starvation *excluded*, leaving the
+  old-photo confound as leading hypothesis — but unprovable, because the pixels are gone. For a
+  product whose core promise is grade accuracy, an unanswerable accuracy complaint is a credibility
+  hole.
+- **HOW TO APPLY:** Before promising/iterating on grading accuracy, ensure submissions are retained
+  (design: `docs/technical/GRADE_RETENTION_SPEC.md`). When diagnosing an accuracy complaint, first
+  check whether the grade was *saved* — if not, say plainly that photos/grades aren't retained rather
+  than speculating. Retention build is **gated on a privacy/consent decision** (users may assume
+  unsaved grades are ephemeral) — disclosure + ToS + erasure cascade come first.
+- **SOURCE:** 2026-06-08 matbanshee investigation; spec drafted 2026-06-19 (Session 107).
