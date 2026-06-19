@@ -574,6 +574,23 @@ def api_grade():
         except Exception:
             pass
 
+        # --- Persist this grade submission for retention/diagnosis ---
+        # Per docs/technical/GRADE_RETENTION_SPEC.md. Runs on a background thread so it
+        # adds NO latency to the grade response. Captures request state explicitly (the
+        # thread runs outside the request context). Never blocks or fails the grade.
+        try:
+            from grade_retention import persist_grade_submission_async
+            persist_grade_submission_async(
+                user_id=g.user_id,
+                images=images,
+                photo_labels=photo_labels,
+                result=result,
+                model=get_model('sonnet'),
+                database_url=database_url,
+            )
+        except Exception as persist_err:
+            print(f"[Grading] retention persist scheduling failed (non-fatal): {persist_err}")
+
         return jsonify(result)
 
     except json.JSONDecodeError as e:

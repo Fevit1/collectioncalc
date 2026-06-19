@@ -188,6 +188,26 @@ def get_image_url(path: str) -> str:
     return f"{R2_PUBLIC_URL}/{path}"
 
 
+def generate_presigned_url(path: str, expires_in: int = 3600):
+    """Generate a temporary signed GET URL for a private R2 object.
+
+    Used for admin diagnostic viewing of retained grade-submission images so they don't
+    need to be exposed on the public image domain. Returns the URL or None.
+    """
+    client = get_r2_client()
+    if not client:
+        return None
+    try:
+        return client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': R2_BUCKET_NAME, 'Key': path},
+            ExpiresIn=expires_in,
+        )
+    except Exception as e:
+        print(f"R2 presign error: {e}")
+        return None
+
+
 def upload_to_r2(path: str, image_data: str) -> dict:
     """
     Upload an image to R2 at the specified path.
