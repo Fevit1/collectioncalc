@@ -1179,3 +1179,107 @@ def api_slab_guard_stats():
                 conn.close()
             except Exception:
                 pass
+
+
+# ──────────────────────────────────────────────
+# Grade-submission retention — find / view / delete (admin)
+# docs/technical/GRADE_RETENTION_SPEC.md §5. This is the diagnostic surface that was
+# MISSING for matbanshee, and the find-and-delete surface that honors the erasure right.
+# ──────────────────────────────────────────────
+
+@admin_bp.route('/grade-submissions', methods=['GET'])
+@require_admin_auth
+def api_admin_grade_submissions():
+    """Find/view retained grade submissions.
+
+    Filter by ?user_id= or ?email= (ILIKE) or ?submission_id=, optionally ?since=
+    (ISO date/time). Returns metadata + the 8 subgrades + temporary signed image URLs so
+    an admin can see exactly what the grader saw and concluded.
+    """
+    user_id = request.args.get('user_id', type=int)
+    email = request.args.get('email')
+    submission_id = request.args.get('submission_id', type=int)
+    since = request.args.get('since')
+    limit = min(request.args.get('limit', default=100, type=int), 500)
+
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    cur = conn.cursor()
+    try:
+        clauses, params = [], []
+        if submission_id:
+            clauses.append("gs.id = %s"); params.append(submission_id)
+        if user_id:
+            clauses.append("gs.user_id = %s"); params.append(user_id)
+        if email:
+            clauses.append("u.email ILIKE %s"); params.append(email)
+        if since:
+            clauses.append("gs.created_at >= %s"); params.append(since)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+
+        cur.execute(f"""
+            SELECT gs.*, u.email
+            FROM grade_submissions gs
+            LEFT JOIN users u ON gs.user_id = u.id
+            {where}
+            ORDER BY gs.created_at DESC
+            LIMIT %s
+        """, (*params, limit))
+        rows = cur.fetchall()
+
+        from r2_storage import generate_presigned_url
+        out = []
+        for r in rows:
+            photos = r.get('photos') or {}
+            image_urls = {}
+            if isinstance(photos, dict):
+                for label, key in photos.items():
+                    image_urls[label] = generate_presigned_url(key, 3600)
+            out.append({
+                'id': r['id'],
+                'user_id': r['user_id'],
+                'email': r['email'],
+                'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                'title': r['title'], 'issue': r['issue'], 'year': r['year'],
+                'publisher': r['publisher'],
+                'grade': float(r['grade']) if r['grade'] is not None else None,
+                'grade_label': r['grade_label'],
+                'raw_grade': float(r['raw_grade']) if r['raw_grade'] is not None else None,
+                'category_scores': r['category_scores'],
+                'limiting_factor': r['limiting_factor'],
+                'confidence': r['confidence'],
+                'photos_used': r['photos_used'],
+                'defects': r['defects'],
+                'photo_labels': r['photo_labels'],
+                'model': r['model'], 'run_count': r['run_count'],
+                'grade_reasoning': r['grade_reasoning'],
+                'saved_collection_id': r['saved_collection_id'],
+                'pinned': r['pinned'],
+                'image_urls': image_urls,
+            })
+        return jsonify({'success': True, 'submissions': out, 'count': len(out)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/grade-submissions/<int:submission_id>', methods=['DELETE'])
+@require_admin_auth
+def api_admin_delete_grade_submission(submission_id):
+    """Delete ONE grade submission — cascades to BOTH the DB row AND its R2 objects."""
+    from grade_retention import delete_grade_submission
+    res = delete_grade_submission(submission_id, os.environ.get('DATABASE_URL'))
+    if res.get('success'):
+        return jsonify(res)
+    return jsonify(res), (404 if res.get('error') == 'not_found' else 500)
+
+
+@admin_bp.route('/grade-submissions/by-user/<int:user_id>', methods=['DELETE'])
+@require_admin_auth
+def api_admin_delete_user_grade_submissions(user_id):
+    """Erasure: delete ALL of a user's grade submissions (DB rows + R2 objects)."""
+    from grade_retention import delete_user_grade_submissions
+    res = delete_user_grade_submissions(user_id, os.environ.get('DATABASE_URL'))
+    return jsonify(res), (200 if res.get('success') else 500)

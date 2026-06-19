@@ -420,6 +420,7 @@
             <button class="tab" data-tab="usage">📊 API Usage</button>
             <button class="tab" data-tab="waitlist">📋 Waitlist</button>
             <button class="tab" data-tab="feedback">💬 Feedback</button>
+            <button class="tab" data-tab="gradesubs">🔬 Grade Subs</button>
             <button class="tab" data-tab="slabguard">🛡️ SlabGuard</button>
         </div>
 
@@ -598,6 +599,28 @@
                             <tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Grade Submissions (retention — find / view / delete) ═══ -->
+        <div class="tab-panel" id="tab-gradesubs">
+            <div class="section">
+                <h2 class="section-title">🔬 Grade Submissions — Retention &amp; Diagnostics</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Every grade is retained for ~90 days (saved or not). Search by user email or ID to
+                    see exactly what the grader saw and concluded — the photos, the overall grade, the 8
+                    subgrades, and confidence. Deleting cascades to both the database row and the R2 images.
+                </p>
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <input type="text" class="nlq-input" id="gradeSubSearch" style="max-width: 360px;"
+                           placeholder="User email or numeric user ID..."
+                           onkeydown="if(event.key==='Enter')loadGradeSubmissions()">
+                    <button class="tab" style="background: var(--primary); color: #fff;"
+                            onclick="loadGradeSubmissions()">Search</button>
+                </div>
+                <div id="gradeSubResults">
+                    <p style="color: var(--text-muted);">Enter a user email or ID above to view their retained grade submissions.</p>
                 </div>
             </div>
         </div>
@@ -1171,8 +1194,12 @@
                         ? '<span class="status-badge status-approved">Grading</span>'
                         : '<span class="status-badge status-pending">General</span>';
 
+                    const gradeSubLink = e.email
+                        ? ` <button title="View this user's grade submissions" onclick="viewUserGradeSubs('${e.email.replace(/'/g, "\\'")}')" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;">🔬</button>`
+                        : '';
+
                     return `<tr>
-                        <td>${e.email || 'Unknown'}</td>
+                        <td>${e.email || 'Unknown'}${gradeSubLink}</td>
                         <td>${typeLabel}</td>
                         <td>${ratingDisplay}</td>
                         <td class="fb-comment-cell" onclick="this.classList.toggle('expanded')" title="Click to expand / collapse">${e.comment || '-'}</td>
@@ -1182,6 +1209,107 @@
                 }).join('');
             } catch (e) {
                 console.error('Failed to load feedback:', e);
+            }
+        }
+
+        // ─── Grade Submissions (retention: find / view / delete) ───
+        function activateTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            const btn = document.querySelector(`.tab[data-tab="${name}"]`);
+            const panel = document.getElementById(`tab-${name}`);
+            if (btn) btn.classList.add('active');
+            if (panel) panel.classList.add('active');
+        }
+
+        function viewUserGradeSubs(email) {
+            activateTab('gradesubs');
+            document.getElementById('gradeSubSearch').value = email;
+            loadGradeSubmissions();
+        }
+
+        const SUBGRADE_ORDER = ['cover_front','spine','corners','edges','cover_back','color_gloss','structural','interior'];
+
+        function gsEscapeHtml(t) {
+            const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML;
+        }
+
+        async function loadGradeSubmissions() {
+            const q = document.getElementById('gradeSubSearch').value.trim();
+            const results = document.getElementById('gradeSubResults');
+            if (!q) { results.innerHTML = '<p style="color:var(--text-muted);">Enter a user email or ID.</p>'; return; }
+            const param = /^\d+$/.test(q) ? `user_id=${encodeURIComponent(q)}` : `email=${encodeURIComponent(q)}`;
+            results.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/grade-submissions?${param}&limit=100`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!data.success) { results.innerHTML = `<p style="color:var(--error);">Error: ${gsEscapeHtml(data.error || 'failed')}</p>`; return; }
+                if (!data.submissions.length) { results.innerHTML = '<p style="color:var(--text-muted);">No retained grade submissions for this user.</p>'; return; }
+                results.innerHTML = `<p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">${data.count} submission(s)</p>` +
+                    data.submissions.map(renderGradeSub).join('');
+            } catch (e) {
+                results.innerHTML = `<p style="color:var(--error);">${gsEscapeHtml(e.message)}</p>`;
+            }
+        }
+
+        function renderGradeSub(s) {
+            const imgs = Object.entries(s.image_urls || {}).map(([label, url]) =>
+                url ? `<figure style="margin:0;text-align:center;">
+                         <a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${gsEscapeHtml(label)}" style="width:120px;height:auto;border-radius:6px;border:1px solid var(--border);"></a>
+                         <figcaption style="font-size:11px;color:var(--text-muted);text-transform:capitalize;">${gsEscapeHtml(label)}</figcaption>
+                       </figure>` : '').join('');
+            const cs = s.category_scores || {};
+            const subgrades = SUBGRADE_ORDER.filter(k => k in cs).map(k => {
+                const isLimiting = s.limiting_factor === k;
+                return `<span style="display:inline-block;padding:2px 8px;margin:2px;border-radius:10px;font-size:12px;
+                          background:${isLimiting ? 'rgba(239,68,68,0.18)' : 'var(--bg-card-hover)'};
+                          color:${isLimiting ? '#ef4444' : 'var(--text-primary)'};border:1px solid var(--border);">
+                          ${k.replace(/_/g,' ')}: <b>${cs[k]}</b></span>`;
+            }).join('');
+            const comic = `${gsEscapeHtml(s.title || 'Unknown')}${s.issue ? ' #' + gsEscapeHtml(s.issue) : ''}${s.year ? ' (' + s.year + ')' : ''}`;
+            const saved = s.saved_collection_id ? '✅ saved to collection' : 'not saved';
+            return `<div id="gradesub-${s.id}" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary);">#${s.id} — ${comic}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">${gsEscapeHtml(s.email || s.user_id)} · ${formatDate(s.created_at)} · ${gsEscapeHtml(s.model || '?')} · ${saved}${s.pinned ? ' · 📌 pinned' : ''}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:22px;font-weight:700;color:var(--primary);">${s.grade != null ? s.grade : '—'} ${gsEscapeHtml(s.grade_label || '')}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">confidence ${s.confidence != null ? s.confidence + '%' : '—'} · ${s.photos_used || 0} photo(s)${s.raw_grade != null ? ' · raw ' + s.raw_grade : ''}</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;">${imgs || '<span style="font-size:12px;color:var(--text-muted);">no images stored</span>'}</div>
+                <div style="margin-bottom:8px;">${subgrades || '<span style="font-size:12px;color:var(--text-muted);">no subgrades</span>'}</div>
+                ${s.grade_reasoning ? `<details style="font-size:13px;color:var(--text-secondary);"><summary style="cursor:pointer;">Reasoning</summary><p style="margin-top:6px;">${gsEscapeHtml(s.grade_reasoning)}</p></details>` : ''}
+                <div style="margin-top:10px;text-align:right;">
+                    <button class="tab" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);"
+                            onclick="deleteGradeSub(${s.id}, this)">🗑️ Delete (DB + R2)</button>
+                </div>
+            </div>`;
+        }
+
+        async function deleteGradeSub(id, btn) {
+            if (!confirm(`Delete grade submission #${id}? This removes the database row AND the R2 images. This cannot be undone.`)) return;
+            btn.disabled = true; btn.textContent = 'Deleting...';
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/grade-submissions/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const card = document.getElementById('gradesub-' + id);
+                    if (card) card.remove();
+                } else {
+                    btn.disabled = false; btn.textContent = '🗑️ Delete (DB + R2)';
+                    alert('Delete failed: ' + (data.error || res.status));
+                }
+            } catch (e) {
+                btn.disabled = false; btn.textContent = '🗑️ Delete (DB + R2)';
+                alert('Delete error: ' + e.message);
             }
         }
 
