@@ -523,14 +523,14 @@ async function saveMyValuation(comicId, value) {
 }
 
 async function deleteComic(comicId) {
-    // Check if user has dismissed the warning
-    const skipWarning = localStorage.getItem('cc_skip_delete_warning') === 'true';
-
-    if (!skipWarning) {
-        // Show custom confirmation modal
-        const confirmed = await showDeleteConfirmation();
-        if (!confirmed) return;
-    }
+    // Always confirm before deleting — no skip/bypass (guards against mobile mis-taps and data loss)
+    // Look up the comic so we can name it in the confirm prompt
+    const target = collection.find(c => Number(c.id) === Number(comicId));
+    const comicLabel = target
+        ? `${target.title}${target.issue ? ' #' + target.issue : ''}`
+        : null;
+    const confirmed = await showDeleteConfirmation(comicLabel);
+    if (!confirmed) return;
 
     const token = localStorage.getItem('cc_token');
     const numId = Number(comicId);
@@ -569,7 +569,7 @@ async function deleteComic(comicId) {
     });
 }
 
-function showDeleteConfirmation() {
+function showDeleteConfirmation(comicLabel) {
     return new Promise((resolve) => {
         // Create modal overlay
         const overlay = document.createElement('div');
@@ -578,25 +578,22 @@ function showDeleteConfirmation() {
         const modal = document.createElement('div');
         modal.style.cssText = 'background:#1a1a2e;border:1px solid #27272a;border-radius:16px;padding:24px;max-width:400px;width:90%;color:#fff;font-family:Inter,sans-serif;';
         modal.innerHTML = `
-            <h3 style="margin:0 0 12px;font-size:1.1rem;">Delete this comic?</h3>
-            <p style="color:#a1a1aa;font-size:0.9rem;margin:0 0 20px;">This will permanently remove it from your collection.</p>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#a1a1aa;margin-bottom:20px;">
-                <input type="checkbox" id="skipDeleteWarning" style="width:16px;height:16px;accent-color:#6366f1;cursor:pointer;">
-                Don't show this warning again
-            </label>
+            <h3 id="deleteModalTitle" style="margin:0 0 12px;font-size:1.1rem;"></h3>
+            <p style="color:#a1a1aa;font-size:0.9rem;margin:0 0 20px;">This will permanently remove it from your collection. This can't be undone.</p>
             <div style="display:flex;gap:12px;justify-content:flex-end;">
                 <button id="deleteCancel" style="padding:8px 20px;background:#252542;border:1px solid #27272a;border-radius:8px;color:#fff;cursor:pointer;font-size:0.9rem;">Cancel</button>
                 <button id="deleteConfirm" style="padding:8px 20px;background:#ef4444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;font-size:0.9rem;">Delete</button>
             </div>
         `;
 
+        // Set the heading via textContent so comic titles with quotes/brackets are safe
+        modal.querySelector('#deleteModalTitle').textContent =
+            comicLabel ? `Delete "${comicLabel}"?` : 'Delete this comic?';
+
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
 
         modal.querySelector('#deleteConfirm').addEventListener('click', () => {
-            if (modal.querySelector('#skipDeleteWarning').checked) {
-                localStorage.setItem('cc_skip_delete_warning', 'true');
-            }
             overlay.remove();
             resolve(true);
         });
