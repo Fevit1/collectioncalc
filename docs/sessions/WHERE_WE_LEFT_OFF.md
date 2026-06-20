@@ -16,15 +16,34 @@
 ### Collection must-fixes (commits `80d34c7`, `0579326`, `1cbfd06`) — shipped earlier in the session
 - **Fix 1:** always-confirm delete — names the comic, "can't be undone" copy, removed the skip-warning bypass (no one-tap-delete). **Fix 2:** de-clickified list rows (pure CSS — no dead handler; gallery click left intact = real expand feature). **Fix 3:** admin Feedback comments expand-on-click (was CSS-truncated; backend already sent full text).
 
-### ⏰ Remaining follow-ups (only TWO real, both non-urgent)
-1. **90-day PURGE — HARD DEADLINE ~2026-09-17** (day-90 from today's persist deploy). Comfortably after soft launch (Jul 21) + GalaxyCon (Aug 21-23) — no launch-crunch competition, but a real published-policy obligation; don't let it slip the date. Columns/index (`images_purge_after`,`pinned`) + `delete_grade_submission` helper already in place → it's a scheduled job + feedback-pin away. Fresh-session work.
-2. **`saved_collection_id` backlink-on-save** — currently always NULL (grade happens before save; save path doesn't backlink). Small, not urgent.
+### ✅ Deletion-request runbook — written & committed
+- **`docs/SW_deletion_request_runbook.md`** — believed already committed but was **not in the repo** (searched names/content/all branches/uncommitted — only a TODO reference existed), so it was **drafted fresh and committed** this session. Manual erasure procedure pairing with the admin grade-submission delete tool: verify by registered-email ownership (confirm-to-account-email on mismatch), scope incl. unsaved grade submissions, R2-cascade delete (R2 first, then rows), confirm `images_deleted`, confirm back, within 30 days, never auto-delete.
 
-### ✅ Deletion-request runbook — resolved
-- **`docs/SW_deletion_request_runbook.md`** — the close doc believed it was already committed; it was **not in the repo** (searched names/content/all branches/uncommitted — only a TODO reference existed), so it was **drafted fresh and committed** this session. Manual erasure procedure pairing with the admin grade-submission delete tool: verify by registered-email ownership (confirm-to-account-email on mismatch), scope incl. unsaved grade submissions, R2-cascade delete (R2 first, then rows), confirm `images_deleted`, confirm back, within 30 days, never auto-delete.
+### ✅ Section E (billing) PREP — COMPLETE & GREEN (read-only, committed)
+- `docs/technical/STRIPE_TEST_BILLING_RUNBOOK.md` — setup map + safe test runbook. Key findings: checkout is **server-created hosted Checkout** (no client publishable key — that mismatch can't happen here); price IDs are env-driven; webhook = `/api/billing/webhook` (mandatory secret); tier path `checkout.session.completed → handle_checkout_completed → update_user_subscription`; 14-day trial ⇒ status shows **`trialing`** (entitled, not broken).
+- `scripts/stripe_preflight.py` — strictly read-only (`Price.retrieve` + `WebhookEndpoint.list` + optional `--check-db` SELECT). The `.get()`-on-Stripe-objects crash was patched to attribute access (`getattr`); `--check-db EMAIL` folded in.
+- **Pre-flight passes GREEN in Render shell:** key=**TEST**; all 4 prices resolve `livemode=False` (**Pro $4.99 / $49.99, Guard $9.99 / $89.99**); webhook endpoint **enabled** at `/api/billing/webhook` with all required events.
+- **✅ Item #2 (webhook signing secret) MANUALLY VERIFIED** — Render `STRIPE_WEBHOOK_SECRET` == the test endpoint's `whsec_`. **All 3 config items confirmed → Section E config is FULLY verified. Next session is the LIVE TEST ONLY** (run Part B; no more config to check).
 
-### NEXT SESSION OPENER
-- **Section E — billing end-to-end in Stripe TEST mode**, using the Stripe test-mode setup map + safe billing runbook (read-only prep). ⚠️ Footguns: never run Checkout/portal on the protected `test-*` accounts; `create-checkout` writes `stripe_customer_id` immediately (`billing.py:507-514`) even in test mode. Purge sits on its Sept-17 clock until separately scheduled.
+### ⏰ / 🔧 Tracked follow-ups (carry forward)
+1. **⏰ 90-day PURGE — HARD DEADLINE ~2026-09-17** (day-90 from persist deploy). After soft launch (Jul 21) + GalaxyCon (Aug 21-23) — not urgent, but a published-policy obligation; **cannot slip past the date**. Columns/index (`images_purge_after`,`pinned`) + `delete_grade_submission` helper already in place → scheduled job + feedback-pin away.
+2. **🔧 `saved_collection_id` backlink-on-save** — always NULL (grade precedes save; save path doesn't backlink). Small.
+3. **~30s comic-ID progress messaging** — brief drafted, **not yet shipped** (staged honest "still working" messaging only — NO accuracy-costing speedups). Queued.
+4. **Email setup (mike@/support@slabworthy.com)** — Resend is **outbound-only**, no real inbox confirmed; **gates the matbanshee reply**. Deliberately held / not started.
+
+*(Section E item #2 — webhook signing secret — now ✅ manually verified; no longer a follow-up.)*
+
+### 🧠 Lessons logged this session (docs/LESSONS.md)
+- **L-SW-2026-004:** a Render env-var change needs a redeploy/restart **AND a fresh shell** — an already-open shell keeps the old value (caused a mid-session "same key" confusion).
+- **L-SW-2026-005:** run a strictly read-only pre-flight before any billing/money operation — `stripe_preflight.py` caught an expired key, an accidental LIVE key in Render, and a script bug before any could corrupt a real billing test.
+
+### NEXT SESSION OPENER — Section E LIVE TEST (config fully verified; execution only, "follow Part B")
+1. Make a **THROWAWAY** account — **NEVER** the `test-*@slabworthy.test` accounts (`create-checkout` taints an account with `stripe_customer_id` the instant checkout starts).
+2. Test card `4242 4242 4242 4242` → checkout for **Pro + Guard** → confirm webhook **200** + tier flips (use `--check-db EMAIL` before/after; `my-plan` shows **`trialing`** not `active` due to the 14-day trial — both entitled).
+3. Test customer-portal **cancel** → reverts to free.
+*(No more config checks — all 3 items already verified this session.)*
+
+Purge sits on its 2026-09-17 clock until separately scheduled.
 
 ---
 

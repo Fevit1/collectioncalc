@@ -75,3 +75,31 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   than speculating. Retention build is **gated on a privacy/consent decision** (users may assume
   unsaved grades are ephemeral) — disclosure + ToS + erasure cascade come first.
 - **SOURCE:** 2026-06-08 matbanshee investigation; spec drafted 2026-06-19 (Session 107).
+
+### L-SW-2026-004 — A Render env-var change needs a redeploy/restart AND a fresh shell
+
+- **RULE:** After changing an environment variable on Render, **both** the running service **and** any
+  already-open Render shell keep the **old** value until you redeploy/restart the service and open a
+  **new** shell. Never trust an already-open shell (or an un-redeployed service) to reflect a
+  just-changed env var.
+- **WHY:** Mid-Session-107 a Stripe key was updated in Render, but an already-open shell kept reading
+  the previous key — producing a confusing "it's still the same key" loop until a fresh shell was
+  opened.
+- **HOW TO APPLY:** After any env change, redeploy/restart the service, then open a **new** shell
+  before re-running any check that reads the var. If a value looks unchanged after you "just changed
+  it," suspect a stale shell/process before suspecting the dashboard.
+- **SOURCE:** Session 107 (2026-06-19) Stripe key swap. Candidate for cross-project promotion (Mike's call).
+
+### L-SW-2026-005 — Run a strictly read-only pre-flight before any billing/money operation
+
+- **RULE:** Before a billing/payment test (or any operation that depends on env-configured external
+  keys/IDs), run a **strictly read-only** pre-flight that verifies key mode, that referenced IDs
+  resolve in the active mode, and that endpoints are configured — *before* touching the real flow.
+- **WHY:** Session 107's `scripts/stripe_preflight.py` caught an **expired key**, an **accidental LIVE
+  key** in Render (the Stripe test/live toggle is a footgun), and a **script bug** — each before it
+  could corrupt a real billing test. The cost of the read-only check is trivial vs. a botched live
+  billing run.
+- **HOW TO APPLY:** Keep/extend `scripts/stripe_preflight.py`; require a GREEN pre-flight before
+  Section E and before any billing config change. Pre-flights stay read-only (list/retrieve + SELECT
+  only) — never let one acquire a side effect.
+- **SOURCE:** Session 107 (2026-06-19). Candidate for cross-project promotion (Mike's call).
