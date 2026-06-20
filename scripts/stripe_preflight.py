@@ -5,11 +5,13 @@ Stripe TEST-mode pre-flight check for Section E (billing end-to-end).
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║  READ-ONLY — NO SIDE EFFECTS.                                             ║
 ║  This script ONLY performs list/retrieve (GET) calls against the Stripe  ║
-║  API. It does NOT create, modify, or delete anything: no customers, no    ║
+║  API, and (optionally, with --check-db) a single SELECT against the DB.   ║
+║  It does NOT create, modify, or delete anything: no customers, no         ║
 ║  checkout sessions, no subscriptions, no webhook changes, no DB writes.   ║
-║  The only Stripe calls used are:                                          ║
-║      stripe.Price.retrieve(...)        (read)                             ║
-║      stripe.WebhookEndpoint.list(...)  (read)                             ║
+║  The only external calls used are:                                        ║
+║      stripe.Price.retrieve(...)         (read)                            ║
+║      stripe.WebhookEndpoint.list(...)   (read)                            ║
+║      SELECT ... FROM users WHERE email  (read, only with --check-db)      ║
 ║  Safe to run against production test-mode keys.                           ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 
@@ -24,12 +26,14 @@ Uses STRIPE_SECRET_KEY from the environment (the sk_test_ one). Never hardcodes 
 
 Run:
     python scripts/stripe_preflight.py
+    python scripts/stripe_preflight.py --check-db billing-test@example.com   # optional, SELECT-only
 (Run it where STRIPE_SECRET_KEY is set — e.g. the Render shell, where the env is
  already present — or set $env:STRIPE_SECRET_KEY for the session locally.)
 """
 
 import os
 import sys
+import argparse
 
 try:
     import stripe
@@ -59,7 +63,48 @@ WEBHOOK_PATH = "/api/billing/webhook"
 flags = []   # collected problems → printed in the summary
 
 
+def check_db(email):
+    """READ-ONLY: print a user's current billing fields (a single SELECT — no writes)."""
+    print("\n[DB] ACCOUNT BILLING STATE (read-only SELECT)")
+    dburl = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_RO")
+    if not dburl:
+        print("    Neither DATABASE_URL nor DATABASE_URL_RO is set — skipping db check.")
+        return
+    try:
+        import psycopg2
+        conn = psycopg2.connect(dburl)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, email, plan, subscription_status, billing_period, "
+            "       (stripe_customer_id IS NOT NULL) AS has_customer, "
+            "       (stripe_subscription_id IS NOT NULL) AS has_subscription "
+            "FROM users WHERE email = %s",
+            (email,),
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            print(f"    no user found with email {email}")
+            return
+        uid, em, plan, status, period, has_cust, has_sub = row
+        print(f"    id={uid}  email={em}")
+        print(f"    plan={plan} · subscription_status={status} · billing_period={period}")
+        print(f"    stripe_customer_id set={has_cust} · stripe_subscription_id set={has_sub}")
+    except Exception as e:
+        print(f"    db check failed: {e}")
+
+
 def main():
+    parser = argparse.ArgumentParser(
+        description="READ-ONLY Stripe pre-flight for Section E (billing end-to-end)."
+    )
+    parser.add_argument(
+        "--check-db", metavar="EMAIL", default=None,
+        help="Optional read-only SELECT: print this account's plan + subscription_status.",
+    )
+    args = parser.parse_args()
+
     key = os.environ.get("STRIPE_SECRET_KEY", "")
     if not key:
         print("ERROR: STRIPE_SECRET_KEY is not set in this environment. Nothing to check.")
@@ -93,7 +138,7 @@ def main():
         try:
             price = stripe.Price.retrieve(pid, expand=["product"])
         except stripe.error.InvalidRequestError as e:
-            print(f"    [{label}]  {pid}  → ✗ DOES NOT RESOLVE: {e.user_message or e}")
+            print(f"    [{label}]  {pid}  → ✗ DOES NOT RESOLVE: {getattr(e, 'user_message', None) or e}")
             flags.append(f"{env_var} ({pid}) doesn't resolve on this key → 'No such price' at checkout "
                          f"(likely a LIVE price id set while running TEST).")
             continue
@@ -102,13 +147,20 @@ def main():
             flags.append(f"{env_var} ({pid}) errored: {e}")
             continue
 
-        product = price.get("product")
-        product_name = product.get("name") if isinstance(product, dict) else str(product)
-        amount = price.get("unit_amount")
-        amount_str = f"{amount / 100:.2f} {price.get('currency', '').upper()}" if amount is not None else "—"
-        recurring = price.get("recurring") or {}
-        interval = recurring.get("interval", "—")
-        livemode = price.get("livemode")
+        # Stripe objects use attribute access, not dict .get() — read fields safely.
+        product = getattr(price, "product", None)
+        if product is None or isinstance(product, str):
+            # unexpanded → product is the id string (or absent)
+            product_name = product or "—"
+        else:
+            product_name = getattr(product, "name", None) or getattr(product, "id", "—")
+        amount = getattr(price, "unit_amount", None)
+        currency = (getattr(price, "currency", "") or "").upper()
+        amount_str = f"{amount / 100:.2f} {currency}" if amount is not None else "—"
+        recurring = getattr(price, "recurring", None)
+        interval = getattr(recurring, "interval", "—") if recurring else "—"  # guard one-time prices
+        livemode = getattr(price, "livemode", None)
+
         ok = "✓" if livemode is False else "✗"
         print(f"    [{label}]  {pid}  → {ok} {product_name} · {amount_str} / {interval} · livemode={livemode}")
         if livemode is not False:
@@ -120,7 +172,7 @@ def main():
     try:
         endpoints = stripe.WebhookEndpoint.list(limit=100)
         matches = [ep for ep in endpoints.auto_paging_iter()
-                   if (ep.get("url") or "").rstrip("/").endswith(WEBHOOK_PATH)]
+                   if (getattr(ep, "url", "") or "").rstrip("/").endswith(WEBHOOK_PATH)]
     except stripe.error.StripeError as e:
         print(f"    ✗ could not list webhook endpoints: {e}")
         flags.append(f"Could not list webhook endpoints: {e}")
@@ -131,14 +183,14 @@ def main():
         flags.append(f"No TEST webhook endpoint points at {WEBHOOK_PATH} → checkout completes but the "
                      f"tier never updates. Create one in the Stripe TEST dashboard.")
     for ep in matches:
-        status = ep.get("status")
-        events = ep.get("enabled_events") or []
+        status = getattr(ep, "status", None)
+        events = getattr(ep, "enabled_events", None) or []
         wildcard = "*" in events
         missing = [] if wildcard else [e for e in NEEDED_EVENTS if e not in events]
-        print(f"    URL:    {ep.get('url')}")
+        print(f"    URL:    {getattr(ep, 'url', '—')}")
         print(f"    status: {status}   events: {'ALL (*)' if wildcard else ', '.join(events) or '(none)'}")
         if status != "enabled":
-            flags.append(f"Webhook endpoint {ep.get('url')} status is '{status}', not 'enabled'.")
+            flags.append(f"Webhook endpoint {getattr(ep, 'url', '?')} status is '{status}', not 'enabled'.")
         if missing:
             print(f"    ✗ missing required events: {', '.join(missing)}")
             flags.append(f"Webhook endpoint missing events: {', '.join(missing)}")
@@ -151,6 +203,10 @@ def main():
     print("     not retrievable by API. Confirm MANUALLY that the Render STRIPE_WEBHOOK_SECRET equals")
     print("     the TEST endpoint's signing secret (Stripe test dashboard → Developers → Webhooks →")
     print("     the endpoint → Signing secret). A 400 in the webhook delivery log = this is wrong.")
+
+    # ── optional DB check ──────────────────────────────────────────────────
+    if args.check_db:
+        check_db(args.check_db)
 
     # ── SUMMARY ────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
