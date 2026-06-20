@@ -17,10 +17,13 @@ Plans (valuations_per_month = monthly grading cap, enforced in grading.py):
 """
 
 import os
+import logging
 import psycopg2
 from datetime import datetime
 from flask import Blueprint, jsonify, request, g
 from auth import require_auth, require_approved, verify_jwt, get_user_by_id
+
+logger = logging.getLogger(__name__)
 
 # Create blueprint
 billing_bp = Blueprint('billing', __name__, url_prefix='/api/billing')
@@ -615,26 +618,36 @@ def stripe_webhook():
         return jsonify({'error': 'Invalid signature'}), 400
 
     event_type = event.get('type', '')
+    event_id = event.get('id', '?')
     data = event.get('data', {}).get('object', {})
 
-    print(f"[Billing] Webhook: {event_type}")
+    print(f"[Billing] Webhook: {event_type} (id={event_id})")
 
     # ---- Handle events ----
-
-    if event_type == 'checkout.session.completed':
-        handle_checkout_completed(data)
-
-    elif event_type == 'customer.subscription.updated':
-        handle_subscription_updated(data)
-
-    elif event_type == 'customer.subscription.deleted':
-        handle_subscription_deleted(data)
-
-    elif event_type == 'invoice.payment_succeeded':
-        handle_payment_succeeded(data)
-
-    elif event_type == 'invoice.payment_failed':
-        handle_payment_failed(data)
+    # Each handler is isolated in a try/except so that an exception in one
+    # NEVER bubbles up as a bare 500 with no context. Before this, a handler
+    # crash returned an opaque 500 and Stripe retried it — but a deterministic
+    # code bug crashes identically on every retry, so the tier stayed un-flipped
+    # AND no traceback was easy to find. Now we log the FULL traceback with the
+    # event type + id, then ACK with 200 so Stripe stops retry-storming a bug it
+    # can't fix by retrying. After deploying a fix, replay the event from the
+    # Stripe dashboard (Developers → Webhooks → the event → Resend).
+    handlers = {
+        'checkout.session.completed': handle_checkout_completed,
+        'customer.subscription.updated': handle_subscription_updated,
+        'customer.subscription.deleted': handle_subscription_deleted,
+        'invoice.payment_succeeded': handle_payment_succeeded,
+        'invoice.payment_failed': handle_payment_failed,
+    }
+    handler = handlers.get(event_type)
+    if handler:
+        try:
+            handler(data)
+        except Exception:
+            logger.exception(
+                "[Billing] Webhook handler FAILED: type=%s id=%s", event_type, event_id
+            )
+            return jsonify({'received': True, 'handler_error': True}), 200
 
     return jsonify({'received': True})
 
@@ -643,9 +656,35 @@ def stripe_webhook():
 # WEBHOOK EVENT HANDLERS
 # ============================================
 
+def _subscription_period_end(subscription):
+    """current_period_end as a datetime, tolerant of Stripe's API change.
+
+    Stripe moved `current_period_end` off the Subscription object and onto its
+    items (API versions 2025-03-31+). Read the top-level field first, then fall
+    back to the first item's value. Returns None if neither is present (e.g. a
+    brand-new trialing sub before the first period is computed)."""
+    ts = subscription.get('current_period_end')
+    if not ts:
+        try:
+            items = (subscription.get('items') or {}).get('data') or []
+            if items:
+                ts = items[0].get('current_period_end')
+        except Exception:
+            ts = None
+    return datetime.fromtimestamp(ts) if ts else None
+
+
 def handle_checkout_completed(session):
-    """User completed checkout - activate their plan"""
-    metadata = session.get('metadata', {})
+    """User completed checkout - activate their plan.
+
+    Writes the REAL subscription status (trialing vs active) by retrieving the
+    subscription, instead of hardcoding 'active'. Our create-checkout always
+    attaches a 14-day trial, so a successful checkout lands the sub in
+    `trialing` — check_feature_access treats trialing as full access, so the
+    tier is live immediately and flips to active when Stripe bills the trial.
+    If the retrieve fails we still flip the tier (default 'trialing') so a
+    transient Stripe read never leaves a paying user stuck on free."""
+    metadata = session.get('metadata') or {}
     user_id = metadata.get('user_id')
     plan = metadata.get('plan')
     billing_period = metadata.get('billing_period', 'monthly')
@@ -653,18 +692,48 @@ def handle_checkout_completed(session):
     customer_id = session.get('customer')
 
     if not user_id or not plan:
-        print(f"[Billing] Checkout missing metadata: {metadata}")
+        print(f"[Billing] Checkout missing metadata: {dict(metadata)}")
         return
 
-    print(f"[Billing] Checkout completed: user={user_id}, plan={plan}")
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        print(f"[Billing] Checkout has non-numeric user_id: {user_id!r}")
+        return
 
-    update_user_subscription(
-        int(user_id), plan,
+    # Default to 'trialing' (correct for our trial checkout) and resolve the real
+    # status + period end from the subscription when we can.
+    status = 'trialing'
+    period_end_dt = None
+    if subscription_id and STRIPE_AVAILABLE:
+        try:
+            sub = stripe.Subscription.retrieve(subscription_id)
+            status = sub.get('status') or status
+            period_end_dt = _subscription_period_end(sub)
+        except Exception:
+            logger.exception(
+                "[Billing] Could not retrieve subscription %s for checkout "
+                "(user=%s) — flipping tier with default status=%s",
+                subscription_id, uid, status,
+            )
+
+    print(f"[Billing] Checkout completed: user={uid}, plan={plan}, status={status}")
+
+    ok = update_user_subscription(
+        uid, plan,
         stripe_customer_id=customer_id,
         stripe_subscription_id=subscription_id,
-        status='active',
-        billing_period=billing_period
+        status=status,
+        billing_period=billing_period,
+        current_period_end=period_end_dt,
     )
+    if not ok:
+        # update_user_subscription swallows DB errors and returns False; surface
+        # it loudly so a silent DB failure here is greppable in the logs.
+        logger.error(
+            "[Billing] update_user_subscription returned False for checkout "
+            "(user=%s, plan=%s) — tier did NOT flip.", uid, plan,
+        )
 
 
 def handle_subscription_updated(subscription):
@@ -677,9 +746,8 @@ def handle_subscription_updated(subscription):
     metadata = subscription.get('metadata', {})
     plan = metadata.get('plan')
 
-    # Get period end
-    period_end = subscription.get('current_period_end')
-    period_end_dt = datetime.fromtimestamp(period_end) if period_end else None
+    # Get period end (tolerant of Stripe moving the field onto items)
+    period_end_dt = _subscription_period_end(subscription)
 
     if not customer_id:
         return
