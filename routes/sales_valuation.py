@@ -12,13 +12,41 @@ import re
 import json
 import random
 from decimal import Decimal
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from title_matching import qualifier_title_clause, compose_qualified_title
+from lookup_demand import record_lookup_async
 
 # Create blueprint
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
+
+
+def _record_demand(endpoint, title, issue, issue_type, requested_grade,
+                   comp_count, graded_count, exact_count, fmv_method, estimated):
+    """Fire-and-forget demand log for a completed lookup. NEVER raises, NEVER
+    blocks the response (the actual insert is on a daemon thread). user_id /
+    admin flag come from the request context that before_request() populated."""
+    try:
+        record_lookup_async(
+            os.environ.get('DATABASE_URL'),
+            endpoint=endpoint,
+            title=title or None,
+            canonical_title=compose_qualified_title(title, issue_type) if title else None,
+            issue=str(issue) if issue not in (None, '') else None,
+            issue_type=issue_type or None,
+            requested_grade=requested_grade,
+            comp_count=comp_count,
+            graded_count=graded_count,
+            exact_count=exact_count,
+            fmv_method=fmv_method,
+            estimated=bool(estimated),
+            no_data=(not comp_count),
+            user_id=getattr(g, 'user_id', None),
+            is_internal=bool(getattr(g, 'admin_id', None)),
+        )
+    except Exception:
+        pass  # instrumentation must never affect the valuation response
 
 
 # ──────────────────────────────────────────────
@@ -520,6 +548,12 @@ def api_sales_valuation():
         ebay_count = len(ebay_graded) + len(ebay_raw)
         whatnot_count = len(market_graded) + len(market_raw)
 
+        # Lookup-demand instrumentation (non-blocking, additive — see lookup_demand.py)
+        _record_demand('valuation', title, issue, issue_type, grade,
+                       total_graded + raw_count, total_graded, exact_count,
+                       fmv_method,
+                       estimated or fmv_method in ['estimated', 'estimated_from_raw'])
+
         return jsonify({
             'success': True,
             'title': title,
@@ -733,6 +767,12 @@ def api_sales_fmv():
             raw_estimate = round(raw_estimate, 2)
             slabbed_estimate = round(slabbed_estimate, 2)
 
+            # Lookup-demand: this is the NO-DATA branch — the highest-value signal
+            # (a title users search that we can't price). Non-blocking, additive.
+            _record_demand('fmv', title, issue, issue_type,
+                           request.args.get('grade', type=float),
+                           0, None, None, 'estimated', True)
+
             return jsonify({
                 'success': True,
                 'count': 0,
@@ -867,6 +907,10 @@ def api_sales_fmv():
             confidence = 'low'
         else:
             confidence = 'very_low'
+
+        # Lookup-demand instrumentation (non-blocking, additive — see lookup_demand.py)
+        _record_demand('fmv', title, issue, issue_type, grade_param,
+                       len(all_sales), None, None, used_tier, False)
 
         return jsonify({
             'success': True,
