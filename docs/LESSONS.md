@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-06-19
+> **Operator:** Mike Berry · **Last updated:** 2026-06-20
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -103,3 +103,36 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   Section E and before any billing config change. Pre-flights stay read-only (list/retrieve + SELECT
   only) — never let one acquire a side effect.
 - **SOURCE:** Session 107 (2026-06-19). Candidate for cross-project promotion (Mike's call).
+
+### L-SW-2026-006 — Config-name typos are invisible to the eye and to substring/value checks; only exact-name machine resolution catches them
+
+- **RULE:** When something is configured "right there" but behaves as if it's missing, suspect the
+  **key NAME**, not the value — and verify it by **exact-name machine resolution** (`printenv NAME`,
+  `env | grep -c NAME`), not by eyeballing a dashboard or a substring search.
+- **WHY:** The Section E webhook 500 was a Render env var named `STRIPE_WEBHOOOK_SECRET` (**three O's**)
+  instead of `STRIPE_WEBHOOK_SECRET`. The code read the correct two-O name, found nothing, and returned
+  the "secret not configured" 500. It hid from every soft check: the brain autocorrects WEBHOOOK→WEBHOOK
+  when reading; `grep -i stripe` *displayed* the 3-O name so it "looked present"; the manual "secrets
+  match" check compared the **value** (which was correct). It only surfaced when the container was asked
+  for the **exact** name: `printenv STRIPE_WEBHOOK_SECRET` = empty, `env | grep -c` = 0, while
+  `STRIPE_SECRET_KEY` = 1 (the asymmetry was the tell).
+- **HOW TO APPLY:** For any "configured but not working" env/config value, resolve the EXACT name the
+  code reads (copy it from the `os.environ.get(...)` call) against the environment — never trust a
+  substring match or a visual scan. A present-but-misnamed key reads identically to a missing one.
+- **SOURCE:** Session 108 (2026-06-20) Stripe webhook 500. Candidate for cross-project promotion (Mike's call).
+
+### L-SW-2026-007 — Instrument before theorizing: log the real failure reason instead of guessing at causes
+
+- **RULE:** When a failure's cause isn't obvious, the first move is to make the failure **self-report**
+  (log the actual exception / an explicit reason at the failure point) — not to generate and test
+  theories against the code.
+- **WHY:** The webhook-500 brief carried four plausible code theories (`.get()` bug, Stripe version
+  drift, stale deploy, env propagation) — **all four were wrong.** What actually solved it was the
+  hardening that added `logger.exception` + an explicit "Webhook secret not configured" message: the
+  moment it ran, it pointed straight at the env var instead of sending us deeper into the code. An hour
+  of wrong theories collapsed into a one-line answer once the code said *why* it failed.
+- **HOW TO APPLY:** On any opaque 500/error path, add a clear logged reason (exception + identifying
+  context) and reproduce ONCE before theorizing. Prefer explicit failure messages at guards ("X not
+  configured") over generic errors. Treat "I can't find the traceback" as the first problem to fix, not
+  a reason to guess.
+- **SOURCE:** Session 108 (2026-06-20) Stripe webhook 500. Pairs with L-SW-2026-005 (read-only pre-flight). Candidate for cross-project promotion (Mike's call).
