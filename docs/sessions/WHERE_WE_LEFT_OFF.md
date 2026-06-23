@@ -1,4 +1,63 @@
-# Where We Left Off - Jun 19, 2026
+# Where We Left Off - Jun 20, 2026
+
+## Session 108 (Jun 20, 2026) — Section E billing LIVE TEST: core revenue path GREEN; webhook 500 root-caused (env-var typo) & fixed; webhook hardening shipped; multi-sub stacking bug found
+
+**Built draft-for-review; Mike ran all git/deploy + the live Stripe test. Read LESSONS + cross-project at open.**
+
+### Headline: core billing works end-to-end — pay → correct tier. Two bugs found, one fixed.
+The webhook 500 that blocked all of Section E is **FIXED**, and **Pro + Guard checkout now flip the tier correctly** (incl. the Pro→Guard tier-CHANGE path). A second billing bug (subscription **stacking**) was found during testing and is queued.
+
+### ALSO SHIPPED (Session 108 follow-on, commit `daf9050`) — sales-data coverage assessment + lookup-demand instrumentation
+- **Read-only coverage assessment** of the sales corpus (script left on disk untracked: `scripts/coverage_assessment.py`). Findings: eBay `ebay_sales` = **53,840** rows (README "~24K" was stale), Whatnot `market_sales` = **9,677** (real, ~15% of corpus). **Freshness is fine** (83.5% within 180d; capture active but manual/bursty — a real Apr–May stall, resumed June). **Breadth wide, DEPTH thin** (89% of title/issue keys have 1–2 comps; grade-specific FMV is reliable on only ~268 books, high-confidence on 93). **Processing gap:** ~27% of eBay rows excluded by variant/lot/reprint filters — ~11K variants (1,235 graded+fresh) we're sitting on but not pricing (ties to the queued barcode-variant-subtyping work). **Read:** weak spot is DEPTH + over-filtering (PROCESSING), not coverage/freshness — and we were **blind** to which titles return no/thin data.
+- **Fix (shipped):** lookup-demand instrumentation — `migrations/add_lookup_demand.sql` (new `lookup_demand` table + ranking indexes) + `lookup_demand.py` (fire-and-forget daemon-thread logger, never blocks/raises) + 3 hooks in `routes/sales_valuation.py` (valuation success, fmv no-data fallback, fmv success). Captures title/canonical/issue/grade, comp counts, fmv_method, estimated/no_data, **user_id** (for distinct-user ranking) and **is_internal** (admin pre-filter; test accts excluded by user_id at query time). Purely additive, non-blocking. **Verified live:** migration applied in Render shell, deployed, an ASM #300 fmv lookup wrote a correct row (`comp_count=327`, `user_id=None`, `fmv_method='mid'`). Now collecting; the "top thin-data titles" demand query is ready to run read-only once real traffic accumulates. **Don't over-read early sparse beta data.**
+
+### THE WEBHOOK 500 — ROOT CAUSE WAS A RENDER ENV-VAR TYPO (not code)
+- **All four theories from the webhook-500 brief were WRONG** — not the `.get()` bug, not Stripe version drift, not stale deployed code, not env propagation. (My read-only investigation had already **disproven** the `.get()` theory — proved `.get()` works on stripe 12.1.0 typed Event/Session objects — and flagged "we're blind without the traceback; instrument it.")
+- **ACTUAL cause:** the Render env var was misnamed **`STRIPE_WEBHOOOK_SECRET` (THREE O's)** instead of `STRIPE_WEBHOOK_SECRET`. The code reads the correct (two-O) name via `os.environ.get`, found nothing → hit the "Webhook secret not configured" guard → **returned 500** (correctly refusing to process an unverified webhook). The **VALUE was always right; only the KEY NAME was wrong.**
+- **Why it hid:** substring search (`grep -i stripe`) displayed the 3-O name so it "looked right"; the earlier manual "secrets match" check compared the **value** (correct); the pre-flight script structurally **cannot** check the webhook secret (Stripe never exposes `whsec_` via API). It only surfaced via **exact-name resolution in the container:** `printenv STRIPE_WEBHOOK_SECRET` = empty, `env | grep -c STRIPE_WEBHOOK_SECRET` = 0, while `STRIPE_SECRET_KEY` = 1 (the asymmetry was the tell).
+- **FIX:** renamed the Render env var to `STRIPE_WEBHOOK_SECRET` (two O's), kept the value, redeployed.
+
+### Webhook hardening — SHIPPED & KEPT (it's what pointed at the bug)
+Committed + deployed this session (`routes/billing.py` + the stripe pin):
+- **`logger.exception` + the explicit "Webhook secret not configured" message** → THIS is what pointed at the env var instead of sending us deeper into the code. Instrument-don't-guess paid off directly.
+- `handle_checkout_completed` writes the **real** status (`trialing`, not hardcoded `active`) — confirmed correct in testing (`subscription_status=trialing` for the 14-day trial).
+- `_subscription_period_end()` for the `current_period_end` API move (onto `items[]` in 2025-03-31+).
+- 200-on-handler-error + greppable logging (a deterministic handler bug no longer retry-storms; traceback is logged, replay via Stripe dashboard after a fix).
+- `requirements.txt` pinned **`stripe>=12,<13`** (separate commit) to stop local/prod drift.
+
+### CONFIRMED WORKING (Stripe TEST mode, throwaway mikeberrysc+22@gmail.com, user_id 30)
+- **Pro checkout:** webhook 200; `--check-db` → `plan=pro`, `subscription_status=trialing`, both stripe IDs set.
+- **Guard checkout (as an upgrade from Pro):** `plan=guard`, `trialing`, both IDs set → **tier-CHANGE path works.**
+- **Cancel-at-period-end:** portal scheduled all subs to cancel **Jul 4** (correct scheduled-cancel behavior).
+- **Pre-flight `stripe_preflight.py`:** GREEN (key=TEST, all 4 prices resolve `livemode=false`, webhook endpoint + events good). `--check-db` flag working.
+
+### NEW BUG FOUND — MULTI-SUBSCRIPTION STACKING (next billing task)
+The customer portal for +22 showed **THREE concurrent active subscriptions** on the one customer: Guard $9.99 + Pro $4.99 + a **SECOND** Pro $4.99 (all cancelling Jul 4). Each checkout run created a **NEW** subscription instead of **MODIFYING** the existing one — so Pro→Guard "change" stacked a new sub, and a re-run Pro checkout stacked another. A real user who subscribes then upgrades could be billed for multiple overlapping plans (~$20/mo here).
+- **Caveat — partly a testing artifact:** Mike ran raw checkout 3× rather than using an upgrade button. First step is to determine whether there's a real upgrade path that was bypassed vs. genuinely create-new-every-time.
+- **INVESTIGATE (read-only first):** does `routes/billing.py`'s `create-checkout` path check whether the user already has an active Stripe subscription? Is there a proper change-plan flow that MODIFIES the existing subscription (Stripe supports this directly), or does it always create a new one?
+- **FIX (either/both):** change-plan should modify the existing subscription, not create parallel; AND/OR checkout should refuse/guard if the user already has an active subscription. **A stacking guard is needed before launch regardless.**
+
+### Signup "too many requests" — my read-only finding (no action this session)
+Confirmed: **NOT our app and NOT Cloudflare** — there is no signup rate-limit anywhere in our code (`flask-limiter` isn't even a dependency; only `contact.py`/`monitor.py`/`grading.py` have limiters, none on `/api/auth/*`), and the signup POST goes **straight to Render** (`API_URL = collectioncalc-docker.onrender.com`), bypassing Cloudflare. Most likely **Resend's free-tier daily email cap (~100/day, doesn't reset in minutes)** — fits "didn't clear in 10 min." Accounts still create (the send failure is swallowed → `email_send_failed`); what breaks under load is verification **emails**. **Launch mitigation:** Resend paid plan + verified sending domain before Aug 21. Also: we have **NO abuse rate-limit on signup at all** — consider a gentle per-IP limit post-launch. (Logged; no action.)
+
+### SECTION E STATUS
+- **Core revenue path (pay → correct tier): 🟢 GREEN.** Pro, Guard, and tier-change all confirmed.
+- **Cancel scheduling:** works (cancel-at-period-end → Jul 4).
+- **STILL TO TEST:** immediate cancel → revert to `plan=free` (the `customer.subscription.deleted` path). The portal only did cancel-at-period-end (Jul 4), so nothing has terminated yet — needs a "cancel immediately" to fire the downgrade webhook.
+- **STILL TO FIX:** the multi-sub stacking guard (above).
+
+### LESSONS LOGGED THIS SESSION (docs/LESSONS.md)
+- **L-SW-2026-006** — config typos are invisible to the eye (brain autocorrects WEBHOOOK→WEBHOOK) AND to substring/value checks; only exact-name machine resolution (`printenv NAME`, `env | grep -c NAME`) catches them.
+- **L-SW-2026-007** — instrument before theorizing: "log the real failure reason" turned an hour of wrong theories into a one-line answer.
+- (Reinforced **L-SW-2026-004:** Render auto-deploy is OFF — `git push` does NOT deploy; env-var changes need a redeploy + fresh shell to reach the process.)
+
+### NEXT SESSION — queued
+1. **Multi-sub stacking bug** — investigate (read-only) + fix (modify-existing and/or refuse-if-already-subscribed). Launch blocker.
+2. **Test immediate cancel → `plan=free`** (the `customer.subscription.deleted` downgrade/teardown webhook path) — the last untested Section E leg.
+3. (Earlier queued, still open) **~30s comic-ID progress messaging** — brief drafted, not shipped.
+4. ⏰ (Tracked) **90-day grade-retention PURGE** — hard deadline ~2026-09-17; `saved_collection_id` backlink.
+
+---
 
 ## Session 107 (Jun 19, 2026) — Grade-submission RETENTION shipped & verified end-to-end; collection must-fixes; privacy reconciliation
 
