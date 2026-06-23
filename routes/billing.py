@@ -511,8 +511,27 @@ def create_checkout_session():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    # Get or create Stripe customer
+    # Stacking guard (additive): every create-checkout mints a BRAND-NEW
+    # subscription, so a user who already has a live sub and clicks "Change Plan"
+    # (→ pricing → checkout) would stack a second paid subscription on the same
+    # customer. Refuse here and route plan CHANGES to the customer portal, which
+    # modifies the existing sub in place. Only block genuinely-live subs
+    # (active/trialing/past_due) that have a real Stripe sub id — canceled /
+    # incomplete / unpaid users (sub id nulled, or never live) may check out
+    # again to (re)subscribe. On a DB read error get_user_plan() returns a dict
+    # with no sub id, so this fails OPEN (allows checkout) rather than blocking a
+    # legitimate first-time subscriber.
     user_plan = get_user_plan(user_id)
+    if (user_plan and user_plan.get('stripe_subscription_id')
+            and user_plan.get('subscription_status') in ('active', 'trialing', 'past_due')):
+        return jsonify({
+            'error': 'You already have an active subscription. '
+                     'Change your plan from the billing portal.',
+            'code': 'existing_subscription',
+            'manage_via': 'customer_portal',
+        }), 409
+
+    # Get or create Stripe customer
     customer_id = user_plan.get('stripe_customer_id') if user_plan else None
 
     try:
