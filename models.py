@@ -37,6 +37,8 @@ MODEL_CHAINS = {
         'claude-sonnet-4-latest',
     ],
     'opus': [
+        'claude-opus-4-8',
+        'claude-opus-4-7',
         'claude-opus-4-6',
         'claude-opus-4-latest',
     ],

@@ -405,7 +405,7 @@ LPQ_WIN_SIZE = 5               # STFT window size for LPQ computation
 
 # Session 53: Shared auto-orient — single source of truth in fingerprint_utils.py
 from routes.fingerprint_utils import auto_orient_pil as _auto_orient_image
-from models import SONNET
+from models import call_with_fallback
 
 
 def _download_image(url, timeout=15):
@@ -1306,7 +1306,7 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
 def compare_covers_with_vision(ref_url, test_url,
                                 extra_ref_photos=None,
                                 anthropic_api_key=None,
-                                model=SONNET,
+                                model=None,
                                 timeout=15,
                                 marketplace_mode=False):
     """
@@ -1323,7 +1323,8 @@ def compare_covers_with_vision(ref_url, test_url,
             Alternate fronts used as SIFT fallback. Defect/closeup photos sent
             to Claude Vision as additional evidence.
         anthropic_api_key: Anthropic API key (or from ANTHROPIC_API_KEY env var)
-        model: Claude model to use
+        model: Optional exact model override (e.g. harness A/B). When None (default),
+            the arbiter uses the Opus tier via call_with_fallback (Opus 4.8 head).
         timeout: Download timeout
         marketplace_mode: If True, Vision is the PRIMARY verdict. Cross-camera
             marketplace photos (different lighting, backgrounds, angles) fool
@@ -1634,17 +1635,28 @@ Respond in JSON:
         # 5. The prompt goes last, after all images
         msg_content.append({"type": "text", "text": prompt})
 
-        # Call Claude Vision
+        # Call Claude Vision — Opus 4.8 arbiter via the opus fallback chain.
+        # The whole cross-camera copy verdict rides on this one call, so it inherits
+        # fallback (a head-model 404 would otherwise kill recovery with no recovery
+        # path). An explicit `model` override (e.g. harness A/B) pins that exact
+        # model and bypasses the chain.
         client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model=model,
+        _vision_kwargs = dict(
             max_tokens=1500,
             system="You are a forensic comic book authentication specialist. Your expertise is identifying individual physical copies through PHYSICAL WEAR PATTERNS — creases, tears, chips, spine ticks, foxing spots, corner bends. You IGNORE printed artwork similarities because all copies of the same issue share identical printed content. After SIFT alignment, the print is pixel-matched — only physical defects differ between copies. Your default assumption is DIFFERENT_COPY unless you find compelling matching physical defects. You are methodical: you examine each region, cite specific physical features by position, and commit to a verdict.",
             messages=[{"role": "user", "content": msg_content}],
         )
+        if model:
+            response = client.messages.create(model=model, **_vision_kwargs)
+        else:
+            response = call_with_fallback(client, 'opus', **_vision_kwargs)
 
         raw = response.content[0].text
-        cost = (response.usage.input_tokens * 3 / 1e6) + (response.usage.output_tokens * 15 / 1e6)
+        # Per-MTok rates: Opus 4.8 = $5/$25 (shipped arbiter default), Sonnet 4.6 = $3/$15.
+        # Derive from the model that served the response so an A/B override prices correctly.
+        used_model = getattr(response, 'model', None) or model or ''
+        _in_rate, _out_rate = (3, 15) if 'sonnet' in used_model else (5, 25)
+        cost = (response.usage.input_tokens * _in_rate / 1e6) + (response.usage.output_tokens * _out_rate / 1e6)
 
         # Parse Claude response
         try:
@@ -1769,6 +1781,7 @@ Respond in JSON:
             'marketplace_mode': marketplace_mode,
             'verdict_source': 'vision_primary' if marketplace_mode else 'quant_primary',
             'cost_usd': round(cost, 5),
+            'arbiter_model': used_model,
         }
 
     except Exception as e:
