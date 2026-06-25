@@ -20,8 +20,8 @@ calls it, with marketplace_mode=True (the recovery path: Vision is the primary v
 How it feeds local photos to the CV path
 -----------------------------------------
 compare_covers_with_vision() downloads its inputs from URLs. Rather than touch that code
-or upload anything to R2, this harness spins up a localhost static file server over the
-capture directory and passes http://127.0.0.1:PORT/<file> URLs. Nothing leaves the machine.
+or upload anything to R2, this harness spins up ONE localhost static file server per phone
+directory and passes http://127.0.0.1:PORT/<file> URLs. Nothing leaves the machine.
 
 We deliberately bypass the perceptual-hash "issue gate" (the 77/105 candidate filter).
 That gate only confirms "same issue", which is TRUE for both our TP and FP pairs by design,
@@ -40,24 +40,23 @@ x 2 phones — copies vary per issue, so the harness enumerates whatever it find
     Resolution : full-res phone camera. Min 500px short side; 1000px+ strongly preferred.
     Devices    : Phone 1 and Phone 2 must be GENUINELY DIFFERENT devices (this is the whole point).
 
-Name every file (extension .jpg/.jpeg/.png/.webp):
+PHONE = FOLDER. Put each device's photos in its own directory (--phone1, --phone2). The
+SAME physical copy must carry the SAME copy number on both phones (copy 1 on phone1 and
+copy 1 on phone2 are the same book) — the whole TP/FP mapping depends on that alignment.
 
-    <issue-slug>_copy<A|B|C...>_phone<1|2>.<ext>
-    The slug is any issue identifier you choose (mu1, ironman200, invaders41,
-    heroesforhope, hulkwolverine1, ...). Copies are single letters A, B, C, ...
-    e.g.  mu1_copyA_phone1.jpg   mu1_copyA_phone2.jpg
-          mu1_copyB_phone1.jpg   mu1_copyB_phone2.jpg
-          mu1_copyC_phone1.jpg   mu1_copyC_phone2.jpg   (3rd copy, if present)
+Name every file (extension .jpg/.jpeg/.png/.webp), identically in both phone folders:
 
-Optional cross-IMAGE baseline (same phone, second shot — should be an easy SAME_COPY):
-    <issue-slug>_copy<A|B|C>_phone1b.<ext>   (or _phone2b)
+    <Issue_Name>_<Front|Back>_<copyNumber>.<ext>
+    e.g.  Iron_Man_200_Front_1.jpg            Iron_Man_200_Front_2.jpg
+          Marvel_Universe_1_Front_1.jpg       Marvel_Universe_1_Back_1.jpg
+          Wolverine_..._Hulk_1_Front_3.jpg    (3rd copy, if present)
+    Copy numbers are 1, 2, 3, ...  Front/Back let you test either side (default: front).
 
-Pairs the harness builds per issue (copies enumerated dynamically when files exist)
------------------------------------------------------------------------------------
+Pairs the harness builds per issue (copies enumerated dynamically from what it finds)
+-------------------------------------------------------------------------------------
     TP                : copyX/phone1 vs copyX/phone2   expect same_copy   (one per copy)
     FP / cross_camera : copyX/phone1 vs copyY/phone2   expect different_copy (every ordered X!=Y)
     FP / same_phone   : copyX/phoneN vs copyY/phoneN   expect different_copy (every X<Y, per phone)
-    BASELINE (opt.)   : copyX/phone1 vs copyX/phone1b  expect same_copy   (cross-image control)
 
 The two FP modes report separately: a cross_camera false positive is camera-driven, a
 same_phone false positive is copy-similarity-driven. Both must be 0; the split says which.
@@ -65,13 +64,18 @@ same_phone false positive is copy-similarity-driven. Both must be 0; the split s
 Run
 ---
     # from the repo root, in the project venv (needs opencv + anthropic + ANTHROPIC_API_KEY)
-    python scripts/slabguard_crosscamera_test.py --captures "C:/path/to/your/photos"
+    python scripts/slabguard_crosscamera_test.py \
+        --phone1 "C:/.../tests/SlabGuardTests/PixelPhotos" \
+        --phone2 "C:/.../tests/SlabGuardTests/iPhonePhotos"
 
-    # optional: A/B a different vision model for the arbiter (e.g. Opus for the forensic call)
-    python scripts/slabguard_crosscamera_test.py --captures ... --model claude-opus-4-6
+    # discovery dry-run (no phone2 yet): only same-phone FP pairs form, not a recovery test
+    python scripts/slabguard_crosscamera_test.py --phone1 "C:/.../PixelPhotos"
 
-    # optional: write the per-pair table to CSV for the record
-    python scripts/slabguard_crosscamera_test.py --captures ... --csv results.csv
+    # optional: A/B a different vision model for the arbiter (default is Opus 4.8)
+    python scripts/slabguard_crosscamera_test.py --phone1 ... --phone2 ... --model claude-sonnet-4-6
+
+    # optional: test back covers too, and write the per-pair table to CSV for the record
+    python scripts/slabguard_crosscamera_test.py --phone1 ... --phone2 ... --side both --csv results.csv
 
 Outputs: a per-pair metric table (final_verdict, final_confidence, avg_dilated_iou,
 border_inliers, lpq_chi2, vision_verdict, cost_usd), then the TRUE-POSITIVE and
@@ -100,20 +104,28 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
 VALID_EXT = (".jpg", ".jpeg", ".png", ".webp")
-# <slug>_copy<A|B|C...>_phone<1|2>  (+ optional phone1b/2b baseline). The slug IS the
-# issue id — any prefix (mu1, ironman200, heroesforhope). The trailing $ binds the
-# _copy<L>_phone<P> suffix to the END, so a slug that itself contains "_copy" still parses.
+# Real-shoot capture naming (one file per copy, per side):
+#     <Issue_Name>_<Front|Back>_<copyNumber>.<ext>
+#     e.g.  Iron_Man_200_Front_1.jpg   Marvel_Universe_1_Back_2.jpg
+# The PHONE is the FOLDER (--phone1 / --phone2), NOT the filename. The greedy issue
+# group + the $-anchored _(Front|Back)_<n> suffix mean an issue name that itself ends
+# in a number (Marvel_Universe_1) still parses correctly.
 NAME_RE = re.compile(
-    r"^(?P<issue>.+?)_copy(?P<copy>[A-Za-z])_phone(?P<phone>1b|2b|1|2)$",
+    r"^(?P<issue>.+)_(?P<side>Front|Back)_(?P<copy>\d+)$",
     re.IGNORECASE,
 )
 
 
-def discover(captures_dir):
-    """Return {(issue, copy, phone): filename} for every well-named capture."""
+def discover(phone_dir, phone, side):
+    """
+    Scan ONE phone's directory for ONE cover side. Return
+    ({(issue, copy, phone): filename}, [skipped filenames]). `phone` is '1' or '2',
+    `side` is 'front' or 'back', and `copy` is the numeric copy id as a string
+    ('1','2','3'). Files of the other side (or unrecognized names) go to `skipped`.
+    """
     found = {}
     skipped = []
-    for fn in sorted(os.listdir(captures_dir)):
+    for fn in sorted(os.listdir(phone_dir)):
         stem, ext = os.path.splitext(fn)
         if ext.lower() not in VALID_EXT:
             continue
@@ -121,7 +133,10 @@ def discover(captures_dir):
         if not m:
             skipped.append(fn)
             continue
-        key = (m["issue"], m["copy"].upper(), m["phone"].lower())
+        if m["side"].lower() != side:
+            skipped.append(fn)
+            continue
+        key = (m["issue"], m["copy"], phone)
         found[key] = fn
     return found, skipped
 
@@ -151,8 +166,10 @@ def build_pairs(found):
                     "expect": expect,
                     "ref_file": c[ref_kc],
                     "test_file": c[test_kc],
+                    "ref_phone": ref_kc[1],
+                    "test_phone": test_kc[1],
                     "label": f"{issue} {kind}{('/' + fp_mode) if fp_mode else ''} "
-                             f"{ref_kc[0]}{ref_kc[1]}->{test_kc[0]}{test_kc[1]}",
+                             f"c{ref_kc[0]}p{ref_kc[1]}->c{test_kc[0]}p{test_kc[1]}",
                 })
 
         copies = sorted({copy for (copy, _phone) in c})
@@ -195,15 +212,29 @@ def start_file_server(directory):
 
 def main():
     ap = argparse.ArgumentParser(description="Slab Guard cross-camera recovery test (read-only).")
-    ap.add_argument("--captures", required=True, help="Directory containing the named capture photos.")
+    ap.add_argument("--phone1", required=True,
+                    help="Directory of phone-1 photos (e.g. .../PixelPhotos).")
+    ap.add_argument("--phone2", default=None,
+                    help="Directory of phone-2 photos (e.g. .../iPhonePhotos). Omit for a discovery "
+                         "dry-run — only same-phone FP pairs form; NOT a valid recovery test.")
+    ap.add_argument("--side", choices=["front", "back", "both"], default="front",
+                    help="Cover side(s) to test. Default 'front' (the documented recovery surface). "
+                         "'both' runs front-vs-front and back-vs-back as separate passes, never mixed.")
     ap.add_argument("--model", default=None, help="Optional vision model override for the arbiter call.")
     ap.add_argument("--csv", default=None, help="Optional path to write the per-pair table as CSV.")
     args = ap.parse_args()
 
-    captures_dir = os.path.abspath(args.captures)
-    if not os.path.isdir(captures_dir):
-        print(f"✗ captures dir not found: {captures_dir}")
+    dir1 = os.path.abspath(args.phone1)
+    if not os.path.isdir(dir1):
+        print(f"✗ phone1 dir not found: {dir1}")
         sys.exit(1)
+    dir2 = os.path.abspath(args.phone2) if args.phone2 else None
+    if args.phone2 and not os.path.isdir(dir2):
+        print(f"✗ phone2 dir not found: {dir2}")
+        sys.exit(1)
+    if not dir2:
+        print("⚠  --phone2 not given: cross-camera TP/FP pairs cannot form. Only same-phone FP")
+        print("   pairs within phone1 will run — a useful dry-run, but NOT a recovery result.")
 
     # Import the live CV path AFTER sys.path is set. This is the exact function the
     # marketplace recovery flow calls per registry candidate.
@@ -226,73 +257,94 @@ def main():
         print("     later be mistaken for a valid one.")
         # continue anyway so Mike at least sees the quant layer, but flag it loudly.
 
-    found, skipped = discover(captures_dir)
-    if skipped:
-        print(f"ℹ  ignored {len(skipped)} unrecognized file(s): {', '.join(skipped[:6])}"
-              + (" ..." if len(skipped) > 6 else ""))
-    if not found:
-        print("✗ no well-named captures found. Expected e.g. issue1_copyA_phone1.jpg")
-        print("  pattern: issue<N>_copy<A|B>_phone<1|2>.<jpg|jpeg|png|webp>")
-        sys.exit(1)
+    sides = ["front", "back"] if args.side == "both" else [args.side]
 
-    pairs = build_pairs(found)
-    if not pairs:
-        print("✗ found captures but could not form any TP/FP pairs. Need, per issue, at least")
-        print("  copyA/phone1 + copyA/phone2 (TP) and copyA/phone1 + copyB/phone2 (FP).")
-        sys.exit(1)
+    # One static file server per phone directory: filenames are IDENTICAL across phones
+    # (same issue, same copy number), so each phone is served from its own root and the
+    # correct base is chosen per pair via the ref/test phone token.
+    httpd1, base1 = start_file_server(dir1)
+    base_by_phone = {"1": base1}
+    servers = [httpd1]
+    if dir2:
+        httpd2, base2 = start_file_server(dir2)
+        base_by_phone["2"] = base2
+        servers.append(httpd2)
 
-    n_tp = sum(1 for p in pairs if p["kind"] == "TP")
-    n_fp_cross = sum(1 for p in pairs if p["fp_mode"] == "cross_camera")
-    n_fp_same = sum(1 for p in pairs if p["fp_mode"] == "same_phone")
-    n_base = sum(1 for p in pairs if p["kind"] == "BASE")
-    print(f"\nDiscovered {len(found)} captures → {len(pairs)} pairs "
-          f"({n_tp} TP, {n_fp_cross} FP cross-camera, {n_fp_same} FP same-phone, {n_base} baseline).")
-    print(f"Vision model: {args.model or 'default (Opus 4.8 via opus fallback chain)'}   "
-          f"marketplace_mode=True\n")
-
-    httpd, base_url = start_file_server(captures_dir)
     rows = []
     try:
-        for p in pairs:
-            ref_url = f"{base_url}/{p['ref_file']}"
-            test_url = f"{base_url}/{p['test_file']}"
-            kw = dict(ref_url=ref_url, test_url=test_url, marketplace_mode=True)
-            if args.model:
-                kw["model"] = args.model
-            try:
-                r = compare_covers_with_vision(**kw)
-            except Exception as e:
-                r = {"success": False, "error": f"{type(e).__name__}: {e}"}
+        for side in sides:
+            found, skipped = discover(dir1, "1", side)
+            if dir2:
+                f2, s2 = discover(dir2, "2", side)
+                found.update(f2)
+                skipped += s2
+            if skipped:
+                print(f"ℹ  [{side}] ignored {len(skipped)} unrecognized/other-side file(s).")
+            if not found:
+                print(f"✗ [{side}] no well-named captures. Expected e.g. Iron_Man_200_Front_1.jpg")
+                continue
 
-            verdict = (r.get("final_verdict") or r.get("verdict") or "error")
-            correct = (verdict == p["expect"])
-            mark = "✓" if correct else ("—" if verdict in ("uncertain", "error") else "✗")
-            row = {
-                "issue": p["issue"],
-                "kind": p["kind"],
-                "fp_mode": p["fp_mode"],
-                "expect": p["expect"],
-                "ref": p["ref_file"],
-                "test": p["test_file"],
-                "final_verdict": verdict,
-                "ok": mark,
-                "final_confidence": r.get("final_confidence", r.get("confidence")),
-                "avg_dilated_iou": r.get("avg_dilated_iou"),
-                "border_inliers": (r.get("alignment") or {}).get("border_inliers"),
-                "lpq_chi2": r.get("lpq_chi2"),
-                "vision_verdict": r.get("vision_verdict"),
-                "cost_usd": r.get("cost_usd"),
-                "invalid_no_arbiter": (not arbiter_ok),
-                "error": r.get("error"),
-            }
-            rows.append(row)
-            print(f"[{mark}] {p['label']:<34} verdict={verdict:<15} "
-                  f"conf={row['final_confidence']}  dIoU={row['avg_dilated_iou']}  "
-                  f"border={row['border_inliers']}  lpq={row['lpq_chi2']}  "
-                  f"vision={row['vision_verdict']}  ${row['cost_usd']}"
-                  + (f"  ERR={row['error']}" if row['error'] else ""))
+            pairs = build_pairs(found)
+            if not pairs:
+                print(f"✗ [{side}] found captures but formed no pairs "
+                      "(need ≥2 copies per issue; for TP/cross-camera, supply --phone2).")
+                continue
+
+            n_tp = sum(1 for p in pairs if p["kind"] == "TP")
+            n_fp_cross = sum(1 for p in pairs if p["fp_mode"] == "cross_camera")
+            n_fp_same = sum(1 for p in pairs if p["fp_mode"] == "same_phone")
+            print(f"\n[{side.upper()}] {len(found)} captures → {len(pairs)} pairs "
+                  f"({n_tp} TP, {n_fp_cross} FP cross-camera, {n_fp_same} FP same-phone).")
+            print(f"Vision model: {args.model or 'default (Opus 4.8 via opus fallback chain)'}   "
+                  f"marketplace_mode=True")
+
+            for p in pairs:
+                ref_url = f"{base_by_phone[p['ref_phone']]}/{p['ref_file']}"
+                test_url = f"{base_by_phone[p['test_phone']]}/{p['test_file']}"
+                kw = dict(ref_url=ref_url, test_url=test_url, marketplace_mode=True)
+                if args.model:
+                    kw["model"] = args.model
+                try:
+                    r = compare_covers_with_vision(**kw)
+                except Exception as e:
+                    r = {"success": False, "error": f"{type(e).__name__}: {e}"}
+
+                verdict = (r.get("final_verdict") or r.get("verdict") or "error")
+                correct = (verdict == p["expect"])
+                mark = "✓" if correct else ("—" if verdict in ("uncertain", "error") else "✗")
+                row = {
+                    "side": side,
+                    "issue": p["issue"],
+                    "kind": p["kind"],
+                    "fp_mode": p["fp_mode"],
+                    "expect": p["expect"],
+                    "ref": p["ref_file"],
+                    "test": p["test_file"],
+                    "final_verdict": verdict,
+                    "ok": mark,
+                    "final_confidence": r.get("final_confidence", r.get("confidence")),
+                    "avg_dilated_iou": r.get("avg_dilated_iou"),
+                    "border_inliers": (r.get("alignment") or {}).get("border_inliers"),
+                    "lpq_chi2": r.get("lpq_chi2"),
+                    "vision_verdict": r.get("vision_verdict"),
+                    "cost_usd": r.get("cost_usd"),
+                    "invalid_no_arbiter": (not arbiter_ok),
+                    "error": r.get("error"),
+                }
+                rows.append(row)
+                print(f"[{mark}] {p['label']:<46} verdict={verdict:<15} "
+                      f"conf={row['final_confidence']}  dIoU={row['avg_dilated_iou']}  "
+                      f"border={row['border_inliers']}  lpq={row['lpq_chi2']}  "
+                      f"vision={row['vision_verdict']}  ${row['cost_usd']}"
+                      + (f"  ERR={row['error']}" if row['error'] else ""))
     finally:
-        httpd.shutdown()
+        for s in servers:
+            s.shutdown()
+
+    if not rows:
+        print("\n✗ no pairs ran — nothing to report. (Need ≥2 copies per issue; for TP and "
+              "cross-camera FP, supply --phone2.)")
+        sys.exit(1)
 
     # ── Rates ──
     tp_rows = [r for r in rows if r["kind"] == "TP"]
