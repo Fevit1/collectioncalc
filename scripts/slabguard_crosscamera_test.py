@@ -348,6 +348,8 @@ def main():
                     "final_confidence": r.get("final_confidence", r.get("confidence")),
                     "avg_dilated_iou": r.get("avg_dilated_iou"),
                     "border_inliers": (r.get("alignment") or {}).get("border_inliers"),
+                    "alignment_ok": (r.get("alignment") or {}).get("aligned"),
+                    "sift_inliers": (r.get("alignment") or {}).get("inliers"),
                     "lpq_chi2": r.get("lpq_chi2"),
                     "vision_verdict": r.get("vision_verdict"),
                     "cost_usd": r.get("cost_usd"),
@@ -356,8 +358,8 @@ def main():
                 }
                 rows.append(row)
                 print(f"[{mark}] {p['label']:<46} verdict={verdict:<15} "
-                      f"conf={row['final_confidence']}  dIoU={row['avg_dilated_iou']}  "
-                      f"border={row['border_inliers']}  lpq={row['lpq_chi2']}  "
+                      f"conf={row['final_confidence']}  align={row['alignment_ok']}/{row['sift_inliers']}  "
+                      f"dIoU={row['avg_dilated_iou']}  border={row['border_inliers']}  lpq={row['lpq_chi2']}  "
                       f"vision={row['vision_verdict']}  ${row['cost_usd']}"
                       + (f"  ERR={row['error']}" if row['error'] else ""))
     finally:
