@@ -1,4 +1,116 @@
-# Where We Left Off - Jun 20, 2026
+# Where We Left Off - Jun 26, 2026
+
+## Session 110 (Jun 24-26, 2026) — Cross-camera RECOVERY test RUN & PASSED: front-cover cross-camera false-positive rate = 0/12 (three runs); two product-path arbiter safety bugs found & fixed; backs deprecated as a matching surface; TP/recovery-sensitivity is the one remaining gate
+
+**Built draft-for-review; Mike runs all git/deploy. Verification ran before every diff reached Mike (offline parsing/pairing asserts + in-process arbiter-logic asserts + module-import checks). Standing protocol: file-specific staging, commit message matches diff.**
+
+### Headline: the decisive number landed clean. Front-cover cross-camera false-positive rate = **0** — held across **three** runs — and two real arbiter safety bugs (both in the dangerous "different copy surfaces as a match" direction) were caught by the test and fixed in the live product path.
+
+### THE RESULT — cross-camera false positives = 0
+- **Front covers: FP = 0/12**, three consecutive runs, confidences **0.6–0.97**. This is the metric that gates the recovery claim (different copy of the same issue, two cameras, must NOT match). It passed.
+- Test set: `tests/SlabGuardTests/FalsePostiveTest/{PixelPhotos,iPhonePhotos}` — same 6 issues, **different physical copies** across the two phone folders (visually confirmed same-issue, e.g. Iron Man #200 both sides). 6 same-issue cross-camera pairs per side.
+
+### BACKS DEPRECATED AS A MATCHING SURFACE
+- Backs produced **3/6 non-clean** results (1 false positive — since corrected by the fix below — + 2 `uncertain`) vs fronts 6/6 clean across every run.
+- **Structural reason (not tunable):** same-issue back covers are frequently the **identical mass-printed full-page ad** (shared trade dress / barcode block), so the SIFT/border matcher agrees on shared **print**, not shared **wear**, and cannot discriminate copies. Evidence: the Wolverine back pair shows `border=39` geometric inliers vs 0–10 on every other pair — a spurious spike from shared printed content. **Recommendation: drop back covers from the recovery matching path.**
+
+### TWO PRODUCT-PATH ARBITER FIXES (`routes/slab_guard_cv.py`, drafted + verified; Mike commits + deploys to Render)
+Both surfaced by the back-cover run; both are general live-path hardening (not test-only), both in the "different copy must never read as same_copy" safety direction:
+1. **Vision JSON parse hardening.** The arbiter assumed a pure-JSON response; when the model appended trailing prose (more common on dense back covers) `json.loads()` raised "Extra data", the greedy-regex fallback also threw, the exception escaped to the outer handler → `vision=None` → quant fallback defaulted to `same_copy` (a real false positive on Heros_For_Hope back). Fix: new `_extract_first_json_object()` (balanced-brace, string/escape aware) parses only the first `{...}` object and ignores leading/trailing content + code fences; a genuine parse failure now defaults to **`uncertain`, never throws**; safety net so a parse failure can never surface as `same_copy`.
+2. **Uncertain vision can no longer be promoted to a match.** In marketplace mode, a successfully-parsed `vision=uncertain` could still be overridden to `same_copy` by the LPQ/quant tiebreaker (Wolverine back: `vision=uncertain` → `final=same_copy/0.6`). Fix: the marketplace vision-uncertain branch may only downgrade toward `different_copy`; floor outcome is `uncertain`, never a match. Generalized the safety net to enforce this invariant (no real vision match ⇒ never `same_copy`). Standard mode unchanged (quant is the trusted primary there by design). Re-run confirmed: Wolverine back flipped to `different_copy` (same `border=39` spike, verdict held correct).
+
+### HARNESS ADAPTED TO THE REAL SHOOT (`scripts/slabguard_crosscamera_test.py`, drafted + verified)
+- Rewrote ingestion for the actual shoot: **phone = folder** (`--phone1`/`--phone2`), parses `<Issue_Name>_<Front|Back>_<copyNumber>` (`copynum`, default), dynamic copy enumeration (handles the 2- and 3-copy issues), `--side front|back|both`, FP split into **cross_camera vs same_phone**, `invalid_no_arbiter` CSV column (a keyless quant-only run can't be mistaken for valid), one localhost file server per phone folder.
+- Added **`--layout crosscam-fp`** for the FalsePostiveTest set (`<Issue>_<Front|Back>_<Pixel|iPhone>`): copy identity comes from the folder so same-issue Pixel↔iPhone pairs score as different copies (cross-camera FP), `expect=different_copy`.
+- Default-model label corrected to Opus 4.8; docstring updated to 6 issues / variable copies / dual FP modes.
+
+### STILL OPEN — the one remaining gate
+- **TP / recovery sensitivity UNMEASURED.** No tracked same-book-on-both-phones set exists (the top-level folders' copy numbering wasn't aligned across phones). This is the gating item for any **positive** recovery claim ("we can match your stolen comic across cameras"). The FP=0 liability gate is done; TP is not.
+- **TP reshoot protocol drafted:** `tests/SlabGuardTests/TP_RESHOOT_PROTOCOL.md` — front-only, new `TruePositiveTest/{PixelPhotos,iPhonePhotos}` folders, identical filenames across both phones (same copy number = same physical book), exact run command. `copynum` default mode measures TP correctly (verified: 1 copy/issue → 6 cross-camera TP `expect=same_copy`; 2 copies/issue → full 12 TP + 12 cross-camera FP + 12 same-phone FP matrix). Mike shooting next.
+
+### NEXT
+1. Mike: stage/commit the three drafted files (`routes/slab_guard_cv.py`, `scripts/slabguard_crosscamera_test.py`, this log + the TP protocol doc), **deploy `slab_guard_cv.py` to Render** (product path).
+2. Mike: shoot the TP set per the protocol; run `copynum` mode; read the true-positive rate.
+3. Wire the **drop-backs** recommendation into whatever the recovery matching path ends up being (fronts only).
+
+---
+
+## Session 109 (cont., Jun 22-23, 2026) — Opus 4.8 Slab Guard arbiter SHIPPED & DEPLOYED (commit 647bca2); cross-camera RECOVERY test fully set up (harness + capture protocol, pending Mike's photo shoot); recovery positioning decided
+
+**Built draft-for-review; Mike ran all git/deploy + the Render-Events verify. Read LESSONS + cross-project at open. (Same session as the stacking step-1 work below — this is the Slab Guard / Opus half.)**
+
+### Headline: the Slab Guard Vision arbiter is now Opus 4.8 (with real fallback), and the decisive cross-camera recovery test is built and waiting on Mike's photos.
+A 4-brief read-only thread assessed what Slab Guard recovery can actually PROVE, reconciled the validation history, then shipped the Opus switch + the resilience fix. The recovery CLAIM is now gated on one number: the **cross-camera false-positive rate**, which Mike's photo shoot will produce.
+
+### OPUS 4.8 ARBITER SWITCH — SHIPPED & DEPLOYED (commit `647bca2`, Render Events green)
+- **What changed** (`routes/slab_guard_cv.py` + `models.py`, additive/surgical): the Vision arbiter `compare_covers_with_vision` now defaults to **Opus 4.8 via `call_with_fallback('opus')`** instead of a frozen direct `client.messages.create(model=SONNET)`. Two wins in one — **(a)** Opus is the default (forensic visual copy-discrimination is exactly its strength), and **(b)** the resilience fix: the whole cross-camera copy verdict rides on this ONE call, which previously had **NO fallback** (would 404 with no recovery if its head model retired, and the model string was frozen at import).
+- `models.py` opus chain head bumped **4-6 → 4-8** (4-7/4-6 as fallbacks). Cost formula made **model-aware** ($5/$25 Opus default, $3/$15 if a Sonnet A/B override served it) so `cost_usd` is correct for BOTH harness arms. New **`arbiter_model`** field on the response for verification.
+- An explicit `model=` override (the harness `--model`) still pins that exact model and bypasses the chain → the Sonnet-vs-Opus A/B works unchanged.
+- **Cost reality (corrected from the brief's ~5×):** Opus 4.8 is **$5/$25** vs Sonnet **$3/$15** = ~**1.67×**, on a call that **barely fires today** — the shipped extension runs **quant-only** (`background.js` never sets `marketplace_mode`/`use_vision`), so the arbiter only fires on the manual `/api/monitor/compare-copies` path + the harness. Negligible cost. (If `marketplace_mode` is ever wired into the extension auto-scan, the arbiter fans out **once per hash-gate candidate per listing** — bound that fan-out then; flagged, not built.)
+- Functional `arbiter_model=claude-opus-4-8` live check **deferred to the harness run** (didn't chase cover URLs for a curl today).
+
+### SLAB GUARD RECOVERY ASSESSMENT (read-only — the thread that led to the switch)
+- **Load-bearing answer — copy vs issue:** the hash gate (pHash+dHash+aHash+wHash) is **issue-level only**. Copy-level identity is attempted by SIFT edge-IoU + border inliers + LPQ + the Vision arbiter. Per the code's own docstrings these work **same-camera** but are **UNRELIABLE cross-camera** (the ACTUAL recovery scenario) — quant "CANNOT discriminate copy identity" cross-camera; Vision is primary there but validated on essentially **n≈1 same-copy cross-camera pair**.
+- **Validation-history reconciliation (Mike's "lots of testing" vs my "n=1"):** BOTH true. Substantial testing happened but lives only as **prose** (CV docstring, ROADMAP, `SLAB_GUARD_CV_OVERVIEW.md`) — **zero committed structured result files**. It was mostly **cross-IMAGE / same-camera** (Mike re-shooting his own copies on one device — 6/6 there); the recovery-relevant **cross-CAMERA / different-device axis was never run as a controlled matrix** (its one data point was a single eBay photo that produced a false positive). Cross-image vs cross-camera is exactly what reconciles the two views.
+- **Cert-number = the buried lede (strongest recovery vector, UNWIRED):** the CGC/CBCS cert is **already OCR'd** at grading (`comic_extraction.py`), **stored + indexed** (`comic_registry`/`collections`, dedicated index) and **displayed** in verify lookup — but it is **never matched on**. `find_matches()` keys only on hashes; no endpoint accepts a cert and returns a registered copy. Wiring it is the **lowest-effort, highest-reliability** slabbed-recovery feature — needs no CV research.
+
+### CROSS-CAMERA HARNESS + CAPTURE PROTOCOL — READY (read-only, not wired to prod)
+- `scripts/slabguard_crosscamera_test.py` — imports the live `compare_covers_with_vision` with `marketplace_mode=True`, serves Mike's local photos over a **localhost file server** (no R2 upload, no prod change), **bypasses the issue gate** (it passes for both TP and FP by design, so it isn't the discriminator), and prints a per-pair metric table + **true-positive and false-positive RATES** + total cost. Takes `--model` (the A/B) and `--csv`.
+- **Capture protocol:** front cover of each (copy, phone). 5 issues × 2 copies × 2 phones = ~20 photos, named `issue<N>_copy<A|B>_phone<1|2>.jpg`. **Matte, untextured, contrasting background** (texture = the #1 false-positive cause — the one historical cross-camera FP came from background texture). Even light, no glare, square-on, full cover, ≥500px short side, two **genuinely different** phones. Shooting all 4 per issue yields ~10 TP + ~10 FP cross-camera pairs (real rates, not an anecdote).
+
+### POSITIONING DECIDED (recovery-claim honesty)
+- **Slabbed → cert-number = the honest, marketable recovery HEADLINE** (cert already captured/stored/indexed; small build to wire the lookup).
+- **Raw / photo-matching stays provenance + monitoring framing** until the harness FP-rate proves cross-camera recovery. **Decisive metric = the cross-camera false-positive rate (different copy, same issue, must NOT match); want 0** — this number gates whether "recovery" can go on any GalaxyCon booth copy / pricing tier.
+
+### NEXT — Mike's physical work (unhurried, its own block)
+1. Source a clean **matte, untextured, contrasting** background (poster board / plain matte surface).
+2. Confirm **ANTHROPIC_API_KEY + opencv** in the venv BEFORE shooting.
+3. Shoot ~20 photos (5 issues × 2 copies × 2 phones, naming above).
+4. Run the harness **twice** for the A/B: no `--model` (defaults to Opus 4.8 now) and `--model claude-sonnet-4-6`.
+5. Read the **false-positive rate** (want 0); confirm `arbiter_model=claude-opus-4-8` in the default run.
+
+### STILL OPEN (next sessions)
+- **Stacking step 2** (account.html "Change Plan" → `openPortal()` + 409 auto-redirect; verify Stripe portal plan-switching enabled) and **step 3** (`handle_subscription_deleted` sub-id match + immediate-cancel→free test) — hardening on the now-closed blocker (detail in the stacking entry below).
+- **Section F checklist** (mobile + load) — draft AFTER stacking 2 & 3; **mobile half is higher-priority** (GalaxyCon booth is phone-first; start real-device testing well before Aug 21, not last-minute).
+- **Cert-number recovery lookup** (small build) — the marketable slabbed-recovery headline.
+- Lower-priority backlog: ~30s comic-ID progress messaging; email setup (mike@/support@); `lookup_demand` thin-data pull (after weeks of real traffic); variant reclamation (Tier 1); capture-cadence scheduled pull; ⏰ 90-day purge (~Sept 17).
+
+---
+
+## Session 109 (Jun 22, 2026) — Multi-sub STACKING investigated (read-only) → fix STEP 1 of 3 SHIPPED & VERIFIED: checkout stacking guard (the launch blocker is CLOSED)
+
+**Built draft-for-review; Mike ran all git/deploy + the prod verification. Read LESSONS + cross-project at open.**
+
+### Headline: the stacking launch-blocker is CLOSED. A real user can no longer stack subscriptions via create-checkout.
+Investigated the Session-108 multi-sub stacking bug **read-only**, then shipped the contained fix (step 1 of a planned 3). Steps 2 (UI) and 3 (webhook) are hardening on a now-closed blocker — queued, no rush, before launch.
+
+### READ-ONLY INVESTIGATION — what the code actually did (all in `routes/billing.py` + 2 frontend pages)
+1. **Checkout guard: NONE (root cause).** `create_checkout_session()` validated the plan, got/created the Stripe customer, then **unconditionally** called `stripe.checkout.Session.create(mode='subscription')`. It never read the user's current sub state → every call minted a **brand-new** subscription. The 3-sub +22 result is exactly what this code does hit 3×; **not** a pure testing artifact.
+2. **No in-code modify/upgrade path.** No `stripe.Subscription.modify` anywhere (only `.retrieve`). Billing routes: `/plans`, `/my-plan`, `/check-feature`, `/create-checkout`, `/customer-portal`, `/webhook`, `/record-valuation` — **no change-plan endpoint**. The only in-place modify is the **Stripe Customer Portal** (if configured), which is how the S108 "Pro→Guard works" almost certainly happened.
+3. **Webhook = last-writer-wins.** `users` tracks ONE `stripe_subscription_id`/`plan`/`status`. `handle_subscription_updated` matches **by customer_id only** and overwrites from whichever sub's event fires last (+22 landed on guard incidentally). **Worse latent bug:** `handle_subscription_deleted` (billing.py:778) also matches by customer_id only → canceling **one** of several stacked subs reverts the user to **free while Stripe keeps billing the others.**
+4. **UI reality: "Change Plan" routes back into stacking.** account.html shows paid users **"Manage Billing"** (→ portal, safe) AND **"Change Plan"** (→ `/pricing.html`). Every pricing button calls `create-checkout` → so "Change Plan" stacks a second sub.
+
+### STEP 1 SHIPPED & VERIFIED — checkout stacking guard (`routes/billing.py`, additive guard clause)
+- Committed + pushed + **deployed** by Mike: `"fix(billing): stacking guard — refuse create-checkout when a live sub exists"`.
+- The guard: before creating a session, read `get_user_plan()`; if the user has `stripe_subscription_id` AND `subscription_status` in **active/trialing/past_due**, return **HTTP 409** `{"error": "...", "code": "existing_subscription", "manage_via": "customer_portal"}`. Checkout remains allowed ONLY for free→first-paid.
+- **Edge cases (confirmed working as specified):** only active/trialing/past_due with a non-null sub id is blocked; canceled/incomplete/unpaid/none can still (re)subscribe; **fails OPEN** on a DB read error (never blocks a legitimate first-time subscriber).
+- **VERIFIED two ways in prod:** (1) create-checkout as +22 (user 30, already has live subs) → **HTTP 409** `{code:"existing_subscription", manage_via:"customer_portal"}` (was 200 + checkout_url, would have stacked a 4th sub). (2) Stripe dashboard shows +22 still has **exactly 3** subs, not 4 → the guard refused **before any Stripe call**.
+
+### STILL TO DO — steps 2 & 3 (next session, separate passes; hardening on a closed blocker)
+- **STEP 2 — UI redirect:** point account.html "Change Plan" at `openPortal()` (not `/pricing.html`); have pricing.html/account.html **detect the 409 `code:"existing_subscription"`** and auto-open the portal instead of alerting the error string. Also verify in the Stripe dashboard that the Customer Portal's **plan-switching ("switch plans") is enabled** for Pro/Guard (dashboard config, no code) — flag if not.
+- **STEP 3 — webhook hardening (the scary latent bug):** `handle_subscription_deleted` should only revert to free if the deleted `sub.id` matches the user's stored `stripe_subscription_id` (or re-resolve the remaining active sub). Optional follow-on: `handle_subscription_updated` ignores events for a sub that isn't the user's-of-record (kills last-writer-wins flicker).
+- **Pairs with:** the still-untested **immediate-cancel → plan=free** Section E leg (same handler) — do it alongside step 3.
+
+### SECTION F (Mike's question) — what it is
+There is **no standalone doc** enumerating the readiness sections A–F; the lettering lives only in the session notes (A/B early · C = collection mgmt [S104] · D = tier gates [S106] · E = billing [S107–109] · **F = mobile + load**). **Section F = mobile + load testing** — the last un-run readiness section. It maps to existing TODO items but was never written out as a detailed checklist: **mobile** = full grading→value→verdict→save flow on real Android + iOS devices (P1 "Mobile testing"), plus billing/portal on mobile (P2) and PWA install; **load** = behavior under concurrent/convention-spike usage (the R2 edge-cache work was bought as spike insurance). If we want F run rigorously, first step is drafting an actual F checklist (devices, flows, a load target) — it doesn't exist yet.
+
+### NEXT SESSION — queued
+1. **Stacking step 2** (account.html "Change Plan" → portal + 409 detection) — draft-for-review.
+2. **Stacking step 3** (`handle_subscription_deleted` sub-id match) + **immediate-cancel → free** test (same handler) — draft + test.
+3. **Section F** — draft a real mobile + load checklist, then run.
+4. ⏰ (Tracked) **90-day grade-retention PURGE** — hard deadline ~2026-09-17.
+
+---
 
 ## Session 108 (Jun 20, 2026) — Section E billing LIVE TEST: core revenue path GREEN; webhook 500 root-caused (env-var typo) & fixed; webhook hardening shipped; multi-sub stacking bug found
 
