@@ -1769,16 +1769,20 @@ Respond in JSON:
                 else:
                     final_confidence = vision_confidence
             else:
-                # Vision uncertain — LPQ is best tiebreaker for marketplace mode
-                # (IoU/border inliers unreliable cross-camera, but LPQ works)
+                # Vision uncertain. SAFETY FLOOR: an uncertain vision verdict must never be
+                # promoted to same_copy by the LPQ/quant tiebreaker — that manufactures a
+                # match from no real copy-level signal (the dangerous direction for theft
+                # matching). The tiebreaker may only downgrade toward different_copy; the
+                # floor outcome is 'uncertain', never a match.
                 lpq_hint = lpq_result['lpq_verdict_hint']
-                if lpq_hint != 'uncertain':
-                    final_verdict = lpq_hint
+                if lpq_hint == 'different_copy':
+                    final_verdict = 'different_copy'
                     final_confidence = 0.60  # LPQ-driven, moderate confidence
-                elif quant_verdict != 'uncertain':
-                    final_verdict = quant_verdict
+                elif quant_verdict == 'different_copy':
+                    final_verdict = 'different_copy'
                     final_confidence = 0.45  # quant unreliable in marketplace
                 else:
+                    # lpq/quant say same_copy or uncertain → floor to uncertain, not a match
                     final_verdict = 'uncertain'
                     final_confidence = 0.4
         else:
@@ -1802,10 +1806,12 @@ Respond in JSON:
                 final_verdict = quant_verdict
                 final_confidence = 0.6
 
-        # Safety net: a vision JSON parse failure must NEVER surface as same_copy. We have
-        # no real vision signal, and same_copy is the dangerous direction for theft matching
+        # Safety net (defense in depth): same_copy must never surface when there is no real
+        # vision match — i.e. the vision JSON failed to parse, OR (marketplace mode) vision
+        # itself returned uncertain. same_copy is the dangerous direction for theft matching
         # (could flag an innocent seller's legitimate copy). Force the safe verdict instead.
-        if vision_parse_failed and final_verdict == 'same_copy':
+        if final_verdict == 'same_copy' and (
+                vision_parse_failed or (marketplace_mode and vision_verdict == 'uncertain')):
             final_verdict = 'uncertain'
             final_confidence = min(final_confidence, 0.4)
 
