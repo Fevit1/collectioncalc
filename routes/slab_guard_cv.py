@@ -1303,6 +1303,45 @@ def compare_covers(ref_url, test_url, extra_ref_photos=None, timeout=15):
         }
 
 
+def _extract_first_json_object(text):
+    """
+    Return the first balanced ``{...}`` JSON object substring in ``text``, or None.
+
+    The vision arbiter is asked for pure JSON but sometimes appends trailing prose
+    (more common on dense back covers), which makes a whole-string ``json.loads()``
+    raise "Extra data". Brace counting here respects JSON string literals and escapes,
+    so braces inside string values don't confuse the balance, and any content before
+    the first ``{`` (e.g. a ```` ```json ```` fence) or after the closing ``}`` is ignored.
+    """
+    if not text:
+        return None
+    start = text.find('{')
+    if start == -1:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+    return None
+
+
 def compare_covers_with_vision(ref_url, test_url,
                                 extra_ref_photos=None,
                                 anthropic_api_key=None,
@@ -1658,18 +1697,29 @@ Respond in JSON:
         _in_rate, _out_rate = (3, 15) if 'sonnet' in used_model else (5, 25)
         cost = (response.usage.input_tokens * _in_rate / 1e6) + (response.usage.output_tokens * _out_rate / 1e6)
 
-        # Parse Claude response
-        try:
-            text = raw.strip()
-            if text.startswith('```'):
-                text = text.split('\n', 1)[1].rsplit('```', 1)[0]
-            parsed = json_mod.loads(text)
-        except (json_mod.JSONDecodeError, ValueError, KeyError) as parse_err:
-            import re
-            m = re.search(r'\{[\s\S]*\}', raw)
-            parsed = json_mod.loads(m.group()) if m else {
+        # Parse Claude response. The model is asked for pure JSON but sometimes wraps it
+        # in a ```json fence or appends trailing prose (more common on dense back covers),
+        # which makes a whole-string json.loads() raise "Extra data". Extract the first
+        # balanced {...} object and parse only that. On a genuine parse failure default to
+        # a SAFE 'uncertain' verdict — NEVER let a parse error fall through to a default
+        # that could read as same_copy, which is the dangerous direction for theft matching.
+        parsed = None
+        candidate = _extract_first_json_object(raw)
+        if candidate is not None:
+            try:
+                obj = json_mod.loads(candidate)
+                if isinstance(obj, dict):
+                    parsed = obj
+            except (json_mod.JSONDecodeError, ValueError):
+                parsed = None
+        vision_parse_failed = parsed is None
+        if vision_parse_failed:
+            print(f"⚠️ Slab Guard vision arbiter returned unparseable JSON; "
+                  f"defaulting to UNCERTAIN (safe). Raw head: {raw[:160]!r}")
+            parsed = {
                 'verdict': 'UNCERTAIN', 'confidence': 0.5,
-                'reasoning': f'JSON parse error: {str(parse_err)[:100]}', 'observations': []}
+                'reasoning': 'vision JSON parse failure — defaulted to uncertain',
+                'observations': []}
 
         vision_verdict = parsed.get('verdict', 'UNCERTAIN').lower()
         # Normalize to our format
@@ -1751,6 +1801,13 @@ Respond in JSON:
                 # Disagreement: trust quantitative (it showed clean separation in testing)
                 final_verdict = quant_verdict
                 final_confidence = 0.6
+
+        # Safety net: a vision JSON parse failure must NEVER surface as same_copy. We have
+        # no real vision signal, and same_copy is the dangerous direction for theft matching
+        # (could flag an innocent seller's legitimate copy). Force the safe verdict instead.
+        if vision_parse_failed and final_verdict == 'same_copy':
+            final_verdict = 'uncertain'
+            final_confidence = min(final_confidence, 0.4)
 
         return {
             'success': True,
