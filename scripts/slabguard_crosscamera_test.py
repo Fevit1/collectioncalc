@@ -114,29 +114,45 @@ NAME_RE = re.compile(
     r"^(?P<issue>.+)_(?P<side>Front|Back)_(?P<copy>\d+)$",
     re.IGNORECASE,
 )
+# Alt layout 'crosscam-fp' (the FalsePostiveTest set): one DIFFERENT physical copy per
+# phone, phone label baked into the filename and also the folder:
+#     <Issue_Name>_<Front|Back>_<Pixel|iPhone>.<ext>
+# We take issue+side from the name but derive copy identity from the FOLDER (phone), so a
+# same-issue Pixel↔iPhone pair is correctly treated as two different copies (cross-camera FP).
+FP_NAME_RE = re.compile(
+    r"^(?P<issue>.+)_(?P<side>Front|Back)_(?P<label>Pixel|iPhone)$",
+    re.IGNORECASE,
+)
 
 
-def discover(phone_dir, phone, side):
+def discover(phone_dir, phone, side, layout="copynum"):
     """
     Scan ONE phone's directory for ONE cover side. Return
     ({(issue, copy, phone): filename}, [skipped filenames]). `phone` is '1' or '2',
-    `side` is 'front' or 'back', and `copy` is the numeric copy id as a string
-    ('1','2','3'). Files of the other side (or unrecognized names) go to `skipped`.
+    `side` is 'front' or 'back'. Files of the other side (or unrecognized names) go to
+    `skipped`.
+
+    layout='copynum'     : <Issue>_<Front|Back>_<copyNumber>; copy = the number ('1','2','3').
+    layout='crosscam-fp' : <Issue>_<Front|Back>_<Pixel|iPhone>; copy is derived from the
+                           PHONE/folder ('pix' on phone1, 'iph' on phone2) so a same-issue
+                           Pixel↔iPhone pair reads as two different copies.
     """
+    regex = FP_NAME_RE if layout == "crosscam-fp" else NAME_RE
     found = {}
     skipped = []
     for fn in sorted(os.listdir(phone_dir)):
         stem, ext = os.path.splitext(fn)
         if ext.lower() not in VALID_EXT:
             continue
-        m = NAME_RE.match(stem)
+        m = regex.match(stem)
         if not m:
             skipped.append(fn)
             continue
         if m["side"].lower() != side:
             skipped.append(fn)
             continue
-        key = (m["issue"], m["copy"], phone)
+        copy = m["copy"] if layout == "copynum" else ("pix" if phone == "1" else "iph")
+        key = (m["issue"], copy, phone)
         found[key] = fn
     return found, skipped
 
@@ -220,6 +236,10 @@ def main():
     ap.add_argument("--side", choices=["front", "back", "both"], default="front",
                     help="Cover side(s) to test. Default 'front' (the documented recovery surface). "
                          "'both' runs front-vs-front and back-vs-back as separate passes, never mixed.")
+    ap.add_argument("--layout", choices=["copynum", "crosscam-fp"], default="copynum",
+                    help="Filename layout. 'copynum' (default): <Issue>_<Front|Back>_<copyNumber>. "
+                         "'crosscam-fp': the FalsePostiveTest set — <Issue>_<Front|Back>_<Pixel|iPhone>, "
+                         "one different copy per phone; yields same-issue cross-camera FP pairs only.")
     ap.add_argument("--model", default=None, help="Optional vision model override for the arbiter call.")
     ap.add_argument("--csv", default=None, help="Optional path to write the per-pair table as CSV.")
     args = ap.parse_args()
@@ -231,6 +251,9 @@ def main():
     dir2 = os.path.abspath(args.phone2) if args.phone2 else None
     if args.phone2 and not os.path.isdir(dir2):
         print(f"✗ phone2 dir not found: {dir2}")
+        sys.exit(1)
+    if args.layout == "crosscam-fp" and not dir2:
+        print("✗ --layout crosscam-fp needs both --phone1 (Pixel) and --phone2 (iPhone) folders.")
         sys.exit(1)
     if not dir2:
         print("⚠  --phone2 not given: cross-camera TP/FP pairs cannot form. Only same-phone FP")
@@ -273,9 +296,9 @@ def main():
     rows = []
     try:
         for side in sides:
-            found, skipped = discover(dir1, "1", side)
+            found, skipped = discover(dir1, "1", side, args.layout)
             if dir2:
-                f2, s2 = discover(dir2, "2", side)
+                f2, s2 = discover(dir2, "2", side, args.layout)
                 found.update(f2)
                 skipped += s2
             if skipped:
