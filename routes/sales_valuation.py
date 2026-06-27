@@ -497,28 +497,7 @@ def api_sales_valuation():
         base_value = graded_fmv or raw_fmv or 0
         grading_cost = get_cgc_grading_cost(base_value, comic_year)
 
-        # ---------- ROI calculation ----------
-        slabbing_roi = None
-        roi_percentage = None
-        verdict = 'Insufficient data'
-
-        if graded_fmv and raw_fmv:
-            slabbing_roi = round(graded_fmv - raw_fmv - grading_cost, 2)
-            if raw_fmv > 0:
-                roi_percentage = round((slabbing_roi / raw_fmv) * 100, 1)
-
-            if slabbing_roi > 50:
-                verdict = 'Worth grading'
-            elif slabbing_roi > 0:
-                verdict = 'Marginal - consider volume'
-            else:
-                verdict = 'Probably not worth grading'
-        elif graded_fmv:
-            verdict = 'Limited raw data - compare manually'
-        elif raw_fmv:
-            verdict = 'No graded sales data - cannot calculate ROI'
-
-        # ---------- Confidence score ----------
+        # ---------- Confidence score (computed BEFORE the verdict so the verdict can gate on it) ----------
         total_graded = sum(len(v) for v in grade_buckets.values())
         # Conditional variant-exclusion disclosure (does NOT change the FMV).
         disclosure = compute_variant_disclosure(total_graded, excluded_variant_count)
@@ -530,6 +509,46 @@ def api_sales_valuation():
             confidence = 'low'
         else:
             confidence = 'very_low'
+
+        # ---------- Fix B: data-sufficiency verdict gate ----------
+        # Never let a low-confidence inference drive a confident slab/no-slab verdict
+        # (same lesson as the Slab Guard arc). LAUNCH SCOPE = the FABRICATION tier ONLY:
+        # estimated/estimated_from_raw (graded FMV invented from grade/publisher/era
+        # baselines or raw×1.5 — KEY-BLIND, zero real graded comps; the ASM #41 class).
+        # Deliberately NOT gated at launch: 'exact_thin' (1-2 real same-grade comps) and
+        # thin 'interpolated' — genuinely low-confidence but a DIFFERENT risk tier
+        # (thin-but-real, not fabricated). NOTE: gating on confidence=='very_low' would
+        # ALSO sweep exact_thin in (exact_thin ⟹ total_graded<3 ⟹ very_low), which Mike
+        # scoped POST-LAUNCH — so the launch gate is estimated-only, NOT very_low.
+        # ⏰ POST-LAUNCH confidence-tuning: extend the gate to very_low (adds exact_thin +
+        # thin-interpolated). Do not forget. (Mike, 2026-06-27.)
+        estimated_flag = estimated or fmv_method in ('estimated', 'estimated_from_raw')
+        verdict_reliable = not estimated_flag
+
+        # ---------- ROI calculation ----------
+        slabbing_roi = None
+        roi_percentage = None
+        verdict = 'Insufficient data'
+
+        if graded_fmv and raw_fmv:
+            slabbing_roi = round(graded_fmv - raw_fmv - grading_cost, 2)
+            if raw_fmv > 0:
+                roi_percentage = round((slabbing_roi / raw_fmv) * 100, 1)
+
+            if not verdict_reliable:
+                # Fabricated/sparse FMV: keep the number but refuse a confident call.
+                verdict = ('Not enough recent sales to value this reliably — '
+                           'rough estimate only, treat with caution')
+            elif slabbing_roi > 50:
+                verdict = 'Worth grading'
+            elif slabbing_roi > 0:
+                verdict = 'Marginal - consider volume'
+            else:
+                verdict = 'Probably not worth grading'
+        elif graded_fmv:
+            verdict = 'Limited raw data - compare manually'
+        elif raw_fmv:
+            verdict = 'No graded sales data - cannot calculate ROI'
 
         # ---------- Build grade price curve (for chart display) ----------
         price_curve = []
@@ -584,6 +603,7 @@ def api_sales_valuation():
             'slabbing_roi': slabbing_roi,
             'roi_percentage': roi_percentage,
             'verdict': verdict,
+            'verdict_reliable': verdict_reliable,   # Fix B: false ⇒ render verdict as low-confidence/caution
             'confidence': confidence,
 
             # Grade price curve for charts

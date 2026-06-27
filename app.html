@@ -2646,13 +2646,17 @@
                 const confidence = valData.confidence || 'unknown';
                 const fmvMethod = valData.fmv_method || 'unknown';
                 const sources = valData.sources || {};
+                // Fix B: false ⇒ FMV was fabricated from baselines (zero real comps) —
+                // show a caution state, never a confident slab/no-slab verdict.
+                const verdictReliable = valData.verdict_reliable !== false;
 
                 // Update the grade result object
                 gradeResult.raw_value = raw_value;
                 gradeResult.slabbed_value = slabbed_value;
                 gradeResult.grading_cost = grading_cost;
                 gradeResult.roi = roi;
-                gradeResult.verdict = roi > 0 ? 'worth' : 'keep-raw';
+                gradeResult.verdict = !verdictReliable ? 'estimate' : (roi > 0 ? 'worth' : 'keep-raw');
+                gradeResult.verdict_reliable = verdictReliable;
                 gradeResult.confidence = confidence;
                 gradeResult.fmv_method = fmvMethod;
                 gradeResult.estimated = isEstimated;
@@ -2675,21 +2679,31 @@
                 if (slabbedFmvEl) slabbedFmvEl.textContent = `$${Math.round(slabbed_value)}`;
                 if (netRoiEl) {
                     netRoiEl.textContent = `${roi > 0 ? '+' : '\u2212'}$${Math.abs(Math.round(roi))}`;
-                    netRoiEl.className = `val-amount ${roi > 0 ? 'roi-positive' : 'roi-negative'}`;
+                    // Fix B: neutral/caution color when the FMV is fabricated (no confident gain/loss claim)
+                    netRoiEl.className = verdictReliable ? `val-amount ${roi > 0 ? 'roi-positive' : 'roi-negative'}` : 'val-amount';
+                    netRoiEl.style.color = verdictReliable ? '' : '#f59e0b';
                 }
                 if (verdictBadge) {
-                    verdictBadge.textContent = roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW';
-                    verdictBadge.className = `verdict-badge ${roi > 0 ? 'worth' : 'not-worth'}`;
+                    if (!verdictReliable) {
+                        // Fix B: fabricated/no-comp FMV \u2014 caution badge, NOT a confident green/red verdict
+                        verdictBadge.textContent = 'ROUGH ESTIMATE';
+                        verdictBadge.className = 'verdict-badge';
+                        verdictBadge.style.cssText = 'background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b66;';
+                    } else {
+                        verdictBadge.textContent = roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW';
+                        verdictBadge.className = `verdict-badge ${roi > 0 ? 'worth' : 'not-worth'}`;
+                        verdictBadge.style.cssText = '';
+                    }
                 }
                 if (verdictTagline) {
-                    // Build tagline with confidence context
-                    const estimateNote = isEstimated ? ' (estimate)' : '';
                     const salesNote = sources.total ? ` Based on ${sources.total} sales.` : '';
-
-                    if (roi > 0) {
-                        verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees${estimateNote}.${salesNote}`;
+                    if (!verdictReliable) {
+                        // Fix B: surface the caution prominently; the figures above stay but are framed as rough
+                        verdictTagline.innerHTML = `<strong style="color:#f59e0b;">Not enough recent sales to value this reliably.</strong> The figures above are a rough estimate from grade, publisher, and era \u2014 treat with caution.`;
+                    } else if (roi > 0) {
+                        verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees.${salesNote}`;
                     } else {
-                        verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase${estimateNote}. Better to enjoy it unslabbed.${salesNote}`;
+                        verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase. Better to enjoy it unslabbed.${salesNote}`;
                     }
                 }
 
