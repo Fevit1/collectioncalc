@@ -68,3 +68,8 @@ docs/business/N417.PYMT*
 docs/business/patentapplicationsingatures*
 .claude/
 .claude/
+
+tests/SlabGuardTests/_e3_sam/
+tests/SlabGuardTests/_e3_inspect/
+*.pth
+tests/SlabGuardTests/**/masks/
