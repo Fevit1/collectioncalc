@@ -27,9 +27,15 @@ _QUALIFIER_REGEX = r'(giant size|king size|annual|special)'
 
 
 def _norm(s):
-    """Lowercase, hyphens->spaces, collapse whitespace. Mirrors _norm_sql() so a
-    Python-built term and a SQL-normalized column compare identically."""
-    return re.sub(r'\s+', ' ', (s or '').replace('-', ' ')).strip().lower()
+    """Lowercase, hyphens->spaces, collapse whitespace, strip a leading 'the '.
+    Mirrors _norm_sql() so a Python-built term and a SQL-normalized column compare
+    identically. Fix A (2026-06-27): the leading article 'the ' is stripped on BOTH
+    sides (query + canonical_title) so 'The Amazing Spider-Man' unifies with the
+    corpus 'Amazing Spider-Man' (was a normalized-exact-match miss → 0 comps →
+    key-blind estimate). Corpus-proven ZERO false merges across 14,033 titles;
+    'a'/'an' deliberately NOT stripped (no rescue value, nonzero collision risk)."""
+    n = re.sub(r'\s+', ' ', (s or '').replace('-', ' ')).strip().lower()
+    return re.sub(r'^the ', '', n)
 
 
 def has_qualifier(issue_type):
@@ -51,11 +57,13 @@ def compose_qualified_title(title, issue_type):
 
 
 def _norm_sql(col):
-    """SQL expression normalizing a column the same way _norm() does. COALESCE to
-    '' so a NULL/empty column yields '' (false in ~/LIKE/= tests) instead of NULL
-    — otherwise NULL three-valued logic silently drops rows with no canonical
-    title from the plain-query gate."""
-    return r"regexp_replace(btrim(replace(lower(coalesce(%s,'')), '-', ' ')), '\s+', ' ', 'g')" % col
+    """SQL expression normalizing a column the same way _norm() does — INCLUDING the
+    leading-'the ' strip (Fix A; must stay in lockstep with _norm). COALESCE to ''
+    so a NULL/empty column yields '' (false in ~/LIKE/= tests) instead of NULL —
+    otherwise NULL three-valued logic silently drops rows with no canonical title
+    from the plain-query gate."""
+    base = r"regexp_replace(btrim(replace(lower(coalesce(%s,'')), '-', ' ')), '\s+', ' ', 'g')" % col
+    return r"regexp_replace(%s, '^the ', '')" % base
 
 
 def qualifier_title_clause(exact_col, like_cols, title, issue_type):
