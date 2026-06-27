@@ -80,6 +80,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Session notes:** docs/sessions/CLAUDE_NOTES.txt (full history), docs/sessions/WHERE_WE_LEFT_OFF.md (last session detail)
 - **Roadmap:** docs/sessions/ROADMAP.txt (mixed planning + session log; treat session log portions as historical)
 - **Task list:** TODO.md
+- **🚦 Launch readiness (SINGLE SOURCE OF TRUTH):** docs/LAUNCH_READINESS.md — honest A–F status + the launch-critical sequence to July 21. Status lives HERE, not in browser windows or session-note labels. Read it before any "what's left before launch" question.
 - **BO primer (Slab Worthy specific):** docs/SW_BO_PRIMER.md (mirror of the file uploaded to BO project storage)
 - **Supabase project ID:** `kgqnwfpklodyyiqariid` (TheFormOf — shared DB)
 
