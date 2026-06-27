@@ -8,8 +8,24 @@
 > 2. docs/LESSONS.md if it exists (confirm: 'Read LESSONS.md — N lessons, updated YYYY-MM-DD')
 > 3. C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md
 >    (confirm: 'Read LESSONS_CROSS_PROJECT.md — N lessons active')
+> 4. docs/sessions/WHERE_WE_LEFT_OFF.md — the canonical live decision record. RE-READ it AND scan
+>    recent conversation for any decision made AFTER the file's last write. If the conversation holds a
+>    newer decision, the file is STALE — update it (tombstone-style) BEFORE acting. Never reconstruct
+>    state from a spec doc alone; spec docs lag decisions.
 >
 > Then emit the 6-line context summary before proceeding with any substantive work.
+
+> ⚠️ STATE-RECORDING PROTOCOL is part of this operating model — full text: docs/STATE_RECORDING_PROTOCOL.md
+> (read it when recording state, reversing a plan, or resuming after a gap). The rules that bite most:
+> - **Rule 2 (tombstone reversals):** when a plan changes, log DEAD / REPLACED BY / REASON / SUPERSEDES —
+>   name the dead artifact so a future read can't resurrect it. The new plan alone is NOT enough.
+> - **Rule 4 (don't defer):** log the decision the moment it's made, even mid-arc. Never "hold the log
+>   until X resolves."
+> - **Rule 5 (what-just-changed checkpoint):** the FIRST line of any "where are we" overview states the
+>   single most recent decision/reversal — "MOST RECENT CHANGE: [what], [date]. Supersedes [what]." —
+>   before any milestone summary.
+> SOURCE: a milestone-only shutdown record let a superseded plan (a dead re-capture) get re-recommended
+> next morning. State lives in files, not memory; reversals are logged louder than decisions.
 
 ---
 
