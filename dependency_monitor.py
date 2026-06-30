@@ -26,6 +26,8 @@ Each check is cached 24 hours independently.
 
 import os
 import re
+import io
+import csv
 import time
 import hashlib
 import xml.etree.ElementTree as ET
@@ -49,6 +51,14 @@ DEPRECATIONS_API = "https://deprecations.info/v1/deprecations.json"
 EBAY_RSS_URL = "https://developer.ebay.com/rss/api-status"
 PYPI_STRIPE_URL = "https://pypi.org/pypi/stripe/json"
 CACHE_TTL = 86400  # 24 hours
+
+# Cross-portfolio dependency manifest (github.com/Fevit1/ideabyhuman-ops).
+# Lets this monitor watch EVERY IdeaByHuman venture's models, not just Slab
+# Worthy's. Fetched via the GitHub Contents API (private repo) using a
+# read-only, Contents-scoped GITHUB_TOKEN. If unavailable, check_anthropic()
+# falls back to Slab Worthy's local MODEL_CHAINS — it degrades, never goes blind.
+MANIFEST_API_URL = "https://api.github.com/repos/Fevit1/ideabyhuman-ops/contents/dependency_manifest.csv"
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 
 # Self-health check: our OWN eBay marketplace account-deletion endpoint.
 # This URL MUST mirror EBAY_ACCOUNT_DELETION_ENDPOINT in routes/ebay.py and the
@@ -93,6 +103,7 @@ _caches = {
     'ebay':                 {"data": [], "fetched_at": 0},
     'stripe':               {"data": [], "fetched_at": 0},
     'ebay_account_deletion': {"data": [], "fetched_at": 0},
+    'manifest':             {"data": None, "fetched_at": 0},
 }
 _emailed_keys = set()  # Track what we've emailed about (service:identifier)
 
@@ -154,6 +165,65 @@ def _tier_for_model(model_id):
     return tiers
 
 
+def _load_manifest(force=False):
+    """Fetch + parse the cross-portfolio dependency manifest from ideabyhuman-ops.
+
+    Returns a dict:
+      {"ok": bool,
+       "anthropic_models": set(model_id),
+       "usage": {model_id: ["project [config_ref]", ...]},
+       "error": str|None}
+
+    On ANY failure (no token, network, non-200, parse error) returns ok=False
+    with an error string — never raises. check_anthropic() then falls back to
+    Slab Worthy's local MODEL_CHAINS and emits a loud error entry, so a manifest
+    outage shrinks coverage visibly instead of silently. Cached 24h; failures
+    are short-backed-off (retry in ~5 min) like the other checks.
+    """
+    cache = _caches['manifest']
+    now = time.time()
+    if not force and cache["data"] is not None and (now - cache["fetched_at"]) < CACHE_TTL:
+        return cache["data"]
+
+    try:
+        if not GITHUB_TOKEN:
+            raise RuntimeError("GITHUB_TOKEN not set — cannot read the private manifest")
+        resp = requests.get(
+            MANIFEST_API_URL,
+            headers={
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.raw",
+                "User-Agent": "ideabyhuman-dependency-monitor",
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        models = set()
+        usage = {}
+        for row in csv.DictReader(io.StringIO(resp.text)):
+            provider = (row.get("provider") or "").strip().lower()
+            model_id = (row.get("model_id") or "").strip()
+            if not model_id or model_id == "TODO":
+                continue
+            if provider == "anthropic":
+                project = (row.get("project") or "").strip()
+                config_ref = (row.get("config_ref") or "").strip()
+                models.add(model_id)
+                usage.setdefault(model_id, []).append(
+                    f"{project} [{config_ref}]" if config_ref else project
+                )
+        result = {"ok": True, "anthropic_models": models, "usage": usage, "error": None}
+    except Exception as e:
+        print(f"[DependencyMonitor] manifest load failed: {e}")
+        result = {"ok": False, "anthropic_models": set(), "usage": {}, "error": str(e)}
+
+    cache["data"] = result
+    # Cache success the full TTL; back off failures so a manifest outage doesn't
+    # hammer GitHub on every health-check poll (mirrors check_anthropic).
+    cache["fetched_at"] = now if result["ok"] else (now - CACHE_TTL + 300)
+    return result
+
+
 def check_anthropic(force=False):
     """Check deprecations.info for Anthropic model retirements.
 
@@ -184,7 +254,25 @@ def check_anthropic(force=False):
         else:
             records = []
 
-        our_models = _all_model_ids()
+        # Source the model universe from the cross-portfolio manifest so this
+        # check watches EVERY venture's models, not just Slab Worthy's. If the
+        # manifest is unreachable, fall back to Slab Worthy's local chains (SW
+        # stays covered) and emit a loud entry so the shrunk coverage is visible,
+        # never silent.
+        manifest = _load_manifest(force=force)
+        manifest_warnings = []
+        if manifest["ok"]:
+            our_models = manifest["anthropic_models"] or _all_model_ids()
+        else:
+            our_models = _all_model_ids()
+            manifest_warnings.append(_error_entry(
+                "Dependency Manifest",
+                f"could not load the cross-portfolio manifest ({manifest['error']}). "
+                f"The Anthropic check fell back to Slab Worthy's local models ONLY — "
+                f"other IdeaByHuman ventures are NOT being watched until the manifest "
+                f"is reachable again (verify GITHUB_TOKEN on this service).",
+            ))
+
         warnings = []
         seen = set()  # dedup our_model — same model can appear in multiple records
         for item in records:
@@ -204,14 +292,22 @@ def check_anthropic(force=False):
                     continue
                 if our_model == model_name or our_model in model_name or model_name in our_model:
                     seen.add(our_model)
+                    if manifest["ok"]:
+                        users = ", ".join(manifest["usage"].get(our_model, ["unknown project"]))
+                        action = (f"Model retiring — used by: {users}. "
+                                  f"Update each listed project's model config before the date.")
+                    else:
+                        action = f"Update models.py — replace in {', '.join(_tier_for_model(our_model))} tier"
                     warnings.append({
                         "service": "Anthropic",
                         "item": our_model,
                         "detail": "Model retiring",
                         "date": dep.get("shutdown_date", "unknown"),
                         "url": dep.get("url", ""),
-                        "action": f"Update models.py — replace in {', '.join(_tier_for_model(our_model))} tier",
+                        "action": action,
                     })
+
+        warnings.extend(manifest_warnings)
     except Exception as e:
         print(f"[DependencyMonitor] Anthropic check failed: {e}")
         err = [_error_entry("Anthropic", e)]
