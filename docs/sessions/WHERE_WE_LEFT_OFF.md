@@ -20,7 +20,7 @@
 3. ~~Add-on re-run in the correct shape~~ — **PASSED, both guard branches observed** (see MOST RECENT CHANGE).
 
 ### NEXT SESSION
-**LAUNCH_READINESS sequence item 2** (locked since S112, now the active item): gunicorn workers/threads (`--workers 2 --threads 8 --worker-class gthread`, sized to instance RAM) + DB connection pool + close-in-`finally` sweep, plus Sentry, `/health` DB check, `.dockerignore`. Note: item 2(c)'s first slice (PYTHONUNBUFFERED) already landed this session.
+**LAUNCH_READINESS sequence item 2** (locked since S112, now the active item): gunicorn workers/threads (`--workers 2 --threads 8 --worker-class gthread`, sized to instance RAM) + DB connection pool + close-in-`finally` sweep, plus Sentry, `/health` DB check, `.dockerignore`. Note: item 2(c)'s first slice (PYTHONUNBUFFERED) already landed this session. **Read-only plan for the pool+gunicorn work DELIVERED 2026-07-09** (4 phases: db.py pool+getter rewire → inline sweep → finally/hot-path → gunicorn CMD; facts: Starter 512MB/0.5CPU, measured RSS ~173MB, max_connections=103, ~59 getter-routed + ~75 inline connect sites, getters have two cursor_factory flavors). **Queued behind Phase 1 verification: item 2(f) resource-ceiling self-alert** (cgroup memory + pg_stat_activity vs ceiling in dependency_monitor; Render Starter has no native threshold alerts — verified; monitoring-only, upgrade decision stays Mike's).
 
 ### Post-launch (logged, no action): webhook sub-state sync hardening
 Dashboard/API-created subs invisible (no `.created` handling) + `handle_subscription_updated` customer-matched last-writer-wins (`plan or 'free'` metadata footgun) — one-touch fix spec'd in LAUNCH_READINESS Post-launch section (2026-07-08 bullet).
