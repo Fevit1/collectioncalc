@@ -36,17 +36,13 @@ EBAY_SCOPES = [
 ]
 
 def get_db_connection():
-    """Get PostgreSQL connection."""
+    """Get PostgreSQL connection (shared pool; tuple rows). Preserves the
+    pre-pool contract: returns None on any failure, callers check for None."""
     if not HAS_POSTGRES:
         return None
-    
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        return None
-    
     try:
-        conn = psycopg2.connect(database_url, sslmode='require')
-        return conn
+        import db as _dbpool
+        return _dbpool.get_db()
     except Exception as e:
         print(f"Database connection error: {e}")
         return None

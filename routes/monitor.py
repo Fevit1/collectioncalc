@@ -147,8 +147,9 @@ def check_rate_limit(f):
 
 
 def get_db():
-    """Get database connection"""
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    """Get database connection (shared pool; tuple rows)."""
+    import db as _dbpool
+    return _dbpool.get_db()
 
 
 # Session 53: Shared preprocessing — single source of truth in fingerprint_utils.py

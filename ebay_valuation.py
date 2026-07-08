@@ -192,29 +192,17 @@ def normalize_grade_for_cache(grade: str) -> str:
     return grade_map.get(grade_upper, 'VF')  # Default to VF if unknown
 
 def get_db_connection():
-    """Get PostgreSQL connection from DATABASE_URL environment variable."""
+    """Get PostgreSQL connection (shared pool; tuple rows). Preserves the
+    pre-pool contract: returns None on any failure, callers check for None."""
     if not HAS_POSTGRES:
         print("psycopg2 not available")
         return None
-    
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        print("DATABASE_URL not set")
-        return None
-    
     try:
-        # Try with SSL first (required by Render)
-        conn = psycopg2.connect(database_url, sslmode='require')
-        return conn
+        import db as _dbpool
+        return _dbpool.get_db()
     except Exception as e:
-        print(f"PostgreSQL connection error (with SSL): {e}")
-        # Try without SSL as fallback
-        try:
-            conn = psycopg2.connect(database_url)
-            return conn
-        except Exception as e2:
-            print(f"PostgreSQL connection error (without SSL): {e2}")
-            return None
+        print(f"PostgreSQL connection error: {e}")
+        return None
 
 def init_cache_db():
     """Initialize the cache table in PostgreSQL."""

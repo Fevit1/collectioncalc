@@ -66,11 +66,10 @@ if RESEND_API_KEY:
 # ============================================
 
 def get_db_connection():
-    """Get database connection from environment."""
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        raise ValueError("DATABASE_URL environment variable not set")
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    """Get database connection (shared pool; dict rows). Raises ValueError if
+    DATABASE_URL is unset, matching the pre-pool behavior."""
+    import db as _dbpool
+    return _dbpool.get_db(dict_rows=True)
 
 def get_user_by_email(email):
     """Find user by email address."""

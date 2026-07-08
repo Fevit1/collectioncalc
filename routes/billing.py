@@ -139,9 +139,9 @@ PLANS = {
 # ============================================
 
 def get_db():
-    """Get database connection"""
-    database_url = os.environ.get('DATABASE_URL')
-    return psycopg2.connect(database_url)
+    """Get database connection (shared pool; tuple rows)."""
+    import db as _dbpool
+    return _dbpool.get_db()
 
 
 def get_user_plan(user_id):

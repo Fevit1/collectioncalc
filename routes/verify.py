@@ -45,9 +45,9 @@ def init_modules(imagehash_lib, pil_image, pil_draw, pil_font):
     PIL_ImageFont = pil_font
 
 def get_db():
-    """Get database connection"""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    return conn
+    """Get database connection (shared pool; tuple rows)."""
+    import db as _dbpool
+    return _dbpool.get_db()
 
 def hash_email(email):
     """Obscure email for privacy: mike@gmail.com -> m***e@g***l.com"""

@@ -39,10 +39,9 @@ RATE_WINDOW = 3600
 
 
 def get_db_connection():
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        raise ValueError("DATABASE_URL not set")
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    """Get database connection (shared pool; dict rows)."""
+    import db as _dbpool
+    return _dbpool.get_db(dict_rows=True)
 
 
 def _check_rate_limit(ip):

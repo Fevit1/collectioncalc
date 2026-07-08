@@ -376,6 +376,19 @@ def before_request():
         g.device_type = 'desktop'
 
 
+@app.teardown_appcontext
+def _return_leaked_db_connections(exc=None):
+    """Safety net for the shared DB pool (db.py): force-return any pooled
+    connection this request checked out but never closed (an exception path
+    with no finally). Runs after every request, exception or not, so a
+    missing close() can no longer leak a pool slot."""
+    try:
+        import db as _dbpool
+        _dbpool.return_leaked()
+    except Exception:
+        pass  # the net must never take a request down
+
+
 @app.after_request
 def after_request(response):
     """Log requests (skip health checks)"""
