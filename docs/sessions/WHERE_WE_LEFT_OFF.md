@@ -1,12 +1,12 @@
 # Where We Left Off - Jul 8, 2026
 
-## Session 113 (Jul 8, 2026) — Billing one-diff SHIPPED + core teardown PASSED (all 3 fields); mid-test scare diagnosed read-only (dashboard-created subs — fix NOT implicated); PYTHONUNBUFFERED gap found + Dockerfile fix drafted
+## Session 113 (Jul 8, 2026) — BILLING ITEM 1 FULLY CLOSED: one-diff shipped, core teardown + add-on both PASSED, both guard branches observed live; mid-test scare diagnosed read-only (dashboard-created subs — fix NOT implicated); PYTHONUNBUFFERED gap found, fixed, confirmed
 
-**MOST RECENT CHANGE: 2026-07-08 — Billing one-diff (LAUNCH_READINESS sequence item 1) SHIPPED (`3935ce5`, deployed 19:42 UTC, Mike ran all git/deploy) and the core teardown test PASSED on ALL THREE fields: `plan=free` / `status=canceled` / `stripe_subscription_id=NULL` — the field that never cleared before. Doubly confirmed by incidental cross-account comparison: user 32 (post-fix) clean vs users 30/31 still carrying pre-fix stale sub_ids. ⚰️ Supersedes LAUNCH_READINESS's "targeted direct UPDATE, don't touch the helper" prescription — the shipped fix IS in the helper (`_UNSET` sentinel, `billing.py:183`; omission still skips, explicit `None` writes NULL, all 5 callers audited). Guard SKIP-branch add-on test PENDING behind the PYTHONUNBUFFERED deploy. Detail lives in LAUNCH_READINESS.md (SoT); this entry is the pointer + incident record.**
+**MOST RECENT CHANGE: 2026-07-08 (PM) — LAUNCH_READINESS sequence item 1 CLOSED. One-diff SHIPPED (`3935ce5`, 19:42 UTC, Mike ran all git/deploy); core teardown PASSED all three fields (`plan=free`/`status=canceled`/`stripe_subscription_id=NULL` — the field that never cleared before), doubly confirmed by cross-account comparison (user 32 clean vs 30/31 pre-fix stale); add-on PASSED with BOTH guard branches directly observed in real-time logs after the PYTHONUNBUFFERED deploy — skip branch (non-record dashboard-sub cancel → plan unchanged pro/trialing + `ignoring …, not the sub of record`) and teardown branch (record cancel → full 3-field reset + `→ free (sub … cleared)`). Buffering fix confirmed working (live log lines). ⚰️ Supersedes LAUNCH_READINESS's "targeted direct UPDATE, don't touch the helper" prescription — the shipped fix IS in the helper (`_UNSET` sentinel, `billing.py:183`; omission still skips, explicit `None` writes NULL, all 5 callers audited). NEXT SESSION: sequence item 2 — gunicorn workers/threads + DB pool + finally-closes (+ Sentry, /health DB check, .dockerignore). Detail lives in LAUNCH_READINESS.md (SoT); this entry is the pointer + incident record.**
 
 ### What shipped (Mike committed/deployed; Claude drafted + applied to tree only)
 - `routes/billing.py` (`3935ce5`): (a) **step-3 multi-sub guard** — `handle_subscription_deleted` selects `id, stripe_subscription_id`, downgrades only when the deleted `sub.id` IS the sub of record; **falls open** (downgrades) when stored sub_id is NULL or event id missing — conservative bias: never trap a user on a paid tier with no live sub, never silently skip a legitimate downgrade. Skip path logs `ignoring <id>, not the sub of record`. (b) **sub_id-NULL** — `_UNSET` sentinel default on `update_user_subscription.stripe_subscription_id`.
-- `Dockerfile`: `ENV PYTHONUNBUFFERED=1` drafted this session (awaiting Mike's commit + deploy at time of writing).
+- `Dockerfile`: `ENV PYTHONUNBUFFERED=1` — shipped + deployed same session; **confirmed working** (the add-on test's guard log lines appeared in real time, the thing the old buffering made impossible).
 
 ### ⚠️ MID-TEST INCIDENT + DIAGNOSIS (read-only, ~20:15–20:30 UTC) — recorded so the pattern is recognizable next time
 - **Scare:** after the passing core test, two new subs on the same throwaway customer (Pro $4.99 ~20:04, Guard $9.99 ~20:08) showed real/active in Stripe but the DB stayed frozen at post-cancel state. Looked like webhooks dropping.
@@ -14,11 +14,13 @@
 - **Real finding — the service is LOG-BLIND: `PYTHONUNBUFFERED=1` missing on collectioncalc-docker** (violates cross-project L-2026-020). All `print()` buffers until container death; proof = the dying pre-deploy container flushed 10 stale `[Billing]` lines with identical timestamp 19:43:17 (old log format, days-old events). The new container's core-test logs are still invisible in its buffer. Also: no gunicorn access logs. This is why Render logs could not answer the delivery question and Stripe's dashboard had to.
 - **Tooling note (for future read-only prod diagnosis):** `RENDER_API_KEY` in local shell env works for Render API reads (services/deploys/events/logs; logs need `ownerId`); `DATABASE_URL_RO` in `.env` for read-only SELECTs; Stripe delivery status via Chrome → dashboard (Workbench → Webhooks → Event deliveries). Full loop ran without touching prod.
 
-### NEXT (Mike, in order)
-1. Cancel the two stray dashboard subs (safe — deleted events hit the guard's fall-open path, idempotent free/canceled re-write).
-2. Commit + deploy the Dockerfile `PYTHONUNBUFFERED` line (+ set the Render env var); verify deploy in Events; **fresh shell after** (L-SW-2026-004).
-3. Re-run the add-on in the correct shape: checkout-created Pro (real sub of record) → dashboard-create a 2nd sub → cancel the DASHBOARD one → expect the skip-branch log line + plan unchanged → cancel the sub of record → full teardown pass condition.
-4. Then LAUNCH_READINESS sequence item 2 (gunicorn workers/threads + DB pool + finally-closes + Sentry, /health DB check, .dockerignore) — next session's locked plan, unchanged.
+### ✅ NEXT list from earlier in this session — ALL DONE same day (recorded for the arc)
+1. ~~Cancel the two stray dashboard subs~~ — done; fall-open path behaved (idempotent free/canceled re-write).
+2. ~~PYTHONUNBUFFERED commit + deploy + fresh shell~~ — done; confirmed working (live log lines).
+3. ~~Add-on re-run in the correct shape~~ — **PASSED, both guard branches observed** (see MOST RECENT CHANGE).
+
+### NEXT SESSION
+**LAUNCH_READINESS sequence item 2** (locked since S112, now the active item): gunicorn workers/threads (`--workers 2 --threads 8 --worker-class gthread`, sized to instance RAM) + DB connection pool + close-in-`finally` sweep, plus Sentry, `/health` DB check, `.dockerignore`. Note: item 2(c)'s first slice (PYTHONUNBUFFERED) already landed this session.
 
 ### Post-launch (logged, no action): webhook sub-state sync hardening
 Dashboard/API-created subs invisible (no `.created` handling) + `handle_subscription_updated` customer-matched last-writer-wins (`plan or 'free'` metadata footgun) — one-touch fix spec'd in LAUNCH_READINESS Post-launch section (2026-07-08 bullet).
