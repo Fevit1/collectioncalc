@@ -1,4 +1,29 @@
-# Where We Left Off - Jul 7, 2026
+# Where We Left Off - Jul 8, 2026
+
+## Session 113 (Jul 8, 2026) — Billing one-diff SHIPPED + core teardown PASSED (all 3 fields); mid-test scare diagnosed read-only (dashboard-created subs — fix NOT implicated); PYTHONUNBUFFERED gap found + Dockerfile fix drafted
+
+**MOST RECENT CHANGE: 2026-07-08 — Billing one-diff (LAUNCH_READINESS sequence item 1) SHIPPED (`3935ce5`, deployed 19:42 UTC, Mike ran all git/deploy) and the core teardown test PASSED on ALL THREE fields: `plan=free` / `status=canceled` / `stripe_subscription_id=NULL` — the field that never cleared before. Doubly confirmed by incidental cross-account comparison: user 32 (post-fix) clean vs users 30/31 still carrying pre-fix stale sub_ids. ⚰️ Supersedes LAUNCH_READINESS's "targeted direct UPDATE, don't touch the helper" prescription — the shipped fix IS in the helper (`_UNSET` sentinel, `billing.py:183`; omission still skips, explicit `None` writes NULL, all 5 callers audited). Guard SKIP-branch add-on test PENDING behind the PYTHONUNBUFFERED deploy. Detail lives in LAUNCH_READINESS.md (SoT); this entry is the pointer + incident record.**
+
+### What shipped (Mike committed/deployed; Claude drafted + applied to tree only)
+- `routes/billing.py` (`3935ce5`): (a) **step-3 multi-sub guard** — `handle_subscription_deleted` selects `id, stripe_subscription_id`, downgrades only when the deleted `sub.id` IS the sub of record; **falls open** (downgrades) when stored sub_id is NULL or event id missing — conservative bias: never trap a user on a paid tier with no live sub, never silently skip a legitimate downgrade. Skip path logs `ignoring <id>, not the sub of record`. (b) **sub_id-NULL** — `_UNSET` sentinel default on `update_user_subscription.stripe_subscription_id`.
+- `Dockerfile`: `ENV PYTHONUNBUFFERED=1` drafted this session (awaiting Mike's commit + deploy at time of writing).
+
+### ⚠️ MID-TEST INCIDENT + DIAGNOSIS (read-only, ~20:15–20:30 UTC) — recorded so the pattern is recognizable next time
+- **Scare:** after the passing core test, two new subs on the same throwaway customer (Pro $4.99 ~20:04, Guard $9.99 ~20:08) showed real/active in Stripe but the DB stayed frozen at post-cancel state. Looked like webhooks dropping.
+- **Diagnosis (evidence, not theory):** Stripe Workbench event stream shows **both subs were DASHBOARD-created** — Source=Dashboard, NO `checkout.session.completed` anywhere in either cascade, immediate charge (our checkout ALWAYS attaches a 14-day trial → $0 first invoice, as the 19:54 core-test cascade shows). Dashboard subs fire `customer.subscription.created` — **not subscribed by the endpoint, no handler in billing.py** — plus `invoice.payment_succeeded` (log-only handler). **DB unchanged = system working as wired.** Endpoint deliveries: ALL 200, 0 failed, error rate 0%. Deploy clean (one deploy, live 19:42:18, zero restarts). `/health` 200. **The billing fix is NOT implicated.**
+- **Real finding — the service is LOG-BLIND: `PYTHONUNBUFFERED=1` missing on collectioncalc-docker** (violates cross-project L-2026-020). All `print()` buffers until container death; proof = the dying pre-deploy container flushed 10 stale `[Billing]` lines with identical timestamp 19:43:17 (old log format, days-old events). The new container's core-test logs are still invisible in its buffer. Also: no gunicorn access logs. This is why Render logs could not answer the delivery question and Stripe's dashboard had to.
+- **Tooling note (for future read-only prod diagnosis):** `RENDER_API_KEY` in local shell env works for Render API reads (services/deploys/events/logs; logs need `ownerId`); `DATABASE_URL_RO` in `.env` for read-only SELECTs; Stripe delivery status via Chrome → dashboard (Workbench → Webhooks → Event deliveries). Full loop ran without touching prod.
+
+### NEXT (Mike, in order)
+1. Cancel the two stray dashboard subs (safe — deleted events hit the guard's fall-open path, idempotent free/canceled re-write).
+2. Commit + deploy the Dockerfile `PYTHONUNBUFFERED` line (+ set the Render env var); verify deploy in Events; **fresh shell after** (L-SW-2026-004).
+3. Re-run the add-on in the correct shape: checkout-created Pro (real sub of record) → dashboard-create a 2nd sub → cancel the DASHBOARD one → expect the skip-branch log line + plan unchanged → cancel the sub of record → full teardown pass condition.
+4. Then LAUNCH_READINESS sequence item 2 (gunicorn workers/threads + DB pool + finally-closes + Sentry, /health DB check, .dockerignore) — next session's locked plan, unchanged.
+
+### Post-launch (logged, no action): webhook sub-state sync hardening
+Dashboard/API-created subs invisible (no `.created` handling) + `handle_subscription_updated` customer-matched last-writer-wins (`plan or 'free'` metadata footgun) — one-touch fix spec'd in LAUNCH_READINESS Post-launch section (2026-07-08 bullet).
+
+---
 
 ## Session 112 (Jul 7, 2026) — DF full technical review (4-track, read-only) + BS competitive requirements reconciled; NEW launch-blocker (gunicorn single worker); grade-retention status corrected (BUILT, not spec-only); moat reframed
 
