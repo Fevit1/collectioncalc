@@ -1,4 +1,23 @@
-# Where We Left Off - Jul 8, 2026
+# Where We Left Off - Jul 9, 2026
+
+## Session 114 (Jul 9, 2026) — Item 2 Phase 1 (shared DB pool) SHIPPED + VERIFIED; pooling/gunicorn plan delivered; 2(f) resource-alert designed; NEW valuation finding: Cover-A variant misclassification (modern mispricing, systemic)
+
+**MOST RECENT CHANGE: 2026-07-09 — Item 2 Phase 1 VERIFIED IN PROD: `db.py` shared pool + 8 getter rewires (~59 sites) + wsgi teardown leak-net (commit Mike's; deploy verified). Evidence: full smoke passed, zero `[DB]` warnings, 12-request public-lookup probe = ZERO connection growth (app parked-set flat at 5; old code opened 4+ fresh connections per grade). Phase 2 QUEUED = ~75 inline `psycopg2.connect` sites → `db.get_db()`. Detail + phase plan in LAUNCH_READINESS item 2(b) (SoT). Offline verification before deploy: py_compile ×10, 15/15 pool-mechanics checks vs RO string (both cursor flavors, reuse, flavor reset, idempotent close, exhaustion→overflow, kill switch), teardown net proven end-to-end (leaked-on-exception connection force-returned).**
+
+### Also this session
+- **Read-only pooling/gunicorn plan** (facts: Render Starter 512MB/0.5CPU, measured RSS ~173MB, max_connections=103, ~59 getter-routed + ~75 inline sites, two cursor_factory flavors; 4-phase rollout, pool-first-workers-last; gunicorn target `--workers 2 --threads 8 gthread`, fallback 1×12 if memory alerts).
+- **2(f) resource-ceiling self-alert designed** (Render has NO native threshold alerts — verified against current docs; self-check in dependency_monitor: cgroup memory + pg_stat_activity vs ceiling + pool_stats(); WARN 80%/70% placeholders, calibrate post-Phase-1; monitoring-only, tier upgrade stays Mike's manual call). Queued behind Phase 2/3. Mike separately: enable Render native event notifications (dashboard-only).
+- **🔍 NEW VALUATION FINDING (read-only diagnosis, logged in LAUNCH_READINESS item 6): Cover-A variant misclassification — modern multi-cover mispricing, SYSTEMIC.** Absolute Batman #1 (Dragotta A, 1st print) 9.0 → raw FMV $150 vs real Cover-A market ~$185 median/$238–395 clean copies. Mechanism corpus-proven: `title_normalizer.py:268` flags "Cover A" ITSELF as `is_variant` → the standard cover's 156 best-labeled sales are EXCLUDED from their own estimate; included "standard" pool (median exactly $150.00 = shipped FMV) retains word-form printings ("Tenth Print"), Noir editions, artist-name variants, Annual-canonical leakage, a graded=false CGC slab, missed lots. Extraction DOES identify cover/printing (vision + barcode digits 4/5) but the valuation key drops it (title+issue+issue_type only). Fix-B gate correctly green (pool is big) = confidently wrong. Fix tiers logged, NOT applied; placement decision pending (tier-1 = 1-line regex + flag re-normalize — cheap, moderns are the con-booth demo books).
+- **Interaction flag:** the Cover-A finding is upstream of R1/R2 — grading-accuracy benchmarks inherit wrong-product FMVs regardless of grade correctness.
+
+### NEXT
+1. **Phase 2** — inline sweep (~75 sites, file-by-file cursor_factory catalog; admin_routes 16 is the big one; migrations/scripts stay raw). Then Phase 3 (billing finally + before_request lookup), Phase 4 (gunicorn CMD + .dockerignore).
+2. **Mike's decision pending:** Cover-A fix placement (pre-launch tier-1 vs post-launch with R2 motion).
+3. 2(f) resource alert after Phase 2/3.
+4. eBay OAuth pool surface spot-check when extension flakiness clears (low risk, same mechanics).
+
+---
+# (prior header) Where We Left Off - Jul 8, 2026
 
 ## Session 113 (Jul 8, 2026) — BILLING ITEM 1 FULLY CLOSED: one-diff shipped, core teardown + add-on both PASSED, both guard branches observed live; mid-test scare diagnosed read-only (dashboard-created subs — fix NOT implicated); PYTHONUNBUFFERED gap found, fixed, confirmed
 
