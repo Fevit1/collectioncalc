@@ -180,10 +180,18 @@ def get_user_plan(user_id):
         return {'plan': 'free', 'subscription_status': 'none', 'is_admin': False}
 
 
+_UNSET = object()  # distinguishes "argument omitted" from an explicit None (= write SQL NULL)
+
+
 def update_user_subscription(user_id, plan, stripe_customer_id=None,
-                              stripe_subscription_id=None, status=None,
+                              stripe_subscription_id=_UNSET, status=None,
                               billing_period=None, current_period_end=None):
-    """Update user's subscription info in the database"""
+    """Update user's subscription info in the database.
+
+    stripe_subscription_id: omit it to leave the column untouched; pass None
+    explicitly to clear it to NULL (subscription teardown). The other optional
+    fields keep None-means-skip semantics.
+    """
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -194,7 +202,7 @@ def update_user_subscription(user_id, plan, stripe_customer_id=None,
         if stripe_customer_id is not None:
             fields.append('stripe_customer_id = %s')
             values.append(stripe_customer_id)
-        if stripe_subscription_id is not None:
+        if stripe_subscription_id is not _UNSET:
             fields.append('stripe_subscription_id = %s')
             values.append(stripe_subscription_id)
         if status is not None:
@@ -795,8 +803,14 @@ def handle_subscription_updated(subscription):
 
 
 def handle_subscription_deleted(subscription):
-    """Subscription canceled - revert to free"""
+    """Subscription canceled - revert to free.
+
+    Only downgrades when the deleted subscription IS the user's sub of record
+    (users.stripe_subscription_id). With stacked subs, canceling a stray one
+    must not revert a user who is still paying on another.
+    """
     customer_id = subscription.get('customer')
+    deleted_sub_id = subscription.get('id')
 
     if not customer_id:
         return
@@ -804,19 +818,29 @@ def handle_subscription_deleted(subscription):
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id FROM users WHERE stripe_customer_id = %s", (customer_id,))
+        cur.execute(
+            "SELECT id, stripe_subscription_id FROM users "
+            "WHERE stripe_customer_id = %s",
+            (customer_id,),
+        )
         row = cur.fetchone()
         cur.close()
         conn.close()
 
         if row:
-            user_id = row[0]
+            user_id, sub_of_record = row
+            if sub_of_record and deleted_sub_id and sub_of_record != deleted_sub_id:
+                print(f"[Billing] Subscription deleted: user={user_id} — ignoring "
+                      f"{deleted_sub_id}, not the sub of record ({sub_of_record}); "
+                      f"plan unchanged")
+                return
             update_user_subscription(
                 user_id, 'free',
-                stripe_subscription_id=None,
+                stripe_subscription_id=None,  # explicit None → clears to NULL
                 status='canceled'
             )
-            print(f"[Billing] Subscription deleted: user={user_id} → free")
+            print(f"[Billing] Subscription deleted: user={user_id} → free "
+                  f"(sub {deleted_sub_id} cleared)")
     except Exception as e:
         print(f"[Billing] Error handling subscription deletion: {e}")
 
