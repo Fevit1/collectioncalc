@@ -2,7 +2,9 @@
 
 ## Session 114 (Jul 9, 2026) — Item 2 Phase 1 (shared DB pool) SHIPPED + VERIFIED; pooling/gunicorn plan delivered; 2(f) resource-alert designed; NEW valuation finding: Cover-A variant misclassification (modern mispricing, systemic)
 
-**MOST RECENT CHANGE: 2026-07-09 — Item 2 Phase 1 VERIFIED IN PROD: `db.py` shared pool + 8 getter rewires (~59 sites) + wsgi teardown leak-net (commit Mike's; deploy verified). Evidence: full smoke passed, zero `[DB]` warnings, 12-request public-lookup probe = ZERO connection growth (app parked-set flat at 5; old code opened 4+ fresh connections per grade). Phase 2 QUEUED = ~75 inline `psycopg2.connect` sites → `db.get_db()`. Detail + phase plan in LAUNCH_READINESS item 2(b) (SoT). Offline verification before deploy: py_compile ×10, 15/15 pool-mechanics checks vs RO string (both cursor flavors, reuse, flavor reset, idempotent close, exhaustion→overflow, kill switch), teardown net proven end-to-end (leaked-on-exception connection force-returned).**
+**⚠️ CURRENT STATE (2026-07-09 late night, Rule 5 — read this FIRST): PHASE 2 GATE PASSED. Committed (`e75f0f9`), deployed (live 21:57 UTC, commit hash verified via Render API), Mike's smoke passed all surfaces (grade, collection, admin dashboard, verify serial lookup, Signatures DB page — no actual signature match run), DF connection probe CLEAN: 12 public-lookup requests → ZERO growth (before=1, after=1), 0 `POOL EXHAUSTED` / 0 `[DB]` teardown lines in Render logs since deploy. Parked set SHRANK 5→1 — NOT the "legitimate growth" the close-state predicted: psycopg2's pool parks only `DB_POOL_MIN=1` idle (excess close on return), and formerly-direct connections now ride the pool; fewer idle is the healthy direction. ⚰️ Supersedes this entry's earlier "TWO UNCOMMITTED CODE WORK-SETS" close-state (Phase 2 half): Phase 2 is SHIPPED. STILL UNCOMMITTED ON DISK: (1) `title_normalizer.py` Cover-A + fuzzy-guard fix (+58/−3, verified, command block #2 below still valid — needs commit/deploy + corpus re-normalize, dry-run first); (2) docs (this file, LAUNCH_READINESS, LESSONS incl. never-committed L-SW-2026-008 + L-SW-2026-009/010). NEXT ACTIVE ITEM (Mike's call, 2026-07-09 late): eBay account-deletion endpoint, BOTH halves in one endpoint-touch — Issue 1 compliance read-timeout (read-only diagnosis FIRST: warm vs cold-start vs eBay's own probe status; Dependency-watch entry) + Issue 2 security (POST deletes user data on attacker-supplied `userId`, NO eBay signature verification — `routes/ebay.py:49-107`, open since the 2026-07-07 review). The normalizer commit stays QUEUED, not dropped — it slots whenever Mike runs block #2.**
+
+**MOST RECENT CHANGE (earlier 2026-07-09): Item 2 Phase 1 VERIFIED IN PROD: `db.py` shared pool + 8 getter rewires (~59 sites) + wsgi teardown leak-net (commit Mike's; deploy verified). Evidence: full smoke passed, zero `[DB]` warnings, 12-request public-lookup probe = ZERO connection growth (app parked-set flat at 5; old code opened 4+ fresh connections per grade). Phase 2 QUEUED = ~75 inline `psycopg2.connect` sites → `db.get_db()`. Detail + phase plan in LAUNCH_READINESS item 2(b) (SoT). Offline verification before deploy: py_compile ×10, 15/15 pool-mechanics checks vs RO string (both cursor flavors, reuse, flavor reset, idempotent close, exhaustion→overflow, kill switch), teardown net proven end-to-end (leaked-on-exception connection force-returned).**
 
 ### Also this session
 - **Read-only pooling/gunicorn plan** (facts: Render Starter 512MB/0.5CPU, measured RSS ~173MB, max_connections=103, ~59 getter-routed + ~75 inline sites, two cursor_factory flavors; 4-phase rollout, pool-first-workers-last; gunicorn target `--workers 2 --threads 8 gthread`, fallback 1×12 if memory alerts).
@@ -10,11 +12,39 @@
 - **🔍 NEW VALUATION FINDING (read-only diagnosis, logged in LAUNCH_READINESS item 6): Cover-A variant misclassification — modern multi-cover mispricing, SYSTEMIC.** Absolute Batman #1 (Dragotta A, 1st print) 9.0 → raw FMV $150 vs real Cover-A market ~$185 median/$238–395 clean copies. Mechanism corpus-proven: `title_normalizer.py:268` flags "Cover A" ITSELF as `is_variant` → the standard cover's 156 best-labeled sales are EXCLUDED from their own estimate; included "standard" pool (median exactly $150.00 = shipped FMV) retains word-form printings ("Tenth Print"), Noir editions, artist-name variants, Annual-canonical leakage, a graded=false CGC slab, missed lots. Extraction DOES identify cover/printing (vision + barcode digits 4/5) but the valuation key drops it (title+issue+issue_type only). Fix-B gate correctly green (pool is big) = confidently wrong. Fix tiers logged, NOT applied; placement decision pending (tier-1 = 1-line regex + flag re-normalize — cheap, moderns are the con-booth demo books).
 - **Interaction flag:** the Cover-A finding is upstream of R1/R2 — grading-accuracy benchmarks inherit wrong-product FMVs regardless of grade correctness.
 
-### NEXT
-1. **Phase 2** — inline sweep (~75 sites, file-by-file cursor_factory catalog; admin_routes 16 is the big one; migrations/scripts stay raw). Then Phase 3 (billing finally + before_request lookup), Phase 4 (gunicorn CMD + .dockerignore).
-2. **Mike's decision pending:** Cover-A fix placement (pre-launch tier-1 vs post-launch with R2 motion).
-3. 2(f) resource alert after Phase 2/3.
-4. eBay OAuth pool surface spot-check when extension flakiness clears (low risk, same mechanics).
+### LATER SAME DAY (2026-07-09 PM) — two working-tree deliverables awaiting Mike's return
+- **Phase 2 DONE in working tree, approved in principle:** all 57 inline `psycopg2.connect` sites → `db.get_db()` (16 files, +85/−66; expressions only, control flow untouched; `database_url` locals deliberately left; 2 disguised getters converted; helper modules incl. after close-discipline check). All compile; zero residual connects in web path. **Mike: review → commit → deploy → smoke → DF re-runs connection probe.** Parked set may legitimately grow past 5 (more surface pooled); signal = `POOL EXHAUSTED` lines or growth past DB_POOL_MAX=8.
+- **Cover-A + cross-title fix DRAFTED (Mike decided: Layers 1+2 pre-launch as one correctness fix; Layer 3 grade-aware raw → R1/R2):** `title_normalizer.py` +58/−3. Corpus audit = SYSTEMIC: 748 rows/23 canonicals mis-merged (DEFENDERS→descender 56 rows the standout beyond the Absolute line); 2,601 Cover-A rows flip to standard; AB#1 median $158.50→$178.20 end-to-end. Full numbers + rollout (normalize_batch re-run; market_sales needs small extension) in LAUNCH_READINESS item 6.
+
+### NEXT (revised 2026-07-09 late — Phase 2 shipped; eBay endpoint promoted to active)
+1. ~~Phase 2 review+commit+deploy~~ — **DONE (`e75f0f9`), gate passed** (see CURRENT STATE block).
+2. **ACTIVE: eBay account-deletion endpoint, both halves** (Mike's call, overdue on security severity): read-only diagnosis of Issue 1 (compliance read-timeout: warm vs cold-start vs eBay's own probe) → then the fix pass covering Issue 2 (eBay signature verification on the POST branch, `routes/ebay.py:49-107`).
+3. **title_normalizer fix commit/deploy + corpus re-normalize (dry-run first)** — verified, sits on disk, command block #2 below; slots whenever Mike runs it.
+4. Phase 3 (billing finally + before_request lookup) → Phase 4 (gunicorn CMD + .dockerignore).
+5. 2(f) resource alert after Phase 2/3.
+6. eBay OAuth pool surface spot-check when extension flakiness clears.
+
+### Morning command blocks (verified against git at close; tree state = Phase 1 committed `24b5016`, everything below dirty)
+```powershell
+# 1) Phase 2 (deploy + smoke + DF probe BEFORE the normalizer fix ships)
+git add routes/admin_routes.py routes/collection.py routes/feedback.py routes/grading.py routes/images.py routes/registry.py routes/sales_ebay.py routes/sales_market.py routes/sales_valuation.py routes/signature_orchestrator.py routes/signatures.py routes/slabguard_routes.py content_moderation.py grade_retention.py lookup_demand.py dependency_monitor.py
+git commit -m "feat(db): Phase 2 — all 57 inline connect sites routed through the shared pool"
+git push
+deploy
+# → Render Events check, fresh shell, smoke (grade/collection/admin/registry), DF runs connection probe
+
+# 2) Normalizer correctness fix (after Phase 2 gate passes)
+git add title_normalizer.py
+git commit -m "fix(valuation): Cover-A is standard not variant; token guard on fuzzy canonical match (748 cross-title mis-merges, 23 titles)"
+git push
+deploy
+# → then corpus re-normalize in Render shell: python normalize_batch.py --dry-run  (review) → python normalize_batch.py
+
+# 3) Docs + lessons (incl. the never-committed L-SW-2026-008 from S111)
+git add docs/LAUNCH_READINESS.md docs/sessions/WHERE_WE_LEFT_OFF.md docs/LESSONS.md
+git commit -m "docs: Session 114 close — Phase 2 + Cover-A/cross-title fix drafted; lessons L-SW-2026-008 (S111, unstaged until now) + L-SW-2026-009 + L-SW-2026-010"
+git push
+```
 
 ---
 # (prior header) Where We Left Off - Jul 8, 2026
