@@ -15,6 +15,7 @@ See docs/technical/GRADE_RETENTION_SPEC.md.
 """
 import threading
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor, Json
 
 RETENTION_DAYS = 90
@@ -52,7 +53,7 @@ def _persist_grade_submission(user_id, images, photo_labels, result, model, data
     conn = None
     try:
         grade = result.get('final_grade')
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO grade_submissions
@@ -150,7 +151,7 @@ def delete_grade_submission(submission_id, database_url):
     """
     conn = None
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         cur.execute("SELECT id, photos FROM grade_submissions WHERE id = %s", (submission_id,))
         row = cur.fetchone()
@@ -185,7 +186,7 @@ def delete_user_grade_submissions(user_id, database_url):
     """
     conn = None
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         cur.execute("SELECT id, photos FROM grade_submissions WHERE user_id = %s", (user_id,))
         rows = cur.fetchall()

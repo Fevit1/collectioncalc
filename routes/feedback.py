@@ -4,6 +4,7 @@ Routes: /api/feedback/grading, /api/feedback/general, /api/admin/feedback
 """
 import os
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 from flask import Blueprint, jsonify, request, g
 from auth import require_auth, require_admin_auth
@@ -28,7 +29,7 @@ def api_feedback_grading():
     database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO user_feedback (user_id, feedback_type, rating, comment, page_url)
@@ -68,7 +69,7 @@ def api_feedback_general():
     database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO user_feedback (user_id, feedback_type, rating, comment, page_url)
@@ -96,7 +97,7 @@ def api_admin_feedback():
     database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
 
         # Get all feedback entries with user email + nearby collection context

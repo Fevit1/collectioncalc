@@ -19,6 +19,7 @@ Testing history (Feb 2026):
 import os
 import json
 import psycopg2
+import db as _dbpool
 from datetime import datetime
 from flask import Blueprint, jsonify, request, g
 from auth import require_auth, require_approved
@@ -92,7 +93,7 @@ def generate_serial_number():
     CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url)
+    conn = _dbpool.get_db()
     cur = conn.cursor()
 
     year = datetime.now().year
@@ -547,7 +548,7 @@ def register_comic():
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Check if comic exists and belongs to user
@@ -724,7 +725,7 @@ def get_my_sightings():
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         cur.execute("""
@@ -811,7 +812,7 @@ def respond_to_sighting():
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Verify this sighting belongs to a comic owned by the authenticated user
@@ -865,7 +866,7 @@ def get_registration_status(comic_id):
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         cur.execute("""
@@ -915,7 +916,7 @@ def report_comic_stolen(comic_id):
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Verify comic is registered to this user
@@ -979,7 +980,7 @@ def mark_comic_recovered(comic_id):
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         cur.execute("""

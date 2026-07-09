@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import psycopg2
+import db as _dbpool
 import requests as http_requests
 from flask import Blueprint, jsonify, request, g
 from psycopg2.extras import RealDictCursor
@@ -126,7 +127,7 @@ def _get_db():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         raise RuntimeError("DATABASE_URL environment variable not set")
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    return _dbpool.get_db(dict_rows=True)
 
 
 def _make_slug(name: str) -> str:
@@ -815,7 +816,7 @@ def match_signature():
     if sig_limit != -1:
         # Capped plan (guard): check monthly usage. FAIL CLOSED on any error.
         try:
-            cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            cap_conn = _dbpool.get_db(dict_rows=True)
             cap_cur = cap_conn.cursor()
             cap_cur.execute(
                 "SELECT sig_checks_this_month, sig_checks_reset_date FROM users WHERE id = %s",
@@ -931,7 +932,7 @@ def match_signature():
     new_count = None
     if cap_counted:
         try:
-            inc_conn = psycopg2.connect(database_url)
+            inc_conn = _dbpool.get_db()
             inc_cur = inc_conn.cursor()
             inc_cur.execute(
                 """UPDATE users

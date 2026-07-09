@@ -24,6 +24,7 @@ from io import BytesIO
 
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 
 from auth import require_auth, require_admin_auth
@@ -79,7 +80,7 @@ def _hamming_distance(h1: str, h2: str) -> int:
 
 def _get_db():
     database_url = os.environ.get('DATABASE_URL')
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    return _dbpool.get_db(dict_rows=True)
 
 
 DAILY_LIMIT = 5          # max submissions per user per day

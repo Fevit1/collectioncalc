@@ -14,6 +14,7 @@ import random
 from decimal import Decimal
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 from title_matching import qualifier_title_clause, compose_qualified_title
 from lookup_demand import record_lookup_async
@@ -226,7 +227,7 @@ def api_sales_valuation():
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
 
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
 
         # Batch 8: qualifier-precise title match (shared helper). A qualified
@@ -676,7 +677,7 @@ def api_sales_fmv():
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
 
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
 
         # Batch 8: qualifier-precise title match (shared helper). fmv column sets

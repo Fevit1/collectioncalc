@@ -9,6 +9,7 @@ import requests as http_requests
 from pathlib import Path
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 
 from auth import require_auth, require_approved
@@ -258,7 +259,7 @@ def _save_match_result(sale_id, result):
     if not database_url:
         return
 
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         # Find or create the creator in creator_signatures
@@ -329,7 +330,7 @@ def _fetch_reference_signatures(candidate_names, wildcard_ids=None):
     if not database_url:
         return {}
 
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         # Get creators matching candidate names (case-insensitive)
@@ -608,7 +609,7 @@ def _record_identification(comic_id, results):
     if not database_url or not comic_id:
         return
 
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         for sig in results.get('signatures', []):
@@ -703,7 +704,7 @@ def api_identify_signatures():
     try:
         database_url = os.environ.get('DATABASE_URL')
         if database_url:
-            wc_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            wc_conn = _dbpool.get_db(dict_rows=True)
             wc_cur = wc_conn.cursor()
             wildcard_ids = _get_wildcard_artist_ids(wc_cur, limit=10)
             wc_cur.close()
@@ -860,7 +861,7 @@ def api_db_stats():
         return jsonify({'success': False, 'error': 'Database not configured'}), 503
 
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         try:
             cur.execute("""
@@ -942,7 +943,7 @@ def api_signed_sales():
     limit = min(int(request.args.get('limit', 20)), 100)
     has_image = request.args.get('has_image', 'true').lower() == 'true'
 
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         query = """
@@ -1038,7 +1039,7 @@ def api_premium_analysis():
     time_window = int(request.args.get('time_window', 90))
     bootstrap_n = min(int(request.args.get('bootstrap_n', 1000)), 5000)
 
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         # ── SQL: match each signed sale to individual unsigned sales ──

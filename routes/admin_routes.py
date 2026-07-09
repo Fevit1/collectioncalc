@@ -7,6 +7,7 @@ import uuid
 import resend
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
@@ -82,7 +83,7 @@ def api_admin_users():
     """Get all users with activity data (collections, API calls, last active)"""
     users = get_all_users()
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     try:
@@ -341,7 +342,7 @@ def api_nlq():
 def api_get_signatures():
     """Get all creator signatures with their images"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     
     try:
@@ -422,7 +423,7 @@ def api_add_signature():
         return jsonify({'success': False, 'error': 'Creator name is required'}), 400
     
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     
     try:
@@ -464,7 +465,7 @@ def api_add_signature_image(sig_id):
         return jsonify({'success': False, 'error': 'Image data required'}), 400
     
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     
     try:
@@ -517,7 +518,7 @@ def api_add_signature_image(sig_id):
 def api_delete_signature_image(image_id):
     """Delete a signature reference image"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url)
+    conn = _dbpool.get_db()
     cur = conn.cursor()
     
     try:
@@ -542,7 +543,7 @@ def api_delete_signature_image(image_id):
 def api_archive_signature(sig_id):
     """Archive a creator (soft-delete — hides from matching but preserves all data)"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     try:
@@ -572,7 +573,7 @@ def api_archive_signature(sig_id):
 def api_unarchive_signature(sig_id):
     """Unarchive a creator (restore to active matching)"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     try:
@@ -622,7 +623,7 @@ def api_update_style(sig_id):
     style_confidence = float(data.get('style_confidence', 1.0))
 
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url)
+    conn = _dbpool.get_db()
     cur = conn.cursor()
 
     try:
@@ -657,7 +658,7 @@ def api_update_style(sig_id):
 def api_verify_signature(sig_id):
     """Mark a signature as verified"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url)
+    conn = _dbpool.get_db()
     cur = conn.cursor()
     
     try:
@@ -725,7 +726,7 @@ def api_backfill_barcodes():
     }
     
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         
         # Find records with R2 images but no barcode data
@@ -821,7 +822,7 @@ def api_backfill_barcodes():
 def api_admin_waitlist():
     """Get all waitlist entries with summary stats"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     try:
@@ -893,7 +894,7 @@ def api_admin_waitlist_invite():
             print(f"[DEV MODE] Invite email for {email} with code {code}")
             # Still mark as invited in dev mode
             database_url = os.environ.get('DATABASE_URL')
-            dev_conn = psycopg2.connect(database_url)
+            dev_conn = _dbpool.get_db()
             dev_cur = dev_conn.cursor()
             try:
                 dev_cur.execute("UPDATE waitlist SET invited = TRUE, invited_at = NOW() WHERE email = %s", (email,))
@@ -959,7 +960,7 @@ def api_admin_waitlist_invite():
 
         # Mark waitlist entry as invited
         database_url = os.environ.get('DATABASE_URL')
-        inv_conn = psycopg2.connect(database_url)
+        inv_conn = _dbpool.get_db()
         inv_cur = inv_conn.cursor()
         try:
             inv_cur.execute("UPDATE waitlist SET invited = TRUE, invited_at = NOW() WHERE email = %s", (email,))
@@ -981,7 +982,7 @@ def api_barcode_stats():
     conn = None
     
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         
         # Overall stats
@@ -1027,7 +1028,7 @@ def api_slab_guard_stats():
     conn = None
     try:
         database_url = os.environ.get('DATABASE_URL')
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         stats = {}
@@ -1203,7 +1204,7 @@ def api_admin_grade_submissions():
     limit = min(request.args.get('limit', default=100, type=int), 500)
 
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     try:
         clauses, params = [], []

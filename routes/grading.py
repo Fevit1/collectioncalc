@@ -79,7 +79,8 @@ def api_valuate():
 def api_cache_check():
     """Check if a comic title/issue combination exists in search_cache"""
     import psycopg2
-    
+    import db as _dbpool
+
     data = request.get_json() or {}
     title = data.get('title', '').strip()
     issue = data.get('issue', '').strip()
@@ -94,7 +95,7 @@ def api_cache_check():
     conn = None
     
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         
         # Check if cache entry exists (recent within 48 hours)
@@ -318,6 +319,7 @@ def api_grade():
 
     # ── Grading cap check (per-tier monthly cap; admins exempt) ──
     import psycopg2
+    import db as _dbpool
     from psycopg2.extras import RealDictCursor
     from datetime import datetime, timezone
     # Per-tier monthly cap sourced from billing PLANS (single source of truth
@@ -332,7 +334,7 @@ def api_grade():
     database_url = os.environ.get('DATABASE_URL')
     cap_conn = None
     try:
-        cap_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cap_conn = _dbpool.get_db(dict_rows=True)
         cap_cur = cap_conn.cursor()
 
         cap_cur.execute(
@@ -503,7 +505,7 @@ def api_grade():
 
         # Increment grading counter for usage cap
         try:
-            inc_conn = psycopg2.connect(database_url)
+            inc_conn = _dbpool.get_db()
             inc_cur = inc_conn.cursor()
             inc_cur.execute(
                 """UPDATE users
@@ -560,7 +562,7 @@ def api_grade():
 
         # Include grading usage info for frontend counter
         try:
-            usage_conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+            usage_conn = _dbpool.get_db(dict_rows=True)
             usage_cur = usage_conn.cursor()
             usage_cur.execute("SELECT gradings_this_month, is_admin FROM users WHERE id = %s", (g.user_id,))
             usage_row = usage_cur.fetchone()

@@ -5,6 +5,7 @@ Routes: /api/collection/*
 import os
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 import json
 
@@ -21,7 +22,7 @@ from auth import require_auth, require_approved
 def api_get_collection():
     """Get user's saved comic collection"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     cur.execute("""
         SELECT c.id, c.user_id, c.title, c.issue, c.publisher, c.year, c.grade, c.grade_label,
@@ -87,7 +88,7 @@ def api_save_collection():
             return jsonify({'success': False, 'error': 'No items to save'}), 400
     
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     
     saved_ids = []
@@ -145,7 +146,7 @@ def api_save_collection():
 def api_delete_collection_item(item_id):
     """Delete an item from user's collection (cascades to registry, sightings)"""
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     try:
@@ -218,7 +219,7 @@ def api_update_valuation(item_id):
     my_valuation = data.get('my_valuation')
     
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
     
     cur.execute("""
@@ -278,7 +279,7 @@ def api_update_collection_item(item_id):
     values.extend([item_id, g.user_id])
 
     database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    conn = _dbpool.get_db(dict_rows=True)
     cur = conn.cursor()
 
     cur.execute(f"""

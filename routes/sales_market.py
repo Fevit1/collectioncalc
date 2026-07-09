@@ -5,6 +5,7 @@ Routes: /api/sales/record, /api/sales/count, /api/sales/recent
 import os
 from flask import Blueprint, jsonify, request
 import psycopg2
+import db as _dbpool
 from psycopg2.extras import RealDictCursor
 
 # NORMALIZATION IMPORT
@@ -94,7 +95,7 @@ def api_record_sale():
             is_reprint = barcode_result.get('is_reprint', False)
 
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
 
         cur.execute("""
@@ -170,7 +171,7 @@ def api_sales_count():
     if not database_url:
         return jsonify({'count': 0})
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as count FROM market_sales")
         count = cur.fetchone()['count']
@@ -191,7 +192,7 @@ def api_sales_recent():
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
 
     try:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         cur.execute("SELECT * FROM market_sales ORDER BY created_at DESC LIMIT %s", (limit,))
         sales = cur.fetchall()

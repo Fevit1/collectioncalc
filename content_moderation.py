@@ -204,11 +204,12 @@ def log_moderation_incident(user_id, endpoint, result, image_hash=None):
     
     try:
         import psycopg2
+        import db as _dbpool
         database_url = os.environ.get('DATABASE_URL')
         if not database_url:
             return
         
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         
         cur.execute("""
@@ -254,10 +255,11 @@ def get_moderation_incidents(limit=50, blocked_only=False):
     """
     try:
         import psycopg2
+        import db as _dbpool
         from psycopg2.extras import RealDictCursor
         database_url = os.environ.get('DATABASE_URL')
         
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         
         if blocked_only:
@@ -298,10 +300,11 @@ def get_moderation_stats():
     """Get moderation statistics for admin dashboard."""
     try:
         import psycopg2
+        import db as _dbpool
         from psycopg2.extras import RealDictCursor
         database_url = os.environ.get('DATABASE_URL')
         
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
         
         cur.execute("""

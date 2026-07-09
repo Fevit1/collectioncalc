@@ -6,6 +6,7 @@ import os
 import hashlib
 from flask import Blueprint, jsonify, request
 import psycopg2
+import db as _dbpool
 
 # NORMALIZATION IMPORT
 from title_normalizer import normalize_title
@@ -112,7 +113,7 @@ def add_ebay_sales_batch():
         for sale in sales:
             sale = normalize_ebay_sale(sale)
 
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         saved = 0
@@ -227,7 +228,7 @@ def backfill_canonical_titles():
     conn = None
     try:
         limit = request.args.get('limit', type=int)
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Fetch all records with NULL canonical_title
@@ -316,7 +317,7 @@ def get_ebay_sales_stats():
     database_url = os.environ.get('DATABASE_URL')
     conn = None
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         cur.execute("SELECT COUNT(*) FROM ebay_sales")

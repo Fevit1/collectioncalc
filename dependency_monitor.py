@@ -36,6 +36,7 @@ from models import MODEL_CHAINS
 
 try:
     import psycopg2
+    import db as _dbpool
     PSYCOPG2_AVAILABLE = True
 except ImportError:
     PSYCOPG2_AVAILABLE = False
@@ -617,7 +618,7 @@ def _alerts_conn():
     url = os.environ.get('DATABASE_URL')
     if not url:
         return None
-    return psycopg2.connect(url)
+    return _dbpool.get_db()
 
 
 def _ensure_alerts_table(conn):

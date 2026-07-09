@@ -16,6 +16,7 @@ the existing valuation logic or response shape.
 """
 import threading
 import psycopg2
+import db as _dbpool
 
 
 def record_lookup_async(database_url, **fields):
@@ -36,7 +37,7 @@ def _record_lookup(database_url, f):
     """Insert one row. Never raises."""
     conn = None
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO lookup_demand

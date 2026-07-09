@@ -10,6 +10,7 @@ import os
 import json
 from flask import Blueprint, jsonify, request, g
 import psycopg2
+import db as _dbpool
 from auth import require_auth, require_approved
 
 # Create blueprint
@@ -119,7 +120,7 @@ def api_upload_image_for_sale():
     database_url = os.environ.get('DATABASE_URL')
     
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
         cur.execute("""
             UPDATE market_sales 
@@ -277,7 +278,7 @@ def api_upload_extra_photo():
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Verify comic belongs to user and get current photos
@@ -398,7 +399,7 @@ def api_delete_extra_photo():
     conn = None
 
     try:
-        conn = psycopg2.connect(database_url)
+        conn = _dbpool.get_db()
         cur = conn.cursor()
 
         # Get current photos
