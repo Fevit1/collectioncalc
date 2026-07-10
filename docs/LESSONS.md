@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-06-20
+> **Operator:** Mike Berry · **Last updated:** 2026-07-09
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -136,3 +136,59 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   configured") over generic errors. Treat "I can't find the traceback" as the first problem to fix, not
   a reason to guess.
 - **SOURCE:** Session 108 (2026-06-20) Stripe webhook 500. Pairs with L-SW-2026-005 (read-only pre-flight). Candidate for cross-project promotion (Mike's call).
+
+### L-SW-2026-008 — Verify ship/commit state from git BEFORE presenting any commit/deploy plan; never regenerate completed steps from memory
+
+- **RULE:** Before handing Mike a `git add`/`commit`/`deploy` block — or describing what's "pending" /
+  "ready to ship" — **run `git log`/`git status` and report the actual state.** Never reconstruct a
+  commit plan from conversational memory; what the chat "remembers" as un-shipped may already be
+  committed and deployed.
+- **WHY:** Twice now a stale-state lapse surfaced the same way: (1) the dropped-E3-recapture resurrected
+  from a stale spec doc (2026-06-27 AM), and (2) Fix A (title normalization) was re-listed as a pending
+  `git add title_matching.py` step **after it was already committed (`c688bce`) and deployed** — Mike had
+  the live $550 ASM #41 screenshot to prove it. Presenting completed work as pending wastes the reviewer's
+  attention and erodes trust in the plan; in the worst case it invites a double-commit or a re-deploy.
+- **HOW TO APPLY:** Treat git as the source of truth for ship-state, the same way files (not memory) are
+  the source of truth for decision-state ([[State-Recording Protocol]], Rule 3 generalized: *verify
+  current state before acting*). When about to say "ship this" / "commit that," first `git log --oneline`
+  + `git status --short` on the specific files and report what's actually committed vs. dirty. If the tree
+  is clean, there is no commit plan to give — say so.
+- **SOURCE:** Session 111 (2026-06-27), valuation Fix A/B. Mike flagged the regenerated-as-pending pattern
+  explicitly ("same staleness pattern as yesterday"). Pairs with the State-Recording Protocol. Candidate
+  for cross-project promotion (Mike's call).
+
+### L-SW-2026-009 — Similarity scores across multi-token names need a per-token support guard; one substituted token = a different entity
+
+- **RULE:** Never accept a fuzzy/similarity match between multi-word names (titles, entities, keys) on an
+  aggregate score alone. Require that **every content token of the matched candidate is supported by the
+  input** (order/hyphen/typo tolerant, both concatenation directions) — because an aggregate score rates a
+  ONE-WORD SUBSTITUTION highly when shared tokens dominate, and a substituted word means a **different
+  entity**. Precision beats recall when a match writes into a shared pool: an unmatched item forms its own
+  thin pool (recoverable); a false merge poisons an existing pool (silent, compounding).
+- **WHY:** `token_sort_ratio(\"Absolute Catwoman\", \"Absolute Batman\") = 88` — no threshold could separate
+  it (legit rescues live below 88). At the 75 cutoff, current code had merged **748 sales rows across 23
+  canonical titles** into the wrong comp pools (Defenders→Descender incl. CGC keys, Power Girl→Fire Power,
+  Crossover→Crossed, X-Force→X-Men…), silently corrupting the valuations of flagship titles. The guard
+  (`_fuzzy_tokens_supported`) fixed all 23 while keeping the legit rescue classes (Spiderman↔Spider-Man,
+  Ironman↔Iron Man) — proven by corpus-wide before/after audit, same method as Fix A's 0-false-merge proof.
+- **HOW TO APPLY:** Any `fuzz`/`extractOne`/embedding-similarity match that CANONICALIZES (writes a shared
+  key) gets a token-support guard + a corpus-wide before/after audit before deploy. Test both tolerance
+  directions (split↔squashed compounds) — the first guard version broke Ironman→Iron Man; the audit caught it.
+- **SOURCE:** Session 114 (2026-07-09), Absolute Batman #1 mispricing diagnosis → cross-title leakage audit.
+  Candidate for cross-project promotion (Mike's call — applies to any project matching names fuzzily).
+
+### L-SW-2026-010 — Identical timestamps across many log lines = a buffered-stdout flush artifact, not real-time events
+
+- **RULE:** When a burst of log lines shares one timestamp, suspect a **buffer flush** (typically a dying
+  process dumping its pipe-buffered stdout) before treating them as events that happened at that moment.
+  Check content age (log format version, referenced entity IDs/dates) before reasoning from them.
+- **WHY:** At the 2026-07-08 deploy, the old container flushed 10 `[Billing]` lines — days of history —
+  all stamped 19:43:17, in the pre-fix log format. Read naively they looked like live webhook activity at
+  deploy time and nearly misdirected the "webhooks not updating the DB" diagnosis. The tells: one shared
+  timestamp, old log format, stale entity references.
+- **HOW TO APPLY:** Timestamp-flattened logs are unusable for timeline reconstruction — get the timeline
+  from an external witness instead (Stripe delivery log, DB rows). Root fix is L-2026-020
+  (`PYTHONUNBUFFERED=1`, now also in this repo's Dockerfile); this lesson is the *reading* skill for logs
+  produced before that fix, on any service that still lacks it.
+- **SOURCE:** Session 113 (2026-07-08), billing mid-test scare diagnosis. Pairs with cross-project
+  L-2026-020.
