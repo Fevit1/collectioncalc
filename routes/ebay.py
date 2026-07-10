@@ -53,7 +53,11 @@ def api_ebay_account_deletion():
 
     GET  - eBay's endpoint-validation challenge. eBay sends ?challenge_code=...
            and expects {"challengeResponse": sha256(challengeCode + verificationToken + endpoint)}.
-    POST - Runtime account-deletion notification (GDPR compliance). Always 2xx.
+    POST - Runtime account-deletion notification (GDPR compliance).
+           Signature-verified (ECDSA/SHA1 over the raw body, x-ebay-signature
+           header — see ebay_signature.py). Responses follow eBay's contract:
+           200 = verified + acknowledged, 412 = signature rejected (no data
+           touched), 500 = verification temporarily impossible (eBay retries).
     """
     # --- GET: eBay challenge-response validation ---
     if request.method == 'GET':
@@ -77,33 +81,64 @@ def api_ebay_account_deletion():
         return resp, 200
 
     # --- POST: runtime deletion notification ---
+    # Signature gate FIRST — nothing below runs on an unverified request.
+    # raw body must be captured before get_json(): the signature is over
+    # these exact bytes.
+    raw_body = request.get_data(cache=True)
+    signature_header = request.headers.get('x-ebay-signature')
+    if not signature_header:
+        print(f"[eBay] deletion notification REJECTED: no x-ebay-signature header "
+              f"(remote={request.remote_addr})")
+        return jsonify({'success': False, 'error': 'Signature required'}), 412
+
+    from ebay_signature import verify_notification
+    status, reason = verify_notification(raw_body, signature_header)
+    if status == 'invalid':
+        print(f"[eBay] deletion notification REJECTED: {reason} (remote={request.remote_addr})")
+        return jsonify({'success': False, 'error': 'Signature verification failed'}), 412
+    if status == 'unavailable':
+        # Fail closed but retryable: never delete unverified, and never ack —
+        # a 200 here would silently drop a real GDPR notice. 500 makes eBay
+        # redeliver once verification infrastructure recovers.
+        print(f"[eBay] deletion notification NOT PROCESSED (verification unavailable): {reason}")
+        return jsonify({'success': False, 'error': 'Verification temporarily unavailable'}), 500
+    print(f"[eBay] deletion notification signature OK: {reason}")
+
     try:
         from ebay_oauth import delete_user_by_ebay_id
-        
-        data = request.get_json() or {}
-        
-        # eBay sends notification with user info
-        # The exact format depends on eBay's notification structure
-        ebay_user_id = data.get('userId') or data.get('user_id') or data.get('username')
-        
-        if not ebay_user_id:
-            # Silently acknowledge - these are eBay users who never used our app
+
+        data = request.get_json(silent=True) or {}
+
+        # Real eBay payloads nest identity under notification.data — the
+        # username field is what OAuth stores in ebay_tokens.ebay_username.
+        # (The old top-level reads meant real notifications never matched;
+        # kept only as a fallback.)
+        notif_data = ((data.get('notification') or {}).get('data') or {})
+        candidates = [v for v in (
+            notif_data.get('username'),
+            notif_data.get('userId'),
+            data.get('userId'), data.get('user_id'), data.get('username'),
+        ) if v]
+
+        if not candidates:
+            # Verified notification with no identity — acknowledge.
             return jsonify({'success': True, 'message': 'Notification received'}), 200
-        
-        # Delete user data
-        deleted = delete_user_by_ebay_id(ebay_user_id)
-        
-        if deleted:
-            print(f"Successfully deleted data for eBay user: {ebay_user_id}")
-        else:
-            print(f"No data found for eBay user: {ebay_user_id}")
-        
-        # Always return 200 to acknowledge receipt
+
+        deleted = False
+        for ebay_user_id in candidates:
+            if delete_user_by_ebay_id(ebay_user_id):
+                deleted = True
+                print(f"Successfully deleted data for eBay user: {ebay_user_id}")
+
+        if not deleted:
+            print(f"No data found for eBay user identifiers: {candidates}")
+
+        # Always return 200 to acknowledge a VERIFIED notification
         return jsonify({'success': True, 'deleted': deleted}), 200
-        
+
     except Exception as e:
         print(f"Error processing eBay deletion notification: {e}")
-        # Still return 200 to prevent eBay from retrying
+        # Verified but failed to process: still 200 to prevent eBay retry loops
         return jsonify({'success': False, 'error': str(e)}), 200
 
 

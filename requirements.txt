@@ -27,3 +27,5 @@ numpy>=1.24.0
 scipy>=1.11.0
 # Stripe payments
 stripe>=12,<13
+# eBay notification signature verification (ECDSA — ebay_signature.py)
+cryptography>=42.0.0

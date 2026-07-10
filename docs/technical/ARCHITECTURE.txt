@@ -124,6 +124,7 @@ what it's for, which module(s) read it, and what happens if it's unset.
 | `EBAY_RUNAME` | eBay OAuth RuName (redirect identifier). | `ebay_oauth.py:105/140` | OAuth authorize/redirect fails. |
 | `EBAY_SANDBOX` | Toggle eBay sandbox vs production (`'true'/'1'/'yes'`). | `ebay_oauth.py:88` | Defaults to production (falsey = live eBay). |
 | `EBAY_VERIFICATION_TOKEN` | Verification token for eBay's Marketplace Account Deletion endpoint challenge. Must EXACTLY match the token in the eBay developer portal. Used in `GET /api/ebay/account-deletion` to compute `sha256(challengeCode + verificationToken + endpoint)`. Also read by `dependency_monitor.check_ebay_account_deletion()` to independently recompute/verify the live endpoint's challenge response. 32–80 chars, alphanumeric + `_-`. | `routes/ebay.py:60`, `dependency_monitor.py:327` | Challenge handler returns 500; eBay validation fails → eBay can deactivate app keys (kills eBay listing). |
+| `EBAY_SIGNATURE_VERIFICATION_DISABLED` | Kill switch (`'1'`) for x-ebay-signature verification on `POST /api/ebay/account-deletion` (`ebay_signature.py`). Rollback lever only — same pattern as `DB_POOL_DISABLED`; when set, the endpoint accepts unsigned POSTs (pre-2026-07 behavior, the security hole). Signature verification itself reuses `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET` (client-credentials token → Notification API `getPublicKey`, cached ~1h). Requires the `cryptography` package. | `ebay_signature.py` | Unset = verification ENFORCED (the intended state). |
 
 ### Email (Resend) + alerts
 

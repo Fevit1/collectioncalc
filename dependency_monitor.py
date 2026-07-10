@@ -81,7 +81,7 @@ RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com'
 if RESEND_API_KEY and RESEND_AVAILABLE:
     resend.api_key = RESEND_API_KEY
 
-# eBay APIs we depend on (from ebay_listing.py and ebay_oauth.py)
+# eBay APIs we depend on (from ebay_listing.py, ebay_oauth.py, ebay_signature.py)
 EBAY_APIS_WE_USE = [
     'sell/inventory/v1',
     'sell/account/v1',
@@ -90,6 +90,7 @@ EBAY_APIS_WE_USE = [
     'identity/v1/oauth2',
     'commerce/media/v1',
     'commerce/identity',
+    'commerce/notification/v1',  # public-key fetch for deletion-notification signature verification
 ]
 
 # Keywords that signal a deprecation notice
