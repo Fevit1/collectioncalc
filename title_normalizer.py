@@ -255,6 +255,21 @@ def normalize_title(raw_title):
     is_variant = False
     variant_details = []
 
+    # Cover letters, handled BEFORE the pattern loop (preserves the old strip
+    # order relative to the 'variant' keyword pattern). "Cover B"/"CVR C" is a
+    # variant, but "Cover A" is the STANDARD cover on modern multi-cover books —
+    # flagging it as a variant excluded the standard cover's own sales from its
+    # comp pool (2026-07-09 Absolute Batman #1 finding: 144/974 rows wrongly
+    # excluded). Strip the token either way so canonical titles stay clean.
+    _cover_letters = [m.group(1).upper() for m in
+                      re.finditer(r'\b(?:cover|cvr)\s+([A-Za-z])\b', working, re.IGNORECASE)]
+    if _cover_letters:
+        _non_a = [l for l in _cover_letters if l != 'A']
+        if _non_a:
+            is_variant = True
+            variant_details.extend(f'Cover {l}' for l in _non_a)
+        working = re.sub(r'\b(?:cover|cvr)\s+([A-Za-z])\b', ' ', working, flags=re.IGNORECASE)
+
     variant_patterns = [
         (r'\b(35|30)\s*[¢c]\s*(price\s*)?variant\b', None),
         (r'\b(\d+:\d+)\s*(ratio\s*)?(variant|incentive)?\b', None),
@@ -265,7 +280,6 @@ def normalize_title(raw_title):
         (r'\bC2E2\s*(variant|exclusive)?\b', 'C2E2'),
         (r'\bnewsstand\s*(edition)?\b', 'Newsstand'),
         (r'\bdirect\s*(edition)?\b', 'Direct Edition'),
-        (r'\b(?:cover|cvr)\s+([A-Z])\b', None),  # Cover A, CVR B
         (r'\bvariant\s*(cover)?\b', 'Variant'),
         (r'\bexclusive\b', 'Exclusive'),
         (r'\bincentive\b', 'Incentive'),
@@ -476,6 +490,40 @@ def normalize_title(raw_title):
     }
 
 
+def _fuzzy_tokens_supported(candidate, text, per_token_floor=83):
+    """Guard for the fuzzy canonical-title match: every content token of the
+    candidate must be supported by the listing text at high CHARACTER
+    similarity. Word-order changes, hyphen/space differences ("Spiderman",
+    "Spider Man" → "Spider-Man") and small typos pass; a SUBSTITUTED word
+    ("Superman" for "Batman") fails — that's a different book, and precision
+    beats recall here (an unmatched title falls back to title-case and forms
+    its own thin pool; a false merge poisons an existing pool)."""
+    stop = {'the', 'a', 'an', 'of', 'and'}
+
+    def toks(s):
+        s = s.lower().replace('-', '').replace("'", '')
+        return [t for t in re.findall(r'[a-z0-9]+', s) if t not in stop]
+
+    cand = toks(candidate)
+    text_toks = toks(text)
+    if not cand or not text_toks:
+        return False
+    # Concatenation tolerance works BOTH ways: text "spider man" supports
+    # candidate token "spiderman" (text-side pairs in the pool), and text
+    # "ironman" supports candidate tokens "iron"+"man" (candidate-side pairs
+    # checked against the pool).
+    pool = set(text_toks) | {a + b for a, b in zip(text_toks, text_toks[1:])}
+
+    def supported(tok):
+        return max((fuzz.ratio(tok, p) for p in pool), default=0) >= per_token_floor
+
+    pair_ok = {i for i, (a, b) in enumerate(zip(cand, cand[1:])) if supported(a + b)}
+    return all(
+        supported(c) or (i - 1) in pair_ok or i in pair_ok
+        for i, c in enumerate(cand)
+    )
+
+
 def _build_canonical_title(title_part):
     """
     Clean up the title portion and normalize to title case.
@@ -539,8 +587,15 @@ def _build_canonical_title(title_part):
 
         if match_result:
             matched_title, score, _ = match_result
-            # If we have a strong match (>75%), use the canonical version
-            if score >= 75:
+            # If we have a strong match (>75%), use the canonical version —
+            # BUT only if every content word of the candidate actually appears
+            # in the text (token guard). token_sort_ratio scores a ONE-WORD
+            # SUBSTITUTION like "Absolute Superman" → "Absolute Batman" at
+            # 75–88 because the shared tokens dominate; a substituted word
+            # means a DIFFERENT BOOK, and one wrong merge poisons that title's
+            # whole comp pool (2026-07-09 finding: Absolute Superman/Catwoman
+            # sales stored under canonical 'absolute batman').
+            if score >= 75 and _fuzzy_tokens_supported(matched_title, text):
                 return matched_title
 
     # No fuzzy match found - fall back to title case normalization
