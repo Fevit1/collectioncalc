@@ -69,6 +69,36 @@ Data-integrity corruption is invisible to sufficiency checks.
   - **End-to-end through the live app: Absolute Batman #1 @ 9.0 → raw FMV $169.99**
     (`fmv_method=blended`, real comps, `verdict_reliable=true`) vs the pre-fix $150.00.
 
+## Fix 3 — leading-"New" series-name truncation (shipped 2026-07-10, same night)
+
+Found by the market_sales dry-run, hours after Fix 2's rollout. Since day one the
+normalizer stripped a bare leading "new" as listing-condition wording ("NEW! unread!") —
+which eats the first word of series actually *named* "New \*": New Mutants, New Teen
+Titans, New Warriors, New X-Men. The old permissive fuzzy matcher had been silently
+repairing most of the damage; Fix 2's per-token guard (correctly) refused those
+rescues, surfacing the underlying bug: **1,072 ebay rows** carried truncated canonicals —
+635 "Mutants" orphans (including New Mutants #98, the first-Deadpool key) and 210 New
+Teen Titans rows contaminating the *different, real* Teen Titans series pool (that
+class had been wrong since day one).
+
+- **Fix:** strip only "brand new" (unambiguous condition wording); a genuine bare-"NEW"
+  condition prefix still resolves via fuzzy match because every candidate token remains
+  supported. One line plus a `--table market` extension to the batch tool.
+- **Verified before ship:** full-corpus differential of fixed-vs-shipped code over all
+  71,449 rows = exactly 1,063 changes, zero variant flips, no new real-pool contamination.
+- **Verified after rollout (both tables re-run, 0 errors):** "Mutants" orphans = 0,
+  Teen Titans decontaminated, Cover-A counts unchanged; **live app: New Mutants #98
+  @ 9.0 → $300 raw FMV, exact method, high confidence, 10 graded comps** (previously
+  stranded); Absolute Batman #1 unchanged (no regression).
+- **Known small tail (logged, post-launch):** ~28 rows where a real "New \*" series
+  fuzzy-merges into its parent-name series (New Avengers→Avengers, New
+  Champions→Champions…) — textually ambiguous; planned fix is adding those series to
+  the known-titles list so exact matching wins.
+
+The meta-lesson BS should note: **precision guards surface upstream bugs that permissive
+matching had been papering over.** Fix 2's guard didn't cause the New-Mutants damage —
+it revealed a day-one defect that was silently corrupting Teen Titans pools all along.
+
 ## Deliberately deferred (decided, not forgotten)
 
 - **Layer 3 — grade-aware raw estimate:** the remaining gap from $169.99 to the
