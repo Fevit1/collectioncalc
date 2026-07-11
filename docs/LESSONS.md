@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-07-09
+> **Operator:** Mike Berry · **Last updated:** 2026-07-10
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -192,3 +192,29 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   produced before that fix, on any service that still lacks it.
 - **SOURCE:** Session 113 (2026-07-08), billing mid-test scare diagnosis. Pairs with cross-project
   L-2026-020.
+
+### L-SW-2026-011 — Cleanup strippers that delete tokens before matching can truncate entity names; adding a precision guard downstream requires auditing what the permissive path was silently repairing
+
+- **RULE:** Any cleanup/stripper step that deletes tokens BEFORE a matching step can silently
+  truncate entity names (a "condition prefix" list containing a word that legitimately starts
+  entity names — "New" — eats "New Mutants"). And when you ADD a precision guard downstream of a
+  permissive matcher, **audit what the permissive path had been silently repairing** — the guard
+  will stop those repairs and surface the upstream bug as new-looking damage. Diff the full
+  corpus (fixed vs shipped code) before trusting either the old or the new output.
+- **WHY:** `title_normalizer.py` stripped a bare leading "new" as listing-condition wording since
+  day one (`ac9b2be`). The permissive fuzzy matcher glued "Mutants" back to 'New Mutants', hiding
+  the bug — while "New Teen Titans" exact-matched into the *different, real* 'Teen Titans' pool,
+  corrupting it invisibly for the product's whole life. The moment the per-token guard
+  (L-SW-2026-009) shipped and the corpus was re-normalized, the hidden repairs stopped: 1,072
+  rows surfaced with truncated canonicals, including 635 'Mutants' orphans (New Mutants #98,
+  the 1st-Deadpool key, valued from an orphan pool). The guard was correct; the stripper was the
+  defect; the permissive matcher had been the camouflage.
+- **HOW TO APPLY:** (1) Never put words that can legitimately start entity names into a
+  strip-by-position cleanup list; prefer unambiguous phrases ("brand new" yes, bare "new" never).
+  (2) When tightening any matcher, run a corpus-wide differential of new-vs-old outputs and read
+  the changes — regressions that look caused by the new precision are often day-one bugs losing
+  their camouflage; fix the upstream defect, don't loosen the guard. (3) Verify heals
+  end-to-end after the fix (the stranded key valued correctly: NM #98 → $300 exact/high).
+- **SOURCE:** Session 115 (2026-07-10), market_sales dry-run surfaced the leading-"New" bug hours
+  after the ebay re-normalize. Pairs with L-SW-2026-009 (the guard that exposed it). Candidate
+  for cross-project promotion (Mike's call — applies to any pipeline with cleanup-then-match).
