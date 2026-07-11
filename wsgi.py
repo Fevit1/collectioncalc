@@ -43,7 +43,7 @@ from auth import (
     forgot_password, reset_password, get_current_user,
     validate_beta_code, create_beta_code, list_beta_codes,
     approve_user, reject_user, get_pending_users, get_all_users,
-    require_admin, verify_jwt, get_user_by_id, require_auth, require_approved
+    require_admin, verify_jwt, require_auth, require_approved
 )
 from admin import (
     log_request, log_api_usage, get_dashboard_stats,
@@ -361,9 +361,13 @@ def before_request():
         payload = verify_jwt(token)
         if payload:
             g.user_id = payload.get('user_id')
-            # Admin check
-            user = get_user_by_id(g.user_id)
-            if user and user.get('is_admin'):
+            # Admin flag from the signed JWT claim (set at login) — NOT a DB
+            # lookup; the old get_user_by_id() here burned a pooled connection
+            # on every authed request. g.admin_id only feeds soft surfaces
+            # (vision rate-limit bypass, lookup_demand is_internal tag); real
+            # admin authorization re-checks the DB in require_admin_auth.
+            # Staleness bound for the soft surfaces = token life (30 days).
+            if payload.get('is_admin'):
                 g.admin_id = g.user_id
     
     # Device type detection

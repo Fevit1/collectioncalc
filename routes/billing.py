@@ -148,18 +148,20 @@ def get_user_plan(user_id):
     """Get the user's current plan from the database"""
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT plan, stripe_customer_id, stripe_subscription_id,
-                   subscription_status, billing_period, current_period_end,
-                   valuations_this_month, valuations_reset_date,
-                   COALESCE(is_admin, FALSE)
-            FROM users
-            WHERE id = %s
-        """, (user_id,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT plan, stripe_customer_id, stripe_subscription_id,
+                       subscription_status, billing_period, current_period_end,
+                       valuations_this_month, valuations_reset_date,
+                       COALESCE(is_admin, FALSE)
+                FROM users
+                WHERE id = %s
+            """, (user_id,))
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
 
         if not row:
             return None
@@ -193,9 +195,6 @@ def update_user_subscription(user_id, plan, stripe_customer_id=None,
     fields keep None-means-skip semantics.
     """
     try:
-        conn = get_db()
-        cur = conn.cursor()
-
         fields = ['plan = %s']
         values = [plan]
 
@@ -217,10 +216,15 @@ def update_user_subscription(user_id, plan, stripe_customer_id=None,
 
         values.append(user_id)
         query = f"UPDATE users SET {', '.join(fields)} WHERE id = %s"
-        cur.execute(query, values)
-        conn.commit()
-        cur.close()
-        conn.close()
+
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(query, values)
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
         return True
     except Exception as e:
         print(f"[Billing] Error updating subscription: {e}")
@@ -307,14 +311,16 @@ def check_feature_access(user_id, feature):
         # Count current registrations
         try:
             conn = get_db()
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT COUNT(*) FROM comic_registry WHERE user_id = %s AND status = 'active'",
-                (user_id,)
-            )
-            count = cur.fetchone()[0]
-            cur.close()
-            conn.close()
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT COUNT(*) FROM comic_registry WHERE user_id = %s AND status = 'active'",
+                    (user_id,)
+                )
+                count = cur.fetchone()[0]
+                cur.close()
+            finally:
+                conn.close()
             if count >= limit:
                 return False, f"Registration limit reached ({limit})"
             return True, f"{limit - count} remaining"
@@ -351,14 +357,16 @@ def get_signature_id_entitlement(user_id):
     """
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT plan, subscription_status, COALESCE(is_admin, FALSE) FROM users WHERE id = %s",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT plan, subscription_status, COALESCE(is_admin, FALSE) FROM users WHERE id = %s",
+                (user_id,)
+            )
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
     except Exception as e:
         print(f"[Billing] signature entitlement check failed (failing closed): {e}")
         return {'reason': 'error', 'limit': 0, 'plan': None, 'is_admin': False,
@@ -431,14 +439,16 @@ def get_my_plan():
     # Check registration count
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT COUNT(*) FROM comic_registry WHERE user_id = %s AND status = 'active'",
-            (user_id,)
-        )
-        reg_count = cur.fetchone()[0]
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COUNT(*) FROM comic_registry WHERE user_id = %s AND status = 'active'",
+                (user_id,)
+            )
+            reg_count = cur.fetchone()[0]
+            cur.close()
+        finally:
+            conn.close()
     except:
         reg_count = 0
 
@@ -782,11 +792,13 @@ def handle_subscription_updated(subscription):
     # Find user by stripe_customer_id
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM users WHERE stripe_customer_id = %s", (customer_id,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM users WHERE stripe_customer_id = %s", (customer_id,))
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
 
         if row:
             user_id = row[0]
@@ -817,15 +829,17 @@ def handle_subscription_deleted(subscription):
 
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id, stripe_subscription_id FROM users "
-            "WHERE stripe_customer_id = %s",
-            (customer_id,),
-        )
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, stripe_subscription_id FROM users "
+                "WHERE stripe_customer_id = %s",
+                (customer_id,),
+            )
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
 
         if row:
             user_id, sub_of_record = row
@@ -861,11 +875,13 @@ def handle_payment_failed(invoice):
 
     try:
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT id, plan FROM users WHERE stripe_customer_id = %s", (customer_id,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id, plan FROM users WHERE stripe_customer_id = %s", (customer_id,))
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
 
         if row:
             user_id = row[0]
@@ -888,43 +904,45 @@ def record_valuation():
 
     try:
         conn = get_db()
-        cur = conn.cursor()
+        try:
+            cur = conn.cursor()
 
-        # Check if reset date has passed
-        cur.execute(
-            "SELECT valuations_this_month, valuations_reset_date FROM users WHERE id = %s",
-            (user_id,)
-        )
-        row = cur.fetchone()
+            # Check if reset date has passed
+            cur.execute(
+                "SELECT valuations_this_month, valuations_reset_date FROM users WHERE id = %s",
+                (user_id,)
+            )
+            row = cur.fetchone()
 
-        if row:
-            count = row[0] or 0
-            reset_date = row[1]
-            now = datetime.now()
+            if row:
+                count = row[0] or 0
+                reset_date = row[1]
+                now = datetime.now()
 
-            # Reset counter if we've entered a new month
-            if not reset_date or now >= reset_date:
-                # Set reset to first of next month
-                if now.month == 12:
-                    next_reset = datetime(now.year + 1, 1, 1)
+                # Reset counter if we've entered a new month
+                if not reset_date or now >= reset_date:
+                    # Set reset to first of next month
+                    if now.month == 12:
+                        next_reset = datetime(now.year + 1, 1, 1)
+                    else:
+                        next_reset = datetime(now.year, now.month + 1, 1)
+
+                    cur.execute("""
+                        UPDATE users
+                        SET valuations_this_month = 1, valuations_reset_date = %s
+                        WHERE id = %s
+                    """, (next_reset, user_id))
                 else:
-                    next_reset = datetime(now.year, now.month + 1, 1)
+                    cur.execute("""
+                        UPDATE users
+                        SET valuations_this_month = valuations_this_month + 1
+                        WHERE id = %s
+                    """, (user_id,))
 
-                cur.execute("""
-                    UPDATE users
-                    SET valuations_this_month = 1, valuations_reset_date = %s
-                    WHERE id = %s
-                """, (next_reset, user_id))
-            else:
-                cur.execute("""
-                    UPDATE users
-                    SET valuations_this_month = valuations_this_month + 1
-                    WHERE id = %s
-                """, (user_id,))
-
-        conn.commit()
-        cur.close()
-        conn.close()
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
 
         return jsonify({'recorded': True})
     except Exception as e:
