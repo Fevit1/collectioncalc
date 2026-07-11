@@ -13,6 +13,7 @@ Each check is cached 24 hours independently.
  eBay              │ check_ebay()                  │ developer.ebay.com RSS feed │ API deprecations
  eBay acct-del self│ check_ebay_account_deletion() │ our own live endpoint (GET) │ Notification endpoint up + valid challenge
  Stripe            │ check_stripe()                │ PyPI version check          │ SDK version drift
+ Resources (self)  │ check_resources()             │ container cgroup + Postgres │ Memory + DB-connection ceilings (item 2f)
 
  TO ADD A NEW SERVICE:
  1. Write a check_<service>() function that returns a list of warning dicts:
@@ -78,6 +79,22 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
 
+# ── Resource-ceiling self-alert (LAUNCH_READINESS item 2f) ──
+# Render Starter has NO native threshold alerts (event emails only), so the
+# container watches its own ceilings. MONITORING-ONLY: warns via the admin
+# dashboard + the state-change email; the tier-upgrade decision stays a human
+# call — nothing here scales, restarts, or changes anything.
+RESOURCE_CHECK_TTL = 300  # resource state moves fast; don't ride the 24h cache
+# Sustained-over-N semantics, not instant: post-Phase-4 steady state measured
+# ~70% of 512MB (358MB under 2 workers x 8 gthread threads, 2026-07-11), so the
+# original 80% placeholder sat only ~52MB above normal — a single GC spike or
+# deploy overlap would page. 85% sustained across 3 consecutive samples
+# (~15 min at the 5-min TTL) alerts on real pressure, not noise.
+RESOURCE_SUSTAIN_SAMPLES = 3
+WARN_MEMORY_PCT = int(os.environ.get('RESOURCE_WARN_MEMORY_PCT', '85'))
+WARN_DB_CONN_PCT = int(os.environ.get('RESOURCE_WARN_DB_CONN_PCT', '70'))
+DB_RESERVED_CONNECTIONS = 3  # measured on Render Postgres: superuser-reserved slots
+
 if RESEND_API_KEY and RESEND_AVAILABLE:
     resend.api_key = RESEND_API_KEY
 
@@ -106,8 +123,17 @@ _caches = {
     'stripe':               {"data": [], "fetched_at": 0},
     'ebay_account_deletion': {"data": [], "fetched_at": 0},
     'manifest':             {"data": None, "fetched_at": 0},
+    'resources':            {"data": [], "fetched_at": 0},
 }
 _emailed_keys = set()  # Track what we've emailed about (service:identifier)
+
+# Per-process (per-worker) resource sampling state. Streaks implement the
+# sustained-over-N warning semantics; _resource_last feeds the always-visible
+# status line on /api/admin/dependency-status. Multiple gunicorn workers each
+# sample independently, but the DB-persisted alert dedup means only the first
+# worker to cross the sustain threshold sends the email.
+_resource_streaks = {'memory': 0, 'db_connections': 0}
+_resource_last = {}
 
 
 def _error_entry(service, reason):
@@ -569,6 +595,184 @@ def check_stripe(force=False):
 
 
 # =============================================
+# RESOURCES — memory + DB-connection ceiling self-alert (item 2f)
+# =============================================
+
+def _read_cgroup_memory():
+    """(current_bytes, limit_bytes) from the container's cgroup, else None.
+
+    cgroup v2 first (memory.current / memory.max), v1 fallback. A limit of
+    'max' (v2) or the v1 unlimited sentinel returns limit=None (can't compute
+    a percentage). Returns None entirely when no cgroup files exist — expected
+    on dev machines (Windows/macOS), not an outage, so the caller skips the
+    memory half silently rather than alerting."""
+    try:
+        base = '/sys/fs/cgroup'
+        v2_current = os.path.join(base, 'memory.current')
+        if os.path.exists(v2_current):
+            with open(v2_current) as f:
+                current = int(f.read().strip())
+            with open(os.path.join(base, 'memory.max')) as f:
+                raw = f.read().strip()
+            limit = None if raw == 'max' else int(raw)
+            return current, limit
+        v1_current = os.path.join(base, 'memory', 'memory.usage_in_bytes')
+        if os.path.exists(v1_current):
+            with open(v1_current) as f:
+                current = int(f.read().strip())
+            with open(os.path.join(base, 'memory', 'memory.limit_in_bytes')) as f:
+                limit = int(f.read().strip())
+            if limit >= (1 << 60):  # v1 reports "unlimited" as a huge sentinel
+                limit = None
+            return current, limit
+    except Exception as e:
+        print(f"[DependencyMonitor] cgroup memory read failed: {e}")
+    return None
+
+
+def _db_connection_usage():
+    """(used, usable) connection counts, else None when DB is unavailable.
+
+    used = pg_stat_activity rows for our database (all workers + shells + any
+    other client — the true global number the ceiling applies to);
+    usable = max_connections - DB_RESERVED_CONNECTIONS."""
+    if not PSYCOPG2_AVAILABLE or not os.environ.get('DATABASE_URL'):
+        return None
+    conn = _dbpool.get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()"
+        )
+        used = cur.fetchone()[0]
+        cur.execute("SHOW max_connections")
+        max_conn = int(cur.fetchone()[0])
+        cur.close()
+    finally:
+        conn.close()
+    return used, max(1, max_conn - DB_RESERVED_CONNECTIONS)
+
+
+def check_resources(force=False):
+    """Resource-ceiling self-alert (LAUNCH_READINESS item 2f).
+
+    Samples container memory (cgroup) and global DB connections every
+    RESOURCE_CHECK_TTL seconds, riding the health-check polling like every
+    other check. A warning fires only after RESOURCE_SUSTAIN_SAMPLES
+    consecutive over-threshold samples (~15 min) — see the threshold config
+    comment for the calibration rationale. MONITORING-ONLY: the fallback
+    (1 worker x 12 threads) and the tier upgrade are HUMAN decisions; this
+    code only surfaces the numbers."""
+    cache = _caches['resources']
+    now = time.time()
+    if not force and (now - cache["fetched_at"]) < RESOURCE_CHECK_TTL:
+        return cache["data"]
+
+    warnings = []
+    try:
+        pool_snapshot = None
+        if PSYCOPG2_AVAILABLE:
+            try:
+                pool_snapshot = _dbpool.pool_stats()  # per-worker; labeled by pid
+            except Exception:
+                pass
+
+        # ---- memory (skipped silently off-container) ----
+        mem = _read_cgroup_memory()
+        if mem and mem[1]:
+            current, limit = mem
+            pct = 100.0 * current / limit
+            _resource_last['memory'] = {
+                'used_mb': round(current / 1048576, 1),
+                'limit_mb': round(limit / 1048576, 1),
+                'pct': round(pct, 1),
+                'warn_pct': WARN_MEMORY_PCT,
+            }
+            if pct >= WARN_MEMORY_PCT:
+                _resource_streaks['memory'] += 1
+            else:
+                _resource_streaks['memory'] = 0
+            if _resource_streaks['memory'] >= RESOURCE_SUSTAIN_SAMPLES:
+                m = _resource_last['memory']
+                warnings.append({
+                    "service": "Resources (self)",
+                    "item": "memory ceiling",
+                    "detail": (f"Container memory {m['used_mb']}MB / {m['limit_mb']}MB "
+                               f"({m['pct']}%) — sustained ≥{WARN_MEMORY_PCT}% across "
+                               f"{RESOURCE_SUSTAIN_SAMPLES} samples "
+                               f"(~{RESOURCE_SUSTAIN_SAMPLES * RESOURCE_CHECK_TTL // 60} min). "
+                               f"Worker pool stats (pid-local): {pool_snapshot}"),
+                    "date": "",
+                    "url": "https://dashboard.render.com",
+                    "action": ("Sustained memory pressure. Options (HUMAN decision, nothing "
+                               "automatic): drop gunicorn to 1 worker x 12 threads (the "
+                               "documented Dockerfile fallback), or upgrade the instance tier "
+                               "(Starter 512MB → Standard 2GB) in the Render dashboard."),
+                })
+
+        # ---- DB connections (skipped silently without DATABASE_URL) ----
+        db_usage = _db_connection_usage()
+        if db_usage:
+            used, usable = db_usage
+            pct = 100.0 * used / usable
+            _resource_last['db_connections'] = {
+                'used': used,
+                'usable': usable,
+                'pct': round(pct, 1),
+                'warn_pct': WARN_DB_CONN_PCT,
+            }
+            if pct >= WARN_DB_CONN_PCT:
+                _resource_streaks['db_connections'] += 1
+            else:
+                _resource_streaks['db_connections'] = 0
+            if _resource_streaks['db_connections'] >= RESOURCE_SUSTAIN_SAMPLES:
+                d = _resource_last['db_connections']
+                warnings.append({
+                    "service": "Resources (self)",
+                    "item": "DB connection ceiling",
+                    "detail": (f"{d['used']} / {d['usable']} usable Postgres connections "
+                               f"({d['pct']}%) — sustained ≥{WARN_DB_CONN_PCT}% across "
+                               f"{RESOURCE_SUSTAIN_SAMPLES} samples. "
+                               f"Worker pool stats (pid-local): {pool_snapshot}"),
+                    "date": "",
+                    "url": "https://dashboard.render.com",
+                    "action": ("Connection count approaching the Postgres ceiling. First check "
+                               "Render logs for 'POOL EXHAUSTED' (a leak upstream of the pool) "
+                               "and non-app clients (shells, scripts) in pg_stat_activity; "
+                               "DB_POOL_MAX × workers should sit far below usable. Upgrading "
+                               "the Postgres plan is the last resort, not the first."),
+                })
+
+        _resource_last['sampled_at'] = int(now)
+    except Exception as e:
+        print(f"[DependencyMonitor] resource check failed: {e}")
+        err = [_error_entry("Resources (self)", e)]
+        cache["data"] = err
+        cache["fetched_at"] = now - RESOURCE_CHECK_TTL + 60  # loud, retry in ~1 min
+        return err
+
+    cache["data"] = warnings
+    cache["fetched_at"] = now
+    return warnings
+
+
+def resource_status(force=False):
+    """Always-visible resource snapshot for /api/admin/dependency-status —
+    the healthy numbers, not just warnings. Rides check_resources()'s TTL
+    cache, so a dashboard load costs nothing between samples."""
+    check_resources(force)
+    out = dict(_resource_last)
+    out['streaks'] = dict(_resource_streaks)
+    out['sustain_required'] = RESOURCE_SUSTAIN_SAMPLES
+    if PSYCOPG2_AVAILABLE:
+        try:
+            out['pool'] = _dbpool.pool_stats()
+        except Exception:
+            pass
+    return out
+
+
+# =============================================
 # UNIFIED CHECK + EMAIL
 # =============================================
 
@@ -585,6 +789,7 @@ def check_all(force=False):
         ("eBay", check_ebay),
         ("eBay Account-Deletion Endpoint (self)", check_ebay_account_deletion),
         ("Stripe", check_stripe),
+        ("Resources (self)", check_resources),
     )
 
     warnings = []

@@ -32,6 +32,11 @@ def health():
     try:
         from dependency_monitor import check_all
         warnings = check_all()
+        # Resource-pressure warnings (item 2f) are for the admin surface and
+        # the alert email only — /health is public, and capacity state
+        # shouldn't be advertised to strangers. The email still fires from
+        # check_all() above regardless of this display filter.
+        warnings = [w for w in warnings if w.get('service') != 'Resources (self)']
         if warnings:
             resp['dependency_warnings'] = warnings
     except Exception as e:

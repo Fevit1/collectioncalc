@@ -133,6 +133,8 @@ what it's for, which module(s) read it, and what happens if it's unset.
 | `RESEND_API_KEY` | Resend API key for transactional email (auth verification, contact, dependency alerts). | `auth.py:32`, `dependency_monitor.py:61`, `routes/admin_routes.py:12`, `routes/contact.py:18` | Emails are silently skipped (verification, contact, dependency alerts won't send). |
 | `RESEND_FROM_EMAIL` | From address for outgoing email. | `auth.py:33`, `dependency_monitor.py:62`, `routes/admin_routes.py:13`, `routes/contact.py:19` | Defaults to `noreply@slabworthy.com`. |
 | `ADMIN_EMAIL` | Recipient for dependency-monitor alert emails. | `dependency_monitor.py:60` | Dependency alert emails are not sent (monitor still runs; just no email). |
+| `RESOURCE_WARN_MEMORY_PCT` | Memory-ceiling WARN threshold % (item 2f self-alert; sustained ×3 five-min samples). | `dependency_monitor.py` (`check_resources`) | Defaults to 85 (calibrated 2026-07-11: steady ≈70% of 512MB under 2×8 gthread). |
+| `RESOURCE_WARN_DB_CONN_PCT` | DB-connection-ceiling WARN threshold, % of usable (`max_connections` − 3 reserved), sustained ×3. | `dependency_monitor.py` (`check_resources`) | Defaults to 70. |
 
 ### Image moderation (AWS Rekognition)
 

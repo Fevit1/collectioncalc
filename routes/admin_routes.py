@@ -58,14 +58,16 @@ def init_modules(moderation_available, barcode_available, r2_available, scan_bar
 @admin_bp.route('/dependency-status', methods=['GET'])
 @require_admin_auth
 def api_admin_dependency_status():
-    """Return dependency warnings for Anthropic, eBay, and Stripe."""
+    """Return dependency warnings (Anthropic, eBay, Stripe, self-checks) plus
+    the always-visible resource snapshot (memory/DB ceilings, item 2f)."""
     from models import MODEL_CHAINS
-    from dependency_monitor import check_all
+    from dependency_monitor import check_all, resource_status
     warnings = check_all()
     return jsonify({
         'success': True,
         'models': {tier: list(chain) for tier, chain in MODEL_CHAINS.items()},
         'warnings': warnings,
+        'resources': resource_status(),
     })
 
 

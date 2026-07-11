@@ -105,7 +105,7 @@ When adding ANY new third-party service, API, or SDK to Slab Worthy:
 3. **Document env vars** — add any new API keys or config to `docs/technical/ARCHITECTURE.txt`.
 4. **Test the monitor** — after adding, hit `/api/admin/dependency-status` to verify the new service appears.
 
-Current monitored services: Anthropic (models), eBay (API deprecations), Stripe (SDK version).
+Current monitored services: Anthropic (models), eBay (API deprecations), Stripe (SDK version), eBay account-deletion endpoint (self-check), Resources (self — memory + DB-connection ceilings vs Starter 512MB / max_connections, item 2f).
 
 ---
 
