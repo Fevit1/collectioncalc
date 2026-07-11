@@ -1,13 +1,21 @@
 """
-Batch normalize all ebay_sales titles.
+Batch normalize sales titles (ebay_sales or market_sales).
 Reads raw_title, runs through title_normalizer, updates structured columns.
 
 Usage:
     DATABASE_URL=postgres://... python normalize_batch.py
     python normalize_batch.py --db "postgres://..."
     python normalize_batch.py --dry-run  (preview only, no DB writes)
+    python normalize_batch.py --table market  (market_sales instead of ebay_sales)
 
 Safe to re-run: overwrites normalized columns but never touches raw_title.
+
+Table differences (--table market):
+  - issue column is normalized_issue_number (ebay: issue_number)
+  - raw title falls back to the `title` column (matches ingest path
+    routes/sales_market.py normalize_market_sale)
+  - is_facsimile / is_reprint are NOT written: on market_sales those come
+    from barcode scanning, not the title normalizer
 """
 
 import os
@@ -18,19 +26,24 @@ from psycopg2.extras import RealDictCursor
 from title_normalizer import normalize_title
 
 
-def run_batch(database_url, dry_run=False, limit=None):
-    """Process all ebay_sales rows and update normalized columns."""
+def run_batch(database_url, dry_run=False, limit=None, table='ebay'):
+    """Process all rows of the chosen table and update normalized columns."""
 
     conn = psycopg2.connect(database_url)
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    # Count total
-    cur.execute("SELECT COUNT(*) as cnt FROM ebay_sales")
-    total = cur.fetchone()['cnt']
-    print(f"\nTotal ebay_sales rows: {total:,}")
+    table_name = 'market_sales' if table == 'market' else 'ebay_sales'
 
-    # Fetch all rows (just id and raw_title to minimize memory)
-    query = "SELECT id, raw_title FROM ebay_sales ORDER BY id"
+    # Count total
+    cur.execute(f"SELECT COUNT(*) as cnt FROM {table_name}")
+    total = cur.fetchone()['cnt']
+    print(f"\nTotal {table_name} rows: {total:,}")
+
+    # Fetch all rows (just id and title fields to minimize memory)
+    if table == 'market':
+        query = "SELECT id, COALESCE(raw_title, title) AS raw_title FROM market_sales ORDER BY id"
+    else:
+        query = "SELECT id, raw_title FROM ebay_sales ORDER BY id"
     if limit:
         query += f" LIMIT {limit}"
     cur.execute(query)
@@ -56,23 +69,41 @@ def run_batch(database_url, dry_run=False, limit=None):
     }
 
     # Batch update for efficiency
-    update_sql = """
-        UPDATE ebay_sales SET
-            canonical_title = %s,
-            issue_number = COALESCE(%s, issue_number),
-            grade_from_title = %s,
-            grading_company = %s,
-            is_facsimile = %s,
-            is_reprint = %s,
-            is_variant = %s,
-            is_signed = %s,
-            is_lot = %s,
-            is_key_issue = %s,
-            key_issue_claim = %s,
-            creators = %s,
-            title_notes = %s
-        WHERE id = %s
-    """
+    if table == 'market':
+        # No is_facsimile / is_reprint: barcode-derived on market_sales.
+        update_sql = """
+            UPDATE market_sales SET
+                canonical_title = %s,
+                normalized_issue_number = COALESCE(%s, normalized_issue_number),
+                grade_from_title = %s,
+                grading_company = %s,
+                is_variant = %s,
+                is_signed = %s,
+                is_lot = %s,
+                is_key_issue = %s,
+                key_issue_claim = %s,
+                creators = %s,
+                title_notes = %s
+            WHERE id = %s
+        """
+    else:
+        update_sql = """
+            UPDATE ebay_sales SET
+                canonical_title = %s,
+                issue_number = COALESCE(%s, issue_number),
+                grade_from_title = %s,
+                grading_company = %s,
+                is_facsimile = %s,
+                is_reprint = %s,
+                is_variant = %s,
+                is_signed = %s,
+                is_lot = %s,
+                is_key_issue = %s,
+                key_issue_claim = %s,
+                creators = %s,
+                title_notes = %s
+            WHERE id = %s
+        """
 
     batch_params = []
     BATCH_SIZE = 500
@@ -101,22 +132,38 @@ def run_batch(database_url, dry_run=False, limit=None):
             if result['creators']:          stats['has_creators'] += 1
 
             if not dry_run:
-                batch_params.append((
-                    result['canonical_title'],
-                    result['issue_number'],
-                    result['grade_from_title'],
-                    result['grading_company'],
-                    result['is_facsimile'],
-                    result['is_reprint'],
-                    result['is_variant'],
-                    result['is_signed'],
-                    result['is_lot'],
-                    result['is_key_issue'],
-                    result['key_issue_claim'],
-                    result['creators'],
-                    result['title_notes'],
-                    row_id
-                ))
+                if table == 'market':
+                    batch_params.append((
+                        result['canonical_title'],
+                        result['issue_number'],
+                        result['grade_from_title'],
+                        result['grading_company'],
+                        result['is_variant'],
+                        result['is_signed'],
+                        result['is_lot'],
+                        result['is_key_issue'],
+                        result['key_issue_claim'],
+                        result['creators'],
+                        result['title_notes'],
+                        row_id
+                    ))
+                else:
+                    batch_params.append((
+                        result['canonical_title'],
+                        result['issue_number'],
+                        result['grade_from_title'],
+                        result['grading_company'],
+                        result['is_facsimile'],
+                        result['is_reprint'],
+                        result['is_variant'],
+                        result['is_signed'],
+                        result['is_lot'],
+                        result['is_key_issue'],
+                        result['key_issue_claim'],
+                        result['creators'],
+                        result['title_notes'],
+                        row_id
+                    ))
 
                 # Execute batch
                 if len(batch_params) >= BATCH_SIZE:
@@ -213,8 +260,10 @@ def preview_samples(database_url, count=10):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Batch normalize ebay_sales titles')
+    parser = argparse.ArgumentParser(description='Batch normalize sales titles')
     parser.add_argument('--db', help='DATABASE_URL (or set env var)')
+    parser.add_argument('--table', choices=['ebay', 'market'], default='ebay',
+                        help='Target table: ebay (ebay_sales, default) or market (market_sales)')
     parser.add_argument('--dry-run', action='store_true', help='Preview only, no DB writes')
     parser.add_argument('--preview', type=int, default=0, help='Show N random samples first')
     parser.add_argument('--limit', type=int, default=None, help='Process only N rows')
@@ -230,12 +279,12 @@ if __name__ == '__main__':
         print()
 
     if args.dry_run:
-        run_batch(db_url, dry_run=True, limit=args.limit)
+        run_batch(db_url, dry_run=True, limit=args.limit, table=args.table)
     elif args.preview and not args.limit:
         resp = input("\nRun full batch update? [y/N] ")
         if resp.lower() == 'y':
-            run_batch(db_url, limit=args.limit)
+            run_batch(db_url, limit=args.limit, table=args.table)
         else:
             print("Aborted.")
     else:
-        run_batch(db_url, limit=args.limit)
+        run_batch(db_url, limit=args.limit, table=args.table)

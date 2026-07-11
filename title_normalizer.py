@@ -311,7 +311,11 @@ def normalize_title(raw_title):
     prefix_patterns = [
         r'^(pre[-\s]*sale|presale)\b',
         r'^(sold\s*out|soldout)\b',
-        r'^(new|brand\s*new)\b',
+        # Bare leading "new" must NOT be stripped: it eats series names ("New Mutants",
+        # "New Teen Titans", "New Warriors" → merged into wrong pools; 1,072 corpus rows).
+        # "Brand new" is unambiguous condition wording; a genuine bare-"NEW" condition
+        # prefix still resolves via fuzzy match (all candidate tokens supported).
+        r'^brand\s*new\b',
         r'^(hot|rare|htf|hard\s*to\s*find)\b',
         r'^(l@@k|look|wow)\b',
         r'^(nr|no\s*reserve)\b',
