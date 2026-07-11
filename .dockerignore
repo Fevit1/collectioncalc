@@ -1,0 +1,48 @@
+# Build-context excludes (LAUNCH_READINESS item 2e). COPY . . previously
+# shipped everything below into the image; worst offenders local: .claude
+# ~1.9GB, tests/ ~783MB, .git 134MB, ComicBookImages/ 100MB. Rule of thumb:
+# the web path (wsgi + routes/ + top-level modules + json data + fonts +
+# signatures/ + prompts/ + utils/) stays IN; test corpora, docs, tooling,
+# and anything secret stay OUT.
+
+# Version control + agent tooling
+.git
+.claude
+
+# Secrets — must never bake into image layers
+.env
+*.pem
+*.key
+
+# Test corpora + local test/reference images (never read by the web path)
+tests/
+ComicBookImages/
+CCImages/
+FBCoverrImages/
+PhotosOfPhotosTest/
+WV/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Docs, sessions, planning, office files
+docs/
+archive/
+*.docx
+.~lock.*
+
+# Non-backend surfaces
+CCExtensions/
+android-twa/
+
+# Local data exports / scratch artifacts (comics_pricing.db is offline-scripts
+# only: comic_lookup/scraper/database_setup — not imported by the web path)
+*.csv
+*.db
+ebay_diff.txt
+ebay_sig_diff.txt
+first_100_normalized.txt
+haiku_vs_sonnet_results.json
+deploy_manifest.json
+deploy_manifest_results.json

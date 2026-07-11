@@ -14,4 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
+# 2 workers x 8 threads (gthread): the workload is I/O-bound (Anthropic API,
+# Postgres), so threads keep /health, login, and collection loads answering
+# while a 10-30s grading call runs — the old single sync worker serialized
+# everything behind it. Sized to the Starter instance (512MB): measured RSS
+# ~173MB/worker -> 2 workers ~= 350-380MB with headroom; memory fallback is
+# 1 worker x 12 threads. DB ceiling: pool is per-process (db.py), so
+# 2 workers x DB_POOL_MAX(8) = 16 pooled + overflow, vs ~100 usable.
+CMD ["gunicorn", "wsgi:app", "--workers", "2", "--threads", "8", "--worker-class", "gthread", "--timeout", "300", "--bind", "0.0.0.0:10000"]
