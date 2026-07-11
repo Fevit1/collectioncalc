@@ -22,26 +22,21 @@ def init_globals(barcode_available, moderation_available):
 @utils_bp.route('/')
 @utils_bp.route('/health')
 def health():
-    """Health check endpoint — also triggers cached dependency checks"""
-    resp = {
-        'status': 'ok',
-        'version': '5.6.0',
-        'barcode': BARCODE_AVAILABLE,
-        'moderation': MODERATION_AVAILABLE,
-    }
+    """Health check endpoint — minimal public response.
+
+    check_all() must still RUN here: the dependency monitor has no cron — its
+    scheduling piggybacks on health-check polling, and the state-change alert
+    email fires from inside check_all(). Only the OUTPUT stays private:
+    installed versions, dependency gaps, and monitoring notes are recon
+    material, so the detail (plus runtime flags like barcode/moderation) lives
+    behind /api/admin/dependency-status. Render's probe needs only the 200;
+    `version` is kept for deploy verification."""
     try:
         from dependency_monitor import check_all
-        warnings = check_all()
-        # Resource-pressure warnings (item 2f) are for the admin surface and
-        # the alert email only — /health is public, and capacity state
-        # shouldn't be advertised to strangers. The email still fires from
-        # check_all() above regardless of this display filter.
-        warnings = [w for w in warnings if w.get('service') != 'Resources (self)']
-        if warnings:
-            resp['dependency_warnings'] = warnings
+        check_all()  # side effects only — never expose results, never fail the probe
     except Exception as e:
-        resp['dependency_check_error'] = str(e)
-    return jsonify(resp)
+        print(f"[Health] dependency check error: {e}")
+    return jsonify({'status': 'ok', 'version': '5.6.0'})
 
 
 @utils_bp.route('/api/debug/prompt-check')

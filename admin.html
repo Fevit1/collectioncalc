@@ -373,6 +373,9 @@
             <div id="depWarningDetails" style="font-size:0.9em;color:var(--text-primary);"></div>
         </div>
 
+        <!-- Resource status chip (item 2f) — always visible once loaded; healthy numbers, not just warnings -->
+        <div id="resourceStatusChip" style="display:none;font-size:0.85em;color:var(--text-secondary);margin-bottom:16px;padding-left:4px;"></div>
+
         <!-- Stats Overview -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
@@ -817,6 +820,31 @@
                     details.innerHTML = lines.join('<br>') +
                         '<br style="margin-top:8px;"><span style="font-size:0.85em;color:var(--text-secondary);">Review and update affected integrations before deadlines.</span>';
                     banner.style.display = 'block';
+                }
+
+                // Item 2f: always-visible resource chip — the healthy numbers,
+                // amber when a metric crosses its warn line or a streak is building.
+                const r = data.resources;
+                if (r && (r.memory || r.db_connections)) {
+                    const hotStyle = 'color:var(--warning);font-weight:600;';
+                    const parts = [];
+                    if (r.memory) {
+                        const m = r.memory;
+                        const hot = m.pct >= m.warn_pct || (r.streaks && r.streaks.memory > 0);
+                        parts.push(`<span style="${hot ? hotStyle : ''}">Memory ${m.used_mb} / ${m.limit_mb} MB (${m.pct}%)</span>`);
+                    }
+                    if (r.db_connections) {
+                        const d = r.db_connections;
+                        const hot = d.pct >= d.warn_pct || (r.streaks && r.streaks.db_connections > 0);
+                        parts.push(`<span style="${hot ? hotStyle : ''}">DB ${d.used} / ${d.usable} conns (${d.pct}%)</span>`);
+                    }
+                    if (r.pool) {
+                        parts.push(`pool ${r.pool.in_use}/${r.pool.pool_max} in use` +
+                                   (r.pool.overflow ? `, <span style="${hotStyle}">overflow ${r.pool.overflow}</span>` : ''));
+                    }
+                    const chip = document.getElementById('resourceStatusChip');
+                    chip.innerHTML = '&#128200; ' + parts.join(' &middot; ');
+                    chip.style.display = 'block';
                 }
             } catch (e) {
                 // Silent fail — not critical
