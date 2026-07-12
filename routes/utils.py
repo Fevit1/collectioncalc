@@ -19,6 +19,9 @@ def init_globals(barcode_available, moderation_available):
     MODERATION_AVAILABLE = moderation_available
 
 
+_HEALTH_VERSION = '5.6.0'
+
+
 @utils_bp.route('/')
 @utils_bp.route('/health')
 def health():
@@ -29,14 +32,34 @@ def health():
     email fires from inside check_all(). Only the OUTPUT stays private:
     installed versions, dependency gaps, and monitoring notes are recon
     material, so the detail (plus runtime flags like barcode/moderation) lives
-    behind /api/admin/dependency-status. Render's probe needs only the 200;
-    `version` is kept for deploy verification."""
+    behind /api/admin/dependency-status. `version` is kept for deploy
+    verification.
+
+    Item 2(d): the probe also proves DB liveness — SELECT 1 on the shared
+    pool; unreachable DB → 503 'degraded'. With Render's healthCheckPath set
+    to /health, a deploy with a broken DB config never receives traffic and a
+    dead DB flips the service unhealthy instead of answering ok. The monitor
+    check above must never fail the probe; the DB check is the only thing
+    allowed to."""
     try:
         from dependency_monitor import check_all
         check_all()  # side effects only — never expose results, never fail the probe
     except Exception as e:
         print(f"[Health] dependency check error: {e}")
-    return jsonify({'status': 'ok', 'version': '5.6.0'})
+    try:
+        import db as _db
+        conn = _db.get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute('SELECT 1')
+            cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[Health] DB check FAILED: {e}")
+        return jsonify({'status': 'degraded', 'version': _HEALTH_VERSION}), 503
+    return jsonify({'status': 'ok', 'version': _HEALTH_VERSION})
 
 
 @utils_bp.route('/api/debug/prompt-check')
