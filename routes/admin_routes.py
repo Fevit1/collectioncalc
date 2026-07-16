@@ -65,6 +65,7 @@ def api_admin_dependency_status():
     from models import MODEL_CHAINS
     from dependency_monitor import check_all, resource_status
     from routes import utils as _utils_mod
+    from comic_extraction import HEIF_SUPPORTED as _heif_supported
     warnings = check_all()
     return jsonify({
         'success': True,
@@ -74,6 +75,9 @@ def api_admin_dependency_status():
         'runtime': {
             'barcode': _utils_mod.BARCODE_AVAILABLE,
             'moderation': _utils_mod.MODERATION_AVAILABLE,
+            # iPhone HEIC decode (pillow-heif opener registered) — false means
+            # HEIC uploads fail the normalize step (Section F Gate 0)
+            'heif': _heif_supported,
         },
     })
 

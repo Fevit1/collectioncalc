@@ -47,6 +47,21 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
+# HEIC/HEIF decode (iPhone default capture format). Registering the opener
+# teaches PIL to open HEIC, so every path that decodes through this module
+# (normalize_orientation_b64 → /api/extract, /api/grade, /api/messages) gets
+# HEIC support and re-emits JPEG — the Anthropic API and Rekognition never see
+# HEIC bytes. Degrades gracefully: without the package, HEIC uploads fail the
+# normalize step with the existing fail-loud ValueError.
+HEIF_SUPPORTED = False
+if PIL_AVAILABLE:
+    try:
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+        HEIF_SUPPORTED = True
+    except ImportError:
+        print("[Extraction] pillow-heif not installed — HEIC/HEIF uploads will not decode")
+
 
 def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -> str:
     """Authoritative server-side orientation fix.

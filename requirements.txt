@@ -18,6 +18,9 @@ boto3>=1.28.0
 # Barcode scanning
 pyzbar>=0.1.9
 Pillow>=9.0.0
+# HEIC/HEIF decode — iPhone default photo format (registers a PIL opener,
+# comic_extraction.py; without it HEIC uploads fail the normalize step)
+pillow-heif>=0.16.0
 rapidfuzz>=3.0.0
 # Comic Fingerprinting (pHash for theft recovery)
 imagehash>=4.3.0

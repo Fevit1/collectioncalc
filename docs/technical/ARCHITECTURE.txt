@@ -215,6 +215,11 @@ cc/v2/
 ├── ebay_listing.py      # eBay Inventory API
 ├── ebay_description.py  # AI description generation
 ├── comic_extraction.py  # Backend Claude Vision extraction + barcode scanning (smart year extraction)
+│                        #   + HEIC/HEIF decode via pillow-heif (2026-07-12): opener registered at import,
+│                        #   so normalize_orientation_b64 decodes iPhone HEIC and re-emits JPEG for every
+│                        #   caller (/api/extract, /api/grade, /api/messages). No env var; runtime flag
+│                        #   'heif' visible on /api/admin/dependency-status. /api/grade now normalizes
+│                        #   every photo (orientation + format) BEFORE gates/API/retention.
 ├── r2_storage.py        # Cloudflare R2 integration
 ├── db_migrate_backfill_years.py  # One-time migration: backfill year data for existing comics
 ├── db_migrate_billing.py # Migration: Add billing columns to users table [NEW - Session 44]

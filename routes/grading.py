@@ -402,6 +402,40 @@ def api_grade():
     if not images:
         return jsonify({'error': 'At least one image is required'}), 400
 
+    # ── Per-photo normalization BEFORE anything touches the bytes (Section F
+    #    Gate 0). This endpoint historically sent raw client bytes + client
+    #    media_type straight to the Anthropic API — so HEIC (iPhone default)
+    #    hit an API that only accepts JPEG/PNG/GIF/WebP, and EXIF-rotated
+    #    photos went to the model sideways (the normalizer was wired into
+    #    /api/messages and /api/extract only). normalize_for_photo_type
+    #    decodes (incl. HEIC via pillow-heif), fixes orientation per photo
+    #    type, and always emits upright JPEG — which also means the quality
+    #    gate, Rekognition moderation, and grade retention below all operate
+    #    on bytes they can actually read. Labels map 1:1 to photo types
+    #    ('Front Cover'→front, 'Spine'→spine, 'Back Cover'→back,
+    #    'Centerfold'→centerfold — the landscape-allowed type).
+    #    Unlike /api/messages' send-original fallback, an undecodable photo
+    #    here fails LOUD with the quality-gate error shape (the frontend
+    #    already renders it): forwarding unreadable bytes would just resurface
+    #    as an opaque Anthropic 400 → generic 500.
+    from comic_extraction import normalize_for_photo_type
+    for img in images:
+        if not img.get('base64'):
+            continue
+        label = img.get('label') or 'Photo'
+        photo_type = label.lower().split()[0]  # front/spine/back/centerfold
+        try:
+            img['base64'] = normalize_for_photo_type(img['base64'], photo_type)
+            img['media_type'] = 'image/jpeg'  # normalizer always emits JPEG
+        except ValueError as e:
+            print(f"[Grading] {label} photo undecodable: {e}")
+            return jsonify({
+                'error': f"We couldn't read your {label} photo — the file may be "
+                         f"corrupted or in a format we can't process.",
+                'quality_fail': True,
+                'tip': 'Re-take the photo with your camera, or convert it to JPEG and re-upload.'
+            }), 400
+
     # Photo quality gate
     from routes.fingerprint_utils import check_photo_quality_base64
     for img in images:
