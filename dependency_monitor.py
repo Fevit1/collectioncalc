@@ -31,6 +31,7 @@ import io
 import csv
 import time
 import hashlib
+import threading
 import xml.etree.ElementTree as ET
 import requests
 from models import MODEL_CHAINS
@@ -474,7 +475,12 @@ def check_ebay_account_deletion(force=False):
                        "keys (kills eBay listing)."),
         }]
         cache["data"] = result
-        cache["fetched_at"] = now
+        # Back off, don't camp: caching a FAILURE for the full 24h TTL poisons
+        # this worker's view for a day — one 502 caught during a deploy-swap
+        # window kept a worker warning until process death, seeding the
+        # 2026-07-16 email storm (per-worker divergence × shared dedup prune).
+        # Match the other checks' failure handling: retry in ~5 min.
+        cache["fetched_at"] = now - CACHE_TTL + 300
         return result
 
     # Read-only GET probe. A GET never reaches the POST deletion logic, and the
@@ -801,7 +807,7 @@ def check_all(force=False):
             warnings.append(_error_entry(name, e))
 
     if warnings:
-        _send_alert_email(warnings)
+        _send_alert_email_async(warnings)
 
     return warnings
 
@@ -816,6 +822,26 @@ check_deprecations = check_all
 # boot. Persist alerted keys in a tiny self-creating DB table so an alert fires
 # once per state change. Falls back to in-memory dedup if the DB is unavailable.
 _alerts_table_ready = False
+_email_send_lock = threading.Lock()
+
+
+def _send_alert_email_async(warnings):
+    """Run _send_alert_email on a daemon thread — never in the request path.
+
+    check_all() rides the health-check polling, so before this, every alert
+    email was a synchronous Resend API call INSIDE a /health request (~0.5-1s
+    added to the availability probe Render acts on — observed during the
+    2026-07-16 storm). Skip-if-busy: if a send is already in flight, drop this
+    round; the same warning state comes back on the next poll, and dedup makes
+    the retry a no-op once persisted."""
+    def run():
+        if not _email_send_lock.acquire(blocking=False):
+            return
+        try:
+            _send_alert_email(warnings)
+        finally:
+            _email_send_lock.release()
+    threading.Thread(target=run, daemon=True, name="dep-alert-email").start()
 
 
 def _alerts_conn():
@@ -876,16 +902,31 @@ def _send_alert_email(warnings):
     known = persisted if persisted is not None else _emailed_keys
     new_warnings = [w for k, w in current.items() if k not in known]
 
-    # Prune resolved keys so a state that clears then recurs will re-alert.
+    # Refresh last_seen_at for still-present keys, then prune only keys that
+    # have been absent for a full stability window. Pruning IMMEDIATELY on
+    # absence is a race: check results are cached PER WORKER, so a warning one
+    # worker sees and the other doesn't gets pruned by the clean worker and
+    # re-inserted (re-EMAILED) by the poisoned worker on every alternating
+    # health poll — the 2026-07-16 storm (~1 email/15s, self-sustaining).
+    # 15 min of continuous absence before pruning outlasts any per-worker
+    # cache divergence; a genuinely cleared warning still re-alerts if it
+    # recurs after the window.
     if persisted is not None and conn is not None:
-        resolved = list(persisted - set(current.keys()))
-        if resolved:
-            try:
-                with conn.cursor() as cur:
-                    cur.execute("DELETE FROM dependency_alerts WHERE alert_key = ANY(%s)", (resolved,))
-                conn.commit()
-            except Exception as e:
-                print(f"[DependencyMonitor] failed pruning resolved alerts: {e}")
+        try:
+            present = list(set(current.keys()) & persisted)
+            with conn.cursor() as cur:
+                if present:
+                    cur.execute(
+                        "UPDATE dependency_alerts SET last_seen_at = NOW() "
+                        "WHERE alert_key = ANY(%s)", (present,))
+                cur.execute(
+                    "DELETE FROM dependency_alerts "
+                    "WHERE NOT (alert_key = ANY(%s)) "
+                    "AND last_seen_at < NOW() - INTERVAL '15 minutes'",
+                    (list(current.keys()),))
+            conn.commit()
+        except Exception as e:
+            print(f"[DependencyMonitor] failed refreshing/pruning alert state: {e}")
     else:
         # In-memory fallback: prune resolved keys too so recurrence re-alerts.
         for k in (set(_emailed_keys) - set(current.keys())):
