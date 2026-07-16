@@ -247,3 +247,35 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 - **SOURCE:** Session 118 (2026-07-16) OOM incident — post-deploy verification by Mike caught it
   same-hour; rollback to `1437fdb`, fix re-shipped as its own unit. Candidate for cross-project
   promotion (Mike's call — applies to any project decoding user media on small instances).
+
+### L-SW-2026-013 — Replicated observers sharing a state-change alert dedup need stability windows; prune-on-absence is a race that turns one flap into an alert storm
+
+- **RULE:** When alert state ("email once per state change") is SHARED (a DB table) but the
+  observations feeding it are computed PER REPLICA (per-worker/per-instance caches, streaks, or
+  probe results), never prune/clear an alert key the moment one observer reports it resolved.
+  Require a **stability window** on both edges: alert only after the warning persists, and prune
+  only after it has been continuously absent for a window that outlasts any per-replica cache
+  divergence. Also: never cache a FAILURE observation longer than a success (a long-lived failure
+  snapshot IS the divergence), and never do alert I/O (email/webhook) synchronously inside the
+  request path that triggers the check.
+- **WHY:** The 2026-07-16 email storm ran for hours across three deploys and survived a rollback,
+  at ~1 email per 5–15s: worker A's self-check cached a single 502 (caught during a deploy-swap
+  window) for the FULL 24h TTL while worker B saw healthy; every health poll handled by B pruned
+  the shared dedup key ("resolved"), every poll handled by A re-inserted and RE-EMAILED it
+  ("new"). Three small defects compounded: (1) failure cached 24h vs the other checks' 5-min
+  backoff; (2) prune-on-every-call with no absence window; (3) the Resend send ran inside
+  /health — the availability probe Render acts on. The storm was state-driven, not
+  code-version-driven, which made it look like a recurring platform problem during an unrelated
+  OOM incident and cost real diagnosis time. Fix (`37d5e97`) verified live: one dedup'd email per
+  real event, including across an OOM restart.
+- **HOW TO APPLY:** (1) In any state-change alerting with >1 worker/instance, add a prune
+  stability window (SW uses: refresh `last_seen_at` for present keys; DELETE only keys absent AND
+  `last_seen_at` older than 15 min — longer than any check cache divergence). (2) Audit failure
+  caching: a failed probe backs off minutes, never rides a long success TTL. (3) Move alert I/O
+  off the request thread (daemon thread + skip-if-busy lock). (4) Offline-test the storm shape
+  directly: simulate N alternating divergent observers against the shared store and assert total
+  emails == 1 (SW: `test_monitor_flap.py` S4, 40 alternating polls → exactly 1 email, was ~20).
+- **SOURCE:** Session 118 (2026-07-16) email storm, diagnosed live via `dependency_alerts` row
+  churn (~30s insert/delete cycle). Pairs with L-SW-2026-012 (same incident's memory half).
+  Candidate for cross-project promotion (Mike's call — applies to any project with multi-worker
+  alerting: MASSE agent alerting, TFO pipeline monitors).
