@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-07-10
+> **Operator:** Mike Berry · **Last updated:** 2026-07-16
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -218,3 +218,32 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 - **SOURCE:** Session 115 (2026-07-10), market_sales dry-run surfaced the leading-"New" bug hours
   after the ebay re-normalize. Pairs with L-SW-2026-009 (the guard that exposed it). Candidate
   for cross-project promotion (Mike's call — applies to any pipeline with cleanup-then-match).
+
+### L-SW-2026-012 — Any change adding image decoding to a hot request path needs a peak-memory budget check on the actual instance size before ship
+
+- **RULE:** Before shipping a change that adds (or multiplies) full-resolution image decoding on a
+  request path, budget its **peak transient memory at real-world input sizes** (12MP+ phone photos,
+  × photos-per-request, × concurrent requests) against the actual instance ceiling — and the offline
+  suite must include a **peak-RSS test with real-world-sized fixtures**, not just small ones. "Tests
+  pass" on 400px fixtures says nothing about memory.
+- **WHY:** The HEIC/orientation unit (`d2e525d`, 2026-07-16) was offline-verified 17/17 — every test
+  correct, every test small. In prod, normalizing four 12MP photos per `/api/grade` spiked RSS into
+  the 512MB Starter ceiling and retained +25–83MB per grade (glibc arena fragmentation under
+  gthread): two OOM kills within 18 minutes of going live, each dropping every in-flight request
+  ("Failed to fetch"), plus a dependency-alert email storm as the monitor's self-check watched the
+  instance die. A single user grading normally was enough. The fix (long-edge cap + draft-mode
+  decode + decode-concurrency gate + MALLOC_ARENA_MAX=2 + worker recycling) cut the JPEG peak
+  95→33MB — and its own first draft had a silent no-op bug (aspect-incorrect draft box) that ONLY
+  the 12MP peak-memory test caught. Small fixtures validate correctness; only realistic fixtures
+  validate survival.
+- **HOW TO APPLY:** (1) When a diff touches image decode on a request path, compute the worst case:
+  bitmap bytes (W×H×3) × simultaneous copies (decode + transpose/rotate) × photos-per-request ×
+  worker threads, vs instance RAM minus steady-state RSS. (2) Add/extend a peak-RSS test (psutil
+  sampler thread) using generated 12MP+ photo-realistic fixtures (gradient+mild-noise — pure noise
+  inflates encoded sizes and masks decode-buffer wins). (3) On a memory-ceiling instance, bound
+  decode concurrency explicitly (semaphore), don't rely on thread-count luck. (4) Post-deploy
+  verification for such changes includes watching instance memory across 2-3 real grades — a
+  metric, not a feeling.
+- **SOURCE:** Session 118 (2026-07-16) OOM incident — post-deploy verification by Mike caught it
+  same-hour; rollback to `1437fdb`, fix re-shipped as its own unit. Candidate for cross-project
+  promotion (Mike's call — applies to any project decoding user media on small instances).
