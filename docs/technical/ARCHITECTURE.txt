@@ -167,6 +167,7 @@ what it's for, which module(s) read it, and what happens if it's unset.
 |-----|---------|---------|----------|
 | `GRADING_MAX_LONG_EDGE` | Long-edge cap (px) for grading-input normalization on `/api/grade` + `/api/messages`. Above the ~1568px the Anthropic API downscales to, so no model-visible loss; ≤ half of a 4032px iPhone photo so libjpeg draft-mode decodes at 1/2 scale. `/api/extract` is deliberately NOT capped (barcode scan reads the normalizer's output). | `routes/grading.py` (`GRADING_MAX_LONG_EDGE`) | Defaults to `2000`. |
 | `IMAGE_DECODE_CONCURRENCY` | Max concurrent image decodes per worker (semaphore in `comic_extraction.py`). Bounds worst-case decode transients when many grades land at once (a 12MP HEIC decode is ~40–100MB and has no reduced-scale path). | `comic_extraction.py` (`_DECODE_GATE`) | Defaults to `2`. |
+| `RESOURCE_MEM_LIMIT_MB` | Explicit memory-ceiling override (MB) for the 2f resource self-alert. Normally unset: the ceiling is auto-detected from the container cgroup (`memory.max`), so Render tier changes are picked up on the next boot (verified across the 2026-07-16 Starter→Standard upgrade). Set only if a platform ever misreports the cgroup limit. | `dependency_monitor.py` (`RESOURCE_MEM_LIMIT_MB`) | Defaults to `0` = use cgroup. |
 
 > ⚠️ eBay account-deletion challenge: the endpoint string hashed alongside the
 > token is the hard-coded constant `EBAY_ACCOUNT_DELETION_ENDPOINT` in

@@ -94,6 +94,12 @@ RESOURCE_CHECK_TTL = 300  # resource state moves fast; don't ride the 24h cache
 RESOURCE_SUSTAIN_SAMPLES = 3
 WARN_MEMORY_PCT = int(os.environ.get('RESOURCE_WARN_MEMORY_PCT', '85'))
 WARN_DB_CONN_PCT = int(os.environ.get('RESOURCE_WARN_DB_CONN_PCT', '70'))
+# Memory ceiling normally comes from the container's cgroup (memory.max), so a
+# Render plan change is picked up automatically on the next boot — verified
+# live across the 2026-07-16 Starter→Standard upgrade. This override exists for
+# the day a platform misreports or hides the cgroup limit: set it to the
+# instance's real MB and it takes precedence. 0 (default) = use the cgroup.
+RESOURCE_MEM_LIMIT_MB = int(os.environ.get('RESOURCE_MEM_LIMIT_MB', '0'))
 DB_RESERVED_CONNECTIONS = 3  # measured on Render Postgres: superuser-reserved slots
 
 if RESEND_API_KEY and RESEND_AVAILABLE:
@@ -685,6 +691,8 @@ def check_resources(force=False):
 
         # ---- memory (skipped silently off-container) ----
         mem = _read_cgroup_memory()
+        if mem and RESOURCE_MEM_LIMIT_MB:
+            mem = (mem[0], RESOURCE_MEM_LIMIT_MB * 1048576)  # explicit override wins
         if mem and mem[1]:
             current, limit = mem
             pct = 100.0 * current / limit
@@ -693,6 +701,7 @@ def check_resources(force=False):
                 'limit_mb': round(limit / 1048576, 1),
                 'pct': round(pct, 1),
                 'warn_pct': WARN_MEMORY_PCT,
+                'limit_source': 'env:RESOURCE_MEM_LIMIT_MB' if RESOURCE_MEM_LIMIT_MB else 'cgroup',
             }
             if pct >= WARN_MEMORY_PCT:
                 _resource_streaks['memory'] += 1
@@ -713,7 +722,10 @@ def check_resources(force=False):
                     "action": ("Sustained memory pressure. Options (HUMAN decision, nothing "
                                "automatic): drop gunicorn to 1 worker x 12 threads (the "
                                "documented Dockerfile fallback), or upgrade the instance tier "
-                               "(Starter 512MB → Standard 2GB) in the Render dashboard."),
+                               "in the Render dashboard. The ceiling above is auto-detected "
+                               "from the container cgroup, so a tier change is reflected on "
+                               "the next boot (RESOURCE_MEM_LIMIT_MB env overrides it if a "
+                               "platform ever misreports)."),
                 })
 
         # ---- DB connections (skipped silently without DATABASE_URL) ----
