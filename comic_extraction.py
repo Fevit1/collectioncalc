@@ -6,6 +6,7 @@ Extracts comic book information from photos using Claude Vision.
 import os
 import base64
 import json
+import threading
 from io import BytesIO
 from models import call_with_fallback
 
@@ -62,8 +63,34 @@ if PIL_AVAILABLE:
     except ImportError:
         print("[Extraction] pillow-heif not installed — HEIC/HEIF uploads will not decode")
 
+# Long-edge cap for the EXTRACTION path's normalization. 4096 is chosen so
+# every typical phone photo (iPhone 12MP = 4032px) passes through UNTOUCHED —
+# zero behavior change for the corpus of normal uploads and their barcode
+# scans — while raw full-resolution monsters (24MP+ iPhone default HEIC/JPEG,
+# reachable when the browser can't canvas-resize, e.g. HEIC picks on Chrome)
+# get bounded. Measured 2026-07-16: a single raw 24MP photo through the
+# extract pipeline (normalize + scan_barcode re-decode + rotations) peaked
+# +310MB — from the ~330MB service baseline that is an instance OOM kill on
+# the 512MB Starter (Render event 18:00:52Z, build 1437fdb, pre-dates the
+# grade-path normalization entirely). A 24MP photo capped at 4096 keeps the
+# barcode region at parity with today's 12MP uploads (~470px wide).
+EXTRACT_MAX_LONG_EDGE = int(os.environ.get('EXTRACT_MAX_LONG_EDGE', '4096'))
 
-def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -> str:
+# Per-worker cap on CONCURRENT image decodes. A single 12MP decode transient is
+# ~40-100MB (HEIC has no reduced-scale decode path, so the full bitmap always
+# exists briefly); with 8 gthread threads per worker, unbounded concurrent
+# grades could stack several of those and blow the 512MB instance ceiling even
+# with the per-photo long-edge cap (2026-07-16 OOM incident). 2 concurrent
+# decodes per worker × 2 workers bounds worst-case transient ~4×100MB across
+# the instance only if both workers saturate — in practice ~2. Held only for
+# pure-CPU decode/re-encode (no I/O, no nesting) — no deadlock surface. Extra
+# requests queue briefly at the gate instead of OOM-killing everyone.
+_DECODE_GATE = threading.BoundedSemaphore(
+    int(os.environ.get('IMAGE_DECODE_CONCURRENCY', '2')))
+
+
+def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False,
+                              max_long_edge: int = None) -> str:
     """Authoritative server-side orientation fix.
 
     The Anthropic vision API ignores EXIF orientation and reads raw pixels, and
@@ -86,6 +113,20 @@ def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -
     Do NOT pass assume_portrait=True for images that may legitimately be
     landscape (e.g. centerfold/two-page spreads).
 
+    max_long_edge: when set, the output is capped to this long edge. This exists
+    for the MULTI-photo hot path (/api/grade normalizes 4 photos per request):
+    full-resolution decode of 12MP phone photos spiked RSS into the 512MB
+    instance ceiling and OOM-killed the service twice on 2026-07-16. The
+    Anthropic vision API downscales to ~1568px long edge internally, so a
+    2000px cap loses nothing the model would see. The extraction path uses the
+    higher EXTRACT_MAX_LONG_EDGE (4096) because scan_barcode reads THIS
+    function's output — 4096 passes typical phone photos (4032px) through
+    untouched while bounding raw full-resolution uploads, the class that
+    OOM-killed the 512MB instance on 2026-07-16 (+310MB measured for one raw
+    24MP extract). For JPEG inputs the cap also engages libjpeg draft-mode
+    scaling (decode at 1/2, 1/4, ... resolution) when the cap is at or below
+    half the source, so the full-size bitmap is never allocated at all.
+
     Returns normalized base64 (always re-encoded JPEG). Raises ValueError if the
     image can't be decoded (fail loud — never forward a garbage payload).
     """
@@ -97,22 +138,56 @@ def normalize_orientation_b64(base64_data: str, assume_portrait: bool = False) -
     if base64_data.startswith('data:') and ',' in base64_data:
         base64_data = base64_data.split(',', 1)[1]
     try:
-        raw = base64.b64decode(base64_data)
-        img = Image.open(BytesIO(raw))
-        img = ImageOps.exif_transpose(img)  # mode 1: rotate per EXIF, drop the tag
-        if assume_portrait and img.width > img.height:
-            # mode 2: no usable EXIF but still landscape — a front cover is never
-            # landscape, so this is a sideways photo. Rotate to portrait (CCW).
-            print(f"[Extraction] Cover still landscape ({img.width}x{img.height}) after EXIF "
-                  f"normalization — rotating 90deg CCW to portrait")
-            img = img.rotate(90, expand=True)
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-        buf = BytesIO()
-        img.save(buf, format='JPEG', quality=92)
-        return base64.b64encode(buf.getvalue()).decode('ascii')
+        with _DECODE_GATE:
+            return _decode_normalize_encode(base64_data, assume_portrait, max_long_edge)
     except Exception as e:
         raise ValueError(f"Could not decode/normalize image: {e}")
+
+
+def _decode_normalize_encode(base64_data, assume_portrait, max_long_edge):
+    """Body of normalize_orientation_b64, held under _DECODE_GATE (bounded
+    concurrent decodes per worker — see the gate's comment)."""
+    raw = base64.b64decode(base64_data)
+    img = Image.open(BytesIO(raw))
+    del raw  # BytesIO holds its own copy; don't keep two
+    if max_long_edge:
+        # JPEG fast path: whenever ANY downscale is coming, ask libjpeg for a
+        # HALF-scale decode so the full-resolution bitmap never exists. Must
+        # run before any pixel access; no-op for HEIC/PNG (those decode
+        # full-size and are downscaled below). Asking for exactly (w//2, h//2)
+        # is deliberate: draft only reduces when the decoded size covers BOTH
+        # requested dimensions, so a cap-shaped box fails to engage whenever
+        # cap > source/2 — a raw 24MP photo at the 4096 extract cap decoded
+        # FULL (+219MB peak, worse than uncapped; caught by the 24MP offline
+        # test, 2026-07-16). Consequence: output lands in (cap/2, cap] — an
+        # over-cap source is halved first, then thumbnailed only if still over.
+        w, h = img.size
+        if max(w, h) > max_long_edge:
+            img.draft('RGB', (max(1, w // 2), max(1, h // 2)))
+    if max_long_edge and max(img.size) > max_long_edge:
+        # Downscale BEFORE the EXIF transpose: exif_transpose copies the whole
+        # bitmap, so transposing first doubles the full-size allocation. For
+        # formats with no draft path (HEIC — the raw-iPhone Gate-0 input) that
+        # order was the difference between +198MB and ~+130MB for one 24MP
+        # request (24MP raw-HEIC offline test, 2026-07-16). thumbnail does not
+        # touch the EXIF orientation tag, so the transpose below still applies.
+        img.thumbnail((max_long_edge, max_long_edge), Image.LANCZOS)  # in-place
+    transposed = ImageOps.exif_transpose(img)  # mode 1: rotate per EXIF, drop the tag
+    if transposed is not img:
+        img.close()  # free the pre-transpose bitmap immediately
+        img = transposed
+    if assume_portrait and img.width > img.height:
+        # mode 2: no usable EXIF but still landscape — a front cover is never
+        # landscape, so this is a sideways photo. Rotate to portrait (CCW).
+        print(f"[Extraction] Cover still landscape ({img.width}x{img.height}) after EXIF "
+              f"normalization — rotating 90deg CCW to portrait")
+        img = img.rotate(90, expand=True)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    buf = BytesIO()
+    img.save(buf, format='JPEG', quality=92)
+    img.close()  # free the bitmap before building the base64 string
+    return base64.b64encode(buf.getvalue()).decode('ascii')
 
 
 # Photo types whose CORRECT orientation is LANDSCAPE — never force-rotated to
@@ -128,13 +203,18 @@ def assume_portrait_for(photo_type: str) -> bool:
     return (photo_type or 'front').strip().lower() not in _LANDSCAPE_PHOTO_TYPES
 
 
-def normalize_for_photo_type(base64_data: str, photo_type: str = 'front') -> str:
+def normalize_for_photo_type(base64_data: str, photo_type: str = 'front',
+                             max_long_edge: int = None) -> str:
     """Photo-type-aware server-side orientation normalization for grading inputs.
     Keeps the type->assume_portrait policy in ONE place so /api/extract and
     /api/messages stay consistent. front/back/spine assume portrait; centerfold is
     EXIF-only (never force-rotated). Always emits JPEG; raises ValueError on a
-    truly undecodable image (same contract as normalize_orientation_b64)."""
-    return normalize_orientation_b64(base64_data, assume_portrait=assume_portrait_for(photo_type))
+    truly undecodable image (same contract as normalize_orientation_b64).
+    max_long_edge: pass from MULTI-photo callers only (see
+    normalize_orientation_b64's docstring — memory ceiling vs barcode fidelity)."""
+    return normalize_orientation_b64(base64_data,
+                                     assume_portrait=assume_portrait_for(photo_type),
+                                     max_long_edge=max_long_edge)
 
 
 def rotate_180_b64(base64_data: str) -> str:
@@ -588,7 +668,8 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
     # raw pixels. Per-photo policy (normalize_for_photo_type): front/back/spine
     # assume portrait; centerfold is EXIF-only. Fail loud if undecodable.
     try:
-        base64_data = normalize_for_photo_type(base64_data, photo_type)
+        base64_data = normalize_for_photo_type(base64_data, photo_type,
+                                               max_long_edge=EXTRACT_MAX_LONG_EDGE)
         media_type = "image/jpeg"  # normalize_for_photo_type always emits JPEG
     except ValueError as e:
         return {"success": False, "error": f"Image could not be processed: {e}"}

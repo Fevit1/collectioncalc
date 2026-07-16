@@ -58,13 +58,21 @@
 
 ```dockerfile
 FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1
+ENV MALLOC_ARENA_MAX=2
 RUN apt-get update && apt-get install -y libzbar0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["gunicorn", "wsgi:app", "--timeout", "300", "--bind", "0.0.0.0:10000"]
+CMD ["gunicorn", "wsgi:app", "--workers", "2", "--threads", "8", "--worker-class", "gthread", "--max-requests", "500", "--max-requests-jitter", "100", "--timeout", "300", "--bind", "0.0.0.0:10000"]
 ```
+
+- `MALLOC_ARENA_MAX=2` + `--max-requests 500` (jitter 100): memory-ratchet
+  guards from the 2026-07-16 OOM incident — glibc arena fragmentation under
+  gthread retained +25–83MB of RSS per grade until the 512MB ceiling killed
+  the instance. Arena cap makes freed decode buffers reclaimable; worker
+  recycling (staggered, graceful) is the backstop for residual creep.
 
 **Render Services:**
 | Service | Type | Status | Purpose |
@@ -152,6 +160,13 @@ what it's for, which module(s) read it, and what happens if it's unset.
 | `API_BASE_URL` | Base URL used to build waitlist verification links. | `routes/waitlist.py:24` | Defaults to `https://collectioncalc-docker.onrender.com`. |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret for contact-form captcha verification. | `routes/contact.py:21` | Defaults to `''`; captcha verification effectively disabled. |
 | `SW_AUTH_TOKEN` | **Test-only.** Bearer token for local API test scripts. | `test_comic_id_bug.py:204` | Not used in production; test API calls are skipped if unset. |
+
+### Image-pipeline memory tuning (2026-07-16 OOM incident)
+
+| Var | Purpose | Read by | If unset |
+|-----|---------|---------|----------|
+| `GRADING_MAX_LONG_EDGE` | Long-edge cap (px) for grading-input normalization on `/api/grade` + `/api/messages`. Above the ~1568px the Anthropic API downscales to, so no model-visible loss; ≤ half of a 4032px iPhone photo so libjpeg draft-mode decodes at 1/2 scale. `/api/extract` is deliberately NOT capped (barcode scan reads the normalizer's output). | `routes/grading.py` (`GRADING_MAX_LONG_EDGE`) | Defaults to `2000`. |
+| `IMAGE_DECODE_CONCURRENCY` | Max concurrent image decodes per worker (semaphore in `comic_extraction.py`). Bounds worst-case decode transients when many grades land at once (a 12MP HEIC decode is ~40–100MB and has no reduced-scale path). | `comic_extraction.py` (`_DECODE_GATE`) | Defaults to `2`. |
 
 > ⚠️ eBay account-deletion challenge: the endpoint string hashed alongside the
 > token is the hard-coded constant `EBAY_ACCOUNT_DELETION_ENDPOINT` in

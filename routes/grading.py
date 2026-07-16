@@ -10,6 +10,16 @@ from flask import Blueprint, jsonify, request, g
 # Create blueprint
 grading_bp = Blueprint('grading', __name__, url_prefix='/api')
 
+# Long-edge cap for grading-input normalization (/api/grade, /api/messages).
+# These endpoints normalize up to 4 photos per request; uncapped 12MP decodes
+# spiked RSS into the 512MB Starter ceiling and OOM-killed the service twice
+# on 2026-07-16. 2000px: above the ~1568px the Anthropic API downscales to
+# (no model-visible loss), and ≤ half of a 4032px iPhone photo, which lets
+# libjpeg draft-mode decode at 1/2 scale — the full bitmap is never allocated.
+# The extraction path uses its own higher cap (EXTRACT_MAX_LONG_EDGE=4096 in
+# comic_extraction.py — barcode-preserving). Env-overridable for booth tuning.
+GRADING_MAX_LONG_EDGE = int(os.environ.get('GRADING_MAX_LONG_EDGE', '2000'))
+
 # These will be imported from wsgi.py when needed
 from auth import require_auth, require_approved
 from admin import log_api_usage
@@ -259,7 +269,8 @@ def api_messages():
                 if block.get('type') == 'image' and block.get('source', {}).get('type') == 'base64':
                     src = block['source']
                     try:
-                        src['data'] = normalize_for_photo_type(src.get('data', ''), photo_type)
+                        src['data'] = normalize_for_photo_type(src.get('data', ''), photo_type,
+                                                               max_long_edge=GRADING_MAX_LONG_EDGE)
                         src['media_type'] = 'image/jpeg'  # normalizer always emits JPEG
                     except Exception as e:
                         # Never fail the grade over a normalize hiccup — send original.
@@ -418,6 +429,10 @@ def api_grade():
     #    here fails LOUD with the quality-gate error shape (the frontend
     #    already renders it): forwarding unreadable bytes would just resurface
     #    as an opaque Anthropic 400 → generic 500.
+    #    max_long_edge=GRADING_MAX_LONG_EDGE: this endpoint normalizes up to 4
+    #    photos per request — full-resolution 12MP decodes OOM-killed the 512MB
+    #    instance twice on 2026-07-16. The Anthropic API downscales to ~1568px
+    #    internally, so the model sees the same pixels either way.
     from comic_extraction import normalize_for_photo_type
     for img in images:
         if not img.get('base64'):
@@ -425,7 +440,8 @@ def api_grade():
         label = img.get('label') or 'Photo'
         photo_type = label.lower().split()[0]  # front/spine/back/centerfold
         try:
-            img['base64'] = normalize_for_photo_type(img['base64'], photo_type)
+            img['base64'] = normalize_for_photo_type(img['base64'], photo_type,
+                                                     max_long_edge=GRADING_MAX_LONG_EDGE)
             img['media_type'] = 'image/jpeg'  # normalizer always emits JPEG
         except ValueError as e:
             print(f"[Grading] {label} photo undecodable: {e}")
