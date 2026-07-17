@@ -674,12 +674,19 @@ function scrapeListingSignals() {
   // ─── Pagination detection ───
 
   function getPageInfo() {
-    const paginationText = document.querySelector('.srp-controls__count-heading')?.textContent || '';
+    // Display-only (feeds the banner) — MUST stay read-only: no pagination
+    // behavior ever gets added here (capture is human-paced by standing rule).
+    // Loosened [class*=...] fallbacks added alongside the pre-2026-07
+    // selectors; unverified against the new markup, degrade to 1/1/null.
+    const paginationText = (document.querySelector('.srp-controls__count-heading') ||
+                            document.querySelector('[class*="count-heading"]'))?.textContent || '';
     const resultsMatch = paginationText.match(/([\d,]+)\+?\s*results/i);
     const totalResults = resultsMatch ? parseInt(resultsMatch[1].replace(',', '')) : null;
 
-    const pageButtons = document.querySelectorAll('nav.pagination a, .pagination__items a');
-    const currentPage = document.querySelector('nav.pagination .pagination__item--current, .pagination__items .pagination__item--current');
+    const pageButtons = document.querySelectorAll('nav.pagination a, .pagination__items a, nav[class*="pagination"] a');
+    const currentPage = document.querySelector(
+      'nav.pagination .pagination__item--current, .pagination__items .pagination__item--current, ' +
+      '[class*="pagination"] [aria-current="page"]');
 
     let currentPageNum = 1;
     let totalPages = 1;
@@ -702,10 +709,19 @@ function scrapeListingSignals() {
 
   function parseListingItem(item) {
     try {
-      const linkEl = item.querySelector('a.s-card__link');
-      const imageEl = item.querySelector('img.s-card__image');
+      // eBay markup restructure (~2026-07, diagnosed 2026-07-12): the s-card
+      // family is gone. Item container is div.su-item-card carrying
+      // data-listingid; title link is a[class*="item-card__title"] with the
+      // text in a nested span. Old selectors kept as fallbacks in case of
+      // A/B remnants. Title priority REVERSED vs the s-card era: link text is
+      // now primary (new markup's img alt content is unverified — never let
+      // junk alt text feed raw_title -> parseComicTitle -> the corpus).
+      const linkEl = item.querySelector('a[class*="item-card__title"]') ||
+                     item.querySelector('a.s-card__link');
+      const imageEl = item.querySelector('img.s-card__image') ||
+                      item.querySelector('img');
 
-      const title = imageEl?.alt || linkEl?.textContent?.trim() || '';
+      const title = linkEl?.textContent?.trim() || imageEl?.alt || '';
       const allText = item.innerText || '';
 
       const priceMatch = allText.match(/\$([0-9,]+\.?\d*)/);
@@ -715,19 +731,34 @@ function scrapeListingSignals() {
       const dateMatch = allText.match(/Sold\s+(\w{3})\s+(\d{1,2}),?\s*(\d{4})?/i);
       if (dateMatch) {
         const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
-        const month = months[dateMatch[1]];
+        // Normalize casing before the lookup: the ~2026-07 markup uppercases
+        // the sold badge via CSS text-transform, and innerText is
+        // RENDERING-AWARE — "SOLD JUL 12" reached this lookup as 'JUL',
+        // missed, and silently stamped TODAY's date on the sale (corpus
+        // freshness poison). Regex was already /i; the lookup wasn't.
+        const monthKey = dateMatch[1].charAt(0).toUpperCase() + dateMatch[1].slice(1).toLowerCase();
+        const month = months[monthKey];
         const day = parseInt(dateMatch[2]);
         const year = dateMatch[3] ? parseInt(dateMatch[3]) : new Date().getFullYear();
         if (month !== undefined) saleDate = new Date(year, month, day).toISOString().split('T')[0];
       }
 
       if (!title || price <= 0) return null;
-      if (!allText.includes('Sold') || allText.startsWith('Shop on eBay')) return null;
+      // Case-INSENSITIVE sold guard: the uppercase-via-CSS badge made the old
+      // .includes('Sold') reject 267 of 279 legitimate items (the real
+      // "12 captured" root cause, 2026-07-16 diagnostic — NOT hydration timing).
+      if (!/sold/i.test(allText) || allText.startsWith('Shop on eBay')) return null;
 
       const listingUrl = linkEl?.href || '';
       const imageUrl = imageEl?.src || '';
+      // Item id: the container's data-listingid attribute is authoritative
+      // (survives cosmetic class renames); the href regex stays as fallback.
+      // Accept the attribute ONLY if it is a plain numeric item id: the DB
+      // dedup key is ON CONFLICT (ebay_item_id), so a non-numeric token here
+      // would silently stop re-captures from matching existing corpus rows.
       const itemIdMatch = listingUrl.match(/\/itm\/(\d+)/);
-      const ebayItemId = itemIdMatch ? itemIdMatch[1] : '';
+      const dsId = item.dataset?.listingid || '';
+      const ebayItemId = /^\d{9,15}$/.test(dsId) ? dsId : (itemIdMatch ? itemIdMatch[1] : '');
       const parsed = parseComicTitle(title);
 
       return {
@@ -785,7 +816,14 @@ function scrapeListingSignals() {
   // ─── Collect all sales from page ───
 
   function collectSales() {
-    const items = document.querySelectorAll('li.s-card');
+    // Container = anything carrying data-listingid (the ~2026-07 markup puts
+    // it directly on div.su-item-card). A data attribute outlives BEM class
+    // renames — the previous li.s-card selector died silently in an eBay
+    // restructure ("0 sales" on every page, capture pipeline down 7/12-7/16).
+    // Old selector kept as fallback. parseListingItem() returning null is the
+    // junk filter: a stray data-listingid carrier with no title/price is skipped.
+    let items = document.querySelectorAll('[data-listingid]');
+    if (items.length === 0) items = document.querySelectorAll('li.s-card');
     const sales = [];
     items.forEach(item => {
       const parsed = parseListingItem(item);
@@ -825,8 +863,10 @@ function scrapeListingSignals() {
     const pageInfo = getPageInfo();
 
     if (sales.length === 0) {
-      updateBanner({ status: '⚠️ No comic sales found on this page', stats: { totalOnPage: 0 } });
-      return;
+      // Not necessarily an error under the lazy-hydrating markup: items may
+      // not have rendered yet. The hydration observer keeps watching.
+      updateBanner({ status: '⏳ Waiting for listings to render — scroll to load more', stats: { totalOnPage: 0 } });
+      return 0;
     }
 
     const stored = await chrome.storage.local.get(['collectedSales', 'totalCollected', 'sessionCollected']);
@@ -855,15 +895,94 @@ function scrapeListingSignals() {
       if (result.error) {
         updateBanner({ status: `💾 ${newSales.length} saved locally (backend offline)`, stats: { newCount: newSales.length, dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
       } else {
-        updateBanner({ status: `✅ ${newSales.length} new sales synced`, stats: { newCount: result.saved || newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
+        updateBanner({ status: `✅ ${result.saved ?? newSales.length} new sales synced`, stats: { newCount: result.saved ?? newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
       }
+      // Seed the observer's cumulative counter with the SERVER-inserted count
+      // (local count only when the backend was unreachable).
+      return result.error ? newSales.length : (result.saved ?? newSales.length);
     } else {
       let pageInfoStr = null;
       if (pageInfo.totalPages > 1) pageInfoStr = `Page ${pageInfo.currentPageNum} of ${pageInfo.totalPages}`;
       const sessionCollected = stored.sessionCollected || 0;
       updateBanner({ status: '📋 All listings already collected', stats: { newCount: 0, dupeCount: sales.length, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
     }
+    return 0;
   }
 
-  main();
+
+  // ─── Continuous capture: rescan as eBay lazy-hydrates (2026-07 markup) ───
+  //
+  // The ~2026-07 restructure changed the RENDERING MODEL, not just class
+  // names: result items exist as [data-listingid] shells and hydrate their
+  // title/price/"Sold" content progressively (largely as the HUMAN scrolls).
+  // The original single-shot scan at T+1.5s therefore caught only the
+  // first-hydrated batch (observed live: 12 of 287 containers, 2026-07-16).
+  // A debounced MutationObserver re-runs the same pure-DOM scan whenever the
+  // page renders more content, and syncs only ids not yet captured this page.
+  //
+  // ⚠️ CAPTURE-SAFETY INVARIANT (do not weaken): this observer sends ZERO
+  // requests to eBay and drives ZERO navigation/scrolling — it passively
+  // reacts to content eBay renders because the human scrolled. Pagination
+  // stays a human click on eBay's native Next. See feedback_ebay_capture_safety.
+
+  const pageCapturedIds = new Set();   // ids captured THIS page (all sources)
+  let pageSyncedCount = 0;             // cumulative new-synced this page
+
+  async function processScan() {
+    const sales = collectSales().filter(s => s.ebay_item_id && !pageCapturedIds.has(s.ebay_item_id));
+    if (sales.length === 0) return;    // silent no-op: never touches the banner,
+                                       // so banner mutations can't self-trigger loops
+
+    const stored = await chrome.storage.local.get(['collectedSales', 'totalCollected', 'sessionCollected']);
+    const existing = stored.collectedSales || [];
+    const existingIds = new Set(existing.map(s => s.ebay_item_id));
+    sales.forEach(s => pageCapturedIds.add(s.ebay_item_id));
+    const newSales = sales.filter(s => !existingIds.has(s.ebay_item_id));
+    if (newSales.length === 0) return;
+
+    const updated = [...existing, ...newSales].slice(-1000);
+    await chrome.storage.local.set({
+      collectedSales: updated,
+      totalCollected: (stored.totalCollected || 0) + newSales.length,
+      sessionCollected: (stored.sessionCollected || 0) + newSales.length,
+      lastCollection: new Date().toISOString()
+    });
+
+    const result = await sendSales(newSales);
+    const failed = !!result.error;
+    // Count what the SERVER actually inserted, not the pre-dedup local count —
+    // ON CONFLICT drops items already in the corpus from earlier captures
+    // (observed 2026-07-16: banner claimed 265, server inserted 203). On
+    // backend-offline we fall back to the local count ("saved locally").
+    pageSyncedCount += failed ? newSales.length : (result.saved ?? newSales.length);
+    updateBanner({
+      status: failed
+        ? `💾 ${pageSyncedCount} saved locally (backend offline) — watching as you scroll`
+        : `✅ ${pageSyncedCount} synced this page — watching as you scroll`,
+      stats: { newCount: pageSyncedCount, totalOnPage: pageCapturedIds.size,
+               sessionTotal: (stored.sessionCollected || 0) + newSales.length }
+    });
+  }
+
+  function watchForHydration() {
+    // Seed with everything the initial main() scan already handled, so the
+    // first observer pass doesn't double-sync it.
+    collectSales().forEach(s => { if (s.ebay_item_id) pageCapturedIds.add(s.ebay_item_id); });
+
+    let debounce = null;
+    const observer = new MutationObserver(() => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { processScan().catch(e => console.error('eBay Collector: rescan error:', e)); }, 800);
+    });
+    // characterData + attributes included deliberately: the 2026-07-16
+    // diagnostic showed this page mutates mostly by ATTRIBUTE (287 attr vs 47
+    // childList fires in 60s) — a childList-only observer can miss renders.
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+    window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+  }
+
+  main().then(initialCount => {
+    pageSyncedCount = initialCount || 0;  // observer banner counts continue from the initial batch
+    watchForHydration();
+  });
 })();
