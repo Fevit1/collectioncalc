@@ -82,6 +82,57 @@ def get_user_by_email(email):
         cur.close()
         conn.close()
 
+def canonicalize_email(email):
+    """
+    Collapse the aliases that resolve to the SAME inbox, for duplicate detection only.
+
+    Rules (Mike, 2026-07-29):
+      * strip a "+suffix" from the local part      — every provider
+      * strip dots from the local part             — gmail/googlemail ONLY
+
+    The dot rule is provider-specific on purpose: Gmail ignores dots, but plenty of
+    providers treat them as significant, so stripping them globally would merge two
+    genuinely different people's accounts.
+
+    NOT used for login or for sending mail — only to answer "is this the same inbox
+    as an account we already have?". The address the user typed is what gets stored
+    in users.email and what we deliver to.
+
+    Returns the canonical form, or the lowercased input if it isn't parseable.
+    """
+    if not email:
+        return email
+    email = email.lower().strip()
+    if email.count('@') != 1:
+        return email                      # malformed; caller's validator rejects it
+    local, domain = email.split('@', 1)
+    local = local.split('+', 1)[0]        # drop +suffix (all providers)
+    if domain in ('gmail.com', 'googlemail.com'):
+        local = local.replace('.', '')    # gmail ignores dots
+    if not local:
+        return email                      # e.g. "+foo@x.com" — don't invent an empty local
+    return f'{local}@{domain}'
+
+
+def get_user_by_canonical_email(canonical):
+    """
+    Find a user whose canonical email matches. Used ONLY by the signup duplicate
+    check. Rows created before the canonicalisation deploy hold their address
+    verbatim in email_canonical (deliberate: no backfill — see
+    db_migrate_signup_flow.py), so this still catches an exact re-signup.
+    """
+    if not canonical:
+        return None
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT * FROM users WHERE email_canonical = %s", (canonical,))
+        return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_user_by_id(user_id):
     """Find user by ID."""
     conn = get_db_connection()
@@ -646,10 +697,15 @@ def send_rejection_email(email, reason=None):
 def signup(email, password, beta_code=None, display_name=None, phone=None, marketing_consent=False):
     """
     Create a new user account.
-    Requires valid beta code during beta period.
+
+    Beta-code gating REMOVED 2026-07-29 (Mike): a verified email is sufficient to
+    get in. A code may still be supplied and is still recorded/consumed for
+    provenance, but it no longer gates signup and an invalid one no longer blocks it.
+
     Returns: dict with success status and user info or error
     """
     email = email.lower().strip()
+    email_canonical = canonicalize_email(email)
 
     # Sanitize optional profile fields
     if display_name:
@@ -665,17 +721,33 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
     if len(password) < 8:
         return {'success': False, 'error': 'Password must be at least 8 characters'}
     
-    # Validate beta code
+    # Beta code is OPTIONAL and NON-BLOCKING as of 2026-07-29. We still validate it
+    # so a valid one gets recorded and consumed (admin stats / provenance), but an
+    # invalid or expired code must NOT stop someone from signing up any more.
+    beta_code_valid = False
     if beta_code:
-        beta_result = validate_beta_code(beta_code)
-        if not beta_result['success']:
-            return beta_result
-    
-    # Check if user already exists
+        try:
+            beta_code_valid = bool(validate_beta_code(beta_code).get('success'))
+        except Exception:
+            beta_code_valid = False
+
+    # Check if user already exists — by the exact address...
     existing = get_user_by_email(email)
     if existing:
         return {'success': False, 'error': 'An account with this email already exists'}
-    
+
+    # ...and by canonical form, which collapses +suffix / gmail-dot aliases.
+    # This is the load-bearing anti-abuse check: without it, doug+1@gmail.com and
+    # d.oug@gmail.com each mint a fresh trial on the same inbox, and each trial
+    # grants real Anthropic COGS (Pro = 100 AI grades/mo).
+    # Deliberately the same user-facing message as the exact-match branch — telling
+    # someone WHICH alias already exists would leak account existence.
+    if email_canonical != email:
+        existing_canonical = get_user_by_canonical_email(email_canonical)
+        if existing_canonical:
+            return {'success': False, 'error': 'An account with this email already exists'}
+
+
     # Batch 6 task 1: a person who already confirmed THIS email on the waitlist
     # has proven inbox control once — don't make them confirm the same address
     # again at signup. (See _is_waitlist_confirmed for the security caveat.)
@@ -688,9 +760,15 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
     # Hash password and create user
     password_hash = hash_password(password)
 
-    # Auto-approve users who sign up with a valid beta code OR who are already
-    # confirmed on the waitlist (Batch 6 task 2: open approval for waitlist).
-    auto_approve = bool(beta_code) or waitlist_confirmed
+    # GATE REMOVED 2026-07-29 (Mike): everyone who signs up is approved. The gate
+    # is now email verification alone — login() still refuses unverified accounts.
+    # ⚰️ DEAD: `auto_approve = bool(beta_code) or waitlist_confirmed`, which left
+    # code-less, non-waitlist signups at is_approved=FALSE and therefore unable to
+    # log in at all until an admin approved them by hand.
+    # is_approved is KEPT as a column and login() still honours it, so setting it
+    # FALSE remains a working moderation/ban lever — it is simply no longer the
+    # default for new accounts.
+    auto_approve = True
 
     # Confirmed-waitlist signups are created already-verified and carry no
     # pending verification token (there is nothing left to verify).
@@ -703,14 +781,15 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
     try:
         cur.execute("""
             INSERT INTO users (
-                email, password_hash, email_verification_token,
+                email, email_canonical, password_hash, email_verification_token,
                 email_verification_expires, email_verified,
                 is_approved, is_admin, beta_code_used,
                 display_name, phone, marketing_consent
             )
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
             RETURNING id
-        """, (email, password_hash, stored_token, stored_expires, email_verified,
+        """, (email, email_canonical, password_hash, stored_token, stored_expires,
+              email_verified,
               auto_approve,
               beta_code.upper().strip() if beta_code else None,
               display_name, phone, bool(marketing_consent)))
@@ -718,8 +797,9 @@ def signup(email, password, beta_code=None, display_name=None, phone=None, marke
         user_id = cur.fetchone()['id']
         conn.commit()
 
-        # Mark beta code as used
-        if beta_code:
+        # Consume the code only if it actually validated. Previously this ran on any
+        # non-empty code, which could decrement an exhausted/expired code's counter.
+        if beta_code and beta_code_valid:
             use_beta_code(beta_code, user_id)
 
         # If this email is on the waitlist, mark as registered

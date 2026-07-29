@@ -891,7 +891,23 @@ def api_admin_waitlist():
 @admin_bp.route('/waitlist/invite', methods=['POST'])
 @require_admin_auth
 def api_admin_waitlist_invite():
-    """Generate a beta code and send invite email to a waitlist user"""
+    """
+    Send a waitlist invite email.
+
+    Beta-code gating was removed 2026-07-29, so the code is NO LONGER a gate and is
+    no longer shown to the user. We still mint one and carry it in the invite link as
+    `?invite=<code>`, purely as an invisible convenience token: login.html trades it
+    for the invited address (via /api/beta/validate, which returns only the parsed
+    invite_email plus a server-computed email_verified) and pre-fills + locks the
+    signup email. That stops an invited person registering a DIFFERENT address than
+    the one they confirmed on the waitlist — which is what _is_waitlist_confirmed()
+    keys off to skip re-verification.
+
+    Deliberately a code in the URL and NOT the email address: a single-use invite
+    token is standard magic-link practice, whereas an email in a query string is PII
+    in logs and referrers. If the token is missing/expired/already used, login.html
+    silently does nothing and the user just types their address — signup still works.
+    """
     data = request.get_json() or {}
     email = data.get('email', '').strip()
 
@@ -929,14 +945,10 @@ def api_admin_waitlist_invite():
                     <h2 style="color: #ffffff; margin-top: 30px;">You're Invited!</h2>
                     <p style="color: #d4d4d8;">Thanks for signing up for the Slab Worthy waitlist. We're excited to have you join our beta program!</p>
 
-                    <p style="color: #d4d4d8;">Use this beta code to create your account:</p>
-
-                    <div style="background: #1a1a2e; border: 2px solid #6366f1; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
-                        <span style="font-family: monospace; font-size: 24px; font-weight: 700; color: #f59e0b; letter-spacing: 2px;">{code}</span>
-                    </div>
+                    <p style="color: #d4d4d8;">You're invited to try Slab Worthy! Click the link below to create your account. No beta code needed &mdash; just sign up and you're in.</p>
 
                     <p style="text-align: center; margin: 30px 0;">
-                        <a href="{FRONTEND_URL}/login.html"
+                        <a href="{FRONTEND_URL}/login.html?invite={code}"
                            style="background: linear-gradient(135deg, #6366f1, #8b5cf6);
                                   color: white;
                                   padding: 14px 36px;

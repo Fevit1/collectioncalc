@@ -491,30 +491,14 @@
         <div class="beta-card" id="betaCard">
             <span class="beta-badge">Private Beta</span>
             
-            <div id="betaCodePanel" class="form-panel active">
-                <h2 class="beta-title">Enter Beta Code</h2>
-                <p class="beta-desc">Slab Worthy is currently in private beta. Enter your code to get started.</p>
-                
-                <div id="betaMessage" class="message"></div>
-                
-                <form id="betaCodeForm" onsubmit="validateBetaCode(event)">
-                    <div class="form-group">
-                        <label for="betaCode">Beta Code</label>
-                        <input type="text" id="betaCode" class="beta-code-input" placeholder="BETA-XXXX" required>
-                    </div>
-                    <button type="submit" class="btn" id="betaBtn">Continue</button>
-                </form>
-                
-                <p class="footer-link">
-                    Already have an account? <a href="#" onclick="showPanel('loginPanel')">Log in</a>
-                </p>
+            <!-- ⚰️ BETA-CODE PANEL REMOVED 2026-07-29 (Mike): a verified email is
+                 sufficient to get in. This panel was the REAL gate — it carried
+                 `required` and signup was unreachable without passing it, regardless
+                 of what the backend did. `signupPanel` is now the default panel.
+                 The backend still accepts and records a beta_code if one is passed,
+                 so existing codes keep working for provenance; nothing needs one. -->
 
-                <hr class="waitlist-divider">
-                <p class="waitlist-cta-text">Don't have a beta code? Get notified when we launch.</p>
-                <a href="/waitlist.html" class="waitlist-cta-link">Join the Waitlist</a>
-            </div>
-
-            <div id="signupPanel" class="form-panel">
+            <div id="signupPanel" class="form-panel active">
                 <h2 class="beta-title">Create Account</h2>
                 <p class="beta-desc">Set up your Slab Worthy account</p>
                 
@@ -595,7 +579,7 @@
                 </form>
                 
                 <p class="footer-link">
-                    Need an account? <a href="#" onclick="showPanel('betaCodePanel')">Enter beta code</a>
+                    Need an account? <a href="#" onclick="showPanel('signupPanel')">Sign up</a>
                 </p>
             </div>
 
@@ -696,19 +680,52 @@
             const params = new URLSearchParams(window.location.search);
             const verifyToken = params.get('token');
             const action = params.get('action');
-            
+            const inviteCode = params.get('invite');
+
             if (action === 'reset-password' && verifyToken) {
                 resetToken = verifyToken;
                 showPanel('resetPanel');
             } else if (verifyToken) {
                 verifyEmail(verifyToken);
+            } else if (inviteCode) {
+                applyInvite(inviteCode);
             }
-            
+
             // Clean up URL
-            if (verifyToken || action) {
+            if (verifyToken || action || inviteCode) {
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
+
+        // Waitlist invite: ?invite=<code> from the admin invite email.
+        //
+        // The code is NOT a gate any more (beta gating removed 2026-07-29) and the
+        // user never sees or types it. It is traded silently for the invited address
+        // so we can pre-fill + LOCK the signup email — otherwise an invited person
+        // can register a different address than the one they confirmed on the
+        // waitlist, and _is_waitlist_confirmed() then can't skip re-verification.
+        //
+        // Fails SILENTLY by design: an expired, already-used or bogus token must
+        // never block signup. Worst case the field is simply empty and they type it.
+        async function applyInvite(code) {
+            try {
+                const response = await fetch(`${API_BASE}/api/beta/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await response.json();
+                if (data && data.success && data.invite_email) {
+                    // Carry the code through so signup still records/consumes it
+                    // (single-use accounting + provenance in users.beta_code_used).
+                    const hidden = document.getElementById('signupBetaCode');
+                    if (hidden) hidden.value = code;
+                    lockSignupEmail(data.invite_email, !!data.email_verified);
+                }
+            } catch (e) {
+                /* silent — never block signup on an invite lookup */
+            }
+        }
 
         // Toggle password visibility
         function togglePassword(inputId, btn) {
@@ -754,45 +771,20 @@
             el.className = `message ${isError ? 'error' : 'success'}`;
         }
 
-        async function validateBetaCode(event) {
-            event.preventDefault();
-            const code = document.getElementById('betaCode').value.trim();
-            const btn = document.getElementById('betaBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Validating...';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/beta/validate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Store code and show signup
-                    document.getElementById('signupBetaCode').value = code;
-                    // Batch 6: a waitlist-invite code carries the invited address;
-                    // pre-fill + lock the email so we don't ask them to retype the
-                    // address they already confirmed.
-                    if (data.invite_email) {
-                        lockSignupEmail(data.invite_email, !!data.email_verified);
-                    } else {
-                        clearSignupEmailLock();
-                    }
-                    showPanel('signupPanel');
-                } else {
-                    showMessage('betaMessage', data.error || 'Invalid beta code');
-                }
-            } catch (e) {
-                showMessage('betaMessage', 'Network error. Please try again.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Continue';
-            }
-        }
+        // ⚰️ validateBetaCode() REMOVED 2026-07-29 with the beta-code panel. It read
+        // #betaCode / #betaBtn / #betaMessage, all of which no longer exist, so it
+        // could only have thrown if anything still called it. Nothing does.
+        //
+        // It also carried the waitlist-invite pre-fill: a valid invite code returned
+        // `invite_email`, which pre-filled + locked the signup email so the user
+        // couldn't accidentally register a DIFFERENT address than the one on the
+        // waitlist (that address is what _is_waitlist_confirmed() keys off to skip
+        // re-verification). That path is gone with the panel.
+        // ⚠️ FOLLOW-UP, NOT DONE HERE: the invite email in routes/admin_routes.py:923
+        // still says "Use this beta code to create your account" and links to
+        // /login.html — copy that now points at a panel that doesn't exist.
+        // lockSignupEmail/clearSignupEmailLock/unlockSignupEmail are KEPT below —
+        // unlockSignupEmail is still wired to an onclick in the signup form.
 
         // Batch 6: pre-fill + lock the signup email for waitlist invites.
         function lockSignupEmail(email, verified) {
