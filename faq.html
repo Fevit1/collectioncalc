@@ -231,7 +231,7 @@
     <meta name="apple-mobile-web-app-title" content="Slab Worthy">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
-<body>
+<body data-sidebar-page="faq">
     <div class="container">
         <header>
             <a href="/" class="header-brand" style="text-decoration: none; display: block;">
@@ -643,7 +643,31 @@
         
     </div>
 
+    <script>
+        // Accordion toggle for the FAQ items.
+        // Every .faq-question button calls this inline; the function had never been
+        // defined anywhere in the codebase, so each click threw a ReferenceError and
+        // no answer ever opened. The CSS (.faq-item.active .faq-answer) was already
+        // complete and correct — only the class toggle was missing.
+        function toggleFAQ(btn) {
+            const item = btn.closest('.faq-item');
+            if (!item) return;
+            const isOpen = item.classList.toggle('active');
+            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
+        // Mark the buttons up for screen readers / keyboard users.
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.faq-question').forEach(btn => {
+                btn.setAttribute('type', 'button');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        });
+    </script>
     <script src="/js/footer.js"></script>
+    <!-- Sidebar nav: no-ops when logged out, so the public FAQ is unaffected.
+         sidebar.js already had a 'faq' case in detectPage(); only the tag was missing. -->
+    <script src="/js/sidebar.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});

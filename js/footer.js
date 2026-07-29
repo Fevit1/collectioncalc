@@ -78,7 +78,7 @@
         <div class="footer-content">
             <div class="footer-brand">
                 <div class="footer-logo">$LAB WORTHY\u2122</div>
-                <p class="footer-tagline">Powered by CollectionCalc\u2122</p>
+                <p class="footer-tagline">AI for Collectors</p>
             </div>
             <div class="footer-links">
                 <div class="footer-col">
@@ -107,7 +107,7 @@
         </div>
         <div class="footer-bottom">
             <p>\u00A9 2026 Slab Worthy. Patent Pending.</p>
-            <p style="margin-top: 0.3rem; font-size: 0.55rem;">Powered by CollectionCalc\u2122 \u2022 CGC\u00AE and CBCS\u00AE are registered trademarks of their respective owners.</p>
+            <p style="margin-top: 0.3rem; font-size: 0.55rem;">CGC\u00AE and CBCS\u00AE are registered trademarks of their respective owners.</p>
         </div>
     `;
 

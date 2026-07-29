@@ -1006,6 +1006,10 @@
     </script>
     <!-- Universal Footer -->
     <script src="/js/footer.js"></script>
+    <!-- Sidebar nav: no-ops when logged out, so the public pricing page is unaffected.
+         No sidebar item corresponds to pricing, so no nav row highlights (detectPage
+         returns '') — this is only here so logged-in users keep the hamburger. -->
+    <script src="/js/sidebar.js"></script>
     <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {

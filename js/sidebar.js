@@ -289,6 +289,13 @@
             padding: 0.75rem 1.25rem;
             background: var(--bg-sidebar, #0e0e1a);
             border-bottom: 1px solid var(--border, rgba(124, 58, 237, 0.15));
+            /* Stay put while the page scrolls. Desktop already gets this from
+               .sw-sidebar{position:sticky}; the mobile bar was in normal flow and
+               scrolled away, leaving no nav affordance on a phone.
+               z-index sits below the drawer (1000) and its overlay (999). */
+            position: sticky;
+            top: 0;
+            z-index: 998;
         }
         .sw-mobile-topbar .sw-mobile-logo {
             font-family: 'Bangers', cursive;
@@ -325,11 +332,9 @@
             .sw-mobile-topbar { display: none !important; }
         }
 
-        /* Hide the old page headers on sidebar pages */
-        .sw-page-content > .container > header:first-child,
-        .sw-page-content > header:first-child {
-            /* Don't hide — pages may still need their headers for now */
-        }
+        /* Duplicate site-brand headers (see hideDuplicateBrandHeaders below).
+           Applied by class, not by position, so page-title headers survive. */
+        .sw-dupe-brand-header { display: none !important; }
     `;
     document.head.appendChild(style);
 
@@ -488,6 +493,30 @@
     document.body.appendChild(overlay);
     document.body.appendChild(topbar);
     document.body.appendChild(appShell);
+
+    // ==========================================
+    // HIDE DUPLICATE SITE-BRAND HEADERS
+    // ==========================================
+    // Several pages carry their own static header with the site brand + a marketing
+    // nav (account.html, app.html, faq.html). Once the sidebar injects, that brand and
+    // its nav are rendered twice — the "duplicate Slab Worthy header" seen on My Account.
+    //
+    // Hidden, never removed: account.html binds #logoutLink unguarded (account.html:924),
+    // and app.html's header holds the logged-out auth buttons. Removing the nodes would
+    // throw; display:none keeps every getElementById working.
+    //
+    // Matched by brand marker, NOT by position, so page-title headers survive — e.g.
+    // collection.html's "My Collection" <header> has neither marker and stays visible.
+    // Only runs when the sidebar is actually injected (this whole IIFE returns early
+    // when logged out), so logged-out visitors keep their page header.
+    function hideDuplicateBrandHeaders() {
+        pageContent.querySelectorAll('header').forEach(h => {
+            if (h.querySelector('.header-logo, .header-brand, .footer-logo')) {
+                h.classList.add('sw-dupe-brand-header');
+            }
+        });
+    }
+    hideDuplicateBrandHeaders();
 
     // Move modals/overlays/toasts back to body root so position:fixed works correctly
     // (sidebar wrapping can trap fixed elements inside the grid layout)
