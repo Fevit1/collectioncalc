@@ -2,7 +2,11 @@
 
 > **Status:** DRAFT for manual execution. Mike runs every step himself and verifies before
 > moving to the next. Nothing in here is auto-run, committed, or deployed by Claude.
-> **Drafted:** 2026-06-15 · **Decision:** migrate R2 bucket to custom domain before July 21 soft launch.
+> **Drafted:** 2026-06-15 · **Decision:** migrate R2 bucket to custom domain before soft launch.
+> ⚰️ **Date updated 2026-07-29:** soft launch is **August 4, 2026** — the "July 21" originally written
+> here is DEAD (slipped to July 28 on 2026-07-16, then moved to Aug 4 for personal availability).
+> Note also that GalaxyCon was dropped 2026-07-29, so this cutover no longer has a convention behind
+> it — the driver is now the online soft launch and, later, FB/email marketing traffic.
 > **Why:** the `pub-*.r2.dev` dev domain is rate-limited (~hundreds req/s → 429) and uncached;
 > a custom domain adds edge caching + unblocks the ID Sigs CORS fix. See scoping report (Session ~102).
 

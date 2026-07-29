@@ -1,6 +1,30 @@
 # Where We Left Off - Jul 29, 2026
 
-## 2026-07-29 — 🗓️ SCHEDULE CHANGE ONLY: soft launch moved July 28 → **AUGUST 4, 2026**
+## 2026-07-29 (later) — 🎪 **GALAXYCON IS OFF (DROPPED, not delayed)** + marketing shape + waitlist correction
+
+**MOST RECENT CHANGE (2026-07-29, Rule 5): GALAXYCON SAN JOSE IS DROPPED — not postponed, not re-dated. Personal bandwidth (Mike), NOT technical.** Soft launch **still Aug 4**. After that: **SW is online-marketing-only for the rest of 2026**, reassessed as year-end approaches.
+
+⚰️ **TOMBSTONE — the single most load-bearing dead assumption in this repo:** "GalaxyCon San Jose, Aug 21–23 2026 = the alpha launch event / booth demos / **the calendar anchor that doesn't move**" is **DEAD**. **REPLACED BY:** soft launch Aug 4 → quiet month → FB + email marketing → online-only through year-end. **REASON:** Mike's personal bandwidth. **SUPERSEDES:** `docs/sessions/GALAXYCON_SPRINT.md` **in its entirety** (⚠️ *not touched yet — awaiting Mike's call on archive vs replace, see below*), the "GalaxyCon is the calendar anchor / count weeks, not features" principle in `SW_BO_PRIMER.md:71`, the ROADMAP GalaxyCon launch section, and every booth/con framing in `LAUNCH_READINESS.md`.
+
+**Why this is a re-shaping, not a cancellation line-item — what actually changes:**
+1. **The forcing function is gone.** GalaxyCon was the immovable external date that made sequencing honest. Aug 4 is soft and quiet; after it there is **no external deadline at all** except the 90-day purge (~2026-09-17), which is now the *only* hard date left on the project.
+2. **F-load drops off the launch-critical path.** Its target (10 concurrent / 3 grading, plus the F-L4 16–18 ceiling burst) was explicitly **booth-shaped** — a room of phones on venue wifi. A gated, wave-admitted online beta will not produce that. **Re-derive an online-shaped target post-launch or defer; do not run the dead booth target and call it a gate.** F-**mobile** is unaffected and still matters for Aug 4.
+3. **Physical-venue work is moot:** booth demo design, booth signup mode (gated vs open QR), demo mode to spare Vision API on repeat booth demos, printed booth codes, and the "concentrated savvy-collector crowd" anti-abuse threat model. The anti-abuse holes stay parked — **but they re-activate when open public signup turns on with FB/email marketing**, same shape, different road.
+4. **Scope discipline now has to come from the docs.** With no date to be honest against, the "we have time" trap the primer warned about gets materially more dangerous, not less.
+
+**Marketing + sequencing (Mike, 2026-07-29):**
+- **Channels: Facebook and email ONLY.** No other channels for now.
+- **Sequence:** Aug 4 go-live → **~1 month quiet, NO active marketing push**, waitlist invites continue at current pace → **if nothing serious surfaces, marketing (FB + email) starts after** → online-marketing-only for the rest of 2026, reassess at year-end.
+
+**📋 WAITLIST CORRECTION (Mike, 2026-07-29) — corrects the record:** of the **~50 signups, only ~30 are real users**; the rest are **Mike's own test accounts** created during development. Mike has **already been inviting every real signup** and will continue; signup rate is naturally slow, which suits the quiet month. ⚠️ **Never quote ~50 as real users or as demand.** Any conversion/engagement/COGS math must exclude the test accounts (~30 is the honest denominator).
+
+**❓ OPEN QUESTION BACK TO MIKE (not actioned — do not touch `GALAXYCON_SPRINT.md` until answered):** what happens to that file? Recommendation + options in the session response of 2026-07-29; the file is a sprint plan toward an event that no longer exists, so a re-date is not a valid fix.
+
+**Not changed by any of this:** every A–F gate status; the eBay/valuation corpus work; the 90-day purge deadline ~2026-09-17; Aug 4 itself.
+
+---
+
+## 2026-07-29 (earlier) — 🗓️ SCHEDULE CHANGE ONLY: soft launch moved July 28 → **AUGUST 4, 2026**
 
 **MOST RECENT CHANGE (2026-07-29, Rule 5): SOFT LAUNCH = AUGUST 4, 2026 (Mike). REASON: personal availability — NOT technical, NOT readiness, NOT incident-driven.** ⚰️ **TOMBSTONE: "soft launch July 28" is DEAD** (and the older "July 21" is DEAD twice over). **REPLACED BY:** August 4, 2026. **SUPERSEDES:** the `Launch = July 28.` line at the end of the Session 118 CLOSE block below (corrected in place today), the Session 118 header's "SOFT LAUNCH SLIPPED July 21 → July 28", and `LAUNCH_READINESS.md`'s former "(to July 21)" sequence heading. Do not sequence, count weeks, or plan a go/no-go against July 21 or July 28.
 
@@ -494,7 +518,7 @@ Confirmed: **NOT our app and NOT Cloudflare** — there is no signup rate-limit 
 - **✅ Item #2 (webhook signing secret) MANUALLY VERIFIED** — Render `STRIPE_WEBHOOK_SECRET` == the test endpoint's `whsec_`. **All 3 config items confirmed → Section E config is FULLY verified. Next session is the LIVE TEST ONLY** (run Part B; no more config to check).
 
 ### ⏰ / 🔧 Tracked follow-ups (carry forward)
-1. **⏰ 90-day PURGE — HARD DEADLINE ~2026-09-17** (day-90 from persist deploy). After soft launch (Jul 21) + GalaxyCon (Aug 21-23) — not urgent, but a published-policy obligation; **cannot slip past the date**. Columns/index (`images_purge_after`,`pinned`) + `delete_grade_submission` helper already in place → scheduled job + feedback-pin away.
+1. **⏰ 90-day PURGE — HARD DEADLINE ~2026-09-17** (day-90 from persist deploy). ⚰️ *(Was framed as "after soft launch (Jul 21) + GalaxyCon (Aug 21-23)" — BOTH dead: soft launch is **Aug 4**, GalaxyCon **dropped** 2026-07-29.)* ⚠️ **This is now the ONLY hard external deadline left on the project** — it used to sit behind the con, so it no longer inherits that urgency; it needs its own reminder. Published-policy obligation; **cannot slip past the date**. Columns/index (`images_purge_after`,`pinned`) + `delete_grade_submission` helper already in place → scheduled job + feedback-pin away.
 2. **🔧 `saved_collection_id` backlink-on-save** — always NULL (grade precedes save; save path doesn't backlink). Small.
 3. **~30s comic-ID progress messaging** — brief drafted, **not yet shipped** (staged honest "still working" messaging only — NO accuracy-costing speedups). Queued.
 4. **Email setup (mike@/support@slabworthy.com)** — Resend is **outbound-only**, no real inbox confirmed; **gates the matbanshee reply**. Deliberately held / not started.

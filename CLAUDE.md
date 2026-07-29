@@ -54,7 +54,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **API:** collectioncalc-docker.onrender.com
 - **Stack:** Flask/Python, PostgreSQL (Render), Cloudflare R2, Claude API
 - **Frontend:** Vanilla HTML/CSS/JS (no framework)
-- **Target:** GalaxyCon San Jose alpha launch (Aug 21-23, 2026)
+- **Target:** ⚰️ ~~GalaxyCon San Jose alpha launch (Aug 21-23, 2026)~~ — **GalaxyCon DROPPED 2026-07-29** (Mike, personal bandwidth, not technical). Current target = **soft launch Aug 4, 2026** (online, gated beta) → ~1 quiet month, no marketing → **then Facebook + email only** → online-marketing-only through year-end, reassess at year-end. SoT: `docs/LAUNCH_READINESS.md`
 - **Revenue:** Pre-revenue, 4-tier Stripe billing live (Free/Pro/Guard/Dealer)
 
 ---
@@ -92,7 +92,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 2. Marketplace prep testing (Whatnot, Mercari, etc.)
 3. Signature v2 — upload refs for 57 new creators, target 87%+ accuracy
 4. Mobile testing on real devices
-5. GalaxyCon sprint plan (25 weeks to Aug 21)
+5. ⚰️ ~~GalaxyCon sprint plan (25 weeks to Aug 21)~~ — **DEAD 2026-07-29, GalaxyCon dropped.** `docs/sessions/GALAXYCON_SPRINT.md` is superseded in its entirety; do not execute or re-date it (retirement decision pending Mike). Replacement sequence: Aug 4 soft launch → quiet month → FB + email marketing.
 
 ---
 

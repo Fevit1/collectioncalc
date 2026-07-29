@@ -44,14 +44,30 @@
 - [x] **Verify Page Updates** - Branding cleanup, copy updates
 - [x] **Registry Bug Fix** - Collections table mismatch resolved (critical)
 
-### 🎯 GalaxyCon San Jose Launch (Aug 21-23, 2026)
-**Event:** GalaxyCon San Jose, San Jose McEnery Convention Center
-**Goal:** Public launch with polished product + live booth demos
-**Note:** CGC on-site via One Stop Comic Shop — grading-aware audience
+### ⚰️ GalaxyCon San Jose Launch — **DROPPED 2026-07-29. DO NOT EXECUTE THIS SECTION.**
 
-**Timeline:**
-- **July 21** — Soft launch online (public beta, open sign-ups)
-- **Aug 21-23** — GalaxyCon San Jose (alpha launch event, in-person demo)
+> **TOMBSTONE (Mike, 2026-07-29):** GalaxyCon is **OFF — dropped, not delayed or re-dated.** Reason:
+> personal bandwidth, NOT technical. Everything below about the event, the booth, in-person demos,
+> and the Aug 21-23 date is **DEAD** and kept only for the audit trail.
+>
+> **REPLACED BY:** soft launch **August 4, 2026** (online, gated/wave-admitted public beta) → ~1 month
+> quiet with **no active marketing** (waitlist invites continue at current pace) → **then marketing =
+> Facebook + email ONLY** → **online-marketing-only for the rest of 2026**, reassessed at year-end.
+>
+> ⚰️ Also DEAD: the "**July 21** soft launch" date below (slipped to July 28 on 2026-07-16, then moved
+> to **August 4** on 2026-07-29 for personal availability). Every "July 21" in this file is stale.
+>
+> Canonical status lives in `docs/LAUNCH_READINESS.md`; the live decision record is
+> `docs/sessions/WHERE_WE_LEFT_OFF.md`. `docs/sessions/GALAXYCON_SPRINT.md` is superseded in its
+> entirety (retirement/reframing pending Mike's call).
+
+**Event:** ⚰️ GalaxyCon San Jose, San Jose McEnery Convention Center — DROPPED
+**Goal:** ⚰️ Public launch with polished product + live booth demos — DROPPED
+**Note:** ⚰️ CGC on-site via One Stop Comic Shop — grading-aware audience — moot, not attending
+
+**Timeline (⚰️ both dates DEAD — see tombstone):**
+- ⚰️ ~~**July 21** — Soft launch online~~ → **August 4, 2026** (public beta, gated + waitlist waves)
+- ⚰️ ~~**Aug 21-23** — GalaxyCon San Jose (alpha launch event, in-person demo)~~ — **not happening**
 
 **Already Complete:**
 - [x] **Valuation endpoint** - `/api/sales/valuation` with grade-specific FMV + slabbing ROI (Session 61)
@@ -71,7 +87,7 @@
 - [x] **AI grading consistency** — ✅ RESOLVED (Session 81). Multi-run averaging and structured output schema implemented.
 - [x] **Update CGC grading costs** — ✅ RESOLVED (Session 81). Updated from hardcoded values to current CGC pricing.
 
-**Must-Have for July 21 Soft Launch:**
+**Must-Have for Soft Launch (⚰️ was "July 21"; now **August 4, 2026** — see tombstone above):**
 - [ ] **Data collection ramp** - More eBay/Whatnot sales for better coverage
 - [ ] **Sell Now Alerts (v1)** - When incoming eBay sale exceeds FMV by >25%, alert users who own that title. Email + in-app badge on My Collection. Killer feature nobody else has. (See Sell Now Alerts section below.)
 - [ ] **Waitlist / email capture** - Add email field to landing page NOW, collect leads for 5 months before soft launch
