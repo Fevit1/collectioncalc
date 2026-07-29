@@ -1,6 +1,101 @@
 # Where We Left Off - Jul 29, 2026
 
-## 2026-07-29 (evening) — 🔴 **P0: PROD WAS ON STRIPE TEST KEYS** + Pixel punch list + Unit A shipped
+## 2026-07-29 (END OF DAY) — 📋 **FULL STATE: what shipped, what's open, what to pick up next**
+
+**MOST RECENT CHANGE (Rule 5): billing went LIVE on real money and the signup gate came down — both on the same day. Soft launch remains AUGUST 4, 2026. Mike is on a break; back later or tomorrow.**
+
+### ✅ SHIPPED + VERIFIED TODAY (in order)
+| What | Commit / artefact | Evidence |
+|---|---|---|
+| Soft-launch date → Aug 4 | `6dd44b4` | docs only |
+| GalaxyCon DROPPED, docs swept | `c140231` | 5 files + CLAUDE.md; GALAXYCON_SPRINT deliberately untouched |
+| Unit A punch list | `1e1e6b3` | browser-verified 412×915 + desktop, logged in/out |
+| Stripe preflight `--live` | `3225572` | all 4 key×flag combos; also fixed a pre-existing Windows crash (L-2026-015) |
+| **Unit E — live Stripe cutover** | Render env, Mike | **real card: purchase → webhook → plan active → cancel → teardown → refund** |
+| Live customer-portal config | Stripe dashboard, Mike | Pro + Guard switchable; **Dealer excluded** (matches `billing.py:511`) |
+| Google Pay dashboard half | Stripe dashboard, Mike | code half still open — see Unit B |
+| Test-mode Stripe id cleanup | SQL, Mike | 6 rows nulled, row 33 reset; fixtures 24/25/26 untouched |
+| Signup-flow migration | `db_migrate_signup_flow.py` | ran clean, **13 grandfathered / 22 will see the plan page** |
+| Gate removal + email canonicalisation + invite rewrite | `auth.py`, `login.html`, `admin_routes.py` | 18/18 signup assertions, 16/16 canonicalisation; **prod-confirmed: `mikeberrysc+test@gmail.com` blocked as duplicate** |
+| Pending-user unlock | `db_migrate_approve_pending_users.py` | 1 candidate (`id=6`, Mike's own alias) |
+| "Private Beta" badge → **"Early Access"** | `login.html` | badge is on the card, so correct on login/forgot panels too |
+
+**Prod-verified by Mike:** private-window load shows the signup form by default, no beta-code box.
+
+### 🔶 THE ONE REMAINING HARD GATE
+**Valuation/identification honesty** — confidence is computed and stored but **displayed nowhere**. This is the old CP-1 from the retired sprint plan and the **sole declared blocker for Aug 4**. Everything else below is punch-list or polish.
+
+### 📋 OPEN WORK (rough priority)
+1. **Unit B — billing UX.** Current (free) plan navigates to the dashboard instead of reading as active/non-clickable. Plus **Google Pay: remove `payment_method_types=['card']` at `billing.py:570`** — it actively suppresses Google/Apple Pay/Link; the dashboard half is already enabled, so this one line is all that's left.
+2. **Plan-selection page on first login.** Spec settled and **must not be re-litigated: Pro + Guard only, never Dealer** (Dealer is a sales conversation), Free until sunset. Trigger column `has_selected_plan` exists; 22 accounts are already FALSE and will see it.
+3. **Coming-soon markers.** SlabGuard = **registration/upgrade copy only, public `verify.html`/`check.html` stay live**. Marketplaces = everything except eBay. ⚠️ **The platform list is duplicated in three places** — `js/collection.js:630`, `js/marketplace-modal.js:11`, `account.html#platforms` — change all three or the dropdown says "Coming soon" while the modal still opens.
+4. **`FREE_PLAN_OPEN` switch.** One env var, read at signup/plan-selection. Mike flips it ~Sept 4. Existing free users (29) grandfathered; new signups then see Pro + Guard only. No scheduler needed.
+5. **`sw.js` unit — BUILT IN TREE, NOT COMMITTED.** Detail below.
+6. **My Collection affordance neutralisation.** `.comic-card` (`js/collection.js:329`) has no click handler while the gallery `.comic-frame` does. **Decision: remove the clickable styling now** so it stops reading as broken; the real detail view ships with the collection redesign. Don't build it twice.
+7. ❓ **Market Pulse mobile charts — NEEDS RECHECK ON MOBILE. NOT a confirmed bug.** ⚰️ An earlier line in this file logged it as a defect; **Mike corrected that same day**: he isn't certain the charts failed to render — he may simply not have scrolled to them, or they may have loaded slowly. **Do not open a fix, do not scope work, and do not repeat "charts don't render" as fact.** The only action is: look at Market Pulse on a real phone, scroll all the way to the charts, and note whether they render and how long they take. If they're fine, delete this item.
+8. ✅ **Post-subscription banner wording — CONFIRMED, ready to fix, code located.** In-app banner on **My Account** at **`account.html:536`**:
+   - **Current:** `<strong>Welcome!</strong> Your subscription is now active. Time to protect your collection.`
+   - **Replace with:** `Welcome! Your subscription is now active. Start grading your collection.`
+   - **Why:** "protect your collection" is Slab Guard language, and Slab Guard is going "Coming soon" (item 3) — so the banner points a brand-new paying subscriber at a feature they can't use. "Start grading" points at the thing they actually just bought.
+   - Logged by Mike in **Todoist as p3**. Just needs the one-line code change — **fold into Unit B** rather than shipping alone.
+
+**DEFERRED by Mike (explicitly not bundled):** My Collection layout redesign — columns wrapping badly, unclear actions, wants a proper PR or two. Collection scroll behaviour at 20+ comics — untested, Mike will report.
+
+### 🧩 `sw.js` UNIT — in tree, diff delivered, awaiting review
+Files: **`sw.js` rewritten**, **`offline.html` NEW**, `login.html` (badge, same file as the Early Access change).
+- **HTML is never cached now.** Previously every successful page load was stored, so a user on a flaky connection could be served an arbitrarily old page — including the removed private-beta panel — and we had **no way to fix it remotely**. Slab Worthy can't function offline anyway (grading + valuation both need the API), so caching app HTML bought nothing and was the only route to a stale-UI bug.
+- **Failed navigations serve `/offline.html`**, self-contained (zero external requests, auto-reloads on `online`). Previously they fell back to cached `/index.html`, so a failed `/account.html` request silently showed the marketing homepage — reads as "the app logged me out".
+- **Static assets stay network-first** with cache fallback. Deliberate: HTML is always fresh now, and a cache-first JS bundle could go stale against fresh HTML, which is worse than slightly slower.
+- **`CACHE_NAME` → `slabworthy-v2-20260729`.** ⚠️ This makes the eviction code work **for the first time**: it deletes caches whose name ≠ `CACHE_NAME`, but the name was hardcoded `slabworthy-v1` from day one, so **that cleanup had literally never run.** Bump it on any deploy that changes a precached asset.
+- **Verified:** after a real navigation the v2 cache holds **zero HTML**; CSS + JS still cached; `offline.html` renders correctly standalone.
+- ⚠️ **NOT verified by execution:** the install-precache and activate-eviction paths. The in-app browser reused an already-active worker, so those lifecycle events never re-fired no matter how the registration was cycled. **Confirm in prod:** DevTools → Application → Cache Storage should show **only** `slabworthy-v2-20260729`, and it should contain `offline.html` plus static assets and no `.html` pages.
+- 📌 **Correction to an earlier claim in this session:** the stale beta panel seen locally was attributed to the service worker. That isn't supportable — the SW was already network-first, and the unregister and a `?cachebust=` param were applied in the same step, so the two can't be separated. The browser's ordinary HTTP cache is the likelier cause. The `sw.js` defects above are real and worth fixing regardless, but they were **not** the cause of that observation.
+
+### Git truth (2026-07-29 end of day, verified)
+HEAD = `3225572`. Dirty in tree, **not committed**: `sw.js`, `offline.html` (new, untracked), `login.html` (Early Access badge), plus today's docs edits to `LAUNCH_READINESS.md` and this file. The `auth.py`/`admin_routes.py`/migration commit block was handed to Mike; confirm with `git log` whether it landed before assuming. Pre-existing `.claude/worktrees/*` dirt untouched as always.
+
+### NEXT SESSION — 🎯 OPENING TOPIC IS FIXED, DO NOT PICK SOMETHING ELSE
+
+**Mike's instruction (2026-07-29, end of day): the FIRST thing next session is the VALUATION-HONESTY GATE. He wants to understand exactly what is BUILT vs what is MISSING before anything else is touched. Open with that — read-only, no code.**
+
+Why it's the right opener: it is the **sole remaining declared hard gate** for Aug 4 (billing closed today). Everything else on the open list is punch-list or polish, individually cheap, and could quietly absorb the whole week without this moving.
+
+What's known going in (verify, don't assume — these are prior findings, not fresh reads):
+- Confidence is **computed and stored** but **displayed nowhere** in the UI.
+- Multi-run voting exists server-side, but the frontend hardcodes `runs: 1`.
+- A live harness exists at root: `test_grading_consistency.py --live`.
+- **Grading consistency has never been measured.**
+- This is the old **CP-1** from the retired GalaxyCon sprint plan, where the bar was framed as *"honest about confidence, not accurate on everything"* — every FMV carries a confidence signal and thin comp pools say so plainly. That framing is worth re-reading; it's the cheapest version of the gate.
+- Related, already logged: valuation Layer 3 (grade-aware raw estimate) was deferred into R1/R2; the media-junk/poster work is paused (Mike, 2026-07-29) with the eyeball list already produced.
+
+Then, only after that discussion:
+1. `git log --oneline -5` + `git status --short` — **verify what actually landed** before planning (L-SW-2026-008; state moved twice mid-session on 2026-07-29).
+2. **Unit B** — the one-line Google Pay fix (`billing.py:570`) is the cheapest real win; bundle the current-plan UX and the `account.html:536` banner wording with it.
+3. Plan-selection page → Coming-soon markers → `FREE_PLAN_OPEN`.
+4. **Market Pulse: recheck on a phone. It is NOT a confirmed bug** — see item 7.
+
+### ✅ Everything from 2026-07-29 is committed and deployed
+`27144e3` sw.js/PWA + Early Access badge (deployed + **purged**, Mike) · `b981789` gate removal + canonicalisation + invite rewrite · `cbb50a8` signup-flow migration · `156f441` docs. Both migrations ran clean. Mike: *"That closes today completely."*
+
+---
+
+## 2026-07-29 (night) — ✅✅ **BILLING IS LIVE — UNIT E CLOSED, REAL MONEY VERIFIED**
+
+**MOST RECENT CHANGE (2026-07-29 night, Rule 5): the live-mode Stripe cutover is COMPLETE and VERIFIED. Production runs on LIVE Stripe keys as of 2026-07-29. A REAL CARD was taken end-to-end: purchase → webhook → plan active → cancel → teardown → refund.** Mike ran every step.
+
+⚰️ **TOMBSTONE — the two dead framings, both retired tonight:**
+1. **"Production is on `sk_test_…0x9c`, no real user can ever pay"** (found this evening) is **RESOLVED**. Do not re-raise it; do not treat the test-key values recorded below as current. They are history.
+2. **"Section E closed the billing *state machine*, not the ability to take money"** (written this evening) is also **RESOLVED**. Both halves are now proven: the state machine at `3935ce5` (2026-07-08, teardown + both guard branches observed live) and the money path tonight on a real card. **From here, "billing works" is true without qualification** — the distinction that entry drew no longer needs carrying.
+
+🎯 **ONE OF THE TWO DECLARED HARD GATES IS CLOSED.** Remaining hard gate: **valuation/identification honesty** — confidence is computed and stored but **displayed nowhere**. That is now the **sole declared blocker for Aug 4**, and it's the old CP-1 from the retired sprint plan. Everything else on the board is punch-list or polish.
+
+**Google Pay — dashboard half DONE, code half OPEN.** Enabled in Stripe payment methods (live mode). The remaining piece is `billing.py:570`, which sets `payment_method_types=['card']` and **actively suppresses** Google Pay/Apple Pay/Link regardless of dashboard settings. **That change belongs to Unit B**, not the cutover — recorded so it can't be mistaken for "Google Pay is done."
+
+**Unaffected by the cutover, still true:** the DB cleanup (6 rows nulled, row 33 reset) and the `test-pro`/`test-guard`/`test-dealer` fixtures at rows 24/25/26 — DB-granted tiers, no Stripe objects, **still not revenue**.
+
+---
+
+## 2026-07-29 (evening) — 🔴 **P0: PROD WAS ON STRIPE TEST KEYS** *(RESOLVED same night — see above)* + Pixel punch list + Unit A shipped
 
 **MOST RECENT CHANGE (2026-07-29 evening, Rule 5): production has been running on Stripe TEST keys — `sk_test_…0x9c` / `pk_test_…CiYH`. No real user could ever have paid. Found by Mike's Pixel walkthrough (only `4242…` accepted), confirmed read-only via the Render API. Cutover to a FRESH live key is in progress on Mike's side.** This outranks every other open item for Aug 4.
 
