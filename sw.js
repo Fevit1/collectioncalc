@@ -24,7 +24,7 @@
 //   * API requests and non-GET requests are never touched.
 // ============================================================================
 
-const CACHE_VERSION = 'v2-20260729';
+const CACHE_VERSION = 'v3-20260801';
 const CACHE_NAME = `slabworthy-${CACHE_VERSION}`;
 
 const OFFLINE_URL = '/offline.html';
@@ -40,6 +40,7 @@ const STATIC_ASSETS = [
     '/js/collection.js',
     '/js/footer.js',
     '/js/grading.js',
+    '/js/pixel.js',
     '/js/sidebar.js',
     '/js/utils.js',
     '/icons/icon-192x192.png',

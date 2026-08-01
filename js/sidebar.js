@@ -13,6 +13,24 @@
 // 4. Handle collapse/expand, mobile drawer, tooltips, logout
 // ============================================
 "use strict";
+
+// Meta Pixel loader. Deliberately its own IIFE ABOVE the sidebar logic, because
+// the sidebar bails out below when there is no cc_token — and dashboard.html is
+// the post-verification landing page, which loads sidebar.js and NOT footer.js.
+// Injecting inside the sidebar IIFE would silently skip the pixel for every
+// logged-out visitor to a sidebar page. Identical block lives in /js/footer.js
+// and /footer.js — pixel id and all pixel behaviour live in /js/pixel.js.
+(function() {
+    var SW_PIXEL_SRC = '/js/pixel.js';
+    // faq.html and pricing.html load footer.js AND sidebar.js. Without this check
+    // the second include would add a second <script> tag and double every PageView.
+    if (document.querySelector('script[src="' + SW_PIXEL_SRC + '"]')) return;
+    var s = document.createElement('script');
+    s.src = SW_PIXEL_SRC;
+    s.async = true;
+    document.head.appendChild(s);
+})();
+
 (function() {
     // Don't inject if page opted out
     if (document.querySelector('[data-no-sidebar]')) return;

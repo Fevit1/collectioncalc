@@ -4,6 +4,23 @@
 // Automatically injects the standard branded footer.
 // Skip: verify.html (has its own simplified footer)
 "use strict";
+
+// Meta Pixel loader. Kept as its own IIFE ABOVE the footer logic so the pixel
+// still loads on pages that opt out of the footer via [data-no-universal-footer].
+// Identical block lives in /js/footer.js and /js/sidebar.js — pixel id and all
+// pixel behaviour live in /js/pixel.js, not here.
+// ⚠️ This root copy is the one sightings.html loads; keep it in sync with js/footer.js.
+(function() {
+    var SW_PIXEL_SRC = '/js/pixel.js';
+    // faq.html and pricing.html load footer.js AND sidebar.js. Without this check
+    // the second include would add a second <script> tag and double every PageView.
+    if (document.querySelector('script[src="' + SW_PIXEL_SRC + '"]')) return;
+    var s = document.createElement('script');
+    s.src = SW_PIXEL_SRC;
+    s.async = true;
+    document.head.appendChild(s);
+})();
+
 (function() {
     // Don't inject if page already opted out
     if (document.querySelector('[data-no-universal-footer]')) return;

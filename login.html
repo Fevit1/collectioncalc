@@ -656,6 +656,50 @@
         const API_BASE = 'https://collectioncalc-docker.onrender.com';
         let resetToken = null;
 
+        // ── Meta Pixel bridge ────────────────────────────────────────────────
+        // /js/pixel.js is injected asynchronously by js/footer.js, so it may not
+        // have executed yet when we want to fire an event — poll briefly for it
+        // rather than dropping the event.
+        //
+        // `done` (optional) runs once the event has actually been DISPATCHED to
+        // Meta, or on timeout. Callers that navigate afterwards MUST navigate from
+        // inside `done`: fbq queues events in memory until fbevents.js loads, and
+        // a redirect in the same tick tears that queue down with the document,
+        // losing the conversion silently.
+        //
+        // `done` is guaranteed to run exactly once, on every path — pixel present,
+        // pixel disabled, pixel never loaded, whenDispatched missing, or any throw.
+        // Analytics must never break or delay signup and verification.
+        //
+        // WORST-CASE WAIT IS ~2s, and only when /js/pixel.js fails to load at all
+        // (blocked by an extension, 404). When it loads it always defines
+        // SlabWorthyPixel — inert or live — so the poll below exits on the first
+        // attempt and the only remaining wait is whenDispatched's 1.2s ceiling.
+        // ⚠️ Do NOT raise SW_PIXEL_MAX_ATTEMPTS: it is time a real user spends
+        // staring at a motionless page after clicking their verification link.
+        var SW_PIXEL_MAX_ATTEMPTS = 20;   // × 100ms
+        function swPixelTrack(eventName, params, onceKey, done) {
+            var attempts = 0;
+            var finished = false;
+            function finish() {
+                if (finished) return;
+                finished = true;
+                if (done) { try { done(); } catch (e) { /* caller's problem, not ours */ } }
+            }
+            (function attempt() {
+                try {
+                    var p = window.SlabWorthyPixel;
+                    if (p && p.track) {
+                        p.track(eventName, params, onceKey);
+                        if (p.whenDispatched) { p.whenDispatched(finish, 1200); } else { finish(); }
+                        return;
+                    }
+                    if (++attempts > SW_PIXEL_MAX_ATTEMPTS) { finish(); return; }
+                    setTimeout(attempt, 100);
+                } catch (e) { finish(); }
+            })();
+        }
+
         // Check if user should be redirected back to pricing for checkout
         function getRedirectUrl() {
             const params = new URLSearchParams(window.location.search);
@@ -857,10 +901,35 @@
                 if (data.success) {
                     if (data.token) {
                         // Pre-verified (confirmed-waitlist) — log straight in.
+                        //
+                        // Meta Pixel: this branch is a completed signup AND a
+                        // completed registration in one step. The account exists
+                        // and the address is already email_verified (they proved
+                        // inbox control on the waitlist), so no verification mail
+                        // is sent and verifyEmail() will never run for them. Not
+                        // firing CompleteRegistration here would silently drop
+                        // every ad-driven signup from someone already on the
+                        // waitlist. Both fire BEFORE the navigation below.
+                        // ⚠️ If you want CompleteRegistration to mean strictly
+                        // "clicked the link in a verification email", delete the
+                        // second call — nothing else depends on it.
+                        swPixelTrack('Lead', { content_name: 'signup_preverified' },
+                                     'sw_pixel_lead_' + data.user.id);
                         localStorage.setItem('cc_token', data.token);
                         localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = getRedirectUrl();
+                        // Navigate only once the conversion has actually been sent.
+                        swPixelTrack('CompleteRegistration', { content_name: 'signup_preverified' },
+                                     'sw_pixel_cr_' + data.user.id,
+                                     function () { window.location.href = getRedirectUrl(); });
                         return;
+                    }
+                    // Meta Pixel: Lead = server accepted, account created AND the
+                    // verification email actually went out. email_send_failed still
+                    // returns success:true (the row exists), but no mail was
+                    // dispatched, so by the campaign's definition it is not a Lead.
+                    if (!data.email_send_failed) {
+                        swPixelTrack('Lead', { content_name: 'signup_form' },
+                                     'sw_pixel_lead_' + data.user_id);
                     }
                     showVerifyPanel(email, { sendFailed: !!data.email_send_failed, message: data.message });
                 } else {
@@ -923,13 +992,55 @@
                 const data = await response.json();
                 
                 if (data.success) {
+                    // ── Meta Pixel: CompleteRegistration ─────────────────────
+                    // THE optimization event. Must fire exactly once per user.
+                    //
+                    // `data.user` is present ONLY when the backend actually
+                    // flipped email_verified on THIS request. Three independent
+                    // guards make a repeat impossible:
+                    //   1. verify_email() NULLs email_verification_token on
+                    //      success (auth.py:958). A re-visit of the same link
+                    //      matches no row and returns success:false, so we never
+                    //      enter this branch a second time.
+                    //   2. An already-verified user hitting the URL gets the same
+                    //      success:false. The one "Email already verified" branch
+                    //      (auth.py:950) is unreachable — resend_verification()
+                    //      refuses to mint a new token for a verified account
+                    //      (auth.py:1021) — and it returns no `user` anyway, so
+                    //      this check excludes it regardless.
+                    //   3. The ?token param is stripped from the URL
+                    //      synchronously at DOMContentLoaded, before this fetch
+                    //      resolves, so a refresh does not re-run verifyEmail().
+                    // The localStorage sentinel is a fourth, per-device backstop.
+                    //
+                    // Fires here, on login.html, NOT on the dashboard: the
+                    // redirect below goes to a page every login lands on, which
+                    // carries no one-time signal.
+
+                    // Log the user in FIRST, so the session is valid immediately
+                    // even though the redirect waits on the pixel below.
                     if (data.token) {
-                        // User is approved, log them in
                         localStorage.setItem('cc_token', data.token);
                         localStorage.setItem('cc_user', JSON.stringify(data.user));
-                        window.location.href = getRedirectUrl();
-                    } else if (data.pending_approval) {
-                        showPanel('pendingPanel');
+                    }
+
+                    // Deferred so the conversion is actually dispatched before the
+                    // document is torn down by the redirect. Bounded at 1.2s inside
+                    // swPixelTrack, and typically instant because fbevents.js has
+                    // already loaded by the time the verify API call returns.
+                    const proceed = () => {
+                        if (data.token) {
+                            window.location.href = getRedirectUrl();
+                        } else if (data.pending_approval) {
+                            showPanel('pendingPanel');
+                        }
+                    };
+
+                    if (data.user && data.user.id) {
+                        swPixelTrack('CompleteRegistration', { content_name: 'email_verified' },
+                                     'sw_pixel_cr_' + data.user.id, proceed);
+                    } else {
+                        proceed();
                     }
                 } else {
                     showPanel('loginPanel');
