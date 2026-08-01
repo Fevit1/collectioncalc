@@ -965,7 +965,7 @@ def api_admin_waitlist_invite():
                     <ul style="color: #d4d4d8; line-height: 1.8;">
                         <li><strong>AI Comic Grading</strong> \u2014 Get an estimated grade from photos of your comics</li>
                         <li><strong>Fair Market Valuation</strong> \u2014 Know what your comics are actually worth</li>
-                        <li><strong>Slab Guard\u2122</strong> \u2014 Register and protect your collection</li>
+                        <li><strong>Slab Guard\u2122</strong> \u2014 Register your collection and put it on record</li>
                         <li><strong>Signature ID</strong> \u2014 Identify creator signatures on signed comics</li>
                     </ul>
 

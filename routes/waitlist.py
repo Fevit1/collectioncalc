@@ -103,7 +103,11 @@ def _send_waitlist_confirmation(email, token):
               <div style="background: linear-gradient(135deg, #1a1744, #1e1b4b); border: 1px solid rgba(99,102,241,0.15); border-radius: 10px; padding: 18px 16px;">
                 <div style="font-size: 24px; margin-bottom: 8px;">&#x1F6E1;</div>
                 <div style="color: #facc15; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Slab Guard&trade;</div>
-                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Fingerprint your comics. Prove ownership. Deter theft.</div>
+                <!-- ⚠️ Was "Prove ownership" — that is the unproven recovery claim in two words.
+                     A fingerprint evidences possession at registration; it does not prove title,
+                     and matching a later photo back to it is still an open research question.
+                     "Deter theft" is retained: deterrence is genuine and does not assert recovery. -->
+                <div style="color: #94a3b8; font-size: 12px; line-height: 1.5;">Fingerprint your comics. Put them on record. Deter theft.</div>
               </div>
             </td>
           </tr>

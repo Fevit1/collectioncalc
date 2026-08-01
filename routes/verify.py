@@ -408,7 +408,7 @@ def _send_sighting_email(owner_email, serial_number, title, issue, status,
         </ul>
 
         <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-            This alert was sent by Slab Guard &mdash; Slab Worthy's theft recovery system.<br>
+            This alert was sent by Slab Guard &mdash; Slab Worthy's comic registry and listing monitor.<br>
             You received this because you registered {serial_number} with Slab Guard.
         </p>
     </div>
