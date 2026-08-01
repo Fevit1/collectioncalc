@@ -707,8 +707,14 @@
                         &#128737; Want advanced detection?
                     </div>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 14px;">
-                        Sign in for AI-powered physical copy matching &mdash; identifies the exact same comic
-                        across different cameras, lighting, and backgrounds.
+                        <!-- ⚠️ CLAIMS RULE: registration/registry/serial lookup are proven and may be
+                             stated plainly. RECOVERY — matching a photo back to a registration — is an
+                             open research question (cross-camera was never validated), so this must
+                             stay "candidate matches to review", never "identifies the exact same comic".
+                             Previous copy claimed identification "across different cameras, lighting,
+                             and backgrounds", which is precisely the untested capability. -->
+                        Sign in for AI-assisted matching &mdash; compares your photo against the registry
+                        and surfaces candidate matches for you to review.
                     </p>
                     <a href="/login.html" class="btn btn-primary"
                        style="display: inline-block; width: auto; padding: 10px 24px;
@@ -768,13 +774,25 @@
                 }
 
                 // Copy verdict display
+                //
+                // ⚠️ CLAIMS RULE (see the comment above the sign-in upsell): these three
+                // strings are the ONLY place the product reports a matching result to a
+                // user, so they must not assert same-copy identification. Cross-camera
+                // matching is unvalidated — the E3 rep reached TP 6/6 but FP 4/6 and was
+                // REJECTED as too permissive, and the ceiling was judged physical.
+                //
+                // 'different_copy' is the one that carries real-world risk: a false
+                // negative tells someone their stolen book ISN'T theirs and they stop
+                // looking. It is phrased as an absence of evidence, never a conclusion,
+                // and points at the serial number — the deterministic path, and the only
+                // one that gives a definitive answer.
                 let verdictHtml = '';
                 if (copyVerdict === 'same_copy') {
-                    verdictHtml = `<div class="copy-verdict same-copy">&#128308; Physical copy match &mdash; this appears to be the same comic</div>`;
+                    verdictHtml = `<div class="copy-verdict same-copy">&#128308; Strong candidate match &mdash; review this listing carefully</div>`;
                 } else if (copyVerdict === 'different_copy') {
-                    verdictHtml = `<div class="copy-verdict different-copy">&#128994; Different physical copy &mdash; same title, different comic</div>`;
+                    verdictHtml = `<div class="copy-verdict different-copy">&#128994; No strong match &mdash; same title, but the copies look different. Photo comparison can't rule a copy in or out; to know for certain, <a href="/verify.html" style="color: inherit; text-decoration: underline;">check the serial number</a>.</div>`;
                 } else {
-                    verdictHtml = `<div class="copy-verdict uncertain">&#128992; Uncertain &mdash; could not determine if same physical copy</div>`;
+                    verdictHtml = `<div class="copy-verdict uncertain">&#128992; Uncertain &mdash; we couldn't tell from the photos. <a href="/verify.html" style="color: inherit; text-decoration: underline;">Check the serial number</a> for a definitive answer.</div>`;
                 }
 
                 html += `

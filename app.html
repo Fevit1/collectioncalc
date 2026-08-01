@@ -1302,7 +1302,11 @@
                                 Slab Guard™
                             </h4>
                             <p style="color: var(--text-muted); font-size: 14px; margin: 8px 0 12px 0; line-height: 1.5;">
-                                Register this comic for theft recovery monitoring across eBay, Whatnot, and other marketplaces. <strong>Patent pending.</strong>
+                                <!-- ⚠️ Was: "Register this comic for theft recovery monitoring across
+                                     eBay, Whatnot, and other marketplaces." Two defects: "theft
+                                     recovery" is the unproven capability, and Whatnot/other
+                                     marketplaces are NOT monitored — only eBay, via the extension. -->
+                                Record this comic in the Slab Guard registry with a unique fingerprint and serial number. Our Chrome extension flags candidate eBay listings for you to review. <strong>Patent pending.</strong>
                             </p>
                             <button type="button" class="btn-register" onclick="registerComic()" id="registerBtn">
                                 Register This Comic
@@ -2865,7 +2869,7 @@
                                     Registered as <strong style="color: #6366f1;">${result.serial_number}</strong>
                                 </div>
                                 <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 4px;">
-                                    Monitoring enabled for theft recovery
+                                    Recorded in the Slab Guard registry
                                 </div>
                             </div>
                         </div>
