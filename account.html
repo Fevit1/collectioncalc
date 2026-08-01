@@ -533,7 +533,11 @@
         <h1>My Account</h1>
 
         <div class="success-banner" id="successBanner">
-            <strong>Welcome!</strong> Your subscription is now active. Time to protect your collection.
+            <!-- Deliberately tier-agnostic: this banner fires for any successful
+                 checkout, and "protect your collection" pointed at Slab Guard —
+                 a tier that is no longer purchasable. Don't name a plan or its
+                 limits here; this copy has to survive Guard coming back. -->
+            <strong>Welcome!</strong> Your subscription is now active. Start grading your collection.
         </div>
 
         <div class="loading" id="loadingState">Loading your account...</div>
@@ -703,7 +707,11 @@
                 const period = data.billing_period === 'annual' ? 'annually' : 'monthly';
                 details.innerHTML = `Billed <span>${period}</span> · Next billing date: <span>${endDate}</span>`;
             } else if (data.plan === 'free') {
-                details.textContent = 'Upgrade to unlock unlimited valuations and Slab Guard protection.';
+                // Was: 'Upgrade to unlock unlimited valuations and Slab Guard
+                // protection.' Both halves were wrong — no purchasable tier grants
+                // UNLIMITED valuations (Pro is 100/mo), and "Slab Guard protection"
+                // pointed at the Guard tier, which is no longer purchasable.
+                details.textContent = 'Upgrade to Pro for 100 valuations a month and multi-photo grading.';
             }
 
             // Valuations usage
