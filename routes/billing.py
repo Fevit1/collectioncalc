@@ -129,6 +129,32 @@ PLANS = {
     }
 }
 
+# Tiers that exist in PLANS but MAY NOT BE PURCHASED. Enforced server-side in
+# create_checkout_session() — the pricing page also labels them "Coming Soon" and
+# routes their CTA to /contact.html, but display is not enforcement: this is the
+# belt for a direct API call.
+#
+#   'dealer' — features (API, bulk, white-label) are still in development.
+#   'guard'  — Slab Guard's fingerprinting/recovery capability is an OPEN RESEARCH
+#              QUESTION (a video-based approach is under evaluation and unproven).
+#              We will not sell a tier whose headline capability is unproven,
+#              least of all on live Stripe keys.
+#
+# ⚠️ THIS IS A PURCHASE GATE, NOT A FEATURE REMOVAL. Slab Guard registration,
+#    verification and monitoring stay fully wired, and users ALREADY on the Guard
+#    plan keep every entitlement — nothing here reads plan state or revokes access.
+#    It blocks new checkouts only.
+#
+# ⚠️ Stripe's hosted Customer Portal is a SEPARATE path that this constant cannot
+#    reach (create_customer_portal() below passes no `configuration`, so it uses
+#    the account default). A tier listed here must ALSO be removed from the live
+#    portal's switchable products in the Stripe dashboard, or an existing
+#    subscriber can still switch into it and bypass this refusal entirely.
+#
+# To re-enable a tier: remove it from this set. 'guard' is already present in the
+# create_checkout_session() allowlist below, so removing it here is sufficient.
+COMING_SOON_PLANS = ('dealer', 'guard')
+
 # NOTE: STRIPE_WEBHOOK_SECRET is read at request time inside stripe_webhook()
 # (like DATABASE_URL in get_db), not cached at import — so a secret injected
 # after process start is picked up without a restart.
@@ -393,7 +419,10 @@ def get_signature_id_entitlement(user_id):
     limit = PLANS.get(plan_key, PLANS['free']).get('signature_id_per_month', 0)
     if limit == 0:
         return {'reason': 'no_access', 'limit': 0, 'plan': plan_key, 'is_admin': False,
-                'message': 'Signature ID is available on Guard and Dealer plans'}
+                # Deliberately does NOT name Guard/Dealer: both are in
+                # COMING_SOON_PLANS, so naming them sends the user to a checkout
+                # that will refuse them. Don't advertise a tier we won't sell.
+                'message': "Signature ID isn't available on your plan yet"}
     return {'reason': 'ok', 'limit': limit, 'plan': plan_key, 'is_admin': False, 'message': 'Included'}
 
 
@@ -505,12 +534,15 @@ def create_checkout_session():
     plan = data.get('plan')
     billing_period = data.get('billing_period', 'monthly')
 
-    # Dealer is "coming soon" — its features are unbuilt, so refuse checkout
-    # server-side (enforce the pricing-page label, don't just display it). The
-    # page routes Dealer to /contact.html; this is the belt for a direct API call.
-    if plan == 'dealer':
+    # Coming-soon tiers are refused before anything else — see COMING_SOON_PLANS
+    # for why each one is listed and how to re-enable it. Deliberately ahead of the
+    # active-subscription 409 below: the two are sequential and mutually exclusive
+    # (this returns for coming-soon plans, the 409 only ever sees 'pro'), so a
+    # coming-soon plan reports "coming soon" rather than the misleading
+    # "you already have a subscription".
+    if plan in COMING_SOON_PLANS:
         return jsonify({
-            'error': 'The Dealer plan is coming soon — contact us for early access.',
+            'error': f'The {PLANS[plan]["name"]} plan is coming soon — contact us for early access.',
             'coming_soon': True
         }), 400
 

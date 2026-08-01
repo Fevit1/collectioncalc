@@ -233,7 +233,10 @@ def analyze_vision():
         if not allowed:
             return jsonify({
                 'success': False,
-                'error': f'Vision scanning requires Guard or Dealer plan. {message}'
+                # Deliberately does NOT name Guard/Dealer: both sit in
+                # billing.COMING_SOON_PLANS, so naming them points the user at a
+                # checkout that will refuse them.
+                'error': f"Vision scanning isn't available on your plan yet. {message}"
             }), 403
 
     # Parse request
