@@ -77,7 +77,35 @@ Previously recorded as "NOT verified by execution" (the in-app browser kept reus
 3. **Meta Events Manager cold-signup walkthrough** — never run. I verified the beacon reaches Meta with the correct dataset and payload, **not** that Events Manager attributes it. Walk: landing → signup → verification email → click → verified; assert `Lead` once, `CompleteRegistration` once, neither re-fires on refresh.
 4. **Authenticated Guard refusal unproven in prod** — `POST /api/billing/create-checkout {"plan":"guard"}` returns 401 unauthenticated; the 400 `coming_soon` path sits behind `@require_auth`. Passed 13/13 offline against the real view, and the portal gate is closed, so exposure is narrow.
 5. **Mobile pass** — still the priority (FB traffic is mobile).
-6. **Slab Guard video research — still UNBOUNDED.** No result, no timebox. **Honest interim headline = CGC cert-number matching**, not fingerprint recovery.
+6. 🔻 **SLAB GUARD VIDEO RESEARCH — UNBOUNDED, AND IT IS BLOCKING MORE THAN IT LOOKS. NEEDS A DECISION, NOT A TASK.**
+
+   **What it blocks (Mike, 2026-08-01 — this is the reason it can't just sit):**
+   - a **patented** feature (Comic Fingerprinting Theft Recovery, filed 2026-02-12),
+   - an **unsellable tier** (Guard — the whole coming-soon unit above exists because of this),
+   - the **Slab Guard B2B licensing story**.
+
+   **Its current state: no owner, no date, no decision criterion, no result.** That combination is
+   how it drifts into next month unnamed — three high-value things parked on an open question
+   nobody has been assigned to close.
+
+   **Required outcome — pick ONE (Mike, not decided today, but do not let it drift):**
+   - **(A) TIMEBOX IT.** Fixed calendar bound **plus a pre-committed decision criterion written
+     down BEFORE the work starts** — i.e. the accuracy/FP bar that counts as success, decided in
+     advance so the result can't be graded against a moving target. On expiry with the bar unmet,
+     it auto-parks to (B). No extension without a new explicit decision.
+   - **(B) PARK IT EXPLICITLY** and **build CGC cert-number matching as the real recovery path.**
+     Cert-number matching is **deterministic and already honest** — the same property that made
+     serial verification the claim we chose to lead with in the `check.html` verdict rewrite. This
+     is the option that ships something.
+
+   ⚠️ **What must NOT happen: a third state where it stays open, undated and unowned.** That is
+   exactly where it is now.
+
+   **Interim honest headline stays: CGC cert-number matching — NOT fingerprint recovery.** Prior
+   findings for whoever picks this up: cross-camera was never validated (E3 rep TP 6/6 but **FP 4/6,
+   REJECTED** as too permissive), the ceiling was judged **physical** and triangulated three ways,
+   and single-image matching is parked as bounded-to-high-wear. The SAM+E3 engine is retained for
+   multi-view. Zero production code.
 7. `docs/postmortems/` **stays untracked** — deliberate; committing files mid-ship-sequence is how staging accidents happen. Commit it deliberately in a later pass.
 
 ---

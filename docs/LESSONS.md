@@ -305,6 +305,8 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 - **SOURCE:** 2026-08-01 Slab Guard claims audit. Mike's correction; verified read-only via
   `DATABASE_URL_RO`. Candidate for cross-project promotion (Mike's call — the defaulted-discriminator
   heuristic applies to any multi-source pipeline: MASSE lead sources, TFO run origins).
+- **STATUS:** ⛔ **STAYS SLAB WORTHY-LOCAL** (Mike, 2026-08-01) — the two-table trap is specific to
+  this corpus. Not promoted; do not re-propose it.
 
 ### L-SW-2026-015 — A null, empty, or zero result is not a pass until you have proven the probe could have returned a hit
 
@@ -332,5 +334,9 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   both.
 - **SOURCE:** 2026-08-01, Guard coming-soon + claims-audit session; recorded at Mike's request after
   he noted all three in one sitting. Pairs with L-SW-2026-008 (verify state from the source of truth,
-  don't reconstruct it). Strong candidate for cross-project promotion (Mike's call — applies to every
-  audit, migration sweep, security scan, and post-deploy check on any project).
+  don't reconstruct it).
+- **STATUS:** ✅ **PROMOTED CROSS-PROJECT 2026-08-01 (Mike) → `LESSONS_CROSS_PROJECT.md` L-2026-024**
+  (file bumped to v1.4, 11 lessons active). Mike's reasoning: it is the **same failure shape as
+  L-2026-021**, the `STRIPE_WEBHOOOK_SECRET` hunt — there `grep -i stripe` displayed the misnamed key
+  and the value comparison matched, so **both checks returned clean because neither could see the
+  defect**. The positive-control rule transfers to MASSÉ and TFO without modification.
