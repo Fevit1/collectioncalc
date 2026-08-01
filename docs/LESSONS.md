@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-07-16
+> **Operator:** Mike Berry · **Last updated:** 2026-08-01
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -279,3 +279,58 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   churn (~30s insert/delete cycle). Pairs with L-SW-2026-012 (same incident's memory half).
   Candidate for cross-project promotion (Mike's call — applies to any project with multi-worker
   alerting: MASSE agent alerting, TFO pipeline monitors).
+
+### L-SW-2026-014 — When a domain spans multiple tables, count EVERY table before characterising the whole; a `source` column with a DEFAULT value is the tell that a sibling table holds the rest
+
+- **RULE:** Before asserting what a dataset does or does not contain, enumerate **every** table that
+  holds that domain and count them all. A single-table count that looks conclusive is the failure
+  mode, not the evidence. **The reusable heuristic: a `source`/`type`/`origin` column that carries a
+  DEFAULT value is a strong signal that the other sources live somewhere else** — a genuinely
+  multi-source table rarely needs a default.
+- **WHY:** The valuation corpus lives in **two** tables: `ebay_sales` (71,652 rows, 87.8%) and
+  `market_sales` (9,963 rows, 12.2%, **100% Whatnot** — `sales_market.py:127` defaults `source` to
+  `'whatnot'`). Querying either one alone produces the **opposite** wrong answer with equal
+  confidence. Reasoning from the eBay-shaped tooling (the eBay collector extension, `sales_ebay.py`,
+  the eBay corpus work in session notes), I asserted "the corpus is eBay-only" and flagged **accurate**
+  marketing copy (`waitlist-confirmed.html:306`, "we track real sales data across eBay and Whatnot")
+  as a false claim — and got a green light to "fix" correct copy. Caught only because Mike knew the
+  data. The Whatnot rows are real: 1,603 distinct titles across 35 series, captured 2026-01-24 →
+  2026-07-01.
+- **HOW TO APPLY:** (1) For any "does the data support this claim" question, list the tables FIRST
+  (`\dt`, or grep every `INSERT INTO`) and count them all before concluding. (2) Treat a defaulted
+  discriminator column as an explicit prompt to go looking for the sibling. (3) When a claim is about
+  a *union* ("across X and Y"), the query must be a union too. (4) Copy that turns out to be correct
+  gets a **tombstone recording that it was investigated and found correct** — otherwise the next
+  sweep re-raises it and someone eventually "fixes" accurate text.
+- **SOURCE:** 2026-08-01 Slab Guard claims audit. Mike's correction; verified read-only via
+  `DATABASE_URL_RO`. Candidate for cross-project promotion (Mike's call — the defaulted-discriminator
+  heuristic applies to any multi-source pipeline: MASSE lead sources, TFO run origins).
+
+### L-SW-2026-015 — A null, empty, or zero result is not a pass until you have proven the probe could have returned a hit
+
+- **RULE:** Any check whose "good" outcome is **absence** (no matches, zero rows, empty diff, clean
+  scan) must be paired with a **positive control** proving the probe was capable of finding something
+  before its silence is treated as evidence. Never report "clean" from a command you have not shown
+  can return a hit.
+- **WHY:** Three independent instances in a single session (2026-08-01), all the same shape, all
+  self-caught only on re-check: (1) `grep ... | head -22` silently truncated the `app.html` claims
+  sweep and hid line 2872 — I reported that audit **complete** while a "theft recovery" string sat in
+  the JS-injected success message, contradicting copy I had rewritten 40 lines above it; (2) a
+  post-deploy `curl` without `-L` hit an **HTTP 308** and measured **0 bytes**, so "0 banned phrases
+  across 6 live pages" was scanning empty responses — a total false pass on production verification;
+  (3) three blueprint probes used **guessed** route URLs (`/api/admin/stats`, `/api/vision/scan`) that
+  do not exist, so their 404s read as "module failed to import" when the modules were fine. Each one
+  produced a confident, clean-looking, **wrong** answer.
+- **HOW TO APPLY:** (1) Never let a truncating pipe (`head`, `-m`, `| head -N`) terminate a
+  completeness sweep — count first (`grep -c`), then page deliberately. (2) On any HTTP check, print
+  `%{http_code}` and `%{size_download}` and follow redirects (`curl -sL`); a 0-byte body is never a
+  pass. (3) Derive endpoint paths by **reading the route decorators**, never by guessing; distinguish
+  a route-level 404 (JSON body, app handled it) from an unregistered blueprint (framework HTML), and
+  remember **405 proves the path exists**. (4) Before trusting an absence, invert the probe once
+  against known-present content to confirm it can fire. (5) When reporting verification, state what
+  the check would have missed — "absence of the old string" is not "presence of the new one"; assert
+  both.
+- **SOURCE:** 2026-08-01, Guard coming-soon + claims-audit session; recorded at Mike's request after
+  he noted all three in one sitting. Pairs with L-SW-2026-008 (verify state from the source of truth,
+  don't reconstruct it). Strong candidate for cross-project promotion (Mike's call — applies to every
+  audit, migration sweep, security scan, and post-deploy check on any project).

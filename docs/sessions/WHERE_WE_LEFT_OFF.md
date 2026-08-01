@@ -1,5 +1,87 @@
 # Where We Left Off - Aug 1, 2026
 
+## 2026-08-01 (SESSION CLOSE) — ✅ **SIX UNITS SHIPPED AND VERIFIED LIVE**
+
+**MOST RECENT CHANGE (Rule 5): all six units are deployed and verified in production. Backend deploys confirmed by commit hash in Render Events — `88c42aa` (Guard checkout gate) and `a0cc9fa` (email templates), both live. Supersedes every "drafted / awaiting ship" framing below.** ⚰️ **Do NOT re-present any command block from this session; the work is shipped.**
+
+### What shipped
+
+| # | Unit | Files | Deploy |
+|---|---|---|---|
+| 1 | Guard checkout refusal + stop upselling unbuyable tiers | `routes/billing.py`, `routes/vision.py` | **`88c42aa`** — Render verified |
+| 2 | Pricing rebuilt two-column + Guard/Dealer roadmap strip | `pricing.html`, `account.html`, `faq.html` | Pages purged |
+| 3 | State record | `docs/sessions/WHERE_WE_LEFT_OFF.md` | — |
+| 4a | Slab Guard claims — frontend | `check.html`, `app.html`, `waitlist.html`, `waitlist-confirmed.html` | Pages purged |
+| 4b | Slab Guard claims — email templates | `routes/waitlist.py`, `routes/admin_routes.py`, `routes/verify.py` | **`a0cc9fa`** — Render verified |
+| 4c | Fingerprinting doc tombstone | `docs/technical/FINGERPRINTING_PROJECT_SUMMARY.md` | — |
+| 5 | Privacy disclosure (shipped **ahead of** pixel code, deliberately) | `privacy.html` | Purged |
+| 6 | Meta Pixel | `js/pixel.js`, `js/footer.js`, `footer.js`, `js/sidebar.js`, `login.html`, `sw.js` | Purged |
+
+**Post-deploy verification (read-only):** `/health` 200 `{"status":"ok","version":"5.6.0"}`. All four edited backend modules confirmed *imported* by app-handled JSON responses — `/api/waitlist/count` 200, `/api/verify/lookup/...` 404 JSON, `/api/admin/users` 401 JSON, `/api/vision/analyze` 405. That was the check that mattered for 4b: a broken f-string in an email template is a `SyntaxError` at import, the blueprint never registers, and those would have been Flask HTML 404s. ⚠️ **`/health`'s `version` is a hand-maintained string with NO commit SHA** — it can never confirm which commit is live; Render Events is the only source for that.
+
+### Guard tier → coming-soon (three independent gates, all required)
+1. **Server:** `COMING_SOON_PLANS = ('dealer','guard')` in `routes/billing.py`, refused ahead of the 409 active-subscription guard (which now only ever sees `'pro'`). Dealer's status/keys/error string unchanged.
+2. **Stripe (Mike-side, done BEFORE this brief ran):** Guard monthly + annual removed from the live customer portal's switchable products. ⚠️ **This was the real bypass** — the portal is the only in-place plan-modify path and code cannot reach it. Guard prices were **deliberately NOT archived** (reversibility; Guard is meant to return).
+3. **UI:** pricing rebuilt two-column Free/Pro, Guard + Dealer demoted to a roadmap strip with Notify Me → `/contact.html`. "Most Popular" moved Guard → Pro. Compare table trimmed to Free/Pro. Save badge 25% → 17% (25% was *Guard's* discount; Pro saves 16.5% — the badge had been contradicting the Pro card beneath it).
+
+**Re-enabling Guard needs all three reversed.** The one-line `COMING_SOON_PLANS` removal alone is NOT sufficient.
+
+### Meta Pixel — live
+Dataset **`4401241006789951`**; domain ID **`924245086634661`** verified via Cloudflare TXT. Confirmed firing on slabworthy.com: `signals/config/4401241006789951` returns a config (Meta recognises the dataset), `facebook.com/tr/` beacon sent, `_fbp` set, fbevents 2.9.368, queue drained. Intercepted wire payload: `id=4401241006789951, ev=CompleteRegistration, cd[content_name]=email_verified`.
+- `Lead` = signup accepted **and** verification email dispatched (not on `email_send_failed`). `CompleteRegistration` = first email verification only; four independent guards (token NULLed server-side, `?token` stripped before the fetch resolves, response-shape check, localStorage sentinel).
+- **The redirect is deferred until the conversion is actually dispatched** — firing then navigating in the same tick destroys queued events. Bounded 2s; an inert API installs when the pixel is off/blocked so signup is never delayed. *(An earlier draft stalled every verification 10.8s; caught and fixed pre-ship.)*
+- **Privacy shipped first, on purpose.** Includes the CCPA revision at **`privacy.html:347`** plus its twin in "How We Use Your Information" — both "we do not sell your personal information" claims now qualified, since sharing ad data with Meta may count as a "sale"/"share" even with no money changing hands.
+
+### ✅ `handle_subscription_deleted` — CONFIRMED IN PRODUCTION
+An **accidental live Free→Guard checkout**, then cancelled: the user row reverted to `free` correctly. **This was Section E's last untested path.** ⚰️ Retire "subscription-deleted path untested" wherever it still appears — it is closed by production evidence, not a fixture.
+
+### ✅ `sw.js` install-precache + activate-eviction — CONFIRMED EXECUTING
+Previously recorded as "NOT verified by execution" (the in-app browser kept reusing an active worker). Now observed on live slabworthy.com: exactly one cache `slabworthy-v3-20260801`, `/js/pixel.js` precached, **zero HTML cached**, zero stale caches remaining. ⚰️ That open item is closed.
+
+### Slab Guard claims audit — outcome
+**Taken:** Tier 1 items 1–6 and Tier 2 items **7** (*"authentication and theft protection"* → *"registration and theft-deterrence"* — **we do not authenticate, CGC does**) and **9** (*"proof of ownership"/"ownership evidence"* → *"evidence of possession at registration"*).
+
+**Deliberately KEPT, with reasoning — do not re-flag:**
+- **8** `index.html:1052` "Protect Your Collection" — brand framing, and deterrence *is* genuine protection; with 1–6 landed the section beneath it is accurate.
+- **10** `pricing.html` Slab Guard banner — already the most honest copy in the repo ("candidate sightings", "beta", "may be inaccurate").
+- **11** `verify.html:531` serial verification — **deterministic, works, and is the claim we want leading.**
+
+⚠️ **FOUR LATE MISSES, found only after I had already reported the audit as complete:** `waitlist-confirmed.html` (never audited at all — it's shown to every waitlist signup), `app.html:2872` (JS-injected success message still read "Monitoring enabled for theft recovery", **contradicting copy rewritten 40 lines above it**), the `check.html` match verdicts, and `routes/verify.py:411` (sighting-alert **email** calling Slab Guard a "theft recovery system"). **One was caused by my own `head -22` truncation hiding line 2872** — see L-SW-2026-015.
+
+⚠️ **LOGGED, NOT CORRECTED (Mike's call):** the two corrected email strings had already been delivered to real users. Not retracted or re-sent at this volume. Recorded so nobody later reads the fixed templates and assumes the old wording never shipped.
+
+### Match verdict rewrite (`check.html`) — the reasoning is the point
+`same_copy` → "Strong candidate match — review this listing carefully". `different_copy` → "No strong match… **Photo comparison can't rule a copy in or out**; to know for certain, check the serial number." `uncertain` → also routes to the serial.
+
+**`different_copy` was the HIGHER-RISK string, not `same_copy`** — a false negative tells someone their stolen book isn't theirs and **they stop looking**. Cross-camera FP ran 4/6. Both non-positive verdicts now route to serial verification, the deterministic path and the only one that gives a definitive answer. **Mike: this is the pattern to repeat everywhere Slab Guard surfaces a judgment** — state the epistemic limit plainly, then send people somewhere real.
+
+### ⚰️ TOMBSTONE — the two-table trap (see also L-SW-2026-014)
+"The valuation corpus is eBay-only" is **DEAD — it was never true.** I flagged accurate copy at `waitlist-confirmed.html:306` as a false claim; **Mike corrected it and the correction is confirmed by a read-only count.**
+
+| Source | Table | Rows | Share |
+|---|---|---|---|
+| eBay | `ebay_sales` | 71,652 | 87.8% |
+| Whatnot | `market_sales` | 9,963 | 12.2% |
+
+⚠️ **`market_sales` is 100% Whatnot** (`sales_market.py:127` defaults `source` to `'whatnot'`). Querying either table alone yields the **opposite** wrong answer with equal confidence. Whatnot is 9,963 real captures across 1,603 titles / 35 series (2026-01-24 → 2026-07-01) — **not fixtures**. **`waitlist-confirmed.html:306` was investigated and found CORRECT. Do not "fix" it.** Mike's ruling on phrasing: 88/12 is fine — *"across eBay and Whatnot"* describes provenance, not proportions.
+
+---
+
+## 🎯 NEXT SESSION OPENS ON CP-1 — THE VALUATION HONESTY GATE. NOTHING COMPETES FOR IT.
+
+**It remains UNTOUCHED and is the SOLE DECLARED BLOCKER for the Aug 4 soft launch.** Two sessions have now been spent on pixel and Guard work while this sat still. Known going in (verify, don't assume): confidence is **computed and stored but displayed nowhere**; multi-run voting exists server-side but the frontend hardcodes `runs: 1`; a live harness exists at `test_grading_consistency.py --live`; **grading consistency has never been measured.** The cheapest framing is CP-1's original: *honest about confidence, not accurate on everything.*
+
+### 📋 OPEN ITEMS
+1. **Test-address problem — Cloudflare Email Routing catch-all on `slabworthy.com`, MID-SETUP.** ⚠️ **DO NOT TOUCH `send.slabworthy.com` MX, SPF or DKIM — those are Resend OUTBOUND and unrelated.** Inbound catch-all only.
+2. **DMARC record missing** on the sending domain.
+3. **Meta Events Manager cold-signup walkthrough** — never run. I verified the beacon reaches Meta with the correct dataset and payload, **not** that Events Manager attributes it. Walk: landing → signup → verification email → click → verified; assert `Lead` once, `CompleteRegistration` once, neither re-fires on refresh.
+4. **Authenticated Guard refusal unproven in prod** — `POST /api/billing/create-checkout {"plan":"guard"}` returns 401 unauthenticated; the 400 `coming_soon` path sits behind `@require_auth`. Passed 13/13 offline against the real view, and the portal gate is closed, so exposure is narrow.
+5. **Mobile pass** — still the priority (FB traffic is mobile).
+6. **Slab Guard video research — still UNBOUNDED.** No result, no timebox. **Honest interim headline = CGC cert-number matching**, not fingerprint recovery.
+7. `docs/postmortems/` **stays untracked** — deliberate; committing files mid-ship-sequence is how staging accidents happen. Commit it deliberately in a later pass.
+
+---
+
 ## 2026-08-01 — 🛡️ **GUARD TIER IS NO LONGER SELLABLE** (coming-soon, same pattern as Dealer)
 
 **MOST RECENT CHANGE (Rule 5): the Guard tier was pulled from sale on 2026-08-01. Supersedes every "Pro + Guard are the two self-service options" statement in this file, including the 2026-07-29 portal-configuration and Unit-D plan-selection entries.** Reason: Slab Guard's **recovery** capability is unproven — cross-camera matching was never properly tested and a video-based approach is under evaluation with no result yet. We will not sell a tier whose headline capability is unproven, least of all on live keys.
