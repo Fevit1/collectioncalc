@@ -1,4 +1,53 @@
-# Where We Left Off - Jul 29, 2026
+# Where We Left Off - Aug 1, 2026
+
+## 2026-08-01 — 🛡️ **GUARD TIER IS NO LONGER SELLABLE** (coming-soon, same pattern as Dealer)
+
+**MOST RECENT CHANGE (Rule 5): the Guard tier was pulled from sale on 2026-08-01. Supersedes every "Pro + Guard are the two self-service options" statement in this file, including the 2026-07-29 portal-configuration and Unit-D plan-selection entries.** Reason: Slab Guard's **recovery** capability is unproven — cross-camera matching was never properly tested and a video-based approach is under evaluation with no result yet. We will not sell a tier whose headline capability is unproven, least of all on live keys.
+
+⚰️ **TOMBSTONE — three dead statements, all retired today:**
+1. **"Live portal plan-switching = Pro + Guard only, Dealer excluded"** (2026-07-29) is **DEAD**. **REPLACED BY:** Pro only — Guard monthly + annual were removed from the live customer portal's switchable products (Mike, verified against the config) **before** this work ran. The portal bypass identified in the code review is therefore **already closed**; do not re-raise it as open.
+2. **"Unit D plan-selection page must offer Pro + Guard only, never Dealer"** is **DEAD**. **REPLACED BY: Pro only — never Guard, never Dealer.** ⚠️ The page is still **unbuilt**; this correction exists so it is not built from the stale spec. Free remains until the ~Sept 4 sunset.
+3. **"Guard is the Most Popular tier"** (pricing.html) is **DEAD** — the badge moved to Pro, which is now the only purchasable paid tier.
+
+**SCOPE — this is a PURCHASE GATE, NOT a feature removal.** Slab Guard registration, fingerprinting, `verify.html`, `check.html`, sightings and the admin review queue all stay wired and working. Existing Guard subscribers keep **every** entitlement — nothing reads plan state or revokes access. `PLANS['guard']` is untouched.
+
+**✅ `handle_subscription_deleted` IS NOW CONFIRMED WORKING (2026-08-01).** An accidental **live** Free→Guard checkout was run and then cancelled; the user row reverted to `free` correctly. Section E had this path listed as **never tested** — that gap is now closed by real production evidence, not by a fixture. ⚰️ Retire "subscription-deleted path untested" wherever it still appears.
+
+**Item held, deliberately:** archiving the Guard prices in Stripe is **NOT** being done. Guard is intended to become sellable again once recovery is proven, and archiving is a heavier reversal than a portal-config change. The prices stay live but unreachable — server refuses checkout, portal no longer offers the switch.
+
+**Re-enabling Guard later is a one-line code change** (`routes/billing.py`, remove `'guard'` from `COMING_SOON_PLANS`) **plus** re-adding it to the portal config **plus** reverting the pricing-page layout. All three are required; the code change alone is not sufficient.
+
+### 📋 SLAB GUARD CLAIMS AUDIT (2026-08-01) — the rule to apply from now on
+
+**THE LINE:** *registration, fingerprinting, provenance, "on record", registry/serial lookup* = **proven today, state plainly**. *Theft recovery, finding stolen comics, proving ownership of a recovered book, matching a photo back to a registration* = **UNPROVEN, never claim**. Cross-camera matching was never validated (E3: TP 6/6 but **FP 4/6, REJECTED**; ceiling judged physical); a video-based approach is under evaluation with **no result yet**.
+
+**Rewritten (approved by Mike):** `check.html` "identifies the exact same comic across different cameras, lighting, and backgrounds" → candidate matches to review *(this was the single worst instance — it stated the untested capability verbatim, on a public page)*; `app.html` registration blurb *(also falsely claimed Whatnot + "other marketplaces" monitoring — only eBay is monitored)*; `waitlist.html` feature + meta; `faq.html` "authentication and theft protection" → "registration and theft-deterrence" *(**we do not authenticate — CGC does**)*; `faq.html` "proof of ownership"/"ownership evidence" → "evidence of possession at registration"; `routes/waitlist.py` "Prove ownership" → "Put them on record"; `routes/admin_routes.py` invite "Register and protect".
+
+**Deliberately KEPT after review (do not re-flag these):** `index.html:1052` "Protect Your Collection" — brand framing, and deterrence is genuine protection; the section beneath it is now accurate. `verify.html:531` serial-number verification — **deterministic, works, and is the claim we want leading.** `pricing.html` Slab Guard banner — already the most honest copy in the repo (says "candidate sightings", "beta", "may be inaccurate"). Patent titles in `CLAUDE.md` — filed titles, not product claims.
+
+⚠️ **LOGGED, NOT CORRECTED (Mike's call): the two email strings above were already delivered to real users.** Not being retracted or re-sent at this volume. Recorded so nobody later reads the fixed templates and assumes the prior wording never shipped.
+
+⚰️ **`docs/technical/FINGERPRINTING_PROJECT_SUMMARY.md` tombstoned** — it asserted "Technology WORKS for comic theft recovery" from a **same-camera** test. Internal, but it was the most likely thing to be read as ground truth by a future session and re-justify the claims we just removed.
+
+**Also changed in the claims pass — `check.html` match verdicts.** These three strings are the only place the product reports a matching result to a user. `same_copy` → "Strong candidate match — review this listing carefully"; `different_copy` → "No strong match — same title, but the copies look different… check the serial number"; `uncertain` → also points at the serial. **Reasoning worth keeping: `different_copy` was the higher-risk string, not `same_copy`** — a false negative tells someone their stolen book isn't theirs and they stop looking. Both non-positive verdicts now route to serial verification, the deterministic path and the only one that gives a definitive answer.
+
+### ⚰️ TOMBSTONE — "the valuation corpus is eBay-only" is **DEAD. It was never true.**
+
+**RAISED** during the 2026-08-01 claims audit: `waitlist-confirmed.html:306` ("We track real sales data across eBay and Whatnot") was flagged as a false claim on the assumption the corpus was eBay-only. **Mike corrected it; the flag was WRONG and the correction is confirmed by a read-only count.** **DO NOT re-raise it, and do not "fix" that line** — it is accurate as written.
+
+**Measured 2026-08-01 (read-only, `DATABASE_URL_RO`), and the reason the mistake was easy to make: the corpus lives in TWO tables.**
+
+| Source | Table | Rows | Share |
+|---|---|---|---|
+| eBay | `ebay_sales` | 71,652 | 87.8% |
+| Whatnot | `market_sales` | 9,963 | 12.2% |
+| **Total** | | **81,615** | |
+
+⚠️ **`market_sales` is 100% Whatnot** — `sales_market.py:127` defaults `source` to `'whatnot'`. Counting only `market_sales` and seeing no eBay rows (or only `ebay_sales` and seeing no Whatnot) gives the opposite wrong answer each way. **Query both tables.** eBay covers 2018-09-10 → 2026-07-16; Whatnot is 9,963 real captures, 1,603 distinct titles / 35 series, captured 2026-01-24 → 2026-07-01 — **not fixtures**.
+
+**VERDICT: 12.2% across 1,603 titles is a meaningful share, so the copy stands unchanged.** The only residual is a phrasing judgement — whether "across eBay and Whatnot" implies more parity than 88/12 — which is Mike's call and blocks nothing. **This item was investigated and found NOT to be a defect. It is a tombstone, not a fix.**
+
+---
 
 ## 2026-07-29 (END OF DAY) — 📋 **FULL STATE: what shipped, what's open, what to pick up next**
 
