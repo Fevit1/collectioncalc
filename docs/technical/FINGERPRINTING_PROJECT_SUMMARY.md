@@ -47,14 +47,30 @@ With high-resolution photography, these patterns are **completely unique** - no 
 **Baseline Comparison (Same Copy, Different Angles):**
 - Average: 31 bits different (52% similar)
 
-### Verdict
-✅ **SUCCESS!** Different copies have DISTINCT fingerprints.
+> ⚰️ **TOMBSTONE — 2026-08-01. The verdict below is DEAD as a statement of current capability.**
+>
+> **DEAD:** "Technology WORKS for comic theft recovery" and "Stolen comics could be identified when resold."
+> **REASON:** Those conclusions were drawn from a **same-camera, same-session** test. They do **not**
+> generalise to the real recovery scenario, which is **cross-camera**: an owner's registration photo vs a
+> stranger's marketplace listing photo, different device, lighting and background. Cross-camera was never
+> properly validated — the E3 boundary-following rep reached TP 6/6 but **FP 4/6 and was REJECTED** as too
+> permissive, and the ceiling was judged **physical**, not tunable. Single-image matching is **PARKED** as
+> bounded-to-high-wear. A **video-based approach is under evaluation with no result yet.**
+> **SUPERSEDES:** any reading of this file as evidence that recovery works.
+> **WHAT SURVIVES (still true):** distinct copies produce distinct fingerprints under controlled
+> conditions — which is what supports **registration, provenance and serial verification**. That is the
+> claim the product now makes, and the only one it makes.
+> **CONSEQUENCE:** the Guard tier was pulled from sale on 2026-08-01 and user-facing recovery claims were
+> rewritten. See `docs/sessions/WHERE_WE_LEFT_OFF.md` (2026-08-01) for the decision record.
 
-**What this proves:**
+### Verdict
+✅ **SUCCESS** — under same-camera conditions, different copies have DISTINCT fingerprints.
+
+**What this proves (scoped — read the tombstone above before citing any of it):**
 - Each physical comic has unique defect patterns
-- Fingerprinting can distinguish individual copies
-- Stolen comics could be identified when resold
-- Technology WORKS for comic theft recovery
+- Fingerprinting can distinguish individual copies *in a controlled, same-camera comparison*
+- ⚰️ ~~Stolen comics could be identified when resold~~ — **NOT established; that is the cross-camera case**
+- ⚰️ ~~Technology WORKS for comic theft recovery~~ — **DEAD, see tombstone**
 
 ### Confidence Thresholds Established
 - **< 10 bits different** → 95%+ confidence SAME BOOK (alert owner)
