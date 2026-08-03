@@ -155,7 +155,9 @@ async function syncSales() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
 
-    await chrome.storage.local.set({ collectedSales: [] });
+    // Sync is the only real flush, so it is the only thing that may clear the
+    // unsynced counter that content.js maintains for its buffer-risk warning.
+    await chrome.storage.local.set({ collectedSales: [], unsyncedCount: 0 });
     statusEl.textContent = `✓ Synced ${result.saved || sales.length} sales`;
     statusEl.className = 'status success';
     loadStats();
@@ -175,7 +177,7 @@ async function resetSession() {
 
 async function clearData() {
   if (confirm('Clear all collected sales? This cannot be undone.')) {
-    await chrome.storage.local.set({ collectedSales: [], totalCollected: 0, sessionCollected: 0, lastCollection: null });
+    await chrome.storage.local.set({ collectedSales: [], totalCollected: 0, sessionCollected: 0, lastCollection: null, unsyncedCount: 0 });
     loadStats();
     document.getElementById('status').textContent = 'Cleared';
   }

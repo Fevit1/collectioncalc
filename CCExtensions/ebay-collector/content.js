@@ -668,6 +668,17 @@ function scrapeListingSignals() {
       if (pageInfo) statsHtml += `<span class="sw-page-info">${pageInfo}</span>`;
       statsEl.innerHTML = statsHtml;
     }
+    // Buffer-risk warning. Appended AFTER the stats assignment so a stats
+    // update in the same call cannot clobber it.
+    if (opts.warning) {
+      const w = document.createElement('span');
+      w.className = 'sw-stat sw-buffer-warn';
+      w.style.cssText = 'margin-left:10px;padding:2px 8px;border-radius:4px;font-weight:700;' +
+        (opts.warning.severe ? 'background:#7f1d1d;color:#fecaca;'
+                             : 'background:#78350f;color:#fde68a;');
+      w.textContent = opts.warning.text;
+      statsEl.appendChild(w);
+    }
   }
 
 
@@ -835,20 +846,147 @@ function scrapeListingSignals() {
 
   // ─── Send sales to backend ───
 
+  // Client-side cap so a hung request is distinguishable from an absent server.
+  // Generous on purpose: after the 2026-08-02 backend fix a batch should answer
+  // in well under 3s, so hitting this at all means something is wrong.
+  const SYNC_TIMEOUT_MS = 120000;
+
+  // Returns { ok:true, ...serverJson } or
+  //         { ok:false, kind, detail, status?, error }   ← `error` kept for
+  // backwards compatibility with any older truthiness check.
+  //
+  // ⚠️ kind is the ACTUAL failure mode, never a guess. The previous version
+  // collapsed every failure into "backend offline" — which on 2026-08-02
+  // reported an outage while all 293 batch requests were returning HTTP 200
+  // (the server was just slow; the rows DID save). Asserting an unverified
+  // cause is the L-SW-2026-007 failure shape, so each branch below reports
+  // only what it actually observed.
   async function sendSales(sales) {
-    if (sales.length === 0) return { saved: 0, duplicates: 0 };
+    if (sales.length === 0) return { ok: true, saved: 0, duplicates: 0 };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS);
     try {
       const response = await fetch(`${API_BASE}/api/ebay-sales/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sales })
+        body: JSON.stringify({ sales }),
+        signal: controller.signal
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
+
+      if (!response.ok) {
+        // The server answered and rejected/failed — it is demonstrably reachable.
+        console.error(`eBay Collector: server returned HTTP ${response.status}`);
+        return { ok: false, kind: 'http', status: response.status,
+                 detail: `HTTP ${response.status}`, error: `HTTP ${response.status}` };
+      }
+
+      try {
+        const json = await response.json();
+        return { ok: true, ...json };
+      } catch (e) {
+        // 2xx with an unreadable body — the write may well have happened.
+        console.error('eBay Collector: could not parse server response:', e);
+        return { ok: false, kind: 'parse', detail: 'unreadable response body',
+                 error: 'unreadable response body' };
+      }
     } catch (e) {
-      console.error('eBay Collector: Sync error:', e);
-      return { error: e.message };
+      if (e.name === 'AbortError') {
+        const secs = Math.round(SYNC_TIMEOUT_MS / 1000);
+        console.error(`eBay Collector: no response within ${secs}s`);
+        return { ok: false, kind: 'timeout', detail: `no reply in ${secs}s`,
+                 error: `timeout after ${secs}s` };
+      }
+      // TypeError: Failed to fetch — DNS, connection refused, offline, CORS.
+      console.error('eBay Collector: network error:', e);
+      return { ok: false, kind: 'network', detail: e.message || 'fetch failed',
+               error: e.message || 'fetch failed' };
+    } finally {
+      clearTimeout(timer);
     }
+  }
+
+
+  // Banner text for a failed sync. Each string commits only to what was
+  // observed — critically, a timeout says the data MAY have saved, because a
+  // slow-but-successful request is exactly what happened on 2026-08-02 and
+  // re-sending is the wrong reflex there.
+  function syncFailureLabel(result, count) {
+    switch (result.kind) {
+      case 'timeout':
+        return `⏳ ${count} buffered — server did not reply (${result.detail}). ` +
+               `It MAY have saved them; check before re-sending.`;
+      case 'network':
+        return `📡 ${count} buffered — backend unreachable (${result.detail}).`;
+      case 'http':
+        return result.status >= 500
+          ? `⚠️ ${count} buffered — server error ${result.status} (server is up).`
+          : `⚠️ ${count} buffered — server rejected the batch (${result.status}).`;
+      case 'parse':
+        return `⚠️ ${count} buffered — server replied but the response was unreadable; ` +
+               `the save may have succeeded.`;
+      default:
+        return `⚠️ ${count} buffered — sync failed (${result.detail || 'unknown'}).`;
+    }
+  }
+
+
+  // ─── Unsynced-buffer risk ───
+  //
+  // `collectedSales` is NOT a pending queue. It is a rolling window of the last
+  // BUFFER_CAP sales used for LOCAL DEDUP, and it is never cleared on a
+  // successful send — so its SIZE sits at the cap during normal operation and
+  // says nothing about risk. What matters is how many sales failed to reach the
+  // server, because:
+  //   · local dedup (below, and in processScan) skips them on a revisit, so
+  //     re-walking the page does NOT re-send them; and
+  //   · .slice(-BUFFER_CAP) silently drops the OLDEST entries, so an unsynced
+  //     sale that rotates out is unrecoverable by ANY path, Sync included.
+  // Tracked additively as `unsyncedCount`. The cap and the dedup logic are
+  // deliberately UNCHANGED in this pass — this only makes the risk visible.
+  const BUFFER_CAP = 1000;             // must match .slice(-1000) below
+  const BUFFER_WARN_AT = 240;          // ≈ one eBay page of sold listings
+  const BUFFER_WARN_SEVERE_AT = 750;   // 75% of cap — ~1 page of headroom left
+
+  // ⚠️ This counter is a LOWER BOUND on risk, not a safe/unsafe line. The cap is
+  // filled by ALL captures, synced and unsynced alike, so unsynced entries can
+  // rotate out well before the count itself reaches BUFFER_WARN_SEVERE_AT (e.g.
+  // 500 unsynced interleaved with 600 synced already drops 100). Absence of the
+  // severe warning therefore does NOT prove nothing was dropped — the wording
+  // below says "may already be" for that reason.
+  function bufferWarning(unsynced) {
+    if (!unsynced || unsynced < BUFFER_WARN_AT) return null;
+    if (unsynced >= BUFFER_WARN_SEVERE_AT) {
+      return { severe: true,
+               text: `⚠ ${unsynced} UNSYNCED against a ${BUFFER_CAP} cap — the oldest ` +
+                     `may already be dropped. Open the extension and press Sync.` };
+    }
+    return { severe: false,
+             text: `⚠ ${unsynced} unsynced (cap ${BUFFER_CAP}) — press Sync in the ` +
+                   `extension popup.` };
+  }
+
+  // Count sales whose send FAILED and that no successful Sync has flushed since.
+  // Cleared only by the popup's Sync button (the only real flush) — NOT by a
+  // later successful page send, because local dedup means that send did not
+  // include the earlier failed items.
+  //
+  // Serialized through a promise chain: two processScan() runs CAN overlap (the
+  // observer's debounce cancels a pending timer, not an in-flight scan parked on
+  // `await sendSales`, which can sit for up to SYNC_TIMEOUT_MS). An unguarded
+  // read-modify-write on chrome.storage.local would lose updates precisely when
+  // sends are slow and failing — i.e. exactly when this warning matters.
+  let _unsyncedGate = Promise.resolve(0);
+
+  function noteSyncOutcome(result, attempted) {
+    _unsyncedGate = _unsyncedGate.then(async () => {
+      const current = (await chrome.storage.local.get(['unsyncedCount'])).unsyncedCount || 0;
+      if (result.ok) return current;
+      const next = current + attempted;
+      await chrome.storage.local.set({ unsyncedCount: next });
+      return next;
+    }).catch(() => 0);   // never let the gate reject and wedge later callers
+    return _unsyncedGate;
   }
 
 
@@ -885,6 +1023,7 @@ function scrapeListingSignals() {
       await chrome.storage.local.set({ collectedSales: updated, totalCollected, sessionCollected, lastCollection: new Date().toISOString() });
 
       const result = await sendSales(newSales);
+      const unsynced = await noteSyncOutcome(result, newSales.length);
 
       let pageInfoStr = null;
       if (pageInfo.totalPages > 1) {
@@ -892,14 +1031,14 @@ function scrapeListingSignals() {
         pageInfoStr += pageInfo.currentPageNum < pageInfo.totalPages ? ' — click Next →' : ' — last page ✓';
       }
 
-      if (result.error) {
-        updateBanner({ status: `💾 ${newSales.length} saved locally (backend offline)`, stats: { newCount: newSales.length, dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
+      if (!result.ok) {
+        updateBanner({ status: syncFailureLabel(result, newSales.length), stats: { newCount: newSales.length, dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
       } else {
-        updateBanner({ status: `✅ ${result.saved ?? newSales.length} new sales synced`, stats: { newCount: result.saved ?? newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
+        updateBanner({ status: `✅ ${result.saved ?? newSales.length} new sales synced`, stats: { newCount: result.saved ?? newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
       }
       // Seed the observer's cumulative counter with the SERVER-inserted count
-      // (local count only when the backend was unreachable).
-      return result.error ? newSales.length : (result.saved ?? newSales.length);
+      // (local count only when the send failed and the server total is unknown).
+      return result.ok ? (result.saved ?? newSales.length) : newSales.length;
     } else {
       let pageInfoStr = null;
       if (pageInfo.totalPages > 1) pageInfoStr = `Page ${pageInfo.currentPageNum} of ${pageInfo.totalPages}`;
@@ -949,18 +1088,20 @@ function scrapeListingSignals() {
     });
 
     const result = await sendSales(newSales);
-    const failed = !!result.error;
+    const failed = !result.ok;
+    const unsynced = await noteSyncOutcome(result, newSales.length);
     // Count what the SERVER actually inserted, not the pre-dedup local count —
     // ON CONFLICT drops items already in the corpus from earlier captures
-    // (observed 2026-07-16: banner claimed 265, server inserted 203). On
-    // backend-offline we fall back to the local count ("saved locally").
+    // (observed 2026-07-16: banner claimed 265, server inserted 203). When the
+    // send failed the server total is unknown, so fall back to the local count.
     pageSyncedCount += failed ? newSales.length : (result.saved ?? newSales.length);
     updateBanner({
       status: failed
-        ? `💾 ${pageSyncedCount} saved locally (backend offline) — watching as you scroll`
+        ? `${syncFailureLabel(result, newSales.length)} — watching as you scroll`
         : `✅ ${pageSyncedCount} synced this page — watching as you scroll`,
       stats: { newCount: pageSyncedCount, totalOnPage: pageCapturedIds.size,
-               sessionTotal: (stored.sessionCollected || 0) + newSales.length }
+               sessionTotal: (stored.sessionCollected || 0) + newSales.length },
+      warning: bufferWarning(unsynced)
     });
   }
 
