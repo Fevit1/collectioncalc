@@ -9,6 +9,7 @@ import threading
 import requests
 from flask import Blueprint, jsonify, request
 import psycopg2
+from psycopg2.extras import execute_values
 import db as _dbpool
 
 # NORMALIZATION IMPORT
@@ -258,132 +259,243 @@ def add_ebay_sales_batch():
         duplicates = 0
         saved_sales = []  # Track which sales were actually saved
         poisoned = False  # transaction unrecoverably aborted mid-batch
+        row_errors = 0    # fallback rows that RAISED (vs were cleanly deduped)
+        last_row_error = None
 
-        # Step 1: insert every sale in ONE transaction (was one commit PER ROW —
-        # 240 sequential fsync round-trips to Render Postgres per batch).
+        # ── Step 1: insert the batch ────────────────────────────────────────
         #
-        # ⚠️ The per-row SAVEPOINT is load-bearing, not decoration. With a single
-        # transaction, the pre-existing `except: conn.rollback()` would discard
-        # the ENTIRE batch on one malformed row instead of just that row. The
-        # savepoint preserves the old per-row error isolation. ROLLBACK TO
-        # SAVEPOINT also clears psycopg2's aborted-transaction state, so the loop
-        # can continue after a bad row.
+        # SHAPE: optimistic BULK insert, with the per-row loop kept as a FALLBACK.
         #
-        # ON CONFLICT (ebay_item_id) DO NOTHING is UNAFFECTED by the change — it
-        # resolves against the unique index, not against commit boundaries:
-        #   · conflict with an already-committed row  → rowcount 0, as before
-        #   · conflict with a row inserted EARLIER IN THIS BATCH → the pending
-        #     tuple is already in the index inside this transaction, so it still
-        #     conflicts → rowcount 0, as before
-        #   · conflict with a row a CONCURRENT request has inserted but not yet
-        #     committed → resolves as a no-op, but see the cost below
+        # WHY BULK: the per-row loop is ROUND-TRIP bound, not commit bound.
+        # Measured on deploy a80b5cd (~1,000 sales): avg 9,721ms / max 40,055ms
+        # for ~240-row batches. At 3 statements per row that is ~720 round trips,
+        # implying ~14–40ms RTT to Render Postgres — an order of magnitude above
+        # the 1–3ms assumed when the loop was written. Collapsing the inserts into
+        # ONE statement makes the whole batch 5 round trips:
+        #   BEGIN · SAVEPOINT · execute_values · RELEASE · COMMIT
+        # (psycopg2 issues the implicit BEGIN as its own round trip; db.py also adds
+        # a SELECT 1 pre-ping per pool checkout. Both immaterial to the win, but the
+        # count is stated honestly because this comment is a measured-claims record.)
         #
-        # Three costs this DOES introduce — recorded rather than glossed:
-        #   1. DURABILITY GRANULARITY. A crash mid-batch now loses the whole batch
-        #      rather than the rows already committed. Acceptable: the extension
-        #      still holds them locally and re-sending is idempotent.
-        #   2. LONGER CONFLICT WAITS + A REAL DEADLOCK WINDOW. ON CONFLICT against
-        #      an uncommitted duplicate does NOT resolve at the index — it takes
-        #      XactLockTableWait on the inserting transaction. Previously that
-        #      released after one row; now a concurrent overlapping batch waits for
-        #      THIS ENTIRE batch to commit. Two overlapping batches touching the
-        #      same ids in different orders CAN deadlock (DO NOTHING removes the
-        #      row-update conflict class, not the xact wait). Postgres detects it
-        #      and aborts one, which surfaces as a 500 — safe (no lost write, the
-        #      extension buffers and re-sync is idempotent), but it is not "no
-        #      deadlock". Single-operator capture makes this rare, not impossible.
-        #   3. SUBTRANSACTION PRESSURE. Every write-bearing SAVEPOINT consumes a
-        #      subtransaction XID; a backend caches only 64 in PGPROC, so a ~240-row
-        #      batch overflows that cache on EVERY request and other backends fall
-        #      back to the pg_subtrans SLRU for visibility checks. RELEASE does not
-        #      reclaim the XID. Low impact at current concurrency (and the shorter
-        #      transaction reduces overlap), but it is the price of keeping per-row
-        #      error isolation. If this ever shows up, the fix is an optimistic
-        #      no-savepoint fast path with a per-row retry only on failure.
-        for sale in sales:
+        # ⚠️ PER-ROW ERROR ISOLATION IS NOT GIVEN UP. A bulk statement aborts
+        # entirely on one malformed row, which would resurrect exactly the
+        # regression the SAVEPOINT was added to prevent. So the bulk attempt is
+        # itself wrapped in a savepoint: if it raises for ANY reason, we ROLLBACK
+        # TO that savepoint (which clears psycopg2's aborted-transaction state)
+        # and re-run the SAME batch through the unchanged per-row loop, which
+        # isolates the offending row and counts it as a duplicate exactly as
+        # before. Cost of one bad row: a wasted bulk attempt, then old behaviour.
+        # Nothing is committed until after whichever path ran.
+        #
+        # This also retires cost 3 from the previous revision (subtransaction-cache
+        # overflow): the happy path now creates ONE subtransaction, not ~240.
+        # Costs 1 and 2 still stand and are restated at the commit below.
+
+        INSERT_COLUMNS = (
+            'raw_title', 'parsed_title', 'issue_number', 'publisher',
+            'sale_price', 'sale_date', 'condition', 'graded', 'grade',
+            'listing_url', 'image_url', 'ebay_item_id', 'content_hash',
+            'canonical_title', 'grade_from_title', 'grading_company',
+            'is_facsimile', 'is_reprint', 'is_variant', 'is_signed', 'is_lot',
+            'is_key_issue', 'key_issue_claim', 'creators', 'title_notes',
+            'title_year',
+        )
+
+        def _row_tuple(sale):
+            """Positional values for INSERT_COLUMNS. Same fields/defaults as before."""
             content = f"{sale.get('raw_title', '')}|{sale.get('sale_price', '')}|{sale.get('sale_date', '')}"
             content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
+            return (
+                sale.get('raw_title'),
+                sale.get('parsed_title'),
+                sale.get('issue_number'),
+                sale.get('publisher'),
+                sale.get('sale_price'),
+                sale.get('sale_date'),
+                sale.get('condition'),
+                sale.get('graded', False),
+                sale.get('grade'),
+                sale.get('listing_url'),
+                sale.get('image_url'),
+                sale.get('ebay_item_id'),
+                content_hash,
+                # Normalized fields
+                sale.get('canonical_title'),
+                sale.get('grade_from_title'),
+                sale.get('grading_company'),
+                sale.get('is_facsimile', False),
+                sale.get('is_reprint', False),
+                sale.get('is_variant', False),
+                sale.get('is_signed', False),
+                sale.get('is_lot', False),
+                sale.get('is_key_issue', False),
+                sale.get('key_issue_claim'),
+                sale.get('creators'),
+                sale.get('title_notes'),
+                sale.get('title_year'),
+            )
 
+        _COL_SQL = ', '.join(INSERT_COLUMNS)
+
+        # --- fast path -------------------------------------------------------
+        bulk_ok = False
+        try:
+            cur.execute("SAVEPOINT sw_bulk")
+            returned = execute_values(
+                cur,
+                # ⚠️ UNTARGETED `ON CONFLICT DO NOTHING` — deliberate. ebay_sales
+                # has TWO unique indexes, not one:
+                #     ebay_sales_ebay_item_id_key  UNIQUE (ebay_item_id)
+                #     ebay_sales_content_hash_key  UNIQUE (content_hash)
+                # A targeted `ON CONFLICT (ebay_item_id)` absorbs conflicts on that
+                # index ONLY, so a content_hash collision raises UniqueViolation and
+                # aborts the WHOLE bulk statement — forcing the per-row fallback and
+                # making the batch strictly slower than the per-row version this
+                # replaces. content_hash is sha256(raw_title|sale_price|sale_date),
+                # and sale_date is DATE-granular, so two different listings of the
+                # same book at the same price on the same day collide. That is
+                # common: 1,585 (raw_title, sale_price) pairs recur in the corpus,
+                # the worst 9 times. Those collisions have ALWAYS been rejected —
+                # which is why the table shows 101,064 rows / 101,064 distinct
+                # hashes; the uniqueness is the constraint working, not the data
+                # being naturally unique.
+                # Untargeted absorbs any unique violation, which is exactly the
+                # EFFECTIVE behaviour of both previous versions (they caught the
+                # exception and counted it as a duplicate) — same counts, no abort.
+                f"INSERT INTO ebay_sales ({_COL_SQL}) VALUES %s "
+                f"ON CONFLICT DO NOTHING RETURNING ebay_item_id",
+                [_row_tuple(s) for s in sales],
+                # page_size bounds the SQL STRING size, not a parameter count:
+                # execute_values interpolates client-side via cur.mogrify and sends
+                # one literal statement with ZERO bind parameters, so Postgres'
+                # 65,535-parameter limit does not apply here at all. fetch=True
+                # accumulates RETURNING rows across every page (psycopg2 extends
+                # one result list per page), so `saved` is correct above 500 rows.
+                page_size=500,
+                fetch=True,
+            )
+            cur.execute("RELEASE SAVEPOINT sw_bulk")
+            bulk_ok = True
+        except Exception as bulk_err:
+            print(f"[eBayBatch] bulk insert failed ({bulk_err}) — "
+                  f"falling back to per-row for this batch of {len(sales)}")
             try:
-                cur.execute("SAVEPOINT sw_row")
-                cur.execute("""
-                    INSERT INTO ebay_sales (
-                        raw_title, parsed_title, issue_number, publisher,
-                        sale_price, sale_date, condition, graded, grade,
-                        listing_url, image_url, ebay_item_id, content_hash,
-                        canonical_title, grade_from_title, grading_company,
-                        is_facsimile, is_reprint, is_variant, is_signed, is_lot,
-                        is_key_issue, key_issue_claim, creators, title_notes,
-                        title_year
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                              %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (ebay_item_id) DO NOTHING
-                """, (
-                    sale.get('raw_title'),
-                    sale.get('parsed_title'),
-                    sale.get('issue_number'),
-                    sale.get('publisher'),
-                    sale.get('sale_price'),
-                    sale.get('sale_date'),
-                    sale.get('condition'),
-                    sale.get('graded', False),
-                    sale.get('grade'),
-                    sale.get('listing_url'),
-                    sale.get('image_url'),
-                    sale.get('ebay_item_id'),
-                    content_hash,
-                    # Normalized fields
-                    sale.get('canonical_title'),
-                    sale.get('grade_from_title'),
-                    sale.get('grading_company'),
-                    sale.get('is_facsimile', False),
-                    sale.get('is_reprint', False),
-                    sale.get('is_variant', False),
-                    sale.get('is_signed', False),
-                    sale.get('is_lot', False),
-                    sale.get('is_key_issue', False),
-                    sale.get('key_issue_claim'),
-                    sale.get('creators'),
-                    sale.get('title_notes'),
-                    sale.get('title_year')
-                ))
+                cur.execute("ROLLBACK TO SAVEPOINT sw_bulk")
+                cur.execute("RELEASE SAVEPOINT sw_bulk")
+            except Exception:
+                poisoned = True
 
-                if cur.rowcount > 0:
-                    saved += 1
+        if bulk_ok:
+            # DEDUP ACCOUNTING. RETURNING yields one row per ACTUALLY INSERTED
+            # row; skipped conflicts return nothing. So there is no per-row
+            # `rowcount` to read and the duplicate count is arithmetic:
+            #     saved      = len(returned)
+            #     duplicates = len(sales) - saved
+            # This is exactly equivalent to the old per-row tally:
+            #   · already-committed conflict → not returned → duplicate ✔
+            #   · duplicate WITHIN this batch → ON CONFLICT DO NOTHING skips it
+            #     silently (the "cannot affect row a second time" error is
+            #     DO UPDATE-only), so it is not returned → duplicate ✔
+            #   · genuinely new row → returned → saved ✔
+            saved = len(returned)
+            duplicates = len(sales) - saved
+
+            # Rebuild saved_sales (needed for the R2 dispatch) by id. Dedup the
+            # walk: an intra-batch duplicate id appears twice in `sales` but was
+            # inserted once, and double-counting it here would make
+            # len(saved_sales) exceed `saved`.
+            inserted_ids = {r[0] for r in returned if r and r[0] is not None}
+            seen_ids = set()
+            for sale in sales:
+                sid = sale.get('ebay_item_id')
+                if sid in inserted_ids and sid not in seen_ids:
+                    seen_ids.add(sid)
                     saved_sales.append(sale)
-                else:
-                    duplicates += 1
+            # NOTE: a row with a NULL ebay_item_id still inserts (NULLs do not
+            # conflict in a unique index) and is counted in `saved`, but cannot be
+            # matched back here — so len(saved_sales) may be < saved. Not a
+            # regression: backup_images_async already skips ids that are falsy,
+            # and the extension filters such rows out before sending.
 
-                cur.execute("RELEASE SAVEPOINT sw_row")
-
-            except Exception as e:
-                duplicates += 1
+        elif not poisoned:
+            # --- fallback: per-row, unchanged behaviour -----------------------
+            for sale in sales:
                 try:
-                    cur.execute("ROLLBACK TO SAVEPOINT sw_row")
+                    cur.execute("SAVEPOINT sw_row")
+                    # Untargeted for the same reason as the bulk path: absorbs a
+                    # content_hash collision as rowcount 0 instead of raising into
+                    # the handler below. Same duplicate count either way, one fewer
+                    # savepoint round trip per collision.
+                    cur.execute(
+                        f"INSERT INTO ebay_sales ({_COL_SQL}) "
+                        f"VALUES ({', '.join(['%s'] * len(INSERT_COLUMNS))}) "
+                        f"ON CONFLICT DO NOTHING",
+                        _row_tuple(sale))
+
+                    if cur.rowcount > 0:
+                        saved += 1
+                        saved_sales.append(sale)
+                    else:
+                        duplicates += 1
+
                     cur.execute("RELEASE SAVEPOINT sw_row")
-                except Exception:
-                    # Could not unwind. The transaction is aborted, every later
-                    # row would fail, and psycopg2's commit() on an aborted
-                    # transaction silently becomes ROLLBACK — which would return
-                    # success:True having written NOTHING. Fail loudly instead.
-                    poisoned = True
-                    break
+
+                except Exception as e:
+                    # ⚠️ This still counts a genuine failure (deadlock, serialization
+                    # failure, unadaptable value) as a "duplicate" and returns
+                    # success:True — pre-existing behaviour, NOT introduced here. But
+                    # v3 routes EVERY bulk failure through this loop, widening the
+                    # error class that lands in it, so the count is now tracked and
+                    # logged separately instead of vanishing into `duplicates`.
+                    row_errors += 1
+                    last_row_error = str(e)[:200]
+                    duplicates += 1
+                    try:
+                        cur.execute("ROLLBACK TO SAVEPOINT sw_row")
+                        cur.execute("RELEASE SAVEPOINT sw_row")
+                    except Exception:
+                        # Could not unwind. The transaction is aborted, every later
+                        # row would fail, and psycopg2's commit() on an aborted
+                        # transaction silently becomes ROLLBACK — which would return
+                        # success:True having written NOTHING. Fail loudly instead.
+                        poisoned = True
+                        break
 
         if poisoned:
             conn.rollback()
             return jsonify({'error': 'transaction aborted mid-batch; no rows written'}), 500
 
-        conn.commit()   # ONE commit for the whole batch
+        # ONE commit for the whole batch. Two standing costs of batching (both
+        # unchanged by the bulk fast path):
+        #   1. DURABILITY GRANULARITY — a crash mid-batch loses the whole batch
+        #      rather than the rows already committed. Acceptable: the extension
+        #      still holds them and re-sending is idempotent.
+        #   2. CONFLICT WAITS + A REAL DEADLOCK WINDOW — ON CONFLICT against an
+        #      UNCOMMITTED duplicate takes XactLockTableWait on the inserting
+        #      transaction, not an index check, so a concurrent overlapping batch
+        #      waits for this whole batch. Two overlapping batches touching the
+        #      same ids in different orders CAN deadlock (DO NOTHING removes the
+        #      row-update conflict class, not the xact wait); Postgres aborts one,
+        #      surfacing as a 500 — safe (no lost write, extension buffers,
+        #      re-sync idempotent) but not "no deadlock". Rare with a single
+        #      operator, and the shorter transaction narrows the window further.
+        conn.commit()
 
         # Step 2: cover backup — dispatched AFTER the rows are durable and
         # returns immediately; the work happens on a daemon thread. Must come
         # after commit() so the UPDATE in that thread can see the rows.
         backup_images_async(saved_sales)
 
+        if row_errors:
+            print(f"[eBayBatch] {row_errors} of {len(sales)} rows RAISED in the per-row "
+                  f"fallback and are counted in `duplicates`. Last error: {last_row_error}")
+
         return jsonify({
             'success': True,
             'saved': saved,
             'duplicates': duplicates,
+            # >0 means some of `duplicates` were genuine errors, not dedup.
+            'row_errors': row_errors,
             # Renamed from images_backed_up: backup is now asynchronous, so the
             # response cannot know the outcome. This is what was DISPATCHED.
             'images_queued': len(saved_sales),
