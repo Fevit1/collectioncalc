@@ -277,6 +277,19 @@ def add_ebay_sales_batch():
         # a SELECT 1 pre-ping per pool checkout. Both immaterial to the win, but the
         # count is stated honestly because this comment is a measured-claims record.)
         #
+        # ✅ VERIFIED IN PRODUCTION on deploy 680f243 (2026-08-03):
+        #     19:52   7 reqs  avg 44,083ms   <- last v2 minute
+        #     19:57  12 reqs  avg    848ms  max 2,207ms
+        #     19:58  10 reqs  avg    547ms  max 1,706ms
+        #     19:59  12 reqs  avg    940ms  max 3,233ms
+        # Sub-second at 10–12 req/min — HEAVIER concurrency than any minute in the
+        # v2 data — and the self-congestion ramp is gone. ~50x off the original
+        # 41.5s baseline. No 10s+ readings, which is the tell that the bulk path is
+        # SUCCEEDING rather than aborting into the per-row fallback: the untargeted
+        # ON CONFLICT (see below) is what makes that true. If avg ever climbs back
+        # toward 10s, suspect the fallback firing and check for the
+        # "[eBayBatch] bulk insert failed" log line before anything else.
+        #
         # ⚠️ PER-ROW ERROR ISOLATION IS NOT GIVEN UP. A bulk statement aborts
         # entirely on one malformed row, which would resurrect exactly the
         # regression the SAVEPOINT was added to prevent. So the bulk attempt is
