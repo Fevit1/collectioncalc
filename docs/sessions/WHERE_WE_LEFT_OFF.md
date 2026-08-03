@@ -133,7 +133,17 @@ Previously recorded as "NOT verified by execution" (the in-app browser kept reus
 - **REASON:** the old framing scoped CP-1 as "wire up the display," which would have been the wrong work.
 - **SUPERSEDES:** do **not** re-derive a CP-1 plan from this section. `CP1_STATE_OF_PLAY.md` §9 holds the current, tombstoned order.
 
-⚠️ **CP-1 is audited but NOT FIXED.** It was recorded as the sole declared blocker for the **Aug 4 soft launch (tomorrow)** — that gate has not been cleared, only characterised. Whether Aug 4 proceeds against a known-thin corpus is **Mike's call and has not been made.**
+⚠️ **CP-1 is audited but NOT FIXED** — the gate was characterised, not cleared.
+
+⚰️ **TOMBSTONE (Rule 2) — "AUG 4 IS THE GATE" IS DEAD. Mike, 2026-08-03.**
+- **DEAD:** *"Aug 4 soft launch"* as a live date, and my own framing above it that *"whether Aug 4 proceeds against a known-thin corpus is Mike's undecided call."* **Aug 4 was never a live date.** I asserted it from stale docs without checking; Mike corrected it.
+- **REPLACED BY:** the real gate is **FIRST COLD TRAFFIC — paid ads or an organic group post. It is NOT SCHEDULED.** There is no calendar date attached to it.
+- **WHERE CP-1 SITS:** its remaining fixes are **UPSTREAM of that gate** — they must land before cold traffic arrives, not before a date. So there is no date pressure, but there is ordering pressure.
+- **REASON:** a date that nothing is actually planned against produces false urgency and, worse, invites a go/no-go decision nobody asked for.
+- **SUPERSEDES:** every "sole declared blocker for Aug 4" / "Aug 4 board" framing, including the ones lower in this file (2026-07-29 blocks) and in the SoT docs listed below. **Do not sequence, count days, or stage a go/no-go against Aug 4.**
+
+⚠️ **STALE-DATE ARTIFACTS — NOT SWEPT, Mike's call (a repo-wide Aug-4 sweep is a decision, not a cleanup):**
+`CLAUDE.md:57` and `:95` · `docs/LAUNCH_READINESS.md:5`, `:7`, `:9`, `:15`, `:18` · the 2026-07-29 blocks lower in this file (`:233`, `:238`, `:254`, `:289`, `:318`, `:369`, `:391`–`:398`) · `docs/EBAY_CAPTURE_SCHEDULE.docx` §4, which states *"Soft launch is 2026-08-04, so the trigger fires immediately"* and therefore mis-schedules the `lookup_demand` promotion loop. Every one of these reads **Aug 4** and every one is now **DEAD as a gate**. They are left in place deliberately — sweeping them touches the launch SoT.
 
 **Still accurate from the original note, and not superseded:** multi-run voting exists server-side but the frontend hardcodes `runs: 1` (`app.html:2355`); a live harness exists at `test_grading_consistency.py --live`; **grading consistency has never been measured.** The framing still holds: *honest about confidence, not accurate on everything.*
 
@@ -225,6 +235,18 @@ Previously recorded as "NOT verified by execution" (the in-app browser kept reus
 ⚠️ **`market_sales` is 100% Whatnot** — `sales_market.py:127` defaults `source` to `'whatnot'`. Counting only `market_sales` and seeing no eBay rows (or only `ebay_sales` and seeing no Whatnot) gives the opposite wrong answer each way. **Query both tables.** eBay covers 2018-09-10 → 2026-07-16; Whatnot is 9,963 real captures, 1,603 distinct titles / 35 series, captured 2026-01-24 → 2026-07-01 — **not fixtures**.
 
 **VERDICT: 12.2% across 1,603 titles is a meaningful share, so the copy stands unchanged.** The only residual is a phrasing judgement — whether "across eBay and Whatnot" implies more parity than 88/12 — which is Mike's call and blocks nothing. **This item was investigated and found NOT to be a defect. It is a tombstone, not a fix.**
+
+---
+
+> ⚰️ **READ-BEFORE-YOU-USE TOMBSTONE — applies to EVERY 2026-07-29 and earlier block below. Added 2026-08-03.**
+>
+> Everything from here down is **a record of what was true on its own date and is deliberately left unedited.** One thing in it is now dead and must not be carried forward:
+>
+> **"Soft launch = August 4, 2026" (and its lineage July 28 ← July 21) is DEAD. Aug 4 was never a live date** (Mike, 2026-08-03). **The gate is an EVENT: first cold traffic — paid ads or an organic group post — and it is NOT SCHEDULED.** Every "Aug 4" / "sole declared blocker for Aug 4" / "the Aug 4 board" phrase below is historical framing, **not a current gate**. Do not sequence, count days, or stage a go/no-go against it. Current statement of the gate: the 2026-08-03 block at the top of this file, and `docs/LAUNCH_READINESS.md`.
+>
+> Also dead below, same reason as the CP-1 tombstone above: **"confidence is computed and stored but displayed nowhere"** — it renders in two live surfaces. See `docs/technical/CP1_STATE_OF_PLAY.md`.
+>
+> Everything else in these blocks — gate statuses, incident forensics, commit hashes, decisions and their reasoning — remains accurate as history.
 
 ---
 
