@@ -304,7 +304,18 @@ Of 1,228 external lookups: **577 (47.0%)** returned `no_data` **and** `estimated
 Mike's own tooling, not website users (`is_internal` derives from `g.admin_id` —
 `routes/sales_valuation.py:47`, passed through at `lookup_demand.py:62` — so his own non-admin traffic
 reads as external). **The website's valuation path has 8 external lookups total.** The corpus is demonstrably thin; **how often a real user hits the thin case is not yet
-answerable** and won't be until post-launch traffic accumulates.
+answerable.**
+
+⚠️ **AMENDED 2026-08-03 (Mike's correction).** An earlier version of this section said that answer
+arrives "post-launch," implying the Aug 4 soft-launch date. **Aug 4 is not a live date and never was** —
+I asserted it from stale docs without checking. The real gate is **first cold traffic (paid ads or an
+organic group post), and it is NOT SCHEDULED.** CP-1's remaining fixes sit **upstream** of that gate.
+
+**Consequence for this section: `lookup_demand` cannot be treated as a near-term input to CP-1.** The
+demand-ranked backfill loop has no traffic to rank until cold traffic is deliberately turned on, so
+assume the 8-external-lookup figure holds indefinitely. **Every fix in §9 must be justified on the
+corpus evidence in §5 / §5B — not deferred pending real-user data that is not arriving on any known
+date.**
 
 ---
 
