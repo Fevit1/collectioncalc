@@ -431,24 +431,48 @@ User browses eBay sold listings
 │ sales/batch         │
 └──────────┬──────────┘
            │
-           ├─► Insert to ebay_sales (dedupe by item ID)
+           ├─► Insert ALL rows to ebay_sales in ONE transaction
+           │   (dedupe by item ID via ON CONFLICT DO NOTHING;
+           │    per-row SAVEPOINT preserves per-row error isolation)
            │
            ▼
 ┌─────────────────────┐
-│ Parallel R2 Backup  │ (5 concurrent)
-│ Download eBay image │
-│ Upload to R2        │
-│ Store r2_image_url  │
-└─────────────────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Response:           │
+│ Response (fast —    │   ⏱ the response no longer waits on image work
+│ DB insert only):    │
 │ - saved: 61         │
 │ - duplicates: 0     │
-│ - images_backed_up: │
-│   58                │
-└─────────────────────┘
+│ - images_queued: 61 │   ← DISPATCHED, not an outcome (async now)
+└──────────┬──────────┘
+           │
+           ▼ (daemon thread, AFTER the response — 2026-08-02)
+┌─────────────────────────────────────────────────────────────┐
+│ backup_images_async()  routes/sales_ebay.py                 │
+│  · 5 concurrent: download eBay image → upload to R2         │
+│  · ONE commit writes all r2_image_url values                │
+│  · max 2 batches in flight; excess is SHED, not queued      │
+│    (L-SW-2026-012 peak-memory bound)                        │
+│  · never blocks, never raises, no-ops if R2 unconfigured    │
+└─────────────────────────────────────────────────────────────┘
+
+WHY ASYNC: inline R2 backup + a commit per row produced 41.5s average /
+184s worst-case responses (request_logs, 2026-08-02, 293 requests all
+HTTP 200). The client timed out on requests the server was completing.
+
+DETECTING SILENT R2 FAILURE (backup is off the response path, so nothing
+surfaces an outage on its own):
+  · DURABLE, primary — the data reports on itself. image_url is ALWAYS
+    stored; r2_image_url stays NULL when a backup didn't happen, so a
+    failed/shed backup is re-runnable and is never data loss:
+      SELECT date_trunc('hour', created_at) AS h,
+             COUNT(*) AS with_image,
+             COUNT(r2_image_url) AS backed_up,
+             ROUND(100.0*COUNT(r2_image_url)/COUNT(*),1) AS pct
+      FROM ebay_sales
+      WHERE created_at > NOW() - INTERVAL '24 hours' AND image_url IS NOT NULL
+      GROUP BY 1 ORDER BY 1 DESC;
+    pct collapsing toward 0 for recent hours = backups are broken.
+  · IN-PROCESS — _r2_stats counters; ONE WARN log line at 25 consecutive
+    failures then every 250; one RECOVERED line on the next success.
 ```
 
 ## Slab Worthy Grading Flow
