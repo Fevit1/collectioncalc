@@ -97,6 +97,27 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 
 ---
 
+## Mandatory: Chrome Extension Version Bumps
+
+Any unit that changes an extension under `CCExtensions/` **MUST bump `manifest.json` `version` in the
+SAME commit**, and the ship block **MUST state the expected version**.
+
+**Why:** the extensions are loaded **unpacked**, so reloading is a manual step with no confirmation.
+Without a bump, **a forgotten or failed reload is indistinguishable from a successful one** — the same
+class of silent no-op as a Render deploy that doesn't fire. The version in `chrome://extensions` is the
+only observable proof the reload took. This was already biting: `ebay-collector` sat at **1.3.5 from
+2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
+reloads.
+
+**Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5):**
+- **patch** — fixes/comments with no observable behaviour change
+- **minor** — behaviour or UI a user would notice (figures added/renamed/removed, banner or popup changes)
+- **major** — rewrite, or a breaking change to capture semantics
+
+⚠️ Extension changes are **repo-only — NO Render deploy.** Always pair the bump with the reload callout.
+
+---
+
 ## Mandatory: Third-Party Dependency Rules
 
 When adding ANY new third-party service, API, or SDK to Slab Worthy:
