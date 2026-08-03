@@ -1,4 +1,62 @@
-# Where We Left Off - Aug 1, 2026
+# Where We Left Off - Aug 3, 2026
+
+## 2026-08-03 (SESSION CLOSE) — ✅ **FOUR UNITS SHIPPED; CAPTURE WRITE PATH 41.5s → SUB-SECOND, MEASURED**
+
+**MOST RECENT CHANGE (Rule 5): the CP-1 remediation order was REVISED — canonical "of" fragmentation is now item 1, displacing signed-comp contamination. Supersedes the order set 2026-08-02.** Reason: fragmentation's cost **compounds with capture activity** (the work being done most), while signed contamination is stationary at ~7.8%. Tombstone + full order live in `docs/technical/CP1_STATE_OF_PLAY.md` §9.
+
+⚰️ **ALSO DEAD, same session:** *"confidence is computed and stored but displayed nowhere"* — see the tombstone at the CP-1 section below. It was false.
+
+### What shipped
+
+| # | Unit | Files | Commit |
+|---|---|---|---|
+| 1 | Batch write path: one commit per batch + R2 backup off the request path | `routes/sales_ebay.py`, `docs/technical/ARCHITECTURE.txt` | **`a80b5cd`** |
+| 2 | Extension: honest sync-failure reporting + unsynced-buffer warning | `CCExtensions/ebay-collector/content.js`, `popup.js` | **`b4ba1ba`** |
+| 3 | CP-1 audit recorded as a durable artifact | `docs/technical/CP1_STATE_OF_PLAY.md` | **`a176d3d`** |
+| 4 | Bulk insert via `execute_values`, per-row loop kept as fallback | `routes/sales_ebay.py` | **`680f243`** |
+
+⚠️ Unit 2 is **extension-only — no Render deploy.** It takes effect only when the unpacked extension is reloaded in `chrome://extensions`.
+
+### ✅ Write path — measured, not asserted
+
+| Version | Commit | Measured |
+|---|---|---|
+| v1 original (commit per row + inline R2) | — | **41,552 ms** avg / 184,417 ms max |
+| v2 (one commit per batch, R2 async) | `a80b5cd` | **9,721 ms** avg / 40,055 ms max |
+| v3 (bulk `execute_values`) | `680f243` | **547–940 ms** avg / 3,233 ms max |
+
+```
+19:52   7 reqs  avg 44,083ms   <- last v2 minute
+19:57  12 reqs  avg    848ms  max 2,207ms
+19:58  10 reqs  avg    547ms  max 1,706ms
+19:59  12 reqs  avg    940ms  max 3,233ms
+```
+
+**~50× off the original baseline, sub-second at 10–12 req/min — heavier concurrency than any minute in the v2 data — and the self-congestion ramp is gone.** No 10s+ readings, which is the tell that the bulk path is *succeeding* rather than aborting into the per-row fallback.
+
+⚠️ **The root cause of the original symptom was never an outage.** `request_logs` showed 293 batch POSTs, **all HTTP 200**, while the extension banner read "backend offline" — the server was completing and the client was timing out. The banner asserted a cause it never established (L-SW-2026-007), which Unit 2 fixes.
+
+**Two things load-bearing in `routes/sales_ebay.py`, do not remove:**
+1. **The per-row `SAVEPOINT` fallback.** A bare bulk statement aborts entirely on one malformed row — reintroducing the exact regression the savepoint was added to prevent. Bulk is wrapped in `SAVEPOINT sw_bulk`; any failure rolls back and re-runs the batch per-row.
+2. **`ON CONFLICT` is UNTARGETED on purpose.** `ebay_sales` has **two** unique indexes — `ebay_item_id` **and** `content_hash`. A targeted clause aborts the bulk statement on a same-title/price/date collision, which is common enough (1,585 recurring `(raw_title, sale_price)` pairs) to make the fast path *slower than the loop it replaces*. Found in review, not by testing — the temp-table check had only one index and would not have caught it.
+
+### 🔎 Three findings nobody was looking for
+
+Full detail in `docs/technical/CP1_STATE_OF_PLAY.md` §5B / §5C / §11.
+
+1. **Canonical "of" fragmentation** (now CP-1 item 1). "of" is dropped inconsistently, splitting comp pools. `Tomb of Dracula` exists both ways (308 rows/83 graded vs 66/23). `Master of Kung Fu` and `Savage Sword of Conan` lost it entirely, so a naturally-titled query reaches **none** of their 140 and 777 rows. Leading-`"The"` fragmentation is **NOT** affected — `title_matching._norm` strips it on both sides — so the 206 `"The"` pairs are harmless and **must not be "fixed"**. The 17-pair / 393-row figure is a **FLOOR**; sizing the universally-dropped population is part of the work. Same family as L-SW-2026-009 / L-SW-2026-011. **Found by a positive control on seven zero-result titles, per L-SW-2026-015 — not by looking for it.**
+2. **The grade>10 parser bug is LIVE.** 11 → 13 rows, **5 arrived 2026-08-03**, new value `85.0`. `CGC 94` in a listing title parses as grade 94.0. Changes CP-1 item 3 from a cleanup to a cleanup **plus a parser fix**.
+3. **Star Wars #1 variant stripping — the serious direction is the opposite of expected.** All 130 `is_variant` rows are **unpriceable** (excluded from every pool, routed to none). A real 35¢ variant sold at **$6,422** at grade 8.0; the regular pool median is **$272** — the owner is told $272, ~**24× under**. Leaking into the regular pool is negligible for this book (≤1% median effect). The price-variant regex at `title_normalizer.py:274` is **effectively dead code**, firing on **1 of 63** real titles because `[¢c]` consumes the "C" in "Cent".
+
+### 📈 Corpus direction — capture volume alone will not fix confidence
+
+Two dated snapshots in `CP1_STATE_OF_PLAY.md` (§5, §5B), deliberately **not** overwritten. `ebay_sales` 95,169 → **115,756** (+20,587) in one run — and the thin-data ratio got **worse**: cells at ≤2 comps **84.6% → 85.3%**, `medium`-on-≤2-comps **702/1,389 → 870/1,676**. Breadth grew faster than depth (+1,207 cells, only +139 reaching ≥3). Whatnot is dark: **+1 row since 2026-07-01**.
+
+### ⏭️ Next session opens on CP-1 item 1 — canonical "of" fragmentation
+
+Order: (1) "of" fragmentation · (2) signed-comp contamination (7.8%, 325 mixed cells, 1.73× median) · (3) grade>10 cleanup **+ parser fix** · (4) `total_graded >= 10` clause · (5) display consolidation + `README.md:11`.
+
+---
 
 ## 2026-08-01 (SESSION CLOSE) — ✅ **SIX UNITS SHIPPED AND VERIFIED LIVE**
 
@@ -67,9 +125,17 @@ Previously recorded as "NOT verified by execution" (the in-app browser kept reus
 
 ---
 
-## 🎯 NEXT SESSION OPENS ON CP-1 — THE VALUATION HONESTY GATE. NOTHING COMPETES FOR IT.
+## 🎯 ~~NEXT SESSION OPENS ON CP-1 — THE VALUATION HONESTY GATE~~ — ⚰️ **AUDITED 2026-08-02/03; THIS FRAMING IS DEAD**
 
-**It remains UNTOUCHED and is the SOLE DECLARED BLOCKER for the Aug 4 soft launch.** Two sessions have now been spent on pixel and Guard work while this sat still. Known going in (verify, don't assume): confidence is **computed and stored but displayed nowhere**; multi-run voting exists server-side but the frontend hardcodes `runs: 1`; a live harness exists at `test_grading_consistency.py --live`; **grading consistency has never been measured.** The cheapest framing is CP-1's original: *honest about confidence, not accurate on everything.*
+⚰️ **TOMBSTONE (Rule 2) — added 2026-08-03.**
+- **DEAD:** *"confidence is **computed and stored but displayed nowhere**"* and *"It remains UNTOUCHED."*
+- **REPLACED BY:** CP-1 has been **audited read-only** and the audit lives in **`docs/technical/CP1_STATE_OF_PLAY.md`**. **"Displayed nowhere" was FALSE** — confidence renders in **two** live surfaces in `app.html` (`:1227-1230` + `:2714-2722`, and `js/app.js:1288-1300`). The real defect is **five inconsistent notions of confidence across five threshold sets**, plus a label that is systematically too generous (870 of 1,676 `medium` labels rest on ≤2 same-grade comps).
+- **REASON:** the old framing scoped CP-1 as "wire up the display," which would have been the wrong work.
+- **SUPERSEDES:** do **not** re-derive a CP-1 plan from this section. `CP1_STATE_OF_PLAY.md` §9 holds the current, tombstoned order.
+
+⚠️ **CP-1 is audited but NOT FIXED.** It was recorded as the sole declared blocker for the **Aug 4 soft launch (tomorrow)** — that gate has not been cleared, only characterised. Whether Aug 4 proceeds against a known-thin corpus is **Mike's call and has not been made.**
+
+**Still accurate from the original note, and not superseded:** multi-run voting exists server-side but the frontend hardcodes `runs: 1` (`app.html:2355`); a live harness exists at `test_grading_consistency.py --live`; **grading consistency has never been measured.** The framing still holds: *honest about confidence, not accurate on everything.*
 
 ### 📋 OPEN ITEMS
 1. **Test-address problem — Cloudflare Email Routing catch-all on `slabworthy.com`, MID-SETUP.** ⚠️ **DO NOT TOUCH `send.slabworthy.com` MX, SPF or DKIM — those are Resend OUTBOUND and unrelated.** Inbound catch-all only.
@@ -77,6 +143,9 @@ Previously recorded as "NOT verified by execution" (the in-app browser kept reus
 3. **Meta Events Manager cold-signup walkthrough** — never run. I verified the beacon reaches Meta with the correct dataset and payload, **not** that Events Manager attributes it. Walk: landing → signup → verification email → click → verified; assert `Lead` once, `CompleteRegistration` once, neither re-fires on refresh.
 4. **Authenticated Guard refusal unproven in prod** — `POST /api/billing/create-checkout {"plan":"guard"}` returns 401 unauthenticated; the 400 `coming_soon` path sits behind `@require_auth`. Passed 13/13 offline against the real view, and the portal gate is closed, so exposure is narrow.
 5. **Mobile pass** — still the priority (FB traffic is mobile).
+5a. **⏱️ Render instance failure 2026-08-03 ~07:53 — health check timed out after 5s, then recovered.** Seen in Render Events. **Predates all of this session's work** (the write-path units deployed that evening), so it is NOT a regression from them. Not urgent; **not investigated.**
+   - **UNTESTED HYPOTHESIS, explicitly flagged as such (L-SW-2026-007 — instrument, do not theorise):** `dependency_monitor.check_all` still runs inside `/health`, so the availability probe Render acts on performs outbound network I/O. A 5s timeout on an endpoint that makes external calls is a plausible shape — **and that is all it is.** L-SW-2026-013 was a prior incident of alert I/O sitting in that same request path, which is why it is the first thing to check, not evidence that it is the cause.
+   - **First move:** `request_logs` around 07:53 plus the Render log for that window. Do not act on the hypothesis before the logs say something.
 6. 🔻 **SLAB GUARD VIDEO RESEARCH — UNBOUNDED, AND IT IS BLOCKING MORE THAN IT LOOKS. NEEDS A DECISION, NOT A TASK.**
 
    **What it blocks (Mike, 2026-08-01 — this is the reason it can't just sit):**
