@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-01
+> **Operator:** Mike Berry · **Last updated:** 2026-08-03
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -340,3 +340,54 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   L-2026-021**, the `STRIPE_WEBHOOOK_SECRET` hunt — there `grep -i stripe` displayed the misnamed key
   and the value comparison matched, so **both checks returned clean because neither could see the
   defect**. The positive-control rule transfers to MASSÉ and TFO without modification.
+
+### L-SW-2026-016 — A displayed figure's LABEL is a claim about what was measured; trace it to the expression or don't ship it
+
+- **RULE:** Before shipping or trusting any user-facing number, trace it to the expression that produces
+  it and confirm the **label matches that expression's semantics** — its scope, its units, and its
+  behaviour on the failure path. A number that *looks* plausible is not evidence that it measures what
+  its label says. When you cannot make a figure true, **omit it rather than assert it**.
+- **WHY:** **Seven instances in one extension, found in a single day**, all the identical shape — a
+  real-sounding label over a quantity the code never measured:
+  1. **"backend offline"** — asserted an unverified *cause*. `request_logs` showed 293 batch POSTs, all
+     HTTP 200; the server was completing and the client was timing out. (Also L-SW-2026-007.)
+  2. **"session total"** — wrong twice: it never reset per session (only a popup button nobody presses;
+     observed live at **235,216**, ~2× the entire `ebay_sales` table) and it counted locally-novel items
+     rather than server-inserted rows.
+  3. **"Pending Sync"** — showed `collectedSales.length`, the rolling 1000-item **local dedup buffer**,
+     permanently at its cap and unrelated to anything pending.
+  4. **"Total Collected"** — read like corpus size; was a lifetime count of locally-novel items, and the
+     *same* unreconciled increment as "session total" under a second label.
+  5. **"N new"** on the failure path — attempted, not saved; nothing had reached the server.
+  6. **"N dupes"** — absorbed items dropped for a missing `ebay_item_id`, which are not duplicates.
+  7. **"My Reports"** — permanently `0`; the only write in the file sets it to `'0'` on logout and
+     nothing ever populates it.
+  Every one was individually plausible on screen. The class is invisible to testing because the code
+  *works* — it computes something, renders it, and never lies about the arithmetic, only about the
+  meaning. Two of them (2, 3) had survived months of daily use being read as fact.
+- **HOW TO APPLY:**
+  1. When touching any display surface, **enumerate every figure on it** and name the expression behind
+     each one before changing anything. The audit is cheap; discovering it later is not.
+  2. **Never let a fallback substitute a different quantity under the same label.**
+     `result.saved ?? newSales.length` silently turns a server count into a local count. If the
+     authoritative value is missing, contribute **0** or render `—`.
+  3. **`||` on a numeric that can legitimately be 0 is a falsy-zero bug.** `result.saved || sales.length`
+     printed "✓ Synced 1000 sales" for the all-duplicates case, contradicting the tile beside it that
+     had correctly added 0. Use `??`.
+  4. **Omit over assert.** `0` under "Saved this run" claims a run exists that saved nothing — a
+     different statement from "no run is in progress". Render `—`, or drop the element.
+  5. **If an authoritative source exists, do not keep a local approximation of it.** Postgres knows the
+     cumulative capture total exactly; a browser-local mirror drifts, dies with a profile, and cannot
+     distinguish inserted from later-deleted.
+  6. **Prefer a scope with a real boundary** over one whose reset depends on a human pressing something.
+     "Session" that only clears via a button is not a session. When a boundary is automatic, **surface
+     its anchor, not its rule** — "saved this run · since 3:42 PM" makes an idle-gap reset self-evident
+     where no tooltip fits.
+  7. **A control whose target you retired is the same defect.** After removing `sessionCollected`, the
+     "Reset Session" button would have looked like it worked and done nothing.
+- **SOURCE:** 2026-08-03, eBay collector honesty pass. Instances 1–4 fixed; 5–7 recorded and deliberately
+  left (reported, not swept). Pairs with **L-SW-2026-007** (instrument, don't theorise — #1 is the same
+  incident) and **L-SW-2026-015** (a clean result is not a pass until the probe is shown able to fail —
+  same epistemics applied to checks rather than to displays). **Candidate for cross-project promotion
+  (Mike's call)** — the mechanism is not eBay-specific and applies to any MASSÉ or TFO dashboard,
+  admin panel, or status surface.

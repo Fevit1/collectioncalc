@@ -659,12 +659,20 @@ function scrapeListingSignals() {
       statusEl.classList.add('sw-collecting');
     }
     if (opts.stats) {
-      const { newCount, dupeCount, totalOnPage, pageInfo, sessionTotal } = opts.stats;
+      const { newCount, dupeCount, totalOnPage, pageInfo, run } = opts.stats;
       let statsHtml = '';
       if (newCount !== undefined) statsHtml += `<span class="sw-stat"><span class="sw-stat-num">${newCount}</span> new</span>`;
       if (dupeCount !== undefined && dupeCount > 0) statsHtml += `<span class="sw-stat"><span class="sw-stat-num">${dupeCount}</span> dupes</span>`;
       if (totalOnPage !== undefined) statsHtml += `<span class="sw-stat"><span class="sw-stat-num">${totalOnPage}</span> on page</span>`;
-      if (sessionTotal !== undefined) statsHtml += `<span class="sw-stat">|</span><span class="sw-stat"><span class="sw-stat-num">${sessionTotal}</span> session total</span>`;
+      // Run-scoped saved count. Shows the run's START TIME rather than the reset
+      // rule, so the idle-gap boundary is self-evident (see noteSaved).
+      if (run) {
+        const since = new Date(run.startedAt)
+          .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        statsHtml += `<span class="sw-stat">|</span><span class="sw-stat">`
+                  + `<span class="sw-stat-num">${run.saved.toLocaleString()}</span>`
+                  + ` saved this run &middot; since ${since}</span>`;
+      }
       if (pageInfo) statsHtml += `<span class="sw-page-info">${pageInfo}</span>`;
       statsEl.innerHTML = statsHtml;
     }
@@ -990,6 +998,77 @@ function scrapeListingSignals() {
   }
 
 
+  // ─── Run-scoped SAVED counter ───
+  //
+  // Replaces `sessionCollected`, which was wrong twice: it never reset per
+  // session (only a popup button nobody presses — observed live at 235,216) and
+  // it counted LOCALLY-NOVEL items, not rows the server actually inserted. A
+  // real-sounding label over a number the code never measured.
+  //
+  // NO LIFETIME FIGURE IS KEPT ANY MORE. Postgres is the authority for
+  // cumulative totals — `SELECT COUNT(*) FROM ebay_sales WHERE created_at > …`
+  // is exact, survives a browser profile, and distinguishes inserted from
+  // later-deleted. A local approximation of that is a liability, not an asset.
+  //
+  // BOUNDARY = AN IDLE GAP, not a calendar day and not the tab lifetime. eBay
+  // pagination navigates, so a tab-scoped counter would reset every page and
+  // merely duplicate `newCount`; a day boundary splits an evening run that
+  // crosses local midnight. An idle gap matches how capture actually happens:
+  // sit down, walk N searches, stop.
+  //
+  // DISCOVERABILITY: the banner shows the run's START TIME, not the reset rule
+  // ("saved this run · since 3:42 PM"). The boundary becomes self-evident
+  // without a tooltip, which a banner cannot carry.
+  //
+  // "SAVED" MEANS SERVER-CONFIRMED, STRICTLY. Only a numeric `result.saved` is
+  // added; a missing field adds 0 — NEVER `newSales.length`, because falling
+  // back to the local count is exactly what made the old counter wrong. A
+  // failed send adds nothing, so the figure reads LOW after a failure that a
+  // later popup Sync repairs. That is the safe direction under this label.
+  //
+  // ⚠️ KNOWN LIMITATION, deliberately unfixed (semantics before precision):
+  // the read-modify-write below is UNGATED, so two overlapping processScan()
+  // runs can both read the same base and the second write wins — the figure can
+  // UNDER-count under concurrency. `unsyncedCount` above is gated against the
+  // same race; this one is not. Do not read this number as exact.
+  const RUN_IDLE_GAP_MS = 90 * 60 * 1000;   // 90 min with no capture = a new run
+
+  // ⚠️ THE WRITER PERSISTS THE BOUNDARY, as an ABSOLUTE `runExpiresAt` — not a
+  // timestamp the reader has to re-apply a duration to. This is deliberate: the
+  // popup is a separate script that cannot import this module, so a duration
+  // would have to be duplicated there, and the two copies are consulted for
+  // DIFFERENT decisions (here: when to reset; there: when to hide). That drift
+  // is silent in one direction and it had already happened once in this change.
+  // With an absolute expiry there is exactly one source of truth and the popup
+  // holds no constant at all.
+  //
+  // Expiry is computed off the send, not off `lastCollection` — the latter is
+  // written BEFORE the send, so deriving the gap from it would pin it near zero
+  // and no run would ever expire. Refreshed even when saved === 0, so a run does
+  // not roll over mid-run just because sends are failing.
+  async function noteSaved(result) {
+    const saved = (result && result.ok && typeof result.saved === 'number') ? result.saved : 0;
+    const now = Date.now();
+    const s = await chrome.storage.local.get(['runSaved', 'runStartedAt', 'runExpiresAt']);
+    const isNewRun = !s.runExpiresAt || now > s.runExpiresAt;
+    const runStartedAt = isNewRun ? now : (s.runStartedAt || now);
+    const runSaved = (isNewRun ? 0 : (s.runSaved || 0)) + saved;
+    await chrome.storage.local.set({
+      runSaved, runStartedAt, runExpiresAt: now + RUN_IDLE_GAP_MS });
+    return { saved: runSaved, startedAt: runStartedAt };
+  }
+
+  // Read without extending the run — for banner paths that performed no send.
+  // Returns null when no run is in progress, so the banner OMITS the figure
+  // rather than asserting 0 (which would claim a run exists that saved nothing).
+  async function readRun() {
+    const s = await chrome.storage.local.get(['runSaved', 'runStartedAt', 'runExpiresAt']);
+    if (!s.runExpiresAt || Date.now() > s.runExpiresAt) return null;
+    return { saved: s.runSaved || 0,
+             startedAt: s.runStartedAt || (s.runExpiresAt - RUN_IDLE_GAP_MS) };
+  }
+
+
   // ─── Main execution ───
 
   async function main() {
@@ -1007,7 +1086,7 @@ function scrapeListingSignals() {
       return 0;
     }
 
-    const stored = await chrome.storage.local.get(['collectedSales', 'totalCollected', 'sessionCollected']);
+    const stored = await chrome.storage.local.get(['collectedSales']);
     const existing = stored.collectedSales || [];
     const existingIds = new Set(existing.map(s => s.ebay_item_id));
     const newSales = sales.filter(s => s.ebay_item_id && !existingIds.has(s.ebay_item_id));
@@ -1017,13 +1096,15 @@ function scrapeListingSignals() {
 
     if (newSales.length > 0) {
       const updated = [...existing, ...newSales].slice(-1000);
-      const totalCollected = (stored.totalCollected || 0) + newSales.length;
-      const sessionCollected = (stored.sessionCollected || 0) + newSales.length;
-
-      await chrome.storage.local.set({ collectedSales: updated, totalCollected, sessionCollected, lastCollection: new Date().toISOString() });
+      // `totalCollected` / `sessionCollected` are no longer written — both were
+      // the SAME unreconciled increment, surfaced under two different labels.
+      // Replaced by the run-scoped, server-confirmed counter (see noteSaved);
+      // cumulative totals come from Postgres, not from here.
+      await chrome.storage.local.set({ collectedSales: updated, lastCollection: new Date().toISOString() });
 
       const result = await sendSales(newSales);
       const unsynced = await noteSyncOutcome(result, newSales.length);
+      const run = await noteSaved(result);
 
       let pageInfoStr = null;
       if (pageInfo.totalPages > 1) {
@@ -1032,9 +1113,11 @@ function scrapeListingSignals() {
       }
 
       if (!result.ok) {
-        updateBanner({ status: syncFailureLabel(result, newSales.length), stats: { newCount: newSales.length, dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
+        // ⚠️ `newCount` here is ATTEMPTED, not saved — nothing reached the server.
+        // Labelled "new" by updateBanner; see the audit note in the ship report.
+        updateBanner({ status: syncFailureLabel(result, newSales.length), stats: { newCount: newSales.length, dupeCount, totalOnPage: sales.length, run, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
       } else {
-        updateBanner({ status: `✅ ${result.saved ?? newSales.length} new sales synced`, stats: { newCount: result.saved ?? newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
+        updateBanner({ status: `✅ ${result.saved ?? newSales.length} new sales synced`, stats: { newCount: result.saved ?? newSales.length, dupeCount: (result.duplicates || 0) + dupeCount, totalOnPage: sales.length, run, pageInfo: pageInfoStr }, warning: bufferWarning(unsynced) });
       }
       // Seed the observer's cumulative counter with the SERVER-inserted count
       // (local count only when the send failed and the server total is unknown).
@@ -1042,8 +1125,9 @@ function scrapeListingSignals() {
     } else {
       let pageInfoStr = null;
       if (pageInfo.totalPages > 1) pageInfoStr = `Page ${pageInfo.currentPageNum} of ${pageInfo.totalPages}`;
-      const sessionCollected = stored.sessionCollected || 0;
-      updateBanner({ status: '📋 All listings already collected', stats: { newCount: 0, dupeCount: sales.length, totalOnPage: sales.length, sessionTotal: sessionCollected, pageInfo: pageInfoStr } });
+      // No send happened, so READ the run without touching it.
+      const run = await readRun();
+      updateBanner({ status: '📋 All listings already collected', stats: { newCount: 0, dupeCount: sales.length, totalOnPage: sales.length, run, pageInfo: pageInfoStr } });
     }
     return 0;
   }
@@ -1072,7 +1156,7 @@ function scrapeListingSignals() {
     if (sales.length === 0) return;    // silent no-op: never touches the banner,
                                        // so banner mutations can't self-trigger loops
 
-    const stored = await chrome.storage.local.get(['collectedSales', 'totalCollected', 'sessionCollected']);
+    const stored = await chrome.storage.local.get(['collectedSales']);
     const existing = stored.collectedSales || [];
     const existingIds = new Set(existing.map(s => s.ebay_item_id));
     sales.forEach(s => pageCapturedIds.add(s.ebay_item_id));
@@ -1080,27 +1164,34 @@ function scrapeListingSignals() {
     if (newSales.length === 0) return;
 
     const updated = [...existing, ...newSales].slice(-1000);
+    // Legacy `totalCollected` / `sessionCollected` no longer written — see the
+    // note at the equivalent write in main().
     await chrome.storage.local.set({
       collectedSales: updated,
-      totalCollected: (stored.totalCollected || 0) + newSales.length,
-      sessionCollected: (stored.sessionCollected || 0) + newSales.length,
       lastCollection: new Date().toISOString()
     });
 
     const result = await sendSales(newSales);
     const failed = !result.ok;
     const unsynced = await noteSyncOutcome(result, newSales.length);
-    // Count what the SERVER actually inserted, not the pre-dedup local count —
-    // ON CONFLICT drops items already in the corpus from earlier captures
-    // (observed 2026-07-16: banner claimed 265, server inserted 203). When the
-    // send failed the server total is unknown, so fall back to the local count.
-    pageSyncedCount += failed ? newSales.length : (result.saved ?? newSales.length);
+    const run = await noteSaved(result);
+    // Count ONLY what the SERVER confirmed inserting — never the pre-dedup local
+    // count. ON CONFLICT drops items already in the corpus from earlier captures
+    // (observed 2026-07-16: banner claimed 265, server inserted 203).
+    //
+    // ⚠️ A FAILED send adds NOTHING. It previously added `newSales.length`, which
+    // was never subtracted — so a later successful scan rendered
+    // "✅ 150 synced this page" under a green tick when only 50 were confirmed,
+    // with the failure text already scrolled out of the banner. Attempted-but-
+    // unconfirmed is tracked separately and honestly by `unsyncedCount`.
+    pageSyncedCount += (!failed && typeof result.saved === 'number')
+      ? result.saved
+      : (!failed ? newSales.length : 0);
     updateBanner({
       status: failed
         ? `${syncFailureLabel(result, newSales.length)} — watching as you scroll`
         : `✅ ${pageSyncedCount} synced this page — watching as you scroll`,
-      stats: { newCount: pageSyncedCount, totalOnPage: pageCapturedIds.size,
-               sessionTotal: (stored.sessionCollected || 0) + newSales.length },
+      stats: { newCount: pageSyncedCount, totalOnPage: pageCapturedIds.size, run },
       warning: bufferWarning(unsynced)
     });
   }

@@ -15,7 +15,7 @@
     h1 span { font-size: 20px; }
     .stats {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;   /* two tiles since "Total Collected" was removed */
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -112,17 +112,17 @@
   <h1><span>📊</span> eBay Comic Collector</h1>
 
   <div class="stats">
+    <!-- "Total Collected" tile REMOVED 2026-08-03: it read like corpus size and
+         was not - it was a lifetime count of locally-novel items, the same
+         unreconciled increment as "This Session" under a second label. Postgres
+         is the authority for cumulative totals. -->
     <div class="stat-box">
-      <div class="stat-value" id="totalCount">0</div>
-      <div class="stat-label">Total Collected</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-value" id="sessionCount">0</div>
-      <div class="stat-label">This Session</div>
+      <div class="stat-value" id="runCount">0</div>
+      <div class="stat-label">Saved this run</div>
     </div>
     <div class="stat-box">
       <div class="stat-value" id="pendingCount">0</div>
-      <div class="stat-label">Pending Sync</div>
+      <div class="stat-label">Unsynced</div>
     </div>
   </div>
 
@@ -172,7 +172,7 @@
 
   <div class="buttons">
     <button class="btn-sync" id="syncBtn">Sync Now</button>
-    <button class="btn-clear" id="resetSessionBtn">Reset Session</button>
+    <button class="btn-clear" id="resetSessionBtn">Reset Run Count</button>
     <button class="btn-clear" id="clearBtn">Clear All</button>
   </div>
 
