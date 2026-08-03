@@ -52,6 +52,29 @@ Full detail in `docs/technical/CP1_STATE_OF_PLAY.md` §5B / §5C / §11.
 
 Two dated snapshots in `CP1_STATE_OF_PLAY.md` (§5, §5B), deliberately **not** overwritten. `ebay_sales` 95,169 → **115,756** (+20,587) in one run — and the thin-data ratio got **worse**: cells at ≤2 comps **84.6% → 85.3%**, `medium`-on-≤2-comps **702/1,389 → 870/1,676**. Breadth grew faster than depth (+1,207 cells, only +139 reaching ≥3). Whatnot is dark: **+1 row since 2026-07-01**.
 
+### 🧯 Two process findings recorded at close
+
+**1. ⚠️ THE EXTENSION RAN 4.5 MONTHS OF UNVERIFIABLE RELOADS — and some past debugging may have run against stale code.**
+
+`CCExtensions/ebay-collector/manifest.json` sat at **1.3.5 from 2026-03-19** while `content.js` changed repeatedly: the **July selector fixes** (`bbe5353`), the **hydration/MutationObserver fix**, the **`/sold/i` case-sensitivity fix** (the one that was silently rejecting 267/279 items), the **sync-honesty unit** (`b4ba1ba`), and the **counter unit** (`d3a47ff`). The extensions load **unpacked**, so reloading is a manual step with **no confirmation** — and with the version frozen, **a forgotten or failed reload was indistinguishable from a successful one.**
+
+⚠️ **The implication is not just "we couldn't confirm."** Any debugging session in that window may have been reasoning about behaviour produced by **stale code** — including the July 16 collector diagnosis, which went through several wrong theories (hydration, then visibility filtering) before the case-sensitivity root cause. Nothing is known to be wrong because of this; the point is that **it was not knowable**, and past conclusions from that window carry that caveat.
+
+**Same family as the two Render deploys that silently didn't fire on 2026-08-02** — an action whose completion is not observable is indistinguishable from an action that was skipped. `CLAUDE.md` already carried that warning for Render deploys; it now carries the equivalent rule for extensions.
+
+⚰️ **FIXED FORWARD (`ed4f2a0`):** bumped to **1.4.0** (confirmed by Mike in `chrome://extensions`), and **`CLAUDE.md` now makes the bump MANDATORY** — same commit as the change, expected version stated in the ship block. Scheme documented from the existing history (1.0.4 → 1.1.0 → 1.3.5), not invented.
+
+**2. 📋 REPO HYGIENE — a deliberate pass is owed. Not urgent; logged so it is a decision, not a drift.**
+
+Working tree outside `.claude/worktrees/`: **4 modified, 27 untracked.**
+
+- **Modified:** `.gitignore` · `TODO.md` · `scripts/slabguard_crosscamera_test.py` · `tests/SlabGuardTests/TP_RESHOOT_PROTOCOL.md`
+- **Untracked (sets):** `docs/postmortems/` (deliberately untracked per the 2026-08-01 close — commit it deliberately in a later pass) · `tests/SlabGuardTests/` E3/TP/FP photo sets and CSVs · `tests/7_8/`, `tests/Mobile/`, `tests/SectionBTest/`, `tests/SectionDTest/`, `tests/Valuation/` · `CCImages/6_8_26_Tests/` · `DFToBSCOnvos/` · `scripts/e3_edge_sequence_test.py` · loose files: `AdminCheckjs.js`, `ebay_diff.txt`, `ebay_sig_diff.txt`, `extensioncountofsales.png`
+
+⚠️ **Mike's framing (2026-08-03), and the reason this is logged rather than ignored:** *"File-specific staging is protecting me correctly, but it only works as protection if someone eventually looks at what's being excluded."* The per-file staging convention has held all session — nothing unintended has been swept in — but it silently accumulates the excluded set, and an unreviewed exclusion list is a place for something that mattered to hide. **The pass should decide per item: commit, gitignore, or delete.** Large binary photo sets are the main judgement call.
+
+---
+
 ### ⏭️ Next session opens on CP-1 item 1 — canonical "of" fragmentation
 
 Order: (1) "of" fragmentation · (2) signed-comp contamination (7.8%, 325 mixed cells, 1.73× median) · (3) grade>10 cleanup **+ parser fix** · (4) `total_graded >= 10` clause · (5) display consolidation + `README.md:11`.
