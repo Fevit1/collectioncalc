@@ -391,3 +391,67 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   same epistemics applied to checks rather than to displays). **Candidate for cross-project promotion
   (Mike's call)** — the mechanism is not eBay-specific and applies to any MASSÉ or TFO dashboard,
   admin panel, or status surface.
+
+### L-SW-2026-017 — Every manual ship step must leave an OBSERVABLE ARTIFACT; a step whose completion isn't observable is indistinguishable from one that was skipped
+
+- **RULE:** Any manual step in a ship sequence — reload, deploy, purge, env edit, restart — **must leave
+  an artifact that distinguishes "done" from "skipped," and the ship block must name that artifact and
+  its expected value.** Not *"then deploy"* but *"then deploy; Render Events should show `680f243`."*
+  If no artifact exists, **create one as part of the change**. Absence of an error is not evidence of
+  completion.
+- **WHY:** Four instances across three surfaces, three of them inside a single fast-moving day
+  (2026-08-03):
+  1. **Unpacked extension reload — ~4.5 months blind.** `ebay-collector/manifest.json` sat at **1.3.5
+     from 2026-03-19** while `content.js` changed repeatedly: the July selector fixes (`bbe5353`), the
+     hydration/MutationObserver fix, the `/sold/i` case-sensitivity fix, the sync-honesty unit
+     (`b4ba1ba`), the counter unit (`d3a47ff`). Reloading unpacked is manual with **no confirmation**,
+     so a forgotten or failed reload looked exactly like a successful one.
+  2 & 3. **Render auto-deploy silently didn't fire — twice in one day.** Already a known hazard
+     (`CLAUDE.md`: auto-deploy-on-push is UNRELIABLE for `collectioncalc-docker`) — the warning existed
+     and it *still* happened twice, because a warning is not an artifact.
+  4. **Cloudflare `purge`** — same shape, and at the time of writing **no warning attached at all**.
+- **⚠️ THE REAL COST IS EPISTEMIC, NOT OPERATIONAL.** The damage is not "we had to reload again." It is
+  that **every conclusion drawn in the blind window carries an unremovable caveat.** Debugging during the
+  extension's 4.5 months may have been reasoning about behaviour produced by **stale code** — including
+  the 2026-07-16 collector diagnosis, which passed through two wrong theories (hydration, then visibility
+  filtering) before reaching the case-sensitivity root cause. Nothing is *known* to be wrong. The point
+  is that it was **not knowable**, and it cannot be established retroactively.
+- **⚠️ A DECOY ARTIFACT IS WORSE THAN NONE.** `/health` returns `{"status":"ok","version":"5.6.0"}` and
+  reads like deploy confirmation. The `version` is a **hand-maintained string with no commit SHA** — it
+  cannot confirm which commit is live and will happily report the new version from the old container.
+  An artifact must be **derived from the thing it claims to confirm**, or it manufactures false
+  confidence. Render Events (commit hash) is the real artifact; `/health` `version` is not.
+- **HOW TO APPLY:**
+  1. **Name the artifact and its expected value in the ship block**, per manual step:
+     · extension → *"after reload, `chrome://extensions` should read 1.4.0"*
+     · Render deploy → *"Events should show commit `<sha>`"* (never `/health` `version`)
+     · Cloudflare purge → *assert the NEW content is actually served* — `curl -sL <url>` and grep for a
+       string that only exists post-change. There is no dashboard artifact, so it must be constructed.
+  2. **Prefer artifacts the platform already emits** (version strings, commit hashes, Events rows) over
+     ones a human must remember to look at.
+  3. **If a change has no natural artifact, add one in the same commit** — a version constant, a build
+     stamp. A follow-up bump does not help the reload that already happened.
+  4. **Verify it is derived, not declared.** Ask: *could this artifact show the expected value while the
+     step did not happen?* If yes, it is a decoy.
+  5. **This matters most exactly when you are moving fast** — that is when steps get batched, assumed,
+     and skipped, and when nobody stops to check. Speed is the condition that produces the failure, not
+     an excuse for skipping the check.
+- **DISTINCT FROM L-SW-2026-015 — different failure, different fix. Do not merge them.**
+  · **015 is about CHECKS:** a null/empty/zero result treated as a pass without proving the probe could
+    have returned a hit. Fix = **positive control**.
+  · **017 is about ACTIONS:** a step whose completion produces no observable difference. Fix =
+    **observable artifact**.
+  A positive control cannot help you here — there is nothing to probe. An artifact cannot help there —
+  the check ran, it just couldn't see. They compose: *the action leaves an artifact, and the check for
+  that artifact is positive-controlled.*
+- **SOURCE:** 2026-08-03, recorded at Mike's direction after the manifest-gap finding. Mike's framing:
+  *"Three instances across two surfaces in one session is a mechanism, not a coincidence — and it bit
+  specifically because we were moving fast, which is when it matters most."* Behavioural fixes already
+  landed for two surfaces (`CLAUDE.md` Render-deploy warning; mandatory extension version bumps,
+  `ed4f2a0`); **Cloudflare purge still has no artifact defined.** Pairs with L-SW-2026-004 (an env change
+  needs a redeploy *and* a fresh shell — the same "the step you think you took didn't take" family) and
+  L-SW-2026-008 (verify ship state from git, never from memory).
+- **STATUS:** 🔼 **CANDIDATE FOR CROSS-PROJECT PROMOTION (Mike's call).** The mechanism is
+  platform-agnostic and already has instances outside this repo's tooling: TFO's Vercel deploys, MASSÉ's
+  agent restarts, and any manual env/config edit on any platform. Nothing in the rule is Slab
+  Worthy-specific.
