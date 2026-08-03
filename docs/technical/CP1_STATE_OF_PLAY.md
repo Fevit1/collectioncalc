@@ -1,9 +1,16 @@
 # CP-1 — Valuation Honesty: State of Play
 
-**Audit date:** 2026-08-02 · **Method:** read-only (code inspection + `DATABASE_URL_RO`, role `do_readonly`)
+**Audit date:** 2026-08-02 · **Re-measured:** 2026-08-03 (§5B)
+**Method:** read-only (code inspection + `DATABASE_URL_RO`, role `do_readonly`)
 **Status:** findings only. **Nothing in this document has been fixed.**
 
-> **MOST RECENT CHANGE (Rule 5):** this audit **corrects `docs/LAUNCH_READINESS.md:9`**, which states
+> **MOST RECENT CHANGE (Rule 5):** **2026-08-03 — the remediation order was REVISED and canonical
+> "of" fragmentation (§5C) was promoted to first**, displacing signed-comp contamination. See the
+> tombstone in §9. A second dated snapshot was appended as §5B; the 2026-08-02 figures below are
+> **deliberately NOT overwritten** — two readings show direction, and the direction is itself a
+> finding (20,587 new rows made the thin-data ratio slightly *worse*).
+
+> **PRIOR CHANGE (Rule 5):** this audit **corrects `docs/LAUNCH_READINESS.md:9`**, which states
 > confidence is *"computed + stored, displayed nowhere."* **"Displayed nowhere" is DEAD — it is false.**
 > Confidence is rendered in **two** live surfaces in `app.html`. Supersedes every prior framing of CP-1 as
 > a "wire up the display" task. The real defect is different and worse: **five inconsistent notions of
@@ -22,12 +29,15 @@
 2. [Where it is stored and displayed](#2-where-it-is-stored-and-displayed)
 3. [Thresholds](#3-thresholds)
 4. [What the user actually sees](#4-what-the-user-actually-sees)
-5. [How often each case occurs](#5-how-often-each-case-occurs)
+5. [How often each case occurs — snapshot 1, 2026-08-02](#5-how-often-each-case-occurs)
+   · **[5B. Snapshot 2, 2026-08-03 — and the direction](#5b-second-snapshot--2026-08-03)**
+   · **[5C. Canonical "of" fragmentation — priority 1](#5c-canonical-of-fragmentation--priority-1)**
 6. [Does confidence track accuracy?](#6-does-confidence-track-accuracy)
 7. [Pre-existing partial work](#7-pre-existing-partial-work)
 8. [Code/doc contradictions](#8-codedoc-contradictions)
-9. [Agreed remediation order](#9-agreed-remediation-order)
+9. [Remediation order](#9-remediation-order)
 10. [Reproducing the queries](#10-reproducing-the-queries)
+11. [Newly logged, not yet scheduled](#11-newly-logged-not-yet-scheduled)
 
 ---
 
@@ -298,6 +308,154 @@ answerable** and won't be until post-launch traffic accumulates.
 
 ---
 
+## 5B. Second snapshot — 2026-08-03
+
+Single `REPEATABLE READ` transaction at **2026-08-03 03:08:35 UTC**, after a heavy Bronze Age capture
+run (Daredevil plus ~28 further titles). Same filters as §5 throughout.
+
+> **The direction is the finding.** 20,587 new eBay rows made the thin-data ratio **slightly worse**,
+> not better. Breadth grew faster than depth: +1,207 cells but only +139 reaching ≥3 comps. That is the
+> expected shape for Bronze Age keys — individually scarce, so each new issue/grade combination arrives
+> as a fresh 1-comp cell. **Capture volume alone will not fix the confidence problem.**
+
+### Corpus
+
+| | 2026-08-02 | 2026-08-03 | Δ |
+|---|---|---|---|
+| `ebay_sales` | 89,950 → 95,169¹ | **115,756** | **+20,587** |
+| `market_sales` | 9,964 | **9,964** | +1 |
+| Total | 105,132 | **125,720** | +20,588 |
+
+¹ the 2026-08-02 corpus moved during that audit; 95,169 was the last reading that day.
+Split is now **92.1% eBay / 7.9% Whatnot**. 44,104 rows landed in the 12h to 03:05 UTC.
+
+### Comp-count distribution — 13,732 comps · 6,716 cells · 4,004 books
+
+| Same-grade comps | Aug 2 | Aug 3 |
+|---|---|---|
+| exactly 1 | 73.8% | **74.3%** |
+| exactly 2 | 10.8% | 11.0% |
+| 3–4 | 7.7% | 7.4% |
+| 5–9 | 4.7% | 4.6% |
+| 10+ | 2.9% | **2.7%** |
+| **≤2** | **84.6%** | **85.3%** ▲ |
+
+### Well-backed keys, confidence, and the `total_graded >= 10` defect
+
+| Metric | Aug 2 | Aug 3 |
+|---|---|---|
+| `exact_count ≥ 3` | 848 cells / 314 books | **987 cells / 364 books** |
+| `exact_count ≥ 10` | 161 cells | **181 cells / 85 books** |
+| confidence `high` (grade has ≥1 comp) | 2.9% | 2.7% |
+| confidence `medium` | 25.2% | 25.0% |
+| confidence `low` | 15.5% | 17.7% |
+| confidence `very_low` | 56.3% | 54.7% |
+| `very_low` when grade has 0 exact comps | 84.3% | 83.6% |
+| **`medium` cells** | 1,389 | **1,676** |
+| **…backed by ≤2 comps** | **702 (50.5%)** | **870 (51.9%)** ▲ |
+| …backed by exactly 1 | 451 | **572** |
+
+⚠️ **The `total_graded >= 10` defect gets worse with every capture run.** Deepening the liquid titles is
+exactly what grants unearned "Medium" labels at sparse grades.
+
+### Signed-comp contamination — measured on the §6 basis
+
+| | Aug 2 | Aug 3 |
+|---|---|---|
+| Signed share of graded pool | 829 / 9,570 = **8.7%** | 921 / 11,835 = **7.8%** |
+| Mixed cells (signed + unsigned, same title+issue+grade) | 290 | **325** |
+| Median signed/unsigned ratio | 1.72× | **1.73×** |
+
+The Bronze-Age-clusters-signed hypothesis did **not** hold: rows captured in the last 12h were **7.7%**
+signed, essentially the corpus rate, so the share drifted down on dilution. Absolute problem grew (+92
+signed comps, +35 mixed cells); the ratio is stable. **1.73× is the number for the fix.**
+
+### ⚠️ Out-of-range grades — the parser bug is LIVE, not a one-off
+
+| | Total | Added in last 12h |
+|---|---|---|
+| `ebay_sales` grade > 10 | **13** (was 11) | **5** |
+| `market_sales` | 0 | 0 |
+
+New distinct value appeared: **85.0**. Full set now `11.0, 60.0, 85.0, 94.0, 98.0`. The cause is visible
+in the raw titles — the listing omits the decimal and the parser takes the number literally:
+
+```
+grade=94.0  2026-08-03  Star Wars 1 CGC 94 1st Print   Marvel Comics 1977
+grade=85.0  2026-08-03  Brand  Marvel Star Wars 1 Reprint CGC 85 1977
+grade=60.0  2026-08-02  Giant Size X-Men #1 1975 Marvel Comics CGC 60
+grade=94.0  2026-08-02  AMAZING SPIDERMAN 300 1988 CGC 94 OWW 1ST APPEARANCE OF VENO
+```
+
+`CGC 94` → 94.0 instead of 9.4. **This changes remediation item 3 from a data cleanup to a cleanup PLUS
+a parser fix.** Rate is ~5 per 5,136 graded rows (~0.1%) — slow, but monotonic, and every one creates a
+phantom grade cell that feeds interpolation endpoints.
+
+### Bronze Age coverage after the run
+
+Aggregate for the captured titles: **158 / 794 cells at ≥3 comps = 19.9%**, versus 14.7% corpus-wide.
+Better than average, still thin.
+
+| Verdict | Titles |
+|---|---|
+| **SOLID** (≥30% of cells at ≥3) | Captain America · Tomb of Dracula · Hero for Hire · Ghost Rider · Nova · Conan the Barbarian · Star Wars |
+| **IMPROVING** (15–30%) | Eternals · Astonishing Tales · Red Sonja · Howard the Duck |
+| **STILL THIN** | Daredevil · Marvel Team-Up · Defenders · Man-Thing · Marvel Two-in-One · Jungle Action · Warlock · Power Man and Iron Fist |
+
+Daredevil is the instructive case: 534 comps across 285 cells, but **208 cells sit on a single comp** —
+heavy capture spread thin across issues and grades rather than deepening any one of them.
+
+---
+
+## 5C. Canonical "of" fragmentation — PRIORITY 1
+
+**Found 2026-08-03 by a positive control, not by looking for it.** Seven of the captured titles returned
+zero graded data. Per L-SW-2026-015 an absence is not a result until the probe is shown capable of
+finding something — the control proved three were genuinely absent and **two were a canonicalization
+bug**:
+
+```
+Master of Kung Fu      -> stored as "Master Kung Fu"       140 rows,  8 graded
+                          + "Master Kung-Fu" 20 · "Master Kung Fu Vol." 39 · "Master Kung Fu Annual" 9
+Savage Sword of Conan  -> stored as "Savage Sword Conan"   552 rows, 30 graded
+                          + "The Savage Sword Conan"       225 rows,  3 graded
+```
+
+The word **"of" is dropped inconsistently**. `Tomb of Dracula` exists *both* ways — 308 rows / 83 graded
+under `Tomb of Dracula` **and** 66 rows / 23 graded under `Tomb Dracula`.
+
+### Whether it actually costs comps — checked, not assumed
+
+`title_matching._norm` / `_norm_sql` (`title_matching.py:29-38`, `:59-66`) strip a leading `"the "` on
+**both** sides. So:
+
+- **Leading-"The" fragmentation is HARMLESS.** 206 pairs / 1,813 rows unify correctly at match time.
+  Do not "fix" it.
+- **"of" is normalized on NEITHER side, so it is real loss.** Exact match fails, and the `parsed_title`
+  LIKE fallback (`%master of kung fu%`) fails too.
+
+| Scope | Measured |
+|---|---|
+| Title pairs with **both** forms present | **17** |
+| Rows in the smaller pool of each pair | **393 (73 graded)** — never join the larger pool |
+| Worst pairs | Tomb of Dracula · House of Secrets · Web of Spider-Man · Edge of Spider-Verse · Tales of Suspense · Saga of Swamp Thing · Department of Truth · Birds of Prey |
+
+⚠️ **The 17-pair / 393-row figure is a FLOOR, not a total.** That measurement only finds titles where
+*both* forms exist in the corpus. Where the canonical dropped "of" **universally** — Master of Kung Fu,
+Savage Sword of Conan — the pair never appears, yet a naturally-titled query matches **nothing**: all
+140 and all 777 rows respectively are unreachable. **Sizing the universally-dropped population is part
+of the fix work**; it has not been measured.
+
+Same family as **L-SW-2026-009** (per-token support guard) and **L-SW-2026-011** (cleanup stripper
+truncating entity names) — a cleanup step mangling entity names, damage invisible until someone queries
+the natural title.
+
+**Why it is first:** the cost compounds with capture activity. Tonight's run put 900+ rows into pools the
+valuation path cannot reach, so continued capture on affected titles is partly wasted effort until this
+is fixed.
+
+---
+
 ## 6. Does confidence track accuracy?
 
 **The general question is unanswerable — no ground truth exists.** All 39 tables enumerated:
@@ -405,20 +563,37 @@ would leave the false CI claim standing.
 
 ---
 
-## 9. Agreed remediation order
+## 9. Remediation order
 
-Set by Mike, 2026-08-02. Not started.
+### ⚰️ TOMBSTONE — the 2026-08-02 order is SUPERSEDED
 
-1. **Signed-comp contamination** — correctness bug. `is_signed` never filtered; 8.7% of the pool;
-   median 1.72× premium; live 4.5× error on ASM #41 @ 3.0.
-2. **The 11 out-of-range grades** — `grade > 10` in `ebay_sales`: distinct values `11.0, 60.0, 94.0,
-   98.0`, almost certainly "9.4"/"9.8" parsed without the decimal (`market_sales` has 0). They form
-   phantom grade cells that enter comp pools and interpolation endpoints — corrupting rather than merely
-   thinning. `amazing spider-man #300 grade 94.0` appears in the medium-confidence set.
-3. **The `total_graded >= 10` clause** — 702 of 1,389 "Medium" labels rest on ≤2 same-grade comps.
-4. **Display consolidation** — five notions, five threshold sets, two contradicting live surfaces; plus
-   the bare `"Data confidence: "` render bug (`app.html:1227-1230`) and the missing legend. Fix
-   `README.md:11` as part of this.
+**DEAD:** the order set 2026-08-02, which opened on **signed-comp contamination**.
+**REPLACED BY:** the 2026-08-03 order below, which opens on **canonical "of" fragmentation (§5C)**.
+**REASON:** §5C did not exist on 2026-08-02 — it was found the next night by a positive control. It
+displaces signed-comp contamination because its cost **compounds with capture activity**, which is the
+work being done most. Signed-comp contamination is stationary at ~7.8%; fragmentation gets worse every
+run that touches an affected title.
+**SUPERSEDES:** any plan that starts CP-1 with signed-comp filtering. Do not re-derive the old order
+from §6 alone — §6 is still accurate as a *finding*, it is simply no longer first.
+
+### Current order — set by Mike, 2026-08-03. Not started.
+
+1. **Canonical "of" fragmentation** (§5C) — silently zeroes comp pools. 17 pairs / 393 rows / 73 graded
+   is a **floor**; sizing the universally-dropped-"of" population is part of the work. Same family as
+   L-SW-2026-009 / L-SW-2026-011. Leading-"The" fragmentation is already handled correctly — do not
+   touch it.
+2. **Signed-comp contamination** (§6) — `is_signed` never filtered; **7.8%** of the pool; **325** mixed
+   cells; median **1.73×** premium; live ~4.5× error on ASM #41 @ grade 3.0.
+3. **Out-of-range grades** (§5B) — **cleanup PLUS a parser fix**, not cleanup alone: 13 rows and
+   **5 arrived on 2026-08-03**, so the bug is live and monotonic. `CGC 94` in a listing title parses as
+   grade 94.0.
+4. **The `total_graded >= 10` clause** (§5B) — **870 of 1,676** "Medium" labels rest on ≤2 same-grade
+   comps, 572 on exactly one. Degrades every run.
+5. **Display consolidation** (§1–§3) — five notions, five threshold sets, two contradicting live
+   surfaces; plus the bare `"Data confidence: "` render bug (`app.html:1227-1230`) and the missing
+   legend. Fix `README.md:11` as part of this.
+
+**Next session opens on item 1.**
 
 ---
 
@@ -452,5 +627,64 @@ interpreting: `fmv` is extension traffic, `valuation` is the website.
 
 ---
 
-*Generated read-only 2026-08-02. No code changed. Queries reproducible against `DATABASE_URL_RO`
-(SELECT-only).*
+## 11. Newly logged, not yet scheduled
+
+Found 2026-08-03. Recorded so they are not rediscovered from scratch; **not** in the §9 order yet.
+
+### 11.1 Star Wars #1 — variant stripping is the serious failure mode
+
+Probed because the 1977 Marvel issue has a 30¢ regular and a 35¢ price variant with an
+order-of-magnitude gap at the same grade. **580 rows · 130 flagged `is_variant` · 182 graded.**
+
+**The dangerous direction is the opposite of what was expected.** Flagged variants are excluded from the
+graded buckets (`sales_valuation.py:368-371`) **and** the raw pool (`:285`, `:337`) and routed to **no
+separate pool** — `compute_variant_disclosure` only counts them for a disclosure string. So all 130 rows
+are **unpriceable**. A genuine 35¢ variant sold at **$6,422** at grade 8.0; the regular pool median at
+8.0 is **$272**. The variant's owner is told **$272 — roughly 24× under.**
+
+**Leaking is negligible for this book.** Of 30 unflagged titles mentioning a cent price, only **2** reach
+the graded pool (grades 9.0 and 8.5), moving the median by **≤1%**. Most are raw or reprints where the
+seller merely mentioned the cover price. Regular-copy FMV is *not* meaningfully inflated here.
+
+**The price-variant regex is effectively dead code.** `title_normalizer.py:274`:
+
+```python
+(r'\b(35|30)\s*[¢c]\s*(price\s*)?variant\b', None),
+```
+
+`[¢c]` consumes the "C" of "Cent", after which `variant` must match "ent Price Variant" — it fails.
+Tested against all **63** real Star Wars #1 titles mentioning a 30/35¢ price:
+
+| Pattern | Fires on |
+|---|---|
+| price-variant regex `:274` — the one meant for this | **1 of 63** |
+| generic `\bvariant\b` `:283` | 31 |
+| `\bnewsstand\b` `:281` | 5 |
+| **nothing fires → leaks to the regular pool** | **30** |
+
+Effective detection is therefore *"does the title contain the word 'variant'"*. Keyword reliability
+against real titles: `price variant` 11/11 · `variant` 90/95 · `30 cent` 18/27 · **`35 cent` 11/22** ·
+`35¢` 3/8 · `35c` 1/4 · `30c` 0/2.
+
+**Connects to the existing variant-subtyping backlog item** — fixing detection without giving variants
+their own comp pool would deepen the stripping problem, not fix it.
+
+### 11.2 Non-variant contamination survives the filters
+
+After variant exclusion, Star Wars #1 grade **9.8** still spans **$80 – $5,200** (median $3,150, n=15).
+A 65× intra-grade spread in a supposedly clean pool means reprints and Whitman multipacks are reaching
+it — some carrying **"REPRINT" in the raw title**, which the `is_reprint` flag and the
+`LOWER(raw_title) NOT LIKE '%reprint%'` filter should both have caught. **That filter is not working**;
+scope unmeasured.
+
+### 11.3 Whatnot capture is dark
+
+`market_sales` has taken **+1 row since 2026-07-01**. Not a bug — stated so it is not mistaken for a
+live second source. Whatnot is now **7.9%** of the corpus and shrinking as a share with every eBay run.
+Its title normalization also remains unusable for series matching (35 distinct `series` values) — see
+L-SW-2026-014.
+
+---
+
+*Snapshot 1 generated read-only 2026-08-02; snapshot 2 appended read-only 2026-08-03. No code changed by
+either. Queries reproducible against `DATABASE_URL_RO` (SELECT-only).*
