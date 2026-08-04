@@ -558,5 +558,9 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   framing: *"the general shape is that removing a filter and removing a hardcoded assumption are two
   edits, and scoping only saw one."* Caught in implementation, not in scoping — which is the part
   worth remembering. Pairs with **[[L-SW-2026-014]]** (the defaulted-discriminator heuristic that
-  made this view suspicious in the first place). **Candidate for cross-project promotion (Mike's
-  call)** — the mechanism is not SQL-specific.
+  made this view suspicious in the first place).
+- **STATUS:** ✅ **PROMOTED CROSS-PROJECT 2026-08-04 (Mike) → `LESSONS_CROSS_PROJECT.md` L-2026-026**
+  (file bumped to v1.5, 13 lessons active). The SW entry stays as the war story and the detailed
+  HOW TO APPLY; the cross-project entry carries the rule. ⚠️ Criterion 2 (encountered in a second
+  project) cleared on **plausibility, not observation** — all three instances that day were Slab
+  Worthy. Flagged at promotion rather than asserted, and accepted on that basis.
