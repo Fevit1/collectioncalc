@@ -1,11 +1,35 @@
 # Where We Left Off - Aug 3, 2026
 
-## 2026-08-03 (EVENING) — 🚦 **SIGN-IN ENTRY POINT FIXED (staged, NOT yet purged); WHATNOT VISION 401 DIAGNOSED**
+## 2026-08-03 (EVENING) — ✅ **SIGN-IN ENTRY POINT FIXED, SHIPPED AND VERIFIED LIVE; WHATNOT VISION 401 DIAGNOSED**
 
 **MOST RECENT CHANGE (Rule 5): `/login.html`'s default panel is now `loginPanel`, selected by an explicit
 branch; signup is reached via `?mode=signup`. Supersedes "`signupPanel` is now the default panel" (set
-2026-07-29 by `b981789`).** Frontend only — **purge, no Render deploy.** Staged in the working tree at
-time of writing; not yet shipped.
+2026-07-29 by `b981789`).** Frontend only — **purged, no Render deploy.**
+
+**Shipped:** `8f113c9` (fix) · `3a21ca1` (lessons + state) · `88700f8` (tombstone-quoting fix).
+⚰️ **Do NOT re-present any command block from this session — the work is shipped and purged.**
+
+**✅ Verified on live slabworthy.com at 375×812, by clicking the actual link:** Sign In on the landing
+page → `/login` → `loginPanel`, "Welcome Back", submit "Log In" at **y=688**, Sign Up tab at **y=254** —
+both above the 812 fold, no scrolling. `verifyingPanel` present. Was: `signupPanel`, "Create Account",
+toggle at y=1046. Purge sweep green on all four pages (NEW present AND OLD absent, comments stripped).
+
+### 🧯 Two verification findings from the purge check — both false alarms, opposite mechanisms
+
+**1. A purge check run too soon reports a FALSE FAILURE.** The first sweep read `pricing.html` at
+**35,642 bytes** with 0 matches; minutes later it was **35,654** with 1 — a 12-byte delta, exactly
+`?mode=signup`. The page was mid-propagation. Confirmed it was not a ship failure before re-running:
+HEAD contained the change, `main` was in sync with `origin/main`, and a cache-busted fetch matched the
+plain one. **The artifact and the check were both correct; only the timing was wrong.** Companion to
+L-SW-2026-017 — a decoy artifact reports false success, a premature check reports false failure.
+**Wait a minute before re-checking, and diff byte counts before suspecting the deploy.**
+
+**2. A tombstone that quotes the string it retires trips its own audit.** The same sweep reported the
+dead beta-code phrase live in `waitlist.html`; it was matching the explanatory comment added in the very
+commit that removed it. Rendered copy was correct throughout. Fixed in `88700f8` (comment now describes
+rather than quotes) and recorded as a **corollary to L-SW-2026-015**: *a HIT is not a failure until the
+match is confirmed to be the live instance* — the mirror of 015's false-negative rule. Sweeps should
+strip comment nodes and assert NEW-present alongside OLD-absent.
 
 ### ⚰️ TOMBSTONE — the Unit D attribution was WRONG, and the correct framing matters
 
