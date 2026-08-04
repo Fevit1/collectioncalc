@@ -497,11 +497,30 @@
             <!-- ⚰️ BETA-CODE PANEL REMOVED 2026-07-29 (Mike): a verified email is
                  sufficient to get in. This panel was the REAL gate — it carried
                  `required` and signup was unreachable without passing it, regardless
-                 of what the backend did. `signupPanel` is now the default panel.
+                 of what the backend did.
                  The backend still accepts and records a beta_code if one is passed,
-                 so existing codes keep working for provenance; nothing needs one. -->
+                 so existing codes keep working for provenance; nothing needs one.
 
-            <div id="signupPanel" class="form-panel active">
+                 ⚰️ DEAD, 2026-08-03: "`signupPanel` is now the default panel."
+                 REPLACED BY: the DOMContentLoaded panel selector below; the default
+                 is `loginPanel`, and signup is reached via ?mode=signup.
+                 REASON: /login.html rendered Create Account for every "Sign In" link
+                 on the site, with the only way back a text link measured 234px below
+                 the fold at 375x812 (202px at 1440x900).
+                 ⚠️ THE DEFECT PREDATES THIS REMOVAL — do not record it as caused by
+                 it. Before b981789 the default was `betaCodePanel`, which was also
+                 not the login form, so "Sign In" has never reached login. What
+                 b981789 changed is SEVERITY, not cause: the beta panel was one input
+                 and a button, so its identical "Log in" link sat on-screen; the
+                 six-field signup form pushed the same link below the fold and turned
+                 a mildly wrong landing into an unreachable one. A fix aimed at
+                 b981789 alone would have left the gap in place. -->
+
+            <div id="signupPanel" class="form-panel">
+                <div class="tabs">
+                    <button type="button" class="tab" onclick="showPanel('loginPanel')">Log In</button>
+                    <button type="button" class="tab active" onclick="showPanel('signupPanel')">Sign Up</button>
+                </div>
                 <h2 class="beta-title">Create Account</h2>
                 <p class="beta-desc">Set up your Slab Worthy account</p>
                 
@@ -551,7 +570,13 @@
                 </p>
             </div>
 
-            <div id="loginPanel" class="form-panel">
+            <!-- DEFAULT PANEL. Also selected explicitly in the DOMContentLoaded
+                 handler's else branch — the markup class alone is not the contract. -->
+            <div id="loginPanel" class="form-panel active">
+                <div class="tabs">
+                    <button type="button" class="tab active" onclick="showPanel('loginPanel')">Log In</button>
+                    <button type="button" class="tab" onclick="showPanel('signupPanel')">Sign Up</button>
+                </div>
                 <h2 class="beta-title">Welcome Back</h2>
                 <p class="beta-desc">Log in to your Slab Worthy account</p>
                 
@@ -595,6 +620,19 @@
                 <div id="verifyMessage" class="message"></div>
                 <button class="btn" id="resendBtn" onclick="resendVerification()">Resend verification email</button>
                 <button class="btn btn-secondary" onclick="showPanel('loginPanel')">Back to Login</button>
+            </div>
+
+            <!-- Shown synchronously while /api/auth/verify/<token> is in flight, so
+                 the email-verification path never renders a signup form at someone
+                 who has already signed up. No terminal state of its own: every
+                 verifyEmail() branch moves off it (redirect, pendingPanel, or
+                 loginPanel + message). -->
+            <div id="verifyingPanel" class="form-panel">
+                <div class="pending-state">
+                    <div class="pending-icon">⏳</div>
+                    <h3 class="pending-title">Verifying your email…</h3>
+                    <p class="pending-desc">One moment while we confirm your link.</p>
+                </div>
             </div>
 
             <div id="pendingPanel" class="form-panel">
@@ -728,17 +766,46 @@
             const verifyToken = params.get('token');
             const action = params.get('action');
             const inviteCode = params.get('invite');
+            // ?mode=login|signup selects the panel EXPLICITLY. ?signup=true is kept
+            // as an alias — see the tombstone above showPanel() for why it must not
+            // be dropped even though nothing has ever read it.
+            const mode = params.get('mode')
+                      || (params.get('signup') === 'true' ? 'signup' : null);
 
             if (action === 'reset-password' && verifyToken) {
                 resetToken = verifyToken;
                 showPanel('resetPanel');
             } else if (verifyToken) {
+                // Set SYNCHRONOUSLY, before the await inside verifyEmail(). Without
+                // this the default panel stays on screen for the whole API round
+                // trip (measured 804ms warm, seconds on a cold Render container),
+                // so someone arriving from their verification email sat looking at
+                // the signup form they had already completed.
+                showPanel('verifyingPanel');
                 verifyEmail(verifyToken);
             } else if (inviteCode) {
+                // An invited user is by definition new, so force signup regardless
+                // of the default — applyInvite() pre-fills and locks THAT form.
+                showPanel('signupPanel');
                 applyInvite(inviteCode);
+            } else if (mode === 'signup') {
+                showPanel('signupPanel');
+            } else {
+                // DEFAULT = LOGIN. The page is /login.html and 10 of the 12 entry
+                // points are labelled "Sign In"/"Log In" (nav links on 6 pages, both
+                // check.html CTAs, waitlist.html, and every session-expiry bounce
+                // from app/dashboard/collection/sightings/sidebar/grading — a user
+                // whose session just expired is by definition a returning user).
+                // Signup is reached by ?mode=signup from the acquisition CTAs.
+                //
+                // Stated as an explicit branch rather than left to whichever panel
+                // carries `active` in the markup: that implicitness is exactly how
+                // the beta-panel removal silently redefined this page's landing.
+                showPanel('loginPanel');
             }
 
-            // Clean up URL
+            // Clean up URL. `mode` is deliberately NOT stripped — it is idempotent
+            // and keeping it means refresh and back preserve the chosen panel.
             if (verifyToken || action || inviteCode) {
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
@@ -802,6 +869,21 @@
             }
         }
 
+        // ⚰️ `?signup=true` WAS DEAD FROM THE DAY IT SHIPPED — cbd80d7, 2026-02-28,
+        //    until 2026-08-03. index.html's "Sign Up" link carried it for five
+        //    months and this file NEVER contained a reader for it (`git log -S` finds
+        //    no match in login.html's history). It appeared to work only because
+        //    signup happened to be the default panel — first via betaCodePanel's
+        //    sibling, then directly after b981789. A parameter that asserts an intent
+        //    nothing reads is L-SW-2026-016 shape: the label claims a mechanism that
+        //    does not exist, and it is invisible to testing because the outcome is
+        //    right by coincidence.
+        //    It is now an ALIAS for ?mode=signup and must STAY one — the link is live
+        //    in production and may be bookmarked or linked externally. (sw.js does
+        //    NOT cache HTML, so the service worker is not a factor; the browser's own
+        //    cache and other people's links still are.) Removing the alias would make
+        //    it dead a second time, in the direction that breaks signup rather than
+        //    the direction that happened to work.
         function showPanel(panelId) {
             document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
             document.getElementById(panelId).classList.add('active');
@@ -1033,6 +1115,17 @@
                             window.location.href = getRedirectUrl();
                         } else if (data.pending_approval) {
                             showPanel('pendingPanel');
+                        } else {
+                            // success:true with neither a token nor pending_approval
+                            // is the "Email already verified" return (auth.py:951).
+                            // The block above argues it is unreachable — but the
+                            // verifying panel has no terminal state of its own, so an
+                            // unhandled branch would leave a spinner up forever. Land
+                            // somewhere usable instead of asserting it cannot happen.
+                            showPanel('loginPanel');
+                            showMessage('loginMessage',
+                                        data.message || 'Email verified — please log in.',
+                                        false);
                         }
                     };
 

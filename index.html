@@ -942,7 +942,7 @@
         <nav class="hero-auth-nav">
             <a href="/login.html" class="auth-sign-in">Sign In</a>
             <span class="auth-divider">|</span>
-            <a href="/login.html?signup=true" class="auth-sign-up">Sign Up</a>
+            <a href="/login.html?mode=signup" class="auth-sign-up">Sign Up</a>
         </nav>
         <div class="logo-container">
             <h1 class="main-logo">$LAB WORTHY<span style="font-size: 0.5em; vertical-align: super;">&trade;</span></h1>
@@ -951,7 +951,10 @@
         
         <p class="tagline">AI for Collectors</p>
         
-        <a href="/login.html" class="cta-button">Check a Comic</a>
+        <!-- ?mode=signup: hero CTA on the page cold traffic lands on — new-visitor
+             intent wins here. A returning user is either already signed in (and
+             redirected off login.html) or one tap from the Log In tab. -->
+        <a href="/login.html?mode=signup" class="cta-button">Check a Comic</a>
 
         <div class="scroll-hint"><a href="#how-it-works">↓ See how it works</a></div>
     </section>
@@ -1041,7 +1044,7 @@
                         <div class="collection-stat-label">Export Reports</div>
                     </div>
                 </div>
-                <a href="/login.html" class="collection-cta">Start Your Collection</a>
+                <a href="/login.html?mode=signup" class="collection-cta">Start Your Collection</a>
             </div>
         </div>
     </section>
