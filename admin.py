@@ -33,6 +33,14 @@ def get_db_connection():
     import db as _dbpool
     return _dbpool.get_db(dict_rows=True)
 
+def get_readonly_connection():
+    """Get the SELECT-only connection used to execute NLQ-generated SQL.
+    Unpooled, read-only session, statement_timeout carried by the role.
+    Raises ValueError if DATABASE_URL_NLQ is unset — it does NOT fall back to
+    the read-write DSN."""
+    import db as _dbpool
+    return _dbpool.get_db_readonly()
+
 # ============================================
 # REQUEST LOGGING
 # ============================================
@@ -256,7 +264,26 @@ def get_device_breakdown(hours=24):
 # NATURAL LANGUAGE QUERY (NLQ)
 # ============================================
 
-# Database schema for Claude to understand
+# Database schema for Claude to understand.
+#
+# ⚠️ KNOWN LIMITATION — NOT A BUG TO "FIX" CASUALLY (recorded 2026-08-04):
+# This description is NOT the database. Two gaps are known and deliberately left:
+#
+# 1. The valuation corpus is TWO tables and only one is described here.
+#    `ebay_sales` (~71.6k rows, 87.8%) is absent; `market_sales` (~9.9k rows,
+#    12.2%) is 100% Whatnot. So any NLQ question about sales volume, price
+#    history or coverage answers from ~12% of the corpus and reads as complete.
+#    `ebay_sales` is also NOT granted to nlq_readonly, so the two stay
+#    consistent — the model cannot query what it cannot see. See L-SW-2026-014.
+# 2. The column lists here lag the live tables, and this description covers
+#    only 10 of the 34 base tables in `public`. Verified against the live
+#    catalog 2026-08-04: `users` is 32 columns live vs the 11 listed below;
+#    `market_sales` is 34 vs 16. The role's grants are derived from
+#    information_schema, never from this text.
+#
+# Closing either gap means editing the prompt input, which is a deliberate,
+# separately-scoped change: widening what the model can see must be paired with
+# widening the grants, and vice versa. Do not do one without the other.
 DB_SCHEMA = """
 Tables in the CollectionCalc database:
 
@@ -380,6 +407,38 @@ Tables in the CollectionCalc database:
     - blocked_by (VARCHAR(50)) - 'system' (auto) or 'admin' (manual)
 """
 
+def _log_nlq_history(admin_id, question, sql_query, result_count, execution_time_ms):
+    """Record an executed NLQ on the read-write pool.
+
+    Split out of natural_language_query because the generated SQL now runs on
+    the SELECT-only role, which cannot write this table. Never raises: the
+    query already succeeded and the caller is holding its results, so a
+    logging failure is reported and swallowed rather than turned into a
+    user-visible query failure."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                INSERT INTO admin_nlq_history (admin_id, natural_query, generated_sql, result_count, execution_time_ms)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (admin_id, question, sql_query, result_count, execution_time_ms))
+            conn.commit()
+        finally:
+            cur.close()
+    except Exception as e:
+        # Explicit reason at the failure point (L-SW-2026-007) — an NLQ that
+        # runs but silently stops being audited is the thing to avoid.
+        print(f"[NLQ] history logging failed for admin_id={admin_id}: {e}")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
 def natural_language_query(question, admin_id):
     """
     Convert a natural language question into SQL, execute it, and return results.
@@ -453,44 +512,26 @@ Return ONLY the SQL query, nothing else."""
                     'generated_sql': sql_query
                 }
         
-        # Execute the query
-        conn = get_db_connection()
+        # Execute the query on the SELECT-only role, NOT the app's read-write
+        # connection. The keyword denylist above stays as the first layer; this
+        # is the layer that holds when the denylist doesn't — it has no 'create'
+        # entry, and psycopg2 executes multi-statement strings, so
+        # "SELECT 1; CREATE TABLE x AS SELECT * FROM users" passes it.
+        try:
+            conn = get_readonly_connection()
+        except ValueError as e:
+            return {
+                'success': False,
+                'error': f'NLQ read-only role not configured: {e}',
+                'generated_sql': sql_query
+            }
+
         cur = conn.cursor()
-        
+
         try:
             cur.execute(sql_query)
             results = cur.fetchall()
             execution_time = int((time.time() - start_time) * 1000)
-            
-            # Log the query for history
-            cur.execute("""
-                INSERT INTO admin_nlq_history (admin_id, natural_query, generated_sql, result_count, execution_time_ms)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (admin_id, question, sql_query, len(results), execution_time))
-            conn.commit()
-            
-            # Convert results to JSON-serializable format
-            json_results = []
-            for row in results:
-                json_row = {}
-                for key, value in row.items():
-                    if isinstance(value, datetime):
-                        json_row[key] = value.isoformat()
-                    elif hasattr(value, '__float__'):
-                        json_row[key] = float(value)
-                    else:
-                        json_row[key] = value
-                json_results.append(json_row)
-            
-            return {
-                'success': True,
-                'question': question,
-                'generated_sql': sql_query,
-                'results': json_results,
-                'result_count': len(results),
-                'execution_time_ms': execution_time
-            }
-            
         except Exception as e:
             return {
                 'success': False,
@@ -500,7 +541,35 @@ Return ONLY the SQL query, nothing else."""
         finally:
             cur.close()
             conn.close()
-            
+
+        # History needs INSERT, so it goes on the read-write pool — the
+        # read-only role cannot write admin_nlq_history by design. A logging
+        # failure must not fail a query that already succeeded.
+        _log_nlq_history(admin_id, question, sql_query, len(results), execution_time)
+
+        # Convert results to JSON-serializable format
+        json_results = []
+        for row in results:
+            json_row = {}
+            for key, value in row.items():
+                if isinstance(value, datetime):
+                    json_row[key] = value.isoformat()
+                elif hasattr(value, '__float__'):
+                    json_row[key] = float(value)
+                else:
+                    json_row[key] = value
+            json_results.append(json_row)
+
+        return {
+            'success': True,
+            'question': question,
+            'generated_sql': sql_query,
+            'results': json_results,
+            'result_count': len(results),
+            'execution_time_ms': execution_time
+        }
+
+
     except Exception as e:
         return {
             'success': False,

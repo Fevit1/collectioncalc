@@ -27,6 +27,9 @@ Operational notes:
   the leak signal, not an outage.
 - DB_POOL_DISABLED=1 reverts get_db() to raw per-call connections (the
   pre-pool behavior) without a code revert — the rollback lever.
+- get_db_readonly() is a SEPARATE path for the admin NLQ handler, on the
+  SELECT-only `nlq_readonly` role (DATABASE_URL_NLQ). It is deliberately
+  unpooled and fails closed — see its docstring.
 - Scripts and migrations (db_migrate_*, scripts/) deliberately do NOT use
   this module; a one-shot process should hold a plain connection.
 """
@@ -192,6 +195,43 @@ def get_db(dict_rows=False):
     proxy = PooledConnection(conn, pooled)
     _register_for_teardown(proxy)
     return proxy
+
+
+def get_db_readonly():
+    """Connection for the admin NLQ path, on the SELECT-only `nlq_readonly`
+    role (DATABASE_URL_NLQ) instead of the app's read-write DSN.
+
+    Rows are RealDictCursor, matching what get_db(dict_rows=True) hands the
+    NLQ caller today.
+
+    Deliberately NOT pooled: /api/admin/nlq is admin-only and low-frequency,
+    and a second pool would add DB_POOL_MAX x workers to the connection
+    ceiling (max_connections=103) to serve a handful of queries a day. This
+    connection's close() genuinely closes.
+
+    FAILS CLOSED. If DATABASE_URL_NLQ is unset this raises rather than falling
+    back to DATABASE_URL. A fallback would hand the NLQ path the read-write
+    role again while looking exactly like a working configuration — the shape
+    L-SW-2026-018 is about. The raised message is the observable artifact that
+    the env var is missing.
+
+    set_session(readonly=True) is a second, independent guard on top of the
+    role's grants: the transaction refuses writes even if the grants are later
+    widened. statement_timeout is NOT set here — it rides on the role
+    (ALTER ROLE nlq_readonly SET statement_timeout), so it cannot be lost by a
+    code change to this function.
+    """
+    url = os.environ.get('DATABASE_URL_NLQ')
+    if not url:
+        raise ValueError(
+            "DATABASE_URL_NLQ environment variable not set — the NLQ SELECT-only "
+            "role is required; refusing to fall back to the read-write DATABASE_URL"
+        )
+    kwargs = {} if 'sslmode=' in url else {'sslmode': 'require'}
+    conn = psycopg2.connect(url, **kwargs)
+    conn.cursor_factory = RealDictCursor
+    conn.set_session(readonly=True)
+    return conn
 
 
 def _register_for_teardown(proxy):
