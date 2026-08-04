@@ -270,11 +270,15 @@ def get_device_breakdown(hours=24):
 # This description is NOT the database. Two gaps are known and deliberately left:
 #
 # 1. The valuation corpus is TWO tables and only one is described here.
-#    `ebay_sales` (~71.6k rows, 87.8%) is absent; `market_sales` (~9.9k rows,
-#    12.2%) is 100% Whatnot. So any NLQ question about sales volume, price
-#    history or coverage answers from ~12% of the corpus and reads as complete.
-#    `ebay_sales` is also NOT granted to nlq_readonly, so the two stay
-#    consistent — the model cannot query what it cannot see. See L-SW-2026-014.
+#    Live counts 2026-08-04: `ebay_sales` 163,374 rows (94.2%) is absent;
+#    `market_sales` 9,972 (5.8%) is 100% Whatnot. So any NLQ question about
+#    sales volume, price history or coverage answers from under 6% of the
+#    corpus and reads as complete. (The 71.6k/87.8% figures in L-SW-2026-014
+#    are from 2026-08-01 and are stale — ebay_sales has more than doubled.)
+#    `ebay_sales` is also NOT granted to nlq_readonly, so prompt and grants
+#    stay consistent — the model cannot query what it cannot see.
+#    NOTE: a view `all_comic_sales` already UNIONs both (15 cols, 173,346
+#    rows, `source` discriminator). It is described nowhere and not granted.
 # 2. The column lists here lag the live tables, and this description covers
 #    only 10 of the 34 base tables in `public`. Verified against the live
 #    catalog 2026-08-04: `users` is 32 columns live vs the 11 listed below;

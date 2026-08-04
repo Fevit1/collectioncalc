@@ -50,7 +50,10 @@ CREATE ROLE nlq_readonly WITH LOGIN PASSWORD '<GENERATE_A_PASSWORD_YOURSELF>';
 -- ---------------------------------------------------------------------
 -- 2. Connect + schema usage
 -- ---------------------------------------------------------------------
-GRANT CONNECT ON DATABASE collectioncalc TO nlq_readonly;   -- confirm: SELECT current_database();
+-- Database name verified against the live catalog 2026-08-04: collectioncalc_db
+-- (NOT "collectioncalc" — an earlier draft of this file had that wrong and
+-- would have errored here).
+GRANT CONNECT ON DATABASE collectioncalc_db TO nlq_readonly;
 GRANT USAGE ON SCHEMA public TO nlq_readonly;
 
 

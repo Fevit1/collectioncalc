@@ -72,11 +72,16 @@ fences — that shape is unchanged and was explicitly **not** re-scoped.
 
 `DB_SCHEMA` is not the database, in two ways, both now recorded in a comment at `admin.py`:
 
-1. **The valuation corpus is two tables and only one is described.** `ebay_sales` (~71.6k rows,
-   **87.8%**) is absent; `market_sales` (~9.9k, 12.2%) is 100% Whatnot. NLQ questions about sales
-   volume, price history or coverage answer from ~12% of the corpus **and read as complete**
-   (L-SW-2026-014). `ebay_sales` is also **not granted** to `nlq_readonly`, so prompt and grants stay
-   consistent — the model cannot query what it cannot see.
+1. **The valuation corpus is two tables and only one is described.** Live counts 2026-08-04:
+   `ebay_sales` **163,374 rows (94.2%)** is absent; `market_sales` **9,972 (5.8%)** is 100% Whatnot.
+   NLQ questions about sales volume, price history or coverage answer from **under 6%** of the corpus
+   **and read as complete**. `ebay_sales` is also **not granted** to `nlq_readonly`, so prompt and
+   grants stay consistent — the model cannot query what it cannot see.
+   ⚠️ **The 71,652-row / 87.8% figures in L-SW-2026-014 are STALE** (measured 2026-08-01); `ebay_sales`
+   has more than doubled since. The lesson's *mechanism* is unchanged and still correct — only its
+   cited counts are out of date. Not edited here; flagged for Mike.
+   ⚠️ **A view `all_comic_sales` already UNIONs both tables** — 15 columns, 173,346 rows, `source`
+   discriminator ('ebay' / Whatnot). Described nowhere, granted to nobody. Found 2026-08-04.
 2. **Scope and column lists both lag the live database.** Verified read-only against the live catalog
    2026-08-04: `public` holds **34 base tables + 5 views, 472 columns**. `DB_SCHEMA` describes **10
    tables** — so NLQ is blind to 24 of them (19 excluding the five `_bak_*_20260615` backup tables
