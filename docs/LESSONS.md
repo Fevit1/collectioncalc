@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-03 (18 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-04 (19 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -296,6 +296,17 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   as a false claim — and got a green light to "fix" correct copy. Caught only because Mike knew the
   data. The Whatnot rows are real: 1,603 distinct titles across 35 series, captured 2026-01-24 →
   2026-07-01.
+- **📏 FIGURES RE-MEASURED 2026-08-04 — the counts in WHY are as of 2026-08-01 and have moved.
+  The mechanism is unchanged; only the illustrative numbers aged.**
+
+  | Measured | `ebay_sales` | `market_sales` | Split |
+  |---|---|---|---|
+  | 2026-08-01 (as cited above) | 71,652 | 9,963 | 87.8% / 12.2% |
+  | 2026-08-04 (live catalog) | **163,374** | **9,972** | **94.2% / 5.8%** |
+
+  `ebay_sales` more than doubled in three days while `market_sales` grew by 9 rows. The rule and its
+  reasoning stand without amendment — the two-table trap is if anything sharper at 94/6. Anyone
+  quoting a corpus share should re-measure rather than cite either row of this table.
 - **HOW TO APPLY:** (1) For any "does the data support this claim" question, list the tables FIRST
   (`\dt`, or grep every `INSERT INTO`) and count them all before concluding. (2) Treat a defaulted
   discriminator column as an explicit prompt to go looking for the sibling. (3) When a claim is about
@@ -507,3 +518,45 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   Instance of **[[L-SW-2026-016]]** (a label asserting something nothing measures) extended from display
   surfaces to contracts. **Candidate for cross-project promotion (Mike's call)** — applies to TFO feature
   flags, MASSÉ agent config keys, and any CLI option or env var anywhere.
+
+### L-SW-2026-019 — Removing a filter and removing the hardcoded assumption it protected are TWO edits; a scope that sees only the filter ships a new bug while closing an old one
+
+- **RULE:** Before removing any filter, guard, or condition, **read the whole definition of the thing
+  you are changing and find every other place that encoded the same premise.** A `WHERE` clause and a
+  hardcoded literal in the same `SELECT` list are one assumption written twice. Remove one and the
+  other stops being redundant and starts being **wrong** — silently, because it still produces a
+  plausible value. Scope from the full object, never from the clause named in the ticket.
+- **WHY:** `all_comic_sales` (the 173,346-row UNION view over `ebay_sales` + `market_sales`) filtered
+  `WHERE market_sales.source = 'whatnot'` **and** emitted `'whatnot'::text` as a hardcoded `source`
+  literal. The approved scope — arrived at by reading the `WHERE` clause and reasoning about it
+  correctly — was *"remove the filter."* Shipped alone, that would have admitted a future `mercari`
+  row into the corpus **labelled `whatnot`**, converting a silent **drop** into a silent **mislabel**.
+  That is strictly worse: a dropped row shrinks a comp pool and is recoverable; a mislabelled row
+  poisons an existing pool and compounds — the same recall/precision asymmetry as
+  **[[L-SW-2026-009]]**. The literal was found only when the full `pg_get_viewdef` output was pulled
+  to write the replacement statement. **The scoping pass had the right diagnosis and the wrong edit
+  count.**
+- **HOW TO APPLY:**
+  1. **Print the whole definition before scoping a change to any part of it** — view, function,
+     trigger, policy, config block. `pg_get_viewdef(…, true)` for views; the whole function body, not
+     the branch. A change scoped from a fragment is a change scoped from a guess.
+  2. **Ask specifically: "what else assumed what this guard guaranteed?"** The classic pair is a
+     `WHERE x = 'k'` alongside a `'k'` literal in the projection, but the shape is general — a
+     validated-input check plus a downstream cast, a length guard plus a fixed-size buffer, a feature
+     flag plus a hardcoded branch.
+  3. **Prefer derived over asserted, always.** `market_sales.source` cannot disagree with the data;
+     `'whatnot'::text` can and eventually would. This is **[[L-SW-2026-016]]** at the data layer — a
+     label asserting something nothing computed.
+  4. **When the data cannot distinguish the fix from a no-op, say so and name what can.** Here the
+     row counts were identical either way while `market_sales` stayed 100% Whatnot; only the view
+     definition text proved the change landed. Report the check that discriminates, not the one that
+     merely passes (**[[L-SW-2026-015]]**).
+  5. **Removing a landmine can remove the need for the monitor that would have watched it.** The
+     originally-scoped mitigation was a loud alert for non-Whatnot rows. Deriving the label deleted
+     the failure mode instead of observing it — always prefer that trade when it is available.
+- **SOURCE:** 2026-08-04, `all_comic_sales` filter fix, during the NLQ DB_SCHEMA drift work. Mike's
+  framing: *"the general shape is that removing a filter and removing a hardcoded assumption are two
+  edits, and scoping only saw one."* Caught in implementation, not in scoping — which is the part
+  worth remembering. Pairs with **[[L-SW-2026-014]]** (the defaulted-discriminator heuristic that
+  made this view suspicious in the first place). **Candidate for cross-project promotion (Mike's
+  call)** — the mechanism is not SQL-specific.

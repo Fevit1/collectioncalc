@@ -91,6 +91,44 @@ TO nlq_readonly;
 
 
 -- ---------------------------------------------------------------------
+-- 3b. all_comic_sales — the complete sales corpus (VIEW).  [Phase 1, 2026-08-04]
+--
+--    THE INVARIANT: the set of objects described in admin.py's DB_SCHEMA
+--    equals the set granted here. This grant is the second half of the
+--    same unit that added `all_comic_sales` to DB_SCHEMA. Never ship one
+--    without the other — a described-but-ungranted object throws a
+--    permission error (loud, safe), a granted-but-undescribed object
+--    silently widens the role's reach with no reason on record.
+--
+--    ⚠️ Granting the VIEW does NOT grant `ebay_sales`. A view executes
+--    against its OWNER's rights on the base tables, so nlq_readonly reads
+--    the full 173k-row corpus through this view while still being denied
+--    raw `ebay_sales`. That is deliberate, not an oversight.
+--
+--    Why this exists: before Phase 1, `ebay_sales` (163,374 rows, 94.2%)
+--    was invisible to NLQ and `market_sales` (9,972, 5.8%) was not, so
+--    sales questions were answered from under 6% of the corpus and read
+--    as complete. The first production NLQ run, 2026-08-04, returned 8
+--    rows all sourced 'whatnot' — the hole, live.
+-- ---------------------------------------------------------------------
+GRANT SELECT ON all_comic_sales TO nlq_readonly;
+
+--    ⚠️ KNOWINGLY UNREACHABLE — DECIDED 2026-08-04, DO NOT RE-LITIGATE.
+--    `market_sales.grade_source` and `market_sales.slab_type` will become
+--    unreachable to nlq_readonly when Phase 2 revokes the market_sales
+--    grant, and they CANNOT be added to all_comic_sales: ebay_sales has no
+--    equivalent for either, and any fill would be fabricated (NULL would
+--    assert "eBay grades have no source", which is false — eBay grades have
+--    a source, it just is not stored; a synthesised slab_type would
+--    manufacture a value outright). Both are Whatnot capture-pipeline
+--    metadata, not comp data.
+--    A narrow column-level grant on market_sales limited to those columns
+--    was considered and REJECTED — more grants-file complexity than it
+--    returns. If they are ever needed, query them on the read-write
+--    connection; do not widen nlq_readonly.
+
+
+-- ---------------------------------------------------------------------
 -- 4. users — every column EXCEPT password_hash.
 --
 --    Derived from information_schema, never typed out. Verified against the

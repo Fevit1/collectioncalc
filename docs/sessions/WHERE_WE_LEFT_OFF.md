@@ -1,15 +1,87 @@
 # Where We Left Off - Aug 4, 2026
 
-## 2026-08-04 — 🔧 **NLQ RUNS ON A SELECT-ONLY ROLE — CODE WRITTEN, NOT SHIPPED, MANUAL PREREQS OUTSTANDING**
+## 2026-08-04 — ✅ **NLQ SELECT-ONLY ROLE: SHIPPED AND VERIFIED. ✅ `all_comic_sales` FILTER: FIXED AND VERIFIED.**
 
-**MOST RECENT CHANGE (Rule 5): the admin NLQ handler no longer executes model-generated SQL on the
-app's read-write pool; it uses a new SELECT-only `nlq_readonly` role via `DATABASE_URL_NLQ`, and the
-`admin_nlq_history` INSERT was split onto the read-write pool. Supersedes "the denylist + SELECT-prefix
-check are the NLQ safety model" (in place since the endpoint was written).**
+**MOST RECENT CHANGE (Rule 5): `all_comic_sales`'s second leg now emits `market_sales.source` and
+carries no `WHERE` clause; it previously emitted the literal `'whatnot'::text` and filtered
+`WHERE market_sales.source = 'whatnot'`. Supersedes the approved scope of "remove the WHERE clause
+only," which was incomplete — see the literal-vs-column finding below. Applied 2026-08-04, verified
+from the catalog.**
 
-⚠️ **STATUS AT WRITING: UNCOMMITTED AND UNDEPLOYED.** No SQL run, no env var set, no push. Four files
-dirty in the working tree. Verify with `git status` before assuming any of this is live — do not
-reconstruct ship-state from this entry (L-SW-2026-008).
+**PRIOR CHANGE, same day:** the admin NLQ handler no longer executes model-generated SQL on the app's
+read-write pool; it uses the SELECT-only `nlq_readonly` role via `DATABASE_URL_NLQ`, and the
+`admin_nlq_history` INSERT was split onto the read-write pool. Supersedes "the denylist +
+SELECT-prefix check are the NLQ safety model" (in place since the endpoint was written).
+
+### ✅ CLOSURE 1 — `nlq_readonly` role, shipped and verified
+
+⚠️ Supersedes **both** earlier status blocks in this entry: "UNCOMMITTED AND UNDEPLOYED, four files
+dirty" and "code PUSHED / infra NOT DONE." Both are DEAD. This table is current.
+
+| Step | State |
+|---|---|
+| Commits | ✅ `8709518` (feature) + `5f2deb5` (corrections) |
+| Push | ✅ `origin/main` = `5f2deb5`. **Both commits are on the remote and are no longer amendable** — the duplicate commit message across the two, and `8709518`'s stale "87.8%" figure, are permanent history. |
+| `nlq_readonly` role + grants | ✅ **LIVE.** Corroborated independently from the catalog: `SELECT` on exactly the 9 tables from step 3, and **`users` absent from the table-level list** — the load-bearing condition for the `password_hash` exclusion. |
+| `DATABASE_URL_NLQ` on Render | ✅ set |
+| Render deploy | ✅ `5f2deb5` deployed |
+| Post-deploy artifact | ✅ NLQ run returned **8 rows**; `admin_nlq_history` **row 43** landed with `result_count=8`, `execution_time_ms=3312`. **The history split works** — the query ran on the read-only role and the audit row was written on the read-write pool. |
+
+⚠️ **The first production NLQ returned 8 rows, all `source = 'whatnot'`, from `market_sales` alone.**
+That is the corpus hole producing a visibly incomplete answer in production, unprompted — and it is
+the argument for Phase 1 following immediately.
+
+### ✅ CLOSURE 2 — `all_comic_sales` filter fixed
+
+Applied on the admin connection as `collectioncalc_db_user` (view owner). Verified from the catalog
+after the fact, not by eye:
+
+| Check | Result |
+|---|---|
+| Second leg emits `market_sales.source` | ✅ present |
+| Literal `'whatnot'::text` | ✅ **gone** |
+| `WHERE` clause | ✅ **gone** |
+| First leg `'ebay'::text` | ✅ retained — correct, `ebay_sales` has no `source` column |
+| View row count | **173,346** |
+| `ebay_sales` + `market_sales` | 163,374 + 9,972 = **173,346**, delta **0** |
+| Split by source | `ebay` 163,374 · `whatnot` 9,972 |
+| ACL after vs before | ✅ **identical, 9 rows** — owner `collectioncalc_db_user` (arwdDxtm) + `do_readonly=r`. `CREATE OR REPLACE` kept the relation OID and `relacl`; nothing gained, nothing lost. |
+
+- **Rollback not needed.** The count criterion held exactly, so the filter was provably doing nothing.
+- ⚠️ **The row counts are NOT the evidence.** While `market_sales` stays 100% Whatnot, the output is
+  byte-identical whether `source` is a literal or a column reference. **The `pg_get_viewdef` text is
+  the only thing that proves the change took**; the counts only prove nothing broke.
+- **`datadog` needed nothing** — verified it holds **no object grants at all** in schema `public`, so
+  it cannot read the view through a grant. Consistent with the Datadog PG integration reading
+  `pg_stat_*` via role membership. The "unknown consumer" flag is CLOSED.
+- **No monitor was needed after all.** The originally-proposed loud check (non-Whatnot rows in
+  `market_sales`) exists to detect a silent drop. Deriving the label instead of asserting it removes
+  the failure mode rather than observing it.
+
+### 🔍 THE LITERAL-VS-COLUMN FINDING — caught in implementation, missed in scoping
+
+**The approved scope was "remove the `WHERE` clause only." That scope was incomplete and would have
+shipped a new bug while closing an old one.**
+
+The second leg did not read `market_sales.source`. It emitted a **hardcoded literal**:
+
+```sql
+SELECT 'whatnot'::text AS source,  -- literal, not the column
+   ... FROM market_sales
+ WHERE market_sales.source = 'whatnot'::text;
+```
+
+The `WHERE` and the literal encoded the *same premise* in two places. Removing only the `WHERE` would
+have admitted a future `mercari` row **labelled `source = 'whatnot'`** — converting a silent **drop**
+into a silent **mislabel**, which is strictly worse: a dropped row shrinks a comp pool and is
+recoverable; a mislabelled row poisons one and compounds (same asymmetry as L-SW-2026-009).
+
+Found only when the full view definition was read to write the replacement statement — the scoping
+pass had worked from the `WHERE` clause alone. Recorded as **[[L-SW-2026-019]]**.
+
+⚠️ **`migrations/nlq_readonly_role.sql` step 2 was wrong in `8709518`** — it said `DATABASE collectioncalc`.
+The database is **`collectioncalc_db`**. Fixed in `5f2deb5`. Anyone running the version from `8709518`
+will error at step 2.
 
 ### Why
 
@@ -114,6 +186,209 @@ permission error instead of rows. Steering the model off `SELECT *` is a prompt 
 4. Post-deploy artifact: run one NLQ from the admin panel, then confirm the audit row landed —
    `SELECT id, admin_id, result_count FROM admin_nlq_history ORDER BY id DESC LIMIT 3`. Query returns
    but no row = the split's write half is broken; check Render logs for `[NLQ] history logging failed`.
+
+### 📐 FOLLOW-UP 1 — DB_SCHEMA drift reconciliation: SCOPED AND DECIDED, NOT STARTED
+
+Decisions (Mike, 2026-08-04). **The prompt has not been touched** — `DB_SCHEMA` is still 3,609 chars.
+
+- **Describe 16 objects:** `all_comic_sales` (view) · `request_logs` · `users` · `collections` ·
+  `comic_registry` · `api_usage` · `lookup_demand` · `waitlist` · `grade_submissions` ·
+  `user_feedback` · `content_incidents` · `sighting_reports` · `blocked_reporters` · `match_reports`
+  · plus views `signature_review_queue`, `signature_confusion_summary`.
+- ⚰️ **`beta_codes` RETIRED from the prompt** — beta gating died 2026-07-29; describing a dead
+  subsystem is drift by definition. Supersedes its Tier A placement earlier in this scope.
+- **Tier B resolved to the two signature VIEWS only.** The three signature base tables stay out.
+- **Tier C excluded, with reasons on record:** `password_resets` + `ebay_tokens` (credential
+  material) · `search_cache` + `dependency_alerts` (machinery) · `slabguard_*` ×3 (parked
+  subsystem) · `graded_comics` (**unidentified** — 12 cols, 1 row, in no doc; flagged not guessed) ·
+  raw `market_sales`/`ebay_sales` (superseded by the view) · **`admin_nlq_history` — NLQ must not
+  query its own audit log.**
+- **Phasing: 1 → 2 → sync-check → 3.** Build the invariant before adding the batch that would
+  violate it. The invariant: *objects described in `DB_SCHEMA` == objects granted in
+  `nlq_readonly_role.sql`*, minus an explicit `DESCRIBED_BUT_DENIED` list with a reason per entry,
+  enforced by a script that exits non-zero on drift (the observable artifact, L-SW-2026-017).
+
+⚠️ **CORRECTION — the selection criterion was stated wrong and Mike caught it.** The first draft
+excluded objects on **row count** (naming `match_reports`, `signature_matches`) while keeping
+0-row `sighting_reports`/`blocked_reporters` as "semantically load-bearing" — self-contradictory.
+**The real rule: an object belongs if a plausible admin question maps onto it and the model needs its
+structure to answer.** Row count is evidence about whether a subsystem is *in use*, never a criterion.
+An empty table representing a reachable domain event answers "how many sightings?" with a correct `0`.
+Consequence: **`match_reports` moved back IN.** Do not re-derive these lists from row counts.
+
+### 📦 PHASE 2 UNIT — view extension + `market_sales` revoke, SHIP TOGETHER
+
+Decided 2026-08-04: **revoking `market_sales` from `nlq_readonly` is the fix, not prompt steering.**
+Reason (Mike): steering is probabilistic and the model picked `market_sales` unprompted on the first
+production NLQ run. Revoking makes the wrong path fail loudly.
+
+**⚠️ ORDERING — INVERSE OF PHASE 1. Execute in exactly this sequence:**
+
+| # | Step | Where |
+|---|---|---|
+| 1 | Extend `all_comic_sales` (`CREATE OR REPLACE VIEW`, append columns) | DBeaver, admin |
+| 2 | Remove `market_sales`'s entry from `DB_SCHEMA`; add the new view columns | `admin.py` |
+| 3 | Remove `market_sales` from step 3 of the grants file | `migrations/nlq_readonly_role.sql` |
+| 4 | Commit + push + **deploy the prompt change** | Render |
+| 5 | **THEN** `REVOKE SELECT ON market_sales FROM nlq_readonly;` | DBeaver, admin |
+
+**Phase 1 grants BEFORE deploy; Phase 2 revokes AFTER deploy.** Reversed, every sales question errors
+during the window between revoke and deploy. The rule generalises: *widen access before the prompt
+that uses it; narrow access after the prompt that stopped using it.*
+
+**Verified column findings (live catalog, 2026-08-04) — what can and cannot join the view:**
+
+| Column | eBay side | Verdict |
+|---|---|---|
+| `is_facsimile` | `is_facsimile` boolean, 163,374/163,374 | ✅ ADD — clean |
+| `is_reprint` | `is_reprint` boolean, 163,374/163,374 | ✅ ADD — clean |
+| `grade` | `grade` numeric, 22,923/163,374 (14.0%) | ✅ ADD — but Whatnot is 48.9% populated; unioned averages skew Whatnot. `DB_SCHEMA` must say so. |
+| `created_at` | `created_at` **`timestamp` WITHOUT tz** vs Whatnot `timestamptz` | ✅ ADD — **DECIDED: cast the eBay leg explicitly to UTC** (`created_at AT TIME ZONE 'UTC'`), written into the view definition, never left to the session `TimeZone`. |
+| `source_id` | **`ebay_item_id`** varchar, 163,374/163,374 | ✅ ADD — **DECIDED: the merged column is named `listing_id`**, not `source_id` (which reads as related to `source`). |
+
+**⏱️ `created_at` TIMEZONE DECISION — Mike, 2026-08-04.** The eBay leg is `timestamp` without a zone;
+the Whatnot leg is `timestamptz`. A bare union resolves to `timestamptz` by interpreting the eBay
+values in whatever the session's `TimeZone` happens to be — **a timezone inherited rather than
+chosen.** DECIDED: **UTC, cast explicitly in the view definition**, and **the `DB_SCHEMA` entry must
+state that the eBay leg's timezone was chosen, not inherited**, so the next reader does not assume
+the value carried a zone all along. This is cross-project **L-2026-023** at the schema layer — *a
+timestamp is defined by its writer, not its name* — and the same asserted-vs-derived shape as
+[[L-SW-2026-019]].
+
+**📊 `grade` COVERAGE ASYMMETRY — must go in the `DB_SCHEMA` entry itself, not just these notes.**
+eBay `grade` is populated in **22,923 / 163,374 (14.0%)**; Whatnot in **4,879 / 9,972 (48.9%)**. An
+unqualified `AVG(grade)` over the view silently weights toward Whatnot by a factor of ~3.5 in
+population rate. The prompt must say so **in the same steering voice** used to point sales questions
+away from `market_sales` — a note in the session log does not reach the model.
+
+**❌ CANNOT BE ADDED — no eBay equivalent, and no honest fill exists:**
+
+- **`grade_source`** (Whatnot: `seller_verbal` 2,775 · `vision_cover` 1,558 · `slab_label` 228 ·
+  `dom` 154 · NULL 5,257). Describes how the **capture pipeline** obtained the grade. eBay records no
+  such concept. NULL-filling would assert "eBay grades have no source," which is **false** — they have
+  one, it simply is not stored.
+- **`slab_type`** (Whatnot: `raw` 4,294 · `CGC` 480 · `slabbed` 57 · `CBCS` 25 · NULL 5,094). eBay's
+  nearest is `graded` boolean + `grading_company`. Synthesising
+  `CASE WHEN graded THEN grading_company ELSE 'raw' END` **manufactures** a value to fill a column —
+  the literal-vs-column problem run forwards. **Do not.**
+
+⚠️ **THEREFORE THE REVOKE HAS A REAL, PERMANENT COST — AND IT IS ACCEPTED.**
+
+**DECIDED (Mike, 2026-08-04): `grade_source` and `slab_type` are KNOWINGLY UNREACHABLE to NLQ. Do not
+re-litigate this.** Both are ~49% populated and are **Whatnot capture-pipeline metadata, not comp
+data** — `grade_source` records *how the grade was obtained* (`seller_verbal`, `vision_cover`,
+`slab_label`, `dom`), a concept eBay does not record at all. They cannot join the view because any
+fill would be fabricated, and they cannot survive the revoke because the revoke is the point.
+
+The rejected alternative, on the record so it is not re-proposed: a **narrow column-level grant** on
+`market_sales` limited to `id`/`source`/`grade_source`/`slab_type` would keep them reachable while
+denying `price`/`sold_at`/`canonical_title`, making the table useless for corpus questions. **Rejected
+— it costs more in grants-file complexity than it returns** (Mike). If these columns are ever needed
+again, the answer is an admin query on the read-write connection, not a widening of `nlq_readonly`.
+
+### 🏷️ LOGGED, NOT CHANGED — the 2026-08-01 copy verdict rests on a figure that has since moved
+
+This entry's line ~728 records: *"12.2% across 1,603 titles is a meaningful share, so the copy stands
+unchanged"* — the tombstone from the Slab Guard claims audit for `waitlist-confirmed.html`'s "we track
+real sales data across eBay and Whatnot." **The split is now 94.2% / 5.8%, so that verdict now reads
+as 5.8%,** and the phrasing question parked alongside it (whether "across eBay and Whatnot" implies
+more parity than the real ratio) is sharper at 94/6 than it was at 88/12.
+
+**Mike, 2026-08-04: LOG IT, DO NOT CHANGE IT.** This is a separate decision about public claims and is
+not part of the NLQ work. The copy is unchanged and the original tombstone stands as written. Recorded
+here only so the next claims sweep knows the underlying figure moved.
+
+### 🚧 PHASE 1 BLOCKER — the `all_comic_sales` filter (Mike's call: blocker, not caveat)
+
+The view's second leg carries `WHERE market_sales.source = 'whatnot'`. Proposing it as the fix for a
+silent corpus hole while it installs a second one is not shippable. Measured 2026-08-04:
+
+- `all_comic_sales` **173,346** = `ebay_sales` 163,374 + `market_sales` 9,972. **0 rows dropped.**
+- `market_sales.source` is **100% `whatnot`** (9,972); `source IS DISTINCT FROM 'whatnot'` = 0.
+- `source` is **NOT NULL with no column default** — the `'whatnot'` default is application-side
+  (`sales_market.py:127`), as L-SW-2026-014 says. No NULL-drop edge case exists.
+- **Verdict: vestigial today, landmine later.** Its only effect is prospective — the first
+  non-Whatnot row ever written vanishes from the corpus with no error.
+- **Recommended fix: `CREATE OR REPLACE VIEW` without the filter.** Column names/types/order
+  unchanged, so grants survive. Verification is its own positive control: the row count must be
+  **173,346 before and after**; any difference falsifies the premise.
+- **Blast radius: zero in the repo** — `all_comic_sales` appears in no route, module, script or
+  extension. Unknown: ad-hoc DBeaver use and whatever the `datadog` role queries.
+- If the filter must instead STAY, Mike requires a **loud check, not a comment** — home would be
+  `dependency_monitor.py`, asserting the non-Whatnot count is 0, reusing the dedup/stability-window
+  machinery from L-SW-2026-013. Removal is smaller and deletes the need for it.
+- **PENDING MIKE'S GO. Nothing executed.**
+
+### 🗄️ `_bak_*_20260615` — RECOMMENDATION: KEEP. NOTHING DROPPED.
+
+Five 2-column snapshots from the June 15 R2 cutover, 60,447 rows total. `R2_CUTOVER_RUNBOOK.md`
+**Step 6 (line 284) already plans the exact `DROP TABLE`**, gated on "once confident (separate
+session)." Verified read-only 2026-08-04: Step 5's condition holds — **0 residual `pub-*.r2.dev`
+references** across all five columns, positive control fired (207 / 4,053 / 138,675 http URLs
+present, so the probe can match). Snapshot ids are still **100% aligned** with live rows
+(50,555/50,555 and 9,560/9,560), so rollback remains mechanically valid.
+
+**But the drop is half a decision.** Step 6 pairs it with disabling the r2.dev public development
+URL, and whether that URL is still enabled is a **Cloudflare fact not visible from the repo or DB**.
+Both actions answer the same question. **Recommendation: one deliberate "R2 close-out" item that
+disables r2.dev and drops the five tables together.** Holding costs nothing. They stay out of the
+NLQ prompt and grants regardless.
+
+⚠️ Drift found while reading that runbook: line 6-7 still states "soft launch is **August 4, 2026**",
+which is DEAD per `CLAUDE.md` — the gate is first cold traffic, unscheduled. Not edited.
+
+### 🧹 GIT HYGIENE — `.claude` untrack: SCOPED AND DECIDED, NOT RUN
+
+`git status` was unusable (**8,461 lines**) because `61290bf` — *"Restore dollar sign favicon, remove
+MASSE 8-ball from all pages"*, Mike Berry, **2026-03-19**, **8,451 files / 1,486,879 insertions** —
+swept the whole agent directory in. 8,428 of its additions were `.claude/` paths; 15 were not. An
+`add -A` in everything but name. `CLAUDE.md` itself was added by that same commit and carries the
+"NEVER `git add -A` blindly" rule, apparently written the same morning.
+
+- **8,429 files tracked under `.claude`: 8,424 `worktrees/` · 4 `skills/` · 1 `plans/`.**
+- `.gitignore` lists `.claude/` **twice** (lines 69, 70). `git check-ignore -v` confirms it is live
+  and matching — and irrelevant, because **gitignore does not affect already-tracked files.**
+- `git worktree list` shows **18 live registered worktrees**, all present on disk. **`zen-wozniak`,
+  the one that flooded the status, is NOT among them** — a genuine orphan, deleted from disk while
+  still tracked.
+- ⚠️ **Mike had already run `git rm -r --cached .claude` before asking for the scope** (his note,
+  2026-08-04), which is why 8,429 deletions were found **staged** in the index. **That staging
+  included the 4 `SKILL.md` files** — `deploy-tfo`, `health`, `lesson`, `stripe-test`, all referenced
+  by `CLAUDE.md`. A plain `git commit` would have swept them out silently. **This is the finding that
+  mattered; the rest is bookkeeping.**
+- **DECIDED:** untrack `.claude/worktrees/` and `.claude/plans/purrfect-squishing-lake.md` only;
+  **keep `.claude/skills/` tracked.**
+- `.gitignore` must be restructured, not patched: `.claude/` with a trailing slash excludes the
+  directory outright and git will not descend into it, so a `!.claude/skills/` negation underneath
+  silently does nothing. Working form is `.claude/*` + `!.claude/skills/`, duplicate removed.
+- `git rm -r --cached` is the right instrument and **removes nothing from disk**; it does not
+  deregister or damage the 18 worktrees (registration lives in `.git/worktrees/`, not the index).
+- **Repo-size impact: none.** Blobs stay in history; only a rewrite removes them, not recommended.
+- **No tooling depends on those paths being tracked** — worktree isolation and skill loading both
+  work off disk, not the index.
+- **Interim clean status, verified (8,461 → 32 lines, positive control holds):**
+  `git status --short -- ':(exclude).claude'`
+- Commands prepared and handed to Mike. **BEHIND the role deploy. Nothing run.**
+
+### 🧊 LOGGED, NOT RUN — `git gc`
+
+`git count-objects -vH`: **5,144 loose objects, 119.66 MiB, `in-pack: 0`** — this repo has never been
+packed. A `git gc` would likely shrink it substantially. **Mike's instruction 2026-08-04: log it, do
+not run it. Separate item.** Unrelated to the `.claude` untrack.
+
+### 📉 CORPUS FIGURES CORRECTED
+
+`ebay_sales` is **163,374** rows, not the 71,652 recorded 2026-08-01. Split is **94.2% / 5.8%**, not
+87.8% / 12.2%. ⚠️ **L-SW-2026-014's cited counts are stale** — its mechanism is unchanged and still
+correct. `8709518`'s commit message says 87.8% and is now pushed, so that figure is permanent in
+history. Not edited in `LESSONS.md`; flagged for Mike.
+
+### 🔜 FOLLOW-UP 2 — polysemy audit: NOT STARTED
+
+Held until the drift work closes (Mike's sequencing). Scope when opened: all **472 columns**, terms
+that denote different things in different tables. Seed set: `grade` (NUMERIC in `market_sales`, TEXT
+in `collections`), `source`, `value`, `status`, `title`, `confidence`. Value is independent of NLQ —
+it documents the data model and locates where wrong joins are most likely today.
 
 ---
 

@@ -273,8 +273,11 @@ def get_device_breakdown(hours=24):
 #    Live counts 2026-08-04: `ebay_sales` 163,374 rows (94.2%) is absent;
 #    `market_sales` 9,972 (5.8%) is 100% Whatnot. So any NLQ question about
 #    sales volume, price history or coverage answers from under 6% of the
-#    corpus and reads as complete. (The 71.6k/87.8% figures in L-SW-2026-014
-#    are from 2026-08-01 and are stale — ebay_sales has more than doubled.)
+#    corpus and reads as complete. (L-SW-2026-014 cites row counts measured
+#    2026-08-01 that are now stale — ebay_sales has more than doubled since.
+#    Deliberately not reproduced here: a comment repeating a retired figure
+#    is indistinguishable from an unfixed instance to any future grep —
+#    L-SW-2026-015 corollary.)
 #    `ebay_sales` is also NOT granted to nlq_readonly, so prompt and grants
 #    stay consistent — the model cannot query what it cannot see.
 #    NOTE: a view `all_comic_sales` already UNIONs both (15 cols, 173,346
@@ -409,6 +412,30 @@ Tables in the CollectionCalc database:
     - blocked_at (TIMESTAMP)
     - expires_at (TIMESTAMP) - NULL = permanent
     - blocked_by (VARCHAR(50)) - 'system' (auto) or 'admin' (manual)
+
+11. all_comic_sales (VIEW) - THE COMPLETE SALES CORPUS. ~173,000 rows.
+    ** USE THIS VIEW for every question about sales, prices, comps, volume,
+       market coverage, or what sold when. It is a UNION of both sales
+       sources. The market_sales table above is ONLY the Whatnot slice
+       (~6% of all sales) - answering a sales question from market_sales
+       alone produces a confidently incomplete answer. **
+    - source (TEXT) - 'ebay' or the marketplace name (currently 'whatnot')
+    - id (INTEGER) - the id from the underlying table. NOT unique across
+      the view: an ebay row and a whatnot row can share an id. Never join
+      on id alone; pair it with source.
+    - canonical_title (TEXT) - normalized series title, use for grouping
+    - issue_number (VARCHAR)
+    - price (NUMERIC) - the sale price
+    - sold_at (TIMESTAMPTZ) - when it sold
+    - grade_from_title (NUMERIC) - grade parsed from the listing title, NULL if none
+    - grading_company (VARCHAR) - CGC, CBCS, etc., NULL if raw
+    - is_variant (BOOLEAN)
+    - is_signed (BOOLEAN)
+    - is_lot (BOOLEAN) - TRUE = a multi-book lot; exclude for single-book comps
+    - is_key_issue (BOOLEAN)
+    - key_issue_claim (TEXT)
+    - creators (TEXT)
+    - raw_title (TEXT) - the original listing title
 """
 
 def _log_nlq_history(admin_id, question, sql_query, result_count, execution_time_ms):
