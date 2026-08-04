@@ -1,5 +1,80 @@
 # Where We Left Off - Aug 3, 2026
 
+## 2026-08-03 (EVENING) — 🚦 **SIGN-IN ENTRY POINT FIXED (staged, NOT yet purged); WHATNOT VISION 401 DIAGNOSED**
+
+**MOST RECENT CHANGE (Rule 5): `/login.html`'s default panel is now `loginPanel`, selected by an explicit
+branch; signup is reached via `?mode=signup`. Supersedes "`signupPanel` is now the default panel" (set
+2026-07-29 by `b981789`).** Frontend only — **purge, no Render deploy.** Staged in the working tree at
+time of writing; not yet shipped.
+
+### ⚰️ TOMBSTONE — the Unit D attribution was WRONG, and the correct framing matters
+
+- **DEAD:** *"Sign In lands on Create Account because Unit D (`b981789`) made signup the default panel."*
+- **REPLACED BY:** the defect **predates** `b981789`. Before it the default was `betaCodePanel` — also
+  not the login form. **"Sign In" has never reached the login form.**
+- **REASON:** `b981789` changed **severity, not cause.** The beta panel was one input and a button, so
+  its identical "Already have an account? Log in" link sat on-screen; the six-field signup form pushed
+  that same link **234px below the fold at 375×812** (202px at 1440×900 — measured live, both viewports).
+  A mildly wrong landing became an unreachable one.
+- **SUPERSEDES:** any framing that scopes this to Unit D. ⚠️ **A fix aimed at Unit D alone would have
+  left the gap in place** — which is precisely why this is recorded as a tombstone and not a note.
+
+### ⚰️ `?signup=true` was DEAD from `cbd80d7` (2026-02-28) to 2026-08-03 — five months
+
+`index.html`'s Sign Up link carried it; `login.html` **never** contained a reader (`git log -S` finds no
+match in its whole history). It "worked" only because signup was the default. It **hid the real defect**
+by supplying false evidence that panel selection existed. Now an **alias** for `?mode=signup` and it must
+STAY one — the link is live, may be bookmarked, and pages get cached; deleting it would make it dead a
+second time, in the direction that breaks signup. New lesson **L-SW-2026-018**; instance of L-SW-2026-016
+extended from display surfaces to contracts.
+
+### What changed (4 files, staged)
+
+| Part | Change | Files |
+|---|---|---|
+| A | Explicit `?mode=login\|signup` selector; default = login; `?signup=true` kept as alias; `?invite=` forces signup | `login.html` |
+| B | Two-button tab bar at the top of both panels, reusing the **orphaned** `.tabs`/`.tab` CSS (present since forever, no markup ever used it) | `login.html` |
+| C | `?mode=signup` on the four acquisition CTAs | `index.html` ×3, `pricing.html` |
+| D | `verifyingPanel` shown **synchronously** before the verify fetch; `proceed()` given a terminal else-branch | `login.html` |
+| — | Stale "Already have a beta code?" → "Already have an account?" (beta gating died 2026-07-29) | `waitlist.html` |
+
+**Verified locally over HTTP** (`file://` strips query strings — a near-miss false pass, L-SW-2026-015):
+`?mode=signup`→signup · `?signup=true`→signup · `?invite=`→signup + URL cleaned · `?token=`→**never
+signup**, lands loginPanel + server message · bare→login. Tabs and footer links toggle both ways. At
+375×812 **both panels put the toggle at y=254, above the 812 fold**; the login submit is at y=689, so the
+whole login flow fits without scrolling.
+
+⚠️ **`sw.js` needs NO `CACHE_NAME` bump** — only HTML changed, and HTML is never precached (policy
+rewritten 2026-07-29). No service-worker staleness risk against the purge check.
+
+### 🔎 Whatnot valuator vision scanning — diagnosed, NOT fixed
+
+**Real 401, not a mislabeled 403.** `request_logs` rows 199912/199915/199921: `POST /api/vision/analyze`,
+**401**, `user_id NULL`, `"Authentication required"`. NULL `user_id` proves `g.user_id` was never set, so
+the 403 plan gate was never reached. The extension's "Session expired" label is **correct**.
+
+- ⚠️ **The premise "it broke yesterday" is false.** Last successful scan **2026-07-01 05:12 UTC — 34 days
+  before**. Zero vision traffic in between (the two 2026-08-01 405s were GET blueprint probes). The break
+  is **not datable from traffic**; it failed on first use after a month idle.
+- **Leading cause: plain JWT expiry.** `JWT_EXPIRY_DAYS = 30`, and the extension's token is minted once at
+  Options sign-in and **never refreshed** — no renewal path exists. Website logins don't touch
+  `chrome.storage.local`. **Unproven** — needs the stored token's `exp` decoded locally.
+- `a0cc9fa` **never touched `routes/vision.py`.** The message change was `88c42aa`, and it was the string
+  only — gate logic byte-identical. `88c42aa`'s `billing.py` hunks did not touch `get_user_plan` or
+  `check_feature_access`; `COMING_SOON_PLANS` is used only in `create_checkout_session`.
+- **Mike = `users.id 3`, plan `free`, `subscription_status canceled`, `is_admin TRUE`.** Plan-wise he
+  can't reach vision; the admin bypass grants it. But **`settings.js:158` computes
+  `hasVision = ['guard','dealer'].includes(plan)` with no admin term, and `/api/billing/my-plan` doesn't
+  return `is_admin`** — so once he signs back in the Options page will tell him he isn't entitled while
+  the server grants him access. **Open.**
+- ⚠️ **The claims audit's "not site-deployed, leave it" call on `CCExtensions/whatnot-valuator/settings.html:145`
+  was WRONG (Mike, 2026-08-03)** — he uses the extension. Three strings still advertise Guard/Dealer, a
+  tier `COMING_SOON_PLANS` refuses at checkout: `settings.html:145`, `settings.js:165` (with a live
+  Upgrade link), `vision.js:136`. `content.js:95`'s modal is a fourth, different defect — it fires on
+  *no token* while asserting a *plan* requirement it never checked. **All open.**
+
+---
+
 ## 2026-08-03 (SESSION CLOSE) — ✅ **FOUR UNITS SHIPPED; CAPTURE WRITE PATH 41.5s → SUB-SECOND, MEASURED**
 
 **MOST RECENT CHANGE (Rule 5): the CP-1 remediation order was REVISED — canonical "of" fragmentation is now item 1, displacing signed-comp contamination. Supersedes the order set 2026-08-02.** Reason: fragmentation's cost **compounds with capture activity** (the work being done most), while signed contamination is stationary at ~7.8%. Tombstone + full order live in `docs/technical/CP1_STATE_OF_PLAY.md` §9.

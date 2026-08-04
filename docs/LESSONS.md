@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-03
+> **Operator:** Mike Berry · **Last updated:** 2026-08-03 (18 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -385,6 +385,9 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
      where no tooltip fits.
   7. **A control whose target you retired is the same defect.** After removing `sessionCollected`, the
      "Reset Session" button would have looked like it worked and done nothing.
+- **EXTENDED 2026-08-03 to a non-display surface — see [[L-SW-2026-018]]** (`?signup=true`, a URL
+  parameter asserting an intent nothing read). Same mechanism, different medium: the claim was in a
+  *contract* rather than on a screen, and it was right by coincidence rather than by computation.
 - **SOURCE:** 2026-08-03, eBay collector honesty pass. Instances 1–4 fixed; 5–7 recorded and deliberately
   left (reported, not swept). Pairs with **L-SW-2026-007** (instrument, don't theorise — #1 is the same
   incident) and **L-SW-2026-015** (a clean result is not a pass until the probe is shown able to fail —
@@ -455,3 +458,40 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   platform-agnostic and already has instances outside this repo's tooling: TFO's Vercel deploys, MASSÉ's
   agent restarts, and any manual env/config edit on any platform. Nothing in the rule is Slab
   Worthy-specific.
+
+### L-SW-2026-018 — A parameter, flag or option that nothing reads is a claim, not a mechanism; verify the READER exists, because a default can make it look like it works for months
+
+- **RULE:** Before trusting — or writing — any URL parameter, feature flag, config key or option that is
+  supposed to *select* a behaviour, **find the code that reads it.** `git log -S` on the parameter name
+  against the consuming file, not a glance at the caller. A parameter whose desired outcome happens to
+  match the default is **indistinguishable from a working one** until the default changes, at which point
+  it fails silently and in the opposite direction.
+- **WHY:** `index.html`'s "Sign Up" link carried **`?signup=true` from `cbd80d7` (2026-02-28) to
+  2026-08-03 — five months — and `login.html` never contained a reader for it.** `git log -S 'signup=true'`
+  against `login.html` returns nothing across its entire history. It appeared to work the whole time
+  purely because signup was the default panel. Two consequences, both real:
+  1. **It hid the actual defect.** Because Sign *Up* visibly "worked", nobody asked why Sign *In* — the
+     bare `/login.html` on the same nav line — landed on the same Create Account form. The dead parameter
+     supplied false evidence that panel selection existed at all.
+  2. **It is a live trap on any default change.** The moment the default flips to login (which is exactly
+     the fix), the parameter's silence stops being harmless and starts breaking signup. It had to be kept
+     as a deliberate **alias** — the link is in production, may be bookmarked, and pages get cached —
+     rather than deleted as "unused."
+- **HOW TO APPLY:**
+  1. **Grep for the reader, not the writer.** `?x=`, `--x`, `FEATURE_X` in a caller proves only that
+     someone *intended* it. Confirm `params.get('x')` / `os.environ.get('X')` / equivalent exists.
+  2. **When a param's effect equals the default, you have not tested it.** Test selection by asserting
+     BOTH directions against a non-default — and assert the param was actually received (`location.search`
+     non-empty). A local `file://` load silently strips query strings; that near-missed here.
+  3. **Never delete a shipped parameter as "unused" — alias it.** Deletion and never-implemented look
+     identical in the code but differ in the wild, where the URL is already out there.
+  4. **Make selection an explicit total branch**, never "whatever carries `active` in the markup." The
+     implicit default is what let the beta-panel removal silently redefine the page's landing.
+- **DISTINCT FROM L-SW-2026-015/024:** that is about a *check* whose null result wasn't proven capable of
+  firing. Here the outcome was *correct*, so no check would have flagged it — the mechanism behind the
+  correct outcome was simply absent. Fix = **verify the reader**, not a positive control.
+- **SOURCE:** 2026-08-03, `login.html` sign-in landing fix. Found while tracing why "Sign In" reached the
+  signup form; the dead parameter was incidental to that hunt and is the more transferable finding.
+  Instance of **[[L-SW-2026-016]]** (a label asserting something nothing measures) extended from display
+  surfaces to contracts. **Candidate for cross-project promotion (Mike's call)** — applies to TFO feature
+  flags, MASSÉ agent config keys, and any CLI option or env var anywhere.
