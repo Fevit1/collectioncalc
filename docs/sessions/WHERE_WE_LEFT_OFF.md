@@ -52,7 +52,7 @@ STAY one — the link is live, may be bookmarked, and pages get cached; deleting
 second time, in the direction that breaks signup. New lesson **L-SW-2026-018**; instance of L-SW-2026-016
 extended from display surfaces to contracts.
 
-### What changed (4 files, staged)
+### What changed (4 files — SHIPPED, purged, verified live; see hashes above)
 
 | Part | Change | Files |
 |---|---|---|
@@ -96,6 +96,65 @@ the 403 plan gate was never reached. The extension's "Session expired" label is 
   tier `COMING_SOON_PLANS` refuses at checkout: `settings.html:145`, `settings.js:165` (with a live
   Upgrade link), `vision.js:136`. `content.js:95`'s modal is a fourth, different defect — it fires on
   *no token* while asserting a *plan* requirement it never checked. **All open.**
+
+**Open on the extension — the full list, none started:**
+1. **Refresh-on-use auth.** The token is minted once and never renewed; a 30-day expiry with no refresh
+   path guarantees this recurs.
+2. **`validateToken` fails OPEN** (`settings.js:126`) — a network exception returns `true`, so an expired
+   token survives an Options visit made while Render is cold-starting. If Options shows signed-in rather
+   than the login form, that is this path, not a valid token.
+3. **The "Sign In Required" modal** (`content.js:95`) asserts a plan requirement it never checks — it
+   fires on *no token*.
+4. **Three Guard/Dealer strings** advertising a tier checkout refuses, one with a live Upgrade link.
+5. **Options-page entitlement drift** — `settings.js:158` has no admin term and `/api/billing/my-plan`
+   returns no `is_admin`, so it *cannot* be correct for an admin without an API change.
+
+⚠️ Any fix here **must bump `CCExtensions/whatnot-valuator/manifest.json`** (currently **2.42.0**, last
+bumped `86aff76` 2026-02-23). No code has changed since that commit and the tree is clean for that
+directory, so there is no stale-reload blind window today — the bump is what keeps it that way.
+
+### 📄 BO primer — rewritten as a DRAFT, not yet the mirror
+
+`docs/SW_BO_PRIMER_DRAFT_2026-08-03.md` (untracked at time of writing). Full rewrite superseding the
+2026-05-26 primer. ⚠️ **Read it before replacing `docs/SW_BO_PRIMER.md`** — the replacement block was
+prepared but deliberately not run, and it consumes the draft path. Neither file is authoritative; BO
+project storage is Mike's copy.
+
+**Corpus verified live during the rewrite: `ebay_sales` 152,316 + `market_sales` 9,972 = 162,288** — up
+from 125,720 at the 03:08 UTC snapshot the same day, and 105,132 the day before. **The draft instructs BO
+to re-query rather than quote any numeric figure**, which is the only durable instruction for a number
+moving this fast.
+
+⚠️ **On the depth figures — do NOT let the "capture makes it worse" trend harden into a belief.** The
+CP-1 doc's two snapshots went 84.6% → 85.3% (≤2 comps); an independent reproduction the same evening on
+the larger corpus read **83.9%**, on filters that follow §10's recipe but are **not** a byte-for-byte
+match to the doc's query. Three points, two methodologies — the *magnitude* is stable and bad, the trend
+line is not established. **The durable finding: roughly five in six comp cells rest on one or two sales,
+and of ~4,600 books only ~400–500 have any grade backed by three or more comps.** The structural argument
+(scarce Bronze Age keys arrive as fresh 1-comp cells) stands on its own without the trend.
+
+### 🔁 SYSTEMATIC FINDING — backend correct, user-facing surfaces lagging
+
+**Three instances in one night, all the same shape:** the server was right and the surface a user touches
+was not.
+
+1. **`login.html`** — the panel logic never selected login; every "Sign In" link on the site landed on a
+   signup form, for months.
+2. **`waitlist.html`** — the acquisition page asked for a beta code, gone since 2026-07-29.
+3. **The Whatnot extension** — still sells Guard/Dealer, pulled from sale 2026-08-01, with a live Upgrade
+   link to a checkout that refuses it.
+
+⚠️ **In every case the backend decision had already been made and correctly implemented.** The lag is
+entirely in copy and routing, which no server-side test observes.
+
+**Standing recommendation (Mike, 2026-08-03): run a user-facing surface sweep after ANY tier or gate
+change — not only before launch.** The trigger is the decision, not the calendar; each tier or gate change
+will produce new instances the same way these three did. 🔼 **Proposed as a lesson candidate (L-SW-2026-019)
+— not minted, Mike's call.**
+
+---
+
+**Session UUID:** `638118e4-6bdd-4ef4-93b4-e89525e1f1a6`
 
 ---
 
