@@ -406,9 +406,14 @@
             </div>
         </div>
 
-        <!-- "Already have a beta code?" was stale from 2026-07-29, when beta-code
-             gating was removed (b981789) and a verified email became the only gate.
-             It asked for a credential the product no longer has. -->
+        <!-- This line previously asked whether the visitor already had a beta code.
+             That went stale on 2026-07-29, when beta-code gating was removed
+             (b981789) and a verified email became the only gate — it was asking for
+             a credential the product no longer has.
+             ⚠️ The retired wording is described here rather than quoted, on purpose:
+             a tombstone that reproduces the exact string it retired will match every
+             future sweep for that string and read as an unfixed instance. This one
+             already did — the 2026-08-03 purge check flagged it as a live failure. -->
         <p class="login-link">Already have an account? <a href="/login.html">Sign in</a></p>
     </div>
 

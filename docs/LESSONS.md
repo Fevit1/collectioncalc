@@ -332,9 +332,21 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   against known-present content to confirm it can fire. (5) When reporting verification, state what
   the check would have missed — "absence of the old string" is not "presence of the new one"; assert
   both.
+- **⚠️ COROLLARY, added 2026-08-03 — THE MIRROR CASE: a HIT is not a failure until you have confirmed
+  the match is the live instance.** The rule above guards false *negatives* (absence read as a pass).
+  The same sweep produces false *positives* when the pattern matches something that is not the rendered
+  thing: a **comment**, a test fixture, a changelog entry, or — the case that bit — a **tombstone that
+  quotes the exact string it retired**. The 2026-08-03 `waitlist.html` purge check reported the dead
+  beta-code phrase as still live; it was matching the explanatory comment added in the very commit that
+  removed it. Two guards: **(1)** scope completeness sweeps to rendered content (exclude comment nodes,
+  or assert on the specific element) and assert the NEW string's presence alongside the OLD string's
+  absence, since the pair disambiguates; **(2)** when writing a tombstone, **describe the retired
+  wording, don't reproduce it** — a comment containing the string is indistinguishable from an unfixed
+  instance to every future grep, and the cost lands on whoever sweeps next.
 - **SOURCE:** 2026-08-01, Guard coming-soon + claims-audit session; recorded at Mike's request after
-  he noted all three in one sitting. Pairs with L-SW-2026-008 (verify state from the source of truth,
-  don't reconstruct it).
+  he noted all three in one sitting. Corollary from 2026-08-03, `login.html` sign-in fix — the purge
+  artifact designed under L-SW-2026-017 fired a false alarm on its own tombstone. Pairs with
+  L-SW-2026-008 (verify state from the source of truth, don't reconstruct it).
 - **STATUS:** ✅ **PROMOTED CROSS-PROJECT 2026-08-01 (Mike) → `LESSONS_CROSS_PROJECT.md` L-2026-024**
   (file bumped to v1.4, 11 lessons active). Mike's reasoning: it is the **same failure shape as
   L-2026-021**, the `STRIPE_WEBHOOOK_SECRET` hunt — there `grep -i stripe` displayed the misnamed key
