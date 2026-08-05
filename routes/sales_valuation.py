@@ -524,7 +524,56 @@ def api_sales_valuation():
         # ⏰ POST-LAUNCH confidence-tuning: extend the gate to very_low (adds exact_thin +
         # thin-interpolated). Do not forget. (Mike, 2026-06-27.)
         estimated_flag = estimated or fmv_method in ('estimated', 'estimated_from_raw')
-        verdict_reliable = not estimated_flag
+
+        # 2026-08-05: the deferred very_low extension, taken BEFORE cold traffic.
+        # Evidence: the old fabrication-only gate hedged 0.0% of the §2A starved
+        # keys and 0.0% of the §2C blue-chip anchors — none of the 24 books cold
+        # traffic will actually type. A leave-one-grade-out backtest of the
+        # interpolation path over 1,292 cells (production filters, facsimiles
+        # excluded) gives 20.7% median absolute error, only 49.1% within ±20%,
+        # p90 77.4%, and it is WORST at 9.6-9.8 where the dollars are largest
+        # (35.1% median error at a 0.2-grade gap vs 8.5% at 0.5). Interpolation
+        # is inaccurate, not merely unlabelled.
+        #
+        # ⚠️ `blended` IS gated (Mike, 2026-08-05), and the reason it was nearly
+        # missed matters: B-vs-C measured identical only because `exact_thin` is
+        # essentially EMPTY on the keys that matter. A thin exact bucket becomes
+        # `blended` rather than `exact_thin` whenever neighbouring grades exist,
+        # which on flagship keys they always do. So "the very_low extension is
+        # free" was free because it was VACUOUS. The real thin-evidence tier on
+        # the keys cold traffic will type is `blended`: 21.7% of the §2A starved
+        # keys and 15.7% of the §2C anchors, versus 0% for exact_thin.
+        # Gating exact_thin but not blended is not a policy — it is an artifact
+        # of which neighbouring grades happened to exist.
+        #
+        # Direction of error: gating too much makes the product quiet, which is
+        # reversible. Gating too little ships a ~$75 recommendation off two
+        # comps, which is not. Same asymmetry as undergrading beating
+        # overgrading. Ship gated, measure, revisit.
+        NO_SAME_GRADE_EVIDENCE = ('interpolated',)              # 0 same-grade comps
+        THIN_SAME_GRADE = ('exact_thin', 'blended')             # 1-2 same-grade comps
+        verdict_reliable = not (
+            estimated_flag
+            or fmv_method in NO_SAME_GRADE_EVIDENCE
+            or fmv_method in THIN_SAME_GRADE
+        )
+
+        # Which TIER the hedge is in, so the client can say something true.
+        # The old copy ("rough estimate from grade, publisher, and era") is
+        # correct ONLY for fabrication; saying it about an interpolated figure
+        # would misdescribe real comps at neighbouring grades as a baseline.
+        # `blended` and `exact_thin` are separated because only blended pulls in
+        # neighbouring grades — the copy says so.
+        if estimated_flag:
+            verdict_basis = 'fabricated'
+        elif fmv_method in NO_SAME_GRADE_EVIDENCE:
+            verdict_basis = 'interpolated'
+        elif fmv_method == 'blended':
+            verdict_basis = 'blended'
+        elif fmv_method == 'exact_thin':
+            verdict_basis = 'thin'
+        else:
+            verdict_basis = 'supported'
 
         # ---------- ROI calculation ----------
         slabbing_roi = None
@@ -605,6 +654,7 @@ def api_sales_valuation():
             'roi_percentage': roi_percentage,
             'verdict': verdict,
             'verdict_reliable': verdict_reliable,   # Fix B: false ⇒ render verdict as low-confidence/caution
+            'verdict_basis': verdict_basis,         # fabricated|interpolated|thin|supported — picks the hedge copy
             'confidence': confidence,
 
             # Grade price curve for charts

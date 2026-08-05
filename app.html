@@ -2653,6 +2653,12 @@
                 // Fix B: false ⇒ FMV was fabricated from baselines (zero real comps) —
                 // show a caution state, never a confident slab/no-slab verdict.
                 const verdictReliable = valData.verdict_reliable !== false;
+                // 2026-08-05: which hedge tier we're in. 'supported' when reliable.
+                // fabricated  = no comps at all, figure invented from grade/publisher/era
+                // interpolated= real comps at OTHER grades, none at this one
+                // thin        = 1-2 real same-grade comps
+                const verdictBasis = valData.verdict_basis || (verdictReliable ? 'supported' : 'fabricated');
+                const sameGradeComps = valData.graded_sample_size || 0;
 
                 // Update the grade result object
                 gradeResult.raw_value = raw_value;
@@ -2689,8 +2695,19 @@
                 }
                 if (verdictBadge) {
                     if (!verdictReliable) {
-                        // Fix B: fabricated/no-comp FMV \u2014 caution badge, NOT a confident green/red verdict
-                        verdictBadge.textContent = 'ROUGH ESTIMATE';
+                        // Fix B + 2026-08-05 very_low extension: caution badge, NEVER a
+                        // confident green/red verdict. Badge text is tier-specific because
+                        // "ROUGH ESTIMATE" understates a fabricated figure and overstates
+                        // an interpolated one.
+                        // Badge must not contradict the tagline: 'thin' and
+                        // 'blended' DO have sales at this grade, just too few.
+                        const badges = {
+                            fabricated: 'ROUGH ESTIMATE',
+                            interpolated: 'NO SALES AT THIS GRADE',
+                            blended: 'LIMITED SALES DATA',
+                            thin: 'LIMITED SALES DATA'
+                        };
+                        verdictBadge.textContent = badges[verdictBasis] || 'ROUGH ESTIMATE';
                         verdictBadge.className = 'verdict-badge';
                         verdictBadge.style.cssText = 'background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b66;';
                     } else {
@@ -2702,8 +2719,29 @@
                 if (verdictTagline) {
                     const salesNote = sources.total ? ` Based on ${sources.total} sales.` : '';
                     if (!verdictReliable) {
-                        // Fix B: surface the caution prominently; the figures above stay but are framed as rough
-                        verdictTagline.innerHTML = `<strong style="color:#f59e0b;">Not enough recent sales to value this reliably.</strong> The figures above are a rough estimate from grade, publisher, and era \u2014 treat with caution.`;
+                        // The figures above ALWAYS stay visible \u2014 a collector can reason with
+                        // "estimated from nearby grades, 0 sales at this grade". Hiding the
+                        // number makes the product useless without making it more honest.
+                        // What is withheld is the slab/no-slab RECOMMENDATION, because that
+                        // is the call that costs someone a ~$75 grading fee.
+                        const hedges = {
+                            fabricated:
+                                `<strong style="color:#f59e0b;">No recent sales found for this book.</strong> `
+                                + `The figures above are a rough estimate from grade, publisher, and era \u2014 not from sales. `
+                                + `We can't say whether grading pays off.`,
+                            interpolated:
+                                `<strong style="color:#f59e0b;">No sales at this grade.</strong> `
+                                + `The figures above are estimated from sales at nearby grades, which is often well off \u2014 `
+                                + `especially at 9.6 and above. We can't say whether grading pays off.`,
+                            blended:
+                                `<strong style="color:#f59e0b;">Only ${sameGradeComps} recent sale${sameGradeComps === 1 ? '' : 's'} at this grade,</strong> `
+                                + `filled in from nearby grades. That's too few to price confidently, `
+                                + `so we can't say whether grading pays off.`,
+                            thin:
+                                `<strong style="color:#f59e0b;">Only ${sameGradeComps} recent sale${sameGradeComps === 1 ? '' : 's'} at this grade.</strong> `
+                                + `That's too few to price confidently, so we can't say whether grading pays off.`
+                        };
+                        verdictTagline.innerHTML = hedges[verdictBasis] || hedges.fabricated;
                     } else if (roi > 0) {
                         verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees.${salesNote}`;
                     } else {
