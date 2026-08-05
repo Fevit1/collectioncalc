@@ -79,6 +79,14 @@ CGC_GRADING_COSTS = {
 
 
 def get_cgc_grading_cost(fmv: float, year: int = None) -> int:
+    # ⚠️ HARD CONSTRAINT FOR ANYONE DESIGNING A CONFIDENCE BOUND ON FMV
+    # (recorded 2026-08-05, Mike). Below $1,000 this is a fixed tier table and
+    # cost is independent of FMV. ABOVE $1,000 the fee is 4% of FMV (min $135),
+    # so cost SCALES WITH THE NUMBER BEING BOUNDED.
+    # Consequence: bounding FMV downward also bounds cost downward, which
+    # NARROWS the ROI gap instead of widening it. A naive pessimistic bound
+    # therefore produces a FLATTERED worst case — the exact opposite of what a
+    # safety bound is for. Any bound must move both terms together.
     """
     Calculate CGC grading cost based on comic's fair market value and year.
 
@@ -390,9 +398,44 @@ def api_sales_valuation():
             ci_95_low, ci_95_high = bootstrap_ci_median(trimmed)
 
         # 2. Nearest grade interpolation if no exact match (or supplement thin data)
+        #
+        # 2026-08-05 Unit 3 — MINIMUM SOURCE SUPPORT. A source bucket must hold
+        # at least MIN_SOURCE_COMPS sales before it may anchor an interpolation;
+        # thinner buckets are SKIPPED and the next populated bucket is used.
+        #
+        # Why: the path had no evidence requirement at all, only grade distance.
+        # Measured on the live corpus, 95.6% of interpolated cells are one-sided
+        # ±20%/grade extrapolation and 90.0% of those anchor on a bucket holding
+        # a SINGLE sale. Worked example — Spider-Man #1 @ 9.8, true median $110
+        # from 315 same-grade comps: the 9.9 bucket held exactly one genuine
+        # $4,449.99 sale, and interpolating 9.6→9.9 returned $2,999.66, a 2,627%
+        # error. One sale outvoted 315. With K=2 the 9.9 bucket is skipped, the
+        # 9.6 bucket (n=74) anchors instead, and the result is $102.95 — 6.4%.
+        #
+        # This is a TAIL fix, not a central-tendency fix: backtest median error
+        # moves only 19.3% → 18.1%. It exists to remove catastrophic single-sale
+        # anchors, and to make any future confidence bound trustworthy — a bound
+        # keyed on source support is meaningless while 90% of sources are n=1.
+        MIN_SOURCE_COMPS = 2
         interpolated_avg = None
-        grades_below = sorted([g for g in grade_buckets if g < grade], reverse=True)
-        grades_above = sorted([g for g in grade_buckets if g > grade])
+        _all_below = sorted([g for g in grade_buckets if g < grade], reverse=True)
+        _all_above = sorted([g for g in grade_buckets if g > grade])
+        grades_below = [g for g in _all_below
+                        if len(grade_buckets[g]) >= MIN_SOURCE_COMPS]
+        grades_above = [g for g in _all_above
+                        if len(grade_buckets[g]) >= MIN_SOURCE_COMPS]
+        # Nearby sales EXIST but none carry enough evidence to anchor from. This
+        # is a different state from "no sales at all" and must not be described
+        # as one — see verdict_basis 'low_support' below.
+        low_support_only = (bool(_all_below or _all_above)
+                            and not (grades_below or grades_above))
+        # How many nearby sales there actually are. When low_support_only holds,
+        # every nearby bucket is by definition below MIN_SOURCE_COMPS — but there
+        # can be SEVERAL of them (9.0 with one sale AND 9.6 with one sale is two
+        # nearby sales, not one). The copy must state the real number rather than
+        # assume one, or it repeats the very defect this tier was added to avoid.
+        nearby_thin_comps = sum(len(grade_buckets[g])
+                                for g in (_all_below + _all_above))
 
         if grades_below and grades_above:
             below_grade = grades_below[0]
@@ -564,7 +607,18 @@ def api_sales_valuation():
         # would misdescribe real comps at neighbouring grades as a baseline.
         # `blended` and `exact_thin` are separated because only blended pulls in
         # neighbouring grades — the copy says so.
-        if estimated_flag:
+        # 'low_support' exists because Unit 3's K=2 rule moves ~90% of previously
+        # interpolated cells into the fabrication branch, and the fabricated copy
+        # ("No recent sales found for this book… a rough estimate from grade,
+        # publisher, and era — not from sales") is FALSE for a cell that has one
+        # real sale at a nearby grade. Same failure as the recency-weighting
+        # claim: copy asserting something the mechanism does not do. The tier is
+        # carried in the DATA regardless of what the copy eventually says.
+        if estimated_flag and low_support_only:
+            # Named for the CONDITION (insufficient support), not for a count —
+            # 'single_comp' would be wrong whenever several thin buckets exist.
+            verdict_basis = 'low_support'
+        elif estimated_flag:
             verdict_basis = 'fabricated'
         elif fmv_method in NO_SAME_GRADE_EVIDENCE:
             verdict_basis = 'interpolated'
@@ -654,7 +708,8 @@ def api_sales_valuation():
             'roi_percentage': roi_percentage,
             'verdict': verdict,
             'verdict_reliable': verdict_reliable,   # Fix B: false ⇒ render verdict as low-confidence/caution
-            'verdict_basis': verdict_basis,         # fabricated|interpolated|thin|supported — picks the hedge copy
+            'verdict_basis': verdict_basis,         # fabricated|low_support|interpolated|blended|thin|supported
+            'nearby_thin_comps': nearby_thin_comps,  # sales near this grade that were too thin to anchor from
             'confidence': confidence,
 
             # Grade price curve for charts

@@ -2659,6 +2659,7 @@
                 // thin        = 1-2 real same-grade comps
                 const verdictBasis = valData.verdict_basis || (verdictReliable ? 'supported' : 'fabricated');
                 const sameGradeComps = valData.graded_sample_size || 0;
+                const nearbyThin = valData.nearby_thin_comps || 0;
 
                 // Update the grade result object
                 gradeResult.raw_value = raw_value;
@@ -2703,6 +2704,7 @@
                         // 'blended' DO have sales at this grade, just too few.
                         const badges = {
                             fabricated: 'ROUGH ESTIMATE',
+                            low_support: 'NOT ENOUGH SALES DATA',
                             interpolated: 'NO SALES AT THIS GRADE',
                             blended: 'LIMITED SALES DATA',
                             thin: 'LIMITED SALES DATA'
@@ -2729,6 +2731,9 @@
                                 `<strong style="color:#f59e0b;">No recent sales found for this book.</strong> `
                                 + `The figures above are a rough estimate from grade, publisher, and era \u2014 not from sales. `
                                 + `We can't say whether grading pays off.`,
+                            low_support:
+                                `<strong style="color:#f59e0b;">Only ${nearbyThin} recent sale${nearbyThin === 1 ? '' : 's'} near this grade.</strong> `
+                                + `That's not enough to price from, so we can't say whether grading pays off.`,
                             interpolated:
                                 `<strong style="color:#f59e0b;">No sales at this grade.</strong> `
                                 + `The figures above are estimated from sales at nearby grades, which is often well off \u2014 `
