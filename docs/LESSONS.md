@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-04 (19 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-05 (20 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -518,6 +518,59 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   Instance of **[[L-SW-2026-016]]** (a label asserting something nothing measures) extended from display
   surfaces to contracts. **Candidate for cross-project promotion (Mike's call)** — applies to TFO feature
   flags, MASSÉ agent config keys, and any CLI option or env var anywhere.
+
+### L-SW-2026-020 — The label is the defect, not the code; and the fix for a mislabel is the likeliest place to commit the next one
+
+- **RULE:** When code and copy disagree, assume the **copy** is wrong and the code is doing exactly
+  what it says in its own terms. Before writing any user-facing string, field name, flag name, or tier
+  name, **state the expression behind it and check the name is true on every input that reaches it** —
+  not just the input you had in mind. And treat the fix for a mislabel as a HIGH-RISK site for the
+  next one: you are naming a new thing under time pressure, in the same area, with the same mental
+  model that produced the original.
+- **WHY:** Four instances in a single day (2026-08-05), all in the CP-1 valuation work, all with
+  correct code and a false label:
+  1. **Product copy claims exponential recency weighting.** `sales_valuation.py` contains no decay,
+     no half-life, no time weighting of any kind — only grade-distance and exact-vs-interpolated
+     blend weights. Hard cutoff, nothing else.
+  2. **The `fabricated` hedge string** — *"No recent sales found for this book… a rough estimate from
+     grade, publisher, and era — not from sales"* — became FALSE for ~72% of interpolated cells the
+     moment Unit 3's min-n rule pushed them into that branch. They have real nearby sales, just too
+     few to anchor from. Caught in review, before ship, by asking what the string would assert about
+     the cells that were about to land in it.
+  3. **`verdict_basis = 'single_comp'`** and its copy *"Only one recent sale near this grade"* —
+     the condition is true whenever nearby buckets exist and none meets K, which can be SEVERAL
+     buckets holding one sale each. The name and the string both asserted a count the data does not
+     support. Caught by the verification agent, **inside the fix for #2.**
+  4. **`nearby_thin_comps`**, the field added to fix #3, sums ALL nearby buckets rather than only
+     sub-threshold ones. It reads 484 on a cell with 522 same-grade comps. Correct wherever it is
+     consumed (the `low_support` branch, where every nearby bucket is thin by definition), misnamed
+     everywhere else. Found in live production output, **inside the fix for #3.**
+  Three, four and the recency claim share one shape: **the mechanism was never wrong.** No test would
+  fail, no error would log, no monitor would fire. The only thing wrong was what the product said
+  about itself — which is precisely the class CP-1 exists to close, and it kept reappearing inside
+  the fixes for itself.
+- **HOW TO APPLY:**
+  1. **Name for the CONDITION, never for a representative case.** `low_support` survives a second
+     thin bucket; `single_comp` does not. If the name contains a number or a quantity word, it is a
+     claim about the data and must be derived, not assumed.
+  2. **When a string is conditional, enumerate what will land in that branch AFTER the change, not
+     before.** #2 was only visible by asking which cells min-n would push into the fabricated branch.
+  3. **Emit the real number rather than asserting one.** `nearby_thin_comps` interpolated into the
+     copy beats "one" hardcoded — and then make sure the emitted number matches its own name (#4 is
+     where that failed).
+  4. **Review the fix for a mislabel as hard as the original.** Two of these four were committed
+     inside the remediation for the previous one. That is not bad luck; it is the same model naming
+     the same domain again.
+  5. **A field consumed in one branch is still read by humans in all of them.** "Correct where it is
+     used" is not the same as "correctly named", and the next reader will not know the difference.
+- **SOURCE:** 2026-08-05 CP-1 gate work (Units 1 and 3), at Mike's direction after he named the
+  pattern: *"the code was correct in all three; the label wasn't. That pattern is the whole reason
+  CP-1 exists and it keeps reappearing inside the fixes."* Instance 4 was found in post-deploy
+  production output after he asked for the lesson. Generalises **[[L-SW-2026-016]]** (a displayed
+  figure's label is a claim about what was measured) and **[[L-SW-2026-018]]** (a parameter nothing
+  reads is a claim, not a mechanism) from displays and contracts to **names in code**. **Candidate
+  for cross-project promotion (Mike's call)** — applies to any flag, tier, column or metric name in
+  TFO or MASSÉ.
 
 ### L-SW-2026-019 — Removing a filter and removing the hardcoded assumption it protected are TWO edits; a scope that sees only the filter ships a new bug while closing an old one
 

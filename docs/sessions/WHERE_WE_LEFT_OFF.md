@@ -1,17 +1,415 @@
 # Where We Left Off - Aug 4, 2026
 
-## 2026-08-04 — ✅ **NLQ SELECT-ONLY ROLE: SHIPPED AND VERIFIED. ✅ `all_comic_sales` FILTER: FIXED AND VERIFIED.**
+## 2026-08-04 — 🔒 **SESSION CLOSED. ALL THREE UNITS SHIPPED, PUSHED AND VERIFIED.**
 
-**MOST RECENT CHANGE (Rule 5): `all_comic_sales`'s second leg now emits `market_sales.source` and
-carries no `WHERE` clause; it previously emitted the literal `'whatnot'::text` and filtered
+**MOST RECENT CHANGE (Rule 5): Phase 1 — `all_comic_sales` is now described in `DB_SCHEMA` and granted
+to `nlq_readonly`, so NLQ answers sales questions from the full 173,346-row corpus instead of the
+5.8% Whatnot slice. Shipped `3a9892f`. Supersedes "`market_sales` is the only sales table NLQ can
+see."**
+
+**PRIOR CHANGE, same day (2 of 3):** `all_comic_sales`'s second leg now emits `market_sales.source`
+and carries no `WHERE` clause; it previously emitted the literal `'whatnot'::text` **and** filtered
 `WHERE market_sales.source = 'whatnot'`. Supersedes the approved scope of "remove the WHERE clause
-only," which was incomplete — see the literal-vs-column finding below. Applied 2026-08-04, verified
-from the catalog.**
+only," which was incomplete — see the literal-vs-column finding below.
 
-**PRIOR CHANGE, same day:** the admin NLQ handler no longer executes model-generated SQL on the app's
-read-write pool; it uses the SELECT-only `nlq_readonly` role via `DATABASE_URL_NLQ`, and the
+**PRIOR CHANGE, same day (1 of 3):** the admin NLQ handler no longer executes model-generated SQL on
+the app's read-write pool; it uses the SELECT-only `nlq_readonly` role via `DATABASE_URL_NLQ`, and the
 `admin_nlq_history` INSERT was split onto the read-write pool. Supersedes "the denylist +
 SELECT-prefix check are the NLQ safety model" (in place since the endpoint was written).
+
+---
+
+### 🔒 SESSION CLOSE — 2026-08-04
+
+**Ship state, verified from git at close (not from memory — L-SW-2026-008):**
+`HEAD` = `origin/main` = **`d3c5a9d`**, confirmed via `git ls-remote`, not the local tracking ref.
+
+| Commit | Contents |
+|---|---|
+| `d3c5a9d` | NLQ post-mortem + L-SW-2026-019 promotion pointer (2 files) |
+| `63d95ad` | July 16 OOM post-mortem, alone (1 file) |
+| `3a9892f` | Phase 1 — `admin.py`, `LESSONS.md`, `WHERE_WE_LEFT_OFF.md`, `nlq_readonly_role.sql` |
+| `5f2deb5` · `8709518` | the role fix, pushed earlier the same day |
+
+**Live and verified in production:**
+- `nlq_readonly` — SELECT-only, unpooled, 15s `statement_timeout`, read-only session, fails closed on
+  missing `DATABASE_URL_NLQ`; `users` granted at **column level excluding `password_hash`** and
+  deliberately absent from the table-level grant.
+- `all_comic_sales` — `WHERE` clause **and** the `'whatnot'::text` literal both removed; ACL
+  byte-identical across the replace.
+- Phase 1 — view described in `DB_SCHEMA` (3,609 → 4,889 chars) and granted; raw `ebay_sales` still
+  denied to the role.
+- **Post-deploy artifact: `admin_nlq_history` row 43**, `result_count` 8, `execution_time_ms` 3312.
+  The history split works — query on the read-only role, audit row on the read-write pool.
+
+**Lessons written this session:**
+- **L-SW-2026-019** written and ✅ **promoted → `L-2026-026`**.
+- **L-2026-025** written — the identity of the executing principal is part of a verification's
+  meaning. Carries an explicit **do-not-merge** block against L-2026-024.
+- **L-2026-024 amended** — role-filtered `information_schema` views as a blinding mechanism, plus the
+  rule that an unconstructable positive control means reporting the check **UNPERFORMED**, never
+  "clean but unverified."
+- `LESSONS_CROSS_PROJECT.md` at **v1.5, 13 lessons active**, footer confirmation string updated in the
+  same edit. ⚠️ That file is **outside this repo and under no version control** — see priority 1.
+
+### 🔬 CP-1 CONFIDENCE MEASUREMENT — read-only, nothing shipped, nothing committed
+
+`scripts/cp1_confidence_measure.py` (**UNTRACKED, uncommitted**). Read-only via `do_readonly`.
+No writes, no DDL, no production behaviour change, no git operations. Corpus at time of run:
+`ebay_sales` 168,405 · `market_sales` 9,972.
+
+**Findings that stand on their own, independent of the pending tables:**
+
+1. ✅ **No user-facing count or range is computed post-trim.** `graded_sample_size` =
+   `len(exact_match)` (`sales_valuation.py:388`, untrimmed), `sales_count` = `len(prices)` (:562),
+   `min_price`/`max_price` on untrimmed `prices` (:563-564); same in `/api/sales/fmv`'s tier block
+   (:856-864). **The Low-confidence evidence display ("3 sales, $40–$95") is already honest — a CP-1
+   design concern closed with no code change** (Mike's call, 2026-08-04).
+2. ✅ **The median is INVARIANT under `percentile_trim`.** 4,764 synthetic cells incl. adversarial
+   shapes → zero differences; also provable (symmetric trim shifts the median index equally on both
+   sides). So FMV, `raw_fmv`, price-curve `avg_price` and the interpolation medians are ALL
+   unaffected by trimming.
+3. ⚠️ **The trim is NOT 5% at low n.** `cut = max(1, int(n*0.05))` removes a FLAT 2 rows from n=3
+   through n=39 — 67% at n=3, 40% at n=5, 25% at n=8, 5.1% at n=39 — then 4 rows at n=40. Sawtooth.
+4. ⚠️ **The effective CI floor is n=7, not n=5.** `bootstrap_ci_median` needs ≥5 values and
+   production trims BEFORE bootstrapping, so **n=5 and n=6 yield an FMV with NO confidence
+   interval.** Verified by calling both functions directly. **Leading candidate for the D2 Low
+   boundary — defined by what the engine can actually produce rather than a chosen number.**
+5. 🚧 **UNPROVEN CLAIM, carried forward (Mike, 2026-08-04):** *"trimming only ever NARROWS the CI."*
+   The first half — that the CI is the only output the trim changes — follows from (2). The
+   **direction is asserted, not measured.** Trimming both reduces spread (narrows) and reduces n
+   (widens); on a tight, evenly-spaced sample with no real outlier the n-reduction may dominate.
+   The script now records **per-cell** narrowing with the **sign preserved, never floored**, and
+   reports the count of cells where it is negative plus their buckets. If zero across all three
+   seeds the claim becomes established; otherwise it is a finding. Same shape as L-SW-2026-015 — a
+   claim whose disconfirming case the probe must be able to surface. **It currently prints
+   "UNTESTED, not confirmed" when no comparable cells exist, which is correct behaviour.**
+
+⚰️ **The 3B amendment was REVERSED the same day.** DEAD: "lookup_demand is a sanity check; the
+grade_submissions/search_cache/collections union is primary." REPLACED BY: **lookup_demand is
+PRIMARY (542 distinct books); the union is the sanity check (89 books), reported per-source.**
+REASON (Mike): the NULL `user_id` weakness breaks demand **RANKING** by distinct users — it does not
+affect the comp-count **distribution**, which ranks nothing and needs only the set of books looked
+up. The demotion traded 6.1× the breadth for an attribution property this measurement never uses.
+
+⚠️ **Sampling method, so Step 3A is not over-read:** universe is 44,423 in-window (title, issue)
+pairs with a non-empty `canonical_title`; selection is `ORDER BY md5(seed || title || '|' || issue)`.
+That is uniform over **BOOKS, not over SALES** — a 600-comp book and a 1-comp book are equally
+likely. Books whose in-window rows ALL have an empty canonical (13.6% of `market_sales` rows) cannot
+enter the universe at all. Step 1's 5 density-selected control books are now explicitly excluded
+from the sample (measured overlap was 0, but nothing enforced it).
+
+**Three N=200 runs launched at session close** (seeds `''`, `s2`, `s3`; repeat seeds `--skip-3b`
+since 3B is not sampled). Output persisted to **`scripts/cp1_output/cp1_N200_seed-*.txt`**, each
+carrying an in-transaction SNAPSHOT stamp (per-table row counts + max sale date) in its header.
+⚠️ Two output-capture failures on 2026-08-04 — Python block-buffering to a file, then a pipe to
+`tail` holding until EOF — cost two runs. **Terminal scrollback is not storage.** Confirm the files
+exist and are non-empty before treating any run as complete.
+
+⚠️ Three earlier runs died on `NameError: name 'control' is not defined` — a patch to `main()` that
+silently did not land, the same write-failure class that mangled five f-strings. **Heredoc patching
+of this file is unreliable; use the editor.** Fixed and verified end-to-end before relaunch.
+
+⚠️ **A SECOND crash, caught only because the output was persisted to disk** — which is the argument
+for the persistence rule, not a footnote to it. The first N=200 seed-default run reached step 3B
+after ~77 minutes and died on
+`TypeError: '<' not supported between instances of 'NoneType' and 'str'`: `issue` is NULLABLE in
+`lookup_demand`, `grade_submissions`, `search_cache` and `collections`, and a bare `sorted()` on
+`(title, issue)` tuples compares `None` against `str`. Fixed with `_sort_pairs()`, which coerces
+`None` to `''` **for ordering only** — the `None` is preserved in the tuple because `fetch_comps`
+correctly treats a `None` issue as "no issue filter". `--skip-3b` runs never touch that code path,
+so s2/s3 were unaffected.
+
+**RUN STATE AT SESSION CLOSE — verify before reading anything:**
+- `cp1_N200_seed-default.txt` — first attempt CRASHED in 3B (step 3A output is valid and present;
+  steps 4 and 5 never ran). **A corrected full rerun is QUEUED** and starts automatically once
+  s2/s3 finish; it overwrites this file. Completion marker: `scripts/cp1_output/_RERUN_DONE`.
+- `cp1_N200_seed-s2.txt`, `cp1_N200_seed-s3.txt` — `--skip-3b`, running/queued, unaffected by the
+  bug. Chain marker: `scripts/cp1_output/_ALLDONE`.
+- ⚠️ **Check for `RUN COMPLETE` in each file before trusting its tables.** Two of the five runs
+  attempted tonight produced partial output that looked plausible until the tail was read.
+
+**Verification agent (`feature-dev:code-reviewer`) found 3 real defects, all fixed:** the variant
+exclusion was SQL-only so the toggle was a **no-op for every graded cell** (production excludes in
+Python at `:369-371`); `percentile_trim` was imported and advertised but never called, so Step 4 ran
+untrimmed; and a latent `ZeroDivisionError`. A fourth, found by measurement rather than review:
+Step 4 issued **one SQL round trip per comp** to compute age.
+
+### 🔒 2026-08-05 SESSION CLOSE — corrections, ordering, and one uncommitted file
+
+**SHIPPED:** CP-1 Unit 1 (verdict gate → `interpolated` + `exact_thin` + `blended`) · Unit 3 (min-n
+K=2 + `low_support` tier) · **L-SW-2026-020** written (20 lessons) · this file updated.
+
+⚠️ **UNCOMMITTED, ON DISK:** `scripts/corpus_snapshot.py` — end-of-day corpus snapshot, `--days` /
+`--json`. Same status as `coverage_assessment.py` and `stripe_preflight.py`. **Decide next session
+whether it lands; Mike leans yes** (it is the seed of the admin corpus dashboard).
+
+**⚰️ THREE CORRECTIONS — all supersede earlier reasoning in this file. Do not resurrect the dead
+versions.**
+
+1. ⚰️ **DEAD: "Whatnot / `market_sales` has been dark since 2026-07-01."**
+   REPLACED BY: **10 rows arrived 2026-08-02 → 2026-08-05** (1 · 8 · 1). It is **trickling — neither
+   dark nor active.** REASON: measured directly from `created_at` by day.
+   **The open question is no longer "is the extension running." It is "why 10 rows against eBay's
+   36,961 the same day."**
+
+2. ⚰️ **DEAD: treating a §2A key as done when it clears §1's stopping rule.**
+   REPLACED BY: **§1's rule is BOOK-level (≥10 comps / ≥5 graded); the product prices at GRADE
+   level.** All nine §2A keys cleared 2026-08-05 — but Batman #227's 54 graded comps spread across a
+   20-grade ladder average **under 3 per bucket**, and **67.9% of populated graded cells still hold
+   exactly one comp**. **"Cleared" means off the estimate fallback, NOT returning confident
+   verdicts.** ⚠️ **This needs FIXING IN `EBAY_CAPTURE_SCHEDULE.docx` §1, not merely noting** —
+   the stopping rule as written retires keys that still cannot produce a verdict at most grades.
+
+3. ⚰️ **DEAD: "scarce keys accrue ~3 comps/year."** REPLACED BY: **nothing — the figure was
+   invented, never measured.** Batman #227 reached 123 comps in days. **Disregard it wherever it
+   influenced reasoning** (it was used to argue starved keys would stay starved; they did not).
+
+**🔜 NEXT SESSION, IN THIS ORDER (Mike, 2026-08-05):**
+1. **W2 claims sweep — AUDIT ONLY, no fix proposed until the surfaces are known.** The code contains
+   **no recency weighting of any kind** (verified: no decay, no half-life, hard cutoff only), yet it
+   is claimed as an edge over CovrPrice and GoCollect. **Discriminate by SURFACE — the exposure is
+   completely different per surface:** `COMPETITORS.txt` is internal and nobody outside sees it ·
+   user-facing copy and marketing are real exposure · **a patent or whitepaper filing is materially
+   worse and would warrant counsel.** Report where it appears before proposing anything.
+2. **Unit 2 instrumentation** — `is_internal` (flags 11 of 1,276 rows; ~600 founder lookups read as
+   cold traffic) and `fmv_method` pollution (665 rows carry `/api/sales/fmv` tier labels).
+   **Degrades daily** and blocks §4's promotion loop from ever running honestly. Cannot retro-fix
+   existing rows — §4 must start from a cutoff date.
+3. **Field-name hygiene bundle** — rename the `interpolated` tier (95.6% of it is one-sided
+   extrapolation), fix `nearby_thin_comps`, **and extract the tiering logic into an importable
+   function.** Rationale: `classify()` in `corpus_snapshot.py` now mirrors shipped logic by hand,
+   the interpolation arithmetic is inline in the route, and the admin dashboard would be a **third**
+   copy. **Cost is lowest right now** — do it before the third copy exists.
+4. **Corpus stall alert** — small, and has already cost twice.
+
+**🅿️ PARKED — DO NOT REOPEN WITHOUT NEW DATA: the robustness/bounds check.** Corpus growth is
+shrinking its addressable base by itself — buckets that were empty two days ago now return `exact`
+(spider man #1 @9.8 went from a 2,627%-error interpolation to `exact` $150 on 522 comps within the
+session). **Re-measure in a few weeks and see what is left before designing anything.**
+
+---
+
+### ✅ 2026-08-05 — CP-1 GATE: UNITS 1 AND 3 SHIPPED AND VERIFIED IN PRODUCTION
+
+**All corpus figures below carry a snapshot stamp. The corpus grows ~20k rows/day — a mismatch
+against these numbers is growth, not an error.**
+
+**UNIT 1 — the ROI verdict now requires real same-grade comps.** `verdict_reliable` previously gated
+only the FABRICATION tier. Measured against the capture schedule's own key lists that hedged **0.0%
+of the 9 §2A starved keys and 0.0% of the 15 §2C blue-chip anchors** — none of the 24 books cold
+traffic will type. Now also false for `interpolated`, `exact_thin` **and `blended`**.
+⚠️ `blended` was nearly missed: B-vs-C measured identical only because `exact_thin` is essentially
+EMPTY on the keys that matter — a thin exact bucket becomes `blended` whenever neighbouring grades
+exist, which on flagship keys they always do. "The very_low extension is free" was free because it
+was **vacuous**. blended is 21.7% of §2A and 15.7% of §2C. New `verdict_basis` field
+(`fabricated|low_support|interpolated|blended|thin|supported`) drives tier-specific copy; **FMV
+numbers still render in every tier**, only the slab/no-slab recommendation is withheld.
+
+**UNIT 3 — minimum source support (K=2) on interpolation.** A grade bucket must hold ≥2 sales before
+it can anchor an interpolation; thinner buckets are skipped and the next populated bucket is used.
+Plus the `low_support` tier so ~72% of cells pushed out of `interpolated` are not described by the
+`fabricated` string, which would be false for them.
+
+**⚠️ THE ROOT DEFECT (this is the finding to carry forward): interpolation weighted by grade distance
+ONLY, never by evidence.** Worked case — **Spider-Man #1 @ 9.8**, true median **$110.00 from 315
+same-grade comps** (snapshot 2026-08-05 17:12 UTC, ebay_sales 185,278): the 9.9 bucket held exactly
+**one** genuine $4,449.99 sale, and interpolating 9.6 ($99, n=74) → 9.9 at weight 0.667 returned
+**$2,999.66 — a 2,627% error. One sale outvoted 315.** With K=2 the 9.9 bucket is skipped and the
+result is **$102.95 (6.4% error)**.
+
+**THE INTERPOLATED SURFACE, measured (snapshot 2026-08-05 22:58 UTC, ebay_sales 200,335):**
+75,356 interpolated cells, of which **95.6% are one-sided ±20%/grade extrapolation — not
+interpolation between two points at all** — and **90.0% anchor on a bucket holding a SINGLE sale**
+(96.9% ≤2, only 0.9% ≥5). **69.5% sit on the 2,592 single-graded-comp keys**, which the capture
+burst grows with every new title captured at depth 1.
+
+**Tier movement K=1→K=2:** 60,301 cells `interpolated`→`low_support` (72.5%), 1,247
+`blended`→`exact_thin`, **0 cells moved from a hedged state to an unhedged one.** `exact` (≥3
+same-grade comps) is structurally untouched.
+
+⚠️ **This is a TAIL fix, not a central-tendency fix** — backtest median error moves only 19.3% →
+18.1%, coverage lost 7.3%. The backtest modelled **fallthrough-to-next-populated-bucket**, which is
+what shipped (verified line-by-line against the shipped selector), so those numbers do describe
+production.
+
+**POST-DEPLOY VERIFICATION, live prod (snapshot 2026-08-05 23:27 UTC, ebay_sales 200,335):**
+| case | result |
+|---|---|
+| `spider man #1 @9.8` | `exact` $150.00, 522 same-grade comps — **the pathological case is no longer reproducible**: the 9.8 bucket filled in, so it never reaches interpolation. Fix effect unobservable here. |
+| `ASM #41 @9.4` | `interpolated`, hedged, **graded_fmv $3,328 → $2,052.01** — min-n changed which buckets anchor it. **This is the working demonstration case.** |
+| `ASM #300 @9.8` | `exact`/`supported`, verdict shows — not silent everywhere |
+| `100 Page Super Spectacular #4 @10.0` | `low_support`, `nearby_thin_comps=1` — singular renders correctly |
+| nonexistent book | `fabricated`, `nearby_thin_comps=0` — cannot render "0 recent sales" |
+
+**⚠️ THE n≥10 INVERSION — CONTAMINATION FALSIFIED, CURVE STEEPNESS STANDS.** Error falls with source
+support (n=1: 27.9% median · n=5-9: 10.2%) then **jumps back at n≥10 to 29.0%**. Excluding suspected
+Platinum/UPC Gold/Silver edition rows (260 rows, 1.29%) leaves it at 29.0% / p90 64.8%, and only 3
+cells left the band — variants are not concentrated there. **A future confidence bound needs GRADE
+POSITION as a term; source-bucket n alone is unsound above 9.** (Caveat: the variant regex catches
+1.29% of rows; severe under-detection could still hide an effect.)
+
+**⚠️ CGC COST COUPLING — recorded in code above `get_cgc_grading_cost()`, cross-reference it.**
+Above $1,000 the fee is 4% of FMV, so bounding FMV downward also bounds cost downward and **NARROWS**
+the ROI gap — a naive pessimistic bound produces a flattered worst case, the opposite of a safety
+bound. **Any bound must move both terms together.**
+
+**🅿️ ROBUSTNESS CHECK — PARKED with a re-measure condition.** Recovery measured at 33.1% (all
+interpolated) / 51.6% (§2A) / 36.0% (§2C) **on a population that INCLUDES the n=1 anchors Unit 3 has
+now removed.** Re-measure post-min-n before deciding: tighter bounds, much smaller addressable base.
+Also: 37.7% of interpolated cells have NO raw comps and 17.6% have 1-2, so on **55.2% both sides of
+the ROI are weak** — a bound must cover the raw side too.
+
+**BACKLOG, logged not fixed:** `is_variant` misses Platinum/UPC Gold/Silver editions (fold into the
+Absolute Batman variant-subtyping work) · the `interpolated` tier is **misnamed** — 95.6% of it is
+one-sided extrapolation with a 25% floor · `nearby_thin_comps` sums ALL nearby buckets, so it reads
+484 on a 522-comp cell (correct where consumed, misnamed elsewhere — **[[L-SW-2026-020]]** instance 4).
+
+---
+
+### 🔥 2026-08-05 — CP-1 AUDIT: A POPULATION-LEVEL MATCHER DEFECT
+
+⏱️ **EVERY FIGURE BELOW IS A POINT-IN-TIME SNAPSHOT — DIVERGENCE IS GROWTH, NOT CONTRADICTION.**
+Since the ingestion-rate fix the corpus grows **~20k rows/day**, and it is bursty: at
+2026-08-05 16:58 UTC, `ebay_sales` = **182,674** with **19,300 rows created in 24h and 14,269 of
+those in the single preceding hour**. `market_sales` is static at 9,972, so the source split moves
+on its own: **94.2%/5.8% (early 2026-08-05) → 94.8%/5.2% (16:58 UTC same day)**. Within this one
+session `ebay_sales` read 163,374 → 168,405 → 182,674 and `lookup_demand` 1,266 → 1,268 → 1,271.
+**Do not treat a mismatch against these numbers as an error to investigate.** All four audit scripts
+now emit a `[SNAPSHOT AT START]` line (row counts, source split, `max(sale_date)`, timestamp);
+compare a figure only against the stamp in its own output file. The 180-day window also slides, so
+even a re-run at the same instant next week covers a different span.
+
+⚠️ **THIS STARTED AS AN ASM #41 DIAGNOSTIC AND BECAME SOMETHING LARGER.** The question was why one
+book valued at ~$47. The answer is that `title_matching.qualifier_title_clause()`'s **fallback
+branch** contaminates comp pools across the corpus. ASM #41 itself is NOT explained by it and remains
+open — see the bottom of this section. **Nothing shipped, nothing committed, no matcher change, no
+production change.** All output persisted in `scripts/cp1_output/`.
+
+**Five read-only runs, all RUN COMPLETE:**
+
+| File | What it did |
+|---|---|
+| `cp1_N200_seed-{default,s2,s3}.txt` | Step 3A uniform distribution, 3 seeds, N=200 + Step 5 |
+| `cp1_STEP4_stratified.txt` | Step 4 stratified, 518 cells, ~75/bucket |
+| `cp1_fallback_audit.txt` | 400-pair branch-split cross-check |
+| `cp1_nesting_audit.txt` | **complete** audit of the nesting population |
+
+**STEP 4 (stratified) — the estimator-stability curve.** Buckets now hold 51–117 cells, not 2–20.
+`CI%med` falls monotonically 113.8 → 80.2 → 65.6 → 38.2. Leave-one-out swing falls 21.8 → 21.6 →
+**12.3 → 4.7** → 5.3 → 1.5, breaking hardest between 3-4 and 8-12. `IQR%med` deliberately does NOT
+fall (88/98/85/96/94) — dispersion is a property of the book, not the sample size, which is the
+check that the strata aren't selecting easy books. `noCI` confirms the **n=7 floor** empirically:
+buckets 1/2/3-4 are 100% no-CI; bucket 5-7 is 46 of 64. Median invariance re-confirmed on 518 real
+cells, 0 differences.
+⚠️ **Reassignment rate 49.8%** (258/518): half of sampled cells had a production comp count
+different from their canonical-grouping strata count. Built as a fidelity disclosure; at that
+magnitude it is an independent measure of fallback contribution, reached from a different direction.
+⚠️ **3 titles timed out at 120s** on unfiltered scans, by name: `Sold Here Retailer Promo Pos`,
+`Something is Killing the Chi`, `Spider-Man Characters Lot`. All `issue = None`. Same artifact family
+as the junk canonicals below — the pathological-title list and the artifact tier may be one list.
+
+**NESTING AUDIT — complete over the population, not sampled.** Substring-membership IS the fallback's
+match predicate, so client-side substring enumeration reproduces branch B exactly. One bulk fetch
+(96,921 rows, ~12 MB), matching computed in 6s.
+- **2,667 nested targets of 15,957 in-window titles (16.7%)** under production filters.
+  (An unfiltered earlier count gave 3,855 / 24,973 / 15.4% — both correct for their scope; the
+  filtered one is the right denominator for production impact.)
+
+| target length | cells | added rows | **different canonical** | med Δ | p90 Δ | max Δ |
+|---|---|---|---|---|---|---|
+| **<6 (artifact)** | 25,458 | 194,762 | **99.8%** | 38.0% | 399.5% | 48,589% |
+| 6–11 | 21,278 | 121,004 | **99.6%** | 27.0% | 210.3% | 26,400% |
+| 12–19 | 8,631 | 26,487 | **99.2%** | 16.7% | 118.9% | 12,463% |
+| 20+ | 3,730 | 11,039 | **99.8%** | 15.4% | 98.0% | 6,367% |
+
+- **The different-book share is ~99% in EVERY tier.** Across ~353,000 added rows the fallback is
+  essentially never recovering the same book. It was justified as a rescue for unclean canonicals;
+  it is the Batch 8 mechanism intact in branch B.
+- **Monotonicity holds and does not rescue the design.** Median delta falls with target length, so a
+  minimum-length rule has a measurable shape — but the 20+ tier still moves the median 15.4% (p90
+  98%) at a 99.8% different-book rate.
+- Median shift over 5,321 comparable cells: only **10.6% unchanged**, **52.4% move >20%**, 14.5%
+  move >100%.
+- **Artifact tier is live, not a data-quality footnote:** `'an'` (two characters) matches **87,372
+  rows**; `'comics'` matches **37,175**. Both exceeded the 20k collection cap; true counts recorded,
+  medians computed on the first 20k, cap disclosed in the output.
+
+**⚠️ THE NESTING PROPERTY CORRELATES WITH BEING A FLAGSHIP.** Bare franchise names are substrings of
+their own longer titles, so the most valuable and most-queried books are structurally the most
+exposed:
+
+```
+48589%  'x men'              #181  raw   $2.67 → $1,300.00   n 1→7
+26400%  'spider man'         #122  9.2   $3.00 → $  795.00   n 1→3
+12463%  'amazing spider man' #22   raw   $9.99 → $1,254.99   n 1→2
+ 8317%  'silver surfer'      #48   raw   $6.00 → $  505.00   n 5→70
+ 8296%  'wolverine'          #94   raw   $4.64 → $  390.00   n 4→25
+ 5321%  'batman'             #400  raw   $2.49 → $  135.00   n 1→18
+ 4407%  'jsa'                #1    raw   $5.99 → $  269.99   n 1→29
+```
+
+**COST SIDE — removing the fallback costs very little where cells had real comps:**
+
+| transition | cells | share |
+|---|---|---|
+| **cell exists ONLY via fallback** | 53,776 | **91.0%** |
+| no threshold change | 2,450 | 4.1% |
+| drops below 3 | 2,107 | 3.6% |
+| drops below 5 | 483 | 0.8% |
+| drops below the n=7 CI floor | 281 | 0.5% |
+
+⚠️ **TWO LIMITATIONS — do not let conclusions outrun them.**
+1. **MAGNITUDE ONLY, NOT DIRECTION.** Everything above is `|median shift|`. Every worst-case example
+   happens to move UPWARD, which would mean inflated FMV → inflated ROI → users told to grade books
+   that are not worth grading (straight into D4). **That direction is NOT measured.** One column,
+   same data, no new fetch.
+2. **CONTAMINATION, NOT CORRECTNESS.** The audit establishes that added rows carry a different
+   canonical 99% of the time. It does NOT establish which median is closer to truth. For bare
+   flagship canonicals the EXACT rows may themselves be truncation artifacts, with the fallback
+   pulling in the legitimately-titled rows — which would invert the reading. Untested.
+
+**⚰️ ASM #41 IS NOT CLOSED BY THIS.** The fallback on `'amazing spider man'` INFLATES, so it is
+probably not the deflation mechanism behind the ~$47 figure. That implies a **separate defect on
+thin-data keys**. Do not let it be closed out because a larger finding landed in the same
+investigation.
+
+**Scripts (all untracked, uncommitted):** `scripts/cp1_confidence_measure.py`,
+`scripts/cp1_fallback_audit.py`, `scripts/cp1_nesting_audit.py`, outputs in `scripts/cp1_output/`.
+
+### 🔜 ON RESUME — priority order (Mike, 2026-08-04)
+
+**0. CP-1 measurement — read the tables first.** In order: Step 3A three-seed spread · Step 4 bucket
+table (`CI%med` / `CIraw%` / `narrow` / `noCI`) · Step 5 sensitivity · the narrow<0 count. Then:
+**D2 threshold setting** (n=7 CI floor is the leading Low-boundary candidate), and **D4 (ROI verdict
+behaviour at Low)**, which is decidable independently and may go first. No production changes have
+been made; everything so far is measurement.
+
+
+1. **Cross-project canon version control.** Scope accepted in shape. ⚠️ **TWO DECISIONS ARE MIKE'S
+   AND UNMADE:** (a) whether the canon moves out of the tool-managed `.claude` tree entirely;
+   (b) whether to go straight to option C or stage A → B → C. **`.gitignore` with `~$*` goes in the
+   INITIAL commit, not after** — once the Office owner file is in history it is permanent.
+   ⛔ **DO NOT INITIALIZE ANYTHING UNTIL MIKE DECIDES.**
+2. **Phase 2** — scoped and specced below: view extension with the `created_at` **UTC cast recorded
+   as chosen rather than inherited**, `grade`'s coverage asymmetry stated **in the `DB_SCHEMA` entry
+   itself**, `source_id` → **`listing_id`**, and the `market_sales` revoke, all as ONE unit with the
+   ordering **inverted from Phase 1** (deploy the prompt change first, revoke after).
+3. **`.claude/worktrees` untrack** — commands prepared below; behind nothing.
+
+**Everything else is in Todoist under Slab Worthy:** `git gc`, the sync-check script, Phase 3, the
+polysemy audit, `graded_comics` identification, R2 close-out, `R2_CUTOVER_RUNBOOK.md` date drift.
+
+⚠️ **Five tracked files are dirty and are NOT from this session's work** — `.gitignore`, `TODO.md`,
+`docs/EBAY_CAPTURE_SCHEDULE.docx`, `scripts/slabguard_crosscamera_test.py`,
+`tests/SlabGuardTests/TP_RESHOOT_PROTOCOL.md`. Pre-existing. Do not sweep them into a future commit
+assuming they belong to the NLQ work.
+
+⚠️ **This session-close block is uncommitted at time of writing.** `WHERE_WE_LEFT_OFF.md` went into
+`3a9892f`; everything added after it is dirty. Verify with `git status` before assuming it is in
+history.
+
+---
 
 ### ✅ CLOSURE 1 — `nlq_readonly` role, shipped and verified
 
