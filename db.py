@@ -234,6 +234,65 @@ def get_db_readonly():
     return conn
 
 
+# Pure forwarders to db.get_db. Every route module keeps a local accessor of
+# this shape: routes/verify.py:47, routes/billing.py:167, routes/monitor.py:149,
+# routes/waitlist.py:41, auth.py:68, admin.py:30, plus ebay_oauth.py and
+# ebay_valuation.py. 67 of the ~136 checkout sites in this codebase reach the
+# pool through one of them.
+#
+# A naive sys._getframe(2) resolves to "whoever called db.get_db", which for all
+# of those is the forwarder itself. That is worse than the bare count it
+# replaces: it is a confident, constant, WRONG file:line pointing at a
+# three-line function that provably cannot leak, and nothing in the output
+# distinguishes it from a correct answer. So we walk past them, and when we
+# cannot vouch for a frame we say "<unresolved>" instead of naming one.
+_FORWARDER_NAMES = frozenset((
+    'get_db', 'get_db_connection', 'get_conn', 'get_connection',
+))
+_MAX_FRAME_WALK = 12      # bounded: never walk an arbitrarily deep stack
+_MAX_SITES_LOGGED = 5     # bounded: one leak line must not become unbounded
+
+
+def _short_path(path):
+    """Last two path segments. Bare basename collapses routes/monitor.py and any
+    same-named root module to 'monitor.py'."""
+    parts = str(path).replace('\\', '/').rstrip('/').split('/')
+    return '/'.join(parts[-2:]) if len(parts) >= 2 else parts[-1]
+
+
+def _resolve_checkout_site():
+    """Name the handler that checked a connection out, or admit it could not.
+
+    Walks out of this module, then past any pure forwarder (see
+    _FORWARDER_NAMES). Returns "<unresolved...>" rather than naming a frame it
+    cannot vouch for — an honest gap is useful, a confident wrong file is not.
+    Never raises; the caller must always get a string.
+    """
+    try:
+        import sys as _sys
+        f = _sys._getframe(1)
+    except Exception:
+        return "<unresolved: no frame access>"
+    skipped = 0
+    try:
+        for _ in range(_MAX_FRAME_WALK):
+            if f is None:
+                return "<unresolved: end of stack>"
+            if f.f_globals.get('__name__', '') == __name__:
+                f = f.f_back           # still inside db.py
+                continue
+            if f.f_code.co_name in _FORWARDER_NAMES:
+                skipped += 1
+                f = f.f_back           # a shim, not the handler
+                continue
+            via = " (via %d forwarder%s)" % (skipped, "" if skipped == 1 else "s") if skipped else ""
+            return "%s:%d in %s()%s" % (
+                _short_path(f.f_code.co_filename), f.f_lineno, f.f_code.co_name, via)
+        return "<unresolved: walk limit>"
+    except Exception:
+        return "<unresolved: frame walk failed>"
+
+
 def _register_for_teardown(proxy):
     """Track request-scoped checkouts on flask.g so the wsgi teardown hook can
     force-return anything a handler leaked on an exception path. Outside an
@@ -246,7 +305,15 @@ def _register_for_teardown(proxy):
             if conns is None:
                 conns = []
                 g._db_pool_conns = conns
-            conns.append(proxy)
+            # Capture the checkout SITE so return_leaked() can name the handler
+            # that forgot to close instead of only counting it. Frame walking is
+            # O(depth) with no source reads, unlike traceback.extract_stack(),
+            # which walks AND formats the whole stack on every checkout.
+            # Only frame metadata (str, int) is kept — no frame object escapes
+            # this call, so there is no reference cycle.
+            # NOTE: entries are (proxy, site) tuples. return_leaked() unpacks
+            # them, and tolerates a bare proxy if this ever changes.
+            conns.append((proxy, _resolve_checkout_site()))
     except Exception:
         pass
 
@@ -256,20 +323,54 @@ def return_leaked():
     out but never closed (a missing finally on an exception path). Makes
     close-not-in-finally harmless in the web path."""
     returned = 0
+    failures = 0
+    sites = {}
     try:
         from flask import g
         conns = getattr(g, '_db_pool_conns', None) or []
-        for proxy in conns:
-            if not object.__getattribute__(proxy, '_returned'):
+    except Exception:
+        return 0
+    try:
+        for entry in conns:
+            # PER-ENTRY isolation, deliberately. This loop previously sat inside
+            # one blanket `except Exception: pass`, so a single malformed entry
+            # raised, aborted the loop, left EVERY other connection in the
+            # request checked out, skipped the list clear, returned 0 and logged
+            # nothing. A pool-exhaustion guard that fails silently and
+            # successfully is the exact defect class it exists to prevent.
+            try:
+                if isinstance(entry, tuple) and len(entry) == 2:
+                    proxy, site = entry
+                else:
+                    proxy, site = entry, "<unresolved: malformed entry>"
+                if object.__getattribute__(proxy, '_returned'):
+                    continue
                 proxy.close()
                 returned += 1
-        g._db_pool_conns = []
-    except Exception:
-        pass
-    if returned:
-        _count('leaks_returned', returned)
+                sites[site] = sites.get(site, 0) + 1
+            except Exception:
+                failures += 1
+    finally:
+        # Always clear, even if every entry above failed. A retained list would
+        # be re-walked by the next teardown on this (recycled) context.
+        try:
+            g._db_pool_conns = []
+        except Exception:
+            pass
+    if returned or failures:
+        if returned:
+            _count('leaks_returned', returned)
+        # Dedupe with counts: a leak inside a loop is one site N times, not N
+        # sites. Capped so one request cannot emit an unbounded log line.
+        ranked = sorted(sites.items(), key=lambda kv: -kv[1])
+        parts = ["%s (x%d)" % (s, n) if n > 1 else s for s, n in ranked[:_MAX_SITES_LOGGED]]
+        if len(ranked) > _MAX_SITES_LOGGED:
+            parts.append("... +%d more site(s)" % (len(ranked) - _MAX_SITES_LOGGED))
+        where = ", ".join(parts) if parts else "<unresolved>"
+        extra = f"; {failures} entr(ies) could not be returned" if failures else ""
         print(f"[DB] teardown returned {returned} leaked connection(s) — "
-              f"a handler in this request is missing close(); pool unharmed")
+              f"checked out at {where}; that handler is missing close(); "
+              f"pool unharmed{extra}")
     return returned
 
 
