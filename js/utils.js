@@ -349,7 +349,15 @@ function resizeBase64ToJpegBlob(base64, maxEdge = 1568, quality = 0.85) {
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
-                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                const ctx = canvas.getContext('2d');
+                // A fresh canvas is transparent and toBlob('image/jpeg') has no alpha
+                // channel, so anything not painted composites to BLACK. Inputs here are
+                // whatever the file picker accepts (accept="image/*"), so a PNG cover
+                // with transparency would silently upload black-backed. Paint opaque
+                // white first — for a fully opaque JPEG this is a no-op.
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
                 canvas.toBlob(
                     (blob) => blob ? resolve(blob) : reject(new Error('toBlob returned null')),
                     'image/jpeg', quality
@@ -359,6 +367,41 @@ function resizeBase64ToJpegBlob(base64, maxEdge = 1568, quality = 0.85) {
         img.onerror = () => reject(new Error('Image decode failed'));
         img.src = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
     });
+}
+
+// Same downscale as resizeBase64ToJpegBlob, but handed back as raw base64 for
+// callers that post a JSON body instead of a multipart file part (the collection
+// save path, /api/images/submission). Kept beside its Blob sibling so both image
+// downscale paths live in one place.
+//
+// 1568/0.85 is NOT a thumbnail budget. What this uploads becomes
+// collections.photos['front'], which is the stored artifact four server-side
+// consumers read at full resolution:
+//   - routes/registry.py:589  Slab Guard registration quality gate
+//   - routes/monitor.py:478   copy-level theft matching (slab_guard_cv.py)
+//   - js/collection.js:1035   signature ID, which re-resizes to 1568
+//   - routes/verify.py:234    public verification page + watermark
+// The binding constraint is registry.py:214, which tests min_side (the SHORT
+// side) against QUALITY_WARN_DIMENSION = 1000. At maxEdge=1200 a 3:4 photo
+// yields 904x1200: min_side 904 < 1000, so EVERY new registration would flip
+// pass -> warn, take a 5.0 confidence penalty, and tell the user to use a
+// higher resolution camera for what this function just did. At 1568 the same
+// photo yields 1181x1568 (min_side 1181), clearing the gate. 1568 is also the
+// Anthropic vision long-edge cap already documented on resizeBase64ToJpegBlob,
+// so the signature path re-resizes to the same number instead of upscaling.
+// Do not lower these without re-checking registry.py's thresholds.
+function resizeBase64ForUpload(base64, maxEdge = 1568, quality = 0.85) {
+    return resizeBase64ToJpegBlob(base64, maxEdge, quality).then(blob => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const s = String(reader.result);
+            const comma = s.indexOf(',');
+            if (comma === -1) reject(new Error('resize produced no data URL'));
+            else resolve(s.slice(comma + 1));
+        };
+        reader.onerror = () => reject(new Error('Blob read failed'));
+        reader.readAsDataURL(blob);
+    }));
 }
 
 async function identifySignaturesV2(imageB64, metadata = {}) {

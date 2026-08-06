@@ -3170,6 +3170,28 @@
                         const photo = window.gradingState.photos[num];
                         if (photo && photo.base64) {
                             try {
+                                // Downscale before upload. gradingState holds the RAW camera
+                                // file bytes: handlePhotoUpload (app.html:1662) stores
+                                // FileReader output directly with no canvas pass. The
+                                // 2048px/q0.92 path in js/grading.js (processImageWithOrientation)
+                                // is NOT reachable from this page — it is driven by
+                                // gradingUpload${step} elements that exist here only as CSS
+                                // rules. Measured on a real 3072x4080 R2 cover, four raw photos
+                                // are 14.26 MB of base64 on the wire.
+                                // 1568/0.85 is chosen by registry.py's quality gate, not by what
+                                // collections renders — this upload becomes the stored
+                                // collections.photos artifact that Slab Guard registration,
+                                // theft matching, signature ID and the public verify page all
+                                // read. See resizeBase64ForUpload in js/utils.js for why 1200
+                                // was disqualifying.
+                                // Fall back to the original if the resize fails — a resize bug
+                                // must never be the reason a photo is lost.
+                                let uploadB64 = photo.base64;
+                                try {
+                                    uploadB64 = await resizeBase64ForUpload(photo.base64);
+                                } catch (resizeErr) {
+                                    console.warn(`Resize failed for ${type}, sending original:`, resizeErr);
+                                }
                                 const uploadResp = await uploadWithTimeout(
                                     fetch(`${API_URL}/api/images/submission`, {
                                         method: 'POST',
@@ -3178,12 +3200,14 @@
                                             'Content-Type': 'application/json'
                                         },
                                         body: JSON.stringify({
-                                            image: photo.base64,
+                                            image: uploadB64,
                                             submission_id: gradingId,
                                             type: type
                                         })
                                     }),
-                                    30000  // 30 second timeout per photo
+                                    30000  // 30 second timeout per photo — kept as a floor;
+                                           // the resize lowers the odds of hitting it, it does
+                                           // not remove slow uplinks.
                                 );
                                 const uploadResult = await uploadResp.json();
                                 if (uploadResult.success && uploadResult.url) {
