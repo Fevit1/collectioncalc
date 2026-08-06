@@ -146,7 +146,14 @@ function updateSummary() {
         document.getElementById('comicsContainer').style.display = 'none';
         document.getElementById('emptyState').style.display = 'block';
     } else {
-        document.getElementById('comicsContainer').style.display = currentView === 'grid' ? 'grid' : 'flex';
+        // Clear the inline display set by the empty-state branch above and let the
+        // stylesheet govern: .comics-list and .comics-gallery each carry their own
+        // correct display. displayCollection() is the single writer of which class
+        // applies. Do NOT reintroduce a view test here — this line previously read
+        // `currentView === 'grid' ? 'grid' : 'flex'`, and 'grid' stopped being a
+        // view name in the grid->gallery rename (2026-06-19), so it always wrote
+        // `flex` and overrode .comics-gallery's `display: grid` for 48 days.
+        document.getElementById('comicsContainer').style.display = '';
         document.getElementById('emptyState').style.display = 'none';
     }
 }

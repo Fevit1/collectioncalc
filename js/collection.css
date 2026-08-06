@@ -143,13 +143,6 @@ select:focus {
     color: white;
 }
 
-/* Comic Grid */
-.comics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-}
-
 .comics-list {
     display: flex;
     flex-direction: column;
@@ -1728,10 +1721,6 @@ textarea.form-input {
     .controls-row {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .comics-grid {
-        grid-template-columns: 1fr;
     }
 
     .comics-list .comic-card {
