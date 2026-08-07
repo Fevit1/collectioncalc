@@ -49,6 +49,18 @@
     -webkit-text-fill-color: transparent;
 }
 
+/* Added 2026-08-07. "Profit on Rated Comics" can legitimately be negative —
+   most comics are not worth slabbing, which is the product's thesis — and the
+   class was previously hardcoded 'positive' in collection.html, so a loss would
+   have rendered in the green gradient. Deliberately muted rather than red:
+   a negative here is a correct, expected answer, not an error state. Matches
+   .comic-roi.negative, which already uses text-secondary for the same reason. */
+.summary-value.negative {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: var(--text-secondary);
+}
+
 .summary-subtitle {
     font-size: 0.8rem;
     color: var(--text-secondary);
@@ -253,6 +265,40 @@ select:focus {
 .comic-roi.negative {
     background: rgba(100, 116, 139, 0.15);
     color: var(--text-secondary);
+}
+
+/* Verdict chip — collection surface, added 2026-08-07.
+   Three states, shown on every comic that has a verdict. 'cant-say' is the
+   hedged state (verdict='estimate'), amber to match the grade report's own
+   hedge colour so a user meets the same visual language twice.
+   Amber reads as CAUTION, not error: "Can't say" is an honest answer, the same
+   way a negative "Profit on Rated Comics" is. */
+.verdict-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+.verdict-chip.worth-it {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--status-success);
+}
+.verdict-chip.keep-raw {
+    background: rgba(100, 116, 139, 0.15);
+    color: var(--text-secondary);
+}
+.verdict-chip.cant-say {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+/* Legacy rows render no chip, so this cell is empty by design. */
+.verdict-cell {
+    display: flex;
+    justify-content: center;
 }
 
 .verdict-badge {
@@ -461,7 +507,10 @@ select:focus {
 
 .comics-list .comic-card {
     display: grid;
-    grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1fr 3fr;
+    /* 9 columns since 2026-08-07: a Verdict column was inserted between FMV and
+       My Val. .table-headers and .comics-list .comic-card MUST stay in lockstep
+       — they are two separate grids that only look like one table. */
+    grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1.1fr 1fr 3fr;
     gap: 1rem;
     align-items: center;
     padding: 0.75rem 1rem;
@@ -678,7 +727,10 @@ select:focus {
 /* Table Headers */
 .table-headers {
     display: grid;
-    grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1fr 3fr;
+    /* 9 columns since 2026-08-07: a Verdict column was inserted between FMV and
+       My Val. .table-headers and .comics-list .comic-card MUST stay in lockstep
+       — they are two separate grids that only look like one table. */
+    grid-template-columns: 80px 3fr 0.8fr 1fr 1.2fr 1fr 1.1fr 1fr 3fr;
     gap: 1rem;
     padding: 0.75rem 1rem;
     background: var(--bg-primary);

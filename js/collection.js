@@ -132,13 +132,40 @@ function updateSummary() {
     const totalComics = collection.length;
     const rawValue = collection.reduce((sum, comic) => sum + (comic.raw_value || 0), 0);
     const slabbedValue = collection.reduce((sum, comic) => sum + (comic.slabbed_value || 0), 0);
-    const potentialProfit = slabbedValue - rawValue;
+    // Use the STORED roi, not slabbedValue - rawValue. The stored column is
+    // written at save time from the grade report and already subtracts the CGC
+    // grading cost; the recompute silently omitted it.
+    // Measured 2026-08-07 over all 59 saved rows: the recompute exceeded stored
+    // roi on 59 of 59, always the same direction, average gap $35.34 — a
+    // grading fee. Portfolio-wide $2,944.07 recomputed against $859.07 stored,
+    // a 3.4x overstatement of profit, and the error compounds with collection
+    // size because this is a sum.
+    // Staleness is not an argument for recomputing: rawValue and slabbedValue
+    // above are stale stored snapshots too, so deriving ROI from them makes the
+    // figure stale AND inconsistent with the report rather than fresh. Stored
+    // keeps the whole card one coherent snapshot from one moment.
+    //
+    // HEDGED COMICS ARE EXCLUDED. verdict === 'estimate' is written whenever the
+    // grade report withheld its verdict, so including those rows would sum a
+    // number the product explicitly declined to stand behind. Measured
+    // 2026-08-07: 26 of 59 saved rows are hedged and they carry +$1,118.76 of a
+    // +$859.07 total — the entire positive headline came from comics the tool
+    // refused to rate. Excluding them gives -$259.69, which is the honest
+    // figure. The label says "Profit on Rated Comics" so the number and its
+    // scope agree without a caveat that would lose against the number.
+    const ratedComics = collection.filter(c => c.verdict && c.verdict !== 'estimate');
+    const potentialProfit = ratedComics.reduce((sum, comic) => sum + (comic.roi || 0), 0);
     const worthSlabbing = collection.filter(c => c.verdict === 'worth-it').length;
 
     document.getElementById('totalComics').textContent = totalComics;
     document.getElementById('rawValue').textContent = `$${rawValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     document.getElementById('slabbedValue').textContent = `$${slabbedValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    document.getElementById('potentialProfit').textContent = `${potentialProfit >= 0 ? '+' : ''}$${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    const profitEl = document.getElementById('potentialProfit');
+    profitEl.textContent = `${potentialProfit >= 0 ? '+' : '-'}$${Math.abs(potentialProfit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    // The 'positive' class used to be hardcoded in collection.html. This figure
+    // can now legitimately be negative — most comics are not worth slabbing —
+    // so a green minus sign would be its own small lie.
+    profitEl.className = `summary-value ${potentialProfit >= 0 ? 'positive' : 'negative'}`;
     document.getElementById('worthSlabbingCount').textContent = `${worthSlabbing} worth slabbing`;
 
     // Show/hide empty state
@@ -293,10 +320,33 @@ function displayCollection() {
 }
 
 function createComicCard(comic) {
-    const roi = (comic.slabbed_value || 0) - (comic.raw_value || 0);
-    const roiClass = roi > 0 ? 'positive' : 'negative';
-    const verdictClass = comic.verdict === 'worth-it' ? 'worth-it' : 'keep-raw';
-    const verdictText = comic.verdict === 'worth-it' ? '✓ Worth It' : 'Keep Raw';
+    // NOTE: the card renders no ROI figure. `roi`/`roiClass` were computed here
+    // and never used — deleted 2026-08-07. The live ROI is the header's
+    // "Profit on Rated Comics" in updateSummary().
+    //
+    // VERDICT CHIP. Three states, rendered on EVERY comic that carries a
+    // verdict — not only on hedged ones. A marker that appears only on problems
+    // trains users to read its absence as approval, which turns silence into an
+    // implicit claim, and an implicit claim is the one nobody audits.
+    //
+    // 'estimate' is written by app.html whenever the grade report withheld its
+    // verdict. Before this chip existed the collection showed no verdict at
+    // all, so a hedged comic and a confident "not worth grading" were
+    // indistinguishable on the surface a user returns to.
+    //
+    // Legacy rows saved before `verdict` existed render NO chip. A fourth
+    // "unknown" state would assert a classification we never made.
+    // The [Why?] link is deliberately absent: it needs verdict_basis, which is
+    // not persisted yet (migration pending).
+    const VERDICT_CHIPS = {
+        'worth-it': { cls: 'worth-it', text: '✓ Worth It' },
+        'keep-raw': { cls: 'keep-raw', text: 'Keep Raw' },
+        'estimate': { cls: 'cant-say', text: 'Can’t say' },
+    };
+    const chipSpec = VERDICT_CHIPS[comic.verdict];
+    const verdictChip = chipSpec
+        ? `<span class="verdict-chip ${chipSpec.cls}">${chipSpec.text}</span>`
+        : '';
 
     // Get first available photo (prefer front, then spine, then back, then centerfold)
     let photoUrl = null;
@@ -345,6 +395,11 @@ function createComicCard(comic) {
                     ${defectsTooltip}
                 </div>
                 <div class="value-amount">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <!-- Verdict sits immediately after the value it qualifies. The
+                     user's own valuation must NOT come between our number and
+                     our hedge about it. Empty cell for legacy rows keeps the
+                     grid columns aligned. -->
+                <div class="verdict-cell">${verdictChip}</div>
                 <div>
                     <input
                         type="text"
@@ -431,6 +486,10 @@ function createComicCard(comic) {
                         <span class="detail-label">FMV${comic.is_slabbed ? ' (Slabbed)' : ' (Raw)'}</span>
                         <span class="detail-value">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
+                    ${verdictChip ? `<div class="detail-row">
+                        <span class="detail-label">Verdict</span>
+                        <span class="detail-value">${verdictChip}</span>
+                    </div>` : ''}
                     ${gallerySigBadge}
                     <div class="detail-row">
                         <span class="detail-label">My Valuation</span>

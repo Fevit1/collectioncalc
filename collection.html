@@ -50,8 +50,13 @@
                 <div class="summary-value" id="slabbedValue">$0</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Potential Profit</div>
-                <div class="summary-value positive" id="potentialProfit">$0</div>
+                <!-- "Rated" is load-bearing: hedged comics (verdict='estimate')
+                     are EXCLUDED from this total, so the label states the scope
+                     rather than leaving a caveat to lose against the number.
+                     The 'positive' class is set by updateSummary() now — this
+                     figure can legitimately be negative. -->
+                <div class="summary-label">Profit on Rated Comics</div>
+                <div class="summary-value" id="potentialProfit">$0</div>
                 <div class="summary-subtitle" id="worthSlabbingCount">0 worth slabbing</div>
             </div>
         </div>
@@ -130,6 +135,13 @@
             <div class="sortable" data-sort="issue" onclick="columnSort('issue')" style="justify-content:center;">Issue <span class="sort-arrow">▲</span></div>
             <div class="sortable" data-sort="grade" onclick="columnSort('grade')" style="justify-content:center;">Grade <span class="sort-arrow">▲</span></div>
             <div class="sortable" data-sort="fmv" onclick="columnSort('fmv')" style="justify-content:flex-end; padding-right:0.5rem;">FMV <span class="sort-arrow">▲</span></div>
+            <!-- Verdict column, added 2026-08-07. Sits between FMV and My Val so
+                 the chip is adjacent to the number it qualifies. Deliberately
+                 NOT sortable: columnSort() has no 'verdict' case, and a sort
+                 affordance that does nothing is its own small lie.
+                 Keep in lockstep with .table-headers and .comics-list
+                 .comic-card grid-template-columns in js/collection.css. -->
+            <div style="justify-content:center;">Verdict</div>
             <div class="sortable" data-sort="valuation" onclick="columnSort('valuation')" style="justify-content:flex-end;">My Val <span class="sort-arrow">▲</span></div>
             <div style="border-left: 1px solid var(--border-default); padding-left: 1rem;">Actions</div>
         </div>
