@@ -389,20 +389,8 @@
         }
 
         /* Footer */
-        .site-footer {
-            text-align: center;
-            padding: 24px 16px;
-            margin-top: 40px;
-            color: rgba(255,255,255,0.6);
-            font-size: 13px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .site-footer a {
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            margin: 0 12px;
-        }
-        .site-footer a:hover { color: white; }
+        /* .site-footer rules removed 2026-08-07 with the hardcoded <footer>.
+           The universal footer injects its own styles (js/footer.js). */
     </style>
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -842,19 +830,17 @@
             }
         }
     </script>
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div style="margin-bottom: 10px;">
-            <a href="/">Slab Worthy™</a>
-            <a href="/faq.html">FAQ</a>
-            <a href="/about.html">About</a>
-            <a href="/contact.html">Contact</a>
-            <a href="/privacy.html">Privacy</a>
-            <a href="/terms.html">Terms</a>
-        </div>
-        <div style="margin-bottom: 4px;">&copy; 2026 Slab Worthy. Patent Pending.</div>
-        <div style="font-size: 11px; opacity: 0.7;">Powered by <a href="https://collectioncalc.com" style="color: #6366f1;">CollectionCalc</a>&trade; &bull; CGC&reg; and CBCS&reg; are registered trademarks of their respective owners.</div>
-    </footer>
+    <!-- Footer — universal include, see js/footer.js.
+         A hardcoded <footer> used to sit here carrying pre-rebrand branding. It
+         survived the July cleanup precisely BECAUSE it was hardcoded: that sweep
+         targeted footer.js, and a literal block in the HTML was invisible to it.
+         It also rendered with JS disabled, so it was the version crawlers and
+         no-JS visitors saw.
+         Removing the markup is the point — footer.js replaces any existing
+         <footer> at runtime, so merely adding the script would have left the old
+         copy in the served HTML. Do not re-add a literal footer here; use
+         data-no-universal-footer if a page ever genuinely needs its own. -->
+    <script src="/js/footer.js"></script>
 
     <!-- Service Worker -->
     <script>
