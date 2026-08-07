@@ -218,6 +218,34 @@
             font-weight: 600;
             transition: opacity 0.2s;
         }
+        /* Coming-soon entries. Mirrors the already-correct pattern at
+           app.html:1143 (0.45 opacity + COMING SOON badge + tooltip).
+           Rendered as a <span> with no href and no onclick, so there is no
+           click affordance and nothing to alert about — the previous
+           alert('… coming soon!') advertised a feature on click, which is the
+           opposite of disclosing it up front.
+           pointer-events is deliberately NOT disabled: the collapsed sidebar
+           shows only icons, and :hover::after is the only way to identify an
+           item there. Killing pointer events would take the tooltip with it. */
+        .sw-sidebar-item.sw-soon {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .sw-sidebar-item.sw-soon:hover {
+            background: transparent;
+        }
+        .sw-sidebar-item.sw-soon .sw-soon-badge {
+            font-size: 0.62rem;
+            font-weight: 600;
+            background: var(--border-color, #e0e0e0);
+            color: var(--text-muted, #888);
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin-left: 6px;
+            letter-spacing: 0.03em;
+            vertical-align: middle;
+        }
+        .collapsed .sw-sidebar-item.sw-soon .sw-soon-badge { display: none; }
         .collapsed .sw-sidebar-item .sw-badge {
             opacity: 0; position: absolute; pointer-events: none;
         }
@@ -427,15 +455,15 @@
             <a href="/verify.html" class="sw-sidebar-item ${isActive('slab-guard')}" data-tooltip="Slab Guard">
                 <span class="sw-icon">&#128737;&#65039;</span> <span class="sw-label">Slab Guard</span>
             </a>
-            <a href="#" onclick="alert('Signature ID \u2014 coming soon!'); return false;" class="sw-sidebar-item ${isActive('signature-id')}" data-tooltip="Signature ID">
-                <span class="sw-icon">&#9997;&#65039;</span> <span class="sw-label">Signature ID</span>
-            </a>
-            <a href="#" onclick="alert('Market Pulse \u2014 coming soon!'); return false;" class="sw-sidebar-item ${isActive('market-pulse')}" data-tooltip="Market Pulse">
-                <span class="sw-icon">&#128200;</span> <span class="sw-label">Market Pulse</span>
-            </a>
-            <a href="#" onclick="alert('Price Lookup \u2014 coming soon!'); return false;" class="sw-sidebar-item ${isActive('price-lookup')}" data-tooltip="Price Lookup">
-                <span class="sw-icon">&#128202;</span> <span class="sw-label">Price Lookup</span>
-            </a>
+            <span class="sw-sidebar-item sw-soon" data-tooltip="Signature ID \u2014 coming soon" title="Coming soon \u2014 signature identification will detect and attribute creator signatures on your cover">
+                <span class="sw-icon">&#9997;&#65039;</span> <span class="sw-label">Signature ID <span class="sw-soon-badge">SOON</span></span>
+            </span>
+            <span class="sw-sidebar-item sw-soon" data-tooltip="Market Pulse \u2014 coming soon" title="Coming soon \u2014 market trend tracking across recent comic sales">
+                <span class="sw-icon">&#128200;</span> <span class="sw-label">Market Pulse <span class="sw-soon-badge">SOON</span></span>
+            </span>
+            <span class="sw-sidebar-item sw-soon" data-tooltip="Price Lookup \u2014 coming soon" title="Coming soon \u2014 look up a comic's value without running a full grade">
+                <span class="sw-icon">&#128202;</span> <span class="sw-label">Price Lookup <span class="sw-soon-badge">SOON</span></span>
+            </span>
         </div>
 
         ${adminItems}

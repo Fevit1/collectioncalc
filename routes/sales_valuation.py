@@ -192,7 +192,10 @@ def api_sales_valuation():
     Enhanced valuation endpoint for the grading results page.
     Returns grade-specific pricing with raw vs slabbed comparison and ROI.
 
-    Uses canonical_title for precise matching, falls back to LIKE matching.
+    Matches on canonical_title by normalized EXACT equality only. The base-title
+    LIKE fallback was removed 2026-08-07 (commit 1430b64) — see
+    title_matching.qualifier_title_clause for the measurement and for why no
+    softened variant replaces it.
     Pulls from BOTH ebay_sales and market_sales for maximum coverage.
 
     Query params:
