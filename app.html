@@ -2660,6 +2660,13 @@
                 const verdictBasis = valData.verdict_basis || (verdictReliable ? 'supported' : 'fabricated');
                 const sameGradeComps = valData.graded_sample_size || 0;
                 const nearbyThin = valData.nearby_thin_comps || 0;
+                // 'raw_only' tier: zero graded sales, but real RAW ones. The copy
+                // must state the raw count, or it repeats the fabricated-tier lie
+                // it exists to fix.
+                const rawComps = valData.raw_sample_size || 0;
+                // Graded variants are excluded from the comp pool in Python, not SQL,
+                // so "no graded sales" can be false while this is > 0. See raw_only.
+                const excludedVariants = valData.variant_excluded_count || 0;
 
                 // Update the grade result object
                 gradeResult.raw_value = raw_value;
@@ -2704,6 +2711,9 @@
                         // 'blended' DO have sales at this grade, just too few.
                         const badges = {
                             fabricated: 'ROUGH ESTIMATE',
+                            // Badge must not contradict the raw_only hedge: when the only
+                            // graded sales were variants, "NO GRADED SALES" is false.
+                            raw_only: excludedVariants > 0 ? 'NO STANDARD-COVER SALES' : 'NO GRADED SALES',
                             low_support: 'NOT ENOUGH SALES DATA',
                             interpolated: 'NO SALES AT THIS GRADE',
                             blended: 'LIMITED SALES DATA',
@@ -2731,6 +2741,26 @@
                                 `<strong style="color:#f59e0b;">No recent sales found for this book.</strong> `
                                 + `The figures above are a rough estimate from grade, publisher, and era \u2014 not from sales. `
                                 + `We can't say whether grading pays off.`,
+                            // 2026-08-07. This tier previously fell through to
+                            // `fabricated`, which claims "No recent sales found" and
+                            // "not from sales". Both are false here: there ARE raw
+                            // sales and the figure is derived from them (raw x 1.5).
+                            // ⚠️ The variant clause is NOT optional. Graded variants are
+                            // dropped from the comp pool in Python, not in SQL, so a book
+                            // whose ONLY graded sales are variants arrives here with an
+                            // empty pool. Saying "No graded sales for this book" there is
+                            // false — 7 of 594 real lookups hit exactly that state, and
+                            // compute_variant_disclosure does not fire on any of them
+                            // (it needs total>=5 AND excluded>=3). Without this clause the
+                            // fix would introduce the same class of lie it removes.
+                            raw_only: (excludedVariants > 0
+                                ? `<strong style="color:#f59e0b;">No graded sales of the standard cover.</strong> `
+                                  + `${excludedVariants} graded variant sale${excludedVariants === 1 ? ' was' : 's were'} excluded. `
+                                  + `The slabbed figure is estimated from ${rawComps} raw (ungraded) sale${rawComps === 1 ? '' : 's'}, `
+                                  + `which is a rough guide only. We can't say whether grading pays off.`
+                                : `<strong style="color:#f59e0b;">No graded sales for this book.</strong> `
+                                  + `The slabbed figure is estimated from ${rawComps} raw (ungraded) sale${rawComps === 1 ? '' : 's'}, `
+                                  + `which is a rough guide only. We can't say whether grading pays off.`),
                             low_support:
                                 `<strong style="color:#f59e0b;">Only ${nearbyThin} recent sale${nearbyThin === 1 ? '' : 's'} near this grade.</strong> `
                                 + `That's not enough to price from, so we can't say whether grading pays off.`,

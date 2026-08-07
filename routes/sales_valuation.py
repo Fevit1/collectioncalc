@@ -617,7 +617,22 @@ def api_sales_valuation():
         if estimated_flag and low_support_only:
             # Named for the CONDITION (insufficient support), not for a count —
             # 'single_comp' would be wrong whenever several thin buckets exist.
+            # Checked FIRST: when thin graded sales exist near this grade, that
+            # is the more specific true statement, and 'raw_only' below would
+            # wrongly claim there are no graded sales at all.
             verdict_basis = 'low_support'
+        elif estimated_flag and fmv_method == 'estimated_from_raw':
+            # 2026-08-07. 'estimated_from_raw' means: real RAW sales exist, zero
+            # graded sales, and graded_fmv = raw_fmv * 1.5. It was falling into
+            # 'fabricated', whose copy reads "No recent sales found for this
+            # book … not from sales" — FALSE on both clauses for this tier, and
+            # a fifth L-SW-2026-020 instance (copy asserting something the
+            # mechanism does not do).
+            # PRE-EXISTING, not introduced by the branch-B removal: 195 of 594
+            # real lookups already reach this tier today. Removing branch B
+            # adds 21 more, which is why it is corrected in the same unit
+            # rather than left for later.
+            verdict_basis = 'raw_only'
         elif estimated_flag:
             verdict_basis = 'fabricated'
         elif fmv_method in NO_SAME_GRADE_EVIDENCE:
@@ -708,7 +723,7 @@ def api_sales_valuation():
             'roi_percentage': roi_percentage,
             'verdict': verdict,
             'verdict_reliable': verdict_reliable,   # Fix B: false ⇒ render verdict as low-confidence/caution
-            'verdict_basis': verdict_basis,         # fabricated|low_support|interpolated|blended|thin|supported
+            'verdict_basis': verdict_basis,         # fabricated|raw_only|low_support|interpolated|blended|thin|supported
             'nearby_thin_comps': nearby_thin_comps,  # sales near this grade that were too thin to anchor from
             'confidence': confidence,
 
