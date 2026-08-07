@@ -2673,7 +2673,21 @@
                 gradeResult.slabbed_value = slabbed_value;
                 gradeResult.grading_cost = grading_cost;
                 gradeResult.roi = roi;
-                gradeResult.verdict = !verdictReliable ? 'estimate' : (roi > 0 ? 'worth' : 'keep-raw');
+                // 'worth-it', NOT 'worth'. Every LIVE consumer compares against
+                // 'worth-it': js/collection.js:136 (the "N worth slabbing"
+                // stat), js/collection.js:176 (the collection filter),
+                // dashboard.html (the same stat), and collection.html:82's
+                // filter <option value>. This producer was the only site
+                // writing 'worth', so the stat read 0 against 24 saved comics
+                // and the "Worth Slabbing" filter matched nothing. A zero looks
+                // like a plausible answer, which is why it survived since
+                // 2026-02.
+                // ('keep-raw' already matched on both sides, so 'worth' was the
+                // lone outlier and the producer is the correct side to change.
+                // js/collection.js:298-299 also compare 'worth-it' but are DEAD
+                // — computed and never rendered; the card shows no verdict.)
+                // Historical rows backfilled 2026-08-07 (1 row).
+                gradeResult.verdict = !verdictReliable ? 'estimate' : (roi > 0 ? 'worth-it' : 'keep-raw');
                 gradeResult.verdict_reliable = verdictReliable;
                 gradeResult.confidence = confidence;
                 gradeResult.fmv_method = fmvMethod;

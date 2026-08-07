@@ -414,8 +414,11 @@
             const count = collection.length;
             const totalFMV = collection.reduce((sum, c) =>
                 sum + (parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0), 0);
-            const worthSlabbing = collection.filter(c =>
-                c.verdict === 'worth-it' || c.verdict === 'worth_slabbing').length;
+            // 'worth_slabbing' removed 2026-08-07: nothing in the repo has ever
+            // written it, and a dead defensive branch for a value no producer
+            // emits is the same trap as hedges[basis] || hedges.fabricated —
+            // it makes a spelling look supported and hides the real mismatch.
+            const worthSlabbing = collection.filter(c => c.verdict === 'worth-it').length;
             const avgGrade = count > 0
                 ? (collection.reduce((sum, c) => sum + (parseFloat(c.grade) || 0), 0) / count)
                 : 0;
