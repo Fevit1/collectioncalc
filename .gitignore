@@ -73,3 +73,26 @@ tests/SlabGuardTests/_e3_sam/
 tests/SlabGuardTests/_e3_inspect/
 *.pth
 tests/SlabGuardTests/**/masks/
+# eBay SRP snapshot for the JSON-reader build (personal search capture, 4MB — never commit)
+tests/ebay_srp_sample.html
+
+# Test artifacts and photo sets
+tests/7_8/
+tests/Mobile/
+tests/SectionBTest/
+tests/SectionDTest/
+tests/Valuation/
+tests/SlabGuardTests/FalsePostiveTest/
+tests/SlabGuardTests/PixelPhotos/
+tests/SlabGuardTests/iPhonePhotos/
+tests/SlabGuardTests/TPTests/
+tests/SlabGuardTests/_e3_qa/
+tests/SlabGuardTests/*.jpeg
+
+# Loose screenshots and scratch
+CCImages/6_8_26_Tests/
+DFToBSCOnvos/
+*.png
+ebay_diff.txt
+ebay_sig_diff.txt
+AdminCheckjs.js
