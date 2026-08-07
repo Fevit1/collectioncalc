@@ -64,7 +64,25 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Entry:** `wsgi.py` → gunicorn
 - **Routes:** 19 blueprints in `routes/` (~87 endpoints)
 - **Critical routes:** `/health`, `/api/grade`, `/api/billing/webhook`, `/api/signatures/v2/match`
-- **Deploy:** push to `main`, then deploy on Render. Auto-deploy-on-push is UNRELIABLE for collectioncalc-docker — sometimes it fires, often it does not. After pushing, verify the deploy actually started in the Render dashboard (Events tab); if not, trigger it manually: Manual Deploy → Deploy latest commit, and confirm the commit hash matches what you pushed. Do not assume a push deployed.
+- **Ship sequence:** `git add <specific files>` → `git commit` → `git push` → `deploy` → `purge`
+
+  | step | what it is | when it is needed |
+  |---|---|---|
+  | `deploy` | custom CLI, triggers a full **Render** deploy | any **backend** change. Render auto-deploy is **OFF**, so a push alone never reaches prod |
+  | `purge` | custom CLI, purges the **entire Cloudflare zone** | any **frontend** change (slabworthy.com is Cloudflare Pages) |
+
+  Backend-only change → skip `purge`. Frontend-only change → skip `deploy`. A change
+  touching both needs both. `purge` is zone-wide, so **do not bother listing changed
+  file URLs** — there is nothing to enumerate.
+
+  Why `purge` matters: frontend assets ship with `Cache-Control: public, max-age=14400`
+  and no cache-busting query string, so a stale edge copy looks exactly like a failed
+  fix for up to four hours. (`sw.js` never caches HTML, so the service worker is not
+  the risk — the Cloudflare edge is.)
+
+  ⚠️ Auto-deploy was previously described here as "UNRELIABLE — sometimes it fires,
+  often it does not." Corrected 2026-08-07: it is **OFF**. Nothing fires on push.
+  Verifying in the Render dashboard (Events tab) after `deploy` is still worthwhile.
 - **Health check:** `curl https://collectioncalc-docker.onrender.com/health`
 
 ### Three Patents (All Filed)
