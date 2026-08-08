@@ -94,7 +94,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 
 ## Session Conventions
 
-- **Skills:** `/deploy-tfo`, `/health`, `/lesson`, `/stripe-test` (in `.claude/skills/`)
+- **Skills:** `/health`, `/stripe-test` (in `.claude/skills/`)
 - **Session notes:** docs/sessions/CLAUDE_NOTES.txt (full history), docs/sessions/WHERE_WE_LEFT_OFF.md (last session detail)
 - **Roadmap:** docs/sessions/ROADMAP.txt (mixed planning + session log; treat session log portions as historical)
 - **Task list:** TODO.md
