@@ -100,7 +100,19 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Task list:** TODO.md
 - **🚦 Launch readiness (SINGLE SOURCE OF TRUTH):** docs/LAUNCH_READINESS.md — honest A–F status + the launch-critical sequence to July 21. Status lives HERE, not in browser windows or session-note labels. Read it before any "what's left before launch" question.
 - **BO primer (Slab Worthy specific):** docs/SW_BO_PRIMER.md (mirror of the file uploaded to BO project storage)
-- **Supabase project ID:** `kgqnwfpklodyyiqariid` (TheFormOf — shared DB)
+- **No Supabase.** Slab Worthy's only database is Render PostgreSQL
+  (`collectioncalc_db`). Audited read-only 2026-08-08: no live code path in this
+  repo touches Supabase, the backend has zero Supabase references, and
+  `requirements.txt` has no Supabase package. ⚰️ A "Supabase project ID
+  `kgqnwfpklodyyiqariid` (TheFormOf, shared DB)" line lived here until
+  2026-08-08. **DEAD. REPLACED BY** this line. **REASON:** that ref is
+  TheFormOf's own project (it appears 13 times across the TFO repo, so it is
+  not a typo), it is not resolvable from this account, and a Supabase project ID
+  does not belong in Slab Worthy's context regardless of which ref it is.
+  **SUPERSEDES** any instruction to query Supabase for Slab Worthy. Do not add
+  one back; do not "correct" it to the historic SW ref `kvtfywxvawdolgxyiari`
+  either, whose project (`Source DB For CC`) is paused and superseded by
+  `market_sales` on Render.
 
 ---
 

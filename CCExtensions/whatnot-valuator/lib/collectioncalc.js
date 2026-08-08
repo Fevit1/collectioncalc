@@ -193,7 +193,32 @@
     }
   }
 
-  // Expose as SupabaseClient for backwards compatibility with content.js
+  // ⚠️ THE NAME `SupabaseClient` IS A LIE ABOUT THE MECHANISM. READ THIS BEFORE
+  // TRUSTING IT.
+  //
+  // Nothing below touches Supabase. Every method here fetches
+  // COLLECTIONCALC_API (Render), and `insertSale` lands rows in the
+  // `market_sales` table in Render PostgreSQL via POST /api/sales/record.
+  // Slab Worthy has no Supabase dependency at all: the old `lib/supabase.js`
+  // was orphaned at v2.40 (absent from manifest.json, so never loaded) and
+  // deleted 2026-08-08.
+  //
+  // The name persists ONLY because `content.js` calls
+  // `window.SupabaseClient.insertSale()` / `.getFMV()`, and this extension is
+  // loaded unpacked and reloaded by hand. A rename is two coordinated edits
+  // with a manual reload between them, and a missed reload is
+  // indistinguishable from a successful one, so renaming risks silently
+  // killing Whatnot capture to satisfy a naming preference. Deliberately not
+  // renamed 2026-08-08 (Mike's call).
+  //
+  // If you DO rename it later, `window.SupabaseClient` has FIVE references in
+  // content.js, not two. Per L-2026-026, change every one in the SAME commit:
+  // the two call sites (990 insertSale, 720 getFMV), the two truthiness guards
+  // that gate them (989, 719), and the startup log (9). Miss a guard and
+  // capture goes silently dead while the log still says "Connected". Bump
+  // manifest.json (minor), reload unpacked, and verify a real row lands in
+  // market_sales before calling it done. `window.CollectionCalc` below is the
+  // correctly-named alias; migrate content.js onto that.
   window.SupabaseClient = {
     insertSale,
     getRecentSales,

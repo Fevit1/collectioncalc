@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Whatnot Comic Valuator",
-  "version": "2.42.0",
+  "version": "2.42.1",
   "description": "Real-time comic valuations for Whatnot auctions with multi-tab tracking",
   "permissions": ["storage"],
   "host_permissions": [
