@@ -466,7 +466,22 @@ def api_sales_valuation():
             # Lower grade = lower price, subtract ~10% per half grade
             grade_diff = above_grade - grade
             interpolated_avg = round(above_median * (1 - 0.2 * grade_diff), 2)
-            if interpolated_avg < 0:
+            # ⚠️ `<= 0`, NOT `< 0`. Boundary bug fixed 2026-08-08. At a grade_diff of
+            # EXACTLY 5.0 the factor (1 - 0.2*5.0) is 0, so interpolated_avg is 0.0.
+            # `0.0 < 0` is False, so the floor did not fire; 0.0 is falsy, so both
+            # `elif exact_avg and interpolated_avg` and `elif interpolated_avg` below
+            # failed, fmv_method became 'none', and the cell fell through to the
+            # fabricated/raw_only fallback DESPITE having >=2 real comps at a nearby
+            # grade. Reachable: grade 4.0 priced against comps only at 9.0. A gap
+            # GREATER than 5.0 always worked, because then the factor is negative and
+            # the floor fired — which is why this survived.
+            # This also made two user-facing strings false: the `thin` tier's "too few
+            # at nearby grades to cross-check" and the `fabricated` tier's "no usable
+            # sales", for exactly these cells.
+            # ⏰ The queued max-grade-distance unit may delete this whole branch and
+            # the 0.25 floor with it. Fixed anyway: a correct boundary today beats a
+            # false string waiting on a redesign.
+            if interpolated_avg <= 0:
                 interpolated_avg = round(above_median * 0.25, 2)
 
         # Pick the best graded FMV
@@ -653,20 +668,41 @@ def api_sales_valuation():
         verdict = 'Insufficient data'
 
         if graded_fmv and raw_fmv:
-            slabbing_roi = round(graded_fmv - raw_fmv - grading_cost, 2)
-            if raw_fmv > 0:
-                roi_percentage = round((slabbing_roi / raw_fmv) * 100, 1)
-
             if not verdict_reliable:
-                # Fabricated/sparse FMV: keep the number but refuse a confident call.
+                # 2026-08-08 — ROI IS NOW WITHHELD, NOT MERELY HEDGED.
+                # ⚰️ DEAD: "keep the number but refuse a confident call" (the old
+                # comment on this branch, which computed slabbing_roi anyway).
+                # REPLACED BY: slabbing_roi and roi_percentage stay None.
+                # REASON: in the `fabricated` tier this number carries ZERO
+                # information about the book. raw_fmv is itself overwritten by the
+                # synthetic grade/publisher/era baseline above (see the estimated
+                # fallback), and graded_fmv is set to raw_fmv * 1.5 — so
+                # slabbing_roi reduces to (0.5 * baseline) - grading_cost, a
+                # deterministic function of grade, publisher and era. It is not a
+                # weak estimate of this comic's ROI; it is not about this comic.
+                # A hedge sentence beside it asked the reader to discount a number
+                # that should never have been produced. The client's hedge
+                # paragraph is removed in the same unit, so leaving the number
+                # would have stripped the caveat and kept what it was attached to.
+                # SUPERSEDES any client-side hiding of ROI: it must be absent from
+                # the payload, because the client used to RECOMPUTE it from
+                # graded_fmv/raw_fmv/grading_cost when it was null.
                 verdict = ('Not enough recent sales to value this reliably — '
                            'rough estimate only, treat with caution')
-            elif slabbing_roi > 50:
-                verdict = 'Worth grading'
-            elif slabbing_roi > 0:
-                verdict = 'Marginal - consider volume'
             else:
-                verdict = 'Probably not worth grading'
+                slabbing_roi = round(graded_fmv - raw_fmv - grading_cost, 2)
+                if raw_fmv > 0:
+                    roi_percentage = round((slabbing_roi / raw_fmv) * 100, 1)
+
+                if slabbing_roi > 50:
+                    verdict = 'Worth grading'
+                elif slabbing_roi > 0:
+                    # ⚠️ LOGGED 2026-08-08, NOT FIXED HERE: the client badges this
+                    # band as 'WORTH THE SLAB' for any roi > 0, so a $5 gain reads
+                    # as a recommendation. Own unit.
+                    verdict = 'Marginal - consider volume'
+                else:
+                    verdict = 'Probably not worth grading'
         elif graded_fmv:
             verdict = 'Limited raw data - compare manually'
         elif raw_fmv:
@@ -722,6 +758,11 @@ def api_sales_valuation():
 
             # ROI
             'grading_cost': grading_cost,
+            # slabbing_roi / roi_percentage are None whenever verdict_reliable is
+            # false (2026-08-08). ⚠️ roi_percentage and `verdict` below are read by
+            # NO client — app.html builds its own verdict and its own copy. Changing
+            # the `verdict` strings here ships nothing user-visible; do not "fix the
+            # hedge copy" in this file. Verified by grep 2026-08-08.
             'slabbing_roi': slabbing_roi,
             'roi_percentage': roi_percentage,
             'verdict': verdict,

@@ -1833,6 +1833,57 @@
     border: 1px solid rgba(100, 116, 139, 0.3);
 }
 
+/* The badge is the ONE tappable explanation (2026-08-08). TAP, not hover:
+   users are phone-first and hover does not exist there, so there is
+   deliberately no :hover-only affordance. The chip already has a border,
+   so the pointer cursor plus the glyph is enough to read as a control.
+   No underline: an underline reads as a link, and this navigates nowhere. */
+.verdict-badge.is-tappable {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.verdict-badge.is-tappable:focus-visible {
+    outline: 2px solid var(--brand-gold, #facc15);
+    outline-offset: 2px;
+}
+
+.basis-toggle-glyph {
+    font-size: 0.85em;
+    line-height: 1;
+    opacity: 0.75;
+}
+
+/* Inline expansion, in normal flow, in the slot the removed hedge paragraph
+   occupied. Not a popover (needs collision detection at 320px and would cover
+   the FMV strip directly below) and not a modal (too heavy for one sentence).
+   Tapping pushes the valuation strip down, which is expected accordion
+   behaviour on a surface the user just tapped. */
+.basis-detail {
+    max-width: 34rem;
+    margin: 2px auto 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(100, 116, 139, 0.10);
+    border: 1px solid rgba(100, 116, 139, 0.22);
+    text-align: left;
+}
+
+.basis-detail .basis-reason {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.basis-detail .basis-confidence {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
 .verdict-badge.worth {
     background: rgba(16, 185, 129, 0.15);
     color: var(--status-success, #10b981);

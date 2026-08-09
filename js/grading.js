@@ -2236,7 +2236,33 @@ function renderGradeReport(result, confidence, photoLabels) {
     }
 }
 
-// Calculate "should you grade?" recommendation
+// ⚠️⚠️ THIS FUNCTION IS DEAD, AND IT IS DEAD BY SCRIPT LOAD ORDER ALONE. ⚠️⚠️
+//
+// Do not edit it expecting a user-visible change, and do not treat it as the
+// live valuation renderer just because it is the first grep hit for
+// `resultNetRoi` / `resultVerdictBadge`.
+//
+// WHY IT IS DEAD: this is a bare function declaration, so it lands on `window`.
+// app.html loads this file (<script src="js/grading.js">), and LATER in the same
+// document assigns `window.calculateGradingRecommendation = async function...`,
+// overwriting it. There are TWO call sites — app.html's, which reads
+// `window.calculateGradingRecommendation` explicitly, and the bare
+// `await calculateGradingRecommendation(...)` in the dev-mode test path earlier in
+// THIS file. Both resolve through the same global binding, which app.html
+// overwrites, so nothing reaches the code below. Note the bare call is the fragile
+// one: if app.html's assignment ever moved into a module or IIFE scope, that call
+// would resolve here instead.
+//
+// ⚠️ WHY THAT MATTERS: this version hits a DIFFERENT endpoint (/api/valuate),
+// computes ROI from a slab-premium multiplier rather than from comps, and writes
+// an UNCONDITIONAL 'WORTH THE SLAB' / 'KEEP IT RAW' into #resultVerdictBadge with
+// NO reliability gate at all. If the load order ever changes — a script moved, a
+// bundler introduced, this file loaded after the inline block — it would silently
+// resume rendering a confident slab/no-slab recommendation off fabricated data,
+// which is exactly what the Fix B verdict gate exists to prevent. It also holds a
+// third verdict-tagline variant and an error state that writes 'NO DATA'.
+//
+// Kept rather than deleted (Mike, 2026-08-08): comment only, this unit.
 async function calculateGradingRecommendation(gradeResult) {
     // Give user time to see the defects (2 seconds) before starting valuation
     await new Promise(resolve => setTimeout(resolve, 2000));

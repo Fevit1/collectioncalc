@@ -1201,6 +1201,15 @@
                                 <div class="verdict-section" id="resultVerdictSection">
                                     <div class="verdict-badge" id="resultVerdictBadge"></div>
                                     <div class="verdict-tagline" id="resultVerdictTagline"></div>
+                                    <!-- The ONE tappable explanation. Inline, in flow, directly
+                                         under the badge, in the slot the removed hedge paragraph
+                                         used to occupy. Chosen over a popover (needs collision
+                                         detection at 320px and would cover the FMV strip) and over
+                                         a modal (too heavy for one sentence, and adds a dismiss
+                                         gesture on the surface a user already quit for being slow).
+                                         Populated by the basis-detail block in the valuation JS. -->
+                                    <div class="basis-detail" id="resultBasisDetail" role="region"
+                                         aria-labelledby="resultVerdictBadge" hidden></div>
                                 </div>
                             </div>
 
@@ -1224,10 +1233,21 @@
                                     <div class="val-amount" id="resultNetRoi">--</div>
                                 </div>
                             </div>
-                            <div class="valuation-confidence" style="text-align: center; margin-top: 0.25rem;">
-                                <span style="font-size: 0.75rem; color: var(--text-muted);">Data confidence: </span>
-                                <span id="resultConfidence" style="font-size: 0.75rem; font-weight: 600; display: none;"></span>
-                            </div>
+                            <!-- ⚰️ REMOVED 2026-08-08: the standing "Data confidence: <value>" line.
+                                 DEAD. REPLACED BY: the confidence word inside #resultBasisDetail.
+                                 REASON: the badge and this line were two vocabularies for one
+                                 condition — the badge states WHAT is missing ("NO SALES AT THIS
+                                 GRADE"), this rated it ("Limited"). Worse, they could contradict
+                                 each other on screen: `interpolated` requires exact_count == 0 while
+                                 confidence 'medium' needs only total_graded >= 10, so a flagship key
+                                 with 30 graded sales and none at 9.8 rendered "NO SALES AT THIS
+                                 GRADE" beside "Data confidence: Medium" in blue. That was live, not
+                                 hypothetical. Confidence is now subordinate to basis, not a peer.
+                                 NOTE the whole wrapper went, not just the value span: "Data
+                                 confidence: " was static text OUTSIDE the span and ungated, so
+                                 removing the span alone would have shipped an orphan label.
+                                 SUPERSEDES any design that shows a confidence rating as a
+                                 standing peer of the verdict badge. -->
                             <p id="resultVariantNote" class="result-note" style="display:none; text-align:center; color: var(--text-muted); font-size: 0.8rem; margin-top: 6px;"></p>
 
                             <!-- Category Scores Breakdown -->
@@ -2278,6 +2298,32 @@
             if (defectsSection) defectsSection.style.display = 'none';
             if (categorySection) categorySection.style.display = 'none';
 
+            // ⚠️ Clear the basis expansion and STRIP the badge's control attributes at
+            // the start of every grading. Without this, any path that writes the badge
+            // with plain textContent (the quality-fail and error states below, the
+            // issue_required early return) destroys the ⓘ glyph and the is-tappable
+            // class but LEAVES role=button, tabindex, aria-controls, aria-expanded, the
+            // amber inline style, and the click/keydown listeners attached — over the
+            // PREVIOUS comic's reason string, which nothing else clears. And the two
+            // valuation-failure returns write no badge at all, so comic A's full badge
+            // and panel survived onto comic B. Tapping an "ERROR" badge then expanded
+            // the last comic's explanation.
+            // The listeners themselves are intentionally NOT removed: they are idempotent
+            // and dataset.basisToggleWired keeps them single. What must not persist is
+            // the CLAIM that the badge is a control, and the stale content behind it.
+            const basisReset = document.getElementById('resultBasisDetail');
+            const badgeReset = document.getElementById('resultVerdictBadge');
+            if (basisReset) { basisReset.innerHTML = ''; basisReset.hidden = true; }
+            if (badgeReset) {
+                badgeReset.removeAttribute('role');
+                badgeReset.removeAttribute('tabindex');
+                badgeReset.removeAttribute('aria-controls');
+                badgeReset.removeAttribute('aria-expanded');
+                badgeReset.style.cssText = '';
+                badgeReset.className = 'verdict-badge';
+                badgeReset.textContent = '';
+            }
+
             // Cycle loading messages
             const loadingMsgs = ['Analyzing photos', 'Grading condition', 'Detecting defects', 'Calculating value'];
             let msgIdx = 0;
@@ -2645,9 +2691,28 @@
                 const raw_value = valData.raw_fmv || 0;
                 const slabbed_value = valData.graded_fmv || 0;
                 const grading_cost = valData.grading_cost || 30;
-                const roi = valData.slabbing_roi != null ? valData.slabbing_roi : (slabbed_value - raw_value - grading_cost);
+                // ⚠️ NO RECOMPUTE FALLBACK. This line read
+                //   valData.slabbing_roi != null ? valData.slabbing_roi
+                //                                : (slabbed_value - raw_value - grading_cost)
+                // which is the SAME ARITHMETIC as the server's, unrounded, off three
+                // fields that are still in the payload. So the server withholding ROI
+                // was silently undone here: the API returned null, this recomputed the
+                // identical number, and the screen showed it. Inspecting the JSON would
+                // have read as a successful fix. Removed 2026-08-08 in the same unit
+                // that made the server withhold it — one assumption ("ROI is always
+                // derivable"), two places, per L-SW-2026-026.
+                const roi = valData.slabbing_roi != null ? valData.slabbing_roi : null;
                 const isEstimated = valData.estimated || false;
-                const confidence = valData.confidence || 'unknown';
+                // Was `|| 'unknown'`, which has no entry in confLabels and printed the
+                // literal word "unknown" when the field was absent. null instead, so
+                // the consumer can omit the line rather than assert a rating.
+                const confidence = valData.confidence || null;
+                // Echoed by the server (the value it actually bucketed on); the client's
+                // own grade is the fallback. Needed by the reason strings.
+                const gradeLabel = valData.grade != null ? valData.grade
+                                                         : (gradeResult.final_grade || null);
+                // total_graded. Present in the response but never read here until now.
+                const totalGradedComps = valData.graded_total_sales || 0;
                 const fmvMethod = valData.fmv_method || 'unknown';
                 const sources = valData.sources || {};
                 // Fix B: false ⇒ FMV was fabricated from baselines (zero real comps) —
@@ -2687,7 +2752,15 @@
                 // js/collection.js:298-299 also compare 'worth-it' but are DEAD
                 // — computed and never rendered; the card shows no verdict.)
                 // Historical rows backfilled 2026-08-07 (1 row).
-                gradeResult.verdict = !verdictReliable ? 'estimate' : (roi > 0 ? 'worth-it' : 'keep-raw');
+                // `roi == null` is checked as well as !verdictReliable, deliberately.
+                // Today they are the same set, so this is redundant — but only
+                // COINCIDENTALLY: the guard is on verdictReliable while the null comes
+                // from the server. If withholding is ever extended to any reliable tier,
+                // `null > 0` is false and the comic would be silently classified
+                // 'keep-raw' — a confident negative verdict derived from absent data.
+                gradeResult.verdict = (!verdictReliable || roi == null)
+                    ? 'estimate'
+                    : (roi > 0 ? 'worth-it' : 'keep-raw');
                 gradeResult.verdict_reliable = verdictReliable;
                 gradeResult.confidence = confidence;
                 gradeResult.fmv_method = fmvMethod;
@@ -2710,87 +2783,119 @@
                 if (rawFmvEl) rawFmvEl.textContent = `$${Math.round(raw_value)}`;
                 if (slabbedFmvEl) slabbedFmvEl.textContent = `$${Math.round(slabbed_value)}`;
                 if (netRoiEl) {
-                    netRoiEl.textContent = `${roi > 0 ? '+' : '\u2212'}$${Math.abs(Math.round(roi))}`;
-                    // Fix B: neutral/caution color when the FMV is fabricated (no confident gain/loss claim)
-                    netRoiEl.className = verdictReliable ? `val-amount ${roi > 0 ? 'roi-positive' : 'roi-negative'}` : 'val-amount';
-                    netRoiEl.style.color = verdictReliable ? '' : '#f59e0b';
+                    if (roi == null) {
+                        // Withheld. An em-dash, NOT a zero \u2014 this is the same pattern as
+                        // the issue_required branch above, and it is load-bearing:
+                        // Math.abs(Math.round(null)) is 0, so the naive version renders
+                        // "\u2212$0", which is a WRONG NUMBER rather than an absent one.
+                        // The old amber-coloured hedge state is gone with the figure;
+                        // there is no number left to caution about.
+                        netRoiEl.textContent = '\u2014';
+                        netRoiEl.className = 'val-amount';
+                        netRoiEl.style.color = '';
+                    } else {
+                        netRoiEl.textContent = `${roi > 0 ? '+' : '\u2212'}$${Math.abs(Math.round(roi))}`;
+                        netRoiEl.className = `val-amount ${roi > 0 ? 'roi-positive' : 'roi-negative'}`;
+                        netRoiEl.style.color = '';
+                    }
                 }
+                // ── The badge is the ONE tappable explanation ─────────────────────
+                // It had to be the badge, not a confidence line. The badge is what
+                // renders WORTH THE SLAB / KEEP IT RAW on confident cells — the
+                // product's actual answer — so it is not removable, which made the
+                // confidence line the only one of the two that could go. It also
+                // already keys on verdict_basis, the same axis the reason strings key
+                // on, and it is already a bordered chip so it needs the least work to
+                // read as a control.
+                //
+                // It renders on EVERY cell with a positive value on confident ones, on
+                // purpose. A marker that appears only on problems trains users to read
+                // its absence as approval, and an implicit claim is the one nobody
+                // audits. Same argument as the collection verdict chip
+                // (js/collection.js VERDICT_CHIPS).
                 if (verdictBadge) {
-                    if (!verdictReliable) {
-                        // Fix B + 2026-08-05 very_low extension: caution badge, NEVER a
-                        // confident green/red verdict. Badge text is tier-specific because
-                        // "ROUGH ESTIMATE" understates a fabricated figure and overstates
-                        // an interpolated one.
-                        // Badge must not contradict the tagline: 'thin' and
-                        // 'blended' DO have sales at this grade, just too few.
-                        const badges = {
-                            fabricated: 'ROUGH ESTIMATE',
-                            // Badge must not contradict the raw_only hedge: when the only
-                            // graded sales were variants, "NO GRADED SALES" is false.
-                            raw_only: excludedVariants > 0 ? 'NO STANDARD-COVER SALES' : 'NO GRADED SALES',
-                            low_support: 'NOT ENOUGH SALES DATA',
-                            interpolated: 'NO SALES AT THIS GRADE',
-                            blended: 'LIMITED SALES DATA',
-                            thin: 'LIMITED SALES DATA'
-                        };
-                        verdictBadge.textContent = badges[verdictBasis] || 'ROUGH ESTIMATE';
-                        verdictBadge.className = 'verdict-badge';
+                    // Fix B + 2026-08-05 very_low extension: caution badge, NEVER a
+                    // confident green/red verdict. Badge text is tier-specific because
+                    // "ROUGH ESTIMATE" understates a fabricated figure and overstates
+                    // an interpolated one.
+                    const badges = {
+                        fabricated: 'ROUGH ESTIMATE',
+                        // Must not contradict the raw_only reason string: when the only
+                        // graded sales were variants, "NO GRADED SALES" is false.
+                        raw_only: excludedVariants > 0 ? 'NO STANDARD-COVER SALES' : 'NO GRADED SALES',
+                        low_support: 'NOT ENOUGH SALES DATA',
+                        interpolated: 'NO SALES AT THIS GRADE',
+                        blended: 'LIMITED SALES DATA',
+                        thin: 'LIMITED SALES DATA',
+                        // ⏰ Not emitted by the server yet — the edition-span tier. See
+                        // BASIS_REASONS.multi_edition below.
+                        multi_edition: 'MORE THAN ONE EDITION'
+                    };
+                    // ⚠️ `canRate`, NOT `verdictReliable`. There is a reachable cell with
+                    // verdict_reliable === TRUE and slabbing_roi === null: the server has
+                    // no branch for graded_fmv present + raw_fmv absent (only both-absent
+                    // and graded-absent), so a book with >=3 same-grade graded comps and
+                    // zero qualifying raw comps falls to `elif graded_fmv:` with
+                    // verdict_basis 'supported', verdict_reliable True and ROI None.
+                    // Gating on verdictReliable alone made `roi > 0` evaluate `null > 0`
+                    // === false, badging that cell a confident red KEEP IT RAW and
+                    // taglining "Grading costs exceed the expected value increase" — an
+                    // arithmetic claim about a comparison never performed, on a comic
+                    // whose raw side does not exist. It also contradicted
+                    // gradeResult.verdict, which correctly said 'estimate', so the
+                    // collection page showed "Can't say" for the same comic.
+                    const canRate = verdictReliable && roi != null;
+                    const badgeLabel = !canRate
+                        ? (badges[verdictBasis] || 'ROUGH ESTIMATE')
+                        : (badges[verdictBasis] || (roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW'));
+                    if (!canRate) {
+                        verdictBadge.className = 'verdict-badge is-tappable';
                         verdictBadge.style.cssText = 'background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b66;';
                     } else {
-                        verdictBadge.textContent = roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW';
-                        verdictBadge.className = `verdict-badge ${roi > 0 ? 'worth' : 'not-worth'}`;
+                        verdictBadge.className = `verdict-badge is-tappable ${roi > 0 ? 'worth' : 'not-worth'}`;
                         verdictBadge.style.cssText = '';
                     }
+                    // innerHTML, not textContent: the glyph is a child element. Every
+                    // interpolated value here is a hardcoded literal — no user input.
+                    // ⓘ rather than an underline: an underline reads as a link, and this
+                    // navigates nowhere (there is deliberately no explainer page).
+                    verdictBadge.innerHTML =
+                        `${badgeLabel}<span class="basis-toggle-glyph" aria-hidden="true">&#9432;</span>`;
+                    verdictBadge.setAttribute('role', 'button');
+                    verdictBadge.setAttribute('tabindex', '0');
+                    verdictBadge.setAttribute('aria-controls', 'resultBasisDetail');
+                    verdictBadge.setAttribute('aria-expanded', 'false');
                 }
                 if (verdictTagline) {
                     const salesNote = sources.total ? ` Based on ${sources.total} sales.` : '';
                     if (!verdictReliable) {
-                        // The figures above ALWAYS stay visible \u2014 a collector can reason with
-                        // "estimated from nearby grades, 0 sales at this grade". Hiding the
-                        // number makes the product useless without making it more honest.
-                        // What is withheld is the slab/no-slab RECOMMENDATION, because that
-                        // is the call that costs someone a ~$75 grading fee.
-                        const hedges = {
-                            fabricated:
-                                `<strong style="color:#f59e0b;">No recent sales found for this book.</strong> `
-                                + `The figures above are a rough estimate from grade, publisher, and era \u2014 not from sales. `
-                                + `We can't say whether grading pays off.`,
-                            // 2026-08-07. This tier previously fell through to
-                            // `fabricated`, which claims "No recent sales found" and
-                            // "not from sales". Both are false here: there ARE raw
-                            // sales and the figure is derived from them (raw x 1.5).
-                            // ⚠️ The variant clause is NOT optional. Graded variants are
-                            // dropped from the comp pool in Python, not in SQL, so a book
-                            // whose ONLY graded sales are variants arrives here with an
-                            // empty pool. Saying "No graded sales for this book" there is
-                            // false — 7 of 594 real lookups hit exactly that state, and
-                            // compute_variant_disclosure does not fire on any of them
-                            // (it needs total>=5 AND excluded>=3). Without this clause the
-                            // fix would introduce the same class of lie it removes.
-                            raw_only: (excludedVariants > 0
-                                ? `<strong style="color:#f59e0b;">No graded sales of the standard cover.</strong> `
-                                  + `${excludedVariants} graded variant sale${excludedVariants === 1 ? ' was' : 's were'} excluded. `
-                                  + `The slabbed figure is estimated from ${rawComps} raw (ungraded) sale${rawComps === 1 ? '' : 's'}, `
-                                  + `which is a rough guide only. We can't say whether grading pays off.`
-                                : `<strong style="color:#f59e0b;">No graded sales for this book.</strong> `
-                                  + `The slabbed figure is estimated from ${rawComps} raw (ungraded) sale${rawComps === 1 ? '' : 's'}, `
-                                  + `which is a rough guide only. We can't say whether grading pays off.`),
-                            low_support:
-                                `<strong style="color:#f59e0b;">Only ${nearbyThin} recent sale${nearbyThin === 1 ? '' : 's'} near this grade.</strong> `
-                                + `That's not enough to price from, so we can't say whether grading pays off.`,
-                            interpolated:
-                                `<strong style="color:#f59e0b;">No sales at this grade.</strong> `
-                                + `The figures above are estimated from sales at nearby grades, which is often well off \u2014 `
-                                + `especially at 9.6 and above. We can't say whether grading pays off.`,
-                            blended:
-                                `<strong style="color:#f59e0b;">Only ${sameGradeComps} recent sale${sameGradeComps === 1 ? '' : 's'} at this grade,</strong> `
-                                + `filled in from nearby grades. That's too few to price confidently, `
-                                + `so we can't say whether grading pays off.`,
-                            thin:
-                                `<strong style="color:#f59e0b;">Only ${sameGradeComps} recent sale${sameGradeComps === 1 ? '' : 's'} at this grade.</strong> `
-                                + `That's too few to price confidently, so we can't say whether grading pays off.`
-                        };
-                        verdictTagline.innerHTML = hedges[verdictBasis] || hedges.fabricated;
+                        // ⚰️ REMOVED 2026-08-08: the hedge paragraph that stood here.
+                        // DEAD: the `hedges` map and its six tier-specific sentences.
+                        // REPLACED BY: BASIS_REASONS below, behind one tap on the badge.
+                        // REASON, and it is evidence not preference: a real user with
+                        // several comics to grade STOPPED AFTER ONE because the text took
+                        // too long to read. With ROI now withheld, the absence of a
+                        // verdict does the work the paragraph was doing — structurally,
+                        // rather than in words.
+                        // ⚠️ THIS REVERSES A COMMITMENT, and the reversal is the point.
+                        // The 2026-08-05 comment on this branch read: "The figures above
+                        // ALWAYS stay visible … Hiding the number makes the product
+                        // useless without making it more honest." That commitment was
+                        // about the FMV FIGURES, and they DO still always render. What
+                        // moved one tap away is the COUNTS behind them (nearbyThin,
+                        // sameGradeComps, rawComps, excludedVariants). That is still a
+                        // reversal: the commitment was written before we had a user, and
+                        // the user we then got is the evidence against it.
+                        // SUPERSEDES "always show the counts inline."
+                        // Cleared explicitly — never left holding stale text from the
+                        // grading step, which also writes this element.
+                        verdictTagline.innerHTML = '';
+                    } else if (roi == null) {
+                        // Reliable but unrateable — graded comps exist, raw comps do not,
+                        // so there is no ROI to state. Falling through to the `else` below
+                        // asserted "Grading costs exceed the expected value increase" off
+                        // `null > 0`. See the canRate comment above.
+                        verdictTagline.innerHTML = '';
                     } else if (roi > 0) {
                         verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees.${salesNote}`;
                     } else {
@@ -2798,14 +2903,205 @@
                     }
                 }
 
-                // Show confidence indicator if we have one
-                const confidenceEl = document.getElementById('resultConfidence');
-                if (confidenceEl) {
+                // ── Basis expansion: the content behind the one tap ───────────────
+                // ONE reason string per verdict_basis. Each has been checked TRUE for
+                // every cell that can reach its branch, against the branch order in
+                // sales_valuation.py (2026-08-08). Four wordings people reach for first
+                // are deliberately NOT here; each was false, and why is recorded inline.
+                const basisDetailEl = document.getElementById('resultBasisDetail');
+                if (basisDetailEl && verdictBadge) {
+                    const gradeAt = gradeLabel != null ? ` at grade ${gradeLabel}` : '';
+                    const s = (n) => (n === 1 ? '' : 's');
+                    const BASIS_REASONS = {
+                        // exact_count >= 3 always, so N is never 1 or 2.
+                        // NO "recent": lookback is 365 days with NO recency weighting.
+                        // L-SW-2026-020 instance 1 was exactly that false claim.
+                        supported:
+                            `Priced from ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}.`,
+                        // exact_thin implies no neighbouring bucket reached
+                        // MIN_SOURCE_COMPS, so "too few at nearby grades" is true. This
+                        // DEPENDS on the zero-factor boundary fix in this same unit;
+                        // without it, cells with a real n>=2 neighbour landed here and
+                        // the clause was false.
+                        // ⚠️ States the nearby COUNT rather than asserting nearby absence.
+                        // "too few at nearby grades to cross-check" was the second
+                        // instance of the assumption sales_valuation.py already warns
+                        // about for low_support ("the copy must state the real number
+                        // rather than assume one"): reaching exact_thin only means no
+                        // nearby bucket holds >=2, so a book can arrive with single sales
+                        // at six distinct nearby grades, which that wording declared
+                        // absent. nearbyThin is in the payload; use it.
+                        thin: nearbyThin > 0
+                            ? `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, and the `
+                              + `${nearbyThin} nearby sale${s(nearbyThin)} are one per grade, too scattered `
+                              + `to check it against.`
+                            : `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, and none at any `
+                              + `other grade to check it against.`,
+                        // NO COUNT of other-grade sales, deliberately. The interpolation
+                        // anchors on AT MOST TWO buckets, the nearest qualifying one
+                        // below and above (one in the one-sided branches). "estimated
+                        // from 30 sales at other grades" would be false: a pool of
+                        // 9.0(n=2)/9.4(n=1)/9.8(n=50)/10.0(n=30) anchors on 9.0 and 9.8
+                        // only, but a count would read 83. No anchor count exists in the
+                        // payload; adding one is its own decision.
+                        // ⚠️ NOT "the nearest grades above AND below", and NOT "filled in
+                        // from" — both were false. `blended` needs only exact_avg plus
+                        // ANY interpolated_avg, and interpolated_avg has three producers:
+                        // one two-sided, and two ONE-SIDED branches that are not a fill-in
+                        // from bracketing data at all but a flat +/-20%-per-grade step off
+                        // a single anchor. The server records the rate: 95.6% of
+                        // interpolated cells are one-sided. So the plural and the
+                        // bracketing were wrong for the large majority of cells here.
+                        blended:
+                            `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}. The rest is `
+                            + `estimated from the nearest grade that has enough sales, stepped about `
+                            + `20% per grade.`,
+                        // Same no-count reasoning, plus one that cuts harder: a large
+                        // count reads as reassurance, and here that inference is
+                        // measurably FALSE. Interpolation error falls with support then
+                        // JUMPS BACK UP: 27.9% at n=1, 10.2% at n=5-9, 29.0% at n>=10.
+                        // "9.6 and 9.8", not "and up" — that is the band the backtest
+                        // measured; extending it to 9.9/10.0 asserts beyond the evidence.
+                        // This tier can carry ABUNDANT comps (30 graded sales, none at
+                        // this grade), so NO scarcity language.
+                        // ⚠️ SINGULAR "grade", and no "gap" language. 95.6% of cells here
+                        // are ONE-SIDED extrapolation off a single anchor bucket, so
+                        // "grades that have data" and "that gap" both described a
+                        // bracketing that usually does not happen.
+                        // ⚠️ The "9.6 and 9.8" emphasis alone MISDIRECTS. The zero-factor
+                        // boundary fix in this same unit newly routes grade_diff >= 5.0
+                        // cells into this tier, where the figure is the flat 0.25x floor
+                        // (a 5.0 gap and an 8.8 gap both get 0.25x). Telling that user the
+                        // risk is worst at 9.6-9.8 points away from what they are looking
+                        // at, so the wide-gap clause is stated too.
+                        interpolated:
+                            `No sales${gradeAt}. The slabbed figure is estimated from the nearest grade `
+                            + `that has enough sales, which is often well off — most of all at 9.6 and 9.8, `
+                            + `and it is barely more than a guess when the nearest sales are several `
+                            + `grades away.`,
+                        // nearby_thin_comps counts SALES, and in THIS branch every
+                        // qualifying bucket holds exactly 1 (all below MIN_SOURCE_COMPS
+                        // = 2), so sales count == bucket count and "one per grade" is
+                        // true. The field is documented as MISNAMED and is safe ONLY
+                        // inside this branch; elsewhere it sums buckets that DID anchor
+                        // the price. Do not reuse it in another tier's string.
+                        // ⚠️ "at other grades", NOT "near". `_all_below`/`_all_above` have
+                        // NO distance bound, so a 1.0 sale counts as "near" a 9.8 request.
+                        // In this branch nearby_thin_comps == total_graded (the exact
+                        // bucket is empty), i.e. every graded sale of the book at any
+                        // grade. "Near" was the mechanism's word, not a true one.
+                        // ⚠️ MUST disclose the mechanism, because this branch is checked
+                        // BEFORE estimated_from_raw and therefore STEALS those cells. A
+                        // cell with real raw sales and thin graded neighbours lands here
+                        // with a Slabbed FMV that is literally raw x 1.5, and the raw_only
+                        // string that exists to disclose that never runs. Without the
+                        // clause below this tier shows a price while saying nothing solid
+                        // enough to price from exists, and never says where the price
+                        // came from — the exact defect raw_only was added to fix.
+                        low_support: `Only ${nearbyThin} graded sale${s(nearbyThin)} of this book at other `
+                            + `grades, one per grade, so there is nothing solid to price the slab from. `
+                            + (fmvMethod === 'estimated_from_raw'
+                                ? `The slabbed figure is ${rawComps} raw sale${s(rawComps)} marked up 1.5×.`
+                                : `The figures come from typical prices for this grade, publisher and era.`),
+                        // The variant clause is NOT optional and must survive any rework.
+                        // Graded variants are excluded in PYTHON, not SQL, so a book
+                        // whose only graded sales are variants arrives with an empty
+                        // pool; "No graded sales for this book" is false there, and 7 of
+                        // 594 real lookups hit exactly that state.
+                        // The 1.5x is literal (graded_fmv = round(raw_fmv * 1.5, 2)), so
+                        // stating it numerically is accurate. It will NOT reproduce from
+                        // the two displayed figures, which are Math.round'ed.
+                        raw_only: excludedVariants > 0
+                            ? `No graded sales of the standard cover, ${excludedVariants} graded variant `
+                              + `sale${s(excludedVariants)} excluded. Estimated from ${rawComps} raw `
+                              + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`
+                            : `No graded sales for this book. Estimated from ${rawComps} raw `
+                              + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`,
+                        // "No USABLE sales", never "no sales at all". Two reachable
+                        // classes have real sales here: variant-only graded sales, which
+                        // are dropped in Python and land in this tier; and variant RAW
+                        // sales, dropped in SQL and counted in NO response field, so no
+                        // clause can even disclose them. The previous copy said "No
+                        // recent sales found for this book" and "not from sales" — both
+                        // absolute, both false for those cells.
+                        // The dollars here carry ZERO information about the book: raw_fmv
+                        // is itself the synthetic baseline, graded_fmv = raw_fmv * 1.5.
+                        fabricated: excludedVariants > 0
+                            ? `No standard-cover sales we can price from, ${excludedVariants} graded variant `
+                              + `sale${s(excludedVariants)} excluded. Both figures come from typical prices for `
+                              + `this grade, publisher and era.`
+                            : `No usable sales for this book. Both figures come from typical prices for this `
+                              + `grade, publisher and era, nothing about this specific comic.`,
+                        // ⏰ NOT EMITTED BY THE SERVER YET. Written now so the
+                        // edition-span unit inherits a short string rather than a long
+                        // one to shorten. The tier gates a comp pool holding MORE THAN
+                        // ONE EDITION of the same issue: the X-Men #1 case, twelve 9.0
+                        // comps, four from the 1991 volume, eight undated, zero from
+                        // 1963, returning $36 confidently on a six-figure book. Signal is
+                        // year span > 15y AND price ratio >= 20x, BOTH required.
+                        // If a ratio is printed it must be the TRIMMED one (422x on
+                        // X-Men #1, not 1429x). `edition_price_ratio` is not in the
+                        // payload yet, so the clause is omitted until it is and the
+                        // string is correct either way.
+                        // Abundant comps by definition, so NO scarcity language.
+                        multi_edition: (() => {
+                            const ratio = valData.edition_price_ratio;
+                            const ratioClause = ratio ? ` and differ in price by ${ratio}×` : '';
+                            return `Priced from ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, but they `
+                                 + `span more than one edition of this issue${ratioClause}. `
+                                 + `We can't tell which one you have.`;
+                        })()
+                    };
+                    // ⚠️ The fallback asserts NOTHING about counts or provenance, on
+                    // purpose. It must not be BASIS_REASONS.fabricated: that string says
+                    // "No usable sales for this book", which about an UNRECOGNISED basis
+                    // is an assertion we have not verified. The realistic way to get
+                    // here is a server that emits a new tier before this map knows it —
+                    // e.g. the edition-span tier landing server-side first, where
+                    // "no usable sales" would be flatly false on a 12-comp pool.
+                    // These two sentences are true for any cell by definition of
+                    // verdict_reliable, which is the only thing we know in that case.
+                    // ⚠️ NEITHER arm may state a count or a provenance. The reliable arm
+                    // previously reused the `supported` wording ("Priced from N sales at
+                    // grade X"), which verdict_reliable does NOT imply: it is defined
+                    // NEGATIVELY (not estimated, not interpolated, not thin), so a future
+                    // reliable tier carries no guarantee that graded_sample_size is what
+                    // priced the book. Worst case it rendered "Priced from 0 sales".
+                    const reason = BASIS_REASONS[verdictBasis] || (verdictReliable
+                        ? `Priced from the sales we have${gradeAt}.`
+                        : `We can't price this reliably from the sales we have, so we're not `
+                          + `making a call on whether grading pays off.`);
+
+                    // Confidence is now SUBORDINATE to basis, not a peer. It rates how
+                    // much data there is, a different axis from what the number was made
+                    // of — the two could contradict each other when shown side by side.
+                    // Omitted entirely when absent: the old code defaulted to 'unknown',
+                    // which has no label entry and printed the literal word "unknown".
                     const confLabels = { high: 'High', medium: 'Medium', low: 'Low', very_low: 'Limited' };
-                    const confColors = { high: '#10b981', medium: '#3b82f6', low: '#f59e0b', very_low: '#ef4444' };
-                    confidenceEl.textContent = confLabels[confidence] || confidence;
-                    confidenceEl.style.color = confColors[confidence] || 'var(--text-muted)';
-                    confidenceEl.style.display = '';
+                    const confLine = confLabels[confidence]
+                        ? `<span class="basis-confidence">Data confidence: ${confLabels[confidence]}</span>`
+                        : '';
+                    basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>${confLine}`;
+
+                    // Collapsed on every render, so a previous comic's open panel never
+                    // carries over. Listener attached once, guarded by a dataset flag,
+                    // because this function runs per grade.
+                    basisDetailEl.hidden = true;
+                    verdictBadge.setAttribute('aria-expanded', 'false');
+                    if (!verdictBadge.dataset.basisToggleWired) {
+                        verdictBadge.dataset.basisToggleWired = '1';
+                        const toggleBasis = () => {
+                            const open = basisDetailEl.hidden;
+                            basisDetailEl.hidden = !open;
+                            verdictBadge.setAttribute('aria-expanded', open ? 'true' : 'false');
+                        };
+                        verdictBadge.addEventListener('click', toggleBasis);
+                        verdictBadge.addEventListener('keydown', (e) => {
+                            // TAP is the primary interaction (phone-first; hover does not
+                            // exist there). Keyboard parity because the badge is role=button.
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleBasis(); }
+                        });
+                    }
                 }
 
                 // Conditional variant-exclusion disclosure (rides alongside confidence)
