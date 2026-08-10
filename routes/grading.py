@@ -151,6 +151,76 @@ class _GradeTimings:
             pass
 
 
+class _ExtractTimings(_GradeTimings):
+    """Segment timer for /api/extract — the comic-ID leg.
+
+    Separate from the grade leg because they are separate requests at separate
+    user moments (upload vs the grade button). Treating them as one ~30s item is
+    what the roadmap did from June to 2026-08-10; this line and [GRADE-TIMING]
+    are what let them be costed apart.
+
+    Marks inside extract_from_base64 are recorded through the duck-typed
+    recorder this class satisfies (.mark/.note), so comic_extraction never
+    imports anything from routes.
+
+      body        get_json() — reads the base64 photo off the wire.
+      quality     the LENIENT extract-floor gate.
+      moderation  one Rekognition round trip (single photo here — unlike
+                  /api/grade, which loops).
+      normalize   decode + EXIF/orientation + downscale to EXTRACT_MAX_LONG_EDGE
+                  (4096, barcode-preserving — higher than the grading cap).
+      barcode     pyzbar scan across 4 rotations. barcode=hit|miss|error.
+      vision1     the FIRST Sonnet pass, alone.
+      vision2     pass 1 → all vision done. ⚠️ Non-zero ONLY when the 180 deg
+                  re-read fired, so it is the direct latency cost of that path.
+                  Named vision2, NOT reread, because `reread` is the STATE field
+                  below and one line must never carry the same key twice
+                  meaning two different things (L-SW-2026-020).
+      post        barcode decode, field cleanup, response build.
+
+    ⚠️ THE POINT OF reread=. It is emitted on every request, including
+    not_needed. The old code printed only when the re-read FIRED, so a clean run
+    logged nothing and its absence was unreadable — healthy and never-ran looked
+    identical. Same silence the drift guard had.
+    """
+    __slots__ = ()
+
+    def emit(self, outcome, title=None, issue=None):
+        try:
+            def span(a, b):
+                if a in self.marks and b in self.marks:
+                    return (self.marks[b] - self.marks[a]) * 1000.0
+                return -1.0
+
+            total_ms = (time.perf_counter() - self.t0) * 1000.0
+            try:
+                receipt_ms = max(0.0, (self.t0_wall - g.start_time) * 1000.0)
+            except Exception:
+                receipt_ms = -1.0
+
+            parts = [
+                'total=%.0fms' % total_ms,
+                'before_request_to_handler=%.0fms' % receipt_ms,
+                'body=%.0fms' % span('handler', 'body_done'),
+                'quality=%.0fms' % span('body_done', 'quality_done'),
+                'moderation=%.0fms' % span('quality_done', 'moderation_done'),
+                'normalize=%.0fms' % span('normalize_start', 'normalize_done'),
+                'barcode=%.0fms' % span('normalize_done', 'barcode_done'),
+                'vision1=%.0fms' % span('barcode_done', 'vision1_done'),
+                'vision2=%.0fms' % span('vision1_done', 'vision_done'),
+                'post=%.0fms' % span('vision_done', 'post_done'),
+            ]
+            for k in ('payload_kb', 'photo_type', 'barcode', 'vision_calls',
+                      'reread', 'reread_reason', 'model', 'in_tok', 'out_tok',
+                      'outcome_detail'):
+                if k in self.extras:
+                    parts.append('%s=%s' % (k, self.extras[k]))
+            parts.append('outcome=%s' % outcome)
+            print('[EXTRACT-TIMING] ' + ' '.join(parts))
+        except Exception:
+            pass
+
+
 @grading_bp.route('/valuate', methods=['POST'])
 @require_auth
 @require_approved
@@ -244,15 +314,23 @@ def api_cache_check():
 @require_approved
 def api_extract():
     """Extract comic information from image using AI"""
+    _t = _ExtractTimings()
+    _t.mark('handler')
+
     if not extract_from_base64:
+        _t.emit('module_unavailable')
         return jsonify({'success': False, 'error': 'Extraction module not available'}), 503
-    
+
     data = request.get_json() or {}
+    _t.mark('body_done')
     image_data = data.get('image')
-    
+
     if not image_data:
+        _t.emit('no_image')
         return jsonify({'success': False, 'error': 'Image data is required'}), 400
-    
+
+    _t.note(payload_kb=int(len(image_data) / 1024))
+
     # Photo quality gate — catch tiny/blurry photos before Claude API call.
     # Batch 7: extraction only needs to READ the cover, so use the lenient
     # 'extract' floor (legible eBay covers ~394px must pass here; the stricter
@@ -260,6 +338,8 @@ def api_extract():
     from routes.fingerprint_utils import check_photo_quality_base64
     quality = check_photo_quality_base64(image_data, purpose='extract')
     if not quality['ok']:
+        _t.mark('quality_done')
+        _t.emit('quality_fail')
         return jsonify({
             'success': False,
             'quality_issue': True,
@@ -267,12 +347,15 @@ def api_extract():
             'tip': quality['tip'],
             'error': quality['message']
         }), 400
+    _t.mark('quality_done')
 
     # Content moderation check BEFORE processing
     if moderate_image:
         mod_result = moderate_image(image_data)
         if mod_result.get('blocked'):
             log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
+            _t.mark('moderation_done')
+            _t.emit('moderation_blocked')
             return jsonify({
                 'success': False,
                 'error': 'Image rejected: inappropriate content detected.',
@@ -281,20 +364,29 @@ def api_extract():
         # Log warnings (but allow through)
         if mod_result.get('warnings'):
             log_moderation_incident(g.user_id, '/api/extract', mod_result, get_image_hash(image_data))
+    _t.mark('moderation_done')
 
     media_type = data.get('media_type', 'image/jpeg')
     # Per-photo orientation policy is server-side (centerfold is EXIF-only).
     # Defaults to 'front' — the app.html main extraction path is always the cover.
     photo_type = data.get('photo_type', 'front')
-    result = extract_from_base64(image_data, media_type, photo_type)
-    
+    _t.note(photo_type=photo_type)
+    result = extract_from_base64(image_data, media_type, photo_type, timings=_t)
+
     if result.get('success'):
         # Extraction runs on the sonnet tier (comic_extraction.call_with_fallback);
         # log the actual model so per-extract cost attribution stays accurate after
         # the 2026-06-16 haiku→sonnet identification flip.
+        # ⚠️ These token counts were a structural 0 until 2026-08-10 —
+        # extract_from_base64 never returned the keys this line reads. The model
+        # name was right, so every api_usage row for /api/extract looked
+        # well-formed while recording no cost at all (L-SW-2026-016). The
+        # function now returns real counts summed across every vision pass.
         log_api_usage(g.user_id, '/api/extract', get_model('sonnet'),
                       result.get('input_tokens', 0), result.get('output_tokens', 0))
-    
+
+    _t.note(model=get_model('sonnet'))
+    _t.emit('ok' if result.get('success') else 'fail')
     return jsonify(result)
 
 

@@ -1,4 +1,160 @@
-# Where We Left Off - Aug 4, 2026
+# Where We Left Off - Aug 10, 2026
+
+## 2026-08-10 — 🟢 **SESSION LIVE. INDEX SHIPPED AND MEASURED. EXTRACT LEG UNCOMMITTED.**
+
+**MOST RECENT CHANGE (Rule 5): the ~30s comic-ID wait is NOT one item. It is TWO legs, two
+requests, two user moments — extract (`/api/extract`, photo upload) and grade (`/api/grade`,
+the grade button). Split accepted by Mike 2026-08-10. Supersedes the single roadmap item
+that has existed since June.**
+
+**PRIOR CHANGE, same day (2 of 3):** `idx_ebay_sales_canonical_title_norm` was built. The
+FMV leg went **11,717ms → 463ms** (second run 455ms, so stable rather than warm-cache).
+Supersedes "the valuation comp query takes ~11s and we do not know where."
+
+**PRIOR CHANGE, same day (1 of 3):** the drift guard no longer reports per health poll.
+Transition-logged, hourly heartbeat while broken, arming line when healthy. Shipped
+`62052ca`. Supersedes "the guard prints the full plan on every observation."
+
+---
+
+### 📊 THE MEASUREMENT THAT SETTLED IT
+
+Two runs of The Terminator #1 through the live instrumentation (`557147d`), before the index:
+
+| | total | q1_ebay_graded | q2_ebay_raw | q1+q2 share |
+|---|---|---|---|---|
+| run 1 | 10,151ms | 3,099ms / 0 rows | 6,703ms / 1 row | **96.6%** |
+| run 2 | 11,717ms | 3,391ms / 0 rows | 7,798ms / 1 row | **95.5%** |
+
+Both runs: `before_request_to_handler=0ms`, `handler_to_pool=0ms`, pool ≤160ms. Segments
+summed to total with nothing unaccounted.
+
+⚰️ **DEAD: "the 30s wait might be gunicorn queueing."** **REPLACED BY:** it is SQL, in a
+segment we measured, twice. **REASON:** queueing would have to appear in
+`before_request_to_handler` or `pool`; both were ~0 on both runs, and the segments already
+sum to total, so there is no unmeasured remainder for a queue to hide in. **SUPERSEDES** any
+plan to tune worker counts for this symptom. Do not re-raise it.
+
+**AFTER the index — same book, same endpoint:**
+
+```
+BEFORE  total=11717ms  q1=3391ms/0rows  q2=7798ms/1rows
+AFTER   total=  463ms  q1= 104ms/0rows  q2=  52ms/1rows     (2nd run 455ms)
+```
+
+**25× on the leg, 150× on q2.** Index built clean, zero invalid residue, DBeaver returned to
+Manual commit. Verified **positively** via the `[VALUATION-TIMING]` line, not by the absence
+of drift warnings — the absence alone would have been an unproven negative (L-2026-024).
+
+⚠️ **CARRIED FORWARD, NOT SOLVED: q2 scanned 7.8s to return ONE row.** The index makes that
+answer arrive fast; it does not make it a better answer. The Terminator #1 has one raw comp
+and zero graded. That is the performance problem and the CP-1 problem in the same query, and
+only the performance half is fixed. Remember this when the index makes everything feel solved.
+
+---
+
+### 🔀 THE EXTRACT / GRADE SPLIT — the more important finding
+
+⚰️ **DEAD: "the ~30s comic-ID wait" as a single roadmap item (since June).**
+**REPLACED BY:**
+
+| leg | request | user moment | vision calls | instrumented |
+|---|---|---|---|---|
+| **extract** | `/api/extract` | photo upload | 1, **or 2 if the 180° re-read fires** | ⏳ written, UNCOMMITTED |
+| **grade** | `/api/grade` | grade button | **exactly 1** (`runs=1`) | ✅ live in `62052ca` |
+
+**REASON:** they are separate HTTP requests at separate moments. The "one vision call or
+two" question belongs ONLY to extract — the 180° low-confidence re-read lives in
+`comic_extraction.extract_from_base64`, not in the grading path. `/api/grade` at `runs=1`
+makes exactly one Sonnet call, which the code settles without measurement.
+
+⚰️ **DEAD: "parallelise identify and grade" as a BACKEND item (written as backend for ~2
+months).** **REPLACED BY:** it is a **frontend sequencing** question. **REASON:** the two are
+separate requests the browser initiates at different moments; there is no backend sequence to
+parallelise. **SUPERSEDES** any backend scoping of it. Mike, 2026-08-10: *"That has been
+written as a backend item for two months."*
+
+**Track 1 (staged honest progress messaging) is unaffected and still ships regardless.**
+
+⚠️ **CONSTRAINT, unchanged since June and restated at Mike's direction:** the Sonnet flip was
+deliberate and bought honesty of errors over speed. **Nothing may trade accuracy back.**
+Haiku's failure mode is confident fabrication. No proposal in this thread touches model
+selection.
+
+---
+
+### 🔇 THE DRIFT GUARD'S OWN LOG VOLUME — fixed, `62052ca`
+
+The guard was correct and far too loud: `/health` is polled ~12×/min (and `/` shares the
+handler), so persistent drift emitted **~17,280 lines/day at ~700 chars ≈ 12MB/day** — burying
+the `[VALUATION-TIMING]` lines shipped in the same commit, and the next incident after that.
+
+Design: **silent when healthy · loud on transition · heartbeat-floored while broken.**
+
+- ok→drift: the **full 700-char plan**, once. That verbatim text is what made the finding legible.
+- drift persisting: one line **hourly**, so the freshest evidence is never >1h stale.
+- drift→ok: a `✅ INDEX DRIFT RESOLVED` line **derived from the planner's own choice**, not declared.
+- healthy: **nothing**, except one **arming line per worker boot**.
+- probe throttled separately to 60s (`INDEX_DRIFT_PROBE_SEC`), removing ~16k DB round trips/day.
+
+⚠️ **The arming line is not noise — it is the positive control.** A guard silent when healthy
+is indistinguishable from a guard that is dead, unregistered, or throwing. Mike, 2026-08-10:
+*"the guard is currently silent and I have no way to distinguish that from a dead guard until
+this deploy lands."*
+
+State is **per-worker with no shared store**, deliberately: shared dedup + per-replica
+observation is exactly the L-SW-2026-013 storm mechanism (2026-07-16, ~1 email per 5–15s for
+hours). Worst case here is one extra line per worker.
+
+---
+
+### 🐛 FOUND WHILE INSTRUMENTING: `/api/extract` has logged 0 tokens for every request
+
+`routes/grading.py` called `log_api_usage(..., result.get('input_tokens', 0),
+result.get('output_tokens', 0))` — but `extract_from_base64` **never returned those keys**.
+Every `api_usage` row for `/api/extract` recorded **0 in / 0 out**, indefinitely.
+
+The model name beside them was correct, which is what made it invisible: an accurate label
+next to a quantity nothing computed — **L-SW-2026-016**, in the cost-attribution layer. The
+comment on that very line claims per-extract cost attribution stays accurate after the
+2026-06-16 haiku→sonnet flip; the model half was true and the token half was structurally zero.
+
+Fixed in the uncommitted extract work: `_run_vision_pass` now returns its usage tuple, and
+`extract_from_base64` returns real counts **summed across every pass**, so a 180° re-read
+shows up as the doubled cost it actually is.
+⚠️ **This changes what lands in `api_usage`.** Historical `/api/extract` token rows are zeros
+and cannot be reconstructed — do not treat pre-2026-08-10 extract cost data as real.
+
+---
+
+### 🔬 WHAT IS STILL UNMEASURED — do not theorise ahead of it
+
+- **The grade leg is still ~20s** (Mike, browser). `[GRADE-TIMING]` is live in `62052ca` but
+  **no line has been read yet.** Until one is, the split across cap / body / normalize /
+  quality / moderation / vision / parse / post is **unknown**. Do not attribute it.
+- **The moderation loop** in `/api/grade` has no `break` — one Rekognition round trip **per
+  photo**, sequentially, where the quality gate immediately above it breaks after the first.
+  **Deliberately NOT fixed** (Mike): *"I would rather see the number than fix a loop that
+  turns out to be 200ms."* `moderation_calls` is emitted so the count is measured, not read
+  off the loop.
+- **Whether the 180° re-read fires in practice** is unknown and **the logs cannot answer it**.
+  Extraction logs nothing on a clean success path, so absence of the doubled-cost line proves
+  nothing in either direction. That is why `reread=` is now emitted on **every** request
+  including `not_needed` — the same silence problem as the drift guard, in a different place.
+
+---
+
+### 📌 SHIP STATE, verified from git at time of writing (L-SW-2026-008)
+
+| | |
+|---|---|
+| `HEAD` | **`62052ca`** — drift guard + `[GRADE-TIMING]`, **committed and DEPLOYED** |
+| `04b2bb8` | ROUGH ESTIMATE badge refactor — was pushed but undeployed; **carried live by the `62052ca` deploy** |
+| uncommitted | `comic_extraction.py`, `routes/grading.py` — the `[EXTRACT-TIMING]` unit + token fix |
+
+Backend-only throughout: `deploy` yes, `purge` no. No extension touched, no version bump due.
+
+---
 
 ## 2026-08-04 — 🔒 **SESSION CLOSED. ALL THREE UNITS SHIPPED, PUSHED AND VERIFIED.**
 

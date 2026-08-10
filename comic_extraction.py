@@ -579,11 +579,31 @@ _EXTRACTION_DEFAULTS = {
 }
 
 
+class _NoTimings:
+    """Null recorder so extract_from_base64 can be instrumented without every
+    call site having to pass one, and without `if timings:` at every mark."""
+    __slots__ = ()
+
+    def mark(self, name):
+        pass
+
+    def note(self, **kw):
+        pass
+
+
+_NO_TIMINGS = _NoTimings()
+
+
 def _run_vision_pass(b64: str, media_type: str):
-    """One Claude vision extraction pass. Returns (parsed_dict_or_None, raw_text).
+    """One Claude vision extraction pass. Returns
+    (parsed_dict_or_None, raw_text, (input_tokens, output_tokens)).
     None means the response had no parseable JSON. Defaults are applied so the
     caller sees a complete dict. No barcode/orientation logic here — that lives in
-    extract_from_base64 so the 180 deg fallback can re-run JUST this pass."""
+    extract_from_base64 so the 180 deg fallback can re-run JUST this pass.
+
+    The usage tuple is returned because the caller must be able to report the
+    REAL cost of a pass — see extract_from_base64's token accounting, which the
+    /api/extract route had been logging as a structural 0 (2026-08-10)."""
     import re
     response = call_with_fallback(
         _client, 'sonnet',
@@ -598,24 +618,28 @@ def _run_vision_pass(b64: str, media_type: str):
             ]
         }]
     )
+    try:
+        usage = (response.usage.input_tokens, response.usage.output_tokens)
+    except Exception:
+        usage = (0, 0)
     text_content = ""
     for block in response.content:
         if block.type == "text":
             text_content += block.text
     json_match = re.search(r'\{[\s\S]*\}', text_content)
     if not json_match:
-        return None, text_content
+        return None, text_content, usage
     try:
         parsed = json.loads(json_match.group())
     except json.JSONDecodeError:
         # Malformed JSON (e.g. truncated at max_tokens) counts as 'unparseable' so
         # the 180 deg low-confidence fallback gets a chance, instead of hard-failing
         # via the outer except and skipping the retry entirely.
-        return None, text_content
+        return None, text_content, usage
     for key, default_value in _EXTRACTION_DEFAULTS.items():
         if key not in parsed:
             parsed[key] = default_value
-    return parsed, text_content
+    return parsed, text_content, usage
 
 
 def _extraction_score(extracted) -> int:
@@ -649,17 +673,32 @@ def _extraction_low_confidence(extracted):
     return False, None
 
 
-def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_type: str = "front") -> dict:
+def extract_from_base64(base64_data: str, media_type: str = "image/jpeg",
+                        photo_type: str = "front", timings=None) -> dict:
     """
     Extract comic information from a base64-encoded image.
-    
+
     Args:
         base64_data: Base64-encoded image string
         media_type: MIME type of the image
-    
+        photo_type: front/back/spine/centerfold — drives orientation policy
+        timings: optional recorder (duck-typed .mark(name) / .note(**kw)) so
+                 /api/extract can segment this function from the outside.
+                 Defaults to a no-op, so every other caller is unaffected.
+
     Returns:
-        dict with extracted fields or error
+        dict with extracted fields or error. On success it also carries
+        input_tokens / output_tokens — REAL counts summed across every vision
+        pass, including a 180 deg re-read.
+
+        ⚠️ Those two keys previously did not exist, while routes/grading.py
+        called log_api_usage(..., result.get('input_tokens', 0),
+        result.get('output_tokens', 0)) — so EVERY /api/extract row in
+        api_usage recorded 0/0 tokens. The model name beside them was correct,
+        which is what made it invisible: an accurate label next to a quantity
+        nothing computed (L-SW-2026-016). Found 2026-08-10 while instrumenting.
     """
+    t = timings or _NO_TIMINGS
     if not ANTHROPIC_AVAILABLE or not _client:
         return {"success": False, "error": "Anthropic SDK not available"}
 
@@ -667,26 +706,37 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
     # vision call. The client may send a rotated-with-EXIF photo and the API reads
     # raw pixels. Per-photo policy (normalize_for_photo_type): front/back/spine
     # assume portrait; centerfold is EXIF-only. Fail loud if undecodable.
+    t.mark('normalize_start')
     try:
         base64_data = normalize_for_photo_type(base64_data, photo_type,
                                                max_long_edge=EXTRACT_MAX_LONG_EDGE)
         media_type = "image/jpeg"  # normalize_for_photo_type always emits JPEG
     except ValueError as e:
+        t.mark('normalize_done')
+        t.note(outcome_detail='undecodable')
         return {"success": False, "error": f"Image could not be processed: {e}"}
+    t.mark('normalize_done')
 
     # First, try to scan barcode with pyzbar (more reliable than vision)
     scanned_barcode = None
+    barcode_state = 'miss'
     try:
         image_bytes = base64.b64decode(base64_data)
         scanned_barcode = scan_barcode(image_bytes)
         if scanned_barcode:
+            barcode_state = 'hit'
             print(f"[Extraction] Barcode scanned: {scanned_barcode}")
     except Exception as e:
+        barcode_state = 'error'
         print(f"[Extraction] Barcode scan failed: {e}")
+    t.mark('barcode_done')
+    t.note(barcode=barcode_state)
 
     try:
-        extracted, text_content = _run_vision_pass(base64_data, media_type)
+        extracted, text_content, usage = _run_vision_pass(base64_data, media_type)
         vision_calls = 1
+        in_tok, out_tok = usage
+        t.mark('vision1_done')
 
         # --- Item 2: one-shot 180 deg low-confidence fallback. A 180 deg flip is
         #     invisible to the dimension-based orientation heuristic above, so when
@@ -694,12 +744,23 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
         #     whichever pass scored higher. Every retry is logged so the doubled
         #     vision-call cost is visible. ---
         low, reason = _extraction_low_confidence(extracted)
+        # ⚠️ reread is recorded on EVERY path, including the ordinary one. The
+        # old code logged only when the re-read FIRED, so a clean run said
+        # nothing at all — and "no doubled-cost line" was indistinguishable from
+        # "extraction never ran". Stating not_needed positively is the whole
+        # point (Mike, 2026-08-10); it is the same fix as the drift guard's
+        # arming line, applied to a different silence.
+        t.note(reread='not_needed' if not low else 'pending',
+               reread_reason=reason or 'none')
         if low:
             print(f"[Extraction] Pass 1 low-confidence (reason={reason}) — retrying "
                   f"with 180 deg rotation [VISION CALL #2 — doubled cost]")
             try:
-                extracted2, text2 = _run_vision_pass(rotate_180_b64(base64_data), media_type)
+                extracted2, text2, usage2 = _run_vision_pass(
+                    rotate_180_b64(base64_data), media_type)
                 vision_calls = 2
+                in_tok += usage2[0]
+                out_tok += usage2[1]
                 s1, s2 = _extraction_score(extracted), _extraction_score(extracted2)
                 if s2 > s1:
                     extracted, text_content = extracted2, text2
@@ -708,6 +769,7 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
                         # the client must NOT rotate again (would re-invert).
                         extracted['is_upside_down'] = False
                         extracted['orientation_corrected'] = '180'
+                    t.note(reread='kept_pass2')
                     print(f"[Extraction] 180 deg retry KEPT pass 2 (score {s1} -> {s2}); "
                           f"vision_calls={vision_calls}")
                 else:
@@ -717,19 +779,27 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
                     # With this, a returned is_upside_down is never True.
                     if extracted is not None:
                         extracted['is_upside_down'] = False
+                    t.note(reread='kept_pass1')
                     print(f"[Extraction] 180 deg retry discarded, kept pass 1 "
                           f"(score {s1} vs {s2}); vision_calls={vision_calls}")
             except Exception as e:
+                t.note(reread='failed')
                 print(f"[Extraction] 180 deg retry skipped/failed (keeping pass 1): {e}")
+        t.mark('vision_done')
+        t.note(vision_calls=vision_calls, in_tok=in_tok, out_tok=out_tok)
 
         if extracted is not None:
             
             # Check if the image is actually a comic book cover
             if not extracted.get('is_comic_cover', True):
+                t.mark('post_done')
+                t.note(outcome_detail='not_comic')
                 return {
                     "success": False,
                     "error": "This doesn't appear to be a comic book cover. Please upload a photo of a comic's front cover.",
-                    "not_comic": True
+                    "not_comic": True,
+                    "input_tokens": in_tok,
+                    "output_tokens": out_tok
                 }
 
             # Clean up old field names if Claude returns them
@@ -792,15 +862,24 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg", photo_
                       f"'{extracted.get('barcode_digits')}' (no pyzbar addon) — series ID only")
                 extracted['barcode_source'] = 'vision_unverified'
 
+            t.mark('post_done')
             return {
                 "success": True,
-                "extracted": extracted
+                "extracted": extracted,
+                # Real counts, summed across every pass this request made — so a
+                # 180 deg re-read shows up as the doubled cost it actually is.
+                "input_tokens": in_tok,
+                "output_tokens": out_tok
             }
         else:
+            t.mark('post_done')
+            t.note(outcome_detail='unparseable')
             return {
                 "success": False,
                 "error": "Could not parse extraction response",
-                "raw": text_content
+                "raw": text_content,
+                "input_tokens": in_tok,
+                "output_tokens": out_tok
             }
             
     except anthropic.APITimeoutError:
