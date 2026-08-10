@@ -59,7 +59,65 @@ def health():
     except Exception as e:
         print(f"[Health] DB check FAILED: {e}")
         return jsonify({'status': 'degraded', 'version': _HEALTH_VERSION}), 503
+
+    _assert_canonical_title_index()
+
     return jsonify({'status': 'ok', 'version': _HEALTH_VERSION})
+
+
+def _assert_canonical_title_index():
+    """⚠️ DRIFT GUARD. Asserts the planner CHOOSES the canonical_title expression
+    index — not merely that the index exists.
+
+    WHY THIS EXISTS. The valuation comp query filters on a NORMALIZED
+    canonical_title, and only an index built on the IDENTICAL expression can serve
+    it. That means the normalization is encoded in two places: `_norm_sql()` in
+    title_matching.py, and the index definition in the database. If either drifts
+    by one character the planner silently stops using the index and the query
+    returns to a ~7 s bitmap-heap scan over the 73,818 rows that share
+    issue_number='1' — CORRECT RESULTS, NO ERROR, ten times slower. That is
+    L-SW-2026-026 in a new place: one assumption written twice.
+
+    WHY AN EXPLAIN AND NOT AN EXISTENCE CHECK. Three drift modes, one probe:
+    (1) the expression changed in Python, (2) the index was dropped, (3) the index
+    is present but INVALID — which is the normal residue of a failed
+    CREATE INDEX CONCURRENTLY, stays visible in pg_indexes, and is ignored by the
+    planner. An existence check passes on (1) and (3). Asserting the index NAME
+    appears in the chosen plan catches all three.
+
+    It is a positive control by construction: the probe can only pass when the
+    thing it is testing for is actually happening.
+
+    EXPLAIN without ANALYZE, so the query is planned and never executed — no rows
+    read, sub-millisecond, safe on every health poll. Never fails the probe: a
+    performance regression is not an outage, and /health gates Render traffic via
+    healthCheckPath. It logs loudly instead, which is the whole point — the
+    failure mode being guarded against is silence.
+    """
+    INDEX_NAME = 'idx_ebay_sales_canonical_title_norm'
+    try:
+        from title_matching import _norm_sql
+        import db as _db
+        # The expression comes from the SAME function the query uses, so this
+        # check cannot drift from the query even if both drift from the index.
+        sql = ("EXPLAIN SELECT 1 FROM ebay_sales WHERE %s = %%s AND issue_number = %%s"
+               % _norm_sql('canonical_title'))
+        conn = _db.get_db()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, ('terminator', '1'))
+            plan = ' '.join(str(r[0]) for r in cur.fetchall())
+            cur.close()
+        finally:
+            conn.close()
+        if INDEX_NAME not in plan:
+            print('[Health] ⚠️ INDEX DRIFT: the planner is NOT using %s. '
+                  'The valuation comp query has silently reverted to a full scan '
+                  '(~7s). Check that the index exists, is valid (pg_index.indisvalid), '
+                  'and was built on exactly title_matching._norm_sql(\'canonical_title\'). '
+                  'Chosen plan: %s' % (INDEX_NAME, plan[:400]))
+    except Exception as e:
+        print('[Health] index drift check could not run: %s: %s' % (type(e).__name__, e))
 
 
 @utils_bp.route('/api/debug/prompt-check')

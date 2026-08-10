@@ -11,6 +11,7 @@ import os
 import re
 import json
 import random
+import time
 from decimal import Decimal
 from flask import Blueprint, jsonify, request, g
 import psycopg2
@@ -186,6 +187,115 @@ def compute_variant_disclosure(base_count, excluded_variant_count,
     }
 
 
+class _Timings:
+    """Whole-request stopwatch for /api/sales/valuation. Brackets the ENTIRE
+    request, not just the queries, because a DevTools capture on 2026-08-08
+    showed this one call still pending at 35,000 ms on The Terminator #1 while
+    `extract` and `grade` had both returned 200 — and the measured SQL for that
+    exact book is only ~6-7 s server-side. Something owns 25+ s and we do not
+    know what. Read-only DB probes ruled the database itself out as the cause:
+    13 of 103 connections, one active query, zero lock waits, no autovacuum
+    running, 9% dead tuples, 235 MB heap almost entirely in shared_buffers
+    (EXPLAIN showed 7,790 buffer hits against 11 reads).
+
+    ⚠️ DO NOT DELETE THIS ONCE THE INDEX LANDS. The expression index fixes a
+    measured 6-7 s. If the unattributed time survives it, that is the LARGER
+    finding, and this is the only thing that will say so. Both numbers get
+    reported, not just the improvement.
+
+    Segments, in order, so a gap can be attributed rather than theorised
+    (L-2026-022: make the failure self-report before generating causes):
+      receipt→handler  before_request stamped g.start_time → this handler ran.
+                       Non-zero here means routing/middleware/WSGI, not us.
+      handler→pool     arg parsing and the honesty gates. Should be ~0.
+      pool             _dbpool.get_db() + cursor. Isolated deliberately: pool
+                       checkout pre-pings with SELECT 1 and falls back to an
+                       overflow connection, so a slow or churning pool shows
+                       up HERE rather than smeared across the queries.
+      q1..q4           each query, elapsed AND row count. Both, because
+                       "2.2 s for 0 rows" and "2.2 s for 400 rows" are
+                       different problems (Mike, 2026-08-08).
+      post_sql         last query → response built. All the Python math:
+                       percentile_trim, the bootstrap CI, the verdict ladder.
+      total            receipt → response. The number to compare against what
+                       DevTools shows; a gap between them is network or WSGI.
+
+    ⚠️ WHAT THIS CANNOT SEE, AND IT IS THE PRIME SUSPECT. `total` starts when
+    this handler runs, and before_request runs immediately before it, so
+    before_request_to_handler is ~0 by construction and is NOT "time since the
+    request arrived." Any time the request spent QUEUED IN GUNICORN — waiting for
+    a free sync worker while the long `grade` AI call held one, or a worker being
+    reaped and respawned (there was a Starter-tier OOM incident 2026-07-16) — is
+    invisible here. That is exactly the shape of the 35 s pending request.
+    To capture it, set gunicorn's access log format to include %(D)s (request
+    time in microseconds, measured by gunicorn) and compare it against `total`
+    below. The DIFFERENCE is queueing plus WSGI overhead, and if the 25 s lives
+    there, no amount of SQL work fixes it.
+    """
+    __slots__ = ('t0', 't0_wall', 'marks', 'queries')
+
+    def __init__(self):
+        # perf_counter for durations (monotonic); a wall-clock twin because
+        # g.start_time is time.time() and the two clocks are not comparable.
+        self.t0 = time.perf_counter()
+        self.t0_wall = time.time()
+        self.marks = {}
+        self.queries = []
+
+    def mark(self, name):
+        self.marks[name] = time.perf_counter()
+
+    def query(self, label, ms, rows):
+        self.queries.append((label, ms, rows))
+
+    def emit(self, title, issue, outcome):
+        """One greppable line. print() on purpose: it is what this module
+        already uses, and PYTHONUNBUFFERED=1 is set in the Dockerfile (the live
+        deploy path — note render.yaml is stale and names api_server_v3), so it
+        flushes immediately instead of being held until process exit
+        (L-2026-020). One write syscall per request; no measurable cost."""
+        try:
+            span = lambda a, b: (self.marks[b] - self.marks[a]) * 1000.0 \
+                if a in self.marks and b in self.marks else -1.0
+            total_ms = (time.perf_counter() - self.t0) * 1000.0
+            # Wall-clock on both sides, because g.start_time is time.time().
+            # Expected to be ~0: Flask runs before_request immediately before the
+            # view. It is logged anyway as a CONTROL — if it is ever non-trivial,
+            # something is happening in middleware, and that is worth knowing
+            # rather than assuming.
+            try:
+                receipt_ms = max(0.0, (self.t0_wall - g.start_time) * 1000.0)
+            except Exception:
+                receipt_ms = -1.0
+            parts = [
+                'total=%.0fms' % total_ms,
+                'before_request_to_handler=%.0fms' % receipt_ms,
+                'handler_to_pool=%.0fms' % span('handler', 'pool_start'),
+                'pool=%.0fms' % span('pool_start', 'pool_done'),
+            ]
+            for label, ms, rows in self.queries:
+                parts.append('%s=%.0fms/%drows' % (label, ms, rows))
+            parts.append('post_sql=%.0fms' % span('sql_done', 'response'))
+            parts.append('outcome=%s' % outcome)
+            parts.append('title=%r' % (title or '')[:60])
+            parts.append('issue=%r' % (issue or ''))
+            print('[VALUATION-TIMING] ' + ' '.join(parts))
+        except Exception:
+            # Instrumentation must never break the endpoint it measures.
+            pass
+
+
+def _timed_query(cur, timings, label, sql, params):
+    """Execute + fetchall, recording elapsed and row count. The row count is
+    half the signal: a slow query returning 0 rows is a selectivity/index
+    problem, a slow query returning 400 is a volume problem."""
+    t = time.perf_counter()
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    timings.query(label, (time.perf_counter() - t) * 1000.0, len(rows))
+    return rows
+
+
 @valuation_bp.route('/sales/valuation', methods=['GET'])
 def api_sales_valuation():
     """
@@ -204,6 +314,8 @@ def api_sales_valuation():
         grade: Numeric grade from AI grading (required, e.g. 9.6)
         days: Lookback window in days (default 365 - wider window for more data)
     """
+    _t = _Timings()
+    _t.mark('handler')
     title = request.args.get('title', '').strip()
     issue = request.args.get('issue', '').strip()
     issue_type = request.args.get('issue_type', '').strip()  # Batch 8: series-type qualifier
@@ -227,6 +339,11 @@ def api_sales_valuation():
     # reports confident-wrong, so self-report is untrustworthy. '?' is the app's
     # own unknown-issue sentinel; treat it (and the null/undefined strings) as empty.
     if not issue or issue in ('null', 'undefined', 'None', '?'):
+        # Logged too. A gate that returns in 3 ms and a gate that returns in
+        # 3 s look identical to the client, and an unlogged early return is a
+        # blind spot in exactly the request we are trying to account for.
+        _t.mark('response')
+        _t.emit(title, issue, 'issue_required')
         return jsonify({
             'success': False,
             'issue_required': True,
@@ -238,8 +355,14 @@ def api_sales_valuation():
         return jsonify({'success': False, 'error': 'Database not configured'}), 500
 
     try:
+        # Pool checkout timed on its own: get_db() pre-pings with SELECT 1 and
+        # falls back to a logged overflow connection when the pool is exhausted,
+        # so churn or slow connection setup lands here rather than being smeared
+        # across q1.
+        _t.mark('pool_start')
         conn = _dbpool.get_db(dict_rows=True)
         cur = conn.cursor()
+        _t.mark('pool_done')
 
         # Batch 8: qualifier-precise title match (shared helper). A qualified
         # query ("Giant-Size X-Men") matches only its own rows; a plain query
@@ -283,8 +406,7 @@ def api_sales_valuation():
             ebay_graded_query += " AND issue_number = %s"
             ebay_graded_params.append(str(issue))
 
-        cur.execute(ebay_graded_query, ebay_graded_params)
-        ebay_graded = cur.fetchall()
+        ebay_graded = _timed_query(cur, _t, 'q1_ebay_graded', ebay_graded_query, ebay_graded_params)
 
         # ---------- EBAY: raw (ungraded) sales for this title ----------
         ebay_raw_query = """
@@ -315,8 +437,7 @@ def api_sales_valuation():
             ebay_raw_query += " AND issue_number = %s"
             ebay_raw_params.append(str(issue))
 
-        cur.execute(ebay_raw_query, ebay_raw_params)
-        ebay_raw = cur.fetchall()
+        ebay_raw = _timed_query(cur, _t, 'q2_ebay_raw', ebay_raw_query, ebay_raw_params)
 
         # ---------- MARKET_SALES: graded ----------
         market_graded_query = """
@@ -335,8 +456,7 @@ def api_sales_valuation():
             market_graded_query += " AND (issue = %s OR issue = %s)"
             market_graded_params.extend([str(issue), issue])
 
-        cur.execute(market_graded_query, market_graded_params)
-        market_graded = cur.fetchall()
+        market_graded = _timed_query(cur, _t, 'q3_mkt_graded', market_graded_query, market_graded_params)
 
         # ---------- MARKET_SALES: raw (ungraded) ----------
         market_raw_query = """
@@ -356,8 +476,8 @@ def api_sales_valuation():
             market_raw_query += " AND (issue = %s OR issue = %s)"
             market_raw_params.extend([str(issue), issue])
 
-        cur.execute(market_raw_query, market_raw_params)
-        market_raw = cur.fetchall()
+        market_raw = _timed_query(cur, _t, 'q4_mkt_raw', market_raw_query, market_raw_params)
+        _t.mark('sql_done')
 
         cur.close()
         conn.close()
@@ -726,6 +846,12 @@ def api_sales_valuation():
         whatnot_count = len(market_graded) + len(market_raw)
 
         # Lookup-demand instrumentation (non-blocking, additive — see lookup_demand.py)
+        # Marked BEFORE _record_demand so post_sql measures OUR work. If the
+        # daemon-thread handoff ever starts blocking, it lands in the gap between
+        # this mark and the client's observed time rather than hiding inside it.
+        _t.mark('response')
+        _t.emit(title, issue, 'ok')
+
         _record_demand('valuation', title, issue, issue_type, grade,
                        total_graded + raw_count, total_graded, exact_count,
                        fmv_method,
@@ -787,6 +913,15 @@ def api_sales_valuation():
         })
 
     except Exception as e:
+        # ⚠️ The failure path is logged too, and this is the one that matters
+        # most for the 25 s we cannot account for. A request that spends 28 s and
+        # THEN raises produces a 500 the client shows as a generic failure; without
+        # this, the elapsed time and the segment it was spent in are lost, and the
+        # slowest requests would be exactly the ones we have no data for
+        # (L-2026-022: treat "I can't see it" as the first problem to fix).
+        _t.mark('response')
+        _t.emit(title, issue, 'error:%s' % type(e).__name__)
+        print('[VALUATION-ERROR] %s: %s' % (type(e).__name__, e))
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
