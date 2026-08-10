@@ -4,6 +4,7 @@ Routes: /api/valuate, /api/extract, /api/cache/check, /api/messages, /api/grade
 """
 import os
 import json
+import time
 import concurrent.futures
 from flask import Blueprint, jsonify, request, g
 
@@ -51,6 +52,103 @@ def init_modules(valuation_func, extraction_func, moderation_func,
     ANTHROPIC_API_KEY = anthropic_key
     anthropic = anthropic_lib
     ANTHROPIC_AVAILABLE = anthropic_avail
+
+
+class _GradeTimings:
+    """Segment timer for /api/grade. Deliberately a SEPARATE, self-contained
+    twin of _Timings in sales_valuation.py rather than a shared base class.
+
+    WHY DUPLICATED AND NOT REFACTORED. That harness is deployed, verified, and
+    is currently the only instrument measuring the FMV leg (557146d, live
+    2026-08-09). Factoring both onto a common parent would edit working
+    production instrumentation to add instrumentation elsewhere — and the fields
+    genuinely differ (that one emits per-query row counts; this one emits token
+    counts and image counts). Two small honest twins beat one clever shared
+    thing here.
+
+    WHAT THE SEGMENTS MEAN, and why each is separated:
+
+      cap          the per-tier monthly cap check. One SELECT, sometimes an
+                   UPDATE + commit. Expected small; isolated because it is the
+                   only DB work that happens BEFORE the body is read.
+      body         request.get_json(). ⚠️ THIS IS NOT JUST PARSING — it is where
+                   the multi-megabyte base64 request body is read off the wire.
+                   On a mobile uplink this can be the largest segment in the
+                   whole request and it is invisible to every other measure.
+      normalize    normalize_for_photo_type per photo: decode (incl. HEIC),
+                   EXIF-transpose, downscale to GRADING_MAX_LONG_EDGE, re-encode
+                   JPEG. The 2026-07-16 OOM code path. CPU-bound, N photos.
+      quality      check_photo_quality_base64 — first image only.
+      moderation   AWS Rekognition. ⚠️ Counted separately AND per call, because
+                   unlike the quality gate this loop has no `break`: it makes one
+                   network round trip PER PHOTO, sequentially.
+      vision       the Anthropic Sonnet call(s). runs=1 is one call; runs>1 fans
+                   out across a thread pool, so elapsed is the SLOWEST call, not
+                   the sum — hence vision_calls is emitted beside it.
+      parse        parse_grading_response / parse_multi_run_responses.
+      post         counter increment, usage read, snap, retention scheduling.
+      total        handler entry → response.
+
+    ⚠️ WHAT THIS STILL CANNOT SEE (same blind spot as the valuation harness, and
+    it must be stated rather than assumed away): time the request spent QUEUED IN
+    GUNICORN before the handler ran, and TLS/upload time before gunicorn began
+    handing the body over. `total` starts at handler entry. If `total` comes back
+    materially below what the browser shows, the remainder is queueing, upload,
+    or WSGI — not anything below.
+    """
+    __slots__ = ('t0', 't0_wall', 'marks', 'extras')
+
+    def __init__(self):
+        self.t0 = time.perf_counter()
+        self.t0_wall = time.time()
+        self.marks = {}
+        self.extras = {}
+
+    def mark(self, name):
+        self.marks[name] = time.perf_counter()
+
+    def note(self, **kw):
+        self.extras.update(kw)
+
+    def emit(self, outcome, title=None, issue=None):
+        """One greppable line, prefix [GRADE-TIMING]. print() for the same reason
+        the valuation harness uses it: PYTHONUNBUFFERED=1 is set in the Dockerfile
+        so it flushes immediately (L-2026-020)."""
+        try:
+            def span(a, b):
+                if a in self.marks and b in self.marks:
+                    return (self.marks[b] - self.marks[a]) * 1000.0
+                return -1.0
+
+            total_ms = (time.perf_counter() - self.t0) * 1000.0
+            try:
+                receipt_ms = max(0.0, (self.t0_wall - g.start_time) * 1000.0)
+            except Exception:
+                receipt_ms = -1.0
+
+            parts = [
+                'total=%.0fms' % total_ms,
+                'before_request_to_handler=%.0fms' % receipt_ms,
+                'cap=%.0fms' % span('handler', 'cap_done'),
+                'body=%.0fms' % span('cap_done', 'body_done'),
+                'normalize=%.0fms' % span('normalize_start', 'normalize_done'),
+                'quality=%.0fms' % span('normalize_done', 'quality_done'),
+                'moderation=%.0fms' % span('quality_done', 'moderation_done'),
+                'vision=%.0fms' % span('vision_start', 'vision_done'),
+                'parse=%.0fms' % span('vision_done', 'parse_done'),
+                'post=%.0fms' % span('parse_done', 'response'),
+            ]
+            for k in ('images', 'payload_kb', 'runs', 'vision_calls',
+                      'moderation_calls', 'model', 'in_tok', 'out_tok'):
+                if k in self.extras:
+                    parts.append('%s=%s' % (k, self.extras[k]))
+            parts.append('outcome=%s' % outcome)
+            parts.append('title=%r' % (title or '')[:60])
+            parts.append('issue=%r' % (issue or ''))
+            print('[GRADE-TIMING] ' + ' '.join(parts))
+        except Exception:
+            # Instrumentation must never break the endpoint it measures.
+            pass
 
 
 @grading_bp.route('/valuate', methods=['POST'])
@@ -325,7 +423,11 @@ def api_grade():
     Returns:
         Computed grade with full category breakdown
     """
+    _t = _GradeTimings()
+    _t.mark('handler')
+
     if not ANTHROPIC_AVAILABLE or not ANTHROPIC_API_KEY:
+        _t.emit('anthropic_unavailable')
         return jsonify({'error': 'Anthropic API not available'}), 503
 
     # ── Grading cap check (per-tier monthly cap; admins exempt) ──
@@ -384,6 +486,8 @@ def api_grade():
             if gradings_used >= monthly_limit:
                 cap_cur.close()
                 cap_conn.close()
+                _t.mark('cap_done')
+                _t.emit('monthly_limit')
                 return jsonify({
                     'success': False,
                     'error': 'monthly_limit',
@@ -402,15 +506,24 @@ def api_grade():
             except:
                 pass
     # ── End grading cap check ──
+    _t.mark('cap_done')
 
+    # ⚠️ get_json() is where the request BODY is read off the wire, not merely
+    # parsed — the payload carries up to 4 base64 photos. On a phone uplink this
+    # segment can dominate the request, and nothing downstream would show it.
     data = request.get_json() or {}
+    _t.mark('body_done')
     images = data.get('images', [])
     title = data.get('title', 'Unknown')
     issue = data.get('issue', '?')
     publisher = data.get('publisher', 'Unknown')
     num_runs = min(max(data.get('runs', 1), 1), 3)  # clamp 1-3
+    _t.note(images=len(images), runs=num_runs,
+            payload_kb=int(sum(len(i.get('base64') or '')
+                               for i in images) / 1024))
 
     if not images:
+        _t.emit('no_images', title, issue)
         return jsonify({'error': 'At least one image is required'}), 400
 
     # ── Per-photo normalization BEFORE anything touches the bytes (Section F
@@ -434,6 +547,7 @@ def api_grade():
     #    instance twice on 2026-07-16. The Anthropic API downscales to ~1568px
     #    internally, so the model sees the same pixels either way.
     from comic_extraction import normalize_for_photo_type
+    _t.mark('normalize_start')
     for img in images:
         if not img.get('base64'):
             continue
@@ -445,12 +559,16 @@ def api_grade():
             img['media_type'] = 'image/jpeg'  # normalizer always emits JPEG
         except ValueError as e:
             print(f"[Grading] {label} photo undecodable: {e}")
+            _t.mark('normalize_done')
+            _t.emit('undecodable_photo', title, issue)
             return jsonify({
                 'error': f"We couldn't read your {label} photo — the file may be "
                          f"corrupted or in a format we can't process.",
                 'quality_fail': True,
                 'tip': 'Re-take the photo with your camera, or convert it to JPEG and re-upload.'
             }), 400
+
+    _t.mark('normalize_done')
 
     # Photo quality gate
     from routes.fingerprint_utils import check_photo_quality_base64
@@ -461,6 +579,8 @@ def api_grade():
             # detail) — explicit purpose for clarity vs the lenient extract path.
             quality = check_photo_quality_base64(b64, purpose='grade')
             if not quality['ok']:
+                _t.mark('quality_done')
+                _t.emit('quality_fail', title, issue)
                 return jsonify({
                     'error': quality['message'],
                     'quality_fail': True,
@@ -469,21 +589,32 @@ def api_grade():
                     'height': quality.get('height')
                 }), 400
             break  # Only check first image
+    _t.mark('quality_done')
 
     # Content moderation
+    # ⚠️ Note the absence of a `break` here, unlike the quality gate above: this
+    # is one Rekognition network round trip PER PHOTO, sequentially. moderation_calls
+    # is emitted so the count is a measurement rather than a reading of this loop.
+    _mod_calls = 0
     if moderate_image:
         for img in images:
             b64 = img.get('base64', '')
             if b64:
+                _mod_calls += 1
                 mod_result = moderate_image(b64)
                 if mod_result.get('blocked'):
                     log_moderation_incident(g.user_id, '/api/grade', mod_result, get_image_hash(b64))
+                    _t.note(moderation_calls=_mod_calls)
+                    _t.mark('moderation_done')
+                    _t.emit('moderation_blocked', title, issue)
                     return jsonify({
                         'error': 'Image rejected: inappropriate content detected.',
                         'moderation': True
                     }), 400
                 if mod_result.get('warnings'):
                     log_moderation_incident(g.user_id, '/api/grade', mod_result, get_image_hash(b64))
+    _t.note(moderation_calls=_mod_calls)
+    _t.mark('moderation_done')
 
     # Build image content blocks for Anthropic API
     image_content = []
@@ -525,19 +656,24 @@ def api_grade():
     try:
         total_input_tokens = 0
         total_output_tokens = 0
+        _t.mark('vision_start')
 
         if num_runs == 1:
             # Single run — most common, fastest
             response = run_grading()
             total_input_tokens = response.usage.input_tokens
             total_output_tokens = response.usage.output_tokens
+            _t.mark('vision_done')
+            _t.note(vision_calls=1)
 
             response_text = response.content[0].text
             result = parse_grading_response(response_text)
             result['run_count'] = 1
 
         else:
-            # Multi-run with thread pool for parallel execution
+            # Multi-run with thread pool for parallel execution.
+            # ⚠️ These run CONCURRENTLY, so `vision` measures the slowest call,
+            # not the sum — vision_calls is what makes the cost visible.
             raw_responses = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=num_runs) as executor:
                 futures = [executor.submit(run_grading) for _ in range(num_runs)]
@@ -546,8 +682,14 @@ def api_grade():
                     total_input_tokens += resp.usage.input_tokens
                     total_output_tokens += resp.usage.output_tokens
                     raw_responses.append(resp.content[0].text)
+            _t.mark('vision_done')
+            _t.note(vision_calls=len(raw_responses))
 
             result = parse_multi_run_responses(raw_responses)
+
+        _t.mark('parse_done')
+        _t.note(model=get_model('sonnet'),
+                in_tok=total_input_tokens, out_tok=total_output_tokens)
 
         # Log total API usage (get_model reflects the active model, incl. fallback)
         log_api_usage(g.user_id, '/api/grade', get_model('sonnet'),
@@ -643,11 +785,17 @@ def api_grade():
         except Exception as persist_err:
             print(f"[Grading] retention persist scheduling failed (non-fatal): {persist_err}")
 
+        _t.mark('response')
+        _t.emit('ok', title, issue)
         return jsonify(result)
 
     except json.JSONDecodeError as e:
+        _t.mark('response')
+        _t.emit('parse_error', title, issue)
         return jsonify({'error': f'Failed to parse grading response: {str(e)}'}), 500
     except Exception as e:
         import traceback
         traceback.print_exc()
+        _t.mark('response')
+        _t.emit('error:%s' % type(e).__name__, title, issue)
         return jsonify({'error': str(e)}), 500

@@ -4,6 +4,7 @@ Utils Blueprint - Health checks, debug routes, and utility endpoints
 from flask import Blueprint, jsonify, request, send_from_directory
 from auth import validate_beta_code
 import os
+import time
 
 # Create blueprint
 utils_bp = Blueprint('utils', __name__)
@@ -93,8 +94,27 @@ def _assert_canonical_title_index():
     performance regression is not an outage, and /health gates Render traffic via
     healthCheckPath. It logs loudly instead, which is the whole point — the
     failure mode being guarded against is silence.
+
+    ⚠️ REPORTING IS TRANSITION-DRIVEN, NOT PER-CALL — see _report_index_state.
+    The original version printed on every observation. /health is polled about
+    every 5s (and '/' shares this handler), so a persistent drift emitted ~17k
+    lines/day at ~700 chars — which does not merely cost storage, it BURIES the
+    signal the next incident needs, including the [VALUATION-TIMING] lines added
+    alongside this guard. Correct behaviour, wrong volume (Mike, 2026-08-10).
     """
     INDEX_NAME = 'idx_ebay_sales_canonical_title_norm'
+
+    # Probe throttle. The index cannot change between health ticks, so probing
+    # every 5s buys nothing but ~17k DB round trips/day. This bounds detection
+    # lag for a NEW drift at _DRIFT_PROBE_MIN_INTERVAL_SEC; it does NOT throttle
+    # reporting (that is the transition logic below) — the two are separate
+    # dials on purpose.
+    now = time.monotonic()
+    if _drift_state['last_probe'] and \
+            (now - _drift_state['last_probe']) < _DRIFT_PROBE_MIN_INTERVAL_SEC:
+        return
+    _drift_state['last_probe'] = now
+
     try:
         from title_matching import _norm_sql
         import db as _db
@@ -110,14 +130,126 @@ def _assert_canonical_title_index():
             cur.close()
         finally:
             conn.close()
-        if INDEX_NAME not in plan:
-            print('[Health] ⚠️ INDEX DRIFT: the planner is NOT using %s. '
-                  'The valuation comp query has silently reverted to a full scan '
-                  '(~7s). Check that the index exists, is valid (pg_index.indisvalid), '
-                  'and was built on exactly title_matching._norm_sql(\'canonical_title\'). '
-                  'Chosen plan: %s' % (INDEX_NAME, plan[:400]))
+        if INDEX_NAME in plan:
+            _report_index_state('ok', INDEX_NAME, plan)
+        else:
+            _report_index_state('drift', INDEX_NAME, plan)
     except Exception as e:
-        print('[Health] index drift check could not run: %s: %s' % (type(e).__name__, e))
+        _report_index_state('error', INDEX_NAME,
+                            '%s: %s' % (type(e).__name__, e))
+
+
+# ── Drift-guard reporting state ──────────────────────────────────────────────
+# Deliberately PER-WORKER module state, with no shared store. L-SW-2026-013 is
+# the lesson that shared alert dedup + per-replica observations is the exact
+# recipe for an alert storm (2026-07-16: ~1 email per 5-15s for hours, because
+# one worker's cached failure kept re-inserting a key another worker kept
+# pruning). Per-worker state cannot storm: the worst case is one extra line per
+# worker, which is the cost of honesty about who observed what.
+_DRIFT_PROBE_MIN_INTERVAL_SEC = int(os.environ.get('INDEX_DRIFT_PROBE_SEC', '60'))
+_DRIFT_HEARTBEAT_SEC = int(os.environ.get('INDEX_DRIFT_HEARTBEAT_SEC', '3600'))
+
+_drift_state = {
+    'status': None,       # None = not yet probed by THIS worker | ok | drift | error
+    'since': 0.0,         # monotonic: when the current status began
+    'observations': 0,    # probes that have seen the current status
+    'last_logged': 0.0,   # monotonic: last line emitted for the current status
+    'last_probe': 0.0,
+}
+
+
+def _fmt_duration(seconds):
+    m, s = divmod(int(max(0, seconds)), 60)
+    h, m = divmod(m, 60)
+    if h:
+        return '%dh%02dm' % (h, m)
+    if m:
+        return '%dm%02ds' % (m, s)
+    return '%ds' % s
+
+
+def _report_index_state(status, index_name, detail):
+    """Silent when healthy, loud on transition, heartbeat-floored while broken.
+
+    THE THREE REQUIREMENTS, and how each is met (Mike, 2026-08-10):
+
+      silent when healthy      — a steady 'ok' emits NOTHING after the arming
+                                 line. Zero lines/day in the normal case.
+      loud on transition       — any status change emits immediately, and an
+                                 ok→drift transition carries the FULL plan text.
+                                 That 700-char plan is what made the finding
+                                 legible on 2026-08-10 and is kept verbatim.
+      never so quiet that a    — while drift persists, a one-line heartbeat
+      regression waits for       every _DRIFT_HEARTBEAT_SEC. So the most recent
+      someone to look            evidence in the log is never more than an hour
+                                 stale. Pure state-change logging fails exactly
+                                 here: one line at 3am, silence after, and by
+                                 09:00 a grep of the last hour is empty —
+                                 indistinguishable from healthy. That is
+                                 L-2026-024 (absence is not evidence) applied to
+                                 our own guard.
+
+    ⚠️ THE ARMING LINE IS NOT NOISE, IT IS THE POSITIVE CONTROL. A guard that is
+    silent when healthy is indistinguishable from a guard that is not running,
+    was never registered, or is throwing before it reaches the probe. One line
+    per worker at first observation makes subsequent silence MEAN something.
+    Without it we would have replaced a volume problem with an epistemic one
+    (L-SW-2026-017: a step whose completion is not observable is
+    indistinguishable from one that was skipped).
+    """
+    try:
+        now = time.monotonic()
+        st = _drift_state
+        prev, prev_since = st['status'], st['since']
+
+        if status != prev:
+            st.update(status=status, since=now, observations=1, last_logged=now)
+            held = _fmt_duration(now - prev_since) if prev is not None else None
+
+            if status == 'drift':
+                # Transition INTO drift — the full plan, unabridged. This is the
+                # one place the 700 chars earn their cost.
+                print('[Health] ⚠️ INDEX DRIFT: the planner is NOT using %s. '
+                      'The valuation comp query has silently reverted to a full scan '
+                      '(~7s). Check that the index exists, is valid (pg_index.indisvalid), '
+                      'and was built on exactly title_matching._norm_sql(\'canonical_title\'). '
+                      'Repeating hourly until resolved. Chosen plan: %s'
+                      % (index_name, detail[:400]))
+            elif status == 'ok' and prev == 'drift':
+                # The RECOVERY artifact. Derived from the planner's own choice,
+                # not declared — so it is real evidence that a CREATE INDEX took
+                # (L-SW-2026-017: name the artifact, and make it derived).
+                print('[Health] ✅ INDEX DRIFT RESOLVED: the planner is now using %s '
+                      '(was drifting for %s). Valuation comp queries should return to '
+                      'index-scan latency; confirm with the next [GRADE-TIMING] / '
+                      '[VALUATION-TIMING] line.' % (index_name, held))
+            elif status == 'ok':
+                # First healthy observation by this worker: the arming line.
+                print('[Health] index drift guard armed: planner is using %s. '
+                      'Silent while healthy; hourly heartbeat if it drifts.' % index_name)
+            elif status == 'error':
+                print('[Health] ⚠️ index drift check could not run (guard is BLIND, '
+                      'not clear): %s' % detail[:400])
+            return
+
+        # Same status as last time — heartbeat only, and only while not healthy.
+        st['observations'] += 1
+        if status == 'ok':
+            return
+        if (now - st['last_logged']) < _DRIFT_HEARTBEAT_SEC:
+            return
+        st['last_logged'] = now
+        if status == 'drift':
+            print('[Health] ⚠️ INDEX DRIFT ONGOING for %s (%d checks): planner still '
+                  'not using %s. Full plan logged at onset.'
+                  % (_fmt_duration(now - st['since']), st['observations'], index_name))
+        else:
+            print('[Health] ⚠️ index drift check STILL failing for %s (%d checks): %s'
+                  % (_fmt_duration(now - st['since']), st['observations'], detail[:200]))
+    except Exception:
+        # Reporting must never break the probe, and the probe must never break
+        # /health — which Render acts on via healthCheckPath.
+        pass
 
 
 @utils_bp.route('/api/debug/prompt-check')
