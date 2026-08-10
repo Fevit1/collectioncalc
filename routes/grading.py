@@ -132,14 +132,16 @@ class _GradeTimings:
                 'cap=%.0fms' % span('handler', 'cap_done'),
                 'body=%.0fms' % span('cap_done', 'body_done'),
                 'normalize=%.0fms' % span('normalize_start', 'normalize_done'),
-                'quality=%.0fms' % span('normalize_done', 'quality_done'),
+                'imgmeas=%.0fms' % span('normalize_done', 'imgmeas_done'),
+                'quality=%.0fms' % span('imgmeas_done', 'quality_done'),
                 'moderation=%.0fms' % span('quality_done', 'moderation_done'),
                 'vision=%.0fms' % span('vision_start', 'vision_done'),
                 'parse=%.0fms' % span('vision_done', 'parse_done'),
                 'post=%.0fms' % span('parse_done', 'response'),
             ]
-            for k in ('images', 'payload_kb', 'runs', 'vision_calls',
-                      'moderation_calls', 'model', 'in_tok', 'out_tok'):
+            for k in ('images', 'payload_kb', 'norm_kb', 'dims', 'runs',
+                      'vision_calls', 'moderation_calls', 'model',
+                      'in_tok', 'out_tok', 'cache_create', 'cache_read'):
                 if k in self.extras:
                     parts.append('%s=%s' % (k, self.extras[k]))
             parts.append('outcome=%s' % outcome)
@@ -662,6 +664,39 @@ def api_grade():
 
     _t.mark('normalize_done')
 
+    # ── Post-normalization measurement. payload_kb above is the INBOUND size;
+    #    this is what actually goes to the model, and the two are not the same
+    #    number. Separated into its own segment so this diagnostic can never be
+    #    mistaken for normalize cost.
+    #    WHY DIMENSIONS AND NOT JUST BYTES: Anthropic bills image input at
+    #    roughly (w*h)/750 tokens, so dims are the only thing that explains a
+    #    token count — and they are also how much detail the grader actually
+    #    sees. _decode_normalize_encode draft-decodes at 1/2 before thumbnailing,
+    #    so output lands anywhere in (cap/2, cap] — 1000..2000px at the current
+    #    cap. A photo landing at the bottom of that band gives the model a
+    #    QUARTER of the pixel area of one landing at the top. That is an accuracy
+    #    question wearing a token question's clothes, and the strict grading
+    #    quality floor exists precisely because defects need detail.
+    #    Image.open() parses the JPEG header only — it does NOT decode pixels, so
+    #    this allocates the compressed bytes and nothing like a bitmap (the
+    #    2026-07-16 OOM class is not in play here).
+    try:
+        from io import BytesIO as _BytesIO
+        import base64 as _b64
+        from PIL import Image as _PILImage
+        _dims, _norm_chars = [], 0
+        for img in images:
+            _b = img.get('base64') or ''
+            if not _b:
+                continue
+            _norm_chars += len(_b)
+            with _PILImage.open(_BytesIO(_b64.b64decode(_b))) as _im:
+                _dims.append('%dx%d' % _im.size)
+        _t.note(norm_kb=int(_norm_chars / 1024), dims=','.join(_dims) or 'none')
+    except Exception as _e:
+        _t.note(dims='unmeasured:%s' % type(_e).__name__)
+    _t.mark('imgmeas_done')
+
     # Photo quality gate
     from routes.fingerprint_utils import check_photo_quality_base64
     for img in images:
@@ -750,11 +785,27 @@ def api_grade():
         total_output_tokens = 0
         _t.mark('vision_start')
 
+        # ⚠️ input_tokens does NOT include cached input. The API reports
+        # cache_creation_input_tokens and cache_read_input_tokens as SEPARATE
+        # fields, and summing only input_tokens silently undercounts whenever
+        # they are non-zero. No cache_control is set anywhere in this path, so
+        # both should read 0 — which is exactly why they are worth emitting:
+        # a non-zero here means the assumption stopped holding and api_usage
+        # started under-reporting, in the same shape as the /api/extract
+        # structural zero one path over. Prove the 0, do not assume it.
+        cache_create = cache_read = 0
+
+        def _cache_of(resp):
+            u = getattr(resp, 'usage', None)
+            return ((getattr(u, 'cache_creation_input_tokens', 0) or 0),
+                    (getattr(u, 'cache_read_input_tokens', 0) or 0))
+
         if num_runs == 1:
             # Single run — most common, fastest
             response = run_grading()
             total_input_tokens = response.usage.input_tokens
             total_output_tokens = response.usage.output_tokens
+            cache_create, cache_read = _cache_of(response)
             _t.mark('vision_done')
             _t.note(vision_calls=1)
 
@@ -773,6 +824,9 @@ def api_grade():
                     resp = future.result()
                     total_input_tokens += resp.usage.input_tokens
                     total_output_tokens += resp.usage.output_tokens
+                    _cc, _cr = _cache_of(resp)
+                    cache_create += _cc
+                    cache_read += _cr
                     raw_responses.append(resp.content[0].text)
             _t.mark('vision_done')
             _t.note(vision_calls=len(raw_responses))
@@ -781,7 +835,8 @@ def api_grade():
 
         _t.mark('parse_done')
         _t.note(model=get_model('sonnet'),
-                in_tok=total_input_tokens, out_tok=total_output_tokens)
+                in_tok=total_input_tokens, out_tok=total_output_tokens,
+                cache_create=cache_create, cache_read=cache_read)
 
         # Log total API usage (get_model reflects the active model, incl. fallback)
         log_api_usage(g.user_id, '/api/grade', get_model('sonnet'),

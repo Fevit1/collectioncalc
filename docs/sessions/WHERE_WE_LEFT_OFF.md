@@ -127,16 +127,75 @@ and cannot be reconstructed — do not treat pre-2026-08-10 extract cost data as
 
 ---
 
-### 🔬 WHAT IS STILL UNMEASURED — do not theorise ahead of it
+### 📊 THE GRADE LEG, MEASURED — 2026-08-10, The Terminator #1
 
-- **The grade leg is still ~20s** (Mike, browser). `[GRADE-TIMING]` is live in `62052ca` but
-  **no line has been read yet.** Until one is, the split across cap / body / normalize /
-  quality / moderation / vision / parse / post is **unknown**. Do not attribute it.
-- **The moderation loop** in `/api/grade` has no `break` — one Rekognition round trip **per
-  photo**, sequentially, where the quality gate immediately above it breaks after the first.
-  **Deliberately NOT fixed** (Mike): *"I would rather see the number than fix a loop that
-  turns out to be 200ms."* `moderation_calls` is emitted so the count is measured, not read
-  off the loop.
+```
+total=20686ms  before_request_to_handler=305ms  cap=301ms  body=33ms  normalize=29ms
+quality=7ms  moderation=434ms  vision=18734ms  parse=0ms  post=1137ms
+images=3  payload_kb=2241  runs=1  vision_calls=1  moderation_calls=3
+model=claude-sonnet-4-6  in_tok=2380  out_tok=809
+```
+
+**Vision is 18,734ms = 90.6% of the leg. One call. There is no preamble to optimise away.**
+
+⚰️ **DEAD: the moderation loop as a latency suspect.** **REPLACED BY:** 434ms across 3 calls
+— noise. **REASON:** measured, not reasoned about. The missing `break` is still a real code
+smell (one Rekognition round trip per photo where the quality gate above it breaks after the
+first) and is **deliberately LEFT UNFIXED** — Mike, 2026-08-10: *"I am glad we measured
+rather than fixed it. Log it, do not touch it."* **SUPERSEDES** any impulse to fix it on
+sight. `moderation_calls=3` keeps the count measured rather than read off the loop.
+
+**Two open questions raised by that line, answered by reading the code (2026-08-10):**
+
+1. ⚠️ **`model=claude-sonnet-4-6` is the CONFIGURED HEAD of the chain, not a stale fallback.**
+   `MODEL_CHAINS['sonnet'][0]` is `claude-sonnet-4-6`; `_active_index` only advances on a 404,
+   and production logged index 0. **But the chain itself is stale** — `models.py` says
+   *Last verified: 2026-06-06*, and the Sonnet generation has moved on since. `opus` is in the
+   same state (head `claude-opus-4-8`), which is the precedent Mike cited. **The grading path
+   is running a generation behind, by configuration, silently.**
+   ⚰️ **DEAD: "the dependency monitor watches our models."** **REPLACED BY:** `check_anthropic()`
+   watches deprecations.info for **retirements**. It answers *"is what we use dying?"* — never
+   *"is what we use current?"* A superseded-but-supported model is **invisible to it by
+   design**. **REASON:** that is why both the opus 4.6→4.8 gap and this one passed unnoticed.
+   Same shape as everything else this week: a check that cannot see the thing (L-2026-024).
+2. ⚠️ **`in_tok=2380` is honest, but the images are probably arriving small.**
+   `usage.input_tokens` **does** include image tokens — this is NOT the `/api/extract`
+   structural zero (that was a missing dict key defaulting to 0; here the API populates a real
+   value). But the arithmetic does not fit 3 full-cap photos: Anthropic bills ≈ (w×h)/750 after
+   fitting the long edge to ~1568.
+
+   | photos land at | billed per image | ×3 |
+   |---|---|---|
+   | 2000px (cap top) | ~2,113 | **~6,340** |
+   | 1500px | ~1,936 | ~5,808 |
+   | **1000px (cap bottom)** | **~860** | **~2,580** |
+
+   Observed 2,380 **including the prompt** sits on the bottom row. `_decode_normalize_encode`
+   draft-decodes at exactly 1/2 and only thumbnails if the result is STILL over cap, so output
+   lands anywhere in **(cap/2, cap] = 1000..2000px** — a documented consequence accepted for
+   memory reasons on 2026-07-16, whose **accuracy** cost was never priced. A photo at the
+   bottom of that band gives the grader **a quarter of the pixel area** of one at the top,
+   while the strict grading quality floor exists precisely because defects need detail.
+   🚧 **HYPOTHESIS, not a finding.** `dims=` and `norm_kb=` were added to `[GRADE-TIMING]` to
+   settle it in one grade. Do not act on it before that line is read.
+
+**`post=1137ms` and `before_request_to_handler=305ms` are both DB round trips.** Every
+`db.get_db()` checkout pre-pings with `SELECT 1`, and `/api/grade` opens and closes the pool
+**five separate times** (auth decorators, cap check, usage log, counter increment, usage read)
+where `/api/sales/valuation` opens it once. At the ~300ms/checkout that `cap=301ms` shows for a
+single SELECT, that is ~1.5s of the 20.7s. Not the problem; a real number for later.
+⚠️ `before_request_to_handler` was documented as "~0 by construction." That holds only for
+`api_sales_valuation`, which carries **no decorators**. `@require_auth` / `@require_approved`
+run between `before_request` and the handler body, so their cost lands in that field. The
+control field fired and told us something — which is why it was logged.
+
+### 🔬 STILL UNMEASURED — do not theorise ahead of it
+
+- **Why one Sonnet call takes 18.7s.** With only ~2,380 input tokens and 809 output tokens,
+  the latency is **not** explained by image prefill volume. `out_tok=809` is the only large
+  quantity in the request and the only one that scales linearly in an autoregressive decode.
+  That points at **output length**, not input size — a different lever from the one the
+  roadmap assumed. Unconfirmed; needs its own measurement before anyone acts on it.
 - **Whether the 180° re-read fires in practice** is unknown and **the logs cannot answer it**.
   Extraction logs nothing on a clean success path, so absence of the doubled-cost line proves
   nothing in either direction. That is why `reread=` is now emitted on **every** request
