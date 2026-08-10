@@ -2815,22 +2815,38 @@
                 // (js/collection.js VERDICT_CHIPS).
                 if (verdictBadge) {
                     // Fix B + 2026-08-05 very_low extension: caution badge, NEVER a
-                    // confident green/red verdict. Badge text is tier-specific because
-                    // "ROUGH ESTIMATE" understates a fabricated figure and overstates
-                    // an interpolated one.
-                    const badges = {
-                        fabricated: 'ROUGH ESTIMATE',
-                        // Must not contradict the raw_only reason string: when the only
-                        // graded sales were variants, "NO GRADED SALES" is false.
-                        raw_only: excludedVariants > 0 ? 'NO STANDARD-COVER SALES' : 'NO GRADED SALES',
-                        low_support: 'NOT ENOUGH SALES DATA',
-                        interpolated: 'NO SALES AT THIS GRADE',
-                        blended: 'LIMITED SALES DATA',
-                        thin: 'LIMITED SALES DATA',
-                        // ⏰ Not emitted by the server yet — the edition-span tier. See
-                        // BASIS_REASONS.multi_edition below.
-                        multi_edition: 'MORE THAN ONE EDITION'
-                    };
+                    // ⚰️ THE PER-TIER HEDGED BADGES ARE DEAD. Collapsed 2026-08-08.
+                    // DEAD: the six tier-specific hedged labels — 'NO GRADED SALES' /
+                    //   'NO STANDARD-COVER SALES' (raw_only), 'NOT ENOUGH SALES DATA'
+                    //   (low_support), 'NO SALES AT THIS GRADE' (interpolated),
+                    //   'LIMITED SALES DATA' (blended, thin), 'MORE THAN ONE EDITION'
+                    //   (multi_edition) — and the comment that used to sit here arguing
+                    //   that "'ROUGH ESTIMATE' understates a fabricated figure and
+                    //   overstates an interpolated one."
+                    // REPLACED BY: one label, 'ROUGH ESTIMATE', for EVERY withheld tier.
+                    // ⚠️ THIS RE-REVERSES 2026-08-07, DELIBERATELY, AND THE DATE MATTERS.
+                    //   On 2026-08-07 the badge moved FROM 'ROUGH ESTIMATE' TO per-tier
+                    //   labels, and that was correct then: the reason had nowhere else to
+                    //   live, so the badge had to carry it. The basis expansion is now
+                    //   that place. The taxonomy is: THE BADGE NAMES THE CLASS, THE
+                    //   EXPANSION NAMES THE INSTANCE. "No graded sales" is one category
+                    //   of rough estimate among several, so stating it in the badge AND
+                    //   as the expansion's first sentence said the same thing twice, once
+                    //   redundantly. Observed live on The Terminator #1.
+                    // REASON, beyond the redundancy: the per-tier map forced a
+                    //   cross-check between two surfaces. `raw_only` needed an
+                    //   `excludedVariants > 0` conditional purely so the BADGE would not
+                    //   contradict its own reason string, and that coupling has carried a
+                    //   warning comment since 2026-08-07. Collapsing deletes the
+                    //   conditional and the coupling: one vocabulary, one place, nothing
+                    //   to keep in agreement. That is the structural argument, and it
+                    //   holds independently of the redundancy.
+                    // SUPERSEDES any per-tier hedged badge label. If a future tier needs
+                    //   to be distinguished on screen, it goes in the expansion, NOT here.
+                    // NOT COLLAPSED: the confident labels below stay per-verdict, because
+                    //   WORTH THE SLAB and KEEP IT RAW are the product's answer rather
+                    //   than a category of caution.
+                    const HEDGED_BADGE = 'ROUGH ESTIMATE';
                     // ⚠️ `canRate`, NOT `verdictReliable`. There is a reachable cell with
                     // verdict_reliable === TRUE and slabbing_roi === null: the server has
                     // no branch for graded_fmv present + raw_fmv absent (only both-absent
@@ -2845,9 +2861,11 @@
                     // gradeResult.verdict, which correctly said 'estimate', so the
                     // collection page showed "Can't say" for the same comic.
                     const canRate = verdictReliable && roi != null;
+                    // No map lookup any more, so no per-tier label can go missing and
+                    // silently fall through to a default that misdescribes the tier.
                     const badgeLabel = !canRate
-                        ? (badges[verdictBasis] || 'ROUGH ESTIMATE')
-                        : (badges[verdictBasis] || (roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW'));
+                        ? HEDGED_BADGE
+                        : (roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW');
                     if (!canRate) {
                         verdictBadge.className = 'verdict-badge is-tappable';
                         verdictBadge.style.cssText = 'background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b66;';
@@ -3044,12 +3062,18 @@
                         // payload yet, so the clause is omitted until it is and the
                         // string is correct either way.
                         // Abundant comps by definition, so NO scarcity language.
+                        // ⚠️ LEADS WITH THE PROBLEM, not with "Priced from N sales".
+                        // Under the collapsed ROUGH ESTIMATE badge, opening with a
+                        // confident-sounding count asserts exactly what the badge just
+                        // denied, and the reader reaches the "but" too late. Every other
+                        // hedged string already opens on an absence or a small count;
+                        // this was the only one that opened on confidence.
                         multi_edition: (() => {
                             const ratio = valData.edition_price_ratio;
-                            const ratioClause = ratio ? ` and differ in price by ${ratio}×` : '';
-                            return `Priced from ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, but they `
-                                 + `span more than one edition of this issue${ratioClause}. `
-                                 + `We can't tell which one you have.`;
+                            const ratioClause = ratio ? `, differing in price by ${ratio}×,` : '';
+                            return `These ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt} span more than `
+                                 + `one edition of this issue${ratioClause} so we can't tell which one `
+                                 + `you have.`;
                         })()
                     };
                     // ⚠️ The fallback asserts NOTHING about counts or provenance, on
@@ -3067,10 +3091,41 @@
                     // NEGATIVELY (not estimated, not interpolated, not thin), so a future
                     // reliable tier carries no guarantee that graded_sample_size is what
                     // priced the book. Worst case it rendered "Priced from 0 sales".
-                    const reason = BASIS_REASONS[verdictBasis] || (verdictReliable
-                        ? `Priced from the sales we have${gradeAt}.`
-                        : `We can't price this reliably from the sales we have, so we're not `
-                          + `making a call on whether grading pays off.`);
+                    // ⚠️ KEYED ON `roi == null`, NOT ON verdict_basis, and it must be
+                    // checked FIRST. This is the graded-present / raw-absent cell: the
+                    // server has no branch for it, so it arrives with verdict_basis
+                    // 'supported' and verdict_reliable true but no ROI. Collapsing the
+                    // badge is what exposed it — it now shows ROUGH ESTIMATE, and
+                    // BASIS_REASONS.supported would have answered "Priced from 12 sales
+                    // at grade 9.4", contradicting the badge in the same breath.
+                    // It is the ONLY tier where the missing thing is the RAW side, which
+                    // is worth the reader knowing: the slab price is well supported, the
+                    // comparison is what cannot be made. sameGradeComps is >= 3 here —
+                    // verdict_reliable with graded_fmv present implies fmv_method 'exact',
+                    // which requires exact_count >= 3.
+                    // ⚠️ LEADS WITH THE MISSING THING, same fix as multi_edition and for
+                    // the same reason. The first wording opened "Priced from 12 sales at
+                    // grade 9.4, but there are no recent ungraded sales…", which under a
+                    // ROUGH ESTIMATE badge asserts a confident price in its first four
+                    // words. Both clauses are TRUE here — unlike multi_edition, the count
+                    // is not undermined — but the reader still meets a contradiction
+                    // before they meet the resolution. The slab price being well
+                    // supported is still stated; it is just no longer the opening claim.
+                    // ⚠️ OPEN TENSION, worth Mike's decision: 'ROUGH ESTIMATE' arguably
+                    // MISDESCRIBES this cell. The slabbed figure is not a rough estimate;
+                    // it is a well-supported price with no raw comparison available. That
+                    // is the same objection the 2026-08-07 per-tier badges existed to
+                    // answer, resurfacing in a state that was not a category back then.
+                    // A fourth badge value would fix it and would break the three-value
+                    // rule. Left at three by default.
+                    const reason = (verdictReliable && roi == null)
+                        ? `There are no recent ungraded sales to compare against, so we can't say `
+                          + `whether grading pays off. The slabbed figure itself is priced from `
+                          + `${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}.`
+                        : (BASIS_REASONS[verdictBasis] || (verdictReliable
+                            ? `Priced from the sales we have${gradeAt}.`
+                            : `We can't price this reliably from the sales we have, so we're not `
+                              + `making a call on whether grading pays off.`));
 
                     // Confidence is now SUBORDINATE to basis, not a peer. It rates how
                     // much data there is, a different axis from what the number was made
