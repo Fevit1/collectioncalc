@@ -212,9 +212,9 @@ class _ExtractTimings(_GradeTimings):
                 'vision2=%.0fms' % span('vision1_done', 'vision_done'),
                 'post=%.0fms' % span('vision_done', 'post_done'),
             ]
-            for k in ('payload_kb', 'photo_type', 'barcode', 'vision_calls',
-                      'reread', 'reread_reason', 'model', 'in_tok', 'out_tok',
-                      'outcome_detail'):
+            for k in ('payload_kb', 'norm_kb', 'dims', 'mp', 'photo_type',
+                      'barcode', 'vision_calls', 'reread', 'reread_reason',
+                      'model', 'in_tok', 'out_tok', 'outcome_detail'):
                 if k in self.extras:
                     parts.append('%s=%s' % (k, self.extras[k]))
             parts.append('outcome=%s' % outcome)

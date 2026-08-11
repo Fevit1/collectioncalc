@@ -717,6 +717,20 @@ def extract_from_base64(base64_data: str, media_type: str = "image/jpeg",
         return {"success": False, "error": f"Image could not be processed: {e}"}
     t.mark('normalize_done')
 
+    # What scan_barcode and the vision call actually receive, post-normalization.
+    # EXTRACT_MAX_LONG_EDGE is 4096 (barcode fidelity), so a 4032px phone photo
+    # passes through UNTOUCHED at ~12MP — 4x the pixels the 2000px grading cap
+    # allows. scan_barcode is linear in pixels (~535 ms/MP measured), so this is
+    # the number that explains the barcode segment. Header parse only, no decode.
+    try:
+        from PIL import Image as _PILImage
+        with _PILImage.open(BytesIO(base64.b64decode(base64_data))) as _im:
+            t.note(dims='%dx%d' % _im.size,
+                   mp=round((_im.size[0] * _im.size[1]) / 1e6, 1))
+        t.note(norm_kb=int(len(base64_data) / 1024))
+    except Exception as _e:
+        t.note(dims='unmeasured:%s' % type(_e).__name__)
+
     # First, try to scan barcode with pyzbar (more reliable than vision)
     scanned_barcode = None
     barcode_state = 'miss'

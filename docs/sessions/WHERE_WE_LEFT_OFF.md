@@ -158,7 +158,11 @@ sight. `moderation_calls=3` keeps the count measured rather than read off the lo
    *"is what we use current?"* A superseded-but-supported model is **invisible to it by
    design**. **REASON:** that is why both the opus 4.6→4.8 gap and this one passed unnoticed.
    Same shape as everything else this week: a check that cannot see the thing (L-2026-024).
-2. ⚠️ **`in_tok=2380` is honest, but the images are probably arriving small.**
+2. ⚰️ **DEAD — RESOLVED 2026-08-10 BY A PROPER RUN. See "IMAGE SIZE IS A CLOSED
+   CANDIDATE" below. The hypothesis in this item was WRONG about the mechanism.
+   Kept for the record; do not act on it.**
+
+   ~~⚠️ **`in_tok=2380` is honest, but the images are probably arriving small.**~~
    `usage.input_tokens` **does** include image tokens — this is NOT the `/api/extract`
    structural zero (that was a missing dict key defaulting to 0; here the API populates a real
    value). But the arithmetic does not fit 3 full-cap photos: Anthropic bills ≈ (w×h)/750 after
@@ -189,13 +193,100 @@ single SELECT, that is ~1.5s of the 20.7s. Not the problem; a real number for la
 run between `before_request` and the handler body, so their cost lands in that field. The
 control field fired and told us something — which is why it was logged.
 
+### ⚰️ IMAGE SIZE IS A CLOSED CANDIDATE — **not a solved problem**
+
+**Run with real CAMERA PHOTOS, 2026-08-10:**
+
+```
+[GRADE-TIMING]   total=25459ms body=801ms normalize=598ms imgmeas=7ms quality=47ms
+  moderation=932ms vision=21889ms post=891ms images=4 payload_kb=13038 norm_kb=3658
+  dims=1506x2000,1506x2000,1506x2000,1506x2000 in_tok=7534 out_tok=908
+  cache_create=0 cache_read=0
+[EXTRACT-TIMING] total=14214ms body=337ms quality=316ms moderation=482ms normalize=191ms
+  barcode=4082ms vision1=8511ms payload_kb=3874 barcode=miss reread=not_needed
+  in_tok=4433 out_tok=320
+```
+
+**All four photos land at 1506×2000 — the TOP of the (cap/2, cap] band. The cap works.
+Real submissions get full detail.** `in_tok=7534` matches the ~6,340 + prompt predicted for
+2000px photos, and `cache_create=0 cache_read=0` proves the cache fields are genuinely zero
+rather than assumed.
+
+⚰️ **DEAD: "photos may be reaching the grader at a quarter of the intended pixel area."**
+**REPLACED BY:** they arrive at the top of the band. **REASON — and this is the part worth
+keeping:** the 512×780 sample that produced the hypothesis came from **eBay SCREEN GRABS**,
+not camera photos. eBay serves listing thumbnails at a few hundred pixels, so that was a
+**small source arriving small** — it never engaged the draft-halving path at all. The
+(cap/2, cap] arithmetic was correct and the proposed *mechanism* never fired. **SUPERSEDES**
+any plan to trace the normalization step. Mike, 2026-08-10: *"I nearly sent you off tracing a
+step that does not exist."*
+
+⚠️ **Image size is now a CLOSED CANDIDATE for the undergrading complaint (L-SW-2026-003) —
+which means the undergrading mechanism is back to UNEXPLAINED.** Ruling a cause out is not
+finding one. Do not let the closure read as a fix.
+
+✅ **`dims=52x784` was real, not a rendering artifact.** The emit truncates exactly one field
+(`title`, `[:60]`); `dims` passes through whole. Verified by positive control against
+`1052x784` and a four-photo 4-digit string — both rendered intact, so a narrow value is a
+narrow image. It was a sliver screen grab. Closed.
+
+### 🔦 THE BARCODE SEGMENT — 4,082ms of a 14,214ms extract, on a MISS
+
+Measured offline against the real `scan_barcode` control flow, photo-realistic fixtures:
+
+| source | pixels | miss-path total | ms/MP |
+|---|---|---|---|
+| 3024×4032 (phone, untouched at the 4096 cap) | 12.2 MP | **6,633ms** | 544 |
+| 1506×2000 (grading-cap size) | 3.0 MP | 1,612ms | 535 |
+| 753×1000 | 0.8 MP | 396ms | 528 |
+
+**Linear in pixels at ~535 ms/MP across a 16× range.** Yes, it scales with image size.
+
+**Where the time actually goes — the four rotations are NOT the cost:**
+
+```
+rotates   113ms          <- 1.7%
+decodes  6464ms          <- 97%   across EIGHT pyzbar calls
+  per rotation:  pass1 (symbol-filtered) ~515ms  +  pass2 (UNFILTERED fallback) ~1090ms
+```
+
+Three structural facts, all observed rather than reasoned:
+1. **The unfiltered fallback is 2/3 of the total.** It costs ~2× the filtered pass and runs on
+   **every** rotation in the miss case, by construction.
+2. **`break` fires only on a HIT**, so `barcode=miss` is structurally the maximum-cost path —
+   and a comic without a scannable barcode pays the most.
+3. **zbar is running PDF417 and DataBar decoders on a comic cover.** Direct evidence: the
+   unfiltered pass emits `zbar/decoder/pdf417.c` and `databar.c` assertion warnings. Those
+   symbologies do not appear on comics.
+
+🚧 **UNEXERCISED, stated so it is not mistaken for measured:** the HIT path was **not**
+successfully benchmarked — the synthetic bar field was not a decodable UPC, so that run was
+another miss. Hit-path cost is **unknown**; only the miss path above is measured.
+
+**What the code permits (NOT a proposal — no fix scoped):** the `break` exists but only on
+success; the unfiltered fallback is unscoped; extraction scans at up to 12MP where a UPC needs
+only enough resolution to resolve bar widths; and `photo_type` is already known to be `front`,
+where a comic barcode is always bottom-left — spatial scope exists and is unused.
+`dims=`/`mp=` added to `[EXTRACT-TIMING]` so production confirms the scaling directly.
+
+### ⚠️ LOGGED, NOT SCOPED — no warning for too-small source images
+
+Grading from 512px eBay screen grabs passed `quality=8ms` **without comment** and returned a
+confident **8.5**. The grading quality gate has a strict resolution floor, and these cleared
+it. A collector browsing eBay listings would plausibly do exactly this. Mike, 2026-08-10:
+*"I am not scoping it tonight."* Related to L-SW-2026-016 — a confident output whose input
+could not support it, with nothing on screen saying so.
+
 ### 🔬 STILL UNMEASURED — do not theorise ahead of it
 
-- **Why one Sonnet call takes 18.7s.** With only ~2,380 input tokens and 809 output tokens,
-  the latency is **not** explained by image prefill volume. `out_tok=809` is the only large
-  quantity in the request and the only one that scales linearly in an autoregressive decode.
-  That points at **output length**, not input size — a different lever from the one the
-  roadmap assumed. Unconfirmed; needs its own measurement before anyone acts on it.
+- **Why one Sonnet call takes ~19–22s. NO LEVER IS CURRENTLY INDICATED.**
+  ⚰️ **DEAD: "output length is the likely lever."** **REPLACED BY:** nothing — the question is
+  open. **REASON:** the proper camera-photo run moved input **3.2×** (2,380 → 7,534) while
+  latency rose only **19%** (18,442 → 21,889ms) and output barely moved (806 → 908). Neither
+  term dominates cleanly, so the single-run observation that pointed at output length does not
+  survive a second data point. Mike, 2026-08-10: *"I am recording that the lever we thought we
+  had identified is no longer indicated."* Do not re-raise output length as the suspect
+  without new measurement.
 - **Whether the 180° re-read fires in practice** is unknown and **the logs cannot answer it**.
   Extraction logs nothing on a clean success path, so absence of the doubled-cost line proves
   nothing in either direction. That is why `reread=` is now emitted on **every** request
