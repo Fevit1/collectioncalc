@@ -1,4 +1,129 @@
-# Where We Left Off - Aug 10, 2026
+# Where We Left Off - Aug 12, 2026
+
+## 2026-08-12 — 🟠 **JOSEPH VICARIO PHOTO BACKFILL: SCOPED, SCRIPT WRITTEN, NOT RUN.**
+
+**MOST RECENT CHANGE (Rule 5): the Vicario recovery is 20 rows, not 21, and the two rows
+that "did not resolve" were never ambiguous. Re-measured 2026-08-12 against live data.
+Supersedes the 2026-08-06 diagnosis in every figure below.**
+
+⚠️ **THIS ENTRY EXISTS BECAUSE THE LAST ONE DID NOT.** The 2026-08-06 diagnosis — a real
+user, 100% photo loss, a hard 2026-11-04 purge deadline — was **never written to any file**.
+`grep -i vicario` across the entire repo returned **zero** on 2026-08-12, six days later. It
+survived only in conversation. That is a **Rule 4 violation** (log the decision when it is
+made, not when the arc closes) on the single item in the project with an external deadline
+and a named human attached. Recorded at Mike's direction: *"the state-recording gap is yours
+to close."*
+
+### THE INCIDENT
+
+`user_id 38`, `vicariojoseph.jv@gmail.com`, signed up 2026-08-05 23:23 UTC. Between
+**01:22 and 03:51 UTC on 2026-08-06** he saved **21 comics**; every one carries exactly
+`{"back": null, "front": null, "spine": null, "centerfold": null}`. 100% of his collection
+has no photos and the app reported success on all 21 saves.
+
+**Mechanism (measured, not inferred):** of 90 `/api/images/submission` calls — **69× 400,
+11× 500, 10× 200**. The ten 200s took **52–85 seconds**, every one past `app.html`'s 30s
+`Promise.race` upload timeout. The browser had already given up and saved all-null while the
+server went on to succeed. *The save genuinely succeeded; only the photo URLs were abandoned.*
+
+### CORRECTED FIGURES — re-measured 2026-08-12
+
+⚰️ **DEAD: "19 of 21 resolve, rows 95 and 96 need disambiguation."**
+**REPLACED BY: 20 recoverable, 1 permanently lost, 0 needing disambiguation.**
+**REASON:** two independent errors in opposite directions.
+
+| | 2026-08-06 | measured 2026-08-12 |
+|---|---|---|
+| collections rows | 21 | 21 ✓ |
+| grade_submissions | 25, 24 with photos | 25, 24 with photos ✓ |
+| resolve to one candidate | 19 | 19 ✓ |
+| **actually recoverable** | *(not stated)* | **20** |
+| objects | "84" | **64 source read · 80 written · 20 rows updated** |
+
+- **Collection 89 (Captain America #6) is UNRECOVERABLE.** It resolves cleanly to submission
+  46, whose `photos` column is **NULL** — the persist thread inserted the row and died before
+  the photo-backfill `UPDATE`. The row asserts `photos_used = 4` and a populated
+  `photo_labels`; **both are true statements about what the GRADER consumed and neither is a
+  claim about what was STORED.** Instance of **[[L-SW-2026-016]]** in the retention layer. Any
+  matcher keying on those fields writes four broken URLs. **Key on the `photos` jsonb only.**
+- **Rows 95/96 were a window artifact, not an ambiguity.** Submission 50 is the *only*
+  Daredevil submission in all 25 rows and the last grade of the session. Collections 93/94/95/96
+  are four **Save clicks on one grade report**, 45/124/201/252s later, agreeing on title, issue,
+  publisher (`Marvel`), year (`1983`), grade (`8.0`) and confidence (`94`). The ±3min window was
+  simply too narrow. Same shape resolves 92 → 48 (Strange Academy).
+- **The mapping is not a bijection:** sub 48 → 2 rows, sub 50 → 4 rows. **Mike's call
+  2026-08-12: reconstruct faithfully — four identical Daredevil covers.** Had the uploads
+  worked, each save click would have uploaded its own copy under its own `grading_id`.
+  Per-row prefixes, not shared objects. To be explained in the message to Joseph.
+
+### THE ARTIFACT
+
+**`scripts/jv_photo_backfill.py`** — written 2026-08-12, **NOT RUN, NOT COMMITTED.**
+Dry-run default; `--execute` required. Runs in the **Render shell** (has `DATABASE_URL` +
+`R2_*`; local `.env` has only `DATABASE_URL_RO`). Backend-only → **`deploy`, no `purge`.**
+
+Design: copies to **NEW `submissions/{grading_id}/{label}.jpg` keys**; `collections.photos` is
+never pointed at a `grade_submissions/` key — the two key spaces stay disjoint because the
+purge job's safety depends on it and nothing enforces it. Label map
+`front_cover→front`, `back_cover→back`. Per-row transactions, R2 first, DB commit last.
+Guards: `user_id = 38` + explicit 20-id literal + `photos NOT LIKE '%http%'` (which is what
+makes a re-run safe). Positive-controlled R2 probe (**[[L-2026-024]]**) and a public-URL base
+**derived from a healthy row** then cross-checked against `r2_storage` (**[[L-2026-026]]**).
+Rollback printed *before* any write. Verified read-only 2026-08-12: 20/20 pairs pass, and a
+deliberately corrupted pair (col 75 → sub 26) is rejected — the verifier can return a hit.
+
+### ⚠️ THE ROOT CAUSE IS NOT FIXED
+
+`85617c6` (upload resize, 2026-08-06 **21:50 UTC**) landed **7 hours after Joseph's last
+visit** — he never saw it. It has **not** been shown to close this: **user 42, 2026-08-11,
+five days later, collection 101 saved with three of four photos null.** Do not tell Joseph it
+is fixed. The 400-branch hypothesis (truncated request bodies from a mobile uplink) is
+**bounded but not closed**: moderation is ruled out by evidence — `content_incidents` has
+**zero rows for user 38** and the blocked path logs before returning 400 — but
+`request_logs.error_message` and `response_summary` are **NULL on all 80 failures**. The
+endpoint records that it failed and not why (**[[L-SW-2026-007]]**).
+
+### THREE THINGS THAT OUTRANK THE BACKFILL (Mike, 2026-08-12) — ordered
+
+1. **`/api/images/submission` instrumentation.** Same treatment as the grade and extract legs.
+   Fix the NULL `error_message`/`response_summary` first, *then* we know rather than infer.
+2. **The 429 wall — a conversion failure, not a bug.** He burned 25 grades (Free cap) in one
+   night, came back **three times over eleven hours**, uploaded photos each time, watched the
+   book get identified, and got a **429 with no upgrade CTA** (7 of them). Then loaded his
+   empty collection page and left. Not seen since **2026-08-06 14:52 UTC**. Scope required
+   before any copy is drafted: what the 429 returns and what the client renders; whether the
+   cap check knows plan and reset date at the point of refusal; what Pro would have given him
+   **as a number, not a tier name**.
+3. **Pin his submissions before 2026-11-04.** ⚠️ `pinned` **has no writer** — declared,
+   `DEFAULT FALSE`, indexed, read in exactly two places (`admin_routes.py:1283` →
+   `admin.html:1305` badge), set by nothing. **And there is no purge job at all** — the risk is
+   not a running timer, it is that whoever builds it builds it against
+   `images_purge_after` + `pinned = FALSE` and runs it. **Recommendation: manual `UPDATE` in
+   DBeaver, do not wire the column.** Scope is a live decision: `privacy.html:357` discloses
+   the exception for **feedback-related** submissions only, which covers **4 rows**
+   (26/28/33 Spawn #77 + 50 Daredevil), not 25. Pinning all 25 exceeds the published window
+   for a real identifiable user — cleanest fix is to **ask him in the message that is already
+   going out**. DECISION PENDING.
+
+### ⚠️ WHAT'S IN THE DATA BEFORE THE MESSAGE GOES OUT
+
+- **`last_login` is a decoy** (**[[L-2026-023]]**): written *only* by the password-login path
+  (`auth.py:903`); a returning user on a live JWT never updates it. It reads 2026-08-05 23:31.
+  **`request_logs` is the real record** — he returned 03:54, 13:01 and 14:43 on 2026-08-06.
+- **He rated two grades** (`user_feedback`, `rating` = thumbs): **thumbs DOWN** on
+  "Spawn #77 Grade: 7" (01:28:34) and **thumbs UP** on "Daredevil #196 Grade: 8" (03:47:47).
+- **Spawn #77 was graded three times: 8.0, then 7.0, then 7.0.** He downvoted 44 seconds after
+  the second. He watched one book come back with different grades — and kept using the product
+  for another two and a half hours. **First hard evidence for grading inconsistency, which has
+  been anecdotal since June** and which **[[L-SW-2026-003]]** said was unmeasurable before
+  retention shipped. Also Gwenom vs Carnage ×3, Ultimate Spider-Man ×3.
+- **Blast radius is exactly user 38** — no other user has the total-loss pattern. User 42's
+  col 101 (3 of 4 null) is the only other damage.
+- After the backfill the **photos** survive 2026-11-04 regardless (they become collection
+  images under `submissions/` keys, `privacy.html:356`). What the pin protects is the
+  `grade_submissions` **row** — subgrades, `raw_grade`, `limiting_factor`, model, reasoning.
+
+---
 
 ## 2026-08-10 — 🟢 **SESSION LIVE. INDEX SHIPPED AND MEASURED. EXTRACT LEG UNCOMMITTED.**
 
