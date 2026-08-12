@@ -65,6 +65,15 @@ import sys
 
 sys.stdout.reconfigure(encoding='utf-8')  # L-2026-015
 
+# Resolve the repo root from THIS file, never from the invocation. Requiring the
+# operator to remember `PYTHONPATH=/app` makes correctness depend on how the
+# script was called -- and a step you have to remember is a step that gets
+# forgotten. Same convention as scripts/cp1_*.py.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
