@@ -8,6 +8,7 @@ collections.photos JSONB under an 'extra' array.
 """
 import os
 import json
+import time
 from flask import Blueprint, jsonify, request, g
 import psycopg2
 import db as _dbpool
@@ -156,26 +157,72 @@ def api_upload_submission_image():
     }
     """
     if not R2_AVAILABLE:
+        print('[IMG-SUBMIT] reject: R2 not configured')
         return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
-    
-    data = request.get_json() or {}
+
+    # ── Body arrival, measured before parsing ───────────────────────────────
+    # This endpoint lost user 38's entire collection on 2026-08-06: 69× 400,
+    # 11× 500, 10× 200 — and the ten successes took 52–85s, past app.html's 30s
+    # client timeout, so the browser saved all-null while the server succeeded.
+    #
+    # Every one of the 69 400s logged error_message NULL. Since all four reject
+    # branches below return jsonify({'error': ...}) and after_request reads that
+    # key (proven: /api/grade 429s on the same account logged 'monthly_limit'),
+    # NONE of them came from this route — they were raised by request.get_json()
+    # before the handler and rendered as HTML. That is what made the cause
+    # inferable but not knowable.
+    #
+    # get_json(silent=True) keeps the failure inside this handler so it can
+    # self-report (L-SW-2026-007) instead of becoming an anonymous Werkzeug
+    # page. Same 400 status; a JSON body the client can actually read.
+    declared = request.content_length
+    try:
+        received = len(request.get_data(cache=True))
+    except Exception:
+        received = None
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        print(f'[IMG-SUBMIT] reject=unparseable-body user={getattr(g, "user_id", None)} '
+              f'declared={declared} received={received} '
+              f'truncated={received is not None and declared is not None and received < declared} '
+              f'ctype={request.content_type!r} device={getattr(g, "device_type", "?")}')
+        return jsonify({
+            'success': False,
+            'error': 'Request body was not readable as JSON',
+            'declared_bytes': declared,
+            'received_bytes': received,
+        }), 400
+
     image_data = data.get('image')
     submission_id = data.get('submission_id')
     image_type = data.get('type', 'front')
-    
+
     if not image_data:
+        print(f'[IMG-SUBMIT] reject=no-image user={getattr(g, "user_id", None)} '
+              f'declared={declared} received={received} keys={sorted(data.keys())}')
         return jsonify({'success': False, 'error': 'Image data required'}), 400
     if not submission_id:
+        print(f'[IMG-SUBMIT] reject=no-submission-id user={getattr(g, "user_id", None)}')
         return jsonify({'success': False, 'error': 'submission_id required'}), 400
     if image_type not in ['front', 'back', 'spine', 'centerfold']:
+        print(f'[IMG-SUBMIT] reject=bad-type type={image_type!r}')
         return jsonify({'success': False, 'error': 'type must be front, back, spine, or centerfold'}), 400
-    
+
+    print(f'[IMG-SUBMIT] accept user={getattr(g, "user_id", None)} type={image_type} '
+          f'sub={submission_id} declared={declared} received={received} '
+          f'b64_len={len(image_data)} device={getattr(g, "device_type", "?")}')
+
     # Content moderation check BEFORE storing
     if moderate_image:
         user_id = getattr(g, 'user_id', None)
+        t_mod = time.time()
         mod_result = moderate_image(image_data)
+        mod_ms = int((time.time() - t_mod) * 1000)
         if mod_result.get('blocked'):
             log_moderation_incident(user_id, '/api/images/submission', mod_result, get_image_hash(image_data))
+            print(f'[IMG-SUBMIT] reject=moderation user={user_id} type={image_type} '
+                  f'mod_ms={mod_ms} reason={mod_result.get("reason")!r}')
             return jsonify({
                 'success': False,
                 'error': 'Image rejected: inappropriate content detected.',
@@ -183,8 +230,26 @@ def api_upload_submission_image():
             }), 400
         if mod_result.get('warnings'):
             log_moderation_incident(user_id, '/api/images/submission', mod_result, get_image_hash(image_data))
-    
+    else:
+        mod_ms = None
+
+    t_up = time.time()
     result = upload_submission_image(submission_id, image_data, image_type)
+    up_ms = int((time.time() - t_up) * 1000)
+
+    if not result.get('success'):
+        # This used to return HTTP 200 carrying {'success': False}. The client
+        # reads the body and behaves correctly either way, but request_logs only
+        # sees the STATUS — so every R2 failure was recorded as a success and was
+        # structurally invisible to exactly the kind of investigation this
+        # endpoint just cost us. 502 makes it visible without changing what the
+        # client does (app.html checks uploadResult.success, never response.ok).
+        print(f'[IMG-SUBMIT] fail=r2 user={getattr(g, "user_id", None)} type={image_type} '
+              f'sub={submission_id} up_ms={up_ms} error={result.get("error")!r}')
+        return jsonify(result), 502
+
+    print(f'[IMG-SUBMIT] ok user={getattr(g, "user_id", None)} type={image_type} '
+          f'sub={submission_id} bytes={result.get("size")} mod_ms={mod_ms} up_ms={up_ms}')
     return jsonify(result)
 
 

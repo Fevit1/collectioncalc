@@ -402,13 +402,50 @@ def after_request(response):
     try:
         response_time = int((time.time() - g.start_time) * 1000)
         error_message = None
+        response_summary = None
+
         if response.status_code >= 400:
             try:
                 data = response.get_json()
                 error_message = data.get('error') if data else None
-            except:
+            except Exception:
                 pass
-        
+
+            # A NULL error_message used to end the story here. It does not mean
+            # "no reason existed" — it means the body was not JSON carrying an
+            # `error` key, i.e. the response did NOT come from a route's
+            # jsonify(). Werkzeug's own 400/413/415 pages are HTML and carry the
+            # actual reason in their body, and that reason was being discarded.
+            #
+            # SOURCE: user 38, 2026-08-06 — 69× 400 and 11× 500 on
+            # /api/images/submission, every one logged with error_message NULL,
+            # while /api/grade 429s on the same account logged 'monthly_limit'
+            # correctly. The logger was working; this branch was throwing the
+            # answer away. 80 failures recorded THAT they failed and not WHY
+            # (L-SW-2026-007), and the diagnosis is still inference because of it.
+            if error_message is None:
+                try:
+                    if not getattr(response, 'direct_passthrough', False):
+                        body = response.get_data(as_text=True)
+                        if body:
+                            response_summary = body[:1000]
+                            error_message = f'non-json-{response.status_code}'
+                except Exception:
+                    pass
+
+        # Declared body size. For a truncated or abandoned upload this is the
+        # single most diagnostic field available — content_length is what the
+        # client SAID it would send, and the endpoint can compare it against
+        # what actually arrived. Never populated by this hook before.
+        try:
+            request_size = request.content_length
+        except Exception:
+            request_size = None
+        try:
+            response_size = response.calculate_content_length()
+        except Exception:
+            response_size = None
+
         log_request(
             user_id=g.user_id,
             endpoint=request.path,
@@ -416,7 +453,10 @@ def after_request(response):
             status_code=response.status_code,
             response_time_ms=response_time,
             device_type=getattr(g, 'device_type', 'unknown'),
-            error_message=error_message
+            error_message=error_message,
+            request_size=request_size,
+            response_size=response_size,
+            response_summary=response_summary,
         )
     except Exception as e:
         print(f"Logging error: {e}")
