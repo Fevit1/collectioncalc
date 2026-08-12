@@ -582,12 +582,28 @@ def api_grade():
                 cap_conn.close()
                 _t.mark('cap_done')
                 _t.emit('monthly_limit')
+
+                # The refusal already knows the plan, the limit and the reset
+                # date; it just never said what could be done about it. Carry a
+                # DERIVED offer so the client renders a real number instead of a
+                # hardcoded tier claim. Never fatal: if this raises, the refusal
+                # degrades to exactly its previous shape rather than 500ing on
+                # the cap path.
+                upgrade = None
+                try:
+                    from routes.billing import next_purchasable_upgrade
+                    upgrade = next_purchasable_upgrade(plan_key, monthly_limit)
+                except Exception as e:
+                    print(f'[WARN] upgrade offer derivation failed (omitting): {e}')
+
                 return jsonify({
                     'success': False,
                     'error': 'monthly_limit',
                     'limit': monthly_limit,
                     'used': gradings_used,
-                    'resets_at': resets_at
+                    'resets_at': resets_at,
+                    'plan': plan_key,
+                    'upgrade': upgrade
                 }), 429
 
         cap_cur.close()
@@ -903,17 +919,29 @@ def api_grade():
         try:
             usage_conn = _dbpool.get_db(dict_rows=True)
             usage_cur = usage_conn.cursor()
-            usage_cur.execute("SELECT gradings_this_month, is_admin FROM users WHERE id = %s", (g.user_id,))
+            usage_cur.execute("SELECT gradings_this_month, is_admin, plan FROM users WHERE id = %s",
+                              (g.user_id,))
             usage_row = usage_cur.fetchone()
             if usage_row and not usage_row.get('is_admin'):
+                # `MONTHLY_GRADING_LIMIT` was deleted by bfd231c (2026-06-18)
+                # when the per-tier cap landed, and this reference survived it.
+                # The resulting NameError was swallowed by the bare `except`
+                # below, so `grading_usage` was never set and app.html's
+                # "N of 25 free gradings remaining this month" counter (guarded
+                # by `if (counter && text && usageData)`) has not rendered for
+                # ~8 weeks. That is why the cap arrives as a surprise: the only
+                # forewarning the product has was silently dead.
+                usage_plan = (usage_row.get('plan') or 'free').strip().lower()
                 result['grading_usage'] = {
                     'used': usage_row.get('gradings_this_month', 0) or 0,
-                    'limit': MONTHLY_GRADING_LIMIT
+                    'limit': PLANS.get(usage_plan, PLANS['free'])['valuations_per_month']
                 }
             usage_cur.close()
             usage_conn.close()
-        except Exception:
-            pass
+        except Exception as e:
+            # Never fatal — the grade is already computed and must still be
+            # served. But say so: a bare `pass` here is what hid the above.
+            print(f'[WARN] grading_usage counter unavailable (grade unaffected): {e}')
 
         # --- Persist this grade submission for retention/diagnosis ---
         # Per docs/technical/GRADE_RETENTION_SPEC.md. Runs on a background thread so it

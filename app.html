@@ -2419,22 +2419,49 @@
                             document.querySelectorAll('.grading-step-content').forEach(c => c.classList.remove('active'));
                             document.getElementById('gradingContent5').classList.add('active');
 
+                            // The offer is DERIVED server-side from PLANS and
+                            // COMING_SOON_PLANS (routes/billing.py
+                            // next_purchasable_upgrade). Do not hardcode a tier
+                            // or a price here: the copy this replaces read
+                            // "Premium plans coming soon!" for ~7 weeks after
+                            // Pro became purchasable on 2026-07-29, and sent
+                            // every capped user home with a Back button at the
+                            // exact moment of purchase intent. If `upgrade` is
+                            // null nothing is purchasable — say nothing rather
+                            // than something (L-SW-2026-016: omit over assert).
+                            const up = limitData.upgrade;
+                            const offerHtml = up ? `
+                                    <div style="background: var(--bg-card); border: 1px solid #6366f1; border-radius: 12px; padding: 1.5rem; max-width: 380px; margin: 0 auto 1rem;">
+                                        <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+                                            ${up.additional} more gradings this month
+                                        </div>
+                                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.1rem;">
+                                            Free for ${up.trial_days} days, then $${up.monthly_price_usd}/month. Cancel anytime.
+                                        </div>
+                                        <button type="button" id="capUpgradeBtn" class="btn-primary"
+                                                onclick="startCapCheckout('${up.plan}')"
+                                                style="padding: 0.8rem 1.5rem; width: 100%;">
+                                            Get ${up.additional} more gradings
+                                        </button>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem;">
+                                            ${up.name} · ${up.gradings} gradings a month
+                                        </div>
+                                    </div>
+                            ` : '';
+
                             resultsScreen.innerHTML = `
                                 <div style="text-align: center; padding: 3rem 1.5rem;">
-                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🚫</div>
-                                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Monthly Limit Reached</h2>
+                                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">You've used all ${limitData.limit} gradings this month</h2>
                                     <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                                        You've used <strong style="color: #f59e0b;">${limitData.used}</strong> of <strong>${limitData.limit}</strong> free gradings this month.
+                                        That's every grading on your current plan.
                                     </p>
-                                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; max-width: 320px; margin: 0 auto 1.5rem;">
-                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Resets on</div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;">${limitData.resets_at}</div>
-                                    </div>
+                                    ${offerHtml}
                                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
-                                        Want more gradings? Premium plans coming soon!
+                                        Or wait — your gradings reset on <strong style="color: var(--text-primary);">${limitData.resets_at}</strong>.
                                     </p>
-                                    <button type="button" class="btn-primary" onclick="window.location.href='/app'" style="padding: 0.75rem 2rem;">
-                                        ← Back to Home
+                                    <button type="button" onclick="window.location.href='/collection.html'"
+                                            style="background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-size: 0.9rem;">
+                                        Back to my collection
                                     </button>
                                 </div>
                             `;
@@ -3247,6 +3274,65 @@
                 if (remaining <= 5) text.style.color = '#f59e0b';
                 if (remaining <= 2) text.style.color = '#ef4444';
                 counter.style.display = 'block';
+            }
+        }
+
+        // Start Stripe Checkout straight from the monthly-cap screen.
+        //
+        // Deliberately does NOT bounce through /pricing.html. The cap screen IS
+        // the moment of purchase intent; an extra hop to a page that re-pitches
+        // four tiers (two of which cannot be bought) is where that intent goes
+        // to die.
+        //
+        // Mirrors pricing.html startCheckout(): same endpoint, same body, and
+        // the same `checkout_url` response key -- NOT `url`. Getting that key
+        // wrong fails silently into the alert branch, which is indistinguishable
+        // from a declined checkout.
+        async function startCapCheckout(plan) {
+            const token = localStorage.getItem('cc_token');
+            if (!token) {
+                window.location.href = '/login.html?redirect=app';
+                return;
+            }
+
+            const btn = document.getElementById('capUpgradeBtn');
+            const originalText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.textContent = 'Loading...';
+                btn.disabled = true;
+            }
+            const restore = () => {
+                if (!btn) return;
+                btn.textContent = originalText;
+                btn.disabled = false;
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/billing/create-checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ plan: plan, billing_period: 'monthly' })
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (response.ok && data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    // Report what the server said, not a guess at what went
+                    // wrong (L-SW-2026-007). A coming-soon refusal, an expired
+                    // session and a Stripe misconfiguration must not all render
+                    // as one generic apology.
+                    console.error('Cap checkout failed:', response.status, data);
+                    alert(data.error || 'Could not start checkout. Please try again.');
+                    restore();
+                }
+            } catch (err) {
+                console.error('Cap checkout error:', err);
+                alert('Connection error. Please try again.');
+                restore();
             }
         }
 

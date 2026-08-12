@@ -72,6 +72,30 @@ makes a re-run safe). Positive-controlled R2 probe (**[[L-2026-024]]**) and a pu
 Rollback printed *before* any write. Verified read-only 2026-08-12: 20/20 pairs pass, and a
 deliberately corrupted pair (col 75 → sub 26) is rejected — the verifier can return a hit.
 
+### ✅ EXECUTED 2026-08-12 — 20 updated, 0 failed
+
+Mike ran the dry run, then `--execute`, in the Render shell. **70 objects copied, 10 kept
+existing, 20 rows updated, col 89 correctly excluded.** Spot-check on a copied URL: 200.
+Verified read-only afterwards: all 20 rows at 4/4, every URL prefix matches that row's own
+`grading_id`, and **0 rows point at a `grade_submissions/` key** — the disjointness constraint
+held. The only remaining all-null collections row in the entire table is col 89.
+
+**🔍 INCIDENTAL FINDING — the KEEP-EXISTING objects are 3–4× LARGER than the sources.**
+1.4MB vs 355KB on the Daredevil front. So **rows 93 and 94 carry Joseph's ACTUAL
+full-resolution uploads** (his own late-landing 200s, kept rather than overwritten) while
+**rows 95 and 96 carry copies of the grader's normalized versions**. Same book, four rows,
+**two image qualities**. Recorded rather than smoothed, at Mike's direction — it is faithful
+to what happened, and it is **evidence that his originals were large**, which bears directly
+on the upload-failure question below: 1.4MB stored implies a much larger base64 body on the
+wire from a phone, pre-`85617c6`.
+
+⚠️ **OPERATOR FRICTION, fixed:** the script needed `PYTHONPATH=/app` and the variable does not
+persist between invocations, so it failed identically on the first dry run *and* the first
+`--execute`. It failed **safely** — nothing written either time — but a step the operator has
+to remember is a step that gets forgotten. Now resolves the repo root from `__file__` via the
+`_HERE`/`_ROOT` convention already used by `scripts/cp1_*.py`; verified running from a foreign
+cwd with no `PYTHONPATH`. Same principle as deriving a value rather than typing it.
+
 ### ⚠️ THE ROOT CAUSE IS NOT FIXED
 
 `85617c6` (upload resize, 2026-08-06 **21:50 UTC**) landed **7 hours after Joseph's last
@@ -82,6 +106,95 @@ is fixed. The 400-branch hypothesis (truncated request bodies from a mobile upli
 **zero rows for user 38** and the blocked path logs before returning 400 — but
 `request_logs.error_message` and `response_summary` are **NULL on all 80 failures**. The
 endpoint records that it failed and not why (**[[L-SW-2026-007]]**).
+
+### 🔬 `/api/images/submission` INSTRUMENTATION — the NULLs were a discarded answer
+
+⚰️ **DEAD: "the endpoint records that it failed and not why."**
+**REPLACED BY:** `after_request` *was* capturing the reason and **throwing it away** for any
+response whose body was not JSON. **REASON:** `wsgi.py` read `response.get_json()` and took
+`data.get('error')` under a bare `except: pass`. Werkzeug's own 400/413/415 pages are **HTML**,
+so every framework-level failure logged NULL while route-level failures logged fine.
+
+**The positive control that makes the NULLs evidence (L-2026-024):** the logger demonstrably
+works — `/api/grade` 429s on **the same account, the same night** logged
+`error_message='monthly_limit'`, and 145 of 267 4xx table-wide carry a message. Since **all
+four** reject branches in `api_upload_submission_image` return `jsonify({'error': ...})`,
+a NULL on all 69 of Joseph's 400s proves **none of them came from that route**. Combined with
+**zero `content_incidents` rows for user 38**, moderation is excluded twice over. The 400s were
+raised by `request.get_json()` before the handler.
+
+Shipped:
+- **`wsgi.py after_request`** — falls back to the response body (≤1000 chars) into
+  `response_summary` with `error_message='non-json-{code}'` when no JSON `error` key exists;
+  now also records **`request_size_bytes`** (`request.content_length`) and
+  `response_size_bytes`. ⚠️ `response_summary` had been written on **0 of 220,399 rows** — a
+  column `log_request()` accepts and nothing has ever passed ([[L-SW-2026-018]]).
+- **`routes/images.py`** — `get_json(silent=True)` keeps the failure **inside** the handler so
+  it can self-report ([[L-SW-2026-007]]) instead of becoming an anonymous Werkzeug page; logs
+  **declared vs received bytes** and a `truncated=` flag, which is the direct test of the
+  mobile-uplink hypothesis. Greppable `[IMG-SUBMIT]` prefix. Moderation and R2 legs timed.
+- ⚠️ **BEHAVIOUR CHANGE, deliberate:** an R2 upload failure used to return **HTTP 200**
+  carrying `{'success': false}`. `request_logs` only sees the status, so **every R2 failure was
+  recorded as a success** and was structurally invisible to exactly this investigation. Now
+  **502**. `app.html` checks `uploadResult.success`, never `response.ok`, so client behaviour
+  is unchanged.
+
+⚠️ **This is observation, not a fix.** It makes the next occurrence self-reporting. The 400
+cause remains **inferred**, and user 42 (2026-08-11, col 101, 3 of 4 null) is still unexplained.
+
+### 💸 THE 429 WALL — stale copy that has been refusing money for seven weeks
+
+⚰️ **DEAD: "the 429 has no upgrade CTA."** **REPLACED BY:** it had an **anti-CTA**.
+`app.html` rendered *"Want more gradings? Premium plans coming soon!"* with a single
+**"← Back to Home"** button — while **Pro has been purchasable since 2026-07-29**
+(`COMING_SOON_PLANS = ('dealer', 'guard')`; Pro is the one tier `create_checkout_session()`
+will sell). **REASON:** the copy was true when written and nothing re-checked it.
+**Joseph saw it seven times across three visits.** Mike, 2026-08-12: *"I have almost no
+traffic, so the absolute number is small. The rate is 100%."*
+
+Textbook **[[L-SW-2026-020]]** — correct code, correct mechanism, false label, no test could fail.
+
+**What the refusal already knew and never said:** `routes/grading.py:547` selects
+`plan, is_admin, gradings_this_month, gradings_reset_date` and derives the limit from `PLANS`.
+Plan, usage, limit and reset date were all in hand; only `limit`/`used`/`resets_at` were emitted.
+
+Shipped (Mike's three answers: **name the number not the tier · keep the reset date but
+subordinate it · never show Guard**):
+- **`routes/billing.py`** — `next_purchasable_upgrade(plan_key, limit)` returns the **cheapest
+  tier the user can ACTUALLY BUY** that raises their cap. Filters on the same
+  `COMING_SOON_PLANS` constant that `create_checkout_session()` refuses on, so an unbuyable
+  tier **cannot** be advertised at the moment of purchase intent — the failure mode is deleted
+  rather than watched ([[L-SW-2026-019]]). Verified with a negative control: temporarily
+  removing `guard` from the set makes a Pro user's offer appear and a free user still get Pro
+  (cheapest wins); restoring it returns `None`.
+- **`TRIAL_PERIOD_DAYS = 14`** — was a bare literal in `create_checkout_session()`. The moment
+  a trial length is quoted to a user it becomes a **claim**, and two copies drift silently.
+- **`routes/grading.py`** — the 429 body now carries `plan` and a derived `upgrade` object.
+  Wrapped so a derivation failure degrades to the previous shape, never a 500 on the cap path.
+- **`app.html`** — *"You've used all 25 gradings this month"* → **"75 more gradings this
+  month · Free for 14 days, then $4.99/month. Cancel anytime."** → button **"Get 75 more
+  gradings"**. Reset date kept, subordinated: *"Or wait — your gradings reset on Sep 01."*
+  Exit is now **"Back to my collection"**, not "Back to Home". Every number interpolated from
+  the server; **if `upgrade` is null the offer block renders as nothing at all** (omit over
+  assert). `startCapCheckout()` goes **straight to Stripe Checkout**, not `/pricing.html` —
+  and uses the `checkout_url` response key (**not** `url`; the wrong key fails silently into
+  the generic alert, indistinguishable from a decline).
+
+**🐛 FOUND IN PASSING, AND IT IS THE OTHER HALF OF THE WALL:** `routes/grading.py` referenced
+**`MONTHLY_GRADING_LIMIT`, deleted by `bfd231c` (2026-06-18)** when the per-tier cap landed —
+inside a bare `except Exception: pass`. The `NameError` was swallowed, `result['grading_usage']`
+was never set, and `app.html`'s **"N of 25 free gradings remaining this month" counter has not
+rendered for ~8 weeks** (it is guarded by `if (counter && text && usageData)`). *The cap arrives
+as a surprise because the only forewarning the product has was silently dead.* Fixed to read
+per-tier from `PLANS`; the bare `except` now logs.
+
+**"Coming soon" sweep (Mike: "if it is wrong in one place it is likely wrong in others"):**
+run across all rendered HTML/JS. **`app.html:2434` was the only false instance.** Every other
+hit is accurate — Signature ID, Market Pulse, Price Lookup, unbuilt export/bulk-delete, the old
+`collectioncalc.html` landing page. `pricing.html` is **correct**: Pro sells via
+`startCheckout('pro')`; Guard and Dealer are roadmap entries routed to `/contact.html`.
+**Tombstoned per [[L-SW-2026-014]] so the next sweep does not re-raise it: pricing.html's
+tier copy was investigated 2026-08-12 and found correct. Do not "fix" it.**
 
 ### THREE THINGS THAT OUTRANK THE BACKFILL (Mike, 2026-08-12) — ordered
 

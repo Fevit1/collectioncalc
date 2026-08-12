@@ -155,6 +155,54 @@ PLANS = {
 # create_checkout_session() allowlist below, so removing it here is sufficient.
 COMING_SOON_PLANS = ('dealer', 'guard')
 
+# Length of the Stripe trial attached to every new subscription. Read by
+# create_checkout_session() AND quoted to the user in the grading-cap refusal
+# (routes/grading.py). One constant because a trial length is a CLAIM the moment
+# it is displayed — two copies drift and the copy becomes false silently
+# (L-SW-2026-016). If this changes, the offer text changes with it.
+TRIAL_PERIOD_DAYS = 14
+
+
+def next_purchasable_upgrade(current_plan_key, current_limit):
+    """The cheapest tier a user can ACTUALLY BUY that raises their grading cap.
+
+    Returns a dict for the refusal to quote, or None if nothing is purchasable.
+
+    Derived from PLANS and COMING_SOON_PLANS rather than naming a tier, because
+    the failure this exists to fix was a hardcoded claim that went stale: the
+    cap screen said "Premium plans coming soon!" for ~7 weeks after Pro became
+    purchasable (2026-07-29), sending every capped free user away with a "Back
+    to Home" button at the exact moment of purchase intent.
+
+    Filtering on COMING_SOON_PLANS -- the same constant create_checkout_session()
+    refuses on -- means an unbuyable tier can never be advertised here. That
+    deletes the failure mode instead of watching for it (L-SW-2026-019). Guard
+    and Dealer are excluded automatically for as long as they are unsellable,
+    and re-included automatically when they are not.
+    """
+    candidates = [
+        (cfg.get('monthly_price', 0), key, cfg)
+        for key, cfg in PLANS.items()
+        if key not in COMING_SOON_PLANS
+        and key != current_plan_key
+        and cfg.get('monthly_price', 0) > 0
+        and cfg.get('valuations_per_month', 0) > current_limit
+    ]
+    if not candidates:
+        return None
+
+    _price, key, cfg = min(candidates, key=lambda c: c[0])
+    return {
+        'plan': key,
+        'name': cfg.get('name', key.title()),
+        'gradings': cfg['valuations_per_month'],
+        # The number the user actually cares about: how many MORE, not the total.
+        'additional': cfg['valuations_per_month'] - current_limit,
+        'monthly_price_usd': round(cfg['monthly_price'] / 100, 2),
+        'annual_price_usd': round(cfg['annual_price'] / 100, 2),
+        'trial_days': TRIAL_PERIOD_DAYS,
+    }
+
 # NOTE: STRIPE_WEBHOOK_SECRET is read at request time inside stripe_webhook()
 # (like DATABASE_URL in get_db), not cached at import — so a secret injected
 # after process start is picked up without a restart.
@@ -606,7 +654,7 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             subscription_data={
-                'trial_period_days': 14,
+                'trial_period_days': TRIAL_PERIOD_DAYS,
                 'metadata': {
                     'user_id': str(user_id),
                     'plan': plan,
