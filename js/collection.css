@@ -346,6 +346,29 @@ select:focus {
     background: rgba(79, 70, 229, 0.1);
 }
 
+/* ── Verdict basis: the reason behind one tap on the chip ──────────────────
+   Only chips carrying a known verdict_basis get .has-basis, so a legacy row
+   with no reason is not merely un-clickable — it has no affordance at all and
+   therefore makes no claim that a reason exists. */
+.verdict-chip.has-basis {
+    cursor: pointer;
+    user-select: none;
+}
+
+.verdict-chip .basis-glyph {
+    margin-left: 4px;
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+.card-basis-detail {
+    margin: 0.4rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+    max-width: 34ch;
+}
+
 /* Unbuilt control. Mirrors the .sw-soon idiom in js/sidebar.js so "not yet"
    looks the same everywhere in the app. The :hover reset is the point — an
    unbuilt button that lights up on hover still reads as live. */

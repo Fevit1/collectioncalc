@@ -319,6 +319,30 @@ function displayCollection() {
     container.innerHTML = filteredCollection.map(comic => createComicCard(comic)).join('');
 }
 
+// Defensive only. Every string basisShort() can return is a constant we wrote in
+// js/verdict_basis.js, so nothing user-supplied reaches here today. It is three
+// lines of insurance against a future tier string that contains markup, and
+// against someone later passing a server-supplied reason through this path.
+function escapeBasis(str) {
+    return String(str).replace(/[&<>"']/g, ch => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+    ));
+}
+
+// One tap on the verdict chip reveals the reason. Mirrors the grade report's
+// badge toggle, including the aria-expanded contract, so the two surfaces behave
+// the same way. `event.stopPropagation()` matters: gallery cards have their own
+// click handler for the expand view, and the chip sits inside it.
+function toggleCardBasis(event, comicId) {
+    if (event) event.stopPropagation();
+    const panel = document.getElementById(`cardBasis-${comicId}`);
+    if (!panel) return;
+    const open = panel.hidden;
+    panel.hidden = !open;
+    const chip = event && event.currentTarget;
+    if (chip && chip.setAttribute) chip.setAttribute('aria-expanded', String(open));
+}
+
 function createComicCard(comic) {
     // NOTE: the card renders no ROI figure. `roi`/`roiClass` were computed here
     // and never used — deleted 2026-08-07. The live ROI is the header's
@@ -336,16 +360,52 @@ function createComicCard(comic) {
     //
     // Legacy rows saved before `verdict` existed render NO chip. A fourth
     // "unknown" state would assert a classification we never made.
-    // The [Why?] link is deliberately absent: it needs verdict_basis, which is
-    // not persisted yet (migration pending).
     const VERDICT_CHIPS = {
         'worth-it': { cls: 'worth-it', text: '✓ Worth It' },
         'keep-raw': { cls: 'keep-raw', text: 'Keep Raw' },
         'estimate': { cls: 'cant-say', text: 'Can’t say' },
     };
     const chipSpec = VERDICT_CHIPS[comic.verdict];
+
+    // THE REASON, behind one tap on the chip — the same taxonomy the grade
+    // report uses: the chip names the class, the expansion names the instance.
+    //
+    // Rendered on ALL THREE chip states, not only the hedged one. Same argument
+    // as showing the chip on every comic rather than only on problems: a reason
+    // that appears only where something is wrong makes its ABSENCE an implicit
+    // claim of soundness, and an implicit claim is the one nobody audits.
+    //
+    // ⚠️ The affordance appears ONLY when basisShort() returns a string, i.e.
+    // when verdict_basis is non-null AND known. All 61 rows saved before the
+    // 2026-08-13 migration have NULL basis and render exactly as they do today
+    // — chip, no icon, no tooltip explaining the absence. A greyed-out or
+    // disabled icon would claim a reason exists and is being withheld; an
+    // absent one claims nothing. Same reasoning as the no-chip case above.
+    //
+    // ⚠️ The strings are the SHORT form from js/verdict_basis.js and are NOT the
+    // grade report's. They cannot be: the long form interpolates five fields
+    // (sameGradeComps, nearbyThin, rawComps, excludedVariants, gradeLabel) that
+    // a saved row does not carry. What IS shared is the vocabulary — BASIS_KEYS
+    // — so a tier can never exist in one surface and not the other.
+    // `roi` is passed because it is what distinguishes the graded-present /
+    // raw-absent cell, where 'supported' alone would read as confident under a
+    // "Can't say" chip.
+    const basisReason = (typeof basisShort === 'function')
+        ? basisShort(comic.verdict_basis, { roi: comic.roi })
+        : null;
+
     const verdictChip = chipSpec
-        ? `<span class="verdict-chip ${chipSpec.cls}">${chipSpec.text}</span>`
+        ? `<span class="verdict-chip ${chipSpec.cls}${basisReason ? ' has-basis' : ''}"${
+              basisReason
+                  ? ` role="button" tabindex="0" aria-expanded="false"`
+                    + ` onclick="toggleCardBasis(event, ${comic.id})"`
+                    + ` onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();toggleCardBasis(event, ${comic.id});}"`
+                  : ''
+          }>${chipSpec.text}${basisReason ? '<span class="basis-glyph" aria-hidden="true">&#9432;</span>' : ''}</span>`
+        : '';
+
+    const basisPanel = basisReason
+        ? `<p class="card-basis-detail" id="cardBasis-${comic.id}" hidden>${escapeBasis(basisReason)}</p>`
         : '';
 
     // Get first available photo (prefer front, then spine, then back, then centerfold)
@@ -399,7 +459,7 @@ function createComicCard(comic) {
                      user's own valuation must NOT come between our number and
                      our hedge about it. Empty cell for legacy rows keeps the
                      grid columns aligned. -->
-                <div class="verdict-cell">${verdictChip}</div>
+                <div class="verdict-cell">${verdictChip}${basisPanel}</div>
                 <div>
                     <input
                         type="text"
@@ -489,7 +549,7 @@ function createComicCard(comic) {
                     ${verdictChip ? `<div class="detail-row">
                         <span class="detail-label">Verdict</span>
                         <span class="detail-value">${verdictChip}</span>
-                    </div>` : ''}
+                    </div>${basisPanel}` : ''}
                     ${gallerySigBadge}
                     <div class="detail-row">
                         <span class="detail-label">My Valuation</span>

@@ -1616,6 +1616,7 @@
     </div>
     
     <script src="js/utils.js"></script>
+    <script src="js/verdict_basis.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
     <script src="js/grading.js"></script>
@@ -2799,6 +2800,16 @@
                 window.gradingState.finalGrade.grading_cost = grading_cost;
                 window.gradingState.finalGrade.roi = roi;
                 window.gradingState.finalGrade.verdict = gradeResult.verdict;
+                // ⚠️ `valData.verdict_basis`, NOT the `verdictBasis` const above.
+                // That const carries a FALLBACK — `|| (verdictReliable ? 'supported'
+                // : 'fabricated')` — which SYNTHESISES a tier when the server did
+                // not send one. That synthesis is fine for the transient report,
+                // where something must render under an already-visible badge, and
+                // wrong for a durable row: it guesses WHICH tier, and a saved row
+                // asserting a tier nobody computed is the exact class this column
+                // exists to close. Absent -> null -> the card offers no reason,
+                // which claims nothing. Omit over assert (L-SW-2026-016).
+                window.gradingState.finalGrade.verdict_basis = valData.verdict_basis || null;
 
                 // Update results UI
                 const rawFmvEl = document.getElementById('resultRawFmv');
@@ -2916,7 +2927,9 @@
                     if (!verdictReliable) {
                         // ⚰️ REMOVED 2026-08-08: the hedge paragraph that stood here.
                         // DEAD: the `hedges` map and its six tier-specific sentences.
-                        // REPLACED BY: BASIS_REASONS below, behind one tap on the badge.
+                        // REPLACED BY: BASIS_REASONS (js/verdict_basis.js, `basisLong`),
+                        //   behind one tap on the badge. Was "below" until the map moved
+                        //   out of this file 2026-08-13 — location updated, claim not.
                         // REASON, and it is evidence not preference: a real user with
                         // several comics to grade STOPPED AFTER ONE because the text took
                         // too long to read. With ROI now withheld, the absence of a
@@ -2949,210 +2962,27 @@
                 }
 
                 // ── Basis expansion: the content behind the one tap ───────────────
-                // ONE reason string per verdict_basis. Each has been checked TRUE for
-                // every cell that can reach its branch, against the branch order in
-                // sales_valuation.py (2026-08-08). Four wordings people reach for first
-                // are deliberately NOT here; each was false, and why is recorded inline.
                 const basisDetailEl = document.getElementById('resultBasisDetail');
                 if (basisDetailEl && verdictBadge) {
-                    const gradeAt = gradeLabel != null ? ` at grade ${gradeLabel}` : '';
-                    const s = (n) => (n === 1 ? '' : 's');
-                    const BASIS_REASONS = {
-                        // exact_count >= 3 always, so N is never 1 or 2.
-                        // NO "recent": lookback is 365 days with NO recency weighting.
-                        // L-SW-2026-020 instance 1 was exactly that false claim.
-                        supported:
-                            `Priced from ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}.`,
-                        // exact_thin implies no neighbouring bucket reached
-                        // MIN_SOURCE_COMPS, so "too few at nearby grades" is true. This
-                        // DEPENDS on the zero-factor boundary fix in this same unit;
-                        // without it, cells with a real n>=2 neighbour landed here and
-                        // the clause was false.
-                        // ⚠️ States the nearby COUNT rather than asserting nearby absence.
-                        // "too few at nearby grades to cross-check" was the second
-                        // instance of the assumption sales_valuation.py already warns
-                        // about for low_support ("the copy must state the real number
-                        // rather than assume one"): reaching exact_thin only means no
-                        // nearby bucket holds >=2, so a book can arrive with single sales
-                        // at six distinct nearby grades, which that wording declared
-                        // absent. nearbyThin is in the payload; use it.
-                        thin: nearbyThin > 0
-                            ? `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, and the `
-                              + `${nearbyThin} nearby sale${s(nearbyThin)} are one per grade, too scattered `
-                              + `to check it against.`
-                            : `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}, and none at any `
-                              + `other grade to check it against.`,
-                        // NO COUNT of other-grade sales, deliberately. The interpolation
-                        // anchors on AT MOST TWO buckets, the nearest qualifying one
-                        // below and above (one in the one-sided branches). "estimated
-                        // from 30 sales at other grades" would be false: a pool of
-                        // 9.0(n=2)/9.4(n=1)/9.8(n=50)/10.0(n=30) anchors on 9.0 and 9.8
-                        // only, but a count would read 83. No anchor count exists in the
-                        // payload; adding one is its own decision.
-                        // ⚠️ NOT "the nearest grades above AND below", and NOT "filled in
-                        // from" — both were false. `blended` needs only exact_avg plus
-                        // ANY interpolated_avg, and interpolated_avg has three producers:
-                        // one two-sided, and two ONE-SIDED branches that are not a fill-in
-                        // from bracketing data at all but a flat +/-20%-per-grade step off
-                        // a single anchor. The server records the rate: 95.6% of
-                        // interpolated cells are one-sided. So the plural and the
-                        // bracketing were wrong for the large majority of cells here.
-                        blended:
-                            `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}. The rest is `
-                            + `estimated from the nearest grade that has enough sales, stepped about `
-                            + `20% per grade.`,
-                        // Same no-count reasoning, plus one that cuts harder: a large
-                        // count reads as reassurance, and here that inference is
-                        // measurably FALSE. Interpolation error falls with support then
-                        // JUMPS BACK UP: 27.9% at n=1, 10.2% at n=5-9, 29.0% at n>=10.
-                        // "9.6 and 9.8", not "and up" — that is the band the backtest
-                        // measured; extending it to 9.9/10.0 asserts beyond the evidence.
-                        // This tier can carry ABUNDANT comps (30 graded sales, none at
-                        // this grade), so NO scarcity language.
-                        // ⚠️ SINGULAR "grade", and no "gap" language. 95.6% of cells here
-                        // are ONE-SIDED extrapolation off a single anchor bucket, so
-                        // "grades that have data" and "that gap" both described a
-                        // bracketing that usually does not happen.
-                        // ⚠️ The "9.6 and 9.8" emphasis alone MISDIRECTS. The zero-factor
-                        // boundary fix in this same unit newly routes grade_diff >= 5.0
-                        // cells into this tier, where the figure is the flat 0.25x floor
-                        // (a 5.0 gap and an 8.8 gap both get 0.25x). Telling that user the
-                        // risk is worst at 9.6-9.8 points away from what they are looking
-                        // at, so the wide-gap clause is stated too.
-                        interpolated:
-                            `No sales${gradeAt}. The slabbed figure is estimated from the nearest grade `
-                            + `that has enough sales, which is often well off — most of all at 9.6 and 9.8, `
-                            + `and it is barely more than a guess when the nearest sales are several `
-                            + `grades away.`,
-                        // nearby_thin_comps counts SALES, and in THIS branch every
-                        // qualifying bucket holds exactly 1 (all below MIN_SOURCE_COMPS
-                        // = 2), so sales count == bucket count and "one per grade" is
-                        // true. The field is documented as MISNAMED and is safe ONLY
-                        // inside this branch; elsewhere it sums buckets that DID anchor
-                        // the price. Do not reuse it in another tier's string.
-                        // ⚠️ "at other grades", NOT "near". `_all_below`/`_all_above` have
-                        // NO distance bound, so a 1.0 sale counts as "near" a 9.8 request.
-                        // In this branch nearby_thin_comps == total_graded (the exact
-                        // bucket is empty), i.e. every graded sale of the book at any
-                        // grade. "Near" was the mechanism's word, not a true one.
-                        // ⚠️ MUST disclose the mechanism, because this branch is checked
-                        // BEFORE estimated_from_raw and therefore STEALS those cells. A
-                        // cell with real raw sales and thin graded neighbours lands here
-                        // with a Slabbed FMV that is literally raw x 1.5, and the raw_only
-                        // string that exists to disclose that never runs. Without the
-                        // clause below this tier shows a price while saying nothing solid
-                        // enough to price from exists, and never says where the price
-                        // came from — the exact defect raw_only was added to fix.
-                        low_support: `Only ${nearbyThin} graded sale${s(nearbyThin)} of this book at other `
-                            + `grades, one per grade, so there is nothing solid to price the slab from. `
-                            + (fmvMethod === 'estimated_from_raw'
-                                ? `The slabbed figure is ${rawComps} raw sale${s(rawComps)} marked up 1.5×.`
-                                : `The figures come from typical prices for this grade, publisher and era.`),
-                        // The variant clause is NOT optional and must survive any rework.
-                        // Graded variants are excluded in PYTHON, not SQL, so a book
-                        // whose only graded sales are variants arrives with an empty
-                        // pool; "No graded sales for this book" is false there, and 7 of
-                        // 594 real lookups hit exactly that state.
-                        // The 1.5x is literal (graded_fmv = round(raw_fmv * 1.5, 2)), so
-                        // stating it numerically is accurate. It will NOT reproduce from
-                        // the two displayed figures, which are Math.round'ed.
-                        raw_only: excludedVariants > 0
-                            ? `No graded sales of the standard cover, ${excludedVariants} graded variant `
-                              + `sale${s(excludedVariants)} excluded. Estimated from ${rawComps} raw `
-                              + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`
-                            : `No graded sales for this book. Estimated from ${rawComps} raw `
-                              + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`,
-                        // "No USABLE sales", never "no sales at all". Two reachable
-                        // classes have real sales here: variant-only graded sales, which
-                        // are dropped in Python and land in this tier; and variant RAW
-                        // sales, dropped in SQL and counted in NO response field, so no
-                        // clause can even disclose them. The previous copy said "No
-                        // recent sales found for this book" and "not from sales" — both
-                        // absolute, both false for those cells.
-                        // The dollars here carry ZERO information about the book: raw_fmv
-                        // is itself the synthetic baseline, graded_fmv = raw_fmv * 1.5.
-                        fabricated: excludedVariants > 0
-                            ? `No standard-cover sales we can price from, ${excludedVariants} graded variant `
-                              + `sale${s(excludedVariants)} excluded. Both figures come from typical prices for `
-                              + `this grade, publisher and era.`
-                            : `No usable sales for this book. Both figures come from typical prices for this `
-                              + `grade, publisher and era, nothing about this specific comic.`,
-                        // ⏰ NOT EMITTED BY THE SERVER YET. Written now so the
-                        // edition-span unit inherits a short string rather than a long
-                        // one to shorten. The tier gates a comp pool holding MORE THAN
-                        // ONE EDITION of the same issue: the X-Men #1 case, twelve 9.0
-                        // comps, four from the 1991 volume, eight undated, zero from
-                        // 1963, returning $36 confidently on a six-figure book. Signal is
-                        // year span > 15y AND price ratio >= 20x, BOTH required.
-                        // If a ratio is printed it must be the TRIMMED one (422x on
-                        // X-Men #1, not 1429x). `edition_price_ratio` is not in the
-                        // payload yet, so the clause is omitted until it is and the
-                        // string is correct either way.
-                        // Abundant comps by definition, so NO scarcity language.
-                        // ⚠️ LEADS WITH THE PROBLEM, not with "Priced from N sales".
-                        // Under the collapsed ROUGH ESTIMATE badge, opening with a
-                        // confident-sounding count asserts exactly what the badge just
-                        // denied, and the reader reaches the "but" too late. Every other
-                        // hedged string already opens on an absence or a small count;
-                        // this was the only one that opened on confidence.
-                        multi_edition: (() => {
-                            const ratio = valData.edition_price_ratio;
-                            const ratioClause = ratio ? `, differing in price by ${ratio}×,` : '';
-                            return `These ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt} span more than `
-                                 + `one edition of this issue${ratioClause} so we can't tell which one `
-                                 + `you have.`;
-                        })()
-                    };
-                    // ⚠️ The fallback asserts NOTHING about counts or provenance, on
-                    // purpose. It must not be BASIS_REASONS.fabricated: that string says
-                    // "No usable sales for this book", which about an UNRECOGNISED basis
-                    // is an assertion we have not verified. The realistic way to get
-                    // here is a server that emits a new tier before this map knows it —
-                    // e.g. the edition-span tier landing server-side first, where
-                    // "no usable sales" would be flatly false on a 12-comp pool.
-                    // These two sentences are true for any cell by definition of
-                    // verdict_reliable, which is the only thing we know in that case.
-                    // ⚠️ NEITHER arm may state a count or a provenance. The reliable arm
-                    // previously reused the `supported` wording ("Priced from N sales at
-                    // grade X"), which verdict_reliable does NOT imply: it is defined
-                    // NEGATIVELY (not estimated, not interpolated, not thin), so a future
-                    // reliable tier carries no guarantee that graded_sample_size is what
-                    // priced the book. Worst case it rendered "Priced from 0 sales".
-                    // ⚠️ KEYED ON `roi == null`, NOT ON verdict_basis, and it must be
-                    // checked FIRST. This is the graded-present / raw-absent cell: the
-                    // server has no branch for it, so it arrives with verdict_basis
-                    // 'supported' and verdict_reliable true but no ROI. Collapsing the
-                    // badge is what exposed it — it now shows ROUGH ESTIMATE, and
-                    // BASIS_REASONS.supported would have answered "Priced from 12 sales
-                    // at grade 9.4", contradicting the badge in the same breath.
-                    // It is the ONLY tier where the missing thing is the RAW side, which
-                    // is worth the reader knowing: the slab price is well supported, the
-                    // comparison is what cannot be made. sameGradeComps is >= 3 here —
-                    // verdict_reliable with graded_fmv present implies fmv_method 'exact',
-                    // which requires exact_count >= 3.
-                    // ⚠️ LEADS WITH THE MISSING THING, same fix as multi_edition and for
-                    // the same reason. The first wording opened "Priced from 12 sales at
-                    // grade 9.4, but there are no recent ungraded sales…", which under a
-                    // ROUGH ESTIMATE badge asserts a confident price in its first four
-                    // words. Both clauses are TRUE here — unlike multi_edition, the count
-                    // is not undermined — but the reader still meets a contradiction
-                    // before they meet the resolution. The slab price being well
-                    // supported is still stated; it is just no longer the opening claim.
-                    // ⚠️ OPEN TENSION, worth Mike's decision: 'ROUGH ESTIMATE' arguably
-                    // MISDESCRIBES this cell. The slabbed figure is not a rough estimate;
-                    // it is a well-supported price with no raw comparison available. That
-                    // is the same objection the 2026-08-07 per-tier badges existed to
-                    // answer, resurfacing in a state that was not a category back then.
-                    // A fourth badge value would fix it and would break the three-value
-                    // rule. Left at three by default.
-                    const reason = (verdictReliable && roi == null)
-                        ? `There are no recent ungraded sales to compare against, so we can't say `
-                          + `whether grading pays off. The slabbed figure itself is priced from `
-                          + `${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}.`
-                        : (BASIS_REASONS[verdictBasis] || (verdictReliable
-                            ? `Priced from the sales we have${gradeAt}.`
-                            : `We can't price this reliably from the sales we have, so we're not `
-                              + `making a call on whether grading pays off.`));
+                    // The reason strings — and the ~200 lines of tombstones
+                    // recording which wordings were tried and found FALSE — now
+                    // live in js/verdict_basis.js, so the collection card can
+                    // share the VOCABULARY without copying the strings. The two
+                    // surfaces need different forms: this one interpolates five
+                    // fields (sameGradeComps, nearbyThin, rawComps,
+                    // excludedVariants, gradeLabel) that a saved collections row
+                    // does not carry. What must not be duplicated is the list of
+                    // basis keys — that is one decision with two edits, and the
+                    // second one eventually gets missed (L-SW-2026-019).
+                    // ⚠️ PURE MOVE. Verified byte-identical to the pre-extraction
+                    // implementation over 33,792 input combinations spanning all
+                    // 8 basis values plus an unknown tier, null and undefined.
+                    const reason = basisLong({
+                        verdictBasis, verdictReliable, roi,
+                        sameGradeComps, nearbyThin, rawComps, excludedVariants,
+                        gradeLabel, fmvMethod,
+                        editionPriceRatio: valData.edition_price_ratio,
+                    });
 
                     // Confidence is now SUBORDINATE to basis, not a peer. It rates how
                     // much data there is, a different axis from what the number was made
@@ -3727,6 +3557,15 @@
                     slabbed_value: window.gradingState.finalGrade.slabbed_value || null,
                     roi: window.gradingState.finalGrade.roi || null,
                     verdict: window.gradingState.finalGrade.verdict || null,
+                    // WHY the hedge REASON is persisted and verdict_reliable is not:
+                    // reliable is identically (verdict_basis === 'supported'), so a
+                    // second column could only ever disagree with this one. See
+                    // migrations/add_collections_verdict_basis.sql.
+                    // Sent as what the user WAS SHOWN, never re-derived server-side:
+                    // the comp corpus moves, so a save-time re-derivation could
+                    // contradict the report the user just acted on. The server
+                    // validates it against a known set and stores NULL otherwise.
+                    verdict_basis: window.gradingState.finalGrade.verdict_basis || null,
                     grading_id: gradingId,
                     signature_data: (() => {
                         const sr = window.gradingState.signatureResult;

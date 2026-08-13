@@ -15,6 +15,41 @@ collection_bp = Blueprint('collection', __name__, url_prefix='/api/collection')
 # Import auth decorators
 from auth import require_auth, require_approved
 
+# The CP-1 hedge vocabulary, mirroring BASIS_KEYS in js/verdict_basis.js.
+#
+# WHY THE VALUE IS CLIENT-SENT AND NOT DERIVED HERE. Re-running the valuation at
+# save time would consult a corpus that MOVES — ebay_sales went 71,652 -> 163,374
+# in three days — so a re-derived basis could contradict the one the user was
+# shown seconds earlier. The saved row must record what the user actually saw and
+# acted on, which is the whole point of carrying the hedge across the save
+# boundary. It would also create a second producer of verdict_basis.
+#
+# WHY A GUARD ANYWAY. The client is trusted for what it DISPLAYED, not for the
+# vocabulary. A typo or a stale client must not write a value the renderer has no
+# string for. Unrecognised -> NULL, which renders as "no reason offered" rather
+# than as a broken expansion.
+#
+# NOT a DB CHECK constraint: two tiers were added in two days (raw_only
+# 2026-08-07, low_support 2026-08-08) and coupling tier evolution to a migration
+# is a trap. `multi_edition` is listed here ahead of the server emitting it, so
+# the save path does not have to change again when the edition-span unit lands.
+VERDICT_BASIS_KEYS = frozenset({
+    'supported', 'thin', 'blended', 'interpolated',
+    'low_support', 'raw_only', 'fabricated', 'multi_edition',
+})
+
+
+def _clean_verdict_basis(value):
+    """Return a known basis value, or None. Never raises, never guesses."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    if v in VERDICT_BASIS_KEYS:
+        return v
+    if v:
+        print(f'[Collection] unknown verdict_basis {value!r} discarded (stored NULL)')
+    return None
+
 
 @collection_bp.route('', methods=['GET'])
 @require_auth
@@ -27,6 +62,7 @@ def api_get_collection():
     cur.execute("""
         SELECT c.id, c.user_id, c.title, c.issue, c.publisher, c.year, c.grade, c.grade_label,
                c.confidence, c.defects, c.photos, c.raw_value, c.slabbed_value, c.roi, c.verdict,
+               c.verdict_basis,
                c.my_valuation, c.grading_id, c.is_slabbed, c.slab_cert_number, c.slab_company,
                c.slab_grade, c.slab_label_type, c.signature_data, c.created_at, c.updated_at,
                cr.serial_number AS registry_serial,
@@ -102,11 +138,12 @@ def api_save_collection():
             INSERT INTO collections (
                 user_id, title, issue, publisher, year, grade, grade_label,
                 confidence, defects, photos, raw_value, slabbed_value, roi, verdict,
+                verdict_basis,
                 my_valuation, grading_id,
                 is_slabbed, slab_cert_number, slab_company, slab_grade, slab_label_type,
                 signature_data
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             g.user_id,
@@ -123,6 +160,7 @@ def api_save_collection():
             item.get('slabbed_value'),
             item.get('roi'),
             item.get('verdict'),
+            _clean_verdict_basis(item.get('verdict_basis')),
             item.get('my_valuation'),
             item.get('grading_id'),
             item.get('is_slabbed', False),

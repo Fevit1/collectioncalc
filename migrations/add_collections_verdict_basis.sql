@@ -1,0 +1,72 @@
+-- Migration: persist the CP-1 hedge reason across the save boundary
+-- Unit 2 — 2026-08-13
+--
+-- THE PROBLEM. Every CP-1 hedge holds on the grade report and evaporates on
+-- save. The verdict gate, the min-n rule, the branch-B removal, the ROUGH
+-- ESTIMATE badge and its tappable explanation — none of it survives into
+-- `collections`. Superman #76 sits in a real user's collection at $1,815.75
+-- (collection id 99) with nothing recording that the figure came off the 0.25
+-- interpolation floor.
+--
+-- The verdict CHIP already shipped (c398d9f) and works: `verdict = 'estimate'`
+-- encodes THAT the figure is hedged. This column adds WHY, which is what the
+-- one-tap expansion needs.
+--
+-- ONE COLUMN, NOT TWO. `verdict_reliable` was specified alongside this and is
+-- deliberately NOT here. It is identically `verdict_basis = 'supported'`:
+-- sales_valuation.py:736 computes verdict_reliable from (estimated_flag,
+-- fmv_method), and the basis ladder twelve lines below assigns 'supported' in
+-- exactly the else-branch where none of those disqualifiers hold — same two
+-- inputs, same block. Persisting both would create a pair that CAN disagree
+-- where one column cannot: a client bug could write
+-- basis='fabricated', reliable=true, a state the server cannot produce but the
+-- table could hold, rendering a confident chip over a fabricated reason.
+--
+-- NO CHECK CONSTRAINT, deliberately. Two tiers were added in two days
+-- (`raw_only` 2026-08-07, `low_support` 2026-08-08) and a CHECK would couple
+-- tier evolution to a migration. The value is validated against BASIS_KEYS in
+-- routes/collection.py on write; anything unrecognised is stored as NULL, and
+-- an unrecognised value that somehow lands still renders as "no reason" rather
+-- than as a broken expansion.
+--
+-- NO BACKFILL. All 61 existing rows read NULL because their basis is genuinely
+-- unknown — the value was never captured, and inventing one would be the exact
+-- class of claim this column exists to prevent. js/collection.js renders the
+-- info affordance ONLY when the basis is non-null and known, so historical rows
+-- show the chip exactly as they do today with no affordance at all. A greyed-out
+-- or disabled icon would claim a reason exists and is being withheld; an absent
+-- one claims nothing. Same precedent as legacy rows with no verdict rendering
+-- no chip rather than a fourth "unknown" state.
+--
+-- ── RUNNING IT ────────────────────────────────────────────────────────────
+-- Run in DBeaver. Metadata-only on PG 11+ (nullable, no default) — no table
+-- rewrite and no row scan, so the row count is irrelevant to the cost.
+--
+-- ⚠️ Takes ACCESS EXCLUSIVE on `collections`, which conflicts with everything
+--    including plain SELECTs. `lock_timeout = 5s` is now set on
+--    collectioncalc_db_user, so if a /api/collection GET is in flight this
+--    fails fast instead of queueing and blocking every subsequent query on the
+--    table. That is the intended behaviour — just re-run it. There is no
+--    partial state.
+--
+-- ⚠️ CONFIRM AUTOCOMMIT, or type COMMIT. An uncommitted ALTER holds ACCESS
+--    EXCLUSIVE for as long as the window stays open, which takes the whole
+--    collection page down rather than one row — a sharper version of the
+--    2026-08-12 hang, where an uncommitted UPDATE on one users row stalled
+--    /api/grade indefinitely.
+--
+-- Verify from a DIFFERENT connection (nlq_readonly), never from the session
+-- that ran it — a role- or schema-level change read back from its own
+-- transaction is the decoy-artifact trap that has now bitten twice this week:
+--
+--   SELECT column_name, data_type, is_nullable
+--   FROM information_schema.columns
+--   WHERE table_name = 'collections' AND column_name = 'verdict_basis';
+--
+-- Expect exactly one row: verdict_basis | text | YES
+
+ALTER TABLE collections ADD COLUMN verdict_basis TEXT;
+
+-- Rollback, if it is ever needed. Also metadata-only, and also ACCESS EXCLUSIVE.
+-- (Dropping loses every captured basis; there is no way to recover them.)
+--   ALTER TABLE collections DROP COLUMN verdict_basis;

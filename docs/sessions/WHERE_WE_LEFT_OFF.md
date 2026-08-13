@@ -240,6 +240,70 @@ hit is accurate — Signature ID, Market Pulse, Price Lookup, unbuilt export/bul
 **Tombstoned per [[L-SW-2026-014]] so the next sweep does not re-raise it: pricing.html's
 tier copy was investigated 2026-08-12 and found correct. Do not "fix" it.**
 
+### 🧱 CP-1 UNIT 2 — the hedge now survives the save boundary (BUILT 2026-08-13, NOT RUN)
+
+**THE PROBLEM:** every CP-1 hedge held on the grade report and evaporated on save. Superman #76
+sits in Mike's own collection (**col 99**) at **$1,815.75** with nothing recording that the figure
+came off the **0.25 interpolation floor**.
+
+⚰️ **DEAD: the two-column spec (`verdict_basis` + `verdict_reliable`).**
+**REPLACED BY: `verdict_basis` alone.** **REASON:** `verdict_reliable` is **identically**
+`verdict_basis === 'supported'` — `sales_valuation.py:736` computes it from
+`(estimated_flag, fmv_method)`, and the basis ladder **twelve lines below** assigns `'supported'`
+in exactly the else-branch where none of those disqualifiers hold. Same two inputs, same block.
+**Two columns can disagree where one cannot:** a client bug could persist
+`basis='fabricated', reliable=true` — a state the server cannot produce but the table could hold,
+rendering a confident chip over a fabricated reason. Claude argued FOR the second column
+originally, on an insurance case that assumed the derivation ran from `verdict` (a genuinely
+weaker relation, ambiguous when `roi IS NULL` — 2 of 61 rows are in that cell today). Reversed on
+2026-08-13; Mike: *"I was leaning the way you argued me out of."*
+
+**Client-sent, not server-derived.** Re-deriving at save time would consult a corpus that MOVES
+(`ebay_sales` 71,652 → 163,374 in three days), so the stored reason could contradict the report
+the user acted on seconds earlier — the exact class CP-1 exists to close. Guarded by
+`_clean_verdict_basis()` against `VERDICT_BASIS_KEYS`; unknown → NULL. **No CHECK constraint:**
+two tiers were added in two days, and coupling tier evolution to migrations is a trap.
+
+**⚠️ CLAUDE'S Q3 CATCH — the original spec was self-contradictory.** "Same strings as the grade
+report" + "one column" are **mutually exclusive**: the long-form strings interpolate **five
+fields** (`sameGradeComps`, `nearbyThin`, `rawComps`, `excludedVariants`, `gradeLabel`) that a
+saved row does not carry. Resolved by sharing the **vocabulary**, not the strings.
+
+**`js/verdict_basis.js`** — `BASIS_KEYS` (8: seven live + `multi_edition`, written ahead of the
+edition-span unit), `basisLong(ctx)` (moved verbatim out of `app.html`, ~200 lines of tombstones
+intact), `basisShort(basis, {roi})` (parameterless — *a string that cannot state a count cannot
+state a wrong one*).
+
+**✅ THE EXTRACTION IS PROVEN, NOT ASSERTED.** The pre-move implementation was sliced out of
+`git show HEAD:app.html` — never retyped — and compared against `basisLong` over **33,792 input
+combinations** spanning all 8 basis values plus an unknown tier, `null` and `undefined`:
+**0 differences**, with a positive control confirming the comparison can detect one.
+
+**One comment had to change and is reported rather than decided** (Mike's standing instruction):
+`app.html:2920` read *"REPLACED BY: BASIS_REASONS **below**"*. The map is no longer below — it is
+in another file. **Location updated, claim untouched**, with the change itself noted inline.
+
+**🐛 FOUND WHILE TESTING:** `basisShort` conflated *"roi is null"* with *"roi was not supplied"*
+(`roi == null` is true for `undefined`), so a caller omitting `opts` would have asserted *"there
+are no ungraded sales to compare it against"* — a claim about data it never passed. Now
+distinguishes `roiKnown`; unknown ROI on a `supported` row offers **no reason at all**. Defensive
+(`collection.js` always supplies it), fixed because the failure mode is an **assertion**, not a
+crash.
+
+**Render:** the reason sits behind one tap on the verdict chip, on **all three** chip states —
+same argument as showing the chip on every comic: a reason that appears only where something is
+wrong makes its **absence** an implicit claim. The affordance appears **only** when `basisShort()`
+returns a string; all **61** existing rows (not 59) have NULL basis and render exactly as today,
+**no icon** — a disabled one would claim a reason exists and is withheld.
+
+**⚠️ SHIP ORDER IS LOAD-BEARING: THE MIGRATION MUST RUN BEFORE THE DEPLOY.** `/api/collection`
+now `SELECT`s `c.verdict_basis`; against a table without the column that is a 500 on the
+collection page for every user. Migration is metadata-only (nullable, no default) and takes
+`ACCESS EXCLUSIVE` — with `lock_timeout = 5s` it now fails fast rather than blocking the table.
+**Confirm autocommit:** an uncommitted `ALTER` holds that lock for as long as the window is open,
+taking the whole collection page down rather than one row — a sharper version of the 2026-08-12
+hang. Verify from `nlq_readonly`, never from the session that ran it.
+
 ### 🏷️ THE STRIPE PRODUCT DESCRIPTION — the surface no sweep can reach
 
 **⚠️ NEW STRUCTURAL FINDING, and it is the reusable one: Stripe-hosted copy is OUTSIDE every
