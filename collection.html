@@ -162,8 +162,18 @@
         <!-- Bulk Actions Bar -->
         <div class="bulk-actions" id="bulkActions">
             <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
-            <button class="action-btn" onclick="exportSelected()">📥 Export</button>
-            <button class="action-btn" onclick="deleteSelected()">🗑️ Delete</button>
+            <!-- Export and bulk Delete are UNBUILT: both handlers were a bare
+                 alert announcing the feature was not ready. A live-looking
+                 control whose only behaviour is to say it does not work is the
+                 same defect as a false label — it just tells the truth one click
+                 too late. Marked with the SOON idiom the sidebar already uses
+                 rather than hidden: users have seen these buttons, and silently
+                 removing a control reads as a bug.
+                 (Retired wording described, not reproduced — a comment quoting
+                 the dead string is indistinguishable from an unfixed instance to
+                 every future grep. L-SW-2026-015 corollary.) -->
+            <button class="action-btn soon" disabled title="Coming soon — export your selected comics to Excel/CSV">📥 Export <span class="soon-badge">SOON</span></button>
+            <button class="action-btn soon" disabled title="Coming soon — delete several comics at once">🗑️ Delete <span class="soon-badge">SOON</span></button>
             <button class="action-btn" onclick="clearSelection()">✕ Cancel</button>
         </div>
     </div>

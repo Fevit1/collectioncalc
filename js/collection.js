@@ -1029,14 +1029,18 @@ async function exportGalleryImage() {
     }
 }
 
+// Export and bulk delete are UNBUILT. Their buttons in collection.html now carry
+// `.action-btn.soon` + `disabled`, so neither of these can be reached by a click.
+// They are kept — not deleted — because removing a handler whose control still
+// exists in some cached copy of the page turns a labelled no-op into a silent
+// TypeError. When either feature is built, drop the `soon`/`disabled` attributes
+// and restore the onclick.
 function exportSelected() {
-    // TODO: Export to Excel
-    alert('Export functionality coming soon!');
+    console.warn('exportSelected() is unbuilt; its control is disabled in collection.html');
 }
 
 function deleteSelected() {
-    // TODO: Bulk delete
-    alert('Bulk delete coming soon!');
+    console.warn('deleteSelected() is unbuilt; its control is disabled in collection.html');
 }
 
 function clearSelection() {

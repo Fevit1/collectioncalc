@@ -743,13 +743,41 @@
                 chrome_extension: 'Chrome Extension',
                 api_access: 'API Access',
                 export: 'Excel/CSV Export',
-                multi_photo: 'Multi-Photo Grading',
                 ownership_certificates: 'Ownership Certificates',
                 priority_support: 'Priority Support'
             };
+
+            // ⚠️ These PLANS keys read TRUE on a paid tier and NOTHING implements
+            // them. A ✓ here is a promise to someone who has already paid, which
+            // is strictly worse than the same claim on the pricing page — the
+            // June tier-honesty pass trimmed these from pricing.html and did not
+            // reach this grid, because the fix was scoped to the page that
+            // raised the complaint rather than to every reader of the key.
+            // Rendered SOON regardless of the plan flag; the flag stays true in
+            // PLANS so the entitlement is ready when the feature is.
+            const comingSoonFeatures = new Set(['export']);
+
+            // ⚰️ REMOVED: multi_photo ('Multi-Photo Grading'). It reads TRUE on
+            // Pro and is enforced NOWHERE — there is no
+            // check_feature_access('multi_photo') call in the codebase. It is
+            // also not a differentiator: every tier, free included, uploads four
+            // photos. Listing it implied a gate that has never existed. See
+            // L-SW-2026-021 — this key is the false positive inside the June
+            // audit (the docstring at routes/images.py:300 names multi_photo
+            // while the call at :325 checks extra_photos).
+
             const grid = document.getElementById('featuresGrid');
             grid.innerHTML = '';
             for (const [key, label] of Object.entries(featureLabels)) {
+                if (comingSoonFeatures.has(key)) {
+                    grid.innerHTML += `
+                    <div class="feature-item" title="Coming soon — not available on any plan yet">
+                        <span class="icon-no">—</span>
+                        <span style="opacity:0.55;">${label}</span>
+                        <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.04em;background:var(--border-color,#e0e0e0);color:var(--text-muted,#888);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">SOON</span>
+                    </div>`;
+                    continue;
+                }
                 const enabled = features[key];
                 grid.innerHTML += `
                     <div class="feature-item">

@@ -346,6 +346,29 @@ select:focus {
     background: rgba(79, 70, 229, 0.1);
 }
 
+/* Unbuilt control. Mirrors the .sw-soon idiom in js/sidebar.js so "not yet"
+   looks the same everywhere in the app. The :hover reset is the point — an
+   unbuilt button that lights up on hover still reads as live. */
+.action-btn.soon,
+.action-btn.soon:hover {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border-color: var(--border-default);
+    background: var(--bg-primary);
+}
+
+.action-btn.soon .soon-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: var(--border-default);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
 .action-btn.primary {
     background: var(--brand-gradient);
     border: none;
