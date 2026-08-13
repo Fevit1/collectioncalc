@@ -631,6 +631,19 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
      product changes.** It cannot fail a test, cannot be grepped, and does not move when the code
      moves — which is exactly how a tombstone gets orphaned and a retired claim outlives its own
      retirement.
+- **🔴 EXTENDED 2026-08-12 — SHARED VENDOR ACCOUNTS ARE A DISTINCT AND WORSE CLASS.** The Stripe
+  **account business name** read **"The Masse"**: MASSÉ and Slab Worthy share one Stripe account
+  and MASSÉ set the branding first, so **every Slab Worthy customer saw a different company's
+  name on the hosted Checkout page** — the highest-trust screen in the product. Found by Mike
+  while editing the product description. Why this is worse than surface-level staleness: **it was
+  correct for MASSÉ the whole time**, so no state exists in which the other project sees a
+  problem; **neither repo contains it**, so neither sweep can reach it; **whoever configures it
+  first wins silently and permanently**, with no conflict and no prompt; and it is copy about
+  **who you are** at the payment step, not about a feature — a wrong company name at checkout
+  reads as fraud and would cause abandoned payments leaving no trace in either repo. **Rule: when
+  two projects share a vendor account, every account-level setting is a cross-project surface and
+  must be audited from both sides, with the sharing listed explicitly.** Known shared today:
+  Stripe (MASSÉ ↔ Slab Worthy). Resend and Cloudflare unverified.
 - **SOURCE:** 2026-08-12, at Mike's direction, after he found the Stripe description while writing
   the new one from the entitlement table. The June false positive was surfaced in the same pass by
   building the table from readers instead of from `PLANS`. Corrected description now reads

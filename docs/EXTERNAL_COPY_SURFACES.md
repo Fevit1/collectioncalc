@@ -31,13 +31,46 @@ If the answer is *yes / no*, it belongs in this file.
 
 ## The surfaces
 
-| # | surface | where it is edited | what it can claim | last audited |
-|---|---|---|---|---|
-| 1 | **Stripe product & price descriptions** — rendered on hosted Checkout | Stripe dashboard → Products | tier capabilities, limits, feature names | **2026-08-12 — corrected** |
-| 2 | **Stripe customer-portal product names** | Stripe dashboard → Billing → Customer portal | tier names shown to existing subscribers on upgrade/downgrade | ⚠️ **never audited** |
-| 3 | **Resend email templates / any copy not built from `auth.py`** | Resend dashboard | verification + notification wording, sender identity | ⚠️ **never audited** |
-| 4 | **Cloudflare-hosted copy** — redirect pages, error pages, Access/WAF block pages, Email Routing bounce text | Cloudflare dashboard | whatever a user hits when something fails | ⚠️ **never audited** |
-| 5 | *(future)* app-store / marketplace listings, Chrome Web Store listing if the extensions are ever published | respective consoles | everything | n/a |
+| # | surface | where it is edited | what it can claim | shared? | last audited |
+|---|---|---|---|---|---|
+| 1 | **Stripe product & price descriptions** — rendered on hosted Checkout | Stripe dashboard → Products | tier capabilities, limits, feature names | per-product | **2026-08-12 — corrected** |
+| 2 | **Stripe ACCOUNT business name + branding** — the company name, logo and colours on hosted Checkout, receipts and invoices | Stripe dashboard → Settings → Business / Branding | **who the user is paying** | 🔴 **SHARED WITH MASSÉ** | **2026-08-12 — corrected** |
+| 3 | **Stripe customer-portal product names** | Stripe dashboard → Billing → Customer portal | tier names shown to existing subscribers on upgrade/downgrade | 🔴 **SHARED WITH MASSÉ** | ⚠️ **never audited** |
+| 4 | **Resend email templates / any copy not built from `auth.py`** | Resend dashboard | verification + notification wording, sender identity | check | ⚠️ **never audited** |
+| 5 | **Cloudflare-hosted copy** — redirect pages, error pages, Access/WAF block pages, Email Routing bounce text | Cloudflare dashboard | whatever a user hits when something fails | check | ⚠️ **never audited** |
+| 6 | *(future)* app-store / marketplace listings, Chrome Web Store listing if the extensions are ever published | respective consoles | everything | — | n/a |
+
+## 🔴 The shared-account dimension — worse than "outside the repo"
+
+**Surface 2 was wrong for eight weeks and nobody could have grepped it, in either project.**
+
+The Stripe **account business name** read **"The Masse"**. MASSÉ and Slab Worthy share one Stripe
+account, and MASSÉ set the branding first. So **every Slab Worthy customer reaching hosted
+Checkout saw a different company's name at the moment of payment** — the single highest-trust
+screen in the product, showing an unrelated brand. Corrected to Slab Worthy on 2026-08-12.
+
+This is a **distinct and nastier class** than the product description:
+
+1. **A shared surface can be correct for one project and wrong for the other, simultaneously.**
+   The account name was *right* for MASSÉ the entire time. There is no state in which it is
+   "broken" from MASSÉ's point of view, so nothing on that side would ever flag it.
+2. **Neither repo contains it, so neither project's sweep can find it** — and each project
+   reasonably assumes the other isn't touching its branding.
+3. **Whoever configures it first wins by default, silently, forever.** There is no conflict, no
+   error, no second prompt. The second project inherits the first project's identity.
+4. **It is not copy about a feature — it is copy about WHO YOU ARE**, on the payment screen. A
+   wrong feature claim costs credibility; a wrong company name at checkout looks like fraud and
+   is a plausible cause of abandoned payments that would leave no trace anywhere in this repo.
+
+**Rule for shared third-party accounts:** when two projects share a vendor account, every
+account-level setting is a **cross-project surface** and must be audited from **both** projects.
+List the sharing explicitly in the table above so neither side assumes ownership. Currently known
+shared: **Stripe (MASSÉ ↔ Slab Worthy)**. Resend and Cloudflare are unverified — check whether
+they are shared before assuming they are not.
+
+⚠️ **Proposed for cross-project promotion (Mike's call)** — this belongs in
+`LESSONS_CROSS_PROJECT.md`, not just here, because by construction it cannot be fixed from inside
+one project's canon.
 
 ⚠️ **Stripe's customer portal is a live one, not a hypothetical.** `routes/billing.py` already
 carries a warning that the portal is a separate path `COMING_SOON_PLANS` cannot reach — a tier

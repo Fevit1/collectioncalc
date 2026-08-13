@@ -96,7 +96,51 @@ to remember is a step that gets forgotten. Now resolves the repo root from `__fi
 `_HERE`/`_ROOT` convention already used by `scripts/cp1_*.py`; verified running from a foreign
 cwd with no `PYTHONPATH`. Same principle as deriving a value rather than typing it.
 
-### ⚠️ THE ROOT CAUSE IS NOT FIXED
+### ✅ 2026-08-13 — USER 42 EXPLAINED. THE ROOT CAUSE APPEARS FIXED. **CLAUDE'S ERROR, CORRECTED.**
+
+⚰️ **DEAD: "user 42, 2026-08-11, collection 101 saved with three of four photos null — still
+unexplained; the next user is still exposed."** Stated by Claude repeatedly on 2026-08-12,
+including **in the body of commit `3c28da5`**, and used as the reason Joseph could not be told
+the bug was fixed.
+**REPLACED BY: there was never a failure. `sub 69` has `photos_used = 1` and one key,
+`front_cover`. User 42 uploaded ONE photo.**
+**REASON:** `app.html` initialises `photoUrls` with all four slots null and fills only the ones
+that have a photo, so `{front: URL, back: null, spine: null, centerfold: null}` is the **correct**
+result of a one-photo save. His entire request history is **100% HTTP 200 — zero failures of any
+kind.** 8 of his 9 grade submissions are `photos_used = 1`; single-photo grading is simply how he
+uses the product.
+**SUPERSEDES** any statement that the upload bug survived `85617c6`. Do not re-raise it.
+
+⚠️ **THE ERROR IS THE LESSON: absence read as failure, without establishing that the probe could
+tell "upload failed" from "no photo was ever taken."** That is **[[L-2026-024]]**, committed by
+Claude, three times, in the same week the same rule was being applied correctly elsewhere. The
+disproof was one column away — `photos_used` — in a table already being queried.
+
+**THE POST-FIX RECORD** (`85617c6`, 2026-08-06 21:50 UTC):
+
+| `/api/images/submission` | before the fix | after |
+|---|---|---|
+| 200 | 663 (avg 1,553ms) | **14 (avg ~800ms, max 1,179ms)** |
+| 400 | **81 (avg 19,828ms)** | **0** |
+| 500 | 11 | **0** |
+
+**Three four-photo saves have completed since the fix — users 3, 39 and 42 — all 4/4, all 200,
+every photo under 1.2s.** That is the exact shape that failed for Joseph, whose 400s averaged
+**twenty seconds**.
+
+⚠️ **NOT PROOF. n=3, on unknown networks.** The honest position: **no known unexplained photo
+loss exists anywhere in the system**, and the failing shape now succeeds. Cols 29 (2026-02-14)
+and 65 (2026-06-15) are partial but **predate the earliest `grade_submission` in existence
+(2026-06-27)** — no retained source exists, so they are **unmeasurable, not unexplained**; do not
+count them either way. The 10 `user IS NULL` rows on that endpoint are **OPTIONS preflight**
+(396 overall, 0ms), not a hidden failure population.
+
+**✅ THE NEW INSTRUMENTATION IS CONFIRMED WORKING FROM PRODUCTION DATA, not from the deploy:**
+`error_message='non-json-404'` with `response_summary` carrying the Werkzeug HTML — the exact
+text that used to be discarded — plus `request_size_bytes` on **2,311 of 2,458** requests since
+deploy, including `req=2190265` on the verified 429.
+
+### ⚠️ THE ROOT CAUSE IS NOT FIXED — *superseded 2026-08-13, see above*
 
 `85617c6` (upload resize, 2026-08-06 **21:50 UTC**) landed **7 hours after Joseph's last
 visit** — he never saw it. It has **not** been shown to close this: **user 42, 2026-08-11,
@@ -249,6 +293,17 @@ trimmed export from `pricing.html` and **missed `account.html`.** Same for `mult
 Guard registrations, and up to 4 extra photos per comic."* Three claims, all enforced, all
 derived from the table above.
 
+**🔴 FIFTH INSTANCE, FOUND IN THE SAME SITTING — AND A NEW CLASS. The Stripe ACCOUNT business
+name read "The Masse".** MASSÉ and Slab Worthy **share one Stripe account** and MASSÉ set the
+branding first, so **every Slab Worthy customer saw a different company's name on the hosted
+Checkout page.** Corrected to Slab Worthy. The account name is a **separate surface** from the
+product description, and on a shared account it can be **wrong for one project while correct for
+the other** — so no state exists in which MASSÉ would ever notice, neither repo contains it, and
+whoever configures it first wins silently and permanently. It is copy about **who you are** at the
+payment step. Recorded in `docs/EXTERNAL_COPY_SURFACES.md` under a new *shared-account dimension*
+section and proposed for **cross-project promotion** — by construction it cannot be fixed from
+inside one project's canon.
+
 **Logged as [[L-SW-2026-021]]** (both halves: third-party copy is outside every sweep, AND an
 audit that greps for the claim rather than the reader issues false passes), with the standing
 list in **`docs/EXTERNAL_COPY_SURFACES.md`** — Stripe Checkout, Stripe customer-portal product
@@ -275,6 +330,19 @@ other is the [[L-SW-2026-019]] mistake in miniature.
    before any copy is drafted: what the 429 returns and what the client renders; whether the
    cap check knows plan and reset date at the point of refusal; what Pro would have given him
    **as a number, not a tier name**.
+**✅ ALL THREE CLOSED 2026-08-12/13, plus the two follow-ons — verified by Mike:**
+- **Cap screen RENDERED end to end.** *"You've used all 25 gradings this month"*, 75 more for
+  $4.99, Pro 100/month, reset date subordinated, exit to collection. **The button reached
+  `checkout.stripe.com` with a live session**; cancelled at Stripe rather than completed.
+- **`gradings_this_month` = 27**, read back from the **`nlq_readonly` connection** — a different
+  session than the one that wrote it, closing the decoy-artifact trap that caused the hang.
+- **`lock_timeout = 5s`** on `collectioncalc_db_user`, confirmed in `pg_roles`. ⚠️ `SHOW
+  lock_timeout` returned **0 until reconnect** — *the same read-it-from-the-writing-session trap
+  one layer over.* A role-level setting applies to NEW sessions only; verifying it from the
+  session that set it is the identical defect as verifying a DBeaver `UPDATE` from DBeaver.
+- **Pin: 25 and 0.**
+- **User 42: explained, no bug** — see the 2026-08-13 correction above.
+
 3. **Pin his submissions before 2026-11-04.** ⚠️ `pinned` **has no writer** — declared,
    `DEFAULT FALSE`, indexed, read in exactly two places (`admin_routes.py:1283` →
    `admin.html:1305` badge), set by nothing. **And there is no purge job at all** — the risk is
