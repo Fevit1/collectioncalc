@@ -988,6 +988,14 @@ let thinkingStartTime = null;
 const seriousMessages = [
     "Searching recent eBay sold listings...",
     "Filtering for comparable condition...",
+    // ⚠️ "90 days" IS FALSE — the valuation lookback is 365 days with no recency
+    // weighting (see the `supported` tombstone in js/verdict_basis.js, which
+    // records the same figure and the reason the word "recent" was removed from
+    // the reason strings). Logged 2026-08-13, deliberately NOT fixed here: this
+    // is a loading message in the grading flow, not retention or valuation copy,
+    // and the unit that publishes the 24-month retention change should not also
+    // be quietly editing a different false number in a different subsystem.
+    // Fix belongs with the next pass over the progress messaging.
     "Analyzing sale prices from the past 90 days...",
     "Checking for price outliers...",
     "Comparing raw vs. slabbed sales...",

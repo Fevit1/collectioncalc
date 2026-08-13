@@ -611,7 +611,17 @@
             <div class="section">
                 <h2 class="section-title">🔬 Grade Submissions — Retention &amp; Diagnostics</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Every grade is retained for ~90 days (saved or not). Search by user email or ID to
+                    <!-- Policy is 24 months from submission (privacy.html, 2026-08-13), replacing
+                         the much shorter window this line used to state. (Retired figure described,
+                         not reproduced — a comment repeating it is indistinguishable from an
+                         unfixed instance to every future sweep. L-SW-2026-015 corollary.)
+                         ⚠️ The DATA still disagrees: RETENTION_DAYS
+                         is 90 in grade_retention.py and every stored images_purge_after was
+                         materialised at INSERT from it. Nothing reads that column — no purge job
+                         exists — so nothing is deleted early today. Reconciling it belongs to the
+                         purge-job unit, which is gated on saved_collection_id and on deriving the
+                         window from created_at rather than freezing it at write time. -->
+                    Every grade is retained for 24 months (saved or not). Search by user email or ID to
                     see exactly what the grader saw and concluded — the photos, the overall grade, the 8
                     subgrades, and confidence. Deleting cascades to both the database row and the R2 images.
                 </p>

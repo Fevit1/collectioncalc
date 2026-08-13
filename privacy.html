@@ -284,7 +284,7 @@
 
     <div class="container">
         <h1>Privacy Policy</h1>
-        <p class="last-updated">Last Updated: August 1, 2026</p>
+        <p class="last-updated">Last Updated: August 13, 2026</p>
 
         <div class="content-card">
             <h2>Introduction</h2>
@@ -329,7 +329,7 @@
                 <li>We do not use facial recognition technology</li>
                 <li>We do not use your images for advertising</li>
             </ul>
-            <p>You can request deletion of your uploaded images at any time by contacting <a href="mailto:support@slabworthy.com">support@slabworthy.com</a>.</p>
+            <p>You can request deletion of your uploaded images at any time by contacting <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a>.</p>
         </div>
 
         <div class="content-card">
@@ -351,14 +351,31 @@
         <div class="content-card">
             <h2>Data Retention</h2>
             <p><span class="highlight">Account data:</span> We retain your account information for as long as your account is active. If you delete your account, we will delete your personal information within 30 days, except where we are required to retain it for legal purposes.</p>
+            <!-- ✅ 90 DAYS IS CORRECT HERE. Slab Guard registrations are a
+                 DIFFERENT DATA TYPE from grading submissions and keep their own
+                 window; the 2026-08-13 change to 24 months applies only to
+                 grading data. Verified against the Grading Data & Image
+                 Retention card below. Do not "reconcile" the two numbers — the
+                 same note applies to terms.html's account-deletion paragraph,
+                 which states the same 90 days about the same registrations.
+                 (L-SW-2026-014: copy investigated and found correct gets a
+                 tombstone, or the next sweep re-raises it and someone
+                 eventually breaks it.) -->
             <p><span class="highlight">Slab Guard registrations:</span> If you delete your account or downgrade, your Slab Guard registrations are retained in our monitoring database for 90 days. After 90 days, they are permanently deleted. You can request immediate deletion by contacting us.</p>
-            <p><span class="highlight">Grading Data &amp; Image Retention:</span> When you grade a comic with Slab Worthy, you submit photos and we generate a grade. We retain the photos you submit and the grade results (overall grade, sub-grades, and confidence) for up to <span class="highlight">90 days</span> — whether or not you save the comic to a collection. We use this retained data to operate, monitor, and improve our grading accuracy, including investigating cases where a user reports that a grade looked incorrect. This retained grade data is associated with your account and may be reviewed by authorized Slab Worthy staff for these quality and diagnostic purposes. After 90 days, grade submissions that have not been saved to a collection are automatically deleted.</p>
+            <p><span class="highlight">Grading data and images:</span> See <a href="#grading-data-retention">Grading Data &amp; Image Retention</a> below.</p>
             <p>If you save a graded comic to My Collection, its photos and grade are retained as part of your collection until you delete the comic, at which point we remove its images and grade data.</p>
-            <p>If you send us feedback about a specific grade, we may retain the related grade submission longer than 90 days so we can investigate and respond.</p>
-            <p>You may request deletion of your grading data — saved or unsaved — at any time (see "Your Rights"). We process deletion requests within 30 days.</p>
-            <p><span class="highlight">Images:</span> Images attached to comics you save in My Collection are stored as long as that comic remains in your collection, and are removed when you delete it. Separately, images you submit for grading are retained as grade submissions for up to 90 days for quality and diagnostic purposes, as described under "Grading Data &amp; Image Retention" above — this applies even to grades you do not save. We may additionally retain images in anonymized, de-identified form to improve our AI models; this anonymized data is not tied to your account.</p>
             <p><span class="highlight">Payment records:</span> Transaction records are retained as required by tax and financial regulations (typically 7 years). Stripe retains payment data in accordance with their own retention policies.</p>
             <p><span class="highlight">Content moderation logs:</span> Records of content safety screening (pass/fail results, not images) are retained for 12 months for security and compliance purposes.</p>
+        </div>
+
+        <div class="content-card" id="grading-data-retention">
+            <h2>Grading Data &amp; Image Retention</h2>
+            <p>When you grade a comic, we keep the photos you uploaded along with the grade, the sub-grades, and the confidence figures — whether or not you save the comic to your collection.</p>
+            <p><span class="highlight">How long we keep it.</span> Twenty-four months from the date you submitted the grade. We previously said 90 days. We extended it because professional grading services routinely take longer than 90 days to return a result, and the whole point of keeping your submission is to compare our grade against the professional one when it arrives. A 90-day window deleted the data before that comparison was possible.</p>
+            <p><span class="highlight">What we do with it.</span> We use your submitted photos and grading data to operate the service, to evaluate how accurate our grading is, and to improve it. That is the whole of it. We do not sell it, we do not share it with third parties for their own purposes, and we do not use your photos in marketing or publish them without asking you first and separately.</p>
+            <p><span class="highlight">You own your photos.</span> Uploading a comic to Slab Worthy does not transfer ownership of the images to us. You grant us a non-exclusive licence to use them for the purposes described above, and nothing further.</p>
+            <p><span class="highlight">Deleting your data.</span> You can ask us to delete your grading submissions at any time, and we will do so within 30 days. This includes the images themselves, not just the database records — the photos are removed from storage. Write to <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a>. Deleting your account deletes this data as well.</p>
+            <p><span class="highlight">One exception.</span> If you send us feedback about a specific grade, we may keep that submission longer so we can look into what you told us. If you would rather we did not, say so and we will delete it.</p>
         </div>
 
         <div class="content-card">
@@ -371,7 +388,7 @@
                 <li>Export your data in a portable format</li>
                 <li>Opt out of marketing communications</li>
             </ul>
-            <p>To exercise any of these rights, contact us at <a href="mailto:support@slabworthy.com">support@slabworthy.com</a>.</p>
+            <p>To exercise any of these rights, contact us at <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a>.</p>
         </div>
 
         <div class="content-card">
@@ -392,14 +409,14 @@
             <p><span class="highlight">What the Meta Pixel collects:</span> When you visit a page on slabworthy.com, the pixel sends the following to Meta: the page you viewed and its URL, your <span class="highlight">IP address</span>, your browser type and version, your device and operating system, screen size, the page that referred you to us, and the identifiers stored in Meta's own cookies (including the <code>_fbp</code> browser cookie the pixel sets on this site, and the <code>fbc</code> click identifier if you arrived from one of our ads).</p>
             <p><span class="highlight">What events we send:</span> In addition to page views, we tell Meta when two specific things happen — that <span class="highlight">someone completed our signup form</span>, and that <span class="highlight">someone completed email verification</span>. We send only the fact that the event happened, so we can tell how many sign-ups an ad produced — never any detail about who you are or what you signed up with. Note that Meta can still associate an event with you through its own cookies and your Facebook or Instagram account; that association is made by Meta, not by us. <span class="highlight">We do not send Meta your email address, your name, your phone number, your password, your payment details, your comic images, or your grading results.</span> We do not use Meta's Advanced Matching, Conversions API, or any other feature that would transmit your contact details to Meta.</p>
             <p><span class="highlight">How Meta may use it:</span> Meta may use this data to measure the performance of our ads, to build audiences of people who behave similarly to our visitors ("lookalike audiences"), to show you Slab Worthy ads elsewhere on Facebook and Instagram, and for its own purposes as described in Meta's own privacy policy. Once the data reaches Meta, Meta's <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and <a href="https://www.facebook.com/legal/terms/businesstools" target="_blank" rel="noopener noreferrer">Business Tools Terms</a> govern what it does with it — we act as independent controllers of that data, and we do not control Meta's own use of it.</p>
-            <p><span class="highlight">This is not a "sale" for money, but it may count as one legally:</span> We do not receive any payment for this data. However, sharing information with an advertising partner for targeted advertising may be treated as a "sale" or a "share" of personal information under certain state privacy laws, including the California Consumer Privacy Act. If you are covered by such a law and want to opt out, use any of the methods below or email us at <a href="mailto:support@slabworthy.com">support@slabworthy.com</a> and we will honour the request.</p>
+            <p><span class="highlight">This is not a "sale" for money, but it may count as one legally:</span> We do not receive any payment for this data. However, sharing information with an advertising partner for targeted advertising may be treated as a "sale" or a "share" of personal information under certain state privacy laws, including the California Consumer Privacy Act. If you are covered by such a law and want to opt out, use any of the methods below or email us at <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a> and we will honour the request.</p>
             <p><span class="highlight">How to opt out:</span> You have several options, and none of them affect your ability to use Slab Worthy:</p>
             <ul>
                 <li>Turn on <span class="highlight">"Do Not Track"</span> or an equivalent tracking-protection setting in your browser. Safari (Intelligent Tracking Prevention) and Firefox (Enhanced Tracking Protection) block this kind of pixel by default.</li>
                 <li>Block third-party cookies in your browser settings, or use a content blocker or privacy extension — the pixel will not load.</li>
                 <li>Adjust what Meta is allowed to do with data collected about you off its own platform: <a href="https://www.facebook.com/adpreferences/ad_settings" target="_blank" rel="noopener noreferrer">Meta Ad Preferences</a> and <a href="https://www.facebook.com/off_facebook_activity" target="_blank" rel="noopener noreferrer">Off-Facebook Activity</a>. Off-Facebook Activity lets you disconnect or clear the activity businesses like ours have sent to Meta about you.</li>
                 <li>Opt out of interest-based advertising generally through the <a href="https://optout.aboutads.info/" target="_blank" rel="noopener noreferrer">Digital Advertising Alliance</a> or the <a href="https://www.youronlinechoices.eu/" target="_blank" rel="noopener noreferrer">European Interactive Digital Advertising Alliance</a>.</li>
-                <li>Email <a href="mailto:support@slabworthy.com">support@slabworthy.com</a> and ask us to stop. We will confirm when it is done.</li>
+                <li>Email <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a> and ask us to stop. We will confirm when it is done.</li>
             </ul>
             <p>The Meta Pixel is loaded on the pages of slabworthy.com, including pages you see once you are signed in. It records page views and the two conversion events described above and nothing else — it has <span class="highlight">no access</span> to your uploaded comic images, your grades, your collection, your Slab Guard registrations, or your payment details, and none of those are ever transmitted to Meta.</p>
         </div>
@@ -417,7 +434,7 @@
 
         <div class="content-card">
             <h2>Children's Privacy</h2>
-            <p>Slab Worthy requires users to be at least 16 years old. We do not knowingly collect information from anyone under 16. If you believe we have collected information from someone under 16, please contact us immediately at <a href="mailto:support@slabworthy.com">support@slabworthy.com</a> and we will delete the account and associated data promptly.</p>
+            <p>Slab Worthy requires users to be at least 16 years old. We do not knowingly collect information from anyone under 16. If you believe we have collected information from someone under 16, please contact us immediately at <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a> and we will delete the account and associated data promptly.</p>
         </div>
 
         <div class="content-card">
@@ -428,7 +445,7 @@
         <div class="content-card">
             <h2>Contact Us</h2>
             <p>If you have questions about this Privacy Policy or how we handle your data, contact us at:</p>
-            <p><a href="mailto:support@slabworthy.com">support@slabworthy.com</a></p>
+            <p><a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a></p>
         </div>
     </div>
 
