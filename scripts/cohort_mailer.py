@@ -24,15 +24,25 @@ DESIGN, and why each part is the way it is:
   re-run reads the log and SKIPS them — recoverable without re-sending, which is
   the same idempotency shape as scripts/jv_photo_backfill.py.
 
+⚠️ `docs/` IS NOT IN THE CONTAINER. `.dockerignore:30` excludes it deliberately —
+   part of the build-context reduction that took the image from 4.9GB to ~450MB,
+   whose own rule of thumb is "docs, tooling and test corpora stay OUT". So a
+   script that runs in the Render shell must NOT depend on anything under
+   `docs/`. The template therefore lives beside this file in `scripts/`, which
+   does ship. Found the hard way on 2026-08-13: the notice was committed to
+   `docs/`, the commit was verified with `git show --stat`, and the file still
+   did not exist at `/app/docs/`.
+
 USAGE (Render shell — it has RESEND_API_KEY and DATABASE_URL):
 
-    python scripts/cohort_mailer.py --template docs/cohort_notice.txt \\
-        --subject "A change to how long we keep your grading data"
+    python scripts/cohort_mailer.py --subject "A change to how long we keep your grading data"
 
-    ... read all six rendered messages ...
+    ... read every rendered message ...
 
-    python scripts/cohort_mailer.py --template docs/cohort_notice.txt \\
-        --subject "..." --send
+    python scripts/cohort_mailer.py --subject "..." --send
+
+`--template` defaults to scripts/cohort_notice.txt, resolved from THIS file's
+location rather than from the working directory.
 
 ⚠️ THE LOG LIVES ON THE CONTAINER FILESYSTEM and does not survive a redeploy.
    The script prints how many it found already-sent at startup; if that number
@@ -68,6 +78,13 @@ EXCLUDED_EMAILS = (
 )
 
 DEFAULT_LOG = os.path.join(_ROOT, 'scripts', 'cohort_mailer_sent.jsonl')
+
+# Both defaults resolve from _HERE, never from the working directory — the same
+# reason jv_photo_backfill.py resolves its repo root from __file__. A default
+# that only works when you happen to be cd'd to the repo root is a step the
+# operator has to remember, and this one additionally pointed into `docs/`,
+# which the image does not contain at all.
+DEFAULT_TEMPLATE = os.path.join(_HERE, 'cohort_notice.txt')
 
 # The template must contain this, or the salutation silently does not happen and
 # six people get a message that opens mid-sentence.
@@ -132,8 +149,10 @@ def append_sent(path, entry):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--template', required=True,
-                    help=f'UTF-8 body file containing {REQUIRED_PLACEHOLDER}')
+    ap.add_argument('--template', default=DEFAULT_TEMPLATE,
+                    help=f'UTF-8 body file containing {REQUIRED_PLACEHOLDER} '
+                         f'(default: scripts/cohort_notice.txt, resolved from this '
+                         f'script rather than from the working directory)')
     ap.add_argument('--subject', required=True)
     ap.add_argument('--from', dest='sender', default=DEFAULT_FROM)
     ap.add_argument('--reply-to', default=None)
@@ -151,6 +170,18 @@ def main():
     print(f'  template: {args.template}')
     print(f'  log:      {args.log}')
     print('=' * 78)
+
+    if not os.path.exists(args.template):
+        # Name the actual cause. The realistic way to land here is a path under
+        # docs/, which .dockerignore excludes from the image, so the file exists
+        # in git and is verifiable with `git show --stat` while being absent at
+        # runtime. That combination reads as a Dockerfile bug for a while.
+        hint = ''
+        if os.sep + 'docs' + os.sep in os.path.abspath(args.template) or \
+           args.template.replace('\\', '/').startswith('docs/'):
+            hint = ('\n  NOTE: docs/ is excluded by .dockerignore and is NOT present in the '
+                    'container.\n  Put anything a script must read at runtime in scripts/.')
+        sys.exit(f'template not found: {args.template}{hint}')
 
     template = open(args.template, encoding='utf-8').read()
     if REQUIRED_PLACEHOLDER not in template:

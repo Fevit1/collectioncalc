@@ -84,6 +84,19 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
   touching both needs both. `purge` is zone-wide, so **do not bother listing changed
   file URLs** — there is nothing to enumerate.
 
+  ⚠️ **THERE IS A THIRD CASE the backend/frontend split misses: files that must EXIST
+  in the container.** `deploy` is not only how code starts *serving* — it is how files
+  *get there at all*. A one-shot script run from the Render shell, and anything it
+  reads, needs a deploy even when nothing in the change is ever served. Committing and
+  pushing is not enough, and `git show --stat` will happily confirm a file that is not
+  in the image.
+  **`.dockerignore` excludes `docs/`, `tests/`, `CCExtensions/`, `archive/`, `*.csv`,
+  `*.db` and `*.docx`** (deliberately — it is what took the build context 4.9GB → 450MB).
+  So **anything a script must read at runtime belongs in `scripts/`, never `docs/`.**
+  Bit the 2026-08-13 cohort mailer: the notice text was committed to `docs/`, verified
+  in the commit, and absent at `/app/docs/`. Full rule: `docs/LESSONS.md`
+  **L-SW-2026-023**.
+
   Why `purge` matters: frontend assets ship with `Cache-Control: public, max-age=14400`
   and no cache-busting query string, so a stale edge copy looks exactly like a failed
   fix for up to four hours. (`sw.js` never caches HTML, so the service worker is not

@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-13 (22 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-13 (23 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -571,6 +571,47 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   reads is a claim, not a mechanism) from displays and contracts to **names in code**. **Candidate
   for cross-project promotion (Mike's call)** — applies to any flag, tier, column or metric name in
   TFO or MASSÉ.
+
+### L-SW-2026-023 — "Does this need a deploy?" has three answers, not two: serving, and EXISTING. A file in git is not a file in the container
+
+- **RULE:** The ship-decision question is not *"is this backend or frontend?"* — it is **"does
+  anything about this change have to be present in the running container?"** `deploy` is not only
+  how code starts *serving*; it is how files **get there at all**. A one-shot script run from the
+  Render shell — and every file it reads at runtime — needs a deploy even when nothing in the
+  change is served to anybody. And because `.dockerignore` deliberately excludes whole
+  directories, **committing a file is not the same as shipping it**: `git show --stat` will
+  confirm a file that does not exist in the image.
+- **WHY:** 2026-08-13, the cohort mailer. `docs/cohort_notice.txt` was committed (32 lines,
+  verified with `git show --stat`) and `/app/docs/cohort_notice.txt` did not exist. Not a
+  Dockerfile omission — **`.dockerignore:30` excludes `docs/` on purpose**, part of the build-
+  context reduction that took the image from **4.9GB to ~450MB**, whose own header states the rule:
+  *"the web path stays IN; test corpora, docs, tooling, and anything secret stay OUT."* The ship
+  block had said *"no deploy needed"*, which was **right about serving and wrong about
+  availability** — the exact distinction the backend/frontend table does not encode. It cost two
+  attempts to discover, and was worked around by copying the template to `/tmp`.
+- **⚠️ THE TELL IS THAT EVERY VERIFICATION PASSES.** The commit is real, the push is real, the
+  file is in `git show`, the diff is correct. Nothing is wrong except that the artifact was
+  checked in the wrong place — the repository rather than the runtime. Same shape as
+  [[L-SW-2026-022]] (a correct check of the wrong moment); here it is a correct check of the wrong
+  **location**.
+- **HOW TO APPLY:**
+  1. **Anything a script reads at runtime lives in `scripts/`, beside its consumer — never in
+     `docs/`.** Currently excluded from the image: `docs/`, `tests/`, `CCExtensions/`, `archive/`,
+     `*.csv`, `*.db`, `*.docx`, plus `.git`, `.claude` and `.env`. Read `.dockerignore` before
+     placing any runtime input; do not infer it from the Dockerfile, which is a bare `COPY . .`.
+  2. **Resolve default paths from `__file__`, never from the working directory** — the same
+     `_HERE`/`_ROOT` convention as `scripts/cp1_*.py` and `jv_photo_backfill.py`. A default that
+     works only from the repo root is a step the operator has to remember.
+  3. **Make the missing-file error name the cause.** A path under an ignored directory is absent
+     at runtime while being verifiably committed, which reads as a Dockerfile bug for a while.
+     `cohort_mailer.py` now says so explicitly when the path it was given is under `docs/`.
+  4. **In any ship block for a container-run script, say "deploy so the script is present",** not
+     just "deploy". Naming *why* is what stops the next reader dropping the step as unnecessary
+     for a change that serves nothing.
+- **SOURCE:** 2026-08-13, cohort mailer for the retention-change notice, found by Mike in the
+  Render shell. His framing: *"'No deploy needed' was right about serving and wrong about
+  availability… the default path in the script is a trap for whoever runs it next, and that will
+  be me at the next policy change."*
 
 ### L-SW-2026-022 — A cache purge is only valid AFTER the new content exists; `push; deploy; purge` assumes an ordering that Cloudflare Pages does not honour
 
