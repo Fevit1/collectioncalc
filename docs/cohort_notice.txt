@@ -1,0 +1,32 @@
+Hi {first_name},
+
+<<< REPLACE THIS ENTIRE BLOCK WITH SECTION 3 OF YOUR DRAFTS >>>
+
+NOTES FOR WHOEVER EDITS THIS — delete them along with this block.
+
+  - Keep the salutation placeholder on line 1. cohort_mailer.py refuses to run
+    if it is missing from the template, and aborts if it survives substitution
+    in any single rendered message. (These notes deliberately do not repeat the
+    token itself: it would be substituted into this paragraph too, and a future
+    grep could not tell the instruction from a real salutation.)
+
+  - Plain text, not HTML. cohort_mailer.py sends text/plain, so markdown arrives
+    literally. Blank lines are the only formatting available.
+
+  - The retention figure is TWENTY-FOUR MONTHS from the date of submission
+    (privacy.html, "Grading Data & Image Retention", published 2026-08-13).
+    The cohort was previously told 90 days.
+
+  - Deletion requests go to privacy@slabworthy.com — the only address
+    privacy.html now names. Do not write support@ here; it was retired from the
+    privacy policy on 2026-08-13, and naming it would reintroduce the
+    two-addresses-for-one-request problem that change fixed.
+
+  - The feedback exception is "we MAY keep that submission longer", never "we
+    keep". `pinned` has no writer, so the stronger wording would assert an
+    automatic exemption no code performs.
+
+<<< END REPLACEMENT BLOCK >>>
+
+Mike
+Slab Worthy

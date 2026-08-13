@@ -64,6 +64,9 @@ import os
 import sys
 
 sys.stdout.reconfigure(encoding='utf-8')  # L-2026-015
+sys.stderr.reconfigure(encoding='utf-8')  # sys.exit() messages go here, and an
+                                          # abort reason is the one line the operator
+                                          # must be able to read.
 
 # Resolve the repo root from THIS file, never from the invocation. Requiring the
 # operator to remember `PYTHONPATH=/app` makes correctness depend on how the

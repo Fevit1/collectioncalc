@@ -616,8 +616,13 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   accurate — about a moment that had not finished happening. Fix = **gate the check on the
   precondition**, not a better check.
 - **SOURCE:** 2026-08-13, `f69a207` privacy-policy publish, at Mike's direction. *"The artifact
-  check caught it, but only because I ran one."* **Candidate for cross-project promotion (Mike's
-  call)** — TFO deploys to Vercel behind a build step and has the identical shape.
+  check caught it, but only because I ran one."*
+- **STATUS:** ✅ **PROMOTED CROSS-PROJECT 2026-08-13 (Mike) → `LESSONS_CROSS_PROJECT.md`
+  L-2026-027** (file bumped to v1.6, 14 lessons active). Reasoning: TFO deploys to Vercel behind a
+  build step and has the identical shape, so criterion 2 clears on structure rather than on a
+  second observed incident. The SW entry keeps the war story; the cross-project entry carries the
+  rule and the assert-in-both-directions corollary — which is the part Mike flagged as the one he
+  would otherwise have gotten wrong.
 
 ### L-SW-2026-021 — Copy that lives in a third-party dashboard is invisible to every sweep you run; and an audit that greps for the CLAIM rather than the READER will confirm claims that are themselves only claims
 
@@ -691,6 +696,42 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   two projects share a vendor account, every account-level setting is a cross-project surface and
   must be audited from both sides, with the sharing listed explicitly.** Known shared today:
   Stripe (MASSÉ ↔ Slab Worthy). Resend and Cloudflare unverified.
+- **🔄 EXTENDED 2026-08-13 — THE FIRST INSTANCE THAT RUNS THE OTHER WAY: A FALSE *RESTRICTION*.**
+  Every prior instance in this family was a false **promise** — copy claiming more than the
+  mechanism delivers. `PLANS['marketplace_monitoring']` is the mirror image: it reads `False` for
+  Free and Pro and `True` for Guard/Dealer, describing a **restriction that does not exist.** The
+  Slab Guard Monitor extension calls `/api/monitor/*`, and those routes are effectively ungated —
+  `/stolen-hashes`, `/check-image`, `/check-hash`, `/compare-copies` and `/capture-sale` carry
+  **`@rate_limit` and no auth at all**; `/report-match` and `/my-matches` require a logged-in
+  approved account and **no plan check**. So the scanning path works with no account whatsoever
+  and match reporting works on any tier. **`faq.html`'s "works with any Slab Worthy account" is
+  the ACCURATE statement and the config key is the false one.** Note the near-miss that makes this
+  worth recording: `chrome_extension` **is** genuinely enforced — at `routes/vision.py:232`, which
+  gates `/api/vision/analyze`, **an endpoint this extension never calls.** A gate that exists, on
+  a real feature key, protecting a different surface, is the most convincing possible way to
+  conclude the wrong thing.
+  **WHY THE INVERSION MATTERS:** a false promise costs credibility when a user discovers it. A
+  false restriction costs **silently and forever** — it never surprises anyone, because the user
+  simply believes they cannot have the thing and stops. Nobody files a complaint about a feature
+  they were told they do not qualify for. It is invisible to support, to feedback, and to every
+  audit that starts from "what are we claiming?" **So an entitlement audit must ask BOTH
+  questions: does the mechanism deliver what the copy claims, AND does it restrict what the copy
+  says it restricts?** Reaching only for the first is how this survived the June pass and the
+  2026-08-12 table.
+- **📌 SAME DAY, SAME EXTENSION, DIFFERENT RULE:** `CCExtensions/slab-guard-monitor/manifest.json`
+  is **`1.0.0`, dated Feb 14**, while `content.js` and `background.js` were modified **Feb 21** —
+  the identical unverifiable-reload condition that left `ebay-collector` blind for 4.5 months and
+  produced the mandatory version-bump rule in `CLAUDE.md`. Smaller gap, same mechanism: unpacked
+  extensions reload with no confirmation, so the version in `chrome://extensions` is the only
+  observable proof ([[L-SW-2026-017]]). The rule was written for one extension and applies to all
+  of them.
+- **⚠️ STILL OPEN, and it is the sharper problem than either of the above:** `faq.html:541` says
+  the extension *"is available in the Chrome Web Store."* The extension's own README documents
+  exactly one install path — **Load unpacked, Developer mode** — and there is no store link, store
+  ID, or download anywhere in the product. If it is not published, that is a **false availability
+  claim wrapped around a true capability claim**: the extension is real, works, and does precisely
+  what the copy describes, and the only thing wrong is whether a user can obtain it. Unresolved as
+  of 2026-08-13 pending Mike's confirmation.
 - **SOURCE:** 2026-08-12, at Mike's direction, after he found the Stripe description while writing
   the new one from the entitlement table. The June false positive was surfaced in the same pass by
   building the table from readers instead of from `PLANS`. Corrected description now reads

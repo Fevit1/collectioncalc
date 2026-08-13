@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Send ONE email through Resend, from a named sender.
 
-Built for the reply to Joseph Vicario (user 38) and reusable as-is for the
-2026-09-17 cohort notification, which needs exactly the same thing.
+Built for the reply to Joseph Vicario (user 38). Its send_email() is also the
+sender scripts/cohort_mailer.py uses for the retention-change notice — one
+sender, imported, never re-implemented.
 
 Yahoo cannot send as slabworthy.com, and a personal reply should not arrive from
 `noreply@`. So the sender defaults to mike@slabworthy.com and is overridable.
@@ -27,6 +28,9 @@ import os
 import sys
 
 sys.stdout.reconfigure(encoding='utf-8')  # L-2026-015
+sys.stderr.reconfigure(encoding='utf-8')  # sys.exit() messages go here, and an
+                                          # abort reason is the one line the operator
+                                          # must be able to read.
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
@@ -34,6 +38,38 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 DEFAULT_FROM = 'Mike Berry <mike@slabworthy.com>'
+
+
+def send_email(sender, to, subject, body, reply_to=None, as_html=False):
+    """Send one message through Resend. Returns the provider's message id.
+
+    THE ONLY SENDER IN THIS REPO. scripts/cohort_mailer.py imports this rather
+    than building a second one: two senders means two places for a From address,
+    two payload shapes and two ways to get the reply_to wrong, and the second one
+    is always the one nobody tests.
+
+    Raises on failure — the caller decides whether that aborts a run or is logged
+    and skipped. Never prints; callers own their own output format.
+    """
+    api_key = os.environ.get('RESEND_API_KEY')
+    if not api_key:
+        raise RuntimeError('RESEND_API_KEY not set. Run this in the Render shell, '
+                           'or export it locally.')
+
+    import resend
+    resend.api_key = api_key
+
+    payload = {
+        'from': sender,
+        'to': [to],
+        'subject': subject,
+        ('html' if as_html else 'text'): body,
+    }
+    if reply_to:
+        payload['reply_to'] = reply_to
+
+    result = resend.Emails.send(payload)
+    return result.get('id') if isinstance(result, dict) else str(result)
 
 
 def main():
@@ -74,27 +110,15 @@ def main():
         print('  DRY RUN — nothing sent. Re-run with --send.')
         return 0
 
-    api_key = os.environ.get('RESEND_API_KEY')
-    if not api_key:
-        sys.exit('RESEND_API_KEY not set. Run this in the Render shell, or export it locally.')
-
-    import resend
-    resend.api_key = api_key
-
-    payload = {
-        'from': args.sender,
-        'to': [args.to],
-        'subject': args.subject,
-        ('html' if args.html else 'text'): body,
-    }
-    if args.reply_to:
-        payload['reply_to'] = args.reply_to
-
-    result = resend.Emails.send(payload)
+    try:
+        msg_id = send_email(args.sender, args.to, args.subject, body,
+                            reply_to=args.reply_to, as_html=args.html)
+    except RuntimeError as e:
+        sys.exit(str(e))
     # Print the provider's own id. "No exception" is not proof of delivery, and
     # an id is the only handle you have if you later need to check what happened
     # to this specific message (L-SW-2026-017: name the artifact).
-    print(f'  SENT — Resend id: {result.get("id") if isinstance(result, dict) else result}')
+    print(f'  SENT — Resend id: {msg_id}')
     return 0
 
 

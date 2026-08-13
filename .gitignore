@@ -96,3 +96,8 @@ DFToBSCOnvos/
 ebay_diff.txt
 ebay_sig_diff.txt
 AdminCheckjs.js
+# Cohort mailer send log — contains real recipient email addresses and Resend
+# message ids. Operational state, not source. It is also the idempotency record:
+# if it is ever committed and then restored on another machine, a re-run would
+# silently skip sends that machine never made.
+scripts/cohort_mailer_sent.jsonl
