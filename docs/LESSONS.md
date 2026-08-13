@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-12 (21 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-13 (22 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -571,6 +571,53 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   reads is a claim, not a mechanism) from displays and contracts to **names in code**. **Candidate
   for cross-project promotion (Mike's call)** — applies to any flag, tier, column or metric name in
   TFO or MASSÉ.
+
+### L-SW-2026-022 — A cache purge is only valid AFTER the new content exists; `push; deploy; purge` assumes an ordering that Cloudflare Pages does not honour
+
+- **RULE:** **Never purge until you have confirmed the origin is serving the new content.** The
+  ship sequence `git push` → `deploy` → `purge` reads as three steps in order, but `purge` acts on
+  a **different system** than `push` does, and the two are not synchronised: a Cloudflare Pages
+  build takes about a minute after the push. Purging inside that window doesn't clear the old file
+  — it **re-caches it**, because the edge refetches from an origin that is still serving the
+  previous build. The result is indistinguishable from a purge that never ran, and it survives the
+  full four-hour TTL.
+- **WHY:** 2026-08-13, the privacy-policy retention change (`f69a207`). The artifact check ran
+  immediately after `purge` and returned **`Twenty-four months` = 0** and
+  **`anonymized, de-identified` = 1** — the retired clause still live at the edge, the new
+  retention window absent, on a **published legal document**. Waiting and purging a second time
+  produced the correct result on both. Nothing was wrong with the commit, the deploy, or the purge
+  command; the only defect was that the purge happened before the thing it was purging toward
+  existed. Mike: *"an ordering assumption that is usually true and silently is not."*
+- **⚠️ WHAT MAKES THIS SPECIFICALLY DANGEROUS: the failure is SILENT AND SELF-CONCEALING.** A
+  premature purge produces no error and no warning. It also *feels* more thorough than waiting —
+  the operator who purges fastest gets the worst result. And because the edge now holds a *fresh*
+  copy of *stale* content, the four-hour TTL restarts: purging too early is strictly worse than
+  not purging at all.
+- **HOW TO APPLY:**
+  1. **Order the ship block as push → deploy → WAIT FOR THE BUILD → purge → assert.** The wait is
+     a step, not a pause. Where a build status is visible (Cloudflare Pages deployments list),
+     check it; otherwise give it a minute.
+  2. **The assertion after the purge is what makes the whole sequence honest** — and it must be
+     positive-controlled in both directions: grep for a string that exists **only after** the
+     change, AND for one that exists **only before** it. The 2026-08-13 check caught this precisely
+     because it asserted both (`Twenty-four months` present *and* `anonymized, de-identified`
+     absent); either half alone would have been ambiguous. **[[L-2026-024]]** corollary: absence of
+     the old is not presence of the new.
+  3. **If the assertion fails, re-purge and re-assert — do not start debugging the change.** The
+     first hypothesis for a failed post-purge check is ordering, not code. Reaching for the diff
+     first is how this costs an hour instead of a minute.
+  4. **Generalise past Cloudflare:** any time a cache-invalidation step targets a system that a
+     *previous* step updates asynchronously — CDN over a build pipeline, a warm cache over a
+     rolling deploy, a search index over a write — the invalidation must be gated on the update
+     having landed, not merely sequenced after it.
+- **DISTINCT FROM [[L-SW-2026-017]], and they compose.** 017 says a manual step must leave an
+  observable artifact. This says the artifact can be **checked too early and report a real,
+  correctly-measured, wrong answer**. The check fired, the probe was capable, the result was
+  accurate — about a moment that had not finished happening. Fix = **gate the check on the
+  precondition**, not a better check.
+- **SOURCE:** 2026-08-13, `f69a207` privacy-policy publish, at Mike's direction. *"The artifact
+  check caught it, but only because I ran one."* **Candidate for cross-project promotion (Mike's
+  call)** — TFO deploys to Vercel behind a build step and has the identical shape.
 
 ### L-SW-2026-021 — Copy that lives in a third-party dashboard is invisible to every sweep you run; and an audit that greps for the CLAIM rather than the READER will confirm claims that are themselves only claims
 

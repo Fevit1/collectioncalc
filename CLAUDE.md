@@ -64,7 +64,16 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Entry:** `wsgi.py` → gunicorn
 - **Routes:** 19 blueprints in `routes/` (~87 endpoints)
 - **Critical routes:** `/health`, `/api/grade`, `/api/billing/webhook`, `/api/signatures/v2/match`
-- **Ship sequence:** `git add <specific files>` → `git commit` → `git push` → `deploy` → `purge`
+- **Ship sequence:** `git add <specific files>` → `git commit` → `git push` → `deploy` →
+  **⏳ WAIT FOR THE PAGES BUILD** → `purge` → **assert the new content is served**
+
+  ⚠️ **The wait is a STEP, not a pause.** `purge` acts on Cloudflare; `push` triggers a Pages
+  build that takes ~a minute. Purging inside that window does not clear the old file — it
+  **re-caches it**, because the edge refetches from an origin still serving the previous build,
+  and the 4-hour TTL restarts. Purging too early is strictly worse than not purging at all, and
+  it fails **silently**. Bit the 2026-08-13 privacy-policy publish (`f69a207`): the post-purge
+  check found the retired clause still live on a legal page. Full rule: `docs/LESSONS.md`
+  **L-SW-2026-022**.
 
   | step | what it is | when it is needed |
   |---|---|---|
