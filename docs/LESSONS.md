@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-05 (20 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-12 (21 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -571,6 +571,73 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   reads is a claim, not a mechanism) from displays and contracts to **names in code**. **Candidate
   for cross-project promotion (Mike's call)** — applies to any flag, tier, column or metric name in
   TFO or MASSÉ.
+
+### L-SW-2026-021 — Copy that lives in a third-party dashboard is invisible to every sweep you run; and an audit that greps for the CLAIM rather than the READER will confirm claims that are themselves only claims
+
+- **RULE:** Two halves, and they compound.
+  **(a) Enumerate surfaces, not files.** Before declaring any claim retired, list every place a
+  user can read it — including the ones **outside the repo**, where `grep` cannot go. Keep that
+  list written down (`docs/EXTERNAL_COPY_SURFACES.md`) so the next sweep has something to check
+  against, because a completeness sweep over the repo is complete only with respect to the repo.
+  **(b) An audit of claims must resolve the READER for every claim it clears, not merely find the
+  claim's name.** A docstring, a comment, a config key, or a label that *mentions* a feature is
+  another claim — clearing a claim by matching it against a claim confirms nothing.
+- **WHY:** The Stripe **product description** — rendered on the hosted Checkout page, the **last
+  thing a user reads before paying** — still said *"Unlimited comic valuations with price history
+  and collection tracking"* on 2026-08-12. That is the **same "Unlimited" claim the June
+  tier-honesty pass removed from `pricing.html`**. It survived the pass, and every sweep since,
+  for one reason: **it is not in the repo.** Measured against the readers:
+  · *"Unlimited"* — **false**; Pro is **100/month**, hard-enforced at `grading.py:580` with a 429.
+  · *"price history"* — **no such feature exists in any state**; the nearest thing, Market Pulse,
+    is rendered with a `SOON` badge at `js/sidebar.js:461`.
+  · *"collection tracking"* — true, but **free users get it**, so it is not a Pro differentiator.
+  **Third surface in one family:** `pricing.html` (fixed June) → the monthly-cap screen (fixed
+  2026-08-12, [[L-SW-2026-020]]) → Stripe, still carrying the original wording. Mike's framing:
+  *"it lives in Stripe, not the repo, so no code sweep would ever find it."*
+- **⚠️ THE HALF THAT MATTERS MORE — THE JUNE AUDIT HAD A FALSE POSITIVE INSIDE IT.** The tier
+  honesty pass concluded *"only 3 of ~11 advertised differentiators are truly server-enforced
+  (slab-guard regs, **multi-photo**, chrome-extension)."* Re-measured 2026-08-12 from the readers:
+  **`multi_photo` has never been enforced.** There is no `check_feature_access('multi_photo')`
+  call anywhere in the codebase. What exists is a **docstring** at `routes/images.py:300` —
+  *"Requires multi_photo feature (paid plans only)"* — sitting directly above a call on line 325
+  that checks **`'extra_photos'`**. The audit found the string and counted it as the mechanism.
+  `chrome_extension` was also miscounted: it is `False` on Pro, so it was never a Pro
+  differentiator either. The genuinely enforced three are **gradings, slab-guard registrations,
+  extra photos** — same count, different three.
+  **This is [[L-SW-2026-018]] occurring inside the fix for [[L-SW-2026-016]]:** the audit that
+  existed to catch labels asserting things nothing computes, cleared one label by reading another
+  label. Compare [[L-SW-2026-020]] rule 4 — *the fix for a mislabel is the likeliest place to
+  commit the next one* — and note this is the stronger form: not a new mislabel introduced by the
+  fix, but **a false pass issued by the audit itself**, which then stood as settled for ten weeks.
+- **HOW TO APPLY:**
+  1. **Maintain `docs/EXTERNAL_COPY_SURFACES.md`** and read it during any claims sweep. Seed list:
+     Stripe product/price descriptions (hosted Checkout), Stripe customer-portal product names,
+     Resend email templates, Cloudflare-hosted copy, and any future app-store or marketplace
+     listing. The test for inclusion is simply: **can a user read it, and can `grep` reach it?**
+  2. **When a claim is retired anywhere, enumerate its surfaces before closing** — this is
+     [[L-SW-2026-019]] / L-2026-026 (one decision, more than one edit) applied to copy. June fixed
+     `pricing.html` and left Stripe asserting the retired claim; the same pass trimmed Excel/CSV
+     export from `pricing.html` and **missed `account.html`'s feature grid**, where a paying Pro
+     user was still shown **"✓ Excel/CSV Export"** beside a live `📥 Export` button whose handler
+     was `alert('Export functionality coming soon!')`. A promise to someone who has already paid
+     is strictly worse than the same promise on a marketing page.
+  3. **In any entitlement or capability audit, the unit of evidence is the CALL SITE.** For each
+     row write down the file:line that *enforces* it. If the only hit is a docstring, a comment, a
+     label map, or the config key's own definition, the honest verdict is **"advertised, not
+     enforced"** — never "enforced".
+  4. **A config key with zero readers is dead, not disabled.** `bulk_operations` has no reference
+     anywhere outside `PLANS`. Say so rather than reporting its `False` as if it gated something.
+  5. **Third-party copy has the nastiest property in this family: nothing changes it when the
+     product changes.** It cannot fail a test, cannot be grepped, and does not move when the code
+     moves — which is exactly how a tombstone gets orphaned and a retired claim outlives its own
+     retirement.
+- **SOURCE:** 2026-08-12, at Mike's direction, after he found the Stripe description while writing
+  the new one from the entitlement table. The June false positive was surfaced in the same pass by
+  building the table from readers instead of from `PLANS`. Corrected description now reads
+  *"100 comic gradings per month, 25 Slab Guard registrations, and up to 4 extra photos per
+  comic"* — three claims, all enforced, all derived. **Candidate for cross-project promotion
+  (Mike's call)** — the external-surface hole applies to any project with copy in Stripe, Resend,
+  Vercel, an app store, or a marketing tool: TFO and MASSÉ both qualify.
 
 ### L-SW-2026-019 — Removing a filter and removing the hardcoded assumption it protected are TWO edits; a scope that sees only the filter ships a new bug while closing an old one
 

@@ -196,6 +196,74 @@ hit is accurate — Signature ID, Market Pulse, Price Lookup, unbuilt export/bul
 **Tombstoned per [[L-SW-2026-014]] so the next sweep does not re-raise it: pricing.html's
 tier copy was investigated 2026-08-12 and found correct. Do not "fix" it.**
 
+### 🏷️ THE STRIPE PRODUCT DESCRIPTION — the surface no sweep can reach
+
+**⚠️ NEW STRUCTURAL FINDING, and it is the reusable one: Stripe-hosted copy is OUTSIDE every
+sweep this project runs.** `grep` covers the repo. The Stripe product/price description lives in
+the Stripe dashboard, is rendered on the **hosted Checkout page** — the last screen before a
+user pays — and **no code sweep will ever find it.** It still carries *"Unlimited comic
+valuations with price history and collection tracking"*: the same "Unlimited" claim removed
+from `pricing.html` in the **June tier-honesty pass**, which survived precisely because it is
+not in the repo.
+
+**Third surface in one family** (Mike, 2026-08-12): `pricing.html` fixed June → the cap screen
+fixed today → **Stripe still carrying the original claim.** Same defect as [[L-SW-2026-020]],
+one layer further out.
+
+**Audit of the three claims, built from READERS not from `PLANS` ([[L-SW-2026-018]]):**
+
+| claim | verdict |
+|---|---|
+| "Unlimited comic valuations" | **FALSE.** Pro is **100/month**, hard-enforced at `grading.py:580` with a 429. The only claim the code actively contradicts at runtime |
+| "price history" | **NO SUCH FEATURE EXISTS.** The nearest thing is **Market Pulse**, which `js/sidebar.js:461` renders with a `SOON` badge. Zero implementation anywhere |
+| "collection tracking" | **TRUE — but not a Pro differentiator.** Free users get the full collection |
+
+**ENTITLEMENT TABLE — 12 keys in `PLANS`; Pro differs from Free on 5; only 3 are enforced.**
+
+| capability | free | pro | enforced? | the reader |
+|---|---|---|---|---|
+| Monthly gradings | 25 | **100** | ✅ | `grading.py:580` → 429 |
+| Slab Guard registrations | 3 | **25** | ✅ | `registry.py:530` |
+| Extra photos per comic | 0 | **4** | ✅ | `images.py:325`, limit at `:338` |
+| Excel/CSV export | ✗ | **✓** | ❌ **advertised only** | no gate anywhere |
+| Multi-photo grading | ✗ | **✓** | ❌ **advertised only** | no gate anywhere |
+| Signature ID / month | 0 | 0 | ✅ (`signature_orchestrator.py:802`) — identical, not a differentiator |
+| Chrome extension | ✗ | ✗ | ✅ (`vision.py:232`) — identical, Guard+ only |
+| Marketplace monitoring · API access · Ownership certs · Priority support | ✗ | ✗ | ❌ no gate; identical on both tiers |
+| Bulk operations | ✗ | ✗ | ❌ **ZERO references outside `PLANS`** — fully dead key |
+
+⚰️ **CORRECTS the June tier-honesty finding "3 of ~11 enforced (slab-guard regs, multi-photo,
+chrome-extension)".** Measured 2026-08-12 the enforced three are **gradings, slab-guard regs,
+extra photos**. `multi_photo` has **no `check_feature_access` call anywhere** — the docstring at
+`images.py:300` says *"Requires multi_photo feature"* while the code on line 325 checks
+`'extra_photos'`. A label naming a different key than the code reads; June most likely counted
+the docstring. And `chrome_extension` is `False` on Pro, so it was never a Pro differentiator.
+
+**🐛 FOURTH SURFACE, in-repo and live:** `plan['export'] = True` for Pro flows through
+`/my-plan` into `account.html`'s feature grid, so a paying Pro user sees **"✓ Excel/CSV
+Export"** — while `collection.html:165` has a live **📥 Export** button whose handler
+(`js/collection.js:1034`) is `alert('Export functionality coming soon!')`. Session 106 Commit C
+trimmed export from `pricing.html` and **missed `account.html`.** Same for `multi_photo`.
+
+**✅ FIXED 2026-08-12.** Mike set the description to: *"100 comic gradings per month, 25 Slab
+Guard registrations, and up to 4 extra photos per comic."* Three claims, all enforced, all
+derived from the table above.
+
+**Logged as [[L-SW-2026-021]]** (both halves: third-party copy is outside every sweep, AND an
+audit that greps for the claim rather than the reader issues false passes), with the standing
+list in **`docs/EXTERNAL_COPY_SURFACES.md`** — Stripe Checkout, Stripe customer-portal product
+names, Resend templates, Cloudflare-hosted copy. Inclusion test: *can a user read it, and can
+`grep` reach it?* Of those four, only Stripe Checkout has ever been audited.
+
+**account.html + collection.html fixed in the same pass:** `multi_photo` **removed** from the
+feature grid (enforced nowhere, and every tier uploads four photos — listing it implied a gate
+that has never existed); `export` now renders **SOON** regardless of the plan flag, so a paying
+Pro user is no longer shown a ✓ for an unbuilt feature. The live `📥 Export` and `🗑️ Delete`
+buttons in the bulk bar — whose handlers were bare `alert('… coming soon!')` — are now
+`disabled` with the SOON badge idiom the sidebar already uses. Delete was fixed alongside Export
+because it is the identical defect in the identical control bar; fixing one and leaving the
+other is the [[L-SW-2026-019]] mistake in miniature.
+
 ### THREE THINGS THAT OUTRANK THE BACKFILL (Mike, 2026-08-12) — ordered
 
 1. **`/api/images/submission` instrumentation.** Same treatment as the grade and extract legs.
