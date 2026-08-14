@@ -117,10 +117,37 @@ function basisLong(ctx) {
         // a single anchor. The server records the rate: 95.6% of
         // interpolated cells are one-sided. So the plural and the
         // bracketing were wrong for the large majority of cells here.
+        // ⚰️ DEAD 2026-08-13: "…estimated from the nearest grade that has enough
+        //    sales, stepped about 20% per grade."
+        // REASON: it named a mechanism the string cannot know ran. `blended`
+        //    reaches THREE different interpolation branches and the ±20%/grade
+        //    step belongs to only two of them — the ONE-SIDED ones. The
+        //    two-sided branch does plain linear interpolation between the
+        //    nearest qualifying bucket below and the nearest above, with no
+        //    step involved. Caught live on X-Men #1 @4.5: anchors at 4.0
+        //    ($7,100, n=5) and 5.0 ($13,500, n=3), interpolating to $10,300 and
+        //    blending to $10,200 — a correct two-sided result described to the
+        //    user as a 20% step that never executed.
+        //    The clause was written for the 95.6% one-sided majority (the rate
+        //    the interpolated tombstone above records) and then asserted
+        //    unconditionally, which is the same shape as every other entry in
+        //    this map's history.
+        // REPLACED BY: no mechanism claim at all. "other grades that have enough
+        //    sales to price from" describes the ELIGIBLE SET — the buckets that
+        //    clear MIN_SOURCE_COMPS — which is true in all three branches and
+        //    does not assert how many of them were used. Singular "the nearest
+        //    grade" is false for two-sided; plural "the nearest grades" is false
+        //    for one-sided; naming neither is true for both.
+        // ⚠️ DO NOT restore the 20% figure by making the string conditional on
+        //    anything the CLIENT can see. Nothing in the payload distinguishes
+        //    the three branches — `fmv_method` is 'blended' for all of them. It
+        //    would need a new server field, and the queued max-grade-distance
+        //    unit may delete two of the three branches outright (see the note on
+        //    the 0.25 floor in sales_valuation.py). Build the discriminator when
+        //    the branches are settled, not before.
         blended:
             `Only ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt}. The rest is `
-            + `estimated from the nearest grade that has enough sales, stepped about `
-            + `20% per grade.`,
+            + `estimated from other grades that have enough sales to price from.`,
         // Same no-count reasoning, plus one that cuts harder: a large
         // count reads as reassurance, and here that inference is
         // measurably FALSE. Interpolation error falls with support then
@@ -139,9 +166,18 @@ function basisLong(ctx) {
         // (a 5.0 gap and an 8.8 gap both get 0.25x). Telling that user the
         // risk is worst at 9.6-9.8 points away from what they are looking
         // at, so the wide-gap clause is stated too.
+        // ⚠️ "other grades that have enough sales", NOT "the nearest grade" —
+        // the same correction as `blended` below, and for the same reason. This
+        // tier reaches the identical three interpolation branches, so a singular
+        // anchor is false whenever the two-sided branch runs. Fixed in the same
+        // pass: leaving the adjacent tier saying it would be fixing one of two
+        // identical defects (L-SW-2026-019).
+        // Everything after the first clause is backtest-derived and must
+        // survive any rewording: the 9.6/9.8 emphasis and the several-grades-away
+        // clause are measured, not stylistic.
         interpolated:
-            `No sales${gradeAt}. The slabbed figure is estimated from the nearest grade `
-            + `that has enough sales, which is often well off — most of all at 9.6 and 9.8, `
+            `No sales${gradeAt}. The slabbed figure is estimated from other grades `
+            + `that have enough sales, which is often well off — most of all at 9.6 and 9.8, `
             + `and it is barely more than a guess when the nearest sales are several `
             + `grades away.`,
         // nearby_thin_comps counts SALES, and in THIS branch every
@@ -355,10 +391,13 @@ function basisShort(basis, opts) {
         supported: 'Priced from sales at this grade.',
         thin: 'Priced from very few sales at this grade, with too little nearby to '
             + 'check it against.',
-        blended: 'Partly priced from sales at this grade, partly estimated from the '
-            + 'nearest grade that has enough.',
+        // "other grades", never "the nearest grade" — see the long-form
+        // tombstones. Both tiers reach a two-sided interpolation branch where a
+        // singular anchor is false.
+        blended: 'Partly priced from sales at this grade, partly estimated from other '
+            + 'grades that have enough sales.',
         interpolated: 'No sales at this grade. The slabbed figure is estimated from '
-            + 'the nearest grade that has them.',
+            + 'other grades that have enough sales.',
         low_support: 'Too few graded sales of this book to price the slab from.',
         raw_only: 'No graded sales of this book. Estimated from raw sales, marked up.',
         fabricated: 'No usable sales for this book. The figures come from typical '

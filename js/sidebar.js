@@ -402,6 +402,21 @@
         </div>
     ` : '';
 
+    // ⚠️ BEFORE BUILDING MARKET PULSE (the SOON item further down this template):
+    // /api/sales/valuation already returns a price_curve array and it is the
+    // obvious data source. On a multi-edition book that curve is TWO COMICS
+    // INTERLEAVED and renders as a coherent curve with a cliff in it — X-Men #1
+    // measured 2026-08-13: $9,060 at grade 3.5, $18 at grade 8.0. The cliff is
+    // where the 1991 volume starts outnumbering the 1963 one, not a market
+    // effect. Editions are mixed WITHIN buckets (grade 1.0 runs $44 to $3,499),
+    // so no per-point filter cleans it.
+    // Nothing renders it today, so the defect is INHERITED, not introduced —
+    // which is why this is a note rather than a fix. Full measurement and the
+    // honest rendering options are in the comment above `price_curve = []` in
+    // routes/sales_valuation.py. Do not treat a null edition_price_ratio as
+    // evidence the curve is clean: Fix F is gated on fmv_method == 'exact', so
+    // the flag is absent on exactly the thin buckets where the curve misleads
+    // most.
     const sidebarHTML = `
         <div class="sw-sidebar-toggle-row">
             <a href="/dashboard.html" class="sw-sidebar-logo">$LAB WORTHY\u2122</a>

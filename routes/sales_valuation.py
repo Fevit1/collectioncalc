@@ -1053,6 +1053,36 @@ def api_sales_valuation():
             verdict = 'No graded sales data - cannot calculate ROI'
 
         # ---------- Build grade price curve (for chart display) ----------
+        #
+        # ⚠️⚠️ READ THIS BEFORE DRAWING THIS CURVE ANYWHERE. On a multi-edition
+        # book this is TWO COMICS INTERLEAVED, and it will look like a coherent
+        # price curve with a cliff in it. Measured on X-Men #1, 2026-08-13:
+        #
+        #     grade 3.5   $9,060   n=2                              ← 1963
+        #     grade 5.0  $13,500   n=3   min $142.50  max $16,000   ← BOTH
+        #     grade 7.0  $10,856   n=3   min $17.50   max $25,000   ← BOTH
+        #     grade 8.0      $18   n=6                              ← 1991
+        #     grade 9.8      $78   n=300                            ← 1991
+        #
+        # The apparent cliff at 8.0 is not a market phenomenon; it is the point
+        # where the 1991 volume starts outnumbering the 1963 one. And the
+        # min/max spreads show the editions mixed WITHIN buckets, so no
+        # per-point filter cleans it — grade 1.0 runs $44 to $3,499.
+        #
+        # NOTHING RENDERS THIS TODAY. Verified 2026-08-13: three references, all
+        # in this file, and zero readers in any .html or .js. Market Pulse is a
+        # SOON badge in js/sidebar.js with no implementation. So whoever builds
+        # that chart INHERITS this defect rather than introducing it, and will
+        # inherit it silently because the curve looks plausible.
+        #
+        # Fix F detects the condition and already emits `edition_price_ratio`
+        # beside this payload — but F is GATED ON fmv_method == 'exact', so the
+        # flag is absent on exactly the thin-bucket grades where the curve is
+        # most misleading. Do not treat `edition_price_ratio` being null as
+        # evidence the curve is clean. If you are building a chart from this,
+        # the honest options are: suppress it when the pool spans editions,
+        # split the series by edition, or plot only the cluster that matches the
+        # user's book. Plotting it as one series is the defect.
         price_curve = []
         for g in sorted(grade_buckets.keys()):
             prices = grade_buckets[g]
