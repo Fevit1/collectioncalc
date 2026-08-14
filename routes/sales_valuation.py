@@ -137,6 +137,186 @@ def percentile_trim(prices, pct=5):
     return s[cut:-cut]
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# EDITION-SPAN DETECTION (Fix F)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# THE CASE. X-Men #1 at grade 9.0 returns $36.00 with verdict_reliable TRUE and
+# confidence HIGH, on a six-figure book. Both the 1963 and the 1991 volumes carry
+# canonical_title = 'X-Men', so branch A admits them into one pool and the 1991
+# copies outvote the 1963 ones.
+#
+# WORSE THAN THE INFLATION CASE, in the way that matters. Wolverine #181 at
+# $6,735 was inflated, and a user holding a common book might sanity-check it.
+# This is DEFLATED on a genuine key: $36 looks plausible, the verdict is
+# confident, and the user walks away from a six-figure comic.
+#
+# ⚠️ BETWEEN-CLUSTER, NOT WITHIN-GRADE. Within-grade dispersion is a PROXY that
+# also catches signed and pedigree copies, which is why it wrongly flagged
+# Batman #423 through a $60 virgin variant and a $3,300 McFarlane-signed copy in
+# the same 1988 edition. That failure has nothing to do with editions. This
+# splits the pool by YEAR first and compares medians BETWEEN the resulting
+# clusters, so intra-edition spread cannot trigger it.
+#
+# ⚠️ BOTH SIGNALS REQUIRED, AND EACH REJECTS THE OTHER'S FALSE POSITIVE:
+#   · YEAR alone hedges ASM #300 at two grades — a §2C anchor, wrongly, twice.
+#   · PRICE alone over-flags Absolute Batman #1 and New Mutants #98, both
+#     single-volume §2B/§2C anchors.
+# The AND is not conservatism; it is the mechanism.
+#
+# ⚠️ THE SIGNAL READS THE WHOLE GRADED POOL, THE GATE APPLIES AT ONE GRADE.
+# Edition ambiguity is a property of the BOOK's comp pool, not of one bucket —
+# X-Men #1's grade-9.0 bucket is 4×1991 plus 8 year-unknown and contains no 1963
+# sale at all, so a bucket-local span would be 0 and would miss the case
+# entirely. The gate (fmv_method == 'exact') is what confines the effect.
+#
+# ⚠️ TRIMMED MEDIANS ONLY. Any ratio that reaches a user must be the trimmed one
+# — 422× on X-Men #1, not the untrimmed 1,429×. Both cluster medians therefore
+# go through percentile_trim() exactly as exact_avg does.
+
+# ⚠️ FITTED, NOT DERIVED — named rather than buried as literals so the next
+# reader knows what they are. Revisit together, and re-measure before moving
+# either: they are jointly tuned and the AND means a change to one silently
+# changes the other's effective strictness.
+#
+# EDITION_YEAR_SPAN_YEARS = 15
+#   Carried from the earlier volume work (Superman vol.1 1952 / vol.2 1993).
+#   Separates genuine reprint-era volumes from ordinary catalogue drift.
+#
+# EDITION_PRICE_RATIO = 20.0
+#   FITTED TO 14 OBSERVATIONS, 2026-08-13. Small sample; treat as provisional.
+#   The risk argument attached to it was: "Amazing Fantasy #15 (26.9×) and
+#   Batman #423 (22.3×) both sit close to the line under trimmed data, so a
+#   downward move reaches real single-edition books quickly."
+#   ⚠️ THAT ARGUMENT IS UNVERIFIED AND ITS FIGURES DO NOT REPRODUCE. Measured
+#   2026-08-13 against the live corpus using the shipped matcher
+#   (qualifier_title_clause on canonical_title, issue-filtered, days=365,
+#   variants excluded in Python, ebay_sales ∪ market_sales):
+#       Amazing Fantasy #15 → 185.5× (fires; nowhere near the line)
+#       Batman #423        → does not fire (sole candidate split has a
+#                            one-comp cluster)
+#       X-Men #1           → 84.7× at the 1963|1990 boundary, not 422×
+#   The divergence may be methodology — a different pool construction, window,
+#   or issue filter in the original analysis — rather than either set of figures
+#   being wrong, and it has NOT been resolved. DO NOT move this constant on the
+#   strength of the near-the-line reasoning above until the two methodologies
+#   are reconciled; there is currently no measured evidence that anything sits
+#   near 20×.
+#   What IS measured about the constant's EFFECT, on 481 production-shaped
+#   (title, issue) cells: 6 fire, all six genuinely multi-edition, zero false
+#   positives.
+#
+# MIN_EDITION_CLUSTER_COMPS = 3
+#   CHOSEN, not fitted — matched to the exact_count >= 3 evidence bar the
+#   'exact' tier already uses, so a cluster cannot speak with less support than
+#   the figure it is contradicting. Two 1-sale "clusters" 28 years apart would
+#   otherwise produce a 400× ratio from two rows.
+EDITION_YEAR_SPAN_YEARS = 15
+EDITION_PRICE_RATIO = 20.0
+MIN_EDITION_CLUSTER_COMPS = 3
+
+
+def _detect_multi_edition(graded_sales):
+    """Does this comp pool hold more than one EDITION of the issue?
+
+    Splits the year-known sales at their largest year gap, then requires BOTH
+    a wide span and a large trimmed price ratio between the two sides.
+
+    Returns (is_multi_edition, trimmed_ratio, year_low, year_high) — the ratio
+    rounded for display, or (False, None, None, None) when the signal does not
+    fire or cannot be computed.
+
+    Year-UNKNOWN sales are excluded from the signal entirely and are never
+    treated as evidence of one edition or two. On X-Men #1 they are the
+    majority of the grade-9.0 bucket; silence about them is the honest handling.
+    """
+    # ⚠️ Conversion is done inline, NOT via the handler's to_float(). That helper
+    # is defined INSIDE get_valuation() (a closure, not a module-level function),
+    # so calling it from here is a NameError at request time that py_compile
+    # cannot see. Caught in review 2026-08-13; same class as a missing import.
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+
+    dated = []
+    for s in graded_sales:
+        if s.get('is_variant'):
+            continue                      # variants are out of the priced pool already
+        y = s.get('title_year')
+        p = _num(s.get('price'))
+        if y and p > 0:
+            try:
+                dated.append((int(y), p))
+            except (TypeError, ValueError):
+                continue
+
+    # Need enough dated sales for two clusters that each clear the bar.
+    if len(dated) < MIN_EDITION_CLUSTER_COMPS * 2:
+        return False, None, None, None
+
+    dated.sort(key=lambda t: t[0])
+    years = [y for y, _ in dated]
+
+    # ⚰️ DEAD (2026-08-13, before ship): "split at the single widest year gap,
+    #    after a whole-range span test."
+    # REPLACED BY: evaluate EVERY candidate split and fire if ANY of them
+    #    satisfies all three conditions.
+    # REASON: the widest-gap rule is decided by outlier years, and the
+    #    cluster-size floor then rejected the WHOLE DETECTION rather than the
+    #    bad split — there was no fallback to the next candidate. Measured on
+    #    the live corpus, X-Men #1 (the originating case) has years
+    #    1963:n=27 · 1990:n=4 · 1991:n=242 · 2021:n=1. The real edition
+    #    boundary 1963→1990 is a 27-year gap splitting 27/247 at 84.7×. But
+    #    1991→2021 is THIRTY years, so the split landed there, produced a
+    #    hi_cluster of exactly ONE comp, failed MIN_EDITION_CLUSTER_COMPS, and
+    #    returned False. **A single $110 eBay row disarmed the hedge on a
+    #    six-figure book.** Delete that one row and the old code fired.
+    #    Batman #423 has the identical structure (a lone 2022 row wins the gap)
+    #    and returned the DESIRED answer by accident rather than by mechanism,
+    #    which is the more disturbing half.
+    # SUPERSEDES any "the widest gap is the discontinuity by definition"
+    #    reasoning. It is the discontinuity only when the tails are populated,
+    #    and in a comp corpus they are not.
+    #
+    # ⚠️ THE YEAR TEST ALSO MOVED, and this is a correctness change, not a
+    # refactor. It used to be a precondition on the WHOLE dated range; it is
+    # now the gap AT THE CANDIDATE SPLIT. Whole-range span answers "does this
+    # pool cover a long period", which is true of almost any long-running title
+    # and is not the question. The gap at the split answers "are these two
+    # groups separated in time", which is what "between-cluster" means.
+    #
+    # Among qualifying splits, the one with the LARGEST price ratio is reported:
+    # the strongest price discontinuity is the best evidence of which boundary
+    # is the edition boundary.
+    best = None   # (ratio, boundary_low_year, boundary_high_year)
+    for i in range(1, len(dated)):
+        if years[i] - years[i - 1] <= EDITION_YEAR_SPAN_YEARS:
+            continue                       # clusters not separated in time here
+        lo_cluster = dated[:i]
+        hi_cluster = dated[i:]
+        if (len(lo_cluster) < MIN_EDITION_CLUSTER_COMPS
+                or len(hi_cluster) < MIN_EDITION_CLUSTER_COMPS):
+            continue                       # reject THIS split, keep looking
+        lo_med = compute_median(percentile_trim([p for _, p in lo_cluster]))
+        hi_med = compute_median(percentile_trim([p for _, p in hi_cluster]))
+        if not lo_med or not hi_med or lo_med <= 0 or hi_med <= 0:
+            continue
+        ratio = max(lo_med, hi_med) / min(lo_med, hi_med)
+        if ratio < EDITION_PRICE_RATIO:
+            continue
+        if best is None or ratio > best[0]:
+            best = (ratio, years[i - 1], years[i])
+
+    if best is None:
+        return False, None, None, None
+
+    # The boundary years, NOT the whole range — they identify the edition break
+    # that actually fired, which is what a log line needs to be checkable.
+    return True, round(best[0], 1), best[1], best[2]
+
+
 def compute_median(prices):
     """Simple median of a list of numbers."""
     if not prices:
@@ -378,7 +558,8 @@ def api_sales_valuation():
         # ages out the whole corpus. COALESCE keeps rows whose sale_date is NULL
         # by falling back to created_at (documented mixed-semantics fallback).
         ebay_graded_query = """
-            SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source, is_variant
+            SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source, is_variant,
+                   title_year
             FROM ebay_sales
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -441,7 +622,13 @@ def api_sales_valuation():
 
         # ---------- MARKET_SALES: graded ----------
         market_graded_query = """
-            SELECT grade, price, sold_at as sold_date, 'whatnot' as source, is_variant
+            -- NULL title_year: market_sales has no year column at all, so Whatnot
+            -- comps are year-unknown by construction and can never contribute to
+            -- the edition-span signal. Selected explicitly so the union is uniform
+            -- and _detect_multi_edition() does not have to know which table a row
+            -- came from.
+            SELECT grade, price, sold_at as sold_date, 'whatnot' as source, is_variant,
+                   NULL::int AS title_year
             FROM market_sales
             WHERE grade IS NOT NULL AND price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -733,10 +920,39 @@ def api_sales_valuation():
         # overgrading. Ship gated, measure, revisit.
         NO_SAME_GRADE_EVIDENCE = ('interpolated',)              # 0 same-grade comps
         THIN_SAME_GRADE = ('exact_thin', 'blended')             # 1-2 same-grade comps
+
+        # ── Fix F: edition span ──────────────────────────────────────────────
+        # ⚠️ GATED ON fmv_method == 'exact', AND THE GATE IS THE DESIGN, not a
+        # performance shortcut. Two things follow from it, both load-bearing:
+        #
+        #   1. IT MAKES THE COPY PROBLEM STRUCTURALLY UNREACHABLE RATHER THAN
+        #      FIXED. Every other tier is ALREADY hedged by the three conditions
+        #      above, so F can only ever fire where a confident verdict would
+        #      otherwise escape. There is no cell where F's string competes with
+        #      another tier's string, because no other tier reaches here.
+        #
+        #   2. IT GUARANTEES THE STRING'S OWN PRECONDITION. `exact` requires
+        #      exact_count >= 3, so "These N sales at grade X" always has a real
+        #      N of at least 3 to name. The string cannot be reached in a state
+        #      where it would have to say "these 0 sales".
+        #
+        # Do not widen this to other tiers to "catch more". A widened F would
+        # double-hedge already-hedged cells and would need a precedence rule
+        # between its string and theirs — which is the coupling the collapsed
+        # ROUGH ESTIMATE badge exists to avoid.
+        multi_edition, edition_price_ratio, _ed_lo, _ed_hi = (False, None, None, None)
+        if fmv_method == 'exact':
+            multi_edition, edition_price_ratio, _ed_lo, _ed_hi = \
+                _detect_multi_edition(all_graded)
+            if multi_edition:
+                print(f"[VALUATION-F] multi-edition hedge: ratio={edition_price_ratio}x "
+                      f"years={_ed_lo}-{_ed_hi} exact_count={exact_count}")
+
         verdict_reliable = not (
             estimated_flag
             or fmv_method in NO_SAME_GRADE_EVIDENCE
             or fmv_method in THIN_SAME_GRADE
+            or multi_edition
         )
 
         # Which TIER the hedge is in, so the client can say something true.
@@ -752,7 +968,15 @@ def api_sales_valuation():
         # real sale at a nearby grade. Same failure as the recency-weighting
         # claim: copy asserting something the mechanism does not do. The tier is
         # carried in the DATA regardless of what the copy eventually says.
-        if estimated_flag and low_support_only:
+        # ⚠️ CHECKED FIRST, and it can only be true when fmv_method == 'exact'.
+        # Every branch below keys on estimated_flag or on a non-'exact' method,
+        # so this is not a precedence choice between competing descriptions —
+        # the branches are disjoint by construction. It is first so a reader
+        # sees the gate before the ladder rather than having to prove the
+        # disjointness themselves.
+        if multi_edition:
+            verdict_basis = 'multi_edition'
+        elif estimated_flag and low_support_only:
             # Named for the CONDITION (insufficient support), not for a count —
             # 'single_comp' would be wrong whenever several thin buckets exist.
             # Checked FIRST: when thin graded sales exist near this grade, that
@@ -893,7 +1117,13 @@ def api_sales_valuation():
             'roi_percentage': roi_percentage,
             'verdict': verdict,
             'verdict_reliable': verdict_reliable,   # Fix B: false ⇒ render verdict as low-confidence/caution
-            'verdict_basis': verdict_basis,         # fabricated|raw_only|low_support|interpolated|blended|thin|supported
+            'verdict_basis': verdict_basis,         # fabricated|raw_only|low_support|interpolated|blended|thin|multi_edition|supported
+            # TRIMMED ratio, or None. js/verdict_basis.js interpolates it into
+            # the multi_edition string, so it is the figure a user reads — and it
+            # must never be the untrimmed one (1,429× vs 422× on X-Men #1).
+            # None on every other tier, and the string is written to be correct
+            # with or without it.
+            'edition_price_ratio': edition_price_ratio,
             'nearby_thin_comps': nearby_thin_comps,  # sales near this grade that were too thin to anchor from
             'confidence': confidence,
 

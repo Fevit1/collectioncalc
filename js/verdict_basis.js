@@ -197,30 +197,40 @@ function basisLong(ctx) {
               + `this grade, publisher and era.`
             : `No usable sales for this book. Both figures come from typical prices for this `
               + `grade, publisher and era, nothing about this specific comic.`,
-        // ⏰ NOT EMITTED BY THE SERVER YET. Written now so the
-        // edition-span unit inherits a short string rather than a long
-        // one to shorten. The tier gates a comp pool holding MORE THAN
-        // ONE EDITION of the same issue: the X-Men #1 case, twelve 9.0
-        // comps, four from the 1991 volume, eight undated, zero from
-        // 1963, returning $36 confidently on a six-figure book. Signal is
-        // year span > 15y AND price ratio >= 20x, BOTH required.
-        // If a ratio is printed it must be the TRIMMED one (422x on
-        // X-Men #1, not 1429x). `edition_price_ratio` is not in the
-        // payload yet, so the clause is omitted until it is and the
-        // string is correct either way.
-        // Abundant comps by definition, so NO scarcity language.
+        // LIVE from 2026-08-13 (Fix F). The tier fires when a comp pool holds
+        // MORE THAN ONE EDITION of the same issue: the X-Men #1 case, returning
+        // $36 confidently on a six-figure book because the 1991 volume outvotes
+        // the 1963 one and both carry canonical_title 'X-Men'. Signal is year
+        // span > 15y AND trimmed price ratio >= 20x, BOTH required, gated on
+        // fmv_method == 'exact'.
+        // The ratio here MUST be the TRIMMED one — 422x on X-Men #1, not the
+        // untrimmed 1429x. The server sends only the trimmed figure; the string
+        // is correct with or without it, because a pool can span editions
+        // without the ratio being computable.
+        // Abundant comps by definition, so NO scarcity language. This tier's
+        // failure is the OPPOSITE of every other tier's: too many comps, of the
+        // wrong book.
         // ⚠️ LEADS WITH THE PROBLEM, not with "Priced from N sales".
         // Under the collapsed ROUGH ESTIMATE badge, opening with a
         // confident-sounding count asserts exactly what the badge just
         // denied, and the reader reaches the "but" too late. Every other
         // hedged string already opens on an absence or a small count;
         // this was the only one that opened on confidence.
+        // ⚠️ MUST NOT SAY "these N sales span more than one edition" — that was
+        // the first wording and it is FALSE. The span is detected across the
+        // WHOLE graded pool, not within the same-grade bucket, and on X-Men #1
+        // the grade-9.0 bucket is four 1991 sales plus eight year-unknown with
+        // no 1963 sale in it at all. Its span is zero. The pool spans editions;
+        // the named sales MAY be any mix of them, which is a weaker and true
+        // claim. Attributing the span to the sales the sentence names is the
+        // same defect as every other tombstone in this map.
         multi_edition: (() => {
             const ratio = editionPriceRatio;
-            const ratioClause = ratio ? `, differing in price by ${ratio}×,` : '';
-            return `These ${sameGradeComps} sale${s(sameGradeComps)}${gradeAt} span more than `
-                 + `one edition of this issue${ratioClause} so we can't tell which one `
-                 + `you have.`;
+            const ratioClause = ratio ? `, differing in price by ${ratio}×` : '';
+            return `These figures may be for the wrong edition. This issue has sales from `
+                 + `more than one edition${ratioClause}, and the ${sameGradeComps} `
+                 + `sale${s(sameGradeComps)}${gradeAt} behind this figure may be any mix `
+                 + `of them.`;
         })()
     };
     // ⚠️ The fallback asserts NOTHING about counts or provenance, on
@@ -353,8 +363,12 @@ function basisShort(basis, opts) {
         raw_only: 'No graded sales of this book. Estimated from raw sales, marked up.',
         fabricated: 'No usable sales for this book. The figures come from typical '
             + 'prices for this grade, publisher and era.',
-        multi_edition: 'These sales span more than one edition of this issue, so we '
-            + "can't tell which one you have.",
+        // Same correction as the long form: the pool spans editions, the named
+        // sales may not. With no count available the short form cannot even
+        // gesture at "these N sales", which removes the trap rather than
+        // avoiding it. NO scarcity language — this tier has abundant comps.
+        multi_edition: 'This issue has sales from more than one edition, so these figures '
+            + 'may be for the wrong one.',
     };
 
     // Unknown or missing basis returns NULL rather than a generic sentence.

@@ -240,6 +240,116 @@ hit is accurate — Signature ID, Market Pulse, Price Lookup, unbuilt export/bul
 **Tombstoned per [[L-SW-2026-014]] so the next sweep does not re-raise it: pricing.html's
 tier copy was investigated 2026-08-12 and found correct. Do not "fix" it.**
 
+### 🎭 FIX F — EDITION SPAN (BUILT + VERIFIED 2026-08-13, NOT SHIPPED)
+
+**THE CASE:** X-Men #1 at grade 9.0 returned **$36.00** with `verdict_reliable` TRUE and confidence
+HIGH, on a six-figure book. Both the 1963 and 1991 volumes carry `canonical_title = 'X-Men'`, so
+branch A pools them and 242 comps at a $71 median outvote 27 at $6,100.
+
+⚠️ **WORSE THAN THE INFLATION CASE.** Wolverine #181 at $6,735 was inflated, and a user holding a
+common book might sanity-check it. This is **DEFLATED on a genuine key**: $36 looks plausible, the
+verdict is confident, and the user walks away from a six-figure comic.
+
+**Design (settled across two prior sessions, not relitigated):** between-cluster not within-grade;
+**both** signals required (year span AND price ratio, each rejecting the other's false positive);
+gated on `fmv_method == 'exact'`. The gate is the design — every other tier is already hedged, so F
+can only fire where a confident verdict would otherwise escape, and `exact` guarantees ≥3
+same-grade comps for the string to name.
+
+### ⚰️ THE FIRST IMPLEMENTATION DID NOT FIRE ON ITS OWN CASE
+
+⚰️ **DEAD: "split at the single widest year gap, after a whole-range span test."**
+**REPLACED BY:** evaluate **every** candidate split; fire if any qualifies.
+**REASON:** X-Men #1's years are `1963:n=27 · 1990:n=4 · 1991:n=242 · 2021:n=1`. The real boundary
+1963→1990 is a **27**-year gap splitting 27/247 at 84.7× — a clean fire. But **1991→2021 is
+THIRTY years**, so the split landed there, produced a high cluster of exactly **one comp**, failed
+`MIN_EDITION_CLUSTER_COMPS`, and returned False. **The size floor rejected the whole detection
+rather than the bad split.** A single $110 eBay row disarmed the hedge on a six-figure book.
+
+⚠️ **AND BATMAN #423 HAS THE IDENTICAL STRUCTURE** — a lone 2022 row wins its gap — **and returned
+the DESIRED answer by accident rather than by mechanism.** A verification that only checked
+outcomes would have read that as evidence the code worked. This is why the sweep reported
+candidate splits and cluster sizes rather than booleans.
+
+**The year test also moved, and it is a correctness change:** from a precondition on the whole
+dated range to **the gap at the candidate split**. Whole-range span answers "does this pool cover a
+long period", true of nearly any long-running title; the gap at the split answers "are these two
+groups separated in time", which is what between-cluster means.
+
+### ✅ VERIFICATION — same-snapshot A/B is the decisive result
+
+The corpus grew measurably mid-verification (ASM #300's pool 405→461 in about an hour), so absolute
+counts are snapshot-dependent and old-vs-new could not be compared across runs. The old rule was
+reconstructed verbatim and both were run over **one snapshot**, 481 production-shaped
+`(canonical_title, issue_number)` cells with ≥6 dated comps:
+
+```
+FIRES UNDER NEW ONLY (1):  X-Men #1  84.7×  boundary 1963|1990
+FIRES UNDER OLD ONLY (0):  none
+FIRES UNDER BOTH   (5):  ASM #1 · Avengers #1 · AF #15 · Invincible #1 · Daredevil #1
+                         — identical ratios to the decimal
+```
+
+**The entire added risk surface is one cell, and it is the cell the change was written for.**
+Six fire, **zero false positives**, every one genuinely multi-volume.
+
+| book | grade | expected | actual |
+|---|---|---|---|
+| X-Men #1 | 9.0 | withhold | ✅ **84.7× on 1963\|1990** |
+| ASM #300 | 9.0 **and** 9.8 | unchanged | ✅ **zero candidate splits** — no gap in 1988–2006 exceeds 15y |
+| Absolute Batman #1 | 9.8 | unchanged | ✅ zero candidate splits (2024–2026, largest gap 1y) |
+| New Mutants #98 | 9.8 | unchanged | ✅ single year 1991; no gap exists |
+| Spider-Man #1 | 9.8 | withhold | ❌ **STILL MISSES** — see below |
+
+⚠️ **ASM #300 is now SAFER, not merely still-safe.** Under the old rule it passed the whole-range
+precondition (2006−1988 = 18 > 15) and was saved downstream by a 1.6× ratio. Under the new rule it
+is rejected **earlier**, on time-separation itself. Same for Absolute Batman #1 and New Mutants #98.
+
+**F changes the confidence label, not the number.** X-Men #1 @9.0 still returns $36.00 — now marked
+unreliable rather than confident, with ROI withheld.
+
+### ❌ OPEN: SPIDER-MAN #1 @9.8 STILL RETURNS $110.00 CONFIDENTLY
+
+One of the six acceptance criteria **fails**. Its pool has exactly one candidate split
+(`1990|2009`, gap 19y) at a **4.4×** ratio — the corpus contains no ≥20× discontinuity among its
+year-known comps. **This is a data/threshold question, not a split-selection one, and this change
+cannot fix it.** Whether the expectation or the mechanism is wrong is undetermined and was not
+guessed at. Not a regression: F leaves this cell exactly as it already was.
+
+### ⚠️ OPEN: THE CONSTANT'S JUSTIFICATION DOES NOT REPRODUCE
+
+`EDITION_PRICE_RATIO = 20.0` carried the argument *"AF #15 (26.9×) and Batman #423 (22.3×) sit
+close to the line, so a downward move reaches real single-edition books quickly."* Measured with
+the shipped matcher: **AF #15 = 185.5×**, **Batman #423 does not fire**, **X-Men #1 = 84.7× not
+422×**. May be methodology rather than error — the difference was deliberately **not** reconciled,
+and the agent stated its exact pool construction so the two are comparable. **Nothing sits near 20×
+in any measurement taken.** The comment now records both sets and marks the argument unverified;
+do not move the constant on the strength of it. What IS measured is the constant's *effect*: 6/481
+cells, zero false positives.
+
+### 🐛 CAUGHT IN REVIEW, BEFORE SHIP
+
+- **The long string was FALSE.** *"These 12 sales at grade 9.0 span more than one edition"* — the
+  span is detected across the **whole pool**, and X-Men #1's grade-9.0 bucket is 4×1991 plus 8
+  year-unknown with **no 1963 sale in it at all**; its span is zero. The sentence attributed the
+  span to the sales it named. Rewritten to lead with the problem and claim only that the named
+  sales *may be any mix*. Short form corrected the same way.
+- **`to_float` is a CLOSURE, not a module function** (defined inside `get_valuation()`), so the
+  module-level detector calling it was a request-time `NameError` that `py_compile` passes.
+  Converted inline; an AST pass now proves every name in the function resolves.
+- **The "checked first" comment asserted disjointness**, so it was verified rather than assumed:
+  `estimated = True` is set only where `fmv_method` becomes `'estimated'`/`'estimated_from_raw'`,
+  so it cannot co-occur with `'exact'`. The branches are disjoint by construction.
+- **Return semantics changed** from whole-range years to boundary years. Consumers audited: only
+  `edition_price_ratio` crosses to the client; the years appear solely in the `[VALUATION-F]` log.
+
+### 🔭 THE ARGUMENT FOR AN EXTERNAL SERIES ID
+
+X-Men #1's pool contains **27 genuine 1963 comps at a $6,100 median, outvoted 244 to 27.** The
+right answer is *in the pool*, and F **refuses rather than finding it**. That is the clearest
+available argument that an external series identifier eventually returns real value rather than
+only preventing harm.
+
 ### 🧱 CP-1 UNIT 2 — the hedge now survives the save boundary (BUILT 2026-08-13, NOT RUN)
 
 **THE PROBLEM:** every CP-1 hedge held on the grade report and evaporated on save. Superman #76
