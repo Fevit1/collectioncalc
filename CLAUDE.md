@@ -13,6 +13,10 @@
 >    newer decision, the file is STALE — update it (tombstone-style) BEFORE acting. Never reconstruct
 >    state from a spec doc alone; spec docs lag decisions.
 >
+> 5. **§ Mandatory: API Spend Ceiling** below — $10/day aggregate on Claude-initiated
+>    Anthropic API spend, with the running total in `docs/API_SPEND_LEDGER.md`.
+>    Read it before quoting any cost or starting any run that calls the API.
+>
 > Then emit the 6-line context summary before proceeding with any substantive work.
 
 > ⚠️ STATE-RECORDING PROTOCOL is part of this operating model — full text: docs/STATE_RECORDING_PROTOCOL.md
@@ -146,6 +150,77 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 4. Mobile testing on real devices
 5. ⚰️ ~~GalaxyCon sprint plan (25 weeks to Aug 21)~~ — **DEAD 2026-07-29, GalaxyCon dropped.** `docs/sessions/GALAXYCON_SPRINT.md` is superseded in its entirety; do not execute or re-date it (retirement decision pending Mike). Replacement sequence: ⚰️ ~~Aug 4 soft launch~~ **first cold traffic (unscheduled)** → quiet month → FB + email marketing.
 6. 🚦 **CP-1 valuation honesty — audited, NOT fixed.** Findings + the current fix order: `docs/technical/CP1_STATE_OF_PLAY.md`. Opens on canonical "of" fragmentation. ⚠️ *"confidence is displayed nowhere"* is **FALSE** — it renders in two live surfaces; do not re-scope CP-1 as "wire up the display."
+
+---
+
+## Mandatory: API Spend Ceiling — $10/day aggregate
+
+**Effective 2026-08-14. An operating constraint, not a preference.**
+
+**$10 A DAY, AGGREGATE.** When the day's cumulative Anthropic API spend would cross
+$10, **the run that crosses it needs Mike's written permission BEFORE it starts** —
+not after, not at the next natural break. Anything over $10 on its own trips this by
+definition.
+
+**Scope:** Anthropic API spend *Claude initiates* — vision samples, backfills, sweeps,
+any batch job. **NOT** the app's normal per-request grading cost, which is user-driven
+and not something Claude chooses to run.
+
+Two rules make this enforceable rather than aspirational:
+
+1. **Track the running daily total durably and report it with every estimate.**
+   Format: *"This run is $1.39, today's total is $2.75."* An estimate with no running
+   total makes the rule unfollowable. Ledger: `docs/API_SPEND_LEDGER.md` — append
+   BEFORE the run (estimate) and correct AFTER (actual, from `response.usage`).
+2. **State the estimate BEFORE the run in every case, even when it is well under.**
+   A rule that only surfaces near the threshold means the first time Mike hears a
+   number is the first time it matters — the wrong moment to be calibrating whether
+   the estimates are any good.
+
+**Why:** the CP-1 vision sample is $1.39 and the corresponding sweep is $103–650. The
+gap between those is exactly where an unremarkable-sounding decision becomes real
+money, against a few-hundred-a-month infrastructure budget on a pre-revenue product
+with six users.
+
+⚠️ Estimates must be built from **measured** token counts, not modelled ones. The
+first CP-1 image estimate was wrong by 4.5× (modelled ~1,100 image tokens/row; actual
+245) and it inverted a recommendation. Use `count_tokens` (free) or real dimensions
+before quoting a figure.
+
+---
+
+## Mandatory: eBay Capture Safety — and the one CDN exception
+
+**THE INVARIANT:** eBay capture stays **human-triggered and human-paced**. The operator
+clicks native Next; there is no programmatic auto-pagination, no auto-walk, no
+scripted traversal of listing or search pages. **Never draft one.** A bot pattern here
+is a ban risk, and a ban kills the valuation corpus — the asset the whole CP-1
+programme is built on. Close data gaps with loud honest prompts and capture-assist,
+never with auto-fetch.
+
+⚠️ **The image CDN is inside this constraint, not outside it.** `_backup_one_image()`
+in `routes/sales_ebay.py` fetches covers from `i.ebayimg.com` — that traffic is
+legitimate because it is *downstream of the operator browsing*: one GET per image, in
+the capture path, at the operator's pace.
+
+### The one deliberate exception — 2026-08-14
+
+**200 paced GETs to `i.ebayimg.com` outside the browsing path**, to fetch s-l800 and
+s-l1600 variants for the CP-1 condition-estimation sample. Approved by Mike in advance,
+after the exposure was named rather than discovered. Paced as Poisson arrivals
+(exponential inter-arrival, mean 17s, clamped [4s, 70s]) over ~57 minutes —
+memoryless, so there is no periodic signature; a fixed tick is its own tell.
+
+**This is a ONE-OFF, not a precedent.** It was justified by being a go/no-go on whether
+condition estimation is viable at all — a decision that could not be made any other
+way, for $1.39. It was the **first time image traffic ever left the browsing path.**
+
+⚠️ **A future unit wanting CDN fetches outside capture starts from
+"Mike approved 200 paced GETs once, for a decision that could not be made any other
+way" — NOT from "we do this."** Each such request is argued fresh, on its own merits,
+in advance. The 143,118-row cover backfill is the obvious candidate and is
+**explicitly NOT authorized** (see the comment block in `_backup_one_image`); if it
+ever happens it is the 23,131 rows at $100+, paced, and separately approved.
 
 ---
 

@@ -3,6 +3,7 @@ eBay Sales Blueprint - Batch ingestion, title backfill, and stats
 Routes: /api/ebay-sales/*
 """
 import os
+import re
 import base64
 import hashlib
 import threading
@@ -98,6 +99,47 @@ def _r2_note(kind, error=None):
             _r2_stats['consecutive_failures'] = 0
 
 
+# eBay's image CDN encodes the served size in the path: .../s-l500.webp. The
+# collector reads imageEl.src off the SEARCH RESULTS page, where eBay renders
+# s-l500 -- and _backup_one_image mirrors those bytes verbatim (there is no
+# resize on our side), so the whole corpus sat at 500px on the long edge:
+# 30 of 30 sampled covers, every price band, zero variance.
+#
+# 500px (~0.17MP) is marginal for reading condition off a cover -- plausibly
+# enough to separate PR/FR from NM, plausibly not enough for GD/VG/FN, which is
+# where the raw pool's dispersion actually lives.
+#
+# Rewriting the size token fixes it for ZERO extra requests: this function
+# already makes exactly one CDN GET per image, and this only changes the URL
+# string of that same GET. No item pages, no pagination, no collector change --
+# the capture-safety invariant is untouched.
+#
+# Measured 2026-08-14 on 4 real sold listings: s-l1600 returns 3-10x the pixels
+# of s-l500 (800x1200 .. 1600x1200). s-l2400 returns a BYTE-IDENTICAL file, so
+# 1600 is the real ceiling, not an arbitrary pick -- do not raise it expecting
+# more.
+#
+# GOING FORWARD ONLY. The 143,118 covers already in R2 stay at 500px; the
+# original eBay URL is retained in ebay_sales.image_url so a backfill is
+# possible, but 143k CDN GETs is well above normal batch rate and is NOT
+# authorized. Do not add one without Mike's explicit go.
+_EBAY_SIZE_TOKEN = re.compile(r's-l\d+')
+_EBAY_TARGET_SIZE = 's-l1600'
+
+
+def _upsize_ebay_image_url(url):
+    """Point an eBay CDN thumbnail URL at the full-size variant.
+
+    Returns (preferred_url, fallback_url). Non-eBay or unrecognized URLs come
+    back unchanged with no fallback. The fallback matters: a listing whose
+    seller image has no 1600px variant must still back up at its original size
+    rather than losing the cover entirely."""
+    if 'ebayimg.com' not in url or not _EBAY_SIZE_TOKEN.search(url):
+        return url, None
+    upsized = _EBAY_SIZE_TOKEN.sub(_EBAY_TARGET_SIZE, url)
+    return (upsized, url) if upsized != url else (url, None)
+
+
 def _backup_one_image(sale):
     """Download one cover from eBay, upload to R2. Returns dict or None. Never raises."""
     image_url = sale.get('image_url', '')
@@ -106,7 +148,13 @@ def _backup_one_image(sale):
         _r2_note('skipped_no_image')
         return None
     try:
-        resp = requests.get(image_url, timeout=10)
+        fetch_url, fallback_url = _upsize_ebay_image_url(image_url)
+        resp = requests.get(fetch_url, timeout=10)
+        # Fall back to the as-captured URL if the upsized variant is missing, so
+        # a 404 on s-l1600 degrades to the old 500px behaviour instead of
+        # dropping the cover.
+        if resp.status_code != 200 and fallback_url:
+            resp = requests.get(fallback_url, timeout=10)
         if resp.status_code != 200:
             _r2_note('failed', f"eBay image GET returned {resp.status_code}")
             return None
