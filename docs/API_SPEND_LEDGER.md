@@ -25,23 +25,38 @@ write 1.25× (5m TTL), cache read 0.10×. Minimum cacheable prefix 1,024 tokens.
 
 ---
 
-## 2026-08-14 — running total: **$0.00**
+## 2026-08-14 — running total: **$1.40** (standard) / **$0.94** (intro rate billed)
 
 | # | run | est. | actual | notes |
 |---|-----|------|--------|-------|
-| — | *(no API calls made)* | — | $0.00 | `ANTHROPIC_API_KEY` was absent from `.env` for the whole session; `count_tokens` and the CP-1 sample were both blocked on it. All measurement this session was DB + image-dimension work at zero API cost. |
+| 1 | CP-1 smoke test — 1 scoring call | ~$0.01 | $0.007 | Pre-flight before firing 300; caught nothing, which is the point. |
+| 2 | CP-1 paired vision sample — 100 books × {s-l500, s-l800, s-l1600} = 300 calls | **$1.390** | **$1.397** | **+0.5%.** 300/300 succeeded. Approved by Mike in advance. |
 
-**Queued, not yet authorized to run:**
+**Totals:** 301 calls · input 339,510 · cache_write 0 · cache_read 541,500 ·
+output 14,405. **$1.397 at standard $3/$15; $0.931 at the intro $2/$10 that
+actually applies through 2026-08-31.**
 
-| run | est. | gate |
-|-----|------|------|
-| CP-1 paired vision sample — 100 books × {s-l500, s-l800, s-l1600} = 300 calls | **$1.39** | Awaiting go on 200 live `i.ebayimg.com` GETs (see below) |
+### Estimate calibration — the reason both columns exist
 
-**Non-API cost flagged on the same run:** the s-l800 and s-l1600 arms are not in
-R2 (which holds s-l500 only), so they require **200 live GETs to
-`i.ebayimg.com`** outside the normal capture path. That is eBay traffic, and the
-no-automation capture constraint has never been traded — it needs its own
-explicit go, separate from the dollar figure.
+- **Estimate $1.390 → actual $1.397. Off by 0.5%.** The measured-token method
+  (real image dimensions, `count_tokens` on the rubric) works.
+- ⚠️ **A mid-run "correction" to ~$1.55 was WRONG and the original estimate was
+  right.** It was extrapolated from 4 probe images rather than the 100 actually
+  sampled. Lesson: do not re-estimate from a smaller sample than the one already
+  in hand — the correction was less grounded than the thing it corrected.
+- Output ran **48.0 tokens/call vs the 45 specified** (+6.7%). `output_config.format`
+  held the shape; the drift is basis-string length, not preamble.
+- **Caching worked and was verified, not assumed:** rubric measured at 1,471
+  tokens (floor is 1,024 — a pre-flight abort was wired in case it came up
+  short), `cache_read_input_tokens` = 541,500 across the run, `cache_write` = 0
+  because the smoke test had already warmed it. Without caching this run would
+  have cost ~$3.7 instead of $1.4.
+
+**Non-API cost on the same run:** 200 live GETs to `i.ebayimg.com` outside the
+capture path — approved in advance as a deliberate one-off, paced as Poisson
+arrivals (mean 17s, clamped [4s, 70s]) over 56.0 min. 200/200 succeeded at the
+requested size; the `_upsize_ebay_image_url` fallback never fired and remains
+untested against a real 404. See CLAUDE.md → *eBay Capture Safety*.
 
 ---
 

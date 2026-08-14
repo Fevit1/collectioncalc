@@ -699,3 +699,124 @@ L-SW-2026-014.
 
 *Snapshot 1 generated read-only 2026-08-02; snapshot 2 appended read-only 2026-08-03. No code changed by
 either. Queries reproducible against `DATABASE_URL_RO` (SELECT-only).*
+
+---
+
+# Snapshot 3 — 2026-08-14 — condition estimation: MEASURED, and NOT BUILT
+
+**MOST RECENT CHANGE: condition estimation is DEFERRED behind Units 1a/1b/2, on measurement
+rather than on cost.** Supersedes any framing of it as a budget question. Sequence is
+unchanged: **1a → 1b → Unit 2 design → revisit condition against a clean pool.**
+
+## What was run
+
+A paired vision sample: **100 raw sold listings, each scored at s-l500 / s-l800 / s-l1600**
+(300 Sonnet 5 calls, **$1.397**, estimate $1.390). Images fetched with Poisson pacing over
+56 min as an approved one-off — see `CLAUDE.md` → *eBay Capture Safety*.
+
+## Finding 1 — resolution is not the constraint; photo composition is
+
+| arm | usable (high+med) | recovered from unusable | mean band shift |
+|---|---|---|---|
+| s-l500 | 80% | — | — |
+| s-l800 | 83% | 4 / 100 | −0.02 |
+| s-l1600 | 84% | 5 / 100 (vs 500) | −0.01 |
+
+10× the tokens buys 4 points. 26 of 100 books changed band across the full range with **zero
+net drift** — adjacent-band churn, not correction.
+
+**The mechanism:** sellers photograph the cover art flat and cropped, so the **spine and
+corners are not in the frame** at any resolution. Low-confidence reasons say so directly
+(*"close-up cropped cover art, no spine or corners visible"*, *"angled distant photo"*,
+*"flat frontal stock-style image"*). ⚠️ **This is a fact about eBay listings; no budget fixes
+it.** Do not re-open this as a resolution or spend question.
+
+## Finding 2 — the product is 2–3 bands, not 7
+
+`high` confidence is **4–5 of 100 at every resolution**; `med` is ~78%. Per the rubric's own
+definition `med` means *"can tell a used copy from a clean one, not VG from FN."* The model
+is reporting it can deliver *beaten-up / mid / nice*.
+
+## Finding 3 — ⚠️ ACCURACY WAS NOT MEASURED
+
+The sample measured **stability and self-reported confidence only**. 74/100 unchanged across
+resolution is equally consistent with *consistently right* and *consistently wrong the same
+way*. Two signals point at optimism bias: **55–60% VF/NM flat across every price band**
+(not a modern-books artifact) and **FR = 0** in all three arms against PR = 5. **Unresolved
+until Mike's 50-cover blind ground truth returns.** If bias is confirmed it reaches past
+CP-1 — the same model family does user grading.
+
+## Finding 4 — vision is a better JUNK DETECTOR than grader
+
+**7 of 100 sampled rows are not comics** — a fuel pump ($999.99), a Ford Coupe top rail
+($250), a YoungLA Batman hoodie ($159), a Cadillac fender grill ($89.95), a steering column
+($53.81), a carburetor ($51.19), an LED fog-light switch ($18.99). All seven returned
+`conf: low` in **every** arm — a more reliable signal than the bands are. Evidence that a
+cheap "is this even a comic" pass would work, if one is ever wanted.
+
+**They are inert for valuation, and why matters:** only 5 of 44 such rows have both a
+`canonical_title` and an `issue_number`, and the keys are `Genuine Holley` / `Nos Stewart
+Warner` / `Vauxhall Corsa Power Ste` — nothing collides under normalized exact equality.
+⚠️ **This retroactively vindicates the 2026-08-07 branch-B removal**: `Genuine Holley`
+issue 12 is precisely the shape the LIKE fallback could have dragged into a real pool.
+
+## Finding 5 — slab detection: a ceiling Unit 1b cannot see past
+
+**6 of 100** rows with **no cert string in the title** are visibly in a graded case, stable
+across all three arms (1 flip). 95% CI ≈ 3–13% → roughly **4,000–18,000 rows**. Unit 1's
+regex can never catch these — there is nothing in the title to catch. **Scoping input for
+1b, not a reason to change 1a.**
+
+## Not changed by this
+
+`title_year` remains NULL on **38.5%** of raw rows, worst (~48%) in the $50–199 bands,
+unrecoverable (0.5% carry a year in the title), and a 16+ year pool span is the **majority**
+state at 55% of rows. Unit 2 still cannot lean on year.
+
+## Queue item — `canonical_title` repair: add "issue number absorbed into the title"
+
+**Logged 2026-08-14, NOT chased.** Found by Mike in a fresh Werewolf by Night capture:
+
+```
+canonical_title = "Werewolf. 32"      issue_number = NULL
+```
+
+The issue number was absorbed into the title and the issue field left empty, so the row
+cannot match any query for Werewolf #32 — the valuation path appends
+`AND issue_number = %s` whenever a caller supplies an issue, which is the normal case.
+**Captured today, so the normalization that produced it is live**, not historical residue.
+
+Scoped rather than investigated (one query, so the queue item carries a denominator):
+
+| shape | rows |
+|---|---|
+| `<word>. <number>` at end of `canonical_title`, `issue_number` NULL | **62** (58 distinct titles, first seen 2026-03-02, still occurring 2026-08-14) |
+| any `canonical_title` ending in a number, `issue_number` NULL | **764** (630 raw) |
+| **raw rows with `issue_number` NULL, all causes** | **22,623 of 214,285 — 10.6%** |
+
+The 62-row shape is several distinct defects wearing one pattern:
+- **`No.` / `Vol.` absorbed** — `The Flash No. 123`, `X-Men No. 14`, `Justice League
+  International Pt. 1( Collection Vol. 70`
+- **Barcodes absorbed** — `Spawn 1a. 4694840025`, `Cyberforce 1a. 1264042004`. eBay item
+  specifics leaking into the identity key.
+- **Quote characters retained** — `'shade, the Changing Man Omnibus'`,
+  `"elfquest - Ayoooah! the Warning & The" - Vol. 2, No. 13`
+
+⚠️ **Do not read 22,623 as a defect count.** A trade, omnibus or collection legitimately has
+no issue number, and the examples above include several. The split between *legitimate no-issue*
+and *parse failure* is unmeasured, and that measurement is the first task of the queue item —
+not an assumption to build on. What is certain: **every one of those rows is excluded from any
+issue-filtered valuation query**, correctly or otherwise.
+
+Sits with the other `canonical_title` residue already recorded: 3,586 normalized titles carrying
+non-ASCII (5,458 rows), 410 NULL/empty canonical titles, ~1,159 truncated at ingest. Still a
+normal queue item, still **not** a prerequisite for Unit 2 — the article-split evidence that
+briefly argued otherwise was retracted (see `docs/LESSONS.md` L-SW-2026-024).
+
+---
+
+*Snapshot 3: 300 vision calls + read-only DB queries. One code change shipped alongside
+(`_backup_one_image` s-l500 → s-l1600), whose stated rationale this snapshot refutes — kept
+for other uses, annotated in place. See `docs/LESSONS.md` L-SW-2026-024. s-l1600 verified live
+by Mike 2026-08-14: Werewolf by Night capture at 1200×1600, ~7.7× the pixels, same request
+count, capture unblocked.*

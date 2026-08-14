@@ -105,9 +105,28 @@ def _r2_note(kind, error=None):
 # resize on our side), so the whole corpus sat at 500px on the long edge:
 # 30 of 30 sampled covers, every price band, zero variance.
 #
-# 500px (~0.17MP) is marginal for reading condition off a cover -- plausibly
-# enough to separate PR/FR from NM, plausibly not enough for GD/VG/FN, which is
-# where the raw pool's dispersion actually lives.
+# ⚠️ THE STATED REASON FOR THIS CHANGE DID NOT HOLD. MEASURED 2026-08-14, KEPT ANYWAY.
+# The rationale was that 500px (~0.17MP) is too coarse to read condition off a
+# cover -- fine for PR/FR vs NM, too coarse for GD/VG/FN, where the raw pool's
+# dispersion lives. A paired 100-book sample (same books at s-l500 / s-l800 /
+# s-l1600, 300 vision calls, $1.40) says that is WRONG:
+#
+#     usable (high+med) confidence   80% -> 83% -> 84%   for 10x the tokens
+#     books recovered from unusable   5 of 100 across the full 500->1600 range
+#     mean band shift                -0.01 bands (26 books moved, ZERO net drift)
+#
+# Resolution is not the constraint. The constraint is PHOTO COMPOSITION: eBay
+# sellers shoot the cover art flat and cropped, so the spine and corners -- the
+# two most diagnostic areas -- are not in the frame at any resolution. More
+# pixels of a photograph that omits the spine tell you nothing about the spine.
+# That is a fact about eBay listings and no budget fixes it.
+#
+# This is LEFT SHIPPED because it costs nothing ongoing (same one GET per image;
+# ~$0.75/month more R2 at free egress) and larger source images may serve
+# something later -- signature work, cover display, a junk-detection pass. Do
+# NOT cite condition estimation as its justification; that reasoning failed and
+# is recorded here so the next reader finds the correction rather than the
+# rationale. See docs/LESSONS.md L-SW-2026-024.
 #
 # Rewriting the size token fixes it for ZERO extra requests: this function
 # already makes exactly one CDN GET per image, and this only changes the URL

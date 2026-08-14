@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-13 (23 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-14 (24 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -14,6 +14,59 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 ---
 
 ## Active lessons
+
+### L-SW-2026-024 — Characterise a population by measuring THAT population; a plausible story, a convenient grouping, or a smaller sample already superseded are claims about themselves. And precision applied to the wrong population is worse than none, because calibration reads as authority
+
+- **RULE:** Before stating what a set of rows *is*, measure that set. Three substitutes keep
+  getting mistaken for measurement, and all three feel more rigorous than saying nothing —
+  which is exactly why they survive review:
+  1. **A plausible mechanism** ("those are coincidental low-grade copies") in place of a count.
+  2. **A grouping you built** in place of the expression production actually evaluates.
+  3. **A smaller sample** in place of the larger one already in hand.
+- **WHY — three instances in one month, same shape:**
+  - **FF #1 raw pool.** Claude asserted the $30 pool was "coincidental low-grade or misdescribed
+    copies, not a second edition" and never counted. Mike: *"You asserted… and did not measure
+    it. I do not believe it."* Measured: **11 of 163**. The assertion had already been used to
+    justify a ratio sweep, which the measurement invalidated.
+  - **`canonical_title` article split.** Claude reported *"`The Invincible Iron Man` vs
+    `Invincible Iron Man`, one book under two keys, **9.1× median gap**"* and argued a sequence
+    amendment on it, which Mike accepted. The gap was an artifact of **grouping on the stored
+    string**; `title_matching._norm_sql()` strips the leading article on both sides, so
+    production had already merged them (4 stored forms → 1 pool, 66 rows). Fix A shipped
+    2026-06-27 in `c688bce`. The whole argument had to be retracted after agreement.
+  - **The $1.39 vision sample.** Mid-run, Claude "corrected" its own estimate upward to ~$1.55 by
+    extrapolating from **4 probe images** — when **100 real sampled covers** were already
+    fetched and on disk. Actual came in at **$1.397 against the original $1.390 estimate, 0.5%
+    off**. The revision was the error; the thing it corrected was right.
+- **⚠️ THE TELL: the cautious direction is not a safe direction.** The bad revision *raised* the
+  cost estimate, so it read as conservatism and drew no scrutiny. A wrong number that errs toward
+  caution is still a wrong number, and it is harder to catch precisely because nobody argues with
+  it. Mike: *"it went the cautious direction, which is how it survived."*
+- **⚠️ THE COROLLARY — precision on the wrong population is worse than no precision.** Recorded at
+  Mike's request as the standing argument against reordering CP-1 work:
+  > *A condition estimate on a pool where the comic is wrong produces a well-calibrated number
+  > about the wrong comic, and RAISES apparent confidence while doing it, because a
+  > condition-adjusted figure reads as more considered than a bare median. That is strictly worse
+  > than the current honest-but-crude number.*
+  This is why condition estimation sequences **after** 1a, 1b and Unit 2, not before — and it now
+  has a measured price: the best available signal is ±1 band at any resolution
+  ([[L-SW-2026-025]] territory if that changes), which is not enough precision to survive being
+  applied to a contaminated pool.
+- **HOW TO APPLY:**
+  1. **Read the consumer before describing the data.** If a claim is about how rows *behave* —
+     pooling, matching, filtering — open the code path that does it and reproduce its expression.
+     Both the FF #1 and `canonical_title` misses would have died on one read of the matcher.
+  2. **Never re-estimate from a smaller sample than the one in hand.** If N real observations are
+     already collected, the estimate comes from those N. A "correction" derived from fewer data
+     points than the thing it corrects is a regression wearing the costume of diligence.
+  3. **State the N with the claim.** "11 of 163", "4 stored forms → 1 pool", "7 of 100" — a
+     characterisation with no denominator is the shape all three failures took.
+  4. **Retract loudly and early.** Each of these was caught by Claude, not by Mike, and reported
+     before he acted on it. That is the mitigation working; it is not a substitute for measuring
+     first, and two retractions of things already agreed is the cost of relying on it.
+- **SOURCE:** 2026-08-14, CP-1 vision-sizing arc, cumulative over three exchanges. Mike:
+  *"That is the right thing to have done and it is the second time this week you have retracted
+  something I had already agreed to."*
 
 ### L-SW-2026-001 — Claude NEVER runs git or deploy operations; Mike runs 100% of them
 
