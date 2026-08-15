@@ -574,7 +574,34 @@ def api_sales_valuation():
               AND LOWER(raw_title) NOT LIKE '%%full run%%'
               AND LOWER(raw_title) NOT LIKE '%%all covers%%'
               AND raw_title !~* '\\d+\\s+(extra|more)\\s+(book|comic|issue)s?'
-              AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d{2,4}'
+              -- Multi-issue range in the title = several books sold as one listing.
+              -- ⚠️ The SECOND number was bounded '\\d{2,4}' until 2026-08-14, so
+              -- "#1-15" was excluded and "#1-4" / "#1-8" were NOT: every
+              -- single-digit-ended run sailed straight into the comp pool.
+              -- Measured against this complete filter chain, 2,405 such rows are
+              -- live today (244 of them >= $100) -- Vampirella #1 at $1,169.99
+              -- (actually #1-5), Venom Lethal Protector #1 at $600 (#1-6),
+              -- Wolverine Limited Series #1 at $599.99 (#1-4).
+              --
+              -- Widening to '\\d{1,4}' alone misfires on four real shapes, so each
+              -- is guarded separately rather than folded into one dense pattern.
+              -- Rows each guard rescues, measured 2026-08-14 over the 6,031 the
+              -- widening newly captures:
+              --   ordinal    "Chew #1 - 4th print"            1,734
+              --   descending "#8 - 1" is not a run            1,857
+              --   grade      "TMNT ... #1-5 NM"                 203
+              --   decimal    "New Mutants #98 - 8.0"             50
+              -- Net effect: 3,954 newly matched here, 1,549 rescued, 2,405 excluded.
+              AND NOT (
+                      raw_title ~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*(st|nd|rd|th)\\M'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*[.,]\\d'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*(\\.\\d)?\\s*(vf|nm|fn|vg|gd|fr|pr|cgc|cbcs|psa)\\M'
+                  -- a range must ascend; NULL from a non-matching title makes the
+                  -- AND chain false, so a title with no range is never excluded here
+                  AND (substring(raw_title from '#\\s*(\\d{1,4})\\s*[-–]\\s*\\d'))::int
+                    < (substring(raw_title from '#\\s*\\d{1,4}\\s*[-–]\\s*(\\d)'))::int
+              )
               AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
         ebay_graded_params = [days]
@@ -607,7 +634,34 @@ def api_sales_valuation():
               AND LOWER(raw_title) NOT LIKE '%%full run%%'
               AND LOWER(raw_title) NOT LIKE '%%all covers%%'
               AND raw_title !~* '\\d+\\s+(extra|more)\\s+(book|comic|issue)s?'
-              AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d{2,4}'
+              -- Multi-issue range in the title = several books sold as one listing.
+              -- ⚠️ The SECOND number was bounded '\\d{2,4}' until 2026-08-14, so
+              -- "#1-15" was excluded and "#1-4" / "#1-8" were NOT: every
+              -- single-digit-ended run sailed straight into the comp pool.
+              -- Measured against this complete filter chain, 2,405 such rows are
+              -- live today (244 of them >= $100) -- Vampirella #1 at $1,169.99
+              -- (actually #1-5), Venom Lethal Protector #1 at $600 (#1-6),
+              -- Wolverine Limited Series #1 at $599.99 (#1-4).
+              --
+              -- Widening to '\\d{1,4}' alone misfires on four real shapes, so each
+              -- is guarded separately rather than folded into one dense pattern.
+              -- Rows each guard rescues, measured 2026-08-14 over the 6,031 the
+              -- widening newly captures:
+              --   ordinal    "Chew #1 - 4th print"            1,734
+              --   descending "#8 - 1" is not a run            1,857
+              --   grade      "TMNT ... #1-5 NM"                 203
+              --   decimal    "New Mutants #98 - 8.0"             50
+              -- Net effect: 3,954 newly matched here, 1,549 rescued, 2,405 excluded.
+              AND NOT (
+                      raw_title ~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*(st|nd|rd|th)\\M'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*[.,]\\d'
+                  AND raw_title !~* '#\\s*\\d{1,4}\\s*[-–]\\s*\\d\\s*(\\.\\d)?\\s*(vf|nm|fn|vg|gd|fr|pr|cgc|cbcs|psa)\\M'
+                  -- a range must ascend; NULL from a non-matching title makes the
+                  -- AND chain false, so a title with no range is never excluded here
+                  AND (substring(raw_title from '#\\s*(\\d{1,4})\\s*[-–]\\s*\\d'))::int
+                    < (substring(raw_title from '#\\s*\\d{1,4}\\s*[-–]\\s*(\\d)'))::int
+              )
               AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
         # Batch 8: qualifier-precise title match

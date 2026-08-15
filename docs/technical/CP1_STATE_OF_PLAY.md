@@ -773,6 +773,37 @@ regex can never catch these — there is nothing in the title to catch. **Scopin
 unrecoverable (0.5% carry a year in the title), and a 16+ year pool span is the **majority**
 state at 55% of rows. Unit 2 still cannot lean on year.
 
+## ⚠️ How the blind-cover comparison MUST be reported — Mike's constraint, 2026-08-14
+
+A 50-cover blind set was issued at **s-l500** (the resolution the corpus actually holds for
+143,118 rows; an s-l1600 set would answer a question about future captures only). Mike scores
+two scales per cover: **photo adequacy** (`no`/`broadly`/`yes` — a judgement about the
+photograph, needing no grading expertise) and **band** (best guess).
+
+**This is NOT ground truth, and the write-up must not present it as validation.** In Mike's
+words: *"I am not a professional grader. I have handled a lot of these books, which is why I
+could tell 163 raw $30 FF #1s was implausible — but that is domain familiarity, not
+calibration. My bands are a SECOND INDEPENDENT READER."*
+
+The comparison answers **"do two independent assessments agree"**, not "is the model right".
+The two directions are not symmetric:
+
+| outcome | what it licenses |
+|---|---|
+| **Systematic disagreement** — e.g. Mike says VG where the model says VF, consistently | **Strong evidence of bias.** Requires neither reader to be correct; a consistent directional offset is the signal. This is the result worth having. |
+| **Broad agreement** | **Weaker than it looks.** Both readers are looking at the same cropped photo with no spine visible. *Agreeing on insufficient information is not accuracy.* |
+
+⚠️ **Therefore the analysis must compute the signed, per-band offset distribution — not an
+agreement rate.** A headline "N% agreement" would be exactly the number Mike said he does not
+want, because it reads as validation of a shared blind spot. The adequacy scale is the guard:
+where both readers say the photo is inadequate, band agreement carries no information at all
+and must be excluded from any accuracy-flavoured claim.
+
+The 7 non-comics are included in the set, count undisclosed — low-confidence-on-junk was the
+more reliable signal, and whether a human catches them at 500px is worth knowing.
+
+---
+
 ## Queue item — `canonical_title` repair: add "issue number absorbed into the title"
 
 **Logged 2026-08-14, NOT chased.** Found by Mike in a fresh Werewolf by Night capture:

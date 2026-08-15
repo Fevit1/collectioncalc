@@ -38,6 +38,18 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
     extrapolating from **4 probe images** — when **100 real sampled covers** were already
     fetched and on disk. Actual came in at **$1.397 against the original $1.390 estimate, 0.5%
     off**. The revision was the error; the thing it corrected was right.
+  - **⚠️ THE FOURTH INSTANCE, COMMITTED WHILE THIS LESSON WAS BEING DRAFTED.** Asked to scope lot
+    leakage, Claude reported *"Iron Fist #1 at $587 (15 comics), The Boys #1 at $270 (8), ASM #252
+    at $249 (2), Wolverine LS #1 at $139 (4) — **all reaching live pools**"*. The check performed
+    was `canonical_title IS NOT NULL AND issue_number IS NOT NULL` — **a proxy for poolability, not
+    the predicate.** Applying the *complete* `ebay_raw_query` WHERE clause: **only 2 of the 7 were
+    live.** Iron Fist was blocked by the existing `#1-15` range regex, ASM by the ampersand regex,
+    Brave and the Bold by `%facsimile%`. Severity was overstated 2.5×, in a report written the same
+    day as the rule against exactly this. Mike: *"a lesson that gets violated during its own
+    drafting is better evidence for the lesson than any example you could construct."*
+    The same check, run properly one step later, also prevented a fifth: a $10,000 Punisher
+    Mini-Series #1-5 looked like the largest contamination in the corpus and is blocked by
+    `%complete set%`.
 - **⚠️ THE TELL: the cautious direction is not a safe direction.** The bad revision *raised* the
   cost estimate, so it read as conservatism and drew no scrutiny. A wrong number that errs toward
   caution is still a wrong number, and it is harder to catch precisely because nobody argues with
@@ -61,6 +73,17 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
      points than the thing it corrects is a regression wearing the costume of diligence.
   3. **State the N with the claim.** "11 of 163", "4 stored forms → 1 pool", "7 of 100" — a
      characterisation with no denominator is the shape all three failures took.
+  3a. **For any "this row reaches production" claim, run the PRODUCTION PREDICATE, verbatim.**
+     Not a simplified version, not the two conditions that seem load-bearing — paste the whole
+     `WHERE` clause in and let the database answer. Poolability in this repo is fourteen
+     conditions; checking two of them is how the fourth instance happened.
+  3b. **⚠️ THIS APPLIES TO MIKE'S INTUITIONS TOO, and he has asked that it be recorded.** Twice in
+     one week a targeting instinct lost to a measurement: *"price ≥ $100 will find the bad rows"*
+     scored **38% precision against a 36% base rate** — statistically indistinguishable from
+     random — on the 50-row labelled set, while `lot-shaped title OR model conf=low` scored
+     **79% precision / 83% recall**. His words: *"my instinct was wrong in a way I would not have
+     found without the labelled set."* Measure the operator's heuristics with the same instrument
+     as Claude's; a plausible selector is a hypothesis, not a filter.
   4. **Retract loudly and early.** Each of these was caught by Claude, not by Mike, and reported
      before he acted on it. That is the mitigation working; it is not a substitute for measuring
      first, and two retractions of things already agreed is the cost of relying on it.
