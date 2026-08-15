@@ -994,13 +994,36 @@ def api_sales_valuation():
         # double-hedge already-hedged cells and would need a precedence rule
         # between its string and theirs — which is the coupling the collapsed
         # ROUGH ESTIMATE badge exists to avoid.
-        multi_edition, edition_price_ratio, _ed_lo, _ed_hi = (False, None, None, None)
-        if fmv_method == 'exact':
-            multi_edition, edition_price_ratio, _ed_lo, _ed_hi = \
-                _detect_multi_edition(all_graded)
-            if multi_edition:
-                print(f"[VALUATION-F] multi-edition hedge: ratio={edition_price_ratio}x "
-                      f"years={_ed_lo}-{_ed_hi} exact_count={exact_count}")
+        # ⚠️ TWO NAMES FOR TWO FACTS, AND CONFLATING THEM IS HOW THE GATE LEAKS.
+        #
+        #   edition_span   — INFORMATIONAL. Ungated. "This book's comp pool holds
+        #                    more than one edition." A property of the POOL, which
+        #                    feeds BOTH the raw and the graded figure, and true
+        #                    regardless of which tier the verdict lands in.
+        #   multi_edition  — VERDICT-AFFECTING. Gated on fmv_method == 'exact'.
+        #                    "…and that is the reason this verdict is withheld."
+        #
+        # The detection runs ONCE and is free (pure Python over an
+        # already-fetched pool). Only the second is allowed to touch
+        # verdict_reliable or verdict_basis. Widening the FIRST costs nothing and
+        # explains 34 cells the gate cannot reach; widening the SECOND would
+        # double-hedge already-hedged cells and require a precedence rule between
+        # F's string and theirs, which is the coupling the collapsed ROUGH
+        # ESTIMATE badge exists to avoid.
+        #
+        # WHY THE UNGATED FLAG EXISTS AT ALL. The raw figure is BOOK-level while
+        # F is GRADE-specific, so on a spanning book every cell renders the same
+        # contaminated raw number — 80 cells across 5 books, of which F reaches
+        # only 46. X-Men #1 @4.5 is the case: hedged for thinness, correctly, and
+        # showing RAW $17 beside SLABBED $10,200 with no edition explanation
+        # anywhere. Those are two different comics and the pairing is what lies.
+        edition_span, edition_price_ratio, _ed_lo, _ed_hi = _detect_multi_edition(all_graded)
+
+        multi_edition = edition_span and fmv_method == 'exact'
+        if edition_span:
+            print(f"[VALUATION-F] edition span: ratio={edition_price_ratio}x "
+                  f"boundary={_ed_lo}|{_ed_hi} method={fmv_method} "
+                  f"exact_count={exact_count} verdict_gated={multi_edition}")
 
         verdict_reliable = not (
             estimated_flag
@@ -1208,6 +1231,12 @@ def api_sales_valuation():
             # None on every other tier, and the string is written to be correct
             # with or without it.
             'edition_price_ratio': edition_price_ratio,
+            # ⚠️ NOT the same fact as verdict_basis == 'multi_edition'. This is
+            # TRUE whenever the comp pool spans editions, on EVERY tier; the
+            # basis value is set only where the gate also withheld the verdict.
+            # The client renders the note off THIS, and suppresses it when the
+            # basis already says it — otherwise the same sentence appears twice.
+            'edition_span': edition_span,
             'nearby_thin_comps': nearby_thin_comps,  # sales near this grade that were too thin to anchor from
             'confidence': confidence,
 

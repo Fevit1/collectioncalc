@@ -1877,12 +1877,31 @@
     color: var(--text-secondary);
 }
 
-.basis-detail .basis-confidence {
-    display: block;
-    margin-top: 5px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
+/* ⚰️ .basis-detail .basis-confidence — the rule for the "Data confidence" line
+   removed from the expansion 2026-08-13. Kept as a tombstone rather than
+   deleted: the class name is gone from app.html, so a bare rule would look like
+   dead CSS to the next reader and get "cleaned up" without the reason surviving.
+   Do not re-add the element. See the tombstone in app.html above
+   basisDetailEl.innerHTML for why (redundancy, not contradiction). */
+
+/* EDITION NOTE — sits with the FIGURES, not in the expansion. Styled as a quiet
+   caption under the valuation triptych rather than as a warning banner: the
+   figures are each defensible for their own pool, and it is the ADJACENCY that
+   misleads. A red alert would assert one of them is wrong, which is exactly the
+   claim the sentence is written to avoid. */
+.edition-note {
+    margin: 8px 0 0;
+    padding: 7px 11px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    text-align: left;
 }
+
+.edition-note[hidden] { display: none; }
 
 .verdict-badge.worth {
     background: rgba(16, 185, 129, 0.15);

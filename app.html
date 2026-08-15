@@ -1233,6 +1233,23 @@
                                     <div class="val-amount" id="resultNetRoi">--</div>
                                 </div>
                             </div>
+                            <!-- EDITION NOTE. Sits with the FIGURES, not inside the verdict
+                                 expansion, and the placement is the design.
+                                 The false claim on this screen is not made by either number —
+                                 RAW $17 and SLABBED $10,200 are each a defensible median of
+                                 their own pool. It is made by ADJACENCY: putting them side by
+                                 side asserts they describe the same object. A claim made by
+                                 layout cannot be retracted by either figure's caption, which
+                                 is why this is not a clause in the basis expansion.
+                                 It is also POOL-level, not verdict-level: the comp pool feeds
+                                 both figures and spans editions regardless of which tier the
+                                 verdict lands in. Attaching it to verdict_basis would make it
+                                 conditional on something irrelevant to it — and would miss the
+                                 34 of 80 spanning cells that F cannot reach.
+                                 ⚠️ Its real job is making an EXISTING refusal legible: ROI
+                                 already renders an em-dash here, but that reads as "we don't
+                                 know the ROI", not "these are two different comics". -->
+                            <p class="edition-note" id="resultEditionNote" hidden></p>
                             <!-- ⚰️ REMOVED 2026-08-08: the standing "Data confidence: <value>" line.
                                  DEAD. REPLACED BY: the confidence word inside #resultBasisDetail.
                                  REASON: the badge and this line were two vocabularies for one
@@ -2984,16 +3001,49 @@
                         editionPriceRatio: valData.edition_price_ratio,
                     });
 
-                    // Confidence is now SUBORDINATE to basis, not a peer. It rates how
-                    // much data there is, a different axis from what the number was made
-                    // of — the two could contradict each other when shown side by side.
-                    // Omitted entirely when absent: the old code defaulted to 'unknown',
-                    // which has no label entry and printed the literal word "unknown".
-                    const confLabels = { high: 'High', medium: 'Medium', low: 'Low', very_low: 'Limited' };
-                    const confLine = confLabels[confidence]
-                        ? `<span class="basis-confidence">Data confidence: ${confLabels[confidence]}</span>`
-                        : '';
-                    basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>${confLine}`;
+                    // ⚰️ REMOVED 2026-08-13: the "Data confidence: <value>" line.
+                    // DEAD: `confLabels` / `confLine` and the subordination argument
+                    //   that placed confidence inside this panel on 2026-08-08.
+                    // REPLACED BY: nothing. The panel carries one voice.
+                    // REASON — and the REDUNDANCY argument is the one that decides it,
+                    //   not the contradiction: the basis strings already carry the
+                    //   evidence question, and more precisely. "Only 1 sale at grade
+                    //   4.5" and "Priced from 12 sales at grade 9.0" state the actual
+                    //   counts. `confidence` adds no information they do not already
+                    //   carry — it adds a LABEL THAT CAN ONLY DISAGREE, NEVER INFORM.
+                    //   The contradiction is the symptom: `confidence` keys on
+                    //   total_graded (pool depth) while the basis keys on same-grade
+                    //   evidence, so X-Men #1 @4.5 read "Data confidence: Medium"
+                    //   directly beneath "Only 1 sale at grade 4.5". Under a scarcity
+                    //   warning, "Medium" reads as reassurance qualifying it — the
+                    //   inversion of what this panel is for. It was also the only line
+                    //   here not derived from the basis.
+                    // ⚠️ NOT caused by pool contamination, and the record should say so:
+                    //   total_graded DOES count both editions on a spanning book (502 on
+                    //   X-Men #1), but the 1963-only pool is still >= 10, so the label
+                    //   reads 'medium' either way. The defect is the axis mismatch alone.
+                    // NOT RELOCATED, deliberately. If pool depth is worth surfacing it
+                    //   needs recomputing to exclude spanning pools first, and that is a
+                    //   different unit. Moving a figure that can disagree with its
+                    //   neighbour just moves the disagreement.
+                    // `confidence` is still computed and still shipped in the payload;
+                    //   only this rendering is gone.
+                    basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>`;
+
+                    // ── Edition note ────────────────────────────────────────────────
+                    // Rendered off `edition_span` (ungated, pool-level), NOT off
+                    // verdict_basis. Suppressed when the basis already says it, or the
+                    // same sentence appears twice on the one screen — the only
+                    // precedence rule this design needs, and it exists because the two
+                    // flags are deliberately separate facts.
+                    const editionNoteEl = document.getElementById('resultEditionNote');
+                    if (editionNoteEl) {
+                        const showNote = valData.edition_span && verdictBasis !== 'multi_edition';
+                        editionNoteEl.textContent = showNote
+                            ? editionNote(valData.edition_price_ratio)
+                            : '';
+                        editionNoteEl.hidden = !showNote;
+                    }
 
                     // Collapsed on every render, so a previous comic's open panel never
                     // carries over. Listener attached once, guarded by a dataset flag,

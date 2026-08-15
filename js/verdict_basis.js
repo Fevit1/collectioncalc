@@ -322,6 +322,39 @@ function basisLong(ctx) {
 }
 
 /**
+ * EDITION NOTE — a POOL-level fact, rendered beside the figures.
+ *
+ * NOT part of BASIS_REASONS, and deliberately not composed into it. Once one
+ * modifier is merged into the reason string, others get proposed (variant
+ * exclusions, raw-only, thin-nearby) and you own an ordering problem forever;
+ * `basisLong` stops being a total function from basis to string. Two facts,
+ * two sentences, no merge.
+ *
+ * It says NEITHER figure is anchored to a known edition, rather than qualifying
+ * one of them, and that wording is load-bearing. The contamination does NOT
+ * point the same direction on every book:
+ *   · X-Men #1     raw $27.99 (modern-dominated) vs slabbed $10,200 at 4.5 (1963)
+ *   · Invincible #1 raw $1,687.50 — the raw side is the EXPENSIVE edition, because
+ *                  2003 Image first prints circulate ungraded at volume while the
+ *                  2020/21 reprints are cheap and rarely slabbed
+ * A sentence that named which figure was wrong would be wrong on one of those
+ * two. Naming neither is true on both, which is also why suppressing the raw
+ * figure was considered and PERMANENTLY PARKED: a rule built on X-Men #1's shape
+ * removes the HIGHER number on Invincible #1 and makes the book look cheaper
+ * than either edition is.
+ *
+ * @param {number|null} ratio  the TRIMMED edition price ratio, or null
+ * @returns {string} the note, or '' when there is nothing true to say
+ */
+function editionNote(ratio) {
+    // Correct with or without the ratio: a pool can span editions without the
+    // ratio being computable, and the sentence must not depend on it.
+    const spread = ratio ? `, and they differ in price by ${ratio}×` : '';
+    return `Sales for this issue span more than one edition${spread}. We can't tell `
+         + `which one your copy is, so these figures may not describe the same comic.`;
+}
+
+/**
  * SHORT form — the collection card's one-tap reason.
  *
  * PARAMETERLESS BY NECESSITY AND BY DESIGN. A saved row carries none of the
