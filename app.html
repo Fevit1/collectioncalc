@@ -2916,14 +2916,46 @@
                     // gradeResult.verdict, which correctly said 'estimate', so the
                     // collection page showed "Can't say" for the same comic.
                     const canRate = verdictReliable && roi != null;
+                    // ⚠️ THE SERVER ALREADY DRAWS THIS LINE AND THIS FILE USED TO DISCARD IT.
+                    // sales_valuation.py has THREE verdicts — 'Worth grading' (roi > 50),
+                    // 'Marginal - consider volume' (0 < roi <= 50), 'Probably not worth
+                    // grading' — and the badge collapsed them to two on `roi > 0`. So a
+                    // $16 gain rendered the same confident green as a $1,200 one.
+                    //
+                    // Measured 2026-08-16 over 2,134 cells that badge confidently:
+                    //     roi <= 0        321   15.0%   KEEP IT RAW
+                    //     $0-10           115    5.4%  \
+                    //     $10-25          202    9.5%   > 560 cells = 30.9% of every
+                    //     $25-50          243   11.4%  /  confident recommendation
+                    //     $50-100         336   15.7%
+                    //     $100-500        572   26.8%
+                    //     $500+           345   16.2%
+                    // One confident recommendation in three is for under $50, one in six
+                    // for under $25. That is not an edge case, it is a third of what the
+                    // product tells people to do.
+                    //
+                    // ⚠️ NO NEW THRESHOLD WAS INVENTED. 50 is the server's existing
+                    // boundary, restated here rather than chosen — deliberately, because
+                    // a floor picked from intuition is the thing this fix avoids. If the
+                    // boundary ever moves it moves in sales_valuation.py first and this
+                    // constant follows; they must not drift.
+                    const MARGINAL_ROI_CEILING = 50;
                     // No map lookup any more, so no per-tier label can go missing and
                     // silently fall through to a default that misdescribes the tier.
                     const badgeLabel = !canRate
                         ? HEDGED_BADGE
-                        : (roi > 0 ? 'WORTH THE SLAB' : 'KEEP IT RAW');
+                        : (roi > MARGINAL_ROI_CEILING ? 'WORTH THE SLAB'
+                           : roi > 0 ? 'MARGINAL' : 'KEEP IT RAW');
                     if (!canRate) {
                         verdictBadge.className = 'verdict-badge is-tappable';
                         verdictBadge.style.cssText = 'background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b66;';
+                    } else if (roi > 0 && roi <= MARGINAL_ROI_CEILING) {
+                        // Slate, NOT the amber of ROUGH ESTIMATE. Marginal is a CONFIDENT
+                        // verdict about a small number; the hedge tiers are an admission we
+                        // cannot say. Sharing a colour would merge those two meanings back
+                        // together, which is the collapse this change exists to undo.
+                        verdictBadge.className = 'verdict-badge is-tappable';
+                        verdictBadge.style.cssText = 'background:#94a3b822;color:#94a3b8;border:1px solid #94a3b866;';
                     } else {
                         verdictBadge.className = `verdict-badge is-tappable ${roi > 0 ? 'worth' : 'not-worth'}`;
                         verdictBadge.style.cssText = '';
@@ -2971,8 +3003,16 @@
                         // asserted "Grading costs exceed the expected value increase" off
                         // `null > 0`. See the canRate comment above.
                         verdictTagline.innerHTML = '';
-                    } else if (roi > 0) {
+                    } else if (roi > 50) {
                         verdictTagline.innerHTML = `You'll gain an estimated <strong style="color: var(--status-success);">$${Math.round(roi)}</strong> after grading fees.${salesNote}`;
+                    } else if (roi > 0) {
+                        // The marginal band. States the same number, withholds the
+                        // recommendation, and points at the assumptions rather than
+                        // listing them — the badge is not where they go.
+                        // Colour is deliberately NOT --status-success: a green number
+                        // beside a slate badge would re-assert what the badge just
+                        // declined to say.
+                        verdictTagline.innerHTML = `An estimated <strong>$${Math.round(roi)}</strong> after grading fees — a thin margin. Tap the badge for what that figure assumes.${salesNote}`;
                     } else {
                         verdictTagline.innerHTML = `Grading costs <strong style="color: var(--status-error);">exceed</strong> the expected value increase. Better to enjoy it unslabbed.${salesNote}`;
                     }
@@ -3029,6 +3069,28 @@
                     // `confidence` is still computed and still shipped in the payload;
                     //   only this rendering is gone.
                     basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>`;
+
+                    // ── Assumptions, marginal band only ─────────────────────────────
+                    // Behind the tap, NOT on the badge — Mike's call, and it is right:
+                    // three assumptions on a badge is a paragraph, and the paragraph is
+                    // what a real user already abandoned the flow over (see the tagline
+                    // tombstone above).
+                    // Shown ONLY for 0 < roi <= 50. On a $1,200 gain the same three
+                    // caveats are true and immaterial; stating them everywhere would
+                    // train the reader to skip them exactly where they bite.
+                    // ⚠️ These are the assumptions the ARITHMETIC makes, not a general
+                    // disclaimer. graded_fmv is a median of same-grade slabbed sales, so
+                    // it presumes this book comes back at that grade and no other.
+                    if (roi != null && roi > 0 && roi <= 50) {
+                        const p = document.createElement('p');
+                        p.className = 'basis-reason';
+                        p.style.cssText = 'margin-top:8px;color:var(--text-muted);';
+                        p.textContent = 'That figure assumes the grading tier is the right '
+                            + 'one, that the book comes back at exactly this grade, and '
+                            + 'that nothing goes wrong in shipping. On a margin this thin, '
+                            + 'any one of those moves the answer.';
+                        basisDetailEl.appendChild(p);
+                    }
 
                     // ── Edition note ────────────────────────────────────────────────
                     // Rendered off `edition_span` (ungated, pool-level), NOT off
