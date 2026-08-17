@@ -2601,6 +2601,87 @@ A 4-brief read-only thread assessed what Slab Guard recovery can actually PROVE,
 4. Run the harness **twice** for the A/B: no `--model` (defaults to Opus 4.8 now) and `--model claude-sonnet-4-6`.
 5. Read the **false-positive rate** (want 0); confirm `arbiter_model=claude-opus-4-8` in the default run.
 
+## 2026-08-16 (evening) — VALUATION OUTAGE, cause found, three conventions changed
+
+**MOST RECENT CHANGE: `/api/sales/valuation` went down and was rolled back. Cause was three bare
+`%` characters in SQL COMMENTS, not the regex.** Supersedes the first two diagnoses recorded in
+the working transcript, both of which were wrong and stated confidently.
+
+### Live state at end of day — verified by real call, not inferred
+
+| | state |
+|---|---|
+| valuation | **healthy** — Absolute Batman #1 @9.8 → `graded_fmv` 422.68, 445 comps |
+| traceback logging | **live**, instrumentation only, verified |
+| badge (MARGINAL state) | ⚰️ **REVERTED by `3f6148e` and NEEDS RE-APPLYING** — it was working and verified live; it came out while chasing the wrong cause |
+| signatures | **held. Fix applied but UNCOMMITTED in `routes/sales_valuation.py`** — comments de-percented, pattern parameterised, verified through a live execute. ⚠️ Lost if the working tree is cleaned. |
+
+### The outage
+
+`/api/sales/valuation` returned `{"error":"list index out of range","success":false}` on every
+book. Two log lines, 07:59:22 and 08:00:18 PM.
+
+**Cause:** three bare `%` in SQL comments added by the signature unit — *"catches ~90% of the
+shapes"*, *"(3.31%) at a $85.00"*, *"(82%) are a"*. psycopg2 percent-formats the **entire query
+text, comments included**, so `% ` is a malformed format directive. Reproduced exactly: one
+parameter → `IndexError`, two → `ValueError: unsupported format character ' ' at index 976`.
+
+⚰️ **TWO DEAD DIAGNOSES — do not resurrect:**
+- **DEAD:** *"the regex is correct SQL and fatal as a Python format string."* The pattern
+  contains **no `%` at all**. **REASON:** a plausible mechanism was reported instead of the
+  character being located.
+- **DEAD:** *"parameterising the pattern is the fix."* **REPLACED BY:** cutting the `%` from the
+  comments. Parameterising is in the new version as hygiene only. **REASON:** the pattern was
+  never the fault.
+
+**Why every check passed:** `py_compile` proved syntax, SQL spot-checks proved the predicate, and
+neither executed the Python transport. The comments are valid SQL and fatal only at
+`cursor.execute()`.
+
+**Compounding error:** `3f6148e` reverted `app.html` (the badge), which cannot produce a
+server-side JSON error. The signature change had shipped inside `95228f7` — a commit whose
+message describes only documentation — because the ship block staged code and docs across a
+numbered list with no per-commit boundary.
+
+### ⚠️ THREE CONVENTION CHANGES — standing, apply to every ship block
+
+1. **Self-contained commits with a stated expected file list.** Stage → `git diff --cached --stat`
+   → verify against the list the block names → commit. Never a numbered list with implied
+   boundaries: staging is cumulative, numbered steps read as sequential, and that gap put a code
+   file inside a docs commit.
+2. **Verify with an endpoint that exercises the change.** `/health` returned 5.6.0 throughout the
+   outage — it is structurally incapable of detecting a valuation fault, not merely a weak check.
+3. **One live call through the real path before a block is written.** Not `py_compile`, not a SQL
+   spot-check, not a `cur.execute` — those proved things that were true and irrelevant. Mike makes
+   the call.
+
+Also now standing: `git log origin/main..HEAD` before assembling any block (a committed-but-unpushed
+change is still unshipped and still needs deploy/purge), and **every block names a verification
+cell with a before and after figure**.
+
+### Already answered — item 3 needs a re-read, not a re-run
+
+**Two defects, not one, plus a third:**
+
+| # | defect | rows | family |
+|---|---|---|---|
+| 1 | `CGC 98` parsed as grade **98.0** — 29 rows, all `graded=true`, all reach the ladder | 29 | grade parsing |
+| 2 | **later printings** (`9th Print`, `11th Print` at $15–28) pooled with first prints | unmeasured | printing identity — **new gap**, `is_reprint` does not cover it |
+| 3 | `Absolute Batman Annual #1` / `Ark-M #1` collapsing into the base title | unmeasured | `canonical_title` — same family as Wolverine |
+
+The $9.00 sales are **not lots and not misparsed grades** — they are real graded sales of later
+printings and adjacent titles. Absolute Batman #1's 9.8 bucket spans **$15.50 to $4,799**.
+
+### Next session, in order — nothing starts until Mike says
+1. **Re-apply the badge.** Good change removed for nothing. Needs **`purge`, not `deploy`.**
+2. **Signatures** — fix already applied and uncommitted; block written only after Mike's live call.
+3. **Price-curve findings** — answered above; confirm rather than re-measure.
+4. **Capture-schedule measurement** — daily row counts, per-key depth against §1's stopping rule,
+   grade-bucket depth on cleared keys, and what the marginal row buys. ⚠️ The fourth item arrived
+   truncated mid-sentence and needs restating.
+
+---
+
 ## 🛑 STOPPING POINT — CP-1 valuation arc, 2026-08-16
 
 **MOST RECENT CHANGE: the CP-1 bug-hunt arc is CLOSED and the roadmap resumes.** Everything
