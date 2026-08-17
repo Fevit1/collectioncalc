@@ -663,18 +663,29 @@ def api_sales_valuation():
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
-              -- SIGNATURE EXCLUSION. A signature premium is GRADE-INDEPENDENT, so
-              -- signed sales flatten and invert the condition ladder: Wolverine
-              -- Limited Series #1 carried a Stan Lee CBCS 5.0 at $899.99 and a
-              -- CGC 8.0 SS at $999.99 against a 9.8 average of $547.
-              -- Measured on the production population (variants are partitioned
-              -- out in Python, not here): usable cells 1,938 to 1,823, 389
-              -- medians move, average drop $28.80. 115 cells fall below the
-              -- evidence bar and hedge instead of showing a contaminated number,
-              -- which is the correct failure direction.
-              -- Applied to BOTH pools deliberately. Filtering one side would
-              -- subtract a signature-excluded median from a signature-included
-              -- one, which is the population mismatch this removes.
+              -- SIGNATURE EXCLUSION, RAW SIDE. A signature premium is
+              -- GRADE-INDEPENDENT. On the graded side that flattens and inverts
+              -- the condition ladder; here there is no ladder to invert, and the
+              -- reason is simpler -- a signed raw copy is a different object at a
+              -- different price, so it does not belong in this pool.
+              -- Measured 2026-08-16 on the raw population: 4,464 rows are signed,
+              -- at an $85.00 median against $16.05 unsigned -- a 5.3x premium.
+              -- Pool impact is small because they are a thin slice: 7,309 usable
+              -- pools to 7,184, 624 medians move, average drop $2.89.
+              --
+              -- ⚠️ THE ATTESTATION IS WEAKER HERE AND IT DOES NOT CHANGE THE
+              -- ANSWER. On the graded side every signed row sits in a holder, so
+              -- the slab attests the signature. On the raw side 3,668 of the 4,464
+              -- are a SELLER'S WORD, and a printed facsimile signature -- which
+              -- many comics carry -- is indistinguishable from a real one in a
+              -- title string. That argues for excluding them MORE readily, not
+              -- less: an unverifiable premium is a worse comp than a verifiable
+              -- one.
+              --
+              -- Applied here as well as on the graded query DELIBERATELY.
+              -- Filtering one side only would subtract a signature-excluded median
+              -- from a signature-included one, which is precisely the population
+              -- mismatch this unit exists to remove.
               -- The pattern is a PARAMETER (SIGNED_TITLE_PATTERN), not inline SQL.
               AND (is_signed IS NULL OR is_signed = false)
               AND raw_title !~* %s
