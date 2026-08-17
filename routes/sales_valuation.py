@@ -12,6 +12,7 @@ import re
 import json
 import random
 import time
+import traceback
 from decimal import Decimal
 from flask import Blueprint, jsonify, request, g
 import psycopg2
@@ -1264,7 +1265,19 @@ def api_sales_valuation():
         # (L-2026-022: treat "I can't see it" as the first problem to fix).
         _t.mark('response')
         _t.emit(title, issue, 'error:%s' % type(e).__name__)
-        print('[VALUATION-ERROR] %s: %s' % (type(e).__name__, e))
+        # ⚠️ THE FRAME, NOT JUST THE MESSAGE. Until 2026-08-16 this line printed
+        # only type(e).__name__ and str(e), so every exception in this handler
+        # lost its stack — this outage and every one before it.
+        # THE COST, measured: the 2026-08-16 valuation outage logged
+        # "[VALUATION-ERROR] IndexError: list index out of range" and nothing
+        # else. Locating it took a rollback, a git-archaeology pass and a
+        # reproduction against three parameter counts, to arrive at a bare '%'
+        # inside a SQL COMMENT — which the frame would have named in one line
+        # (cur.execute, character index 976).
+        # L-SW-2026-007: instrument before theorizing. This is that lesson with
+        # a live price attached.
+        print('[VALUATION-ERROR] %s: %s\n%s'
+              % (type(e).__name__, e, traceback.format_exc()))
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
