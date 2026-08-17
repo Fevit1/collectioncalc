@@ -216,6 +216,25 @@ EDITION_YEAR_SPAN_YEARS = 15
 EDITION_PRICE_RATIO = 20.0
 MIN_EDITION_CLUSTER_COMPS = 3
 
+# ──────────────────────────────────────────────────────────────────────────────
+# SIGNATURE-SHAPE VOCABULARY
+# ──────────────────────────────────────────────────────────────────────────────
+# is_signed is title-derived (title_normalizer.py:87-134: the SS group in
+# (CGC|CBCS|PGX) SS <grade>, or the literal word SIGNED). It catches most of the
+# ways a title says "signed" but not all. These are the shapes it misses,
+# enumerated against the corpus 2026-08-16 -- each carries a median at or above
+# the unsigned pool median:
+#     sketch 172 rows | sig 52 | COA 43 | auto 30 | autograph 7 | remarque 7
+#
+# ⚠️ PASSED AS A QUERY PARAMETER, NEVER INTERPOLATED INTO THE SQL STRING.
+# psycopg2 runs percent-formatting over the whole query text whenever parameters
+# are supplied. Keeping the pattern out here means a future edit to this
+# vocabulary cannot reach the formatter at all.
+#
+# \m and \M are Postgres word boundaries and they are load-bearing: without them
+# "sig" matches "Design Insight" and "auto" matches "Autobots".
+SIGNED_TITLE_PATTERN = r'\m(sketch(ed)?|sig|coa|auto|autograph(ed)?|remarque|remarqued|remarked)\M'
+
 
 def _detect_multi_edition(graded_sales):
     """Does this comp pool hold more than one EDITION of the issue?
@@ -566,6 +585,21 @@ def api_sales_valuation():
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
+              -- SIGNATURE EXCLUSION. A signature premium is GRADE-INDEPENDENT, so
+              -- signed sales flatten and invert the condition ladder: Wolverine
+              -- Limited Series #1 carried a Stan Lee CBCS 5.0 at $899.99 and a
+              -- CGC 8.0 SS at $999.99 against a 9.8 average of $547.
+              -- Measured on the production population (variants are partitioned
+              -- out in Python, not here): usable cells 1,938 to 1,823, 389
+              -- medians move, average drop $28.80. 115 cells fall below the
+              -- evidence bar and hedge instead of showing a contaminated number,
+              -- which is the correct failure direction.
+              -- Applied to BOTH pools deliberately. Filtering one side would
+              -- subtract a signature-excluded median from a signature-included
+              -- one, which is the population mismatch this removes.
+              -- The pattern is a PARAMETER (SIGNED_TITLE_PATTERN), not inline SQL.
+              AND (is_signed IS NULL OR is_signed = false)
+              AND raw_title !~* %s
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
@@ -605,7 +639,10 @@ def api_sales_valuation():
               )
               AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
-        ebay_graded_params = [days]
+        # Order matters and is positional: the literal's placeholders are read
+        # left to right -- INTERVAL days first, then the signature pattern, then
+        # the title clause appended below.
+        ebay_graded_params = [days, SIGNED_TITLE_PATTERN]
 
         # Batch 8: qualifier-precise title match (was canonical=OR parsed LIKE)
         ebay_graded_query += f" AND {ebay_title_sql}"
@@ -626,6 +663,21 @@ def api_sales_valuation():
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
+              -- SIGNATURE EXCLUSION. A signature premium is GRADE-INDEPENDENT, so
+              -- signed sales flatten and invert the condition ladder: Wolverine
+              -- Limited Series #1 carried a Stan Lee CBCS 5.0 at $899.99 and a
+              -- CGC 8.0 SS at $999.99 against a 9.8 average of $547.
+              -- Measured on the production population (variants are partitioned
+              -- out in Python, not here): usable cells 1,938 to 1,823, 389
+              -- medians move, average drop $28.80. 115 cells fall below the
+              -- evidence bar and hedge instead of showing a contaminated number,
+              -- which is the correct failure direction.
+              -- Applied to BOTH pools deliberately. Filtering one side would
+              -- subtract a signature-excluded median from a signature-included
+              -- one, which is the population mismatch this removes.
+              -- The pattern is a PARAMETER (SIGNED_TITLE_PATTERN), not inline SQL.
+              AND (is_signed IS NULL OR is_signed = false)
+              AND raw_title !~* %s
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
               AND LOWER(raw_title) NOT LIKE '%%lot of%%'
@@ -667,7 +719,8 @@ def api_sales_valuation():
         """
         # Batch 8: qualifier-precise title match
         ebay_raw_query += f" AND {ebay_title_sql}"
-        ebay_raw_params = [days] + list(ebay_title_params)
+        # Positional, same as the graded query: days, signature pattern, title.
+        ebay_raw_params = [days, SIGNED_TITLE_PATTERN] + list(ebay_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             ebay_raw_query += " AND issue_number = %s"
