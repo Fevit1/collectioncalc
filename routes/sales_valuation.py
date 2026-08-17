@@ -564,31 +564,6 @@ def api_sales_valuation():
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
-              -- SIGNATURE EXCLUSION. A signature premium is GRADE-INDEPENDENT, so
-              -- signed sales flatten and invert the condition ladder: Wolverine
-              -- Limited Series #1 carried a Stan Lee CBCS 5.0 at $899.99 and a
-              -- CGC 8.0 SS at $999.99 against a 9.8 average of $547.
-              -- Measured 2026-08-16 on the production population (variants already
-              -- partitioned out at line ~741): usable cells 1,938 -> 1,823, 389
-              -- medians move, average drop $28.80.
-              --
-              -- ⚠️ QUERY-TIME, NOT NORMALIZER-ONLY, AND THAT IS THE POINT. is_signed
-              -- is title-derived (title_normalizer.py:87-134: the SS group, or the
-              -- literal word SIGNED) and catches ~90% of the shapes. Widening the
-              -- normalizer would fix only rows captured AFTER the change; the six
-              -- misses below are matched here so the EXISTING corpus is covered with
-              -- no backfill — the same reasoning as the 2026-06-11 lot shield.
-              -- The six, all with medians at or above the unsigned pool median of
-              -- $149: sketch 172, sig 52, COA 43, auto 30, autograph 7, remarque 7.
-              -- Cost of adding them: 4 further cells. Residual after this is the
-              -- shapes nobody has enumerated yet.
-              --
-              -- NOT a Python partition like is_variant. That one partitions because
-              -- it COUNTS exclusions for the variant disclosure; signatures have no
-              -- disclosure to feed, so filtering in SQL fetches less and says the
-              -- same thing.
-              AND (is_signed IS NULL OR is_signed = false)
-              AND raw_title !~* '\\m(sketch(ed)?|sig|coa|auto|autograph(ed)?|remarque|remarqued|remarked)\\M'
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
@@ -649,24 +624,6 @@ def api_sales_valuation():
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
-              -- SIGNATURE EXCLUSION, raw side. Applied here as well as on the graded
-              -- query DELIBERATELY: filtering one side only would subtract a
-              -- signature-excluded median from a signature-included one, which is
-              -- precisely the population mismatch this unit exists to remove.
-              -- Measured 2026-08-16: 4,464 raw rows are signed (3.31%) at a $85.00
-              -- median against $16.05 unsigned — a 5.3x premium. Pool impact is
-              -- small because they are a thin slice: 7,309 -> 7,184 usable pools,
-              -- 624 medians move, average drop $2.89.
-              --
-              -- ⚠️ THE ATTESTATION IS WEAKER HERE AND IT DOES NOT CHANGE THE ANSWER.
-              -- On the graded side every signed row sits in a holder, so the slab
-              -- attests the signature. On the raw side 3,668 of 4,464 (82%) are a
-              -- SELLER'S WORD, and a printed facsimile signature — which many comics
-              -- carry — is indistinguishable from a real one in a title string. That
-              -- argues for excluding them MORE readily, not less: an unverifiable
-              -- premium is a worse comp than a verifiable one.
-              AND (is_signed IS NULL OR is_signed = false)
-              AND raw_title !~* '\\m(sketch(ed)?|sig|coa|auto|autograph(ed)?|remarque|remarqued|remarked)\\M'
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
               AND LOWER(raw_title) NOT LIKE '%%facsimile%%'
               AND LOWER(raw_title) NOT LIKE '%%reprint%%'
