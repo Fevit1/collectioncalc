@@ -2927,6 +2927,176 @@ treated as a probe that could not have fired, rather than as evidence.
 
 ---
 
+## 2026-08-17 (later) — 📊 CAPTURE SCHEDULE MEASURED. Saturated AND the wrong list — same cause.
+
+**MOST RECENT CHANGE: the §2 tracker specified in the capture schedule has been built and run.
+ALL 34 measured scheduled keys have CLEARED §1's stopping rule, including all 9 "starved" §2A
+keys and all 10 §5 bench keys meant to replace them.** Answers the question truncated from
+yesterday's message. Nothing changed in the schedule — this is measurement only.
+
+Measured read-only as `do_readonly` through the **production predicate**, extracted from the live
+module source, with the variant exclusion the Python partition applies (L-SW-2026-024 rules 3a
+and 3d). These are pool-eligible counts, not table counts.
+
+### The question was: saturated, or walking the wrong list? — **Both, and they are one cause.**
+
+⚰️ **DEAD (as a hypothesis): "duplicates mean eBay's 90-day window stopped producing."**
+**REPLACED BY:** the walked keys are *finished*, and the retirement rule was never executed
+because §2A says *"retire the moment a key clears"* and the tracker to detect clearing was
+specified and never built. **REASON:** every key on the list has cleared, so every additional
+walk of it can only return rows already held.
+
+### 1. Daily new rows — smooth decline, not a cliff. Saturation confirmed.
+
+Row counts alone are noisy (they track how long Mike walked that day). The discriminating
+measure is **what share of the keys touched each day had never been seen before**:
+
+| day | rows | keys touched | NEW keys | new-key share |
+|---|---|---|---|---|
+| 08-02 | 24,454 | 7,122 | 4,096 | **57.5%** |
+| 08-03 | 20,712 | 8,484 | 5,323 | 62.7% |
+| 08-05 | 36,961 | 15,941 | 9,284 | 58.2% |
+| 08-08 | 3,741 | 1,564 | 786 | 50.3% |
+| 08-12 | 15,777 | 4,361 | 2,036 | 46.7% |
+| 08-14 | 12,082 | 1,722 | 512 | 29.7% |
+| 08-17 | 4,830 | 1,568 | 472 | **30.1%** |
+
+**Monotonic 58% → 30%. A smooth decline is saturation; a cliff would be something breaking.**
+No cliff. ⚠️ Two things the row counts also show: **zero rows 2026-07-18 → 08-01** (a 15-day
+gap inside the 30-day window), and **no rows at all on 08-09, 08-10, 08-13, 08-15**. Operating
+note 6 says a week with no new rows is a signal.
+
+⚠️ **THE DUPLICATES ARE NOT BEING STORED — the dedup is working.** `ebay_sales` holds 271,344
+rows against **271,344 distinct `ebay_item_id`**, zero nulls, under a `UNIQUE` index. The
+copies-per-item histogram is a single bar at 1. The extension's dupe counter is reporting
+correct rejections. **199,692 rows still landed in 30 days — 73% of the whole table** — so
+capture is not dying; it is walking a finished list while the broad result pages keep feeding
+adjacent keys.
+
+### 2. Per-key depth vs §1's stopping rule — 34 of 34 CLEARED
+
+| block | rule | cleared | new rows/30d |
+|---|---|---|---|
+| §2A starved (9) | ≥10 comps, ≥5 graded | **9 of 9** | 424 |
+| §2C blue-chip (15) | ≥10 comps, ≥5 graded | **15 of 15** | 3,007 |
+| §5 bench (10) — *never walked* | ≥5 comps, ≥2 graded | **10 of 10** | 458 |
+
+The §2A block was built from the 2026-06-08 audit's weak set. Every entry has been transformed:
+**Incredible Hulk #180 went 2 comps / 0 graded → 238 comps / 109 graded. Batman #227 went 1/0 →
+105/42.** The block did its job and should have been emptied.
+
+**§5 is not a source of new keys either.** All ten bench keys already clear their target without
+ever having been walked — they fill from adjacent search results. Promoting one buys nothing at
+book level.
+
+**§2B is the only block with genuine holes, and they are precise:** `Absolute Superman` and
+`Absolute Wonder Woman` have **zero graded comps at issues 2, 5, 6, 9, 11, 12 and 2, 3, 8, 9, 12**
+respectively. Recent books simply have few slabbed sales yet. `Absolute Batman` is deep
+throughout (#1 = 1,543 comps / 362 graded).
+
+### 3. 🔴 GRADE-CELL DEPTH — Mike called this right, and it is the real question
+
+**Across the 24 cleared §2A+§2C keys, 72 of 168 slab cells (43%) hold fewer than 5 graded comps**
+— below the CI-suppression line §1 was written to clear. The book-level rule is satisfied and the
+grade-level product is not.
+
+But the thin cells split into **two populations that must not be treated the same:**
+
+**(a) Thin because the census is thin — capture CANNOT fix these.** Every pre-1980 key is empty
+or near-empty at the top: Iron Man #55, Captain America #117, Batman #227, Batman #232, X-Men #94
+all hold **zero** comps at 9.8. Incredible Hulk #180 and #181 hold **one**. A 1971 Batman in 9.8
+barely exists, so no amount of walking produces the sale. Meanwhile every post-1983 key is deep —
+Detective Comics #880 (2011) has 10 at 9.8, ASM #361 (1992) has 44, New Mutants #98 (1991) has 56.
+**The split is by publication era, measured across all 24 keys, not by how hard the key was
+walked.**
+
+**(b) Thin because the pool is CONTAMINATED — and these read as the deepest cells on the board.**
+
+### 🔴🔴 THE FINDING — the two most famous keys in the schedule are valued from the wrong books
+
+`Action Comics #1` and `Amazing Fantasy #15` both sit in §2C Daily Core. Both looked healthy
+(11 and 13 comps at 9.8). Pulled and read directly:
+
+**`Action Comics #1`, 13 graded comps at 9.6+, ZERO of them the 1938 book:**
+```
+$250.00  Action Comics #1, CBCS 9.8, White Pages
+$219.95  Action Comics # 1  1976 DC Comics CGC 9.8 ... Safeguard Promotional   <- 1976 reprint
+$196.13  Action Comics Vol 1 484 CGC 9.8 (NM/M) (1978)          <- "Vol 1" parsed as issue 1
+$112.00  Action Comics Annual #1 CGC 9.8 1987                   <- ANNUAL, different book
+$96.00   Action Comics #1 (2025) Natali Sanders ... Ltd 800     <- 2025 relaunch
+$79.99   Action Comics #1 Loot Crate Edition CGC 9.8
+$75.00   Action Comics # 1 / DC Comics / The New 52 / CGC 9.8   <- 2011 relaunch
+$39.99   Action Comics Special #1 CGC 9.6
+```
+
+**`Amazing Fantasy #15`, 24 graded comps at 9.6+, essentially none the 1962 book:**
+```
+$1700.00 Marvel Milestone Edition Amazing Fantasy #15 CGC 9.6 SS Lee 1992  <- 1992 reprint
+$1499.99 Amazing Fantasy #15 Pure Silver (2018) CGC 9.9 Artist Proof       <- METAL REPLICA
+$250.00  AMAZING FANTASY #15 CGC 9.8 - 1st Amadeus Cho          <- the 2004 series, x5 total
+$199.99  Amazing Fantasy #15 Facsimilie Edition CGC 9.8         <- MISSPELLED, filter misses it
+$165.00  Amazing Fantasy #15 | CGC 9.6 NM | 1st Spider-Man      <- a real AF15 9.6 is $3M+
+```
+
+**Five distinct defects, all visible in one pull:**
+
+| # | defect | example | family |
+|---|---|---|---|
+| 1 | **year/edition not in the comp key** | 1938 / 2011 / 2025 Action #1 pooled as one | already logged, ⚠️yr §7.4 |
+| 2 | **`Annual` / `Special` collapse into the base title** | `Action Comics Annual #1` → `#1` | `qualifier_title_clause` gap |
+| 3 | **`Facsimilie` misspelling defeats `%facsimile%`** | AF15 facsimile at 9.8 | filter is exact-substring |
+| 4 | **reprint editions not caught by `%reprint%`** | `Marvel Milestone Edition`, `Safeguard Promotional` | vocabulary gap |
+| 5 | **issue parsed from adjacent text** | `Action Comics Vol 1 484` → issue **1** | ⚠️ **same family as today's `CBCS 1st` → grade 1.0 and `CGC 98` → grade 98** |
+
+**Defect 5 is the third instance of a pattern found twice already today.** The grade parser reads
+adjacent text as a grade; the issue parser reads adjacent text as an issue. One shape, two fields.
+[[L-SW-2026-016]] at the extraction layer.
+
+⚠️ **Why this outranks the capture question entirely:** these are not thin cells, they are
+**confidently wrong** cells, on two of the most recognisable comics in existence, sitting in the
+Daily Core precisely because they are high-traffic lookups. And the contamination makes the pool
+look **deeper**, so every depth metric — including §1's stopping rule and the tracker above —
+scores them as healthy. **A key can clear the rule on comps that are not the book.**
+
+### 4. Is §4 inert? — Mike's conclusion is RIGHT; his reason needs one correction
+
+⚰️ **DEAD: "demand promotions cannot fire without cold traffic, so §4 is inert."**
+**REPLACED BY:** §4 fires nothing — **the promotion query run verbatim returns 0 promotable
+rows** — but **not because the table is empty.** `lookup_demand` holds **1,453 rows, 1,420 of
+them `is_internal = false`, 195 in the last 30 days, most recent today.**
+**REASON:** `is_internal` is written from whatever the caller passes (`lookup_demand.py:62`,
+`bool(f.get('is_internal'))`), so "external" does not mean "cold traffic". The top demand rows
+are **Whatnot stream titles**: `Flat Rate Box (Shown LIVE) #86`, `Fernanco-Silver, Bronze 🔥`,
+`7 oz #58`, `Flipmode Modern Comic`. Nothing clears the ≥5-lookups/week bar; the highest is 2.
+
+**So the operational conclusion stands — §4 promotes nothing — and the record should not say the
+table is empty, because someone will check and find 1,420 rows.** [[L-2026-023]]: a field is
+defined by its writer, not its name. **🆕 Side finding: `lookup_demand` is being polluted by
+non-comic Whatnot stream titles**, which will corrupt the ranking the moment real traffic arrives.
+
+### What this means for the walk — reported, NOT a new schedule
+
+1. **§2A should be emptied.** All 9 cleared. The rule said retire on clearing; nothing retired
+   because nothing measured. **The tracker is the missing mechanism, not the list.**
+2. **§5 does not backfill it.** All 10 bench keys already clear. Promoting from the bench is a
+   lateral move.
+3. **The remaining real capture gaps are narrow:** `Absolute Superman` and `Absolute Wonder
+   Woman` interior issues at zero graded, and the §3 Sunday tail (unmeasured here).
+4. **The largest available win is not capture at all** — it is the five identity defects above.
+   Walking `Action Comics #1` again adds more wrong books to a wrong pool.
+
+### Queue additions
+
+6. **🔴 Comp-pool identity defects** — the five in the table above, ranked over further capture.
+   Start with `Annual`/`Special` collapse and the `Facsimilie` misspelling; both are cheap.
+7. **Build the §2 depth tracker** as a real artifact so retirement can fire ([[L-SW-2026-017]] —
+   a step with no observable output is indistinguishable from one never taken).
+8. **Grade-cell targets** to replace the book-level rule, split by era so pre-1980 keys are not
+   chased toward 9.8 cells that do not exist.
+9. **`lookup_demand` pollution** — Whatnot stream titles are entering the demand table.
+
+---
+
 ## 🛑 STOPPING POINT — CP-1 valuation arc, 2026-08-16
 
 **MOST RECENT CHANGE: the CP-1 bug-hunt arc is CLOSED and the roadmap resumes.** Everything
