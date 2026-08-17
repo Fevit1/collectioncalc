@@ -2682,6 +2682,132 @@ printings and adjacent titles. Absolute Batman #1's 9.8 bucket spans **$15.50 to
 
 ---
 
+## 2026-08-17 — ✅ BADGE AND SIGNATURE FILTER BOTH LIVE AND VERIFIED
+
+**MOST RECENT CHANGE: the badge is re-applied and the signature filter is deployed. Both
+verified in production, 2026-08-17.** Supersedes the 2026-08-16 queue items 1 and 2 below.
+
+⚰️ **DEAD: "1. Re-apply the badge. 2. Signatures — fix already applied and uncommitted."**
+**REPLACED BY:** badge live at `9a1d2d3` (purged and asserted); signature filter live via
+`8200374` + `8ae4187` (deployed, cell verified).
+**REASON:** both executed today. **SUPERSEDES** any instruction to re-apply or re-commit either.
+
+### What shipped, in three un-bundled blocks
+
+| commit | what | ship path |
+|---|---|---|
+| `8ae4187` | raw-side signature comment corrected | rode along, no separate deploy |
+| `c2877cb` | the 2026-08-16 outage record | docs only |
+| `9a1d2d3` | badge re-applied (revert of `3f6148e`) | `purge`, not `deploy` |
+
+`8200374` (the filter itself) and `6d7b0d9` (the anthropic pin) had been sitting **local and
+unpushed** and went out with the first push. ⚠️ The tree was described at session open as one
+local commit ahead of origin; `git log origin/main..HEAD` showed **four**. Check the range, do
+not trust the recollection — L-SW-2026-008.
+
+### Verified
+
+- **Badge:** post-`purge` assert on `slabworthy.com/app.html` — `MARGINAL_ROI_CEILING` ×3
+  present, `roi > 0 ? 'WORTH THE SLAB'` absent. Both directions, per L-SW-2026-022. The
+  precondition was gated on an origin read with a cache-buster (`cf-cache-status: DYNAMIC`)
+  rather than on the dashboard, which confirms a build finished but not what the origin serves.
+- **Signature filter:** Absolute Batman #1 @ 9.8 → **`graded_fmv` $345.00 exactly as predicted**,
+  `fmv_method: exact`, `confidence: high`, `verdict_basis: supported`, 321 comps.
+
+### ✅ SETTLED — the 321-vs-323 gap. It was the pool moving, and the direction is right.
+
+Measured read-only as `do_readonly`, both queries extracted from the live module source at
+runtime and differing **only** by the two signature lines, with the variant exclusion added to
+both to mimic the Python partition (L-SW-2026-024 rules 3a and 3d):
+
+| | recorded 2026-08-16 | measured 2026-08-17 |
+|---|---|---|
+| pre-filter (signature clauses removed) | 445 | **446** |
+| post-filter (production predicate) | 323 predicted | **322** |
+| removed by the filter | 122 predicted | **124** |
+
+**The pre-filter count is NOT still 445.** The pool gained a row and the filter removed two more
+than predicted, which is what a live rolling 365-day window over an actively-captured corpus
+does. Nothing else took two comps. **Do not re-derive this.**
+
+⚠️ **A SMALLER, DIFFERENT GAP IS OPEN AND IS NOT THE ONE ABOVE.** The SQL reconstruction returns
+**322** where the live endpoint returns **321**, and the two were read **near-simultaneously in
+the same script**, so drift is excluded as the explanation. The direction is the interesting
+part: `graded_sample_size` is `exact_count = len(exact_match)` over grade buckets built from the
+**union** of eBay and market rows, so production should be **≥** an eBay-only count, not one
+below it. Unexplained. One row against an exact median — recorded, not chased.
+
+### 🆕 NEW — the signature filter does not cover `market_sales`, and that is not a schema limit
+
+| query literal | `is_signed` | pattern param |
+|---|---|---|
+| `ebay_graded_query` | ✅ | ✅ |
+| `ebay_raw_query` | ✅ | ✅ |
+| **`market_graded_query`** | ❌ | ❌ |
+| **`market_raw_query`** | ❌ | ❌ |
+
+`market_sales` **has both `is_signed` and `raw_title`** (confirmed against
+`information_schema.columns`), so this is uncovered scope, not an impossibility.
+
+⚠️ **The shipped comment is a trap for the next reader.** It says *"Applied to BOTH pools
+deliberately. Filtering one side would subtract a signature-excluded median from a
+signature-included one."* The "both pools" it means is **graded and raw within eBay**. There are
+four pools and two are unfiltered — which is the very asymmetry the sentence argues against.
+Blast radius is small today (Whatnot contributed 4 rows to the verification cell against 1,695
+from eBay) but the sentence will read as full coverage. **[[L-SW-2026-020]]: the label is the
+defect.**
+
+### 🆕 NEW — the grade 1.0 at $529.99 is a grade misparse, NOT a signature residual
+
+Pulled under the production predicate, as asked:
+
+```
+grade 1.0   $529.99   is_signed=False   sold 2026-07-30
+   "Absolute Batman #1 CBCS 1st Print Not CGC"
+```
+
+The title carries **no grade at all**. `CBCS 1st Print` was read as **CBCS 1**, so a book that
+sold for a high-grade price landed in the 1.0 bucket and sat above the 9.8 median. It is
+**not** the seventh vocabulary shape — `SIGNED_TITLE_PATTERN` did not miss it, because there is
+nothing to miss. Same family as the already-recorded `CGC 98` defect (29 rows, line ~2668):
+**the grade parser reading a token that is not a grade.** Two distinct sub-shapes now:
+notation shorthand (`CGC 98`) and ordinal collision (`CBCS 1st`).
+
+### Confirmed, already recorded — not new findings
+
+- **`CGC 98` → grade 98.0.** Live in the price curve on this cell. Already at line ~2668, 29 rows.
+  Verified still present, not re-diagnosed.
+- **The $9.00 sales at 9.4/9.6.** Already recorded as later printings and adjacent titles. One
+  detail to add: they returned **zero rows from `ebay_sales`** — they are in **`market_sales`**,
+  and two of them carry `title='Absolute Batman'` against `series='New Mutants'`. The first
+  query looked in one table and found nothing, which is [[L-SW-2026-014]] in textbook form.
+- **`nearby_thin_comps: 42` on a `supported` cell.** The non-9.8 buckets sum to exactly 42
+  (1+1+5+3+5+26+1). This is **[[L-SW-2026-020]] instance 4 sitting in a live payload** — the
+  field sums all nearby buckets, so it is correct inside `low_support` and misnamed everywhere
+  else, and this response is everywhere else. Mike's framing: better evidence than the
+  description of it.
+
+### Process note — two Claude errors in the ship blocks, both caught by the terminal
+
+1. A **bash heredoc** (`<<'MSG'`) handed to PowerShell. Every line errored; nothing committed.
+2. Worse, and only exposed because the heredoc failed first: the block used
+   `git commit --amend` to target `8200374`, which is **four commits back**. `--amend` rewrites
+   `HEAD`. It would have renamed the docs commit into a valuation-fix commit. The amend was
+   dropped for an ordinary follow-up commit (`8ae4187`).
+3. Blocks 1 and 2 then **silently no-op'd** because the `git add` and `git revert` were written
+   in prose beside the block instead of inside it. Mike had asked for self-contained blocks.
+   **Standing: a ship block contains every command including staging, or it is not a block.**
+
+### Queue
+
+1. **Extend the signature filter to `market_graded_query` and `market_raw_query`**, and fix the
+   "BOTH pools" comment to say which two it means. Measure the market-side impact first.
+2. **Grade-parser defects** — `CGC 98` (29 rows, measured) and `CBCS 1st` (1 row, new). Same
+   consumer, likely one fix.
+3. The 322-vs-321 reconstruction gap, if it ever matters.
+
+---
+
 ## 🛑 STOPPING POINT — CP-1 valuation arc, 2026-08-16
 
 **MOST RECENT CHANGE: the CP-1 bug-hunt arc is CLOSED and the roadmap resumes.** Everything
