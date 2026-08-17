@@ -3097,6 +3097,110 @@ non-comic Whatnot stream titles**, which will corrupt the ranking the moment rea
 
 ---
 
+## 🛑 STOPPING POINT — 2026-08-17. TWO UNITS SCOPED AND APPROVED. NOTHING RUNS.
+
+**MOST RECENT CHANGE: Unit A and Unit B are scoped, approved in shape, and EXPLICITLY NOT
+STARTED. Mike, 2026-08-17: "DO NOT START Unit A or Unit B. Nothing runs until I am back."**
+This supersedes any reading of the capture work as in-progress. Nothing is half-done; nothing
+is waiting on a partial state.
+
+### ⛔ THE INSTRUCTION, ahead of everything else
+
+**Do not begin Unit A or Unit B.** Both are fully scoped below so that a future session can
+recognise them — **not so it can start them.** If a session opens and finds this entry, the
+correct first action is to ask Mike, not to proceed.
+
+### THE UNITS — carried forward unchanged from Mike's own wording
+
+| unit | contents | risk |
+|---|---|---|
+| **Unit A** | mangled-title fixes **1 + 3** (stop-word stripping; prefix stripping) **+ backfill** | pure recovery — **no production FMV moves** |
+| **Unit B** | fix **2** (publisher stripping) **+ backfill + corpus-wide FMV price audit** | **un-merges live pools** |
+
+⚠️ **BINDING CONSTRAINT — code fix and backfill are ONE unit, always.** Shipping a fix alone
+splits every affected book into **two** pools, which is worse than the single wrong pool it has
+today: all three code fixes are forward-only, and 271,344 existing rows keep the mangled
+canonical. There is no "fix now, backfill later" version of this work.
+
+⚠️ **The backfill script goes in `scripts/`, never `docs/`** (`.dockerignore` excludes `docs/`),
+**and needs a `deploy` to exist in the container even though it serves nothing**
+([[L-SW-2026-023]]).
+
+### 🎁 THE VERIFICATION INSTRUMENT — use it explicitly, not as background
+
+Re-running the **current, unchanged** normalizer over the retained `raw_title` reproduced the
+stored `canonical_title` on **6,000 of 6,000 sampled rows — zero differences, zero errors.**
+
+**The baseline is proven flat, so every row that changes after a fix is attributable to that fix
+alone.** That is the differential control [[L-SW-2026-011]] normally requires *constructing*, and
+here it exists for free. Mike's direction: **use it as the instrument, not as a footnote.**
+
+- **Both units:** before/after row counts by `canonical_title`.
+- **Unit B additionally:** before/after **FMV, corpus-wide** — it changes the value of pools that
+  are being priced in production today, so a name diff is not sufficient.
+
+Two further consequences worth keeping: the defect is **entirely in current code** (no
+archaeology needed), and the backfill is a **pure, idempotent function of `raw_title`**, so
+running it twice — once per unit — is safe.
+
+### ✅ ON RECORD AT MIKE'S DIRECTION — §1a: the right answer was that it cannot be written
+
+Asked to amend a rule, the outcome was to **establish that it cannot be written yet**, with the
+counterexample that kills the obvious repair.
+
+- A single consistent year **is not the right year**: ASM #2 and #3 pass the check cleanly at a
+  uniform **2014** on a **1963** comic.
+- **Modal year is worse than refusing.** X-Men #1 holds **244 rows of the 1991 relaunch against
+  27 of the 1963 book**, so modal would **bless the contamination as canonical and then discard
+  the 27 real rows.** Mike: *"I would not have caught that before shipping it."*
+- Measured at scale: **52 of 108** #1 keys have an unsafe modal year. TMNT returns **1988 on 17%**
+  of rows for a **1984** comic.
+- **What would work, and why it is actionable rather than a dead end:** the year must come from
+  **outside the pool**, because the pool is the thing under suspicion. **Production already has
+  such a source** — the grader reads the publication year off the photographed cover and passes it
+  to the valuation. **The capture tracker does not**, because the key list has never carried years.
+  The weekly list now carries a year for the 24 #1s the data supports, which is the start of one.
+
+### ✅ SAME SHAPE, CAUGHT EARLIER — the years-on-#1s correction
+
+The first version derived every #1's year from the pool's modal `title_year`. Unsafe on 52 of 108.
+Now printed **only** where one year holds ≥80% of the pool with spread ≤15 years — **24 of them** —
+and blank with a stated reason otherwise. **A wrong year in a search is worse than no year.**
+
+⚠️ **Mike, recorded because he named it: "Second time today you have proposed something, measured
+it, and withdrawn it before it reached me. That is the cycle working."** The other instance the
+same day: a mangled-title population of **14,861** rows, withdrawn before it reached a commit —
+it matched any `raw_title` containing "of" anywhere, so `Amazing Spider-Man` at 1,884 rows was a
+false positive. Corrected figure: **6,815 across 20 titles, stated as a floor.**
+
+### QUEUED BEHIND THE TWO UNITS
+
+**Grade and issue parser defects — three instances of one pattern**, both parsers reading
+adjacent text as their own field:
+
+| input | read as | truth |
+|---|---|---|
+| `... CGC 98 G2U` | **grade 98.0** | seller shorthand for 9.8 · 29 rows |
+| `Absolute Batman #1 CBCS 1st Print Not CGC` | **grade 1.0** | no grade in the title at all |
+| `Action Comics Vol 1 484` | **issue 1** | issue 484 |
+
+Then, unchanged from earlier today: the "BOTH pools" comment fix, the market-side signature unit
+(scoped fresh, **not** a port of the eBay regex), non-comic rows in `market_sales`, `lookup_demand`
+pollution by Whatnot stream titles, and the 322-vs-321 reconstruction gap.
+
+### WHAT SHIPPED 2026-08-17
+
+Badge re-applied and purged; signature filter deployed and verified live (Absolute Batman #1 @ 9.8
+→ **$345.00**, the predicted figure exactly); the capture schedule amended; and
+`docs/EBAY_CAPTURE_WEEKLY.docx` created as the operating sheet — **147 searches a week, derived
+from measuring all 292 rotating keys** rather than from what sounds scarce.
+
+Mike's closing assessment, recorded: *"The audit overturned the premise the whole capture schedule
+rested on, and the schedule that replaced it is derived from measurement rather than from what
+sounds scarce."*
+
+---
+
 ## 🛑 STOPPING POINT — CP-1 valuation arc, 2026-08-16
 
 **MOST RECENT CHANGE: the CP-1 bug-hunt arc is CLOSED and the roadmap resumes.** Everything
