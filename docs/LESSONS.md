@@ -87,8 +87,17 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
   **6,815 across 20 titles, stated as a floor**, after the first query was found to match any
   `raw_title` containing "of" anywhere (`Amazing Spider-Man` at 1,884 rows was a false positive —
   an instance of [[L-SW-2026-024]], a proxy standing in for a measurement). Mike: *"That is the
-  cycle working."* **Candidate for cross-project promotion (Mike's call)** — the mechanism is not
-  comics-specific and applies to any threshold, filter or heuristic being upgraded in TFO or MASSÉ.
+  cycle working."*
+- **STATUS:** ✅ **PROMOTED CROSS-PROJECT 2026-08-17 (Mike) → `LESSONS_CROSS_PROJECT.md`
+  L-2026-028** (file bumped to v1.7, 15 lessons active). Mike's reasoning: *"The mechanism isn't
+  comics-specific. Any threshold or heuristic being upgraded in TFO or MASSÉ has the same failure
+  mode, and 'run the replacement against the cases the current version already handles correctly'
+  is a general check."* The SW entry keeps the war story — X-Men #1's 244-against-27 split, the
+  52-of-108 measurement, the TMNT 17% case and the same-session withdrawal of the printed years.
+  The cross-project entry carries the rule, the tell, the refuse-only design corollary, and the
+  do-not-merge note against L-2026-024 and L-2026-026. ⚠️ Criterion 2 (encountered in a second
+  project) clears on **structure, not observation** — the only instance is Slab Worthy. Flagged at
+  promotion rather than asserted, same basis as L-2026-026 and L-2026-027.
 
 ### L-SW-2026-024 — Characterise a population by measuring THAT population; a plausible story, a convenient grouping, or a smaller sample already superseded are claims about themselves. And precision applied to the wrong population is worse than none, because calibration reads as authority
 
