@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-14 (24 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-17 (25 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -14,6 +14,81 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 ---
 
 ## Active lessons
+
+> **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
+> `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
+> silently redirect that link.
+
+### L-SW-2026-026 — When asked to amend a rule, "it cannot be written yet" is a valid completion — and a replacement that fails WORSE than the original is invisible, because failing differently reads as refinement
+
+- **RULE:** Two halves, and the second is what makes the first safe.
+  **(a)** When asked to extend or strengthen a rule, establishing that it **cannot be written
+  yet** is a legitimate outcome — provided you name the missing input and check whether some
+  other surface already has it.
+  **(b)** Before proposing any replacement, **run it against the cases the current version
+  already handles correctly.** A replacement is not an improvement until it is at least as good
+  on the old cases. Hunt the counterexample; do not infer its absence from not having found one.
+- **WHY:** 2026-08-17, capture-schedule §1a. The existing check was a **disqualifier**: refuse a
+  key whose graded comps span more than one publication year. It could only say NO, and it was
+  correct. Asked to extend it so it could also say YES, the obvious move was *"compare against
+  the pool's modal `title_year`."*
+  - **X-Men #1 kills it.** The pool holds **244 rows from the 1991 relaunch against 27 from the
+    1963 book.** Modal returns 1991 — so the rule would **certify the contamination as canonical
+    and then disqualify the 27 real rows for disagreeing with it.** The version it replaced
+    refuses both, which is strictly better.
+  - **It generalised:** **52 of 108** `#1` keys have an unsafe modal year. **TMNT returns 1988 on
+    17% of its rows** for a book published in **1984** — a plurality of nothing.
+  - **The same method had already shipped one step earlier, in the same session.** Modal had been
+    used to print publication years for 34 `#1` issues in the weekly capture list. Withdrawn and
+    re-derived to **24**, gated at ≥80% modal share and ≤15-year spread, printing **nothing** with
+    a stated reason otherwise — because *a wrong year in a search is worse than no year.*
+- **⚠️ THE TELL: the replacement looked like a refinement.** It **added** a capability the
+  original lacked (approval), it used a statistic that **sounds principled** (modal), and its
+  failure mode was invisible from the direction the original failed in. Nobody argues with a rule
+  that does more. Compare [[L-SW-2026-024]]'s tell — *the cautious direction is not a safe
+  direction* — this is its mirror: **the capable direction is not a safe direction either.**
+- **⚠️ THE ASYMMETRY THAT EARNS THIS ITS OWN RULE.** The original's failure was **refusing too
+  much** — a recall problem: visible, bounded, recoverable. The replacement's failure was
+  **admitting the wrong book and ejecting the right one** — a precision problem: silent and
+  compounding. That is the same asymmetry as [[L-SW-2026-009]] (*a miss shrinks a pool, a false
+  merge poisons one*), arriving this time through a **rule change rather than a matcher change**.
+- **⚠️ "NOT YET" IS ONLY USEFUL IF IT NAMES WHAT WOULD WORK.** The §1a amendment states the
+  requirement — **the year must come from outside the pool, because the pool is the thing under
+  suspicion** — and then finds that **production already has such a source**: the grader reads the
+  publication year off the photographed cover and passes it to the valuation. The capture tracker
+  does not, because its key list has never carried years. That converts a dead end into a scoped
+  prerequisite. Mike: *"the part that makes it actionable later rather than just a dead end."*
+- **HOW TO APPLY:**
+  1. **Test the replacement on the old cases first.** Not on new cases it was designed for — on
+     the ones the incumbent already gets right. That is where a regression hides.
+  2. **Ask "where is the wrong thing in the majority?"** and go look. Modal, median and majority
+     are assumptions about the population wearing statistical clothing; modal assumes the majority
+     is the right book, which is precisely what contamination denies.
+  3. **When identity is unestablished, prefer a rule that can only REFUSE.** A disqualifier has a
+     bounded failure mode. A rule that both approves and rejects has two, and the approving one is
+     the silent one.
+  4. **State the N when withdrawing.** *"52 of 108, TMNT at 17%"* survives re-litigation;
+     *"modal seemed risky"* does not, and will be re-proposed within the month.
+  5. **On "blocked", name the missing input and check the other surfaces.** A problem blocked for
+     one caller is often solved for another — half of "we cannot know this" is "this caller cannot
+     know this."
+  6. **Do not write a rule twice.** If the honest version is a refusal, ship the refusal and
+     document why the positive form is unavailable. Two things that look like rules, one of which
+     measures nothing, is worse than one rule and an explanation.
+- **DISTINCT FROM [[L-SW-2026-020]] rule 4 — do not merge.** That says *the fix for a mislabel is
+  the likeliest place to commit the next one*, and is about **naming a NEW thing badly**. This is
+  about a **REPLACEMENT that is worse than the original**, in a way the original's own failure
+  mode conceals. There the new defect is adjacent; here it is a regression dressed as an upgrade.
+- **SOURCE:** 2026-08-17, at Mike's direction after the §1a amendment. His framing: *"You were
+  asked to amend a rule and instead established that it cannot be written yet, with the
+  counterexample that kills the obvious repair… I would not have caught that before shipping it."*
+  Recorded alongside his note that this was the **second withdrawal that day before anything
+  reached him** — the first being a mangled-canonical population of **14,861 rows**, corrected to
+  **6,815 across 20 titles, stated as a floor**, after the first query was found to match any
+  `raw_title` containing "of" anywhere (`Amazing Spider-Man` at 1,884 rows was a false positive —
+  an instance of [[L-SW-2026-024]], a proxy standing in for a measurement). Mike: *"That is the
+  cycle working."* **Candidate for cross-project promotion (Mike's call)** — the mechanism is not
+  comics-specific and applies to any threshold, filter or heuristic being upgraded in TFO or MASSÉ.
 
 ### L-SW-2026-024 — Characterise a population by measuring THAT population; a plausible story, a convenient grouping, or a smaller sample already superseded are claims about themselves. And precision applied to the wrong population is worse than none, because calibration reads as authority
 
