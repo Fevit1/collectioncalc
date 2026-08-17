@@ -2798,13 +2798,132 @@ notation shorthand (`CGC 98`) and ordinal collision (`CBCS 1st`).
    in prose beside the block instead of inside it. Mike had asked for self-contained blocks.
    **Standing: a ship block contains every command including staging, or it is not a block.**
 
-### Queue
+### 🔴 TOMORROW OPENS HERE — two of four pools, and the comment is the seventh instance
 
-1. **Extend the signature filter to `market_graded_query` and `market_raw_query`**, and fix the
-   "BOTH pools" comment to say which two it means. Measure the market-side impact first.
-2. **Grade-parser defects** — `CGC 98` (29 rows, measured) and `CBCS 1st` (1 row, new). Same
-   consumer, likely one fix.
-3. The 322-vs-321 reconstruction gap, if it ever matters.
+**Mike's framing, 2026-08-17: "a wrong comment inside the fix for a wrong comment, which is the
+seventh instance and the most self-referential one yet."** [[L-SW-2026-020]] rule 4 says the fix
+for a mislabel is the likeliest place to commit the next one. This is that, one level deeper:
+`8ae4187` was a commit whose *entire purpose* was correcting a false comment on this filter, and
+it left standing a sentence that overstates the filter's coverage.
+
+Blast radius today is 4 Whatnot rows against 1,695 eBay on the verification cell. **`market_sales`
+is 10,048 rows and growing, and the comment is what a future reader will trust.**
+
+### ✅ SCOPING MEASURED 2026-08-17 — the answer is NO, do not just extend the filter
+
+Both of Mike's questions, measured read-only as `do_readonly` against the full tables. Pattern
+read from the live module source, not retyped.
+
+**(a) Does `is_signed` behave the same way on Whatnot data? — Populated, but at 1/6 the rate.**
+
+| | rows | `is_signed` TRUE | rate | NULL |
+|---|---|---|---|---|
+| `market_sales` | 10,048 | **69** | 0.69% | 0 |
+| `ebay_sales` | 271,344 | 11,842 | 4.36% | 0 |
+
+Not a dead column — it is set, never null. But 65 rows match the literal word `signed` in
+`raw_title` against 69 TRUE, so on Whatnot `is_signed` is **essentially just the literal word**.
+The eBay derivation's other half — the `SS` group in `(CGC|CBCS|PGX) SS <grade>` — has almost
+nothing to bite on, because Whatnot titles do not carry slab notation.
+
+**(b) Are the vocabulary shapes the same? — NO. Half of them have ZERO hits.**
+
+| shape | eBay | `market_sales` |
+|---|---|---|
+| sketch | 172 | **8** |
+| sig | 52 | **0** |
+| COA | 43 | **16** |
+| auto | 30 | **0** |
+| autograph | 7 | *(in auto)* |
+| remarque | 7 | **0** |
+| **pattern total** | — | **28 of 10,048** |
+
+**The mechanical reason: Whatnot titles are 5× shorter.** Median `raw_title` length **14 chars
+vs eBay's 71** (mean 18 vs 66). The vocabulary was enumerated against 66-character listing
+titles dense with condition and grading tokens. A 14-character title has no room for those
+shapes, which is why three of six return zero.
+
+**🔴 AND THE PART THAT ACTUALLY BLOCKS EXTENDING IT — on Whatnot, "sketch" does not mean
+signature.** The 12 highest-priced pattern hits, read directly:
+
+```
+$715  DJC Adventurous Astronaut Sketch Card            <- a sketch CARD, not a comic
+$715  DJC Adventurous Astronaut Sketch Card            <- (duplicate row)
+$499  2026 Under Wraps Autographed NFL Jerseys ... x4  <- NFL JERSEYS, not comics
+$315  HAUNT #1 (1:100 RATIO) TODD MCFARLANE SKETCH VARIANT   <- a VARIANT COVER
+$255  KING SPAWN #50 ... SIGNED BY TODD MCFARLANE ... SKETCH CVR  <- genuinely signed
+$250  Live sketch cover #2                             <- a sketch COVER edition
+$200  Todd Beats sketch #1                             <- a sketch COVER edition
+$100  SIGNED BOOK with COA #72                         <- genuinely signed
+$40   SIGNED BOOK with COA                             <- genuinely signed
+```
+
+On eBay, `sketch` was enumerated as a signature-adjacent shape. **On Whatnot it predominantly
+denotes a SKETCH COVER — a variant edition — or a sketch card, which is not a comic.** Applying
+the eBay pattern to `market_sales` would exclude variant editions under a *signature* rationale.
+That is a wrong label attached to a correct-looking exclusion, i.e. the exact class CP-1 exists
+to close, committed while closing it. **Do not port the regex.**
+
+**Directional signal, for whenever the market unit is scoped:** 76 rows would be excluded
+(`is_signed` OR pattern) at a **$25.00 median against $5.00** for the 9,972 that remain — a 5×
+premium, matching the eBay raw side's 5.3× ($85.00 vs $16.05). The *premium* transfers even
+though the *vocabulary* does not.
+
+**🆕 SEPARATE FINDING, NOT MEASURED — non-comic rows in the corpus.** **6 of those 12** are not
+comics (2 sketch cards, 4 NFL jersey boxes). Whatnot streams sell more than comics and the
+capture is taking them. Stated with its N and **not** generalised: this is 6 of 12 in a
+price-sorted slice of 28 pattern hits, **not** a corpus-wide rate. It needs its own measurement
+before anyone quotes a number.
+
+**Recommended shape for tomorrow:** fix the comment (Mike's stated minimum), then treat the
+market side as **its own unit** — likely `is_signed` alone plus a Whatnot-specific vocabulary
+derived from Whatnot titles, never the eBay pattern.
+
+### ⚰️ THE RESIDUAL LIST HAS ZERO CONFIRMED MEMBERS
+
+`8200374`'s comment predicted: *"Residual after this is the shapes nobody has enumerated yet."*
+The first candidate was pulled today and **it is not a signature shape at all.**
+
+**Recorded plainly at Mike's direction: the prediction that residual signature shapes would
+surface has NOT been borne out by the first candidate.** One candidate is not a refutation, but
+the list stands at **0 confirmed members** and should be described that way rather than as a
+known-nonempty backlog.
+
+### 🆕 A PATTERN, NOT A ONE-OFF — the grade parser reads adjacent text as a grade
+
+Two measured instances, same shape:
+
+| title | parsed as | truth |
+|---|---|---|
+| `Absolute Batman 1 Nick Dragotta Cover ... CGC 98 G2U` | grade **98.0** | seller shorthand for 9.8 · 29 rows |
+| `Absolute Batman #1 CBCS 1st Print Not CGC` | grade **1.0** | **no grade in the title at all** · 1 row |
+
+Sub-shapes: **notation shorthand** (`CGC 98`) and **ordinal collision** (`CBCS 1st` → `CBCS 1`).
+Mike: *"two instances of the same shape — a grade extracted from adjacent text — and that is now
+a pattern rather than a one-off."* Same consumer, likely one fix. The 1.0 row is the more
+dangerous of the two: it carried a real high-grade price ($529.99) into the 1.0 bucket, where it
+sat **above the 9.8 median** and looked exactly like the signature inversion the day's filter was
+built to remove.
+
+### ✅ NEAR MISS RECORDED — [[L-SW-2026-014]] avoided, not committed
+
+The `$9.00` outlier pull returned **zero rows from `ebay_sales`**. The zero was **not reported as
+a finding** — `market_sales` was checked next, and that is where the rows were.
+
+Recorded at Mike's direction: *"a near miss recorded is worth as much as an instance."* The
+tell that prompted the second query was [[L-SW-2026-014]] itself — the live response carried
+`sources: {ebay: 1695, whatnot: 4}`, so a zero from one table could not be an answer about a
+two-table corpus. Also an instance of [[L-2026-024]] working as intended: an empty result was
+treated as a probe that could not have fired, rather than as evidence.
+
+### Queue, in order
+
+1. **Fix the "BOTH pools" comment** in both eBay query literals — say *graded and raw within
+   eBay*, and state that the market pools are unfiltered. Comment-only, no behaviour change.
+2. **Market-side signature unit** — scoped fresh per the measurement above. Not a port.
+3. **Grade-parser defects** — `CGC 98` (29 rows) and `CBCS 1st` (1 row). One consumer.
+4. **Non-comic rows in `market_sales`** — measure the rate before quoting one.
+5. The 322-vs-321 reconstruction gap, if it ever matters.
 
 ---
 
