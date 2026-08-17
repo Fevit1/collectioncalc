@@ -1,32 +1,16 @@
 Hi {first_name},
 
-<<< REPLACE THIS ENTIRE BLOCK WITH SECTION 3 OF YOUR DRAFTS >>>
+A short note about your Slab Worthy data, because we are changing something we already told you.
 
-NOTES FOR WHOEVER EDITS THIS — delete them along with this block.
+When you graded a comic, our privacy policy said we would keep the photos and grading details for 90 days. We are extending that to 24 months, and it applies to grades you have already submitted — which is why I am writing rather than quietly updating a page.
 
-  - Keep the salutation placeholder on line 1. cohort_mailer.py refuses to run
-    if it is missing from the template, and aborts if it survives substitution
-    in any single rendered message. (These notes deliberately do not repeat the
-    token itself: it would be substituted into this paragraph too, and a future
-    grep could not tell the instruction from a real salutation.)
+Why. Professional grading usually takes longer than 90 days. If you send a comic to CGC and it comes back four months later, we want to be able to compare their grade against ours. That comparison is the main way we find out where our grading is wrong. Under a 90-day window we were deleting the data right before it became useful.
 
-  - Plain text, not HTML. cohort_mailer.py sends text/plain, so markdown arrives
-    literally. Blank lines are the only formatting available.
+What we use it for. Operating the service, checking our grading accuracy, and improving it. Nothing else. We do not sell it or share it, and we will not use your photos in marketing without asking you first.
 
-  - The retention figure is TWENTY-FOUR MONTHS from the date of submission
-    (privacy.html, "Grading Data & Image Retention", published 2026-08-13).
-    The cohort was previously told 90 days.
+You still own your photos, and you can still delete them. Reply to this email or write to privacy@slabworthy.com and we will delete your grading submissions — photos included — within 30 days. If you would rather we kept to the original 90 days for your account, say so and we will.
 
-  - Deletion requests go to privacy@slabworthy.com — the only address
-    privacy.html now names. Do not write support@ here; it was retired from the
-    privacy policy on 2026-08-13, and naming it would reintroduce the
-    two-addresses-for-one-request problem that change fixed.
+If you are happy either way, there is nothing to do.
 
-  - The feedback exception is "we MAY keep that submission longer", never "we
-    keep". `pinned` has no writer, so the stronger wording would assert an
-    automatic exemption no code performs.
-
-<<< END REPLACEMENT BLOCK >>>
-
-Mike
-Slab Worthy
+Mike Berry
+Founder, Slab Worthy
