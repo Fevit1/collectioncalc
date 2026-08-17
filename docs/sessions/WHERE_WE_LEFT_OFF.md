@@ -2601,11 +2601,100 @@ A 4-brief read-only thread assessed what Slab Guard recovery can actually PROVE,
 4. Run the harness **twice** for the A/B: no `--model` (defaults to Opus 4.8 now) and `--model claude-sonnet-4-6`.
 5. Read the **false-positive rate** (want 0); confirm `arbiter_model=claude-opus-4-8` in the default run.
 
+## 🛑 STOPPING POINT — CP-1 valuation arc, 2026-08-16
+
+**MOST RECENT CHANGE: the CP-1 bug-hunt arc is CLOSED and the roadmap resumes.** Everything
+below is queue, not chase. A future session should NOT re-derive this decision or re-open these
+items as discoveries — they are measured, recorded, and deliberately deferred.
+
+### Fixed and live
+- **Lot-range leakage** (`499371b`) — the multi-issue range filter bounded the second number as
+  `\d{2,4}`, so `#1-4` and `#1-8` sailed into single-comic pools. 2,405 rows live, 244 ≥$100.
+  Four measured guards. **Verified in production: Wolverine LS #1 raw $150 → $125.**
+- **Badge third state** (`9b1a5d8`) — the client collapsed the server's three verdicts to two on
+  `roi > 0`, so a $16 gain rendered the same green as $1,200. ~29% of confident recommendations
+  are under $50. No new threshold: 50 is the server's own boundary, restored not invented.
+- **edition_span / multi_edition split** (`9ab7cc3`).
+
+### Scoped, drafted, HELD — not cancelled
+- **Signatures** — `is_signed` + six enumerated shapes, query-time, both pools. 115 cells lose
+  rateability, −$28.80 average graded median. **Held deliberately:** it pushes 114 cells below
+  the evidence bar and those cells live in the thin population, so it makes the thin-bucket
+  problem worse while that work is unbuilt. Ships after.
+
+### Measured, NOT BUILT — no code exists for either
+- **True cost of grading.** `grading_cost = 30` is flat and wrong by 2–4× at the low end — a $50
+  book costs ~$71 to grade (142% of its value). Moves **24.9% of WORTH verdicts** off WORTH.
+  Shape: `tier(V) + shipping(V) + flat + expected_loss(V)`; only tier, insurance and loss scale.
+  ⚠️ The expected-loss term is **negligible** ($0.01–$0.50, i.e. 0.01–0.39% of cost) — the tail
+  risk is priced as the *insurance premium* inside shipping, not as loss. ⚠️ **CGC's published
+  fee pages 404'd; every figure is an estimate and none is sourced.**
+- **Uncertainty framework.** Three layers — estimator / uncertainty / decision — because ROI is
+  downstream of the estimate, so a single `f(depth, roi)` is circular. 47.4% of graded cells have
+  **no CI at all** (`bootstrap_ci_median` returns `(None, None)` below 5 values) and the raw side
+  has none at any depth, while **over half of raw pools hold fewer than 5 sales**.
+  **Binding design constraints, agreed:** both stochastic terms resampled (graded *and* raw), the
+  cost term stated as fixed explicitly rather than by omission, and the widening factor derived
+  from the hold-one-out table rather than chosen. Hold-one-out is the working instrument: at k=4
+  the median error is 6.7% but **1 in 8 exceeds 25% and p99 is 157%** — the damage is in the tail,
+  which is why both ladder-shape proxies (inversion, residual) missed it. That table is a **lower
+  bound**: it is sampling error on liquid books, and genuinely thin buckets are thin because the
+  book does not trade.
+
+### Known STRUCTURAL gap — named as such, not a bug
+- **Grade uncertainty.** *(Mike's observation, 2026-08-16.)* The framework resamples comps and
+  treats the assigned grade as **exact**. A half-point grade miss moves more value than the entire
+  cost model. This is not calibration and not a defect in existing code — it is a dimension the
+  design does not model at all.
+  ⚠️ **Second thread pointing at the same measurement:** the grading-consistency work, for which
+  **Joseph Vicario's 25 pinned `grade_submissions` were preserved** (pin before 2026-11-04). Those
+  two threads should meet.
+
+### Queued, unchanged — measured populations, no new information needed to start
+- `canonical_title` splits — Wolverine #1 under **three** keys while the `Wolverine` key merges
+  1982 ($150, 156 rows) with 1988 ($59.99, 113 rows). First confirmed instance; the Invincible
+  case was retracted.
+- Issue-number absorption — 22,623 raw rows with NULL `issue_number` (10.6%), unreachable by any
+  issue-filtered lookup. Split between legitimate (trades, omnibuses) and parse failure is
+  **unmeasured and is the queue item's first task**.
+- PSA + six graders missing from Unit 1a's regex — PSA alone is 410 rows, larger than PGX and
+  CBCS combined, both already enumerated.
+- Lot **vocabulary** gap — `is_lot` keys on vocabulary, not structure; 6,829 rows carry "lot" and
+  6,280 "complete/full" outside the caught phrases.
+- Unit 1a / 1b — extension regex + backfill, not started.
+
+### Why these are queue rather than chase
+The two defects that were **actually wrong** — X-Men #1 confidently priced off a contaminated
+pool, and Wolverine LS #1 priced off four-comic sets — are fixed or scoped. Everything after that
+is calibration, with **one exception**: the flat $30 grading cost is a live one-directional error
+on every verdict and belongs on the queue as a defect, not as tuning.
+
+⚠️ **Method note for whoever picks this up:** five measurement failures in this arc came from the
+same shape — substituting a proxy for the production predicate. `docs/LESSONS.md` L-SW-2026-024,
+items 3a–3d. In particular, **a graded-side measurement written in SQL alone is wrong**, because
+variants are partitioned out in Python.
+
+---
+
 ### STILL OPEN (next sessions)
 - **Stacking step 2** (account.html "Change Plan" → `openPortal()` + 409 auto-redirect; verify Stripe portal plan-switching enabled) and **step 3** (`handle_subscription_deleted` sub-id match + immediate-cancel→free test) — hardening on the now-closed blocker (detail in the stacking entry below).
 - **Section F checklist** (mobile + load) — draft AFTER stacking 2 & 3; **mobile half is higher-priority** (GalaxyCon booth is phone-first; start real-device testing well before Aug 21, not last-minute).
 - **Cert-number recovery lookup** (small build) — the marketable slabbed-recovery headline.
-- Lower-priority backlog: ~30s comic-ID progress messaging; email setup (mike@/support@); `lookup_demand` thin-data pull (after weeks of real traffic); variant reclamation (Tier 1); capture-cadence scheduled pull; ⏰ 90-day purge (~Sept 17).
+- Lower-priority backlog: ~30s comic-ID progress messaging; email setup (mike@/support@); `lookup_demand` thin-data pull (after weeks of real traffic); **variant reclamation / subtyping (Tier 1 — see below)**; capture-cadence scheduled pull; ⏰ 90-day purge (~Sept 17).
+
+  **Variant subtyping (Tier 1), reconfirmed 2026-08-16 — DELIBERATELY NOT TAKEN as part of the
+  CP-1 bug work.** Mike: *"it deserves a session rather than a slot."* It is a **feature to
+  design, not a defect to measure**, which is why it does not belong at the tail of a bug hunt.
+  - ⚠️ **There is NO variant filter defect.** A claim that the graded query omitted the
+    `is_variant` filter was **retracted** — the graded side partitions variants out in Python
+    (`sales_valuation.py` ~741) while the raw side filters in SQL, both deliberate since
+    `9c9dc7c` (2026-06-11). Do not re-open this as a bug. See `docs/LESSONS.md` L-SW-2026-024,
+    fifth instance.
+  - **The actual gap:** variants are currently *excluded and disclosed* — "Estimate reflects the
+    standard cover; variant sales excluded", firing at ≥30% excluded / ≥3 excluded / ≥5 total.
+    The open question is whether covers that sell at **orders-of-magnitude different prices**
+    (Absolute Batman is the case that made this Tier 1) deserve to be **their own pool** rather
+    than discarded behind a footnote.
 
 ---
 

@@ -773,6 +773,28 @@ regex can never catch these — there is nothing in the title to catch. **Scopin
 unrecoverable (0.5% carry a year in the title), and a 16+ year pool span is the **majority**
 state at 55% of rows. Unit 2 still cannot lean on year.
 
+## ⚠️ CORRECTION 2026-08-16 — graded-side figures in this document
+
+Several figures below were computed in **SQL alone**, which does not reproduce the graded comp
+pool: production also partitions `is_variant` out in **Python** (`sales_valuation.py` ~741), so a
+WHERE-clause-only query prices variants the product never prices. Corrected values:
+
+| figure | as first stated | corrected |
+|---|---|---|
+| ROI-distribution cell count | 2,134 | **1,876** |
+| marginal band ($0–50) | 560 = 30.9% of positive | **470 = 28.7% of positive** |
+| under $25 | 317 = 17.5% of positive | **272 = 14.5% of positive** |
+| signature impact, graded | 2,267→2,133, 134 lost, −$17.30 | **1,938→1,823, 115 lost, −$28.80** |
+
+**The conclusions are unchanged** — "roughly one confident recommendation in three is under $50"
+holds at 28.7%. Only the magnitudes moved.
+
+⚠️ **Unaffected:** every raw-pool figure, because the raw query filters `is_variant` in SQL. The
+lot-leakage work, the 2,405 live rows, and the Vampirella / Venom / Wolverine cases all stand.
+Rule and full list: `docs/LESSONS.md` L-SW-2026-024, item 3d.
+
+---
+
 ## ⚠️ How the blind-cover comparison MUST be reported — Mike's constraint, 2026-08-14
 
 A 50-cover blind set was issued at **s-l500** (the resolution the corpus actually holds for
@@ -843,6 +865,40 @@ Sits with the other `canonical_title` residue already recorded: 3,586 normalized
 non-ASCII (5,458 rows), 410 NULL/empty canonical titles, ~1,159 truncated at ingest. Still a
 normal queue item, still **not** a prerequisite for Unit 2 — the article-split evidence that
 briefly argued otherwise was retracted (see `docs/LESSONS.md` L-SW-2026-024).
+
+### Split-key: FIRST confirmed instance — Wolverine #1, 2026-08-16
+
+⚠️ **Counted as the first, not the second.** The Invincible case that preceded it was
+**retracted**: `Invincible Iron Man` / `The Invincible Iron Man` are already merged by
+`title_matching._norm_sql()`, which strips the leading article on both sides. Wolverine is a
+genuine key divergence, not an article variant, and it is the only confirmed case so far.
+
+Found by Mike, comparing the app screen against a direct API call on the same physical comic —
+the 1982 Miller limited series:
+
+| key | rows | raw rows | raw median | years |
+|---|---|---|---|---|
+| `Wolverine Limited Series` #1 | 378 | 175 | **$150.00** | 1982–2024 |
+| `Wolverine` #1 | 350 | 259 | **$80.00** | 1982–2025 |
+| `Wolverine Limited` #1 | 9 | 1 | $199.99 | 1982 |
+
+**It is a split AND a merge at once, which is what makes it worse than Invincible ever was.**
+Inside `canonical_title = 'Wolverine'`, issue 1:
+
+| title_year | rows | median |
+|---|---|---|
+| **1982** (the limited series) | 156 | **$150.00** |
+| **1988** (the ongoing) | 113 | **$59.99** |
+| 2024 / 2020 / 2023 / moderns | ~21 | $4–10 |
+
+So the 1982 book is **split across three keys**, while the `Wolverine` key **simultaneously
+merges two different comics** whose medians differ 2.5× — and a third generation of moderns
+under the same key. Mike predicted exactly this shape before it was measured: *"the 1988 ongoing
+also has a #1 — so 'Wolverine' as a key may be pooling two different books while being split
+from a third."*
+
+Both confirmed cases are on books people actually look up, which is the argument for the queue
+item's priority — not for promoting it to a prerequisite.
 
 ---
 

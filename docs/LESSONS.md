@@ -50,6 +50,23 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
     The same check, run properly one step later, also prevented a fifth: a $10,000 Punisher
     Mini-Series #1-5 looked like the largest contamination in the corpus and is blocked by
     `%complete set%`.
+  - **⚠️ THE FIFTH INSTANCE — AND A DISTINCT SUB-SHAPE WORTH ITS OWN NAME:**
+    **A FILTER ABSENT FROM THE QUERY IS NOT A FILTER ABSENT FROM THE PIPELINE.**
+    Claude reported that `sales_valuation.py` filters `is_variant` on the raw query and not on
+    the graded one, concluding *"every ROI figure in the product compares a variant-EXCLUDED raw
+    pool against a variant-INCLUDED graded pool."* **False.** The graded side excludes variants in
+    **Python** (line ~741: `if sale.get('is_variant'): excluded_variant_count += 1; continue`) —
+    the SQL *selects* the column precisely so the partition can count exclusions for the
+    `variant_disclosure` field. Commit `9c9dc7c` (2026-06-11) says so in its own message:
+    *"graded via Python partition (one pass; also counts excluded variants), raw via SQL filter."*
+    Mike had already scoped a unit on the phantom asymmetry before the check ran.
+    **Why this one is worth separating from the other four:** reading the SQL *feels* like reading
+    the code. The other instances substituted a proxy for a measurement; this substituted **one
+    layer for the whole path**. A WHERE clause is not the pipeline — filtering can happen in the
+    query, in a post-fetch partition, in the caller, or in the serializer.
+    **On credit where it is due:** Mike's own read was *"that is not 'add a missing filter' — it
+    is a decision about which side is right… it may have been deliberate."* The second half was
+    the correct instinct and it was buried under the first. Both readers weighted the wrong half.
 - **⚠️ THE TELL: the cautious direction is not a safe direction.** The bad revision *raised* the
   cost estimate, so it read as conservatism and drew no scrutiny. A wrong number that errs toward
   caution is still a wrong number, and it is harder to catch precisely because nobody argues with
@@ -77,6 +94,26 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
      Not a simplified version, not the two conditions that seem load-bearing — paste the whole
      `WHERE` clause in and let the database answer. Poolability in this repo is fourteen
      conditions; checking two of them is how the fourth instance happened.
+  3d. **⚠️ IN THIS REPO, A GRADED-SIDE MEASUREMENT WRITTEN IN SQL ALONE IS WRONG.** It includes
+     sales production excludes, always in the same direction. The graded comp pool is filtered in
+     **two places**: SQL (`is_lot`, `is_reprint`, the range shield) and a **Python partition**
+     (`is_variant`, `sales_valuation.py` ~741). A query that reproduces only the WHERE clause
+     silently prices variants the product never prices. **The raw side is safe** — it filters
+     `is_variant` in SQL — so raw-pool measurements taken this way are sound.
+     **Measurements this invalidated, recorded so a reader can tell which figures to trust:**
+     the CP-1 ROI distribution (2,134 cells / 30.9% marginal → corrected to **1,876 / 28.7%**),
+     and the first signature pass (2,267→2,133, 134 cells lost, −$17.30 → corrected to
+     **1,938→1,823, 115 lost, −$28.80**). Unaffected: all lot-leakage work, the 2,405-row
+     figure, and every raw-pool number.
+     **The check is one line** — add `AND (is_variant IS NULL OR is_variant = false)` to any
+     graded-side query, or better, assert the cell count against a known book before trusting a
+     corpus-wide aggregate.
+  3c. **Before reporting a filter as MISSING, trace the whole path, not the query.** Grep the
+     column name across the module — `is_variant` appears at the SELECT, at a Python `continue`,
+     and at a disclosure counter, and only one of those is in SQL. Then check `git log -S` on the
+     condition: `9c9dc7c` explained the design in its own commit message, and reading it would
+     have cost one command. In this repo the exclusion can live in the query, in a post-fetch
+     partition, or in the caller — "not in the WHERE clause" means nothing on its own.
   3b. **⚠️ THIS APPLIES TO MIKE'S INTUITIONS TOO, and he has asked that it be recorded.** Twice in
      one week a targeting instinct lost to a measurement: *"price ≥ $100 will find the bad rows"*
      scored **38% precision against a 36% base rate** — statistically indistinguishable from
