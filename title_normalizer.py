@@ -548,8 +548,26 @@ def _build_canonical_title(title_part):
     text = re.sub(r'\([^)]*\)', '', text)
     text = re.sub(r'\[[^\]]*\]', '', text)  # Also remove [bracketed] content
 
-    # Remove "by [creator]" pattern when creator wasn't already extracted
-    text = re.sub(r'\s+by\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', '', text, flags=re.IGNORECASE)
+    # Remove "by [creator]" pattern when creator wasn't already extracted.
+    #
+    # GUARDED 2026-08-17 (M2). Two compounding defects made this line delete real
+    # title words:
+    #   1. re.IGNORECASE defeats the [A-Z][a-z]+ capitalisation test, so the
+    #      pattern matched ANY word after "by", not just a proper name.
+    #   2. It runs BEFORE the known-title fuzzy match below, so it destroyed the
+    #      very tokens the matcher needs to identify the book.
+    # "Werewolf by Night" -> "Werewolf": 697 rows, unreachable by their real name,
+    # because title_matching._norm() strips only a LEADING "the" and never "by".
+    # 'Werewolf By Night' is in known_titles.json and matches at 82.4 with the
+    # token guard passing - the match was never reached.
+    #
+    # The guard: skip the strip entirely when the text already matches a known
+    # title. A genuine "signed by Todd McFarlane" does not match one, so it is
+    # still stripped. Corpus-measured 2026-08-17: 719 rows change, 19 pairs, all
+    # landing on 'Werewolf By Night'; zero other pools affected.
+    if not (KNOWN_TITLES and process.extractOne(
+            text, KNOWN_TITLES, scorer=fuzz.token_sort_ratio, score_cutoff=75)):
+        text = re.sub(r'\s+by\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', '', text, flags=re.IGNORECASE)
 
     # Remove "comic" from title (e.g., "Batman Comic" → "Batman")
     text = re.sub(r'\bcomic\b', '', text, flags=re.IGNORECASE)
