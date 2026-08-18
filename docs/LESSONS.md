@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-17 (25 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-17 (26 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -18,6 +18,65 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
 > `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
 > silently redirect that link.
+
+### L-SW-2026-027 — A defect can be invisible because a SECOND defect deletes its trigger; repairing the mask looks exactly like causing a regression
+
+- **RULE:** Before accepting that a fix caused a regression, check whether it **removed a mask**.
+  A defect stays invisible while another defect is deleting the input that would have exposed it.
+  Fix the masking defect and the hidden one surfaces — as rows that are correct today and wrong
+  after, which is indistinguishable from having broken them. **Corollary for scoping: two defects
+  in a masking relationship cannot be scoped independently.** The "safe" one is only safe while
+  the mask is in place, so the components must be measured in combination, not just individually.
+- **WHY:** 2026-08-17, the mangled-canonical repair. Two defects in `title_normalizer.py`:
+  - **M1** — `r'of'` in `filler_patterns` (line 410) stripped "of" from **every** title, not
+    just the "Lot of X" leftovers its comment claimed.
+  - **M3** — the `known_titles.json` fuzzy match is **case-sensitive** (`fuzz.token_sort_ratio`
+    with no processor), so ALL-CAPS and title-cased eBay listings never match it at all.
+  **M1 was deleting the very token whose capitalisation broke M3.** Real listing:
+  `Marvel Web Of Spiderman # 69` — capital "Of".
+
+  | text reaching the matcher | score vs `Web of Spider-Man` | result |
+  |---|---|---|
+  | `Web Spiderman` — today, "Of" stripped by M1 | **80.0** | ✅ matches, correct |
+  | `Web Of Spiderman` — M1 fixed, "Of" survives | **72.7** | ❌ under the 75 cutoff |
+
+  **2.3 points below cutoff, caused by one capital letter.** Fixing M1 alone turned 26 currently-
+  correct rows wrong, which read as "the fix regressed" and was actually "the fix surfaced a
+  pre-existing defect."
+- **⚠️ THE TELL — NO COMBINATION IS CLEAN.** The corpus-wide differential split badly in every
+  direction and not because either fix was wrong: M1+M2 produced **372 bad rows including 26
+  regressions that do not exist today**; adding M3 fixed those 26 but introduced **false merges**
+  (`Absolute Catwoman → Absolute Batman`, 174 rows). When every combination is dirty and each
+  individual change is defensible, suspect a masking relationship rather than a bad fix.
+- **⚠️ THE MASKED DEFECT IS USUALLY OLDER AND WIDER THAN THE MASK.** M3 disables the entire
+  `known_titles.json` repair path for **every all-caps listing** — vastly bigger than a stray "of"
+  — and nobody had ever noticed, precisely because M1 was hiding it. The thing you find behind
+  the mask is rarely smaller than the thing you were fixing.
+- **HOW TO APPLY:**
+  1. **When a fix produces regressions, ask what the broken code was doing that made those rows
+     work.** If the answer is "deleting the input that would have failed", you have a mask, not a
+     regression.
+  2. **Measure the combinations, not the components.** A single before/after here would have shown
+     372 bad rows with no way to attribute them. The three-way run (baseline / A / A+B) is what
+     made the coupling visible — build the differential so each component can be isolated.
+  3. **Look for a fix that avoids the masked path entirely.** The unit that shipped was **M2
+     alone** — a disjoint defect that never touches "of", so it never exposes the case-sensitivity:
+     **719 rows, 19 pairs, 1 questionable row**, against M1+M2's 372 bad rows. When components are
+     coupled, the clean unit is often the one that was not coupled to anything.
+  4. **Record the masked defect even when you park the unit.** M3 does not go away because the
+     repair that revealed it was shelved; it is still disabling the repair path today.
+- **RELATED TO [[L-SW-2026-011]], WITH THE ROLES REVERSED — do not merge them.** There, a
+  *permissive* matcher glued back what a stripper had broken, hiding the **stripper**; the guard
+  that fixed the matcher surfaced the day-one bug. Here, a *destructive* stripper deleted the
+  input that would have failed a *restrictive* matcher, hiding the **matcher**. Same family — one
+  step concealing another — but the direction, the diagnosis and the fix are different, and the
+  pairing is worth keeping distinct rather than collapsing into "cleanup hides bugs".
+- **SOURCE:** 2026-08-17, Unit A scoping. Mike's framing, recorded verbatim because it is the
+  generalisation: *"a defect that is currently invisible because another defect is removing its
+  trigger. Any repair that removes the masking defect looks like a regression while actually
+  surfacing a pre-existing one."* **Candidate for cross-project promotion (Mike's call)** — the
+  mechanism is not comics-specific and applies to any pipeline where a cleanup step runs upstream
+  of a matching, parsing or validation step.
 
 ### L-SW-2026-026 — When asked to amend a rule, "it cannot be written yet" is a valid completion — and a replacement that fails WORSE than the original is invisible, because failing differently reads as refinement
 
