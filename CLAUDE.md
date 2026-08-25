@@ -1,7 +1,7 @@
 # Slab Worthy — Claude Code Project Context
 
 **Founder:** Mike Berry (Don Michael Berry II)
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-08-24
 
 > SESSION OPENING PROTOCOL — read in this order before any substantive work:
 > 1. This CLAUDE.md
@@ -59,16 +59,25 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Stack:** Flask/Python, PostgreSQL (Render), Cloudflare R2, Claude API
 - **Frontend:** Vanilla HTML/CSS/JS (no framework)
 - **Target:** ⚰️ ~~GalaxyCon San Jose alpha launch (Aug 21-23, 2026)~~ — **DROPPED 2026-07-29.** ⚰️ ~~soft launch Aug 4, 2026~~ — **DEAD 2026-08-03: Aug 4 was never a live date** (Mike). **The gate is an EVENT, not a date: FIRST COLD TRAFFIC — paid ads or an organic group post — and it is NOT SCHEDULED.** Posture is unchanged (online, gated beta) → ~1 quiet month, no marketing → then Facebook + email only → online-marketing-only through year-end. ⚠️ **Do not sequence, count days, or stage a go/no-go against any calendar date.** SoT: `docs/LAUNCH_READINESS.md`
-- **Revenue:** Pre-revenue, 4-tier Stripe billing live (Free/Pro/Guard/Dealer)
+- **Revenue:** Pre-revenue. **Exactly ONE tier is purchasable: Pro.** All four tiers
+  (Free/Pro/Guard/Dealer) exist in `PLANS` with entitlements fully wired; `guard` and
+  `dealer` are blocked at checkout server-side by `COMING_SOON_PLANS`
+  (`routes/billing.py`). ⚠️ **That is a PURCHASE GATE, not a feature removal** — existing
+  Guard subscribers keep every entitlement, and nothing reads plan state or revokes access.
+  Do not quote "4-tier billing live" as four sellable tiers; only Pro can be bought.
 
 ---
 
 ## Key Architecture
 
 - **Entry:** `wsgi.py` → gunicorn
-- **Routes:** 19 blueprints in `routes/` (~87 endpoints)
+- **Routes:** 24 blueprints in `routes/`, 25 registered (~120 endpoints) — counted 2026-08-24
 - **Critical routes:** `/health`, `/api/grade`, `/api/billing/webhook`, `/api/signatures/v2/match`
-- **Ship sequence:** `git add <specific files>` → `git commit` → `git push` → `deploy` →
+- **Ship sequence** — ⚠️ **TL;DR: `git push` DEPLOYS NOTHING. Render auto-deploy is OFF.**
+  `deploy` and `purge` are separate manual CLI steps, and the wait between them is itself a
+  step. Each is conditional and each fails silently — read the rules below before shipping.
+
+  `git add <specific files>` → `git commit` → `git push` → `deploy` →
   **⏳ WAIT FOR THE PAGES BUILD** → `purge` → **assert the new content is served**
 
   ⚠️ **The wait is a STEP, not a pause.** `purge` acts on Cloudflare; `push` triggers a Pages
@@ -232,11 +241,12 @@ SAME commit**, and the ship block **MUST state the expected version**.
 **Why:** the extensions are loaded **unpacked**, so reloading is a manual step with no confirmation.
 Without a bump, **a forgotten or failed reload is indistinguishable from a successful one** — the same
 class of silent no-op as a Render deploy that doesn't fire. The version in `chrome://extensions` is the
-only observable proof the reload took. This was already biting: `ebay-collector` sat at **1.3.5 from
+only observable proof the reload took. This bit us once: `ebay-collector` sat at **1.3.5 from
 2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
-reloads.
+reloads. **Resolved — it is now 1.4.0.** Current versions (2026-08-24): `ebay-collector` 1.4.0,
+`whatnot-valuator` 2.42.1, `slab-guard-monitor` 1.0.0.
 
-**Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5):**
+**Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5 → 1.4.0):**
 - **patch** — fixes/comments with no observable behaviour change
 - **minor** — behaviour or UI a user would notice (figures added/renamed/removed, banner or popup changes)
 - **major** — rewrite, or a breaking change to capture semantics
@@ -254,7 +264,22 @@ When adding ANY new third-party service, API, or SDK to Slab Worthy:
 3. **Document env vars** — add any new API keys or config to `docs/technical/ARCHITECTURE.txt`.
 4. **Test the monitor** — after adding, hit `/api/admin/dependency-status` to verify the new service appears.
 
-Current monitored services: Anthropic (models), eBay (API deprecations), Stripe (SDK version), eBay account-deletion endpoint (self-check), Resources (self — memory + DB-connection ceilings vs Standard 2GB (upgraded from Starter 512MB, 2026-07-16 OOM incident) / max_connections, item 2f).
+Current monitored services (the `check_all()` tuple — this list must match it): Anthropic (models),
+eBay (API deprecations), eBay account-deletion endpoint (self-check), Stripe (SDK version),
+**AWS Rekognition (boto3 SDK version + a standing moderation-taxonomy coverage gap)**, Resources
+(self — memory + DB-connection ceilings vs Standard 2GB (upgraded from Starter 512MB, 2026-07-16
+OOM incident) / max_connections, item 2f).
+
+⚠️ `dependency_monitor.py` also caches **`manifest`** — the cross-portfolio dependency manifest from
+`Fevit1/ideabyhuman-ops`. It is **NOT a service check**: it is a data source feeding the Anthropic
+model check, which degrades to local `MODEL_CHAINS` when the manifest is unavailable. Listed here so
+the cache keys and this list can be reconciled without one looking like a missing service.
+
+⚠️ **Rekognition was live and UNMONITORED from launch until 2026-08-24** — flagged in
+`docs/LAUNCH_READINESS.md` on 2026-07-07 as a violation of this very rule and left open for seven
+weeks, while this list read as complete. A list that names its gaps is safer than one that implies
+none. If you add a service and cannot automate a check, register it anyway with
+`_unmonitorable_entry()`.
 
 ---
 

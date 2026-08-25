@@ -34,6 +34,7 @@ import hashlib
 import threading
 import xml.etree.ElementTree as ET
 import requests
+from datetime import datetime, timezone
 from models import MODEL_CHAINS
 
 try:
@@ -53,6 +54,7 @@ except ImportError:
 DEPRECATIONS_API = "https://deprecations.info/v1/deprecations.json"
 EBAY_RSS_URL = "https://developer.ebay.com/rss/api-status"
 PYPI_STRIPE_URL = "https://pypi.org/pypi/stripe/json"
+PYPI_BOTO3_URL = "https://pypi.org/pypi/boto3/json"
 CACHE_TTL = 86400  # 24 hours
 
 # Cross-portfolio dependency manifest (github.com/Fevit1/ideabyhuman-ops).
@@ -129,6 +131,7 @@ _caches = {
     'ebay':                 {"data": [], "fetched_at": 0},
     'stripe':               {"data": [], "fetched_at": 0},
     'ebay_account_deletion': {"data": [], "fetched_at": 0},
+    'aws_rekognition':      {"data": [], "fetched_at": 0},
     'manifest':             {"data": None, "fetched_at": 0},
     'resources':            {"data": [], "fetched_at": 0},
 }
@@ -560,6 +563,45 @@ def _parse_major(version_str):
         return None
 
 
+def _pypi_json(url):
+    """Fetch a package's PyPI JSON.
+
+    Raises on network/shape failure so the caller's except arm can build a loud
+    _error_entry — never returns a falsy 'looks fine' on failure.
+    """
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _latest_pypi_version(url):
+    """Latest published version of a package, via the PyPI JSON API."""
+    return (_pypi_json(url).get("info") or {}).get("version", "")
+
+
+def _pypi_release_age_days(data, version):
+    """Days since `version` was published, from an already-fetched PyPI payload.
+
+    Returns None when the version isn't in the index or the date won't parse —
+    an unknown age must not be mistaken for a fresh one, so callers skip rather
+    than warn on None.
+    """
+    files = (data.get("releases") or {}).get(version) or []
+    stamps = [f.get("upload_time_iso_8601") or f.get("upload_time")
+              for f in files if isinstance(f, dict)]
+    stamps = [s for s in stamps if s]
+    if not stamps:
+        return None
+    try:
+        raw = min(stamps).replace("Z", "+00:00")
+        published = datetime.fromisoformat(raw)
+        if published.tzinfo is None:
+            published = published.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - published).days
+    except (ValueError, TypeError):
+        return None
+
+
 def check_stripe(force=False):
     """Check if our Stripe SDK is significantly behind the latest."""
     cache = _caches['stripe']
@@ -574,10 +616,7 @@ def check_stripe(force=False):
         return []
 
     try:
-        resp = requests.get(PYPI_STRIPE_URL, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        latest = (data.get("info") or {}).get("version", "")
+        latest = _latest_pypi_version(PYPI_STRIPE_URL)
 
         warnings = []
         installed_major = _parse_major(installed)
@@ -600,6 +639,170 @@ def check_stripe(force=False):
         cache["data"] = err
         cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
         return err
+
+    cache["data"] = warnings
+    cache["fetched_at"] = now
+    return warnings
+
+
+# =============================================
+# AWS REKOGNITION — image-moderation dependency
+# =============================================
+#
+# Registered 2026-08-24, closing a violation of CLAUDE.md's mandatory
+# third-party rule that stood since Rekognition went live: it was named in
+# docs/LAUNCH_READINESS.md on 2026-07-07 as absent from MONITORED_SERVICES and
+# stayed absent for seven weeks while the docs read as complete coverage.
+#
+# What we depend on: ONE call, from content_moderation.py.
+REKOGNITION_APIS_WE_USE = ['rekognition:DetectModerationLabels']
+
+# Age at which the installed boto3 is called stale. See the rationale in
+# check_aws_rekognition() for why this is an age and not a major-version gap.
+BOTO3_STALE_AFTER_DAYS = int(os.environ.get('BOTO3_STALE_AFTER_DAYS', '365'))
+
+# Read independently rather than imported from content_moderation, for the same
+# reason as EBAY_ACCOUNT_DELETION_ENDPOINT above: importing that module would
+# construct a boto3 client as a side effect of a monitoring check, and reading
+# the env directly means a drift between the two modules' config surfaces
+# shows up here instead of hiding.
+#
+# Read at CHECK time, not import time. A monitored fact evaluated once at module
+# load reports the state at boot forever after; every other input to this file
+# (memory, DB connections, PyPI) is sampled when the check runs, and credentials
+# should be no different.
+def _aws_creds_present():
+    """True when both AWS credential env vars are set, sampled now."""
+    return bool(os.environ.get('AWS_ACCESS_KEY_ID') and
+                os.environ.get('AWS_SECRET_ACCESS_KEY'))
+
+
+def _rekognition_taxonomy_gap():
+    """The standing, un-automatable moderation-taxonomy coverage gap.
+
+    Built by a function rather than inlined because it must appear on EVERY
+    return path including the error one — a coverage gap that vanishes while
+    some unrelated network call is failing is precisely the false 'we're
+    covered' this entry exists to prevent.
+    """
+    return _unmonitorable_entry(
+        "AWS Rekognition",
+        ("AWS publishes no machine-readable feed for Rekognition moderation-label "
+         "deprecations, and the live ModerationModelVersion is only observable in a "
+         "DetectModerationLabels response (which needs a real image, so this check "
+         "cannot poll it for free)"),
+        ("MANUAL REVIEW. content_moderation.py matches AWS label names as hardcoded "
+         "strings (BLOCKED_CATEGORIES / WARNING_CATEGORIES). If AWS changes the "
+         "taxonomy, every match silently returns nothing and the module FAILS OPEN - "
+         "moderation stops blocking with no error anywhere. Note the set currently "
+         "mixes v6-era names ('Explicit Nudity', 'Graphic Violence', 'Visually "
+         "Disturbing', 'Hate Symbols') with v7-era names ('Non-Explicit Nudity of "
+         "Intimate parts and Coverage', 'Drugs & Tobacco: Drug Products'), so at "
+         "least one group cannot be matching whichever model version is live - "
+         "VERIFY THIS FIRST. Recommended fix that would make this automatable: "
+         "persist the ModerationModelVersion already returned on every real call "
+         "and alert here when it changes.")
+    )
+
+
+def _get_installed_boto3_version():
+    """Currently installed boto3 version, or None if not importable."""
+    try:
+        import boto3
+        return boto3.__version__
+    except (ImportError, AttributeError):
+        return None
+
+
+def check_aws_rekognition(force=False):
+    """Watch the AWS Rekognition dependency behind image moderation.
+
+    Three distinct things, because they fail in three different ways:
+
+    1. boto3 MISSING or AWS creds UNSET -> moderation is silently OFF. This is
+       the loudest case and the reason this check exists at all:
+       check_image_content() FAILS OPEN by design (a Rekognition outage must not
+       break uploads), so a disabled moderator and a healthy one look identical
+       from the app's side. Nothing else in the system would ever say so.
+    2. boto3 SDK drifting badly behind PyPI -- same >=2-major rule as Stripe.
+    3. The moderation LABEL TAXONOMY, which is not automatable and is therefore
+       reported honestly as a standing coverage gap rather than left silent.
+    """
+    cache = _caches['aws_rekognition']
+    now = time.time()
+    if not force and (now - cache["fetched_at"]) < CACHE_TTL:
+        return cache["data"]
+
+    warnings = []
+    installed = _get_installed_boto3_version()
+
+    # (1) Is the moderator actually wired up at all?
+    if not installed:
+        warnings.append({
+            "service": "AWS Rekognition",
+            "item": "boto3",
+            "detail": "boto3 is not installed - image moderation is DISABLED.",
+            "date": "",
+            "url": "https://pypi.org/project/boto3/",
+            "action": ("content_moderation.py cannot construct a Rekognition client, so "
+                       "check_image_content() returns 'not configured' and every uploaded "
+                       "image passes unmoderated. Restore boto3 (requirements.txt pins "
+                       "boto3>=1.28.0) or accept the gap explicitly."),
+            "status": "error",
+        })
+    elif not _aws_creds_present():
+        warnings.append({
+            "service": "AWS Rekognition",
+            "item": "AWS credentials",
+            "detail": "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not set - image moderation is DISABLED.",
+            "date": "",
+            "url": "",
+            "action": ("boto3 is installed but content_moderation.py leaves rekognition_client "
+                       "as None without both credentials, so MODERATION_AVAILABLE is False and "
+                       "every uploaded image passes unmoderated. Set both env vars on Render, or "
+                       "accept the gap explicitly."),
+            "status": "error",
+        })
+
+    # (2) SDK drift - only meaningful when boto3 is actually present.
+    #
+    # NOT the >=2-major rule used for Stripe: boto3 has been on major 1 for its
+    # entire life and ships a new MINOR roughly weekly as AWS adds APIs, so a
+    # major-gap test can never fire and would be monitoring theatre. Age of the
+    # installed release is the version-scheme-independent signal. One year is a
+    # deliberately loose floor - boto3 drift is a slow risk (a Rekognition API
+    # change we cannot call), not an urgent one.
+    if installed:
+        try:
+            data = _pypi_json(PYPI_BOTO3_URL)
+            latest = (data.get("info") or {}).get("version", "")
+            age_days = _pypi_release_age_days(data, installed)
+            if age_days is not None and age_days >= BOTO3_STALE_AFTER_DAYS:
+                warnings.append({
+                    "service": "AWS Rekognition",
+                    "item": f"boto3=={installed}",
+                    "detail": (f"Installed v{installed} was published {age_days} days ago; "
+                               f"latest is v{latest}"),
+                    "date": "",
+                    "url": "https://github.com/boto/boto3/blob/develop/CHANGELOG.rst",
+                    "action": (f"boto3 is over {BOTO3_STALE_AFTER_DAYS // 365} year(s) stale. "
+                               f"Rekognition API additions and model-version changes ship through "
+                               f"the SDK, so review the changelog and update: "
+                               f"pip install -U boto3 (currently {latest})."),
+                })
+        except Exception as e:
+            print(f"[DependencyMonitor] boto3 PyPI check failed: {e}")
+            # Carry BOTH the already-detected warnings and the standing taxonomy
+            # gap through the error path — a PyPI outage must not make the
+            # coverage gap look closed.
+            err = warnings + [_error_entry("AWS Rekognition", e),
+                              _rekognition_taxonomy_gap()]
+            cache["data"] = err
+            cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
+            return err
+
+    # (3) The taxonomy gap. Permanent and deliberate - see _unmonitorable_entry.
+    warnings.append(_rekognition_taxonomy_gap())
 
     cache["data"] = warnings
     cache["fetched_at"] = now
@@ -807,6 +1010,7 @@ def check_all(force=False):
         ("eBay", check_ebay),
         ("eBay Account-Deletion Endpoint (self)", check_ebay_account_deletion),
         ("Stripe", check_stripe),
+        ("AWS Rekognition", check_aws_rekognition),
         ("Resources (self)", check_resources),
     )
 
