@@ -65,6 +65,25 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
      coupled, the clean unit is often the one that was not coupled to anything.
   4. **Record the masked defect even when you park the unit.** M3 does not go away because the
      repair that revealed it was shelved; it is still disabling the repair path today.
+- **🔴 A SECOND INSTANCE, COMMITTED WHILE BUILDING THE GUARD FOR THE FIRST.** The qualifier
+  guard written to block the false merge was authored through a shell heredoc, and `\b` in a
+  non-raw Python string collapsed to `` — Python's **backspace escape**. The file received a
+  literal `0x08` byte, so the pattern was `annual` and **matched nothing, ever**. It was
+  caught only because the guard failed to block a case it obviously should have; `cat -A` showed
+  `^H`. A second heredoc failure in the same stretch collapsed `'\'+mod` to `''+mod`, escaping a
+  closing quote and killing a 10-minute run.
+  **Why this belongs in THIS lesson and not a separate one:** a regex containing an invisible
+  control character is *precisely the failure this guard exists to prevent* — **a rule that looks
+  correct and matches nothing.** The masking defect and the botched guard are the same epistemic
+  problem at two layers: something that appears to be working because the thing that would reveal
+  it is absent. **The fix in both cases was to remove the class rather than escape around it** —
+  the guard was rewritten with token membership instead of regex, and the runner with
+  `os.path.join` instead of concatenated path strings. Mike: *"removing the class rather than
+  escaping around it."*
+  **HOW TO APPLY:** never author a regex or a path through a heredoc that applies its own escaping.
+  Write the literal to a file with a quoted delimiter, or use a construct with no backslashes at
+  all. And **positive-control every new guard against a case it must block** before trusting a
+  clean run — a guard that never fires is indistinguishable from a guard with nothing to do.
 - **RELATED TO [[L-SW-2026-011]], WITH THE ROLES REVERSED — do not merge them.** There, a
   *permissive* matcher glued back what a stripper had broken, hiding the **stripper**; the guard
   that fixed the matcher surfaced the day-one bug. Here, a *destructive* stripper deleted the

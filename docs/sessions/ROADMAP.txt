@@ -281,6 +281,35 @@
 
 ---
 
+## 📦 LOT ROWS — RETAINED DELIBERATELY. NON-GOAL FOR NOW, NOT CONTAMINATION.
+
+**Recorded 2026-08-17 at Mike's direction. Read this before proposing any purge or cleanup.**
+
+**THE DECISION:** rows with `is_lot = true` stay in `ebay_sales` and `market_sales` permanently.
+They are excluded from comp pools at query time by `sales_valuation.py`, and nothing purges them.
+That is correct and it stays that way — the exclusion is a QUERY-TIME shield, not a statement
+that the rows are worthless.
+
+**WHY THIS IS EASY TO GET WRONG:** several places in this repo describe lots as "contamination",
+and for single-issue valuation they are exactly that — which is why the shield exists. But they
+are **inventory for a different product.** Lot pricing is a future direction: what a run of issues
+sells for as a bundle, how the bundle price relates to the sum of its parts, and where the
+arbitrage sits. That question cannot be asked from data that was deleted.
+
+**WHAT MAKES IT RECOVERABLE LATER:** `raw_title` is retained on **274,344 of 274,344 rows**
+(measured 2026-08-17, zero nulls). Issue span, item count and run completeness are all derivable
+from it later, even though nothing parses them today. **No schema change is needed now** —
+retention alone preserves the option.
+
+⚠️ **THE FAILURE MODE THIS ENTRY EXISTS TO PREVENT:** someone reads "lots are contamination"
+in `docs/LESSONS.md`, `docs/LAUNCH_READINESS.md` or a SQL comment, concludes the rows are junk,
+and proposes a cleanup. **Deletion is irreversible and forecloses the product direction.** A lot
+row is contamination *for single-issue valuation* AND inventory *for lot pricing*. Both are true
+at the same time, and only the first one is written down anywhere else.
+
+**NOT SCHEDULED.** No unit, no date, no owner. This is a retention rationale and an explicit
+non-goal-for-now, not a commitment to build.
+
 ## High Priority
 
 ### Stripe Billing & Plan Enforcement (COMPLETE - Session 44)
