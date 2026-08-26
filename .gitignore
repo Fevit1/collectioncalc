@@ -101,3 +101,11 @@ AdminCheckjs.js
 # if it is ever committed and then restored on another machine, a re-run would
 # silently skip sends that machine never made.
 scripts/cohort_mailer_sent.jsonl
+
+# Untracked, deliberately: CP-1 scratch scripts and Slab Guard experiment artifacts
+scripts/cp1_*.py
+scripts/cp1_output/
+scripts/e3_edge_sequence_test.py
+tests/SlabGuardTests/*.csv
+tests/SlabGuardTests/EXPERIMENT2_DESIGN.md
+
