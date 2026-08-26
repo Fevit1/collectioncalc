@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-17 (26 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-08-26 (27 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -18,6 +18,57 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
 > `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
 > silently redirect that link.
+
+### L-SW-2026-028 — A claim is only as good as the surface you checked it against — and some surfaces cannot return a hit
+
+- **RULE:** Before asserting that something exists or doesn't, **name the surface you checked
+  and confirm that surface can return a hit for the thing you're asking about.** `git status`
+  cannot see ignored files. `grep` cannot see BO-side files, external copy surfaces, or
+  dashboard config. A file committed to git is not necessarily in the container
+  ([[L-SW-2026-023]]), and present in the container is not necessarily served
+  ([[L-SW-2026-022]]). An answer read off a surface that is blind to the question is not
+  evidence in either direction — **invisibility is not absence, and absence from one surface is
+  not absence from the world.**
+- **WHY:** Two instances on 2026-08-25/26, in **opposite directions, within hours of each
+  other** — and neither was carelessness; both were correct reasoning about the wrong surface:
+  · Claude reported `.claude/launch.json` as committed. It was never tracked: `.gitignore`
+    covers `.claude/`, so the file was invisible to `git status`, and **invisibility was read
+    as inclusion**. The probe could not have returned a hit. Caught by Mike's file-specific
+    staging.
+  · Mike briefed Claude that the deletion-request runbook was *"drafted in content, never
+    written into `docs/`"* — BO-side wording in a project-storage file, cited as if it were a
+    repo claim. Claude correctly reported it ungreppable: **it did not exist in the repo's
+    world at all.** Meanwhile `docs/SW_deletion_request_runbook.md` had been committed since
+    2026-06-19, and `WHERE_WE_LEFT_OFF.md:3411` recorded it correctly.
+  **This is the general form of [[L-SW-2026-021]].** That lesson was written about third-party
+  copy being invisible to sweeps; the actual rule is wider and covers every instance the
+  project has hit: `.gitignore` hiding files from `git status`; `.dockerignore` excluding
+  `docs/` so a committed file never reaches the container ([[L-SW-2026-023]]); BO strategy docs
+  invisible to grep; audits that grep for the CLAIM instead of the READER ([[L-SW-2026-018]]);
+  the June tier-honesty pass clearing `multi_photo` on a docstring sitting above a call that
+  checked a different key — a false pass that stood ten weeks.
+  **And it runs in both directions on the same artifact:** the session notes beside the runbook
+  entry record an earlier scare of believing it written when it wasn't. Claim and artifact have
+  now been out of sync in both directions on one document. **Remembering is not checking.**
+- **HOW TO APPLY:**
+  1. **Existence claims name their surface.** "Committed" means `git ls-files --error-unmatch
+     <path>` or `git log -- <path>` said so — not that `git status` didn't list it. "In the
+     container" means the deploy path put it there, not that it's on disk. "Retired" means the
+     reader surfaces were enumerated (`docs/EXTERNAL_COPY_SURFACES.md`), not that repo grep came
+     back empty.
+  2. **Know the standing blind pairs and don't cross them silently:** `.gitignore` ↔
+     `git status`; `.dockerignore` ↔ the container; BO project storage and every external
+     dashboard ↔ `grep`; disk ↔ served (edge cache).
+  3. **When briefing across the BO/DO boundary, never quote BO-side text as if it were a repo
+     string.** Quote the location, or restate it as context the other side cannot verify — and
+     expect (do not argue with) "that doesn't exist in my world" as the correct answer.
+  4. **When a null result carries weight, positive-control it** — [[L-SW-2026-015]] applied to
+     lookups rather than to guards: prove the surface could have returned a hit before letting
+     its silence decide anything.
+- **SOURCE:** 2026-08-26 session close and its addendum — the `launch.json` mis-attribution and
+  the runbook mis-briefing, same night, opposite directions. **Promoted to cross-project as
+  L-2026-029 (Mike, 2026-08-26)** — the promoted form cites L-2026-024 as its sibling
+  (capability vs surface) rather than restating it.
 
 ### L-SW-2026-027 — A defect can be invisible because a SECOND defect deletes its trigger; repairing the mask looks exactly like causing a regression
 
