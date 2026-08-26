@@ -54,9 +54,13 @@ async function getAuthHeaders() {
 
 async function checkImage(imageUrl, stolenOnly = false) {
   try {
+    // authHeaders(), not bare Content-Type (fixed 2026-08-25): the server now
+    // strips owner_display from UNAUTHENTICATED check-image responses, and
+    // this call was the one legitimate reader of that field (showMatchPanel).
+    // The helper existed all along; this call just never used it.
     const response = await fetch(`${API_BASE}/api/monitor/check-image`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         image_url: imageUrl,
         stolen_only: stolenOnly,

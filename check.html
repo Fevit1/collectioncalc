@@ -754,23 +754,47 @@
             for (const match of data.matches) {
                 const isStolen = match.status === 'reported_stolen';
                 const serial = match.serial_number || 'Unknown';
-                const title = match.title || 'Unknown Title';
-                const issue = match.issue || '?';
-                const confidence = Math.round(match.confidence || 0);
+                // ⚰️ FIXED 2026-08-25: title/issue were read from match.title /
+                // match.issue — TOP-LEVEL KEYS THAT NEVER EXISTED. The API has
+                // always nested them at match.comic.title / .issue_number
+                // (routes/monitor.py find_matches), so every match card ever
+                // rendered said "Unknown Title #?" — the || fallback dressed a
+                // permanent contract break as missing data (L-SW-2026-018:
+                // verify the READER exists).
+                const comic = match.comic || {};
+                const title = comic.title || 'Unknown Title';
+                const issue = comic.issue_number || '?';
                 const copyVerdict = match.copy_match || 'uncertain';
 
-                // Alert level
-                let alertClass = 'alert-low';
-                let alertText = 'Low Match';
+                // ── Badge: keyed to the COPY-LEVEL verdict, not the hash ──
+                // ⚰️ REPLACED 2026-08-25: the badge read match.confidence — the
+                // ISSUE-level composite-hash similarity — beside body text that
+                // reads the copy-level verdict. Any registered copy of the same
+                // issue therefore rendered a red STRONG MATCH above "the copies
+                // look different", every time (hash ≈100, the −15 copy penalty
+                // can never cross the old 80 threshold). Same decision as the
+                // app.html:1253/:3044 tombstones: a second signal rendered as a
+                // peer of the verdict is A LABEL THAT CAN ONLY DISAGREE, NEVER
+                // INFORM. The badge now agrees with the body text by reading
+                // the same variable. The confidence % and match_type cells are
+                // REMOVED, not relocated (the % is issue-level hash arithmetic
+                // answering a question this card doesn't ask; match_type
+                // recorded the requested mode, not what ran). CLAIMS RULE: no
+                // badge asserts same-copy identification — cross-camera
+                // matching is unvalidated (E3 FP 4/6, rejected).
+                let alertClass, alertText;
                 if (isStolen) {
                     alertClass = 'alert-high';
                     alertText = 'REPORTED STOLEN';
-                } else if (confidence >= 80) {
+                } else if (copyVerdict === 'same_copy') {
                     alertClass = 'alert-high';
-                    alertText = 'Strong Match';
-                } else if (confidence >= 50) {
+                    alertText = 'Strong Candidate';
+                } else if (copyVerdict === 'different_copy') {
+                    alertClass = 'alert-low';
+                    alertText = 'Same Issue, Copies Differ';
+                } else {
                     alertClass = 'alert-medium';
-                    alertText = 'Possible Match';
+                    alertText = 'Uncertain';
                 }
 
                 // Copy verdict display
@@ -808,16 +832,8 @@
                                 <div class="value">${serial}</div>
                             </div>
                             <div class="match-detail">
-                                <div class="label">Confidence</div>
-                                <div class="value">${confidence}%</div>
-                            </div>
-                            <div class="match-detail">
                                 <div class="label">Status</div>
                                 <div class="value">${isStolen ? '&#128308; Reported Stolen' : '&#128994; Active'}</div>
-                            </div>
-                            <div class="match-detail">
-                                <div class="label">Match Type</div>
-                                <div class="value">${match.match_type || 'fingerprint'}</div>
                             </div>
                         </div>
                         ${verdictHtml}

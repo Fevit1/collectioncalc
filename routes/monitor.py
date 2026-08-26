@@ -558,6 +558,25 @@ def find_matches(query_hash, max_distance=20, stolen_only=False,
 # ENDPOINTS
 # ============================================================
 
+def _strip_private_match_fields(matches, authenticated):
+    """Remove fields that must not leave the server, in place.
+
+    Internal fields (_reg_*) go for everyone. owner_display — the masked
+    owner email — additionally goes for UNAUTHENTICATED callers (2026-08-25):
+    check-image is public via check.html, check.html never renders the field,
+    and a masked email + serial + registration date served to strangers is a
+    correlation surface with no consumer. The one legitimate reader (the
+    slab-guard-monitor extension's detail panel) authenticates as of 1.0.1,
+    so it keeps the field. The serial number deliberately STAYS public — the
+    whole design routes strangers to the serial as the deterministic path.
+    """
+    for match in matches:
+        match.pop('_reg_photo_url', None)
+        match.pop('_reg_extra_photos', None)
+        if not authenticated:
+            match.pop('owner_display', None)
+
+
 @monitor_bp.route('/check-image', methods=['POST'])
 @rate_limit
 @check_rate_limit
@@ -597,6 +616,19 @@ def check_image():
     use_sift = data.get('use_sift', True)       # SIFT+edge IoU (fast, default on)
     use_vision = data.get('use_vision', False)   # Claude Vision (slower, $0.03/call)
     marketplace_mode = data.get('marketplace_mode', False)  # Session 52: loose hash gate for eBay photos
+
+    # ── Server-side gate on the paid/loosened modes (2026-08-25) ──
+    # use_vision and marketplace_mode were honored from ANY caller — but this
+    # endpoint is public (check.html's anonymous flow), so an unauthenticated
+    # POST could force the Vision arbiter (~$0.015–0.03/call) and the loosened
+    # marketplace hash gate. The logged-in/anonymous split was enforced only
+    # client-side (check.html sends use_vision: isLoggedIn), which is not
+    # enforcement. g.user_id comes from the verified JWT in wsgi's
+    # before_request; without it, both flags are refused, matching what the
+    # anonymous page requests anyway.
+    if not getattr(g, 'user_id', None):
+        use_vision = False
+        marketplace_mode = False
 
     matches = find_matches(
         query_hash,
@@ -685,9 +717,7 @@ def check_image():
                 sift_results[match['serial_number']] = {'error': str(e)}
 
     # Strip internal fields before returning
-    for match in matches:
-        match.pop('_reg_photo_url', None)
-        match.pop('_reg_extra_photos', None)
+    _strip_private_match_fields(matches, authenticated=bool(getattr(g, 'user_id', None)))
 
     return jsonify({
         'success': True,
@@ -729,6 +759,7 @@ def check_hash():
     max_distance = data.get('max_distance', 20)
     stolen_only = data.get('stolen_only', False)
     matches = find_matches(query_hash, max_distance=max_distance, stolen_only=stolen_only)
+    _strip_private_match_fields(matches, authenticated=bool(getattr(g, 'user_id', None)))
 
     return jsonify({
         'success': True,

@@ -415,7 +415,7 @@
           </div>
           <div>
             <div style="font-size: 11px; text-transform: uppercase; color: #9ca3af; font-weight: 600;">Owner</div>
-            <div style="font-size: 13px; color: #374151;">${match.owner_display}</div>
+            <div style="font-size: 13px; color: #374151;">${match.owner_display || '&mdash;'}</div>
           </div>
           <div>
             <div style="font-size: 11px; text-transform: uppercase; color: #9ca3af; font-weight: 600;">Registered</div>
