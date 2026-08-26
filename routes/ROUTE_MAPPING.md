@@ -81,10 +81,9 @@ GET /api/sales/valuation  → api_sales_valuation()
 GET /api/sales/fmv        → api_sales_fmv()
 ```
 
-### images.py (7 routes, prefix=/api/images)
+### images.py (6 routes, prefix=/api/images)
 ```
-POST /api/images/upload           → api_r2_upload_image()
-POST /api/images/upload-for-sale  → api_upload_image_for_sale()
+POST /api/images/upload           → api_r2_upload_image()         [public by design; rate-limited + moderated]
 POST /api/images/submission       → api_upload_submission_image()
 GET  /api/images/status           → api_images_status()
 POST /api/images/upload-extra     → api_upload_extra_photo()      [auth+approved]

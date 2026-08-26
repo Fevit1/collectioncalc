@@ -110,36 +110,12 @@
     }
   }
 
-  /**
-   * Upload image separately (if needed after sale is recorded)
-   * @param {number} saleId - The sale ID
-   * @param {string} imageBase64 - Base64 encoded image
-   */
-  async function uploadImage(saleId, imageBase64) {
-    try {
-      const response = await fetch(`${COLLECTIONCALC_API}/api/images/upload-for-sale`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sale_id: saleId,
-          image: imageBase64
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log(`[CollectionCalc] 📷 Image uploaded for sale ${saleId}`);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('[CollectionCalc] Image upload error:', error);
-      return { success: false, error: error.message };
-    }
-  }
+  // ⚰️ REMOVED 2026-08-25: uploadImage(saleId, imageBase64). DEAD.
+  // REASON: exported but never invoked anywhere in this extension — sale
+  // images ship inline with insertSale via POST /api/sales/record, and the
+  // backend does its own R2 upload. Its endpoint (/api/images/upload-for-sale)
+  // was deleted in the same unit (routes/images.py carries the tombstone), so
+  // restoring this function would call a 404.
 
   /**
    * Get Fair Market Value data for a comic from sales history
@@ -223,7 +199,6 @@
     insertSale,
     getRecentSales,
     getSalesCount,
-    uploadImage,
     getFMV
   };
 
@@ -232,7 +207,6 @@
     insertSale,
     getRecentSales,
     getSalesCount,
-    uploadImage,
     getFMV,
     API_URL: COLLECTIONCALC_API
   };

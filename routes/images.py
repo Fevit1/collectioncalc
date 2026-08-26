@@ -47,101 +47,118 @@ def init_modules(r2_available, upload_sale_func, upload_temp_func, upload_sub_fu
     get_image_hash = hash_func
 
 
+# ── Rate limit for the anonymous upload path ──
+# Same budget as /api/monitor/check-image's limiter (10 per 5 min per IP,
+# routes/monitor.py) because check.html's flow is one upload followed by one
+# check — matching budgets keep the two gates coherent. Deliberately a
+# SEPARATE store from monitor.py's: sharing _check_rate_store would make
+# upload+check draw from one bucket and halve the effective check budget.
+# Per-worker in-memory, same as the monitor.py precedent (2 workers → worst
+# case 2× the nominal ceiling; acceptable for an abuse gate).
+_upload_rate_store = {}  # ip -> (count, window_start)
+UPLOAD_RATE_LIMIT_MAX = 10
+UPLOAD_RATE_LIMIT_WINDOW = 300  # seconds
+
+
+def _upload_rate_limited(ip):
+    """True if this IP is over the anonymous-upload budget. Counts the call."""
+    now = time.time()
+    count, window_start = _upload_rate_store.get(ip, (0, now))
+    if now - window_start > UPLOAD_RATE_LIMIT_WINDOW:
+        count, window_start = 0, now
+    if count >= UPLOAD_RATE_LIMIT_MAX:
+        return True
+    _upload_rate_store[ip] = (count + 1, window_start)
+    return False
+
+
 @images_bp.route('/upload', methods=['POST'])
 def api_r2_upload_image():
     """
-    Upload an image to R2 storage.
-    Used by Whatnot extension to upload sale images.
-    
+    Upload an image to R2 temp storage (whatnot/{timestamp}_{id}.jpg).
+
+    Live caller: check.html — the PUBLIC Slab Guard "Check a Comic" page.
+    That flow is tokenless BY DESIGN (public users get the SIFT-only check),
+    so this endpoint stays unauthenticated; the gates are rate limit +
+    moderation, hardened 2026-08-25 when cold traffic arrived.
+
+    ⚰️ REMOVED 2026-08-25: the `sale_id` branch (stored straight to
+    sales/{id}/front.jpg via upload_sale_image). DEAD. REASON: no caller ever
+    sent sale_id — check.html doesn't, and the whatnot extension records
+    sales through /api/sales/record, which does its own inline R2 upload
+    server-side (routes/sales_market.py) — while the branch let an
+    unauthenticated POST overwrite any sale's stored image. sale_id is now
+    explicitly rejected rather than silently ignored so a confused caller
+    hears about it (L-SW-2026-020: reinterpreting input is worse than
+    refusing it).
+
     Body: {
         "image": "base64 encoded image data",
-        "sale_id": 123,  // optional - if provided, stores as sales/{id}/front.jpg
-        "type": "front"  // optional - front, back, spine, centerfold (for B4Cert)
+        "type": "front"  // accepted but unused; temp path ignores it
     }
     """
     if not R2_AVAILABLE:
         return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
-    
-    data = request.get_json() or {}
+
+    if _upload_rate_limited(request.remote_addr or 'unknown'):
+        return jsonify({
+            'success': False,
+            'error': 'Rate limit exceeded. Try again in a few minutes.'
+        }), 429
+
+    # silent=True: a malformed/non-JSON body (routine from bot scanners on a
+    # public endpoint) must land in OUR 400 below, not Flask's default
+    # error page — same lesson /submission carries (L-SW-2026-007).
+    data = request.get_json(silent=True) or {}
     image_data = data.get('image')
-    
+
     if not image_data:
         return jsonify({'success': False, 'error': 'Image data required'}), 400
-    
-    sale_id = data.get('sale_id')
-    image_type = data.get('type', 'front')
-    
-    if sale_id:
-        # Upload directly to sale path
-        result = upload_sale_image(sale_id, image_data, image_type)
-    else:
-        # Upload to temp location
-        result = upload_temp_image(image_data, 'whatnot')
-    
+
+    if data.get('sale_id'):
+        return jsonify({
+            'success': False,
+            'error': 'sale_id is no longer accepted here; sale images are '
+                     'uploaded via /api/sales/record.'
+        }), 400
+
+    # Content moderation BEFORE storing — mirrors every other upload surface.
+    # user_id is normally None here (public page); incidents still log.
+    if moderate_image:
+        mod_result = moderate_image(image_data)
+        if mod_result.get('blocked'):
+            if log_moderation_incident and get_image_hash:
+                log_moderation_incident(
+                    getattr(g, 'user_id', None), '/api/images/upload',
+                    mod_result, get_image_hash(image_data)
+                )
+            return jsonify({
+                'success': False,
+                'error': 'Image rejected: inappropriate content detected.',
+                'moderation': True
+            }), 400
+        if mod_result.get('warnings'):
+            if log_moderation_incident and get_image_hash:
+                log_moderation_incident(
+                    getattr(g, 'user_id', None), '/api/images/upload',
+                    mod_result, get_image_hash(image_data)
+                )
+
+    result = upload_temp_image(image_data, 'whatnot')
     return jsonify(result)
 
 
-@images_bp.route('/upload-for-sale', methods=['POST'])
-def api_upload_image_for_sale():
-    """
-    Upload an image and associate it with a sale record.
-    Updates the market_sales.image_url field.
-    Now includes barcode scanning.
-    
-    Body: {
-        "image": "base64 encoded image data",
-        "sale_id": 123
-    }
-    """
-    if not R2_AVAILABLE:
-        return jsonify({'success': False, 'error': 'Image storage not configured'}), 503
-    
-    data = request.get_json() or {}
-    image_data = data.get('image')
-    sale_id = data.get('sale_id')
-    
-    if not image_data:
-        return jsonify({'success': False, 'error': 'Image data required'}), 400
-    if not sale_id:
-        return jsonify({'success': False, 'error': 'sale_id required'}), 400
-    
-    # Upload to R2
-    result = upload_sale_image(sale_id, image_data, 'front')
-    
-    if not result.get('success'):
-        return jsonify(result), 500
-    
-    # Scan barcode from image
-    barcode_result = scan_barcode_from_base64(image_data) if scan_barcode_from_base64 else None
-    upc_main = barcode_result.get('upc_main') if barcode_result else None
-    upc_addon = barcode_result.get('upc_addon') if barcode_result else None
-    is_reprint = barcode_result.get('is_reprint', False) if barcode_result else False
-    
-    # Update database with new image URL and barcode data
-    database_url = os.environ.get('DATABASE_URL')
-    
-    try:
-        conn = _dbpool.get_db()
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE market_sales 
-            SET image_url = %s,
-                upc_main = COALESCE(%s, upc_main),
-                upc_addon = COALESCE(%s, upc_addon),
-                is_reprint = COALESCE(%s, is_reprint)
-            WHERE id = %s
-        """, (result['url'], upc_main, upc_addon, is_reprint, sale_id))
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        result['upc_main'] = upc_main
-        result['upc_addon'] = upc_addon
-        result['is_reprint'] = is_reprint
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+# ⚰️ REMOVED 2026-08-25: POST /api/images/upload-for-sale. DEAD.
+# REASON: zero live callers — its only nominal caller was uploadImage() in
+# CCExtensions/whatnot-valuator/lib/collectioncalc.js, which was exported but
+# never invoked (removed in the same unit, manifest 2.42.2). The whatnot
+# extension actually ships images inline with /api/sales/record, which does
+# its own server-side R2 upload (routes/sales_market.py) — all 4,113
+# market_sales rows with R2 sales/ URLs came from there, verified read-only
+# 2026-08-25. Meanwhile the endpoint let an UNAUTHENTICATED post overwrite
+# image_url, upc_main, upc_addon and is_reprint on ANY market_sales row — a
+# corpus-tamper surface with no legitimate user. Deleting beat hardening.
+# Do not re-add without an authenticated caller that actually needs it.
 
 
 @images_bp.route('/submission', methods=['POST'])
