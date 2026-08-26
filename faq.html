@@ -537,8 +537,17 @@
                         <span class="faq-icon">▼</span>
                     </button>
                     <div class="faq-answer">
-                        <p>Slab Guard includes a free Chrome extension that monitors eBay listings in real time. When you browse eBay comic search results, the extension automatically checks listing images against the Slab Guard registry and overlays status badges directly on the page — red for reported stolen, green for registered and verified.</p>
-                        <p>You can also manually check any individual eBay listing with one click. The extension is available in the Chrome Web Store and works with any Slab Worthy account.</p>
+                        <!-- ⚰️ REWRITTEN 2026-08-26: the previous answer described the
+                             auto-scan browser extension as "available in the Chrome Web
+                             Store". It has never been published — developer-mode load is
+                             the only install path — so the claim was a false promise on a
+                             public page (L-SW-2026-021). Do not re-add store or real-time
+                             monitoring claims until the extension actually ships. The two
+                             flows described below are live and server-enforced:
+                             check.html (photo check) and verify.html (serial lookup +
+                             Report a Sighting, owner notified without email exposure). -->
+                        <p>If you spot a listing that might be a registered comic, you can <a href="/check.html" style="color: var(--primary);">check its photo</a> against the Slab Guard registry — no serial number needed. Photo comparison surfaces candidate matches for you to review; a <a href="/verify.html" style="color: var(--primary);">serial number lookup</a> is the definitive check.</p>
+                        <p>If a listing matches someone's registered comic, use <a href="/verify.html" style="color: var(--primary);">Report a Sighting</a> and the registered owner is alerted — without their contact details ever being shared. A browser extension that flags candidate listings while you browse eBay is in development and not yet available.</p>
                     </div>
                 </div>
                 <div class="faq-item">
