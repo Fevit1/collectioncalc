@@ -109,3 +109,5 @@ scripts/e3_edge_sequence_test.py
 tests/SlabGuardTests/*.csv
 tests/SlabGuardTests/EXPERIMENT2_DESIGN.md
 
+/Untitled-*.md
+
