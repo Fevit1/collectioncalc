@@ -677,31 +677,37 @@ def _aws_creds_present():
                 os.environ.get('AWS_SECRET_ACCESS_KEY'))
 
 
-def _rekognition_taxonomy_gap():
-    """The standing, un-automatable moderation-taxonomy coverage gap.
+def _rekognition_taxonomy_gap(last_seen_version=None):
+    """The standing, narrowed moderation-taxonomy coverage gap.
 
     Built by a function rather than inlined because it must appear on EVERY
     return path including the error one — a coverage gap that vanishes while
     some unrelated network call is failing is precisely the false 'we're
     covered' this entry exists to prevent.
+
+    Narrowed 2026-08-25: the category sets were rewritten against the live
+    v7.0 taxonomy, and content_moderation now persists ModerationModelVersion
+    from every real call (rekognition_model_versions table) with a
+    version-change alert in check_aws_rekognition(). What REMAINS
+    unmonitorable is label-name drift WITHIN a model version — AWS publishes
+    no machine-readable label feed, so a renamed label with an unchanged
+    version number would still unhook silently.
     """
+    seen = (f"Model version tracking is ACTIVE; last seen: {last_seen_version}."
+            if last_seen_version else
+            "Model version tracking is ACTIVE; no version recorded yet (no real "
+            "moderation call since ship, or the table is unreachable).")
     return _unmonitorable_entry(
         "AWS Rekognition",
-        ("AWS publishes no machine-readable feed for Rekognition moderation-label "
-         "deprecations, and the live ModerationModelVersion is only observable in a "
-         "DetectModerationLabels response (which needs a real image, so this check "
-         "cannot poll it for free)"),
-        ("MANUAL REVIEW. content_moderation.py matches AWS label names as hardcoded "
-         "strings (BLOCKED_CATEGORIES / WARNING_CATEGORIES). If AWS changes the "
-         "taxonomy, every match silently returns nothing and the module FAILS OPEN - "
-         "moderation stops blocking with no error anywhere. Note the set currently "
-         "mixes v6-era names ('Explicit Nudity', 'Graphic Violence', 'Visually "
-         "Disturbing', 'Hate Symbols') with v7-era names ('Non-Explicit Nudity of "
-         "Intimate parts and Coverage', 'Drugs & Tobacco: Drug Products'), so at "
-         "least one group cannot be matching whichever model version is live - "
-         "VERIFY THIS FIRST. Recommended fix that would make this automatable: "
-         "persist the ModerationModelVersion already returned on every real call "
-         "and alert here when it changes.")
+        ("AWS publishes no machine-readable feed for moderation-label changes, so "
+         "label renames WITHIN a model version cannot be detected automatically "
+         "(cross-version migrations now alert via the persisted "
+         "ModerationModelVersion)"),
+        ("MANUAL REVIEW on any taxonomy doubt. content_moderation.py matches AWS "
+         "label names as hardcoded strings (BLOCKED_CATEGORIES / "
+         "WARNING_CATEGORIES), verified against v7.0 on 2026-08-25; a label AWS "
+         "renames without a version bump would silently stop matching and the "
+         "module FAILS OPEN. " + seen)
     )
 
 
@@ -714,19 +720,132 @@ def _get_installed_boto3_version():
         return None
 
 
+def _moderation_wiring_status():
+    """Observe whether moderation is actually wired into the running app.
+
+    THE GAP THIS CLOSES: if `from content_moderation import ...` fails at boot
+    (wsgi.py catches it and sets moderate_image = None), every route's
+    `if moderate_image:` guard silently skips the whole moderation block — no
+    DB row, no per-request log line, response byte-identical to a clean pass.
+    The boto3/creds checks below cover the two likeliest CAUSES of that state;
+    this covers the STATE itself, whatever caused it (import failure, wiring
+    regression, init-order bug).
+
+    Deliberately NOT fail-closed: the runtime fail-open is a documented design
+    decision in content_moderation.py (a Rekognition outage must not break the
+    app), and a boot-time import defect failing closed would take down all
+    uploads and grading over a moderation-side bug — inverted priorities. The
+    import-failure state is permanent for the container's life, which makes it
+    an ideal monitoring target: no flapping, and it cannot self-heal, so one
+    loud alert is exactly right.
+
+    Mechanics: reads the exact module-global guard variables the request path
+    checks, via sys.modules — no imports are triggered (an import here could
+    construct a boto3 client, or worse, mask the very failure being checked).
+
+    Returns None when not applicable (wsgi not loaded — script/CLI context),
+    else the list of route modules whose moderate_image is None (empty list =
+    healthy).
+    """
+    import sys
+    if 'wsgi' not in sys.modules:
+        return None
+    unwired = []
+    for mod_name in ('routes.grading', 'routes.images', 'routes.vision'):
+        mod = sys.modules.get(mod_name)
+        if mod is not None and getattr(mod, 'moderate_image', None) is None:
+            unwired.append(mod_name)
+    return unwired
+
+
+def _rekognition_model_versions_seen():
+    """Distinct ModerationModelVersions observed, oldest first.
+
+    Reads the rekognition_model_versions table that content_moderation
+    populates from real DetectModerationLabels responses. Returns [] when the
+    table doesn't exist yet (no real call since ship — legitimate, not an
+    error) or the DB is unreachable (surfaced by the Resources check, not
+    duplicated here).
+    """
+    try:
+        conn = _alerts_conn()
+        if conn is None:
+            return []
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT version, first_seen_at
+                FROM rekognition_model_versions
+                ORDER BY first_seen_at ASC
+            """)
+            rows = cur.fetchall()
+            cur.close()
+            return [(r[0], r[1]) for r in rows]
+        except Exception:
+            # Table absent (no real moderation call since ship) or query
+            # failure. Roll back so the pooled connection goes home clean —
+            # returning an aborted transaction would poison the shared pool.
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            return []
+        finally:
+            conn.close()
+    except Exception:
+        return []
+
+
+def _model_version_warnings(versions_seen):
+    """Warning entries for observed ModerationModelVersion changes.
+
+    `versions_seen` is _rekognition_model_versions_seen() output. More than
+    one distinct version on record means AWS migrated the moderation model
+    under us — the event that silently unhooked the category sets in May 2024.
+    The alert clears when the old row is deleted (the acknowledgment step,
+    documented in content_moderation.py: re-verify the sets FIRST, then
+    delete).
+    """
+    if len(versions_seen) <= 1:
+        return []
+    chain = " -> ".join(v for v, _ in versions_seen)
+    newest, newest_at = versions_seen[-1]
+    return [{
+        "service": "AWS Rekognition",
+        "item": "ModerationModelVersion",
+        "detail": (f"Moderation model version CHANGED: {chain} "
+                   f"(newest first seen {newest_at})"),
+        "date": "",
+        "url": "https://docs.aws.amazon.com/rekognition/latest/dg/moderation-api.html",
+        "action": ("AWS migrated the moderation model. The label taxonomy may have "
+                   "changed with it — this exact event silently unhooked most of "
+                   "BLOCKED_CATEGORIES in the May-2024 v6->v7 migration. Re-verify "
+                   "every entry in content_moderation.py BLOCKED_CATEGORIES / "
+                   "WARNING_CATEGORIES against the new version's documented "
+                   f"taxonomy, then acknowledge by deleting the old row(s): "
+                   f"DELETE FROM rekognition_model_versions WHERE version <> '{newest}';"),
+    }]
+
+
 def check_aws_rekognition(force=False):
     """Watch the AWS Rekognition dependency behind image moderation.
 
-    Three distinct things, because they fail in three different ways:
+    Five distinct things, because they fail in five different ways:
 
+    0. moderate_image UNWIRED in the running app (content_moderation import
+       failed at boot; wsgi sets it to None and every route guard silently
+       skips). The deepest fail-open: invisible per-request everywhere.
     1. boto3 MISSING or AWS creds UNSET -> moderation is silently OFF. This is
        the loudest case and the reason this check exists at all:
-       check_image_content() FAILS OPEN by design (a Rekognition outage must not
+       moderate_image() FAILS OPEN by design (a Rekognition outage must not
        break uploads), so a disabled moderator and a healthy one look identical
        from the app's side. Nothing else in the system would ever say so.
-    2. boto3 SDK drifting badly behind PyPI -- same >=2-major rule as Stripe.
-    3. The moderation LABEL TAXONOMY, which is not automatable and is therefore
-       reported honestly as a standing coverage gap rather than left silent.
+    2. boto3 SDK drifting badly behind PyPI -- age-based, see below.
+    3. ModerationModelVersion CHANGED (persisted by content_moderation from
+       real calls) -> the taxonomy may have migrated under the category sets;
+       exactly how the May-2024 v6->v7 migration silently unhooked them.
+    4. Label-name drift WITHIN a version -- still not automatable, reported
+       honestly as a standing coverage gap rather than left silent.
     """
     cache = _caches['aws_rekognition']
     now = time.time()
@@ -734,6 +853,34 @@ def check_aws_rekognition(force=False):
         return cache["data"]
 
     warnings = []
+
+    # (0) Is moderate_image actually wired into the running routes? None here
+    # means every `if moderate_image:` guard is a silent skip — the one
+    # fail-open with no per-request trace anywhere.
+    unwired = _moderation_wiring_status()
+    if unwired:
+        warnings.append({
+            "service": "AWS Rekognition",
+            "item": "moderation wiring",
+            "detail": ("moderate_image is None in the running app "
+                       f"({', '.join(unwired)}) - image moderation is DISABLED "
+                       "and every request-path guard is silently skipping it."),
+            "date": "",
+            "url": "",
+            "action": ("The content_moderation import failed at boot (wsgi.py "
+                       "catches the exception and wires None) or init_modules() "
+                       "never ran for these blueprints. Check the boot log for "
+                       "'content_moderation import error'. Uploads are passing "
+                       "UNMODERATED with responses byte-identical to clean "
+                       "passes; nothing else in the system will say so."),
+            "status": "error",
+        })
+
+    # One DB read serves both the version-change check and the gap entry's
+    # last-seen line, on every return path.
+    _mv_seen = _rekognition_model_versions_seen()
+    _mv_last = _mv_seen[-1][0] if _mv_seen else None
+
     installed = _get_installed_boto3_version()
 
     # (1) Is the moderator actually wired up at all?
@@ -745,7 +892,7 @@ def check_aws_rekognition(force=False):
             "date": "",
             "url": "https://pypi.org/project/boto3/",
             "action": ("content_moderation.py cannot construct a Rekognition client, so "
-                       "check_image_content() returns 'not configured' and every uploaded "
+                       "moderate_image() returns 'not configured' and every uploaded "
                        "image passes unmoderated. Restore boto3 (requirements.txt pins "
                        "boto3>=1.28.0) or accept the gap explicitly."),
             "status": "error",
@@ -792,17 +939,23 @@ def check_aws_rekognition(force=False):
                 })
         except Exception as e:
             print(f"[DependencyMonitor] boto3 PyPI check failed: {e}")
-            # Carry BOTH the already-detected warnings and the standing taxonomy
-            # gap through the error path — a PyPI outage must not make the
-            # coverage gap look closed.
-            err = warnings + [_error_entry("AWS Rekognition", e),
-                              _rekognition_taxonomy_gap()]
+            # Carry the already-detected warnings, the version-change state and
+            # the standing taxonomy gap through the error path — a PyPI outage
+            # must not make any of them look closed.
+            err = (warnings
+                   + _model_version_warnings(_mv_seen)
+                   + [_error_entry("AWS Rekognition", e),
+                      _rekognition_taxonomy_gap(_mv_last)])
             cache["data"] = err
             cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
             return err
 
-    # (3) The taxonomy gap. Permanent and deliberate - see _unmonitorable_entry.
-    warnings.append(_rekognition_taxonomy_gap())
+    # (3) Model-version change — the alert that turns the next taxonomy
+    # migration into a review instead of a silent unhooking.
+    warnings.extend(_model_version_warnings(_mv_seen))
+
+    # (4) The within-version taxonomy gap. Permanent and deliberate.
+    warnings.append(_rekognition_taxonomy_gap(_mv_last))
 
     cache["data"] = warnings
     cache["fetched_at"] = now

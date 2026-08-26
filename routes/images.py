@@ -386,6 +386,16 @@ def api_upload_extra_photo():
                     'error': 'Image rejected: inappropriate content detected.',
                     'moderation': True
                 }), 400
+            # Log warnings (allowed through) — this also captures fail-open
+            # markers ('Moderation check failed' / 'not configured'), which
+            # every sibling call site persists; without this branch a
+            # fail-open here was stdout-only.
+            if mod_result.get('warnings'):
+                if log_moderation_incident and get_image_hash:
+                    log_moderation_incident(
+                        g.user_id, '/api/images/upload-extra',
+                        mod_result, get_image_hash(image_data)
+                    )
 
         # Upload to R2: collections/{comic_id}/extra_{index}.jpg
         extra_index = len(extras)

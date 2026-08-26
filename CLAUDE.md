@@ -266,7 +266,8 @@ When adding ANY new third-party service, API, or SDK to Slab Worthy:
 
 Current monitored services (the `check_all()` tuple — this list must match it): Anthropic (models),
 eBay (API deprecations), eBay account-deletion endpoint (self-check), Stripe (SDK version),
-**AWS Rekognition (boto3 SDK version + a standing moderation-taxonomy coverage gap)**, Resources
+**AWS Rekognition (moderation wiring in the running app, boto3 SDK version, ModerationModelVersion
+change alert, + a narrowed within-version taxonomy gap)**, Resources
 (self — memory + DB-connection ceilings vs Standard 2GB (upgraded from Starter 512MB, 2026-07-16
 OOM incident) / max_connections, item 2f).
 
