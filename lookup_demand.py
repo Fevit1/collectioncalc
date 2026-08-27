@@ -43,8 +43,8 @@ def _record_lookup(database_url, f):
             """INSERT INTO lookup_demand
                  (endpoint, title, canonical_title, issue, issue_type,
                   requested_grade, comp_count, graded_count, exact_count,
-                  fmv_method, estimated, no_data, user_id, is_internal)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                  fmv_method, estimated, no_data, verdict_basis, user_id, is_internal)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (
                 f.get('endpoint'),
                 f.get('title'),
@@ -58,6 +58,7 @@ def _record_lookup(database_url, f):
                 f.get('fmv_method'),
                 bool(f.get('estimated')),
                 bool(f.get('no_data')),
+                f.get('verdict_basis'),
                 f.get('user_id'),
                 bool(f.get('is_internal')),
             ),

@@ -2527,8 +2527,18 @@
                     throw new Error(result.error);
                 }
                 
-                // Store in gradingState with a grading_id for feedback tracking
-                result.grading_id = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                // grading_id: PREFER THE SERVER'S. /api/grade now mints a
+                // grading_uuid, returns it as result.grading_id, and stores it
+                // on the retention row — the credit-refund path matches on it
+                // (WHERE grading_uuid = ...), so clobbering it here would make
+                // the refund a gate that never fires (caught in review,
+                // 2026-08-27: this line used to overwrite it unconditionally).
+                // The SW- string survives only as a fallback for an old server
+                // that didn't send one; every client consumer (feedback :3208,
+                // collection save :3697, ebay-modal display) treats the id as
+                // opaque, so the format change is safe.
+                result.grading_id = result.grading_id
+                    || `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 window.gradingState.finalGrade = result;
                 window.gradingState.confidence = result.confidence || baseConfidence;
 
@@ -2690,7 +2700,12 @@
                     issue_type: gradeResult.issue_type || window.gradingState.extractedData?.issue_type || '',
                     grade: gradeResult.final_grade || '5.0',
                     publisher: gradeResult.publisher || window.gradingState.extractedData?.publisher || '',
-                    year: gradeResult.year || window.gradingState.extractedData?.year || ''
+                    year: gradeResult.year || window.gradingState.extractedData?.year || '',
+                    // Minted by /api/grade for THIS grading. Lets the server
+                    // refund the grading credit when the verdict is withheld
+                    // (multi_edition) — refund is server-side, authenticated,
+                    // and idempotent, so sending this is safe on retries.
+                    grading_id: gradeResult.grading_id || ''
                 });
 
                 // Call grade-specific valuation API
@@ -3068,7 +3083,18 @@
                     //   neighbour just moves the disagreement.
                     // `confidence` is still computed and still shipped in the payload;
                     //   only this rendering is gone.
-                    basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>`;
+                    // ── Credit-refund notice (multi_edition refusals only) ──────────
+                    // Rendered ONLY when the server says the refund actually happened
+                    // on this response (credit_refunded true) — never inferred from
+                    // the basis. A replayed/already-refunded lookup arrives false, so
+                    // this line can never promise a refund that didn't occur. Kept
+                    // inside the basis expansion, beside the refusal it explains.
+                    const refundLine = valData.credit_refunded
+                        ? `<p class="basis-reason" style="color: var(--success); margin-top: 8px;">`
+                          + `This grading was not counted against your monthly limit &mdash; `
+                          + `when we can't estimate a value, you don't pay.</p>`
+                        : '';
+                    basisDetailEl.innerHTML = `<p class="basis-reason">${reason}</p>${refundLine}`;
 
                     // ── Assumptions, marginal band only ─────────────────────────────
                     // Behind the tap, NOT on the badge — Mike's call, and it is right:

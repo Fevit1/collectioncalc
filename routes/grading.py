@@ -947,6 +947,16 @@ def api_grade():
         # Per docs/technical/GRADE_RETENTION_SPEC.md. Runs on a background thread so it
         # adds NO latency to the grade response. Captures request state explicitly (the
         # thread runs outside the request context). Never blocks or fails the grade.
+        # Client-facing grading identifier, minted HERE — before the async
+        # persist — because grade_submissions.id is generated on a background
+        # thread after this response is long gone. Returned to the client and
+        # stored on the retention row, so a later /api/sales/valuation call can
+        # refer back to THIS grading (credit-refund unit, 2026-08-27; also
+        # closes part of LAUNCH_READINESS item 118's "no client grading_id").
+        import uuid as _uuid
+        grading_uuid = _uuid.uuid4().hex
+        result['grading_id'] = grading_uuid
+
         try:
             from grade_retention import persist_grade_submission_async
             persist_grade_submission_async(
@@ -956,6 +966,7 @@ def api_grade():
                 result=result,
                 model=get_model('sonnet'),
                 database_url=database_url,
+                grading_uuid=grading_uuid,
             )
         except Exception as persist_err:
             print(f"[Grading] retention persist scheduling failed (non-fatal): {persist_err}")

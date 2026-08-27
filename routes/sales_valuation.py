@@ -25,8 +25,83 @@ from lookup_demand import record_lookup_async
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
 
 
+def _maybe_refund_grading_credit(grading_id, user_id):
+    """Refund one grading credit for a multi_edition refusal. Returns True only
+    when a refund actually happened on THIS call.
+
+    THE RULE (Mike, 2026-08-27): "if we can't estimate its value, you don't
+    pay" — and ONLY the multi_edition refusal qualifies. The fabricated/
+    estimated tiers DO produce an estimate (a weak one), so they do not; that
+    boundary is a pricing decision recorded at scoping, not an oversight.
+
+    SECURITY SHAPE — why every guard exists:
+      · /api/sales/valuation is UNAUTHENTICATED and GET. A decrement keyed on
+        the response alone would be replayable by an anonymous curl. So:
+      · user_id must come from the verified JWT (g.user_id via wsgi's
+        before_request). None -> no refund, no SQL.
+      · The grading must BELONG to that user (WHERE user_id = %s).
+      · IDEMPOTENT BY CONSTRUCTION: the credit_refunded flag flip is the gate.
+        The UPDATE matches only false -> true; its rowcount decides whether
+        the counter decrement runs. Replays, retries, and double-clicks all
+        match 0 rows and decrement nothing. One refund per grading, EVER.
+      · The decrement floors at 0 (GREATEST) — a refund can never push the
+        counter negative, including across the monthly reset boundary (a
+        refund landing after a reset simply reduces the new month by one,
+        bounded at zero; accepted at scoping).
+
+    RACE NOTE: the grade_submissions row is written by a background thread
+    seconds before this runs (retention persist). If this loses that race the
+    UPDATE matches 0 rows and NO refund happens — the failure direction is
+    "user keeps paying", never "free credits". Flag flip + decrement commit in
+    one transaction, so a crash between them refunds nothing rather than
+    burning the flag.
+
+    Never raises: a refund failure must not break the valuation response.
+    """
+    if not grading_id or not user_id:
+        return False
+    conn = None
+    try:
+        conn = _dbpool.get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE grade_submissions
+               SET credit_refunded = TRUE
+               WHERE grading_uuid = %s AND user_id = %s
+                 AND NOT COALESCE(credit_refunded, FALSE)""",
+            (str(grading_id), user_id),
+        )
+        if cur.rowcount != 1:
+            conn.rollback()
+            return False
+        cur.execute(
+            """UPDATE users
+               SET gradings_this_month = GREATEST(COALESCE(gradings_this_month, 0) - 1, 0)
+               WHERE id = %s""",
+            (user_id,),
+        )
+        conn.commit()
+        print(f"[VALUATION-F] credit refunded: grading={grading_id} user={user_id}")
+        return True
+    except Exception as e:
+        print(f"[VALUATION-F] credit refund failed (non-fatal): {e}")
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return False
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
 def _record_demand(endpoint, title, issue, issue_type, requested_grade,
-                   comp_count, graded_count, exact_count, fmv_method, estimated):
+                   comp_count, graded_count, exact_count, fmv_method, estimated,
+                   verdict_basis=None):
     """Fire-and-forget demand log for a completed lookup. NEVER raises, NEVER
     blocks the response (the actual insert is on a daemon thread). user_id /
     admin flag come from the request context that before_request() populated."""
@@ -45,6 +120,7 @@ def _record_demand(endpoint, title, issue, issue_type, requested_grade,
             fmv_method=fmv_method,
             estimated=bool(estimated),
             no_data=(not comp_count),
+            verdict_basis=verdict_basis,
             user_id=getattr(g, 'user_id', None),
             is_internal=bool(getattr(g, 'admin_id', None)),
         )
@@ -1251,10 +1327,25 @@ def api_sales_valuation():
         _record_demand('valuation', title, issue, issue_type, grade,
                        total_graded + raw_count, total_graded, exact_count,
                        fmv_method,
-                       estimated or fmv_method in ['estimated', 'estimated_from_raw'])
+                       estimated or fmv_method in ['estimated', 'estimated_from_raw'],
+                       verdict_basis=verdict_basis)
+
+        # ── Credit refund on the multi_edition refusal ONLY ──────────────────
+        # The rule: "if we can't estimate its value, you don't pay." Gated on
+        # verdict_basis (not fmv_method — the gate fires INSIDE 'exact') and on
+        # a verified user + their own grading_id; see _maybe_refund_grading_credit
+        # for the full security shape. False here means "no refund happened on
+        # this call" — including replays of an already-refunded grading — and
+        # the frontend copy renders only on True, so it can never promise a
+        # refund that did not occur.
+        credit_refunded = False
+        if verdict_basis == 'multi_edition':
+            credit_refunded = _maybe_refund_grading_credit(
+                request.args.get('grading_id'), getattr(g, 'user_id', None))
 
         return jsonify({
             'success': True,
+            'credit_refunded': credit_refunded,
             'title': title,
             'issue': issue or None,
             'grade': grade,

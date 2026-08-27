@@ -34,21 +34,29 @@ def _to_int_or_none(v):
 # PERSIST (Part 1)
 # ──────────────────────────────────────────────
 
-def persist_grade_submission_async(user_id, images, photo_labels, result, model, database_url):
+def persist_grade_submission_async(user_id, images, photo_labels, result, model, database_url,
+                                   grading_uuid=None):
     """Fire-and-forget persist on a daemon thread so the grade response isn't delayed.
 
     All Flask request state (g/request) must be resolved by the caller and passed in —
     the thread runs outside the request context.
+
+    grading_uuid: the client-facing grading identifier minted in /api/grade
+    BEFORE this call — the same value returned in the grade response, so the
+    frontend can refer back to this exact submission (credit-refund unit,
+    2026-08-27). Optional so older callers keep working; NULL simply means the
+    grading is not refund-addressable.
     """
     t = threading.Thread(
         target=_persist_grade_submission,
-        args=(user_id, images, photo_labels, result, model, database_url),
+        args=(user_id, images, photo_labels, result, model, database_url, grading_uuid),
         daemon=True,
     )
     t.start()
 
 
-def _persist_grade_submission(user_id, images, photo_labels, result, model, database_url):
+def _persist_grade_submission(user_id, images, photo_labels, result, model, database_url,
+                              grading_uuid=None):
     """Insert the row, upload images to R2 under the row id, backfill the keys. Never raises."""
     conn = None
     try:
@@ -60,10 +68,12 @@ def _persist_grade_submission(user_id, images, photo_labels, result, model, data
                  (user_id, title, issue, year, publisher, grade, grade_label,
                   raw_grade, category_scores, limiting_factor, confidence, photos_used,
                   defects, photo_labels, model, run_count, grade_reasoning,
+                  grading_uuid,
                   reread_fired, saved_collection_id, images_purge_after)
                VALUES (%s,%s,%s,%s,%s,%s,%s,
                        %s,%s,%s,%s,%s,
                        %s,%s,%s,%s,%s,
+                       %s,
                        NULL, NULL, (now() AT TIME ZONE 'utc') + make_interval(days => %s))
                RETURNING id""",
             (
@@ -84,6 +94,7 @@ def _persist_grade_submission(user_id, images, photo_labels, result, model, data
                 model,
                 _to_int_or_none(result.get('run_count')),
                 result.get('grade_reasoning') or result.get('observations'),
+                grading_uuid,
                 RETENTION_DAYS,
             ),
         )
