@@ -10,6 +10,7 @@ Uses:
 """
 
 import os
+import hmac
 import logging
 import secrets
 import bcrypt
@@ -18,7 +19,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import g, jsonify
+from flask import g, jsonify, request
 import resend
 
 logger = logging.getLogger(__name__)
@@ -182,6 +183,41 @@ def verify_jwt(token):
         return None
     except jwt.InvalidTokenError:
         return None
+
+
+def operator_key_status():
+    """Classify the request's operator service-key credential.
+
+    The operator key gates the single-trusted-caller service endpoints
+    (/api/sales/record, /api/sales/fmv — the Whatnot capture extension, whose
+    only user is the operator). It is NOT user auth and deliberately has no
+    tenant model: one env-configured secret, one caller.
+
+    Header is X-Operator-Key, NOT Authorization — user auth already owns
+    Authorization: Bearer <JWT> (wsgi.before_request parses it), and /sales/fmv
+    accepts EITHER credential, so the two must be independently parseable on
+    one request.
+
+    Read from the environment per-request (same hardening call as the Stripe
+    webhook secret, Session 91): no import-order coupling, and L-SW-2026-004
+    still applies — a Render env change needs a redeploy to be visible.
+
+    Returns one of:
+      'ok'           — header present and matches OPERATOR_API_KEY
+      'invalid'      — header present, does not match
+      'absent'       — no header on the request
+      'unconfigured' — header present but OPERATOR_API_KEY missing from the
+                       environment; callers should surface this as 503, not
+                       401, so a misconfigured deploy self-reports instead of
+                       reading as a bad credential (L-2026-022)
+    """
+    supplied = request.headers.get('X-Operator-Key', '')
+    if not supplied:
+        return 'absent'
+    expected = os.environ.get('OPERATOR_API_KEY', '')
+    if not expected:
+        return 'unconfigured'
+    return 'ok' if hmac.compare_digest(supplied, expected) else 'invalid'
 
 # ============================================
 # BETA CODE FUNCTIONS

@@ -3,6 +3,7 @@ Market Sales Blueprint - Whatnot/marketplace sale recording and queries
 Routes: /api/sales/record, /api/sales/count, /api/sales/recent
 """
 import os
+import time
 from flask import Blueprint, jsonify, request
 import psycopg2
 import db as _dbpool
@@ -10,9 +11,33 @@ from psycopg2.extras import RealDictCursor
 
 # NORMALIZATION IMPORT
 from title_normalizer import normalize_title
+from auth import operator_key_status
 
 # Create blueprint
 market_sales_bp = Blueprint('market_sales', __name__, url_prefix='/api')
+
+# ── Rate limit for the operator write path ──
+# Defense in depth BEHIND the operator-key gate, not the gate itself. Budget is
+# CHOSEN, not fitted: capture is human-paced (one Whatnot sale lands every
+# ~30-60s during a live auction), so 60 per 5 min is several times the fastest
+# real stream while still capping a leaked-key or runaway-client write rate.
+# Per-worker in-memory, same as the images.py / monitor.py precedent
+# (2 workers → worst case 2× nominal; acceptable for an abuse gate).
+_record_rate_store = {}  # ip -> (count, window_start)
+RECORD_RATE_LIMIT_MAX = 60
+RECORD_RATE_LIMIT_WINDOW = 300  # seconds
+
+
+def _record_rate_limited(ip):
+    """True if this IP is over the sale-recording budget. Counts the call."""
+    now = time.time()
+    count, window_start = _record_rate_store.get(ip, (0, now))
+    if now - window_start > RECORD_RATE_LIMIT_WINDOW:
+        count, window_start = 0, now
+    if count >= RECORD_RATE_LIMIT_MAX:
+        return True
+    _record_rate_store[ip] = (count + 1, window_start)
+    return False
 
 # Module imports (will be set by wsgi.py)
 upload_sale_image = None
@@ -67,7 +92,27 @@ def api_record_sale():
     Record a sale from Whatnot extension.
     Optionally accepts 'image' field with base64 data to upload to R2.
     Now includes barcode scanning when image provided.
+
+    GATED 2026-08-28: requires X-Operator-Key (env OPERATOR_API_KEY). This is a
+    single-trusted-caller service endpoint — the Whatnot capture extension,
+    operated by exactly one person. Logged-in users are rejected like everyone
+    else: a JWT proves a website account, not the capture service. Was fully
+    unauthenticated (anonymous INSERT into market_sales + inline R2 upload with
+    no moderation) — verified live 2026-08-28 before this gate was written.
+    CORS preflights (OPTIONS) never reach this check — flask-cors answers them.
     """
+    key_status = operator_key_status()
+    if key_status == 'unconfigured':
+        # Self-report the misconfig loudly rather than masquerading as a bad
+        # credential (L-2026-022). Fail closed either way.
+        return jsonify({'success': False,
+                        'error': 'OPERATOR_API_KEY not configured on server'}), 503
+    if key_status != 'ok':
+        return jsonify({'success': False, 'error': 'Operator key required'}), 401
+    if _record_rate_limited(request.remote_addr or 'unknown'):
+        return jsonify({'success': False,
+                        'error': 'Rate limit exceeded. Try again in a few minutes.'}), 429
+
     data = request.get_json() or {}
 
     # NORMALIZE THE SALE BEFORE INSERT

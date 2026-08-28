@@ -20,6 +20,7 @@ import db as _dbpool
 from psycopg2.extras import RealDictCursor
 from title_matching import qualifier_title_clause, compose_qualified_title
 from lookup_demand import record_lookup_async
+from auth import operator_key_status
 
 # Create blueprint
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
@@ -1436,6 +1437,34 @@ def api_sales_valuation():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ── Rate limits for /sales/fmv ──
+# TWO stores, deliberately separate: the service caller (Whatnot extension,
+# operator-keyed) fires one lookup per listing as an auction scrolls — bursty,
+# machine-paced — while a logged-in human types one title at a time. One shared
+# bucket would either starve the service or hand a human a service-sized
+# budget. Budgets are CHOSEN, not fitted: 120/5min covers the fastest observed
+# capture cadence with headroom; 30/5min is generous for a person. Per-worker
+# in-memory, images.py / monitor.py precedent (2 workers → worst case 2×
+# nominal; acceptable for an abuse gate).
+_fmv_service_rate_store = {}  # ip -> (count, window_start)
+_fmv_user_rate_store = {}     # ip -> (count, window_start)
+FMV_SERVICE_RATE_MAX = 120
+FMV_USER_RATE_MAX = 30
+FMV_RATE_WINDOW = 300  # seconds
+
+
+def _fmv_rate_limited(store, limit, ip):
+    """True if this IP is over the given fmv budget. Counts the call."""
+    now = time.time()
+    count, window_start = store.get(ip, (0, now))
+    if now - window_start > FMV_RATE_WINDOW:
+        count, window_start = 0, now
+    if count >= limit:
+        return True
+    store[ip] = (count + 1, window_start)
+    return False
+
+
 @valuation_bp.route('/sales/fmv', methods=['GET'])
 def api_sales_fmv():
     """
@@ -1443,11 +1472,37 @@ def api_sales_fmv():
     Groups sales by grade tier and returns averages.
     Now pulls from BOTH market_sales (Whatnot) AND ebay_sales.
 
+    GATED 2026-08-28: requires EITHER X-Operator-Key (env OPERATOR_API_KEY —
+    the Whatnot extension, this endpoint's only real caller per lookup_demand)
+    OR a logged-in user (Bearer JWT → g.user_id via wsgi.before_request). Was
+    fully unauthenticated — grade-tiered FMV from the whole corpus to any
+    anonymous caller; verified live 2026-08-28 before this gate was written.
+    An INVALID key is rejected outright rather than falling through to the
+    user path — a stale/rotated extension key should fail loudly, not degrade
+    silently onto the wrong budget. CORS preflights never reach this check.
+
     Query params:
         title: Comic title (required)
         issue: Issue number (optional)
         days: Number of days to look back (default 180)
     """
+    key_status = operator_key_status()
+    if key_status == 'unconfigured':
+        return jsonify({'success': False,
+                        'error': 'OPERATOR_API_KEY not configured on server'}), 503
+    if key_status == 'ok':
+        if _fmv_rate_limited(_fmv_service_rate_store, FMV_SERVICE_RATE_MAX,
+                             request.remote_addr or 'unknown'):
+            return jsonify({'success': False,
+                            'error': 'Rate limit exceeded. Try again in a few minutes.'}), 429
+    elif key_status == 'absent' and getattr(g, 'user_id', None):
+        if _fmv_rate_limited(_fmv_user_rate_store, FMV_USER_RATE_MAX,
+                             request.remote_addr or 'unknown'):
+            return jsonify({'success': False,
+                            'error': 'Rate limit exceeded. Try again in a few minutes.'}), 429
+    else:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
     title = request.args.get('title', '')
     issue = request.args.get('issue', '')
     issue_type = request.args.get('issue_type', '').strip()  # Batch 8: series-type qualifier
