@@ -17,12 +17,48 @@
 
   const COLLECTIONCALC_API = 'https://collectioncalc-docker.onrender.com';
 
+  // ── Operator service key (2026-08-28) ──
+  // /api/sales/record and /api/sales/fmv are gated server-side on
+  // X-Operator-Key. The key lives ONLY in chrome.storage.local on the
+  // operator's machine — NEVER in a file in this repo: the extension loads
+  // unpacked from a git checkout, so any file holding it would be one
+  // careless stage away from being committed. Set it once from the
+  // extension's service-worker console (chrome://extensions → service worker):
+  //   chrome.storage.local.set({ operatorApiKey: '<value>' })
+  // Survives extension reloads; cleared only by removing the extension or
+  // clearing extension storage.
+  let OPERATOR_API_KEY = null;
+  const operatorKeyReady = new Promise((resolve) => {
+    try {
+      chrome.storage.local.get('operatorApiKey', (res) => {
+        OPERATOR_API_KEY = (res && res.operatorApiKey) || null;
+        if (!OPERATOR_API_KEY) {
+          console.warn('[CollectionCalc] ⚠️ No operator key in chrome.storage.local — sale recording and FMV lookups will be rejected (401) once the server gate is live. Set it: chrome.storage.local.set({ operatorApiKey: "<value>" })');
+        }
+        resolve();
+      });
+    } catch (e) {
+      console.warn('[CollectionCalc] chrome.storage unavailable:', e);
+      resolve();
+    }
+  });
+
+  /** Headers for the operator-gated endpoints. Omits the key header when no
+   *  key is stored, so the server's 401 (not a malformed request) is what
+   *  surfaces the missing configuration. */
+  function operatorHeaders(extra) {
+    const h = Object.assign({}, extra);
+    if (OPERATOR_API_KEY) h['X-Operator-Key'] = OPERATOR_API_KEY;
+    return h;
+  }
+
   /**
    * Insert a sale - matches SupabaseClient.insertSale() interface
    * @param {Object} sale - Sale data from content.js
    */
   async function insertSale(sale) {
     try {
+      await operatorKeyReady;
       // Map from content.js format to API format
       const payload = {
         source: 'whatnot',
@@ -48,9 +84,9 @@
 
       const response = await fetch(`${COLLECTIONCALC_API}/api/sales/record`, {
         method: 'POST',
-        headers: {
+        headers: operatorHeaders({
           'Content-Type': 'application/json'
-        },
+        }),
         body: JSON.stringify(payload)
       });
 
@@ -154,9 +190,10 @@
     }
     
     try {
-      const response = await fetch(url);
+      await operatorKeyReady;
+      const response = await fetch(url, { headers: operatorHeaders() });
       const data = await response.json();
-      
+
       if (data.success) {
         const issueStr = issue ? ` #${issue}` : '';
         console.log(`[CollectionCalc] FMV for ${title}${issueStr}:`, data);
