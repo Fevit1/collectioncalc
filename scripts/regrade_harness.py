@@ -186,20 +186,66 @@ def fetch_submissions(ids):
     return rows
 
 
+_PHOTO_ORDER = ['front_cover', 'spine', 'back_cover', 'centerfold']
+_LABEL_FOR = {'front_cover': 'Front Cover', 'spine': 'Spine',
+              'back_cover': 'Back Cover', 'centerfold': 'Centerfold'}
+# Same env read as routes/grading.py:22 (not imported — that module drags the
+# whole Flask app in; the duplication is of an env read, not a value).
+GRADING_MAX_LONG_EDGE = int(os.environ.get('GRADING_MAX_LONG_EDGE', '2000'))
+
+
+def _sniff_media_type(raw: bytes):
+    """Magic-byte detection for the FALLBACK path only. Prod never needs this —
+    /api/grade re-encodes every image to JPEG via normalize_for_photo_type
+    (grading.py:667). Retained photos from before that unit shipped (2026-07-16)
+    are original phone bytes and can be PNG/WebP/HEIC — the 2026-08-30 baseline
+    run died at id 9 on exactly this (PNG sent as image/jpeg)."""
+    if raw[:3] == b'\xff\xd8\xff':
+        return 'image/jpeg'
+    if raw[:8] == b'\x89PNG\r\n\x1a\n':
+        return 'image/png'
+    if raw[:6] in (b'GIF87a', b'GIF89a'):
+        return 'image/gif'
+    if raw[:4] == b'RIFF' and raw[8:12] == b'WEBP':
+        return 'image/webp'
+    if raw[4:8] == b'ftyp':
+        return 'image/heic'  # Anthropic API does NOT accept this — caller must skip
+    return None
+
+
 def fetch_photos_b64(photos_map):
-    """photos_map: label_key -> R2 key. Returns [(label, b64)] in prod's order."""
+    """photos_map: label_key -> R2 key. Returns [(label, b64, media_type)] in
+    prod's order.
+
+    PRIMARY PATH MATCHES PROD: normalize_for_photo_type re-encodes to upright
+    JPEG at GRADING_MAX_LONG_EDGE — the same pixels /api/grade hands the model
+    (EXIF fix, HEIC decode, downscale). FALLBACK: if normalization fails, sniff
+    the magic bytes and send the original with its true media type; HEIC or
+    unidentifiable bytes raise (per-book skip upstream — prod would have 400'd
+    the same request, so there is no prod-faithful way to grade that photo)."""
     from r2_storage import get_r2_client, R2_BUCKET_NAME
+    from comic_extraction import normalize_for_photo_type
     client = get_r2_client()
-    order = ['front_cover', 'spine', 'back_cover', 'centerfold']
-    label_for = {'front_cover': 'Front Cover', 'spine': 'Spine',
-                 'back_cover': 'Back Cover', 'centerfold': 'Centerfold'}
     out = []
-    for key in order:
+    for key in _PHOTO_ORDER:
         r2_key = photos_map.get(key)
         if not r2_key:
             continue
-        obj = client.get_object(Bucket=R2_BUCKET_NAME, Key=r2_key)
-        out.append((label_for[key], base64.standard_b64encode(obj['Body'].read()).decode()))
+        raw = client.get_object(Bucket=R2_BUCKET_NAME, Key=r2_key)['Body'].read()
+        b64 = base64.standard_b64encode(raw).decode()
+        photo_type = key.split('_')[0] if key != 'centerfold' else 'centerfold'
+        try:
+            b64 = normalize_for_photo_type(b64, photo_type,
+                                           max_long_edge=GRADING_MAX_LONG_EDGE)
+            media = 'image/jpeg'  # normalizer always emits JPEG
+        except Exception as e:
+            media = _sniff_media_type(raw)
+            if media in (None, 'image/heic'):
+                raise RuntimeError(
+                    f'{key} ({r2_key}): normalize failed ({e}) and bytes are '
+                    f'{media or "unidentifiable"} — unusable') from e
+            print(f'    [warn] {key}: normalize failed ({e}); sending original as {media}')
+        out.append((_LABEL_FOR[key], b64, media))
     return out
 
 
@@ -207,15 +253,15 @@ def fetch_photos_b64(photos_map):
 
 def regrade_one(client, model, sub, variant_fn):
     from grading_engine import build_grading_prompt, parse_grading_response
-    labels = [l for l, _ in sub['_photos']]
+    labels = [l for l, _, _ in sub['_photos']]
     prompt = build_grading_prompt(sub['title'], sub['issue'], sub['publisher'], labels)
     prompt = variant_fn(prompt, sub['year'])
 
     content = []
-    for label, b64 in sub['_photos']:
+    for label, b64, media in sub['_photos']:
         content.append({'type': 'text', 'text': f'Photo: {label}'})
         content.append({'type': 'image',
-                        'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': b64}})
+                        'source': {'type': 'base64', 'media_type': media, 'data': b64}})
     content.append({'type': 'text', 'text': prompt})
 
     resp = client.messages.create(model=model, max_tokens=2000, temperature=0,
@@ -248,10 +294,56 @@ def defect_theme_hits(defects):
     return {name for name, pat in THEMES if re.search(pat, s)}
 
 
+def preflight(entries):
+    """No API spend: verify every photo of the eval set is fetchable and report
+    its actual media type from magic bytes (16-byte Range reads). Run BEFORE a
+    paid run so a PNG at book 22 is discovered here, not mid-spend."""
+    from r2_storage import get_r2_client, R2_BUCKET_NAME
+    client = get_r2_client()
+    subs = fetch_submissions([e['id'] for e in entries])
+    by_type, problems = collections.Counter(), []
+    print(f"{'id':>4}  types")
+    for e in entries:
+        sub = subs.get(e['id'])
+        if not sub:
+            problems.append((e['id'], 'row missing from DB'))
+            continue
+        types = []
+        for key in _PHOTO_ORDER:
+            r2_key = (sub['photos'] or {}).get(key)
+            if not r2_key:
+                types.append(f'{key}:ABSENT')
+                continue
+            try:
+                head = client.get_object(Bucket=R2_BUCKET_NAME, Key=r2_key,
+                                         Range='bytes=0-15')['Body'].read()
+                t = _sniff_media_type(head) or 'UNKNOWN'
+            except Exception as ex:
+                t = f'FETCH-FAIL({type(ex).__name__})'
+                problems.append((e['id'], f'{key}: {t}'))
+            by_type[t] += 1
+            types.append(f"{key.split('_')[0]}:{t.replace('image/', '')}")
+        print(f"{e['id']:>4}  {'  '.join(types)}")
+    print(f"\ntotals by type: {dict(by_type)}")
+    print('note: with the normalize-first fix, PNG/WebP/GIF here are fine (re-encoded '
+          'to JPEG before sending); only UNKNOWN, heic, FETCH-FAIL or ABSENT are risks.')
+    if problems:
+        print(f'⚠ problems: {problems}')
+    else:
+        print('all photos present and typed — no book should fail on media type.')
+    return 1 if problems else 0
+
+
 def summarize(run):
     """run: manifest-shaped dict with per-book results. Prints the diff report."""
     books = run['books']
     n = len(books)
+    if run.get('skipped'):
+        print(f"\n⚠ SKIPPED ids (excluded from every aggregate): "
+              f"{[s['id'] for s in run['skipped']]}")
+    if not books:
+        print('no completed books in this record — nothing to summarize.')
+        return
     deltas = [b['new_grade'] - b['baseline_grade'] for b in books]
     print(f"\n===== RUN REPORT — variant {run['variant']} · {n} books · model {run['model']} =====")
     print(f"grade delta vs stored baseline: mean {statistics.mean(deltas):+.2f}  "
@@ -310,7 +402,15 @@ def main():
     ap.add_argument('--out', default=None, help='write the JSON run record here')
     ap.add_argument('--report', nargs='+', default=None,
                     help='no API calls: re-print report(s) from saved run JSON')
+    ap.add_argument('--preflight', action='store_true',
+                    help='no API calls: check every eval-set photo is fetchable '
+                         'and report actual media types (run before any paid run)')
     args = ap.parse_args()
+
+    if args.preflight:
+        manifest = load_manifest()
+        entries = manifest['books'][:args.limit] if args.limit else manifest['books']
+        return preflight(entries)
 
     if args.report:
         for path in args.report:
@@ -344,18 +444,41 @@ def main():
         sys.exit(f'submissions missing from DB: {missing} — refusing to run on a '
                  f'silently smaller set (the set is fixed; fix the manifest or the data).')
 
-    results, t_in, t_out = [], 0, 0
+    out_path = args.out or os.path.join(
+        _HERE, f"regrade_run_{time.strftime('%Y%m%d_%H%M')}_{args.variant}.json")
+    results, skipped, t_in, t_out = [], [], 0, 0
+
+    def _write_record(complete):
+        # Incremental: rewritten after EVERY book, so a crash leaves a usable
+        # partial record instead of forfeiting the money already spent
+        # (2026-08-30 baseline run: 9 books / ~$0.28 lost to an end-only write).
+        cost = (t_in * COST_IN_PER_MTOK + t_out * COST_OUT_PER_MTOK) / 1e6
+        run = {'variant': args.variant, 'model': model,
+               'ran_at': time.strftime('%Y-%m-%d %H:%M'), 'complete': complete,
+               'tokens_in': t_in, 'tokens_out': t_out, 'cost_usd': cost,
+               'skipped': skipped, 'books': results}
+        tmp = out_path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(run, f, indent=1)
+        os.replace(tmp, out_path)
+        return run
+
     for i, e in enumerate(entries, 1):
         sub = subs[e['id']]
+        # ── One bad book must not destroy the run: a $1.13 run forfeited every
+        # book after a single malformed image on 2026-08-30. Catch, log,
+        # continue; skipped ids surface in the report.
         try:
             sub['_photos'] = fetch_photos_b64(sub['photos'] or {})
+            if len(sub['_photos']) < 3:
+                raise RuntimeError(f'only {len(sub["_photos"])} photos retrievable '
+                                   f'(set requires >=3)')
+            r = regrade_one(client, model, sub, VARIANTS[args.variant])
         except Exception as ex:
-            sys.exit(f'photo fetch failed for id {e["id"]}: {ex} — if purged, the '
-                     f'fixed set is broken; stop and re-scope rather than skip.')
-        if len(sub['_photos']) < 3:
-            sys.exit(f'id {e["id"]}: only {len(sub["_photos"])} photos retrievable — '
-                     f'refusing (set fixed at >=3).')
-        r = regrade_one(client, model, sub, VARIANTS[args.variant])
+            print(f"  [{i}/{n}] id {e['id']}: SKIPPED — {type(ex).__name__}: {ex}")
+            skipped.append({'id': e['id'], 'error': f'{type(ex).__name__}: {ex}'})
+            _write_record(complete=False)
+            continue
         t_in += r['usage']['in']
         t_out += r['usage']['out']
         results.append({
@@ -368,18 +491,15 @@ def main():
             'new_defects': r['defects'],
         })
         print(f"  [{i}/{n}] id {e['id']}: stored {e['baseline_grade']} → new {r['grade']}")
+        _write_record(complete=False)
         time.sleep(1)  # gentle pacing; this is 36 sequential vision calls
 
-    cost = (t_in * COST_IN_PER_MTOK + t_out * COST_OUT_PER_MTOK) / 1e6
-    run = {'variant': args.variant, 'model': model, 'ran_at': time.strftime('%Y-%m-%d %H:%M'),
-           'tokens_in': t_in, 'tokens_out': t_out, 'cost_usd': cost, 'books': results}
-    out_path = args.out or os.path.join(
-        _HERE, f"regrade_run_{time.strftime('%Y%m%d_%H%M')}_{args.variant}.json")
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(run, f, indent=1)
+    run = _write_record(complete=True)
     print(f'\nrun record written: {out_path}')
-    print('(container FS is ephemeral — copy the JSON out of the shell, or rely on stdout below)')
-    print(json.dumps(run)[:200] + ' ...')
+    print('(container FS is ephemeral — copy the JSON out of the shell)')
+    if skipped:
+        print(f'⚠ {len(skipped)} book(s) SKIPPED: {[s["id"] for s in skipped]} — '
+              f'aggregates below cover {len(results)} books, not {n}.')
     summarize(run)
     return 0
 
