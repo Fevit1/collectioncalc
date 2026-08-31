@@ -1,0 +1,2693 @@
+{
+"variant": "baseline",
+"model": "claude-sonnet-4-6",
+"ran_at": "2026-08-30 20:19",
+"complete": true,
+"tokens_in": 250543,
+"tokens_out": 28985,
+"cost_usd": 1.186404,
+"skipped": [],
+"books": [
+  {
+  "id": 53,
+  "era": "pre1970",
+  "year": 1952,
+  "baseline_grade": 3.5,
+  "cgc_grade": null,
+  "new_grade": 3.5,
+  "new_scores": {
+    "cover_front": 3.5,
+    "spine": 2.5,
+    "corners": 3.0,
+    "edges": 3.5,
+    "cover_back": 3.5,
+    "color_gloss": 4.0,
+    "structural": 5.5,
+    "interior": 5.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy spine-side edge wear with significant fraying and paper loss along left edge",
+    "Multiple large creases visible across cover surface",
+    "Significant soiling and finger oils across cover",
+    "Color fading and dulling throughout, particularly in background areas",
+    "Top-left corner shows heavy blunting and wear",
+    "Bottom-left corner shows heavy blunting and paper loss",
+    "Surface abrasion visible across lower portion of cover",
+    "Stress lines radiating from spine area",
+    "Possible small tear or chip near top spine area"
+    ],
+    "spine": [
+    "Severe spine wear with heavy fraying along entire spine length",
+    "Multiple spine stress lines/ticks \u2014 estimated 8+ visible",
+    "Significant spine roll present",
+    "Top spine area shows splitting or separation",
+    "Bottom spine area shows splitting or separation",
+    "Staples appear loose and possibly rusted based on surrounding paper discoloration",
+    "Paper loss along spine edge"
+    ],
+    "back": [
+    "Heavy overall soiling and tanning across back cover",
+    "Large crease running diagonally across back cover",
+    "Significant edge wear along spine side",
+    "Color fading and loss of gloss throughout",
+    "Surface abrasion visible in multiple areas",
+    "Bottom corners heavily blunted and worn"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning consistent with age",
+    "Centerfold appears attached but shows stress at staple area",
+    "Interior pages show moderate yellowing",
+    "Some interior page wrinkling visible at centerfold",
+    "No obvious missing pages or cut coupons detected"
+    ],
+    "other": [
+    "Comic is approximately 70 years old (1952), significant age-related wear throughout",
+    "No creator signatures detected",
+    "Back cover advertisement for Sheaffer's pen products (period-appropriate)"
+    ]
+  }
+  },
+  {
+  "id": 121,
+  "era": "pre1970",
+  "year": 1952,
+  "baseline_grade": 6.0,
+  "cgc_grade": null,
+  "new_grade": 6.5,
+  "new_scores": {
+    "cover_front": 6.5,
+    "spine": 6.0,
+    "corners": 5.5,
+    "edges": 6.0,
+    "cover_back": 7.0,
+    "color_gloss": 6.0,
+    "structural": 7.5,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Moderate color fading/tanning across entire cover surface",
+    "Visible crease running diagonally in upper left corner area",
+    "Light soiling and finger oils visible across cover surface",
+    "Minor surface abrasion on red background areas",
+    "Slight wrinkling/waviness to cover stock",
+    "Small bend/stress mark near top left corner",
+    "Cover shows general wear consistent with reading/handling"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible along length of spine",
+    "Moderate spine roll present \u2014 spine leans noticeably",
+    "Top of spine shows wear and slight splitting",
+    "Bottom of spine shows fraying and wear",
+    "Staples appear intact but show some oxidation/rust beginning",
+    "Color wear along spine edges"
+    ],
+    "back": [
+    "General tanning/aging of back cover paper stock",
+    "Light soiling across back cover surface",
+    "Minor edge wear visible at corners",
+    "Color remains relatively vibrant compared to front"
+    ],
+    "interior": [
+    "Pages show moderate tanning/cream coloring consistent with age",
+    "Centerfold appears attached and intact at staples",
+    "Some interior page waviness visible",
+    "No obvious subscription creases detected",
+    "No cut coupons observed in centerfold photo"
+    ],
+    "other": [
+    "Comic is approximately 70+ years old (Feb/Mar issue, No. 6) \u2014 age-related tanning expected",
+    "Overall wear consistent with a well-read Golden Age comic"
+    ]
+  }
+  },
+  {
+  "id": 106,
+  "era": "pre1970",
+  "year": 1961,
+  "baseline_grade": 6.0,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 6.5,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 7.0,
+    "color_gloss": 7.0,
+    "structural": 8.0,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Light soiling/finger oils visible across cover surface",
+    "Minor creasing visible in lower left quadrant",
+    "Slight color fading particularly in yellow background areas",
+    "Small stress marks near upper left corner area",
+    "Cover shows general handling wear consistent with age"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 approximately 4-6 ticks along spine length",
+    "Slight spine roll present \u2014 spine leans noticeably when viewed from side",
+    "Top of spine shows wear and slight fraying",
+    "Bottom of spine shows minor splitting/stress",
+    "Staples appear intact but show minor oxidation/aging",
+    "Spine color shows moderate fading"
+    ],
+    "back": [
+    "General surface wear and light soiling",
+    "Minor creasing visible",
+    "Handwritten notation visible in upper right area (appears to be price notation 'NR .10 Best' or similar)",
+    "Paper tanning consistent with age",
+    "No major tears or missing pieces"
+    ],
+    "interior": [
+    "Pages show moderate tanning/cream coloring consistent with 1961 newsprint",
+    "Centerfold appears attached and intact",
+    "No visible subscription crease detected in centerfold photo",
+    "Interior pages show age-appropriate browning but no severe brittleness visible"
+    ],
+    "other": [
+    "Comic is from 1961 \u2014 paper aging is expected and consistent",
+    "Handwritten notation on back cover is a minor defect"
+    ]
+  }
+  },
+  {
+  "id": 20,
+  "era": "pre1970",
+  "year": 1962,
+  "baseline_grade": 3.5,
+  "cgc_grade": null,
+  "new_grade": 3.5,
+  "new_scores": {
+    "cover_front": 3.5,
+    "spine": 3.0,
+    "corners": 3.0,
+    "edges": 3.5,
+    "cover_back": 3.5,
+    "color_gloss": 4.0,
+    "structural": 5.5,
+    "interior": 5.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy soiling and foxing across entire cover surface",
+    "Multiple creases visible \u2014 diagonal crease running from upper left area toward center",
+    "Cover shows significant color fading and dulling throughout",
+    "Surface dirt and finger oils visible across yellow background",
+    "Stress marks and light abrasions on cover surface",
+    "Upper left corner shows heavy wear and bending",
+    "Lower portion of cover shows heavy creasing and wrinkling",
+    "Tape or adhesive residue possible along left edge near spine"
+    ],
+    "spine": [
+    "Spine shows heavy rolling/lean visible in spine photo",
+    "Multiple spine stress lines/ticks visible \u2014 estimated 6-10+ stress marks",
+    "Spine split or separation visible at top and bottom",
+    "Significant spine wear with color loss along spine length",
+    "Staples appear loose or stressed \u2014 possible rust",
+    "Spine shows heavy creasing and compression damage"
+    ],
+    "back": [
+    "Heavy tanning and browning across entire back cover",
+    "Significant soiling and foxing throughout",
+    "Multiple creases visible on back cover",
+    "Color loss and fading on back cover",
+    "Edge wear and fraying along all edges of back cover",
+    "Upper right corner shows heavy wear"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning \u2014 cream to tan color",
+    "Centerfold appears attached but shows stress at staples",
+    "Interior pages show age toning throughout",
+    "Some interior page wrinkling visible in centerfold photo",
+    "No obvious cut coupons detected from available photos"
+    ],
+    "other": [
+    "Comic is a Silver Age reprint/revival issue from Quality Comics",
+    "Overall grade consistent with heavy reading copy / Good to Good- range",
+    "No creator signatures detected"
+    ]
+  }
+  },
+  {
+  "id": 81,
+  "era": "pre1970",
+  "year": 1963,
+  "baseline_grade": 3.0,
+  "cgc_grade": null,
+  "new_grade": 3.0,
+  "new_scores": {
+    "cover_front": 3.5,
+    "spine": 2.5,
+    "corners": 2.5,
+    "edges": 3.0,
+    "cover_back": 3.0,
+    "color_gloss": 3.5,
+    "structural": 4.5,
+    "interior": 5.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Handwritten date stamp 'MAR 7 1963' written in pencil across upper center of cover",
+    "Significant soiling and finger oils across cover surface",
+    "Multiple creases visible across cover, particularly lower left quadrant",
+    "Color fading and dulling throughout, especially in red background areas",
+    "Foxing/staining spots visible across cover",
+    "Cover shows heavy handling wear with loss of gloss",
+    "Stress lines radiating from staple area",
+    "Lower left corner shows heavy creasing and bending"
+    ],
+    "spine": [
+    "Severe spine splitting at top \u2014 significant open split approximately 1-1.5 inches",
+    "Severe spine splitting at bottom \u2014 significant open split approximately 1-1.5 inches",
+    "Multiple heavy spine stress lines/ticks throughout length of spine",
+    "Spine roll present \u2014 book does not lie flat",
+    "Staples show rust and loosening",
+    "Spine color worn and abraded with significant ink loss",
+    "Spine edges frayed and chipped"
+    ],
+    "back": [
+    "Heavy wrinkling and creasing across upper right quadrant of back cover",
+    "Significant soiling and staining across surface",
+    "Color fading throughout",
+    "Edge wear and chipping along all edges",
+    "Moisture damage or humidity wrinkling visible in upper right area",
+    "Loss of gloss across entire back cover surface",
+    "Foxing spots visible"
+    ],
+    "interior": [
+    "Pages tanned/yellowed to a medium tan color consistent with age",
+    "Centerfold shows moderate tanning but appears attached",
+    "Interior pages show general age tanning",
+    "No obvious cut coupons visible in centerfold photo",
+    "Some interior page wrinkling visible at centerfold"
+    ],
+    "other": [
+    "Pencil writing/date stamp on front cover ('MAR 7 1963') \u2014 likely newsstand or library date stamp",
+    "Comic is 60+ years old \u2014 significant age-related deterioration throughout",
+    "Overall structural integrity compromised by spine splits"
+    ]
+  }
+  },
+  {
+  "id": 103,
+  "era": "pre1970",
+  "year": 1963,
+  "baseline_grade": 5.5,
+  "cgc_grade": null,
+  "new_grade": 5.5,
+  "new_scores": {
+    "cover_front": 5.5,
+    "spine": 5.5,
+    "corners": 5.0,
+    "edges": 5.5,
+    "cover_back": 6.0,
+    "color_gloss": 5.5,
+    "structural": 7.0,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Significant soiling and tanning across entire cover surface",
+    "Multiple creases visible \u2014 notable diagonal crease lower left area",
+    "Cover shows general surface wear and handling marks",
+    "Color fading/dulling across the cover, particularly in lighter areas",
+    "Stress marks visible near staple area upper left",
+    "Minor edge wear along left (spine) edge of cover",
+    "General grime and finger oils across surface",
+    "Slight wrinkling in lower portion of cover"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 approximately 4-6 noticeable ticks",
+    "Spine shows moderate roll/lean",
+    "Spine color worn and faded",
+    "Staples appear intact but show some stress",
+    "No major spine splits but light stress at top and bottom"
+    ],
+    "back": [
+    "General tanning and soiling across back cover",
+    "Surface wear consistent with front cover",
+    "Some light creasing visible",
+    "Color somewhat faded but ad text remains legible"
+    ],
+    "interior": [
+    "Pages show significant tanning/yellowing \u2014 cream to light tan color",
+    "Centerfold appears attached and intact",
+    "No obvious tears or writing visible in centerfold photos",
+    "Pages show age-related browning consistent with 1963 newsprint"
+    ],
+    "other": [
+    "Comic is approximately 60 years old \u2014 age-related wear expected throughout",
+    "No subscription crease detected",
+    "No missing coupons visible in centerfold"
+    ]
+  }
+  },
+  {
+  "id": 122,
+  "era": "pre1970",
+  "year": 1964,
+  "baseline_grade": 4.0,
+  "cgc_grade": null,
+  "new_grade": 4.0,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 3.5,
+    "edges": 4.0,
+    "cover_back": 3.5,
+    "color_gloss": 4.0,
+    "structural": 6.0,
+    "interior": 5.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy creasing visible across upper left quadrant near Marvel logo",
+    "Significant surface wear and soiling across entire cover",
+    "Color fading and dulling throughout, particularly in yellow background areas",
+    "Multiple stress lines and wrinkles across cover surface",
+    "Foxing/tanning visible on cover stock",
+    "Upper left corner shows heavy wear and folding",
+    "Ink wear on title lettering (THOR logo shows silver ink loss)",
+    "General grime and finger oils across surface"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible (estimated 6-10)",
+    "Spine shows moderate roll",
+    "Spine wear and color loss along entire length",
+    "Possible minor spine split at top edge",
+    "Staples appear stressed but present"
+    ],
+    "back": [
+    "Heavy tanning/browning of back cover stock",
+    "Handwritten price notation '400' in upper left corner",
+    "Significant surface soiling and wear",
+    "Creasing visible across back cover",
+    "Color loss and fading throughout"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning (cream to tan)",
+    "Centerfold shows moderate wear but appears attached",
+    "Interior pages show age-related tanning consistent with unrestored copy",
+    "No obvious cut coupons visible in centerfold photo"
+    ],
+    "other": [
+    "Comic is approximately 60 years old (1964) with age-appropriate wear",
+    "No restoration detected",
+    "Unrestored copy showing honest wear"
+    ]
+  }
+  },
+  {
+  "id": 84,
+  "era": "pre1970",
+  "year": 1964,
+  "baseline_grade": 4.5,
+  "cgc_grade": null,
+  "new_grade": 4.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 4.0,
+    "edges": 4.5,
+    "cover_back": 4.0,
+    "color_gloss": 4.5,
+    "structural": 6.0,
+    "interior": 5.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Significant soiling and surface dirt across cover",
+    "Multiple stress lines and creases visible across cover surface",
+    "Top-left corner shows heavy blunting and wear",
+    "Bottom-left corner shows heavy blunting",
+    "Color fading and loss of vibrancy throughout",
+    "Possible small tear or chip at top edge near spine",
+    "General tanning/yellowing of cover paper visible",
+    "Light foxing spots visible on cover surface",
+    "Cover shows general handling wear consistent with heavy reading use"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible along full length of spine",
+    "Spine shows significant color wear and chipping along edges",
+    "Spine roll present \u2014 book does not sit flat",
+    "Staples appear stressed and show signs of rust/oxidation",
+    "Spine splitting visible at top and/or bottom",
+    "Heavy color break along spine from repeated opening"
+    ],
+    "back": [
+    "Significant tanning and browning of back cover paper",
+    "Price notation written in pencil at top-left ('$.01' or similar)",
+    "Surface soiling and dirt across back cover",
+    "Creasing visible across back cover",
+    "Color loss and fading throughout back cover",
+    "Edge wear and fraying along all edges of back cover"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning \u2014 cream to tan paper",
+    "Centerfold shows stress at staple attachment point",
+    "Interior pages show handling wear and minor creasing",
+    "Some interior pages appear to have minor soiling",
+    "Centerfold appears attached but stressed at staples"
+    ],
+    "other": [
+    "Comic is approximately 60 years old (1964) \u2014 age-related tanning expected",
+    "First appearance of the Green Goblin \u2014 historically significant issue",
+    "Overall grade consistent with GD/VG range (approximately 3.0\u20134.0 CGC equivalent)"
+    ]
+  }
+  },
+  {
+  "id": 105,
+  "era": "pre1970",
+  "year": 1965,
+  "baseline_grade": 7.5,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 7.0,
+    "color_gloss": 7.0,
+    "structural": 8.5,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible light creasing in upper left quadrant near DC logo",
+    "Minor surface wear and handling marks across cover",
+    "Slight color fading on pink background \u2014 not severe but noticeable",
+    "Light soiling/finger oils visible on cover surface",
+    "Minor stress lines visible near staple area"
+    ],
+    "spine": [
+    "Multiple spine stress ticks/lines visible along spine length \u2014 approximately 4-6 ticks observed",
+    "Slight spine roll present \u2014 book does not lie perfectly flat when viewed from spine angle",
+    "No spine splits detected at top or bottom",
+    "Staples appear intact but show minor oxidation/toning",
+    "Spine color shows moderate wear and lightening"
+    ],
+    "back": [
+    "Back cover shows moderate tanning/yellowing at edges",
+    "Light handling wear across surface",
+    "Minor soiling visible \u2014 consistent with age",
+    "No tears or missing pieces detected",
+    "Color slightly less vibrant than front \u2014 typical for back covers of this era"
+    ],
+    "interior": [
+    "Centerfold shows moderate tanning/cream-colored pages \u2014 not white",
+    "Pages appear intact and attached at staples",
+    "No visible subscription crease detected in centerfold photo",
+    "Interior pages show age-appropriate toning consistent with 1965 newsprint",
+    "No visible writing or tears on centerfold pages"
+    ],
+    "other": [
+    "Comic is approximately 60 years old (May 1965) \u2014 age-related toning expected throughout",
+    "No coupons cut detected from centerfold view",
+    "Aurora model kit back cover ad is period-correct and intact"
+    ]
+  }
+  },
+  {
+  "id": 9,
+  "era": "pre1970",
+  "year": 1966,
+  "baseline_grade": 6.0,
+  "cgc_grade": null,
+  "new_grade": 5.5,
+  "new_scores": {
+    "cover_front": 5.5,
+    "spine": 5.0,
+    "corners": 4.5,
+    "edges": 5.5,
+    "cover_back": 5.5,
+    "color_gloss": 5.0,
+    "structural": 7.5,
+    "interior": 6.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "brittle",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Significant soiling and finger oils across cover surface",
+    "Multiple creases visible \u2014 notable diagonal crease lower left area",
+    "Color fading and dulling across entire cover",
+    "Surface wear and scuffing reducing ink vibrancy",
+    "Minor edge wear along right side of cover",
+    "General grime/dirt accumulation across cover"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 4-6 ticks",
+    "Spine shows moderate roll/lean",
+    "Possible light spine split at top edge \u2014 requires closer inspection",
+    "Staples appear intact but show signs of oxidation/rust",
+    "Spine color wear and fading along length"
+    ],
+    "back": [
+    "Significant soiling and grime across back cover",
+    "Back cover appears upside down in photo \u2014 moderate wear visible",
+    "Color fading consistent with front cover",
+    "Surface scuffing and handling wear throughout",
+    "Possible light creasing in lower portion"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning \u2014 cream to tan coloration",
+    "Centerfold shows heavy yellowing consistent with age",
+    "Interior pages appear intact with no obvious missing pages",
+    "Some foxing or age spotting likely present given paper color",
+    "Centerfold attached but shows age-related tanning"
+    ],
+    "other": [
+    "Overall paper stock has browned significantly indicating oxidation",
+    "Comic shows heavy reading wear consistent with multiple reads",
+    "Age-related brittleness likely present given paper tanning"
+    ]
+  }
+  },
+  {
+  "id": 127,
+  "era": "pre1970",
+  "year": 1966,
+  "baseline_grade": 5.0,
+  "cgc_grade": null,
+  "new_grade": 4.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 4.0,
+    "edges": 4.5,
+    "cover_back": 5.5,
+    "color_gloss": 5.0,
+    "structural": 6.5,
+    "interior": 6.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy diagonal crease running across upper-left quadrant of cover",
+    "Multiple stress lines and surface creases across center of cover",
+    "Significant color fading and wear on upper-left corner area (green background partially worn away)",
+    "Soiling and finger oils visible across cover surface",
+    "Abrasion/scuffing on Spider-Man figure in center",
+    "Minor tear or chip at upper-left corner",
+    "General surface dirt and grime across entire cover",
+    "Loss of gloss/sheen across most of cover surface"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible (estimated 5-8 ticks)",
+    "Spine shows moderate roll",
+    "Spine color wear and fading along entire length",
+    "Possible minor split at top of spine",
+    "Staples appear slightly stressed but intact",
+    "Spine edges show fraying and wear"
+    ],
+    "back": [
+    "General tanning/yellowing of back cover paper",
+    "Surface soiling and light foxing",
+    "Minor edge wear along all sides",
+    "Some creasing visible near edges",
+    "Color somewhat faded compared to original"
+    ],
+    "interior": [
+    "Pages show moderate tanning/yellowing (cream to light tan)",
+    "Centerfold appears attached but shows browning",
+    "Interior pages show age-related tanning consistent with 1966 newsprint",
+    "No obvious subscription crease visible in centerfold photo",
+    "No obvious writing or stamps observed on interior pages"
+    ],
+    "other": [
+    "Comic is a 1966 Silver Age issue \u2014 paper tanning is age-appropriate",
+    "No cut coupons observed in centerfold",
+    "Staples appear intact based on spine photo"
+    ]
+  }
+  },
+  {
+  "id": 129,
+  "era": "pre1970",
+  "year": 1967,
+  "baseline_grade": 5.5,
+  "cgc_grade": null,
+  "new_grade": 5.0,
+  "new_scores": {
+    "cover_front": 5.5,
+    "spine": 4.5,
+    "corners": 4.5,
+    "edges": 5.0,
+    "cover_back": 5.5,
+    "color_gloss": 5.5,
+    "structural": 7.0,
+    "interior": 6.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy cover-wide cracking/crazing of the ink surface visible across the dark blue/black background areas \u2014 extensive brittleness pattern",
+    "Multiple creases visible across upper portion of cover",
+    "Color fading and wear on title logo area",
+    "Surface soiling and finger oils present",
+    "Minor edge wear along left (spine) edge of front cover",
+    "Slight bend/curl visible at lower left corner"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 6-10+ stress marks along full spine length",
+    "Spine shows moderate roll",
+    "Top of spine shows wear and possible small split",
+    "Bottom of spine shows wear and fraying",
+    "Spine color wear \u2014 ink rubbed away in areas revealing white paper",
+    "Staples appear intact but show some stress"
+    ],
+    "back": [
+    "General surface wear and soiling",
+    "Tanning/yellowing of paper stock visible",
+    "Minor creasing in upper left corner area",
+    "Some color fading compared to original print vibrancy",
+    "Edge wear along left spine edge"
+    ],
+    "interior": [
+    "Pages show moderate to significant tanning/yellowing \u2014 cream to light tan color",
+    "Centerfold appears attached and intact",
+    "No obvious subscription crease visible in centerfold photo",
+    "Interior pages show age-related browning consistent with newsprint from 1967"
+    ],
+    "other": [
+    "Extensive ink crazing/cracking on front cover is the most significant defect \u2014 this is a major condition issue",
+    "Overall paper brittleness suggested by crazing pattern",
+    "Comic dates to January 1967 \u2014 approximately 57 years of age contributing to paper degradation"
+    ]
+  }
+  },
+  {
+  "id": 126,
+  "era": "pre1970",
+  "year": 1968,
+  "baseline_grade": 4.5,
+  "cgc_grade": null,
+  "new_grade": 4.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 4.0,
+    "edges": 4.5,
+    "cover_back": 5.5,
+    "color_gloss": 4.5,
+    "structural": 6.5,
+    "interior": 5.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy creasing visible across upper right quadrant of cover",
+    "Significant surface wear and soiling across entire cover",
+    "Color fading and loss of vibrancy, particularly in dark background areas",
+    "Multiple stress lines and light creases throughout cover surface",
+    "Possible writing or marking visible in upper right area near Comics Code stamp",
+    "General grime and finger oils across cover surface",
+    "Cover shows moderate to heavy handling wear"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 5+ ticks",
+    "Spine shows significant rolling/lean",
+    "Spine wear and color loss along entire length",
+    "Possible minor spine split at top or bottom (difficult to confirm fully from spine photo)",
+    "Staples appear stressed and possibly showing early rust",
+    "Spine paper shows heavy tanning and wear"
+    ],
+    "back": [
+    "General surface wear and soiling",
+    "Tanning of paper stock visible",
+    "Some edge wear bleeding onto back cover",
+    "Minor creasing visible",
+    "Back cover in better condition than front but still shows significant age wear"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning \u2014 cream to tan paper stock",
+    "Interior pages show age-related yellowing throughout",
+    "Centerfold appears attached but shows browning",
+    "Some interior page stress visible near staples"
+    ],
+    "other": [
+    "Comic is unbagged and unboarded, showing significant age-related deterioration",
+    "Overall grade consistent with heavy reading copy / Good to Very Good range"
+    ]
+  }
+  },
+  {
+  "id": 94,
+  "era": "pre1970",
+  "year": 1969,
+  "baseline_grade": 7.0,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 7.5,
+    "color_gloss": 6.5,
+    "structural": 8.5,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible creasing/stress lines in upper left corner area near price box",
+    "Light surface wear and handling marks across cover",
+    "Minor color fading particularly in darker background areas",
+    "Slight bend/crease visible along upper left quadrant",
+    "Cover shows general handling wear reducing gloss",
+    "Minor soiling/finger oils visible on surface"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 4-6 ticks along spine length",
+    "Slight spine roll detectable from spine photo",
+    "Top of spine shows minor wear/fraying",
+    "Bottom of spine shows minor wear",
+    "No spine splits detected but stress marks are notable",
+    "Staples appear intact but show minor aging"
+    ],
+    "back": [
+    "General tanning/aging of back cover paper stock",
+    "Light handling wear across surface",
+    "Minor soiling consistent with age",
+    "No major tears or missing pieces detected",
+    "Color appears slightly faded compared to original print"
+    ],
+    "interior": [
+    "Pages show moderate tanning/cream coloring consistent with 1969 newsprint",
+    "Centerfold appears attached and intact",
+    "No visible subscription crease detected in centerfold photo",
+    "Interior pages show age-appropriate browning at edges",
+    "No visible writing or stamps on interior pages observed"
+    ],
+    "other": [
+    "Comic is approximately 55+ years old (February 1969 cover date) \u2014 age-related tanning is expected",
+    "No cut coupons detected",
+    "No stickers or non-creator writing observed on cover"
+    ]
+  }
+  },
+  {
+  "id": 5,
+  "era": "bronze",
+  "year": 1972,
+  "baseline_grade": 5.0,
+  "cgc_grade": null,
+  "new_grade": 4.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 3.5,
+    "edges": 4.0,
+    "cover_back": 5.5,
+    "color_gloss": 4.5,
+    "structural": 6.5,
+    "interior": 6.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy soiling and finger oils across entire cover surface",
+    "Multiple creases visible \u2014 diagonal crease lower left quadrant",
+    "Significant color fading and dulling throughout",
+    "Surface wear and abrasion on cover art, particularly in dark areas",
+    "Possible small tear or stress mark at upper left corner area",
+    "General grime and dirt accumulation across cover",
+    "Cover shows heavy handling wear consistent with reading copies"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 5+ ticks",
+    "Spine shows rolling/lean visible in spine photo",
+    "Spine color fading and wear along entire length",
+    "Possible minor spine split at top or bottom (difficult to confirm fully)",
+    "Staples appear intact but show stress"
+    ],
+    "back": [
+    "General surface wear and soiling",
+    "Some creasing visible",
+    "Color appears faded but relatively intact compared to front",
+    "Minor edge wear along borders"
+    ],
+    "interior": [
+    "Centerfold shows staple stress and slight separation at center fold",
+    "Interior pages appear tanned/cream colored indicating significant aging",
+    "Music club advertisement centerfold intact but shows age tanning",
+    "No obvious writing or cut coupons visible in centerfold photo"
+    ],
+    "other": [
+    "This is the key first appearance issue of Ghost Rider \u2014 heavy reader wear consistent with age and handling",
+    "Overall grade consistent with GD/VG range (approximately 2.0\u20133.0 CGC equivalent)"
+    ]
+  }
+  },
+  {
+  "id": 37,
+  "era": "bronze",
+  "year": 1973,
+  "baseline_grade": 7.0,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.0,
+    "spine": 6.5,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 7.5,
+    "color_gloss": 7.0,
+    "structural": 8.0,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible crease/bend in upper left corner area near DC logo",
+    "Light surface wear and handling marks across cover",
+    "Minor color fading particularly in sky/blue background areas",
+    "Small crease visible in lower left quadrant",
+    "General surface soiling/finger oils from handling",
+    "Slight bend stress visible along left edge near spine junction"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 approximately 4-6 light stress marks",
+    "Slight spine roll present \u2014 spine leans slightly",
+    "Top of spine shows wear and slight fraying",
+    "Bottom of spine shows wear",
+    "No spine splits detected but stress lines are notable",
+    "Staples appear intact but show minor oxidation"
+    ],
+    "back": [
+    "Back cover photographed upside down but condition assessable",
+    "General surface wear consistent with front cover",
+    "Light tanning/aging of paper stock visible at edges",
+    "No major tears or missing pieces detected",
+    "Minor handling marks present"
+    ],
+    "interior": [
+    "Centerfold appears attached and intact",
+    "Interior pages show moderate tanning/cream coloration consistent with age",
+    "No visible subscription crease detected in centerfold photo",
+    "No cut coupons visible in centerfold area",
+    "Pages appear complete"
+    ],
+    "other": [
+    "Artist signature visible on front cover (appears to be Mike Kaluta's signature)",
+    "Comic is from 1973 \u2014 age-related tanning is expected and present",
+    "Raleigh bicycle advertisement on back cover is period-appropriate"
+    ]
+  }
+  },
+  {
+  "id": 88,
+  "era": "bronze",
+  "year": 1974,
+  "baseline_grade": 7.5,
+  "cgc_grade": null,
+  "new_grade": 7.5,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 7.5,
+    "color_gloss": 6.5,
+    "structural": 8.5,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "crease",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Moderate tanning/aging of cover stock visible across surface",
+    "Light surface wear and handling marks across cover",
+    "Minor color fading particularly in lighter areas",
+    "Slight soiling/finger oils visible on cover surface",
+    "Minor creasing visible in lower portion of cover"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible along spine length (estimated 4-6 ticks)",
+    "Slight spine roll present \u2014 spine leans slightly when viewed from side",
+    "Minor wear at top and bottom spine tips",
+    "No spine splits detected",
+    "Staples appear intact but show minor oxidation/aging"
+    ],
+    "back": [
+    "General tanning consistent with front cover age",
+    "Light surface soiling across back cover",
+    "Minor handling wear visible",
+    "Color remains largely intact with minor fading"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning consistent with newsprint aging",
+    "Centerfold appears attached and intact",
+    "Interior pages show age-related browning throughout",
+    "No visible tears or writing detected in centerfold photo"
+    ],
+    "other": [
+    "Overall paper stock has tanned to a medium-tan/brown consistent with mid-1970s Marvel newsprint",
+    "No missing pages detected",
+    "No cut coupons observed"
+    ]
+  }
+  },
+  {
+  "id": 47,
+  "era": "bronze",
+  "year": 1975,
+  "baseline_grade": 4.5,
+  "cgc_grade": null,
+  "new_grade": 4.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 3.5,
+    "edges": 4.0,
+    "cover_back": 4.5,
+    "color_gloss": 4.5,
+    "structural": 6.5,
+    "interior": 6.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy soiling and dirt accumulation across lower left quadrant",
+    "Multiple creases visible across cover surface, particularly lower portion",
+    "Significant wear and abrasion to cover surface reducing color vibrancy",
+    "Bottom left corner shows heavy crushing and folding",
+    "Surface scuffing across mid and lower cover areas",
+    "Color fading and loss of gloss across entire cover",
+    "Stress marks visible around staple area upper left",
+    "Possible small tear or chip at lower left corner"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 5 or more",
+    "Spine shows moderate roll",
+    "Spine wear and color loss along entire length",
+    "Possible minor split at bottom of spine",
+    "Staples appear intact but show signs of rust or oxidation"
+    ],
+    "back": [
+    "Heavy soiling and tanning across back cover surface",
+    "Multiple creases visible",
+    "Color loss and fading throughout",
+    "Surface wear reducing ink vibrancy",
+    "Bottom edge shows significant wear and possible fraying"
+    ],
+    "interior": [
+    "Pages show significant tanning/browning \u2014 cream to tan color",
+    "Centerfold shows moderate tanning consistent with age",
+    "Some interior page browning visible at centerfold",
+    "No obvious interior tears or writing detected at centerfold",
+    "Centerfold appears attached"
+    ],
+    "other": [
+    "Comic is approximately 50 years old (Feb 1976) \u2014 age-related tanning expected",
+    "Evel Knievel Ideal Toys advertisement on back cover \u2014 period-correct"
+    ]
+  }
+  },
+  {
+  "id": 109,
+  "era": "bronze",
+  "year": 1975,
+  "baseline_grade": 8.0,
+  "cgc_grade": null,
+  "new_grade": 8.0,
+  "new_scores": {
+    "cover_front": 8.0,
+    "spine": 7.5,
+    "corners": 7.5,
+    "edges": 8.0,
+    "cover_back": 8.5,
+    "color_gloss": 7.5,
+    "structural": 8.5,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible across cover",
+    "Slight color fading in upper left corner area",
+    "Very minor handling wear on cover surface \u2014 light finger oils possible",
+    "No visible tears or missing pieces",
+    "No writing or stamps detected"
+    ],
+    "spine": [
+    "Multiple spine stress ticks/lines visible along spine length \u2014 approximately 3-5 light stress marks",
+    "Slight spine roll detectable in spine photo",
+    "No spine splits at top or bottom",
+    "Staples appear intact but showing minor age stress"
+    ],
+    "back": [
+    "Back cover shows light handling wear",
+    "Minor surface scuffing visible",
+    "No tears or missing pieces",
+    "Color appears slightly faded but generally intact"
+    ],
+    "interior": [
+    "Pages show tanning/cream coloring consistent with 1975 newsprint \u2014 not white",
+    "Centerfold appears attached and intact",
+    "No visible interior tears or writing detected",
+    "No subscription crease visible",
+    "No cut coupons detected"
+    ],
+    "other": [
+    "Paper stock is standard 1975 Marvel newsprint \u2014 inherent tanning expected for age",
+    "No missing pages detected from centerfold view"
+    ]
+  }
+  },
+  {
+  "id": 124,
+  "era": "bronze",
+  "year": 1976,
+  "baseline_grade": 6.5,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 6.5,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 6.5,
+    "color_gloss": 7.0,
+    "structural": 8.0,
+    "interior": 8.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Light surface soiling/finger oils visible across cover",
+    "Minor color fading in upper left corner area",
+    "Slight wear and minor creasing along left edge near spine",
+    "Cover shows general handling wear but no major tears or missing pieces",
+    "Minor scuffing to cover surface"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 6-10 stress marks along spine length",
+    "Spine shows moderate rolling/lean",
+    "Spine color wear with tanning/lightening of spine color",
+    "No splits detected at top or bottom of spine",
+    "Staples appear intact but show some age stress",
+    "Spine is noticeably worn with color break along spine roll"
+    ],
+    "back": [
+    "General surface soiling and handling wear",
+    "Lower right corner shows wear and possible minor crease",
+    "Paper tanning visible",
+    "No major tears or missing pieces",
+    "Light foxing or age spotting possible"
+    ],
+    "interior": [
+    "Pages show moderate tanning/yellowing consistent with 1976 newsprint",
+    "Centerfold appears attached and intact",
+    "No visible subscription crease detected in centerfold photo",
+    "Interior pages show typical age browning but no major tears visible"
+    ],
+    "other": [
+    "Creator signatures visible on front cover lower right: 'Buckler & Giacoia' \u2014 these appear to be printed credits, not hand-signed",
+    "Comic is a King-Size Annual (larger format), consistent with expected dimensions"
+    ]
+  }
+  },
+  {
+  "id": 102,
+  "era": "bronze",
+  "year": 1979,
+  "baseline_grade": 7.5,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 6.5,
+    "color_gloss": 6.5,
+    "structural": 8.0,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_defects": {
+    "front": [
+    "Light surface wear and handling marks visible across cover",
+    "Minor color fading particularly in darker black areas",
+    "Small crease or stress mark visible near lower left corner area",
+    "Slight soiling/finger oils detectable on cover surface",
+    "Minor wear along right edge of cover"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 approximately 4-6 light stress marks along spine length",
+    "Slight spine roll detectable from spine photo angle",
+    "Minor color wear along spine edges",
+    "No splits detected at top or bottom of spine",
+    "Staples appear intact but showing minor age stress"
+    ],
+    "back": [
+    "Noticeable wrinkling/creasing across back cover surface \u2014 particularly visible in upper portion near business reply label area",
+    "Paper shows moderate tanning/aging",
+    "Surface soiling and handling marks present",
+    "Crumpling evident in upper center region of back cover"
+    ],
+    "interior": [
+    "Pages show significant tanning/yellowing consistent with newsprint aging",
+    "Centerfold appears attached and intact",
+    "Interior pages show moderate browning throughout",
+    "No visible writing or subscription creases detected in centerfold photo"
+    ],
+    "other": [
+    "Overall paper stock shows significant oxidation/tanning consistent with 1979 newsprint",
+    "No cut coupons detected",
+    "No signatures detected"
+    ]
+  }
+  },
+  {
+  "id": 13,
+  "era": "bronze",
+  "year": 1980,
+  "baseline_grade": 5.5,
+  "cgc_grade": null,
+  "new_grade": 5.0,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 4.0,
+    "corners": 4.0,
+    "edges": 5.0,
+    "cover_back": 5.5,
+    "color_gloss": 5.5,
+    "structural": 6.5,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "foxing",
+    "gloss loss",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Heavy creasing visible across upper left quadrant of cover",
+    "Significant surface wear and soiling across entire cover",
+    "Color fading and dulling throughout, particularly in blue banner area",
+    "Multiple stress lines radiating from spine edge",
+    "Dirt/finger oil accumulation visible across cover surface",
+    "Light crease running diagonally through lower left area",
+    "Cover shows general flattening of ink/gloss"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 6-8 breaks",
+    "Spine roll present \u2014 book does not lie perfectly flat",
+    "Top of spine shows wear and possible minor split",
+    "Bottom of spine shows fraying and wear",
+    "Spine color shows significant fading and whitening along stress lines",
+    "Staples appear intact but show signs of rust/oxidation"
+    ],
+    "back": [
+    "General surface wear and soiling",
+    "Minor creasing visible near spine edge",
+    "Color appears somewhat faded but largely intact",
+    "Upper spine corner shows wear and bending"
+    ],
+    "interior": [
+    "Pages show tanning/cream coloration consistent with age",
+    "Centerfold appears attached and intact",
+    "No visible subscription crease detected in centerfold photo",
+    "Interior pages appear complete with no obvious tears or writing visible"
+    ],
+    "other": [
+    "Upper left corner shows heavy blunting and rounding",
+    "Upper right corner shows moderate blunting",
+    "Lower left corner shows heavy wear and rounding",
+    "Lower right corner shows moderate-to-heavy rounding",
+    "Top edge shows chipping and fraying",
+    "Bottom edge shows wear and minor fraying",
+    "Right edge shows light-to-moderate wear"
+    ]
+  }
+  },
+  {
+  "id": 45,
+  "era": "bronze",
+  "year": 1982,
+  "baseline_grade": 7.0,
+  "cgc_grade": null,
+  "new_grade": 7.0,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 6.5,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 7.5,
+    "color_gloss": 6.5,
+    "structural": 8.0,
+    "interior": 7.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible light surface wear across cover",
+    "Minor color fading particularly in upper left region",
+    "Light handling marks/finger oils visible on surface",
+    "Small crease or stress mark visible near upper left corner area",
+    "Cover shows general reading wear consistent with age"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 estimated 4-6 ticks along spine length",
+    "Slight spine roll visible when viewed from spine photo angle",
+    "Top of spine shows wear and slight fraying",
+    "Bottom of spine shows similar wear",
+    "No spine splits detected but stress lines are prominent",
+    "Staples appear intact but show minor oxidation/aging"
+    ],
+    "back": [
+    "Back cover shows moderate tanning/aging of paper stock",
+    "Light surface wear consistent with front cover",
+    "Minor handling marks visible",
+    "No tears or missing pieces detected",
+    "Color appears slightly faded compared to original print"
+    ],
+    "interior": [
+    "Interior pages show significant tanning/browning consistent with 1982 newsprint",
+    "Centerfold appears attached and intact",
+    "No visible tears or writing detected in centerfold spread",
+    "Paper stock has browned noticeably \u2014 typical for Marvel newsprint of this era"
+    ],
+    "other": [
+    "Comic is a newsstand edition (barcode visible)",
+    "1982 publication date \u2014 paper aging is expected and consistent",
+    "Lego Expert Builder back cover ad intact",
+    "Starcade centerfold advertisement visible and intact"
+    ]
+  }
+  },
+  {
+  "id": 101,
+  "era": "bronze",
+  "year": 1984,
+  "baseline_grade": 8.5,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.5,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 8.5,
+    "color_gloss": 8.5,
+    "structural": 9.0,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible on close inspection",
+    "Slight color fading in upper left corner area near Marvel box",
+    "Very minor handling wear across cover surface",
+    "Newsstand edition barcode sticker/label present at bottom left \u2014 original printing feature, not a defect per se"
+    ],
+    "spine": [
+    "2-3 minor spine stress ticks visible along spine length",
+    "Very slight spine roll detectable from spine photo angle",
+    "No splits at top or bottom of spine",
+    "Staples appear tight and rust-free"
+    ],
+    "back": [
+    "Minor surface wear consistent with front cover",
+    "Slight handling marks visible",
+    "Color appears slightly less vibrant than front \u2014 typical for back covers",
+    "No tears or significant creasing observed"
+    ],
+    "interior": [
+    "Pages appear cream to off-white \u2014 typical tanning for a 1984 newsprint comic",
+    "Centerfold appears attached and intact",
+    "No visible interior tears or writing observed in centerfold photo",
+    "Slight yellowing/tanning of interior pages consistent with age"
+    ],
+    "other": [
+    "Newsstand edition (barcode variant) \u2014 noted for identification purposes",
+    "Comic is approximately 40 years old; paper tanning is expected and consistent with grade"
+    ]
+  }
+  },
+  {
+  "id": 112,
+  "era": "modern",
+  "year": 1986,
+  "baseline_grade": 8.0,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.0,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 8.5,
+    "color_gloss": 8.5,
+    "structural": 9.0,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible on close inspection",
+    "Slight color softening in white border areas",
+    "Very minor handling marks near lower left corner area",
+    "No creases, tears, or writing detected"
+    ],
+    "spine": [
+    "2-3 light spine stress ticks visible along spine length",
+    "Slight spine roll detectable from spine photo angle",
+    "No spine splits at top or bottom",
+    "Staples appear tight and rust-free"
+    ],
+    "back": [
+    "Minor handling wear on back cover surface",
+    "Slight corner softening at lower right",
+    "Color appears vibrant with no significant fading",
+    "No tears, writing, or stickers detected"
+    ],
+    "interior": [
+    "Pages show slight tanning/cream coloring consistent with 1986 newsprint",
+    "No subscription crease visible at centerfold",
+    "Centerfold appears attached and intact",
+    "No interior tears or writing detected"
+    ],
+    "other": [
+    "Arthur Adams signature printed on cover art (creator art credit, not a handwritten signature)",
+    "Comic is from 1986 Marvel 25th Anniversary banner series",
+    "Bolgan artist credit visible on back cover (printed, not handwritten)"
+    ]
+  }
+  },
+  {
+  "id": 99,
+  "era": "modern",
+  "year": 1987,
+  "baseline_grade": 8.5,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.5,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 8.5,
+    "color_gloss": 8.5,
+    "structural": 9.0,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "spine stress",
+    "tanning/yellow"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible on close inspection",
+    "Slight color fading in upper left corner area near Marvel logo",
+    "Very minor handling wear across cover surface",
+    "Possible light finger oils on cover surface \u2014 not prominently visible but consistent with age"
+    ],
+    "spine": [
+    "2-3 minor spine stress ticks visible along spine length \u2014 light but present",
+    "Slight spine roll detectable in spine photo \u2014 book leans very slightly",
+    "Spine color appears intact with no splits at top or bottom",
+    "Staples appear tight and rust-free based on available photos"
+    ],
+    "back": [
+    "Minor handling wear consistent with front cover",
+    "Small black mark/smudge visible at top edge of back cover",
+    "Color appears vibrant with no significant fading",
+    "No tears or missing pieces detected"
+    ],
+    "interior": [
+    "Centerfold appears attached and intact",
+    "Pages appear cream to off-white \u2014 consistent with 1987 Marvel newsprint aging",
+    "No visible subscription crease detected in centerfold photo",
+    "No visible writing or tears on interior pages observed"
+    ],
+    "other": [
+    "Comic is 1987 vintage \u2014 some age-related tanning of interior pages is expected and observed",
+    "No cut coupons visible in centerfold photo",
+    "No price stickers or stamps detected on cover"
+    ]
+  }
+  },
+  {
+  "id": 100,
+  "era": "modern",
+  "year": 1988,
+  "baseline_grade": 7.5,
+  "cgc_grade": null,
+  "new_grade": 7.5,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 8.0,
+    "color_gloss": 6.5,
+    "structural": 8.0,
+    "interior": 6.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "brittle",
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible surface wear and light soiling across cover",
+    "Minor creasing visible in upper left corner area near Marvel box",
+    "Light color fading on the orange/red background pattern",
+    "Todd McFarlane signature in silver marker on cover (creator signature \u2014 noted separately)",
+    "Slight bend/stress visible along left edge near spine attachment",
+    "Minor surface scuffing on black symbiote figure"
+    ],
+    "spine": [
+    "Multiple spine stress lines/ticks visible \u2014 approximately 4-6 light stress marks along spine length",
+    "Slight spine roll visible in spine photo \u2014 book does not lie perfectly flat",
+    "Spine color shows wear and lightening along stress points",
+    "Top and bottom of spine show minor blunting/wear",
+    "No spine splits detected but stress lines are notable for this grade"
+    ],
+    "back": [
+    "Light surface wear across back cover",
+    "Minor edge wear along right side of back cover",
+    "Overall back cover in better condition than front \u2014 colors relatively intact",
+    "No significant creasing or tears detected"
+    ],
+    "interior": [
+    "Pages show significant tanning/yellowing \u2014 cream to tan coloration throughout",
+    "Centerfold shows heavy browning/tanning consistent with newsprint aging",
+    "Centerfold staples appear intact but pages show age stress",
+    "Interior pages brittle-looking with notable oxidation browning",
+    "No visible interior tears or writing detected in centerfold photo"
+    ],
+    "other": [
+    "Paper stock has tanned considerably \u2014 consistent with unrestored newsprint from 1988",
+    "Overall aging consistent with a raw unslabbed copy stored without bags/boards for extended period"
+    ]
+  }
+  },
+  {
+  "id": 125,
+  "era": "modern",
+  "year": 1991,
+  "baseline_grade": 8.0,
+  "cgc_grade": null,
+  "new_grade": 7.5,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 7.0,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 8.0,
+    "color_gloss": 7.5,
+    "structural": 8.5,
+    "interior": 7.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "oils",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible light creasing in upper left quadrant near Marvel Comics box",
+    "Minor surface wear and light scuffing across cover",
+    "Slight color fading/dulling across the cover surface",
+    "Light finger oils or handling marks visible on cover surface",
+    "Minor bend stress visible near lower left corner area"
+    ],
+    "spine": [
+    "Noticeable spine roll \u2014 spine leans visibly when viewed from side",
+    "Multiple spine stress lines/ticks visible along spine length (estimated 4-6 ticks)",
+    "Spine shows moderate wear consistent with reading/handling",
+    "No spine splits detected at top or bottom",
+    "Staples appear intact but show slight stress"
+    ],
+    "back": [
+    "Light surface wear across back cover",
+    "Minor scuffing visible on back cover surface",
+    "Color appears slightly dulled but generally intact",
+    "No major creases or tears detected"
+    ],
+    "interior": [
+    "Pages show moderate tanning/cream coloring \u2014 not white",
+    "Centerfold shows slight age tanning consistent with 1991 newsprint",
+    "No visible interior tears or writing detected",
+    "Pages appear attached and intact at staples"
+    ],
+    "other": [
+    "Spine roll is the most significant structural concern for this copy",
+    "Overall wear consistent with a read/handled copy stored without bag and board for some period"
+    ]
+  }
+  },
+  {
+  "id": 21,
+  "era": "modern",
+  "year": 1994,
+  "baseline_grade": 6.0,
+  "cgc_grade": null,
+  "new_grade": 6.5,
+  "new_scores": {
+    "cover_front": 4.5,
+    "spine": 7.5,
+    "corners": 6.5,
+    "edges": 7.0,
+    "cover_back": 7.5,
+    "color_gloss": 7.0,
+    "structural": 8.5,
+    "interior": 8.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "crease",
+    "edge wear",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "crease",
+    "fading",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Multiple signatures in black marker across large portions of the cover \u2014 at least 5-6 distinct signatures covering significant surface area",
+    "Signatures written directly on cover art, heavily impacting visual presentation of the cover",
+    "One signature with '2002' date notation written across the title area",
+    "Signature reading 'Jim Lawson' written in large letters across the lower-left quadrant",
+    "Signature reading 'Eric Talbot' (or similar) in lower-right quadrant with accompanying sketch/doodle",
+    "Additional signatures in lower-left and lower-center areas obscuring cover art",
+    "Possible light surface wear/handling marks beneath signatures",
+    "Minor color fading consistent with 1994 publication age"
+    ],
+    "spine": [
+    "No major spine splits visible",
+    "Minor spine stress lines visible \u2014 approximately 2-3 light ticks",
+    "Slight spine roll detectable from spine photo angle",
+    "Staples appear intact and not visibly rusted from available photos"
+    ],
+    "back": [
+    "Back cover appears in relatively clean condition",
+    "Minor handling wear consistent with age",
+    "No major creases or tears visible",
+    "Color appears vibrant and intact"
+    ],
+    "interior": [
+    "Pages show moderate tanning/cream coloring consistent with 1994 newsprint-adjacent stock",
+    "Centerfold appears attached and intact",
+    "No visible interior tears or writing observed",
+    "Pages appear flat with no subscription crease visible"
+    ],
+    "other": [
+    "This is TMNT Volume 2 #7, October 1994, Mirage Publishing",
+    "10th Anniversary medallion logo visible on front cover lower right",
+    "Back cover advertises Casey Jones and Raphael #2 by Bisley and Eastman",
+    "NOTE: Signatures, while potentially adding collector value if authenticated, are treated as cover defects under standard CGC grading rules for raw/unwitnessed books"
+    ]
+  }
+  },
+  {
+  "id": 26,
+  "era": "modern",
+  "year": 1998,
+  "baseline_grade": 8.0,
+  "cgc_grade": null,
+  "new_grade": 8.0,
+  "new_scores": {
+    "cover_front": 8.0,
+    "spine": 7.5,
+    "corners": 7.5,
+    "edges": 7.5,
+    "cover_back": 7.5,
+    "color_gloss": 8.0,
+    "structural": 8.5,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "spine stress",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "fading",
+    "oils",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible light surface wear across cover",
+    "Minor handling marks/finger oils detectable on cover surface",
+    "Slight color dulling consistent with age (1998 publication)",
+    "Two signatures present on cover face (creator signatures, see signature_info)",
+    "Minor stress lines visible near upper left corner area"
+    ],
+    "spine": [
+    "Multiple spine stress ticks/lines visible along spine length \u2014 estimated 4-6 light stress marks",
+    "Slight spine roll/lean detectable in spine photo",
+    "No spine splits observed at top or bottom",
+    "Staples appear intact but not closely verifiable for rust"
+    ],
+    "back": [
+    "Back cover shows moderate handling wear",
+    "Some light surface scuffing visible",
+    "Color appears slightly faded compared to front",
+    "No tears or missing pieces observed",
+    "Minor edge wear at corners of back cover"
+    ],
+    "interior": [
+    "Centerfold appears fully attached and intact",
+    "Pages appear white to off-white \u2014 no significant tanning visible",
+    "No visible interior tears or writing observed in centerfold photo",
+    "No subscription crease detected"
+    ],
+    "other": [
+    "Back cover advertisement is for The Crow: Vengeance (February 1999), consistent with publication date",
+    "Comic is unbagged/unboarded based on photos \u2014 some handling wear expected"
+    ]
+  }
+  },
+  {
+  "id": 28,
+  "era": "modern",
+  "year": 1998,
+  "baseline_grade": 7.0,
+  "cgc_grade": null,
+  "new_grade": 7.5,
+  "new_scores": {
+    "cover_front": 7.5,
+    "spine": 6.5,
+    "corners": 7.0,
+    "edges": 7.5,
+    "cover_back": 8.0,
+    "color_gloss": 8.0,
+    "structural": 8.5,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Visible diagonal crease/bend running across lower-right quadrant of cover",
+    "Minor surface wear and handling marks visible under inspection",
+    "Slight color scuffing near lower center area",
+    "Two creator signatures present on cover art (Capullo and McFarlane/Haberlin area)"
+    ],
+    "spine": [
+    "Spine shows noticeable lean/roll \u2014 not lying flat",
+    "Multiple stress lines/ticks visible along spine length (estimated 4-6)",
+    "Top of spine shows slight splitting or fraying",
+    "Bottom of spine shows wear and possible minor split",
+    "Spine color shows wear and light creasing"
+    ],
+    "back": [
+    "Minor surface dirt or handling marks",
+    "Slight corner wear visible at bottom edges",
+    "Overall back cover in better condition than front"
+    ],
+    "interior": [
+    "Centerfold appears intact and attached",
+    "Pages show some tanning consistent with age (1998 publication)",
+    "No visible tears or writing on interior pages observed"
+    ],
+    "other": [
+    "Comic is from 1998 and shows age-appropriate wear throughout",
+    "Back cover advertises The Crow: Vengeance \u2014 February 1999, confirming late 1998 publication date"
+    ]
+  }
+  },
+  {
+  "id": 23,
+  "era": "current",
+  "year": 2014,
+  "baseline_grade": 9.0,
+  "cgc_grade": null,
+  "new_grade": 9.0,
+  "new_scores": {
+    "cover_front": 9.0,
+    "spine": 8.5,
+    "corners": 8.5,
+    "edges": 9.0,
+    "cover_back": 9.0,
+    "color_gloss": 9.0,
+    "structural": 9.5,
+    "interior": 9.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "gloss loss",
+    "oils",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "foxing",
+    "gloss loss",
+    "spine stress",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible under close inspection \u2014 slight texture disruption in upper red field",
+    "Very slight handling marks near lower left quadrant of cover",
+    "Minimal color scuffing consistent with single read or handling"
+    ],
+    "spine": [
+    "Light spine stress visible at top staple area \u2014 approximately 1-2 minor ticks",
+    "Slight spine roll detectable in side-view photo \u2014 book does not lie perfectly flat when viewed from spine angle",
+    "No splits detected at top, center, or bottom"
+    ],
+    "back": [
+    "Minor surface handling marks visible in lower left corner near barcode area",
+    "Slight gloss disruption in upper right quadrant of back cover \u2014 consistent with light finger contact"
+    ],
+    "interior": [
+    "No visible tears, writing, or subscription creases on centerfold pages",
+    "Centerfold appears fully attached and flat"
+    ],
+    "other": [
+    "No writing, stamps, or non-creator stickers detected",
+    "No foxing or moisture damage observed",
+    "No missing pieces or tears detected on any surface"
+    ]
+  }
+  },
+  {
+  "id": 36,
+  "era": "current",
+  "year": 2014,
+  "baseline_grade": 8.5,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.0,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 8.5,
+    "color_gloss": 9.0,
+    "structural": 9.0,
+    "interior": 8.5
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "crease",
+    "edge wear",
+    "spine stress",
+    "staple rust",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Possible light surface wear visible under photo lighting",
+    "Apparent signature/marking on left side of cover (lower left area, appears to be a creator signature in pencil or light ink)",
+    "Minor handling wear consistent with read copy"
+    ],
+    "spine": [
+    "Visible spine stress lines/ticks \u2014 approximately 2-3 light stress marks visible along spine length",
+    "Slight spine roll detectable from spine photo angle",
+    "No splits observed at top or bottom of spine",
+    "Staples appear intact and tight, no visible rust"
+    ],
+    "back": [
+    "Back cover appears clean with good color vibrancy",
+    "Minor handling wear at edges consistent with front",
+    "No tears, creases, or writing observed"
+    ],
+    "interior": [
+    "Centerfold appears attached and flat",
+    "Pages appear white to off-white with good quality",
+    "No visible interior tears or subscription creases",
+    "Centerfold staple area appears intact"
+    ],
+    "other": [
+    "Comic priced at $5.99 \u2014 direct edition",
+    "Includes bonus digital edition code (condition of code unknown)",
+    "Dr. Pepper advertisement on back cover consistent with period publication"
+    ]
+  }
+  },
+  {
+  "id": 30,
+  "era": "current",
+  "year": 2019,
+  "baseline_grade": 9.0,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.0,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 8.5,
+    "color_gloss": 9.0,
+    "structural": 9.0,
+    "interior": 9.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface wear visible under close inspection",
+    "Slight color variation near lower left corner area consistent with light handling",
+    "Barcode sticker/label present on lower left \u2014 appears to be a retail price sticker, not creator signature"
+    ],
+    "spine": [
+    "2-3 visible spine stress ticks/lines along the spine length, most notable in the upper third",
+    "Slight spine roll detectable from spine photo \u2014 book does not lie perfectly flat when viewed from spine angle",
+    "No splits detected at top or bottom of spine",
+    "Staples appear intact and tight, no visible rust"
+    ],
+    "back": [
+    "Back cover appears clean with good color vibrancy",
+    "Minor handling wear consistent with front cover",
+    "No tears, creases, or writing detected"
+    ],
+    "interior": [
+    "Centerfold appears fully attached and intact",
+    "Pages appear white to off-white with no significant tanning visible",
+    "No visible interior tears or writing detected in centerfold photo"
+    ],
+    "other": [
+    "This is a Variant Edition (Pichelli Flower Variant) \u2014 noted for identification purposes only, not a condition factor",
+    "Retail price sticker on lower left of front cover \u2014 partially obscures barcode area but does not damage cover art"
+    ]
+  }
+  },
+  {
+  "id": 39,
+  "era": "current",
+  "year": 2022,
+  "baseline_grade": 8.0,
+  "cgc_grade": null,
+  "new_grade": 8.5,
+  "new_scores": {
+    "cover_front": 8.5,
+    "spine": 8.0,
+    "corners": 8.0,
+    "edges": 8.5,
+    "cover_back": 9.0,
+    "color_gloss": 8.5,
+    "structural": 9.0,
+    "interior": 9.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "edge wear",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "gloss loss",
+    "oils",
+    "soiling/dirt",
+    "spine stress",
+    "staple rust",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Minor surface scuffing/scratching visible on the foil/metallic cover surface \u2014 consistent with handling",
+    "Slight reflective distortion near upper-left quadrant suggesting a very light bend or pressure mark",
+    "Minor finger oil smudging detectable on glossy surface under light"
+    ],
+    "spine": [
+    "2-3 visible spine stress ticks/lines along the spine length, most prominent near the top third",
+    "Slight spine roll detectable \u2014 spine does not lie perfectly flat when viewed from the side",
+    "No spine splits observed at top or bottom",
+    "Staples appear tight and rust-free based on spine photo"
+    ],
+    "back": [
+    "Back cover appears clean and bright with no major defects",
+    "Minor handling wear possible at corners but surface is largely pristine"
+    ],
+    "interior": [
+    "Centerfold appears fully attached and flat",
+    "Interior pages show good color and no visible tears or writing",
+    "No subscription crease detected"
+    ],
+    "other": [
+    "This is a Comic Kingdom of Canada exclusive variant edition \u2014 virgin/blank back cover format",
+    "Metallic/foil-style front cover surface makes surface defects more visible under light than standard covers"
+    ]
+  }
+  },
+  {
+  "id": 43,
+  "era": "current",
+  "year": 2024,
+  "baseline_grade": 9.0,
+  "cgc_grade": null,
+  "new_grade": 9.0,
+  "new_scores": {
+    "cover_front": 9.0,
+    "spine": 9.0,
+    "corners": 9.0,
+    "edges": 9.0,
+    "cover_back": 9.0,
+    "color_gloss": 9.5,
+    "structural": 9.5,
+    "interior": 9.0
+  },
+  "page_quality": null,
+  "stored_themes": [
+    "corner wear",
+    "crease",
+    "fading",
+    "gloss loss",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_themes": [
+    "corner wear",
+    "crease",
+    "spine stress",
+    "staple rust",
+    "tanning/yellow",
+    "tear"
+  ],
+  "new_defects": {
+    "front": [
+    "Retail price sticker/barcode label affixed to lower left corner \u2014 minor adhesive residue risk",
+    "Slight ambient lighting glare makes full surface inspection difficult but no obvious creases or tears visible",
+    "Minor handling wear possible at lower left corner near sticker placement"
+    ],
+    "spine": [
+    "No visible spine stress lines or ticks detected",
+    "Spine appears flat with no roll",
+    "No splits at top, center, or bottom",
+    "Staples appear tight and rust-free based on spine photo"
+    ],
+    "back": [
+    "No visible creases, tears, or surface damage on back cover",
+    "Color appears vibrant and clean",
+    "No writing or stamps detected"
+    ],
+    "interior": [
+    "Centerfold appears attached and flat",
+    "Pages appear white/bright with no visible tanning or yellowing",
+    "No interior tears or writing visible in centerfold photo"
+    ],
+    "other": [
+    "Artist signature visible on front cover lower center area \u2014 appears to be creator/artist signature (not a non-creator stamp)",
+    "This is a Variant Edition #1 \u2014 noted for identification purposes only, not a condition factor"
+    ]
+  }
+  }
+]
+}
