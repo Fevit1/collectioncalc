@@ -4,6 +4,10 @@
             --brand-indigo: #4f46e5;
             --brand-purple: #7c3aed;
             --brand-cyan: #06b6d4;
+            /* Token only — deliberately unapplied. Where gold appears in the UI
+               is Mike's call (docs/SlabWorthy_Brand_Guidelines.md, "What gold
+               is for"). Never on white (1.5:1), never for warning states. */
+            --brand-gold: #facc15;
             --brand-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
             --value-gradient: linear-gradient(135deg, #06b6d4, #7c3aed);
             --text-primary: #ffffff;

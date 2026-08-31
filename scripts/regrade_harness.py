@@ -70,6 +70,23 @@ EST_IN_TOKENS, EST_OUT_TOKENS = 7100, 850
 # Defect themes for base-rate diffing. Word-boundary on 'oils' is load-bearing:
 # a bare /oil/ matches 'soiling' (caught 2026-08-30, before it shipped a wrong
 # base rate). Keep in sync with any future report using these names.
+#
+# ⚠️ MATCHING IS NEGATION-AWARE (2026-08-30, second matcher bug the same day).
+# The model pads its defects lists with NEGATIVE observations — "No visible
+# spine stress lines or ticks detected", "Staples appear tight and rust-free" —
+# and the original matcher counted those as instances, driving crease to 35/36
+# and spine stress to 35/36 across the eval set. Rules now:
+#   1. Items are split into clauses; a theme term is suppressed when a negation
+#      cue (no/not/none/never/without/free of/absent/lack) appears within 5
+#      tokens BEFORE it in the same clause, or the term carries a "-free"
+#      suffix ("rust-free").
+#   2. 'corner wear' requires an actual wear assertion in the same clause —
+#      "lower left corner" as a bare position no longer fires it.
+#   3. 'gloss loss' matches \bgloss\b, not 'glossy' — "smudging on glossy
+#      surface" is not a gloss-loss assertion. (Term precision, not a
+#      vocabulary change; theme names and count are unchanged.)
+# KNOWN RESIDUAL: positive-state phrasing without a cue word ("edges appear
+# clean") can still false-fire; none occur in the eval-set acceptance trio.
 THEMES = [
     ('oils',            r'\boils?\b'),
     ('tanning/yellow',  r'tann|brown|yellow'),
@@ -82,9 +99,57 @@ THEMES = [
     ('foxing',          r'foxing'),
     ('staple rust',     r'rust'),
     ('tear',            r'\btear|torn'),
-    ('gloss loss',      r'gloss'),
+    ('gloss loss',      r'\bgloss\b'),
     ('brittle',         r'brittle'),
 ]
+
+_NEG_CUE = re.compile(r'\b(no|not|none|never|without|absent|lacks?|lacking|free of)\b')
+_HARD_SPLIT = re.compile(r'[;.]| but | except | though | — ')
+_WEAR_WORDS = re.compile(
+    r'\b(wear|worn|round(ed|ing)?|blunt(ed|ing)?|bend|bent|creas\w*|ding(s|ed)?|'
+    r'chip(s|ped|ping)?|soft(ened)?|fray\w*|damage\w*|dog[- ]?ear\w*|crush\w*|'
+    r'scuff\w*|scratch\w*|crumpl\w*)\b')
+
+
+def _segments_with_negation(item_lower):
+    """Yield (segment, inherited_negation). Hard boundaries (; . — but/except/
+    though) reset negation. Commas DISTRIBUTE it into continuation segments —
+    'No visible creases, tears, or surface damage' negates all three — but only
+    into short or conjunction-led segments, so 'no spine roll, light crease at
+    bottom' still fires crease."""
+    for hard in _HARD_SPLIT.split(item_lower):
+        prev_neg = False
+        for seg in hard.split(','):
+            seg = seg.strip()
+            toks = seg.split()
+            inherited = prev_neg and (len(toks) <= 3 or
+                                      (toks and toks[0] in ('or', 'and', 'nor')))
+            yield seg, inherited
+            prev_neg = inherited or bool(_NEG_CUE.search(seg))
+
+
+def _theme_fires_in_item(pattern, item_lower, needs_wear_assertion=False):
+    """True if the theme is ASSERTED (not negated) somewhere in this defect item."""
+    for seg, inherited_neg in _segments_with_negation(item_lower):
+        m = re.search(pattern, seg)
+        if not m:
+            continue
+        if inherited_neg:
+            continue
+        # "-free" compound: 'rust-free', 'crease-free'
+        after = seg[m.end():m.end() + 6]
+        if after.startswith('-free') or after.startswith(' free'):
+            continue
+        # negation cue within 7 tokens before the match, same segment (joined,
+        # so two-word cues like 'free of' match; 7 covers 'no visible interior
+        # tears or subscription creases')
+        window = ' '.join(seg[:m.start()].split()[-7:])
+        if _NEG_CUE.search(window):
+            continue
+        if needs_wear_assertion and not _WEAR_WORDS.search(seg):
+            continue
+        return True
+    return False
 
 # ── Variant prompt transforms ────────────────────────────────────────────────
 # Each takes (prompt_text, year) and returns the transformed prompt. They edit
@@ -289,9 +354,16 @@ def regrade_one(client, model, sub, variant_fn):
 # ── Reporting ────────────────────────────────────────────────────────────────
 
 def defect_theme_hits(defects):
-    s = ' || '.join(x.lower() for v in (defects or {}).values()
-                    if isinstance(v, list) for x in v)
-    return {name for name, pat in THEMES if re.search(pat, s)}
+    """Themes ASSERTED across a submission's defect lists. Per-item evaluation —
+    negation scope must never leak from one defect string into another."""
+    items = [x.lower() for v in (defects or {}).values()
+             if isinstance(v, list) for x in v]
+    hits = set()
+    for name, pat in THEMES:
+        needs_wear = (name == 'corner wear')
+        if any(_theme_fires_in_item(pat, item, needs_wear) for item in items):
+            hits.add(name)
+    return hits
 
 
 def preflight(entries):
@@ -361,14 +433,24 @@ def summarize(run):
         print(f"{b['id']:>4} {b['era']:<8} {b['baseline_grade']:>6} {b['new_grade']:>5} "
           f"{d:+6.1f}  {b.get('page_quality') or ''}")
 
-    print('\ndefect base rates (this run vs stored):')
+    # Base rates are RE-DERIVED here from the raw defect strings whenever the
+    # record carries them ('new_defects') — never trusted from the precomputed
+    # 'new_themes' lists, which may have been written by an older matcher (the
+    # 2026-08-30 negation bug). The stored-baseline column CANNOT be re-derived
+    # offline (raw stored strings aren't in the record) and is labelled with
+    # the matcher that produced it.
+    recomputable = all('new_defects' in b for b in books)
+    print('\ndefect base rates (this run%s vs stored):' %
+          (' — re-derived from raw strings, negation-aware' if recomputable else ''))
     stored_hits, new_hits = collections.Counter(), collections.Counter()
     for b in books:
         for t in b['stored_themes']:
             stored_hits[t] += 1
-        for t in b['new_themes']:
+        new_themes = (sorted(defect_theme_hits(b['new_defects'])) if 'new_defects' in b
+                      else b['new_themes'])
+        for t in new_themes:
             new_hits[t] += 1
-    print(f"  {'theme':<18}{'stored':>8}{'new':>6}")
+    print(f"  {'theme':<18}{'stored*':>8}{'new':>6}   (*legacy matcher — may count negated mentions)")
     for name, _ in THEMES:
         print(f"  {name:<18}{stored_hits[name]:>5}/{n}{new_hits[name]:>4}/{n}")
 
@@ -448,6 +530,54 @@ def main():
         _HERE, f"regrade_run_{time.strftime('%Y%m%d_%H%M')}_{args.variant}.json")
     results, skipped, t_in, t_out = [], [], 0, 0
 
+    # ── Off-container persistence ────────────────────────────────────────────
+    # The container FS dies with the pod: 2026-08-30, a pod recycle after an env
+    # change took two of three run records with it; the third survived only
+    # because it happened to be emailed. Records are now emailed automatically —
+    # on success, on any run-level crash, and on SIGTERM (a pod recycle IS a
+    # SIGTERM). A persistence failure prints LOUDLY: a silent one teaches the
+    # operator to trust a safety net that is not there.
+    def _persist_offsite(reason):
+        to = os.environ.get('ADMIN_EMAIL')
+        sender = os.environ.get('RESEND_FROM_EMAIL', 'noreply@slabworthy.com')
+        try:
+            if not to:
+                raise RuntimeError('ADMIN_EMAIL not set')
+            if not os.path.exists(out_path):
+                raise RuntimeError(f'no record file at {out_path}')
+            from send_one_email import send_email
+            data = open(out_path, 'rb').read()
+            fname = os.path.basename(out_path)
+            msg_id = send_email(
+                sender, to,
+                f'[regrade] {args.variant} run {reason} — '
+                f'{len(results)} graded, {len(skipped)} skipped',
+                f'Run record attached ({len(data)} bytes, {reason}).\n'
+                f'variant={args.variant} graded={len(results)} skipped={len(skipped)} '
+                f'tokens_in={t_in} tokens_out={t_out}\n'
+                f'Re-report offline: python scripts/regrade_harness.py --report {fname}',
+                attachments=[(fname, data)])
+            print(f'  record emailed to {to} — Resend id: {msg_id}')
+            return True
+        except Exception as e:
+            print('!' * 72)
+            print(f'!! RUN RECORD NOT PERSISTED OFF-CONTAINER: {type(e).__name__}: {e}')
+            print(f'!! The record exists ONLY at {out_path} inside this container.')
+            print('!! COPY IT OUT NOW — a pod recycle deletes it.')
+            print('!' * 72)
+            return False
+
+    def _handle_sigterm(signum, frame):
+        print('\nSIGTERM received (pod recycle?) — persisting partial record before exit.')
+        _persist_offsite('INTERRUPTED (SIGTERM)')
+        sys.exit(1)
+
+    import signal
+    try:
+        signal.signal(signal.SIGTERM, _handle_sigterm)
+    except (ValueError, OSError) as e:
+        print(f'[warn] could not install SIGTERM handler: {e}')
+
     def _write_record(complete):
         # Incremental: rewritten after EVERY book, so a crash leaves a usable
         # partial record instead of forfeiting the money already spent
@@ -463,11 +593,12 @@ def main():
         os.replace(tmp, out_path)
         return run
 
-    for i, e in enumerate(entries, 1):
-        sub = subs[e['id']]
+    def _run_one_book(i, e):
         # ── One bad book must not destroy the run: a $1.13 run forfeited every
         # book after a single malformed image on 2026-08-30. Catch, log,
         # continue; skipped ids surface in the report.
+        nonlocal t_in, t_out
+        sub = subs[e['id']]
         try:
             sub['_photos'] = fetch_photos_b64(sub['photos'] or {})
             if len(sub['_photos']) < 3:
@@ -478,7 +609,7 @@ def main():
             print(f"  [{i}/{n}] id {e['id']}: SKIPPED — {type(ex).__name__}: {ex}")
             skipped.append({'id': e['id'], 'error': f'{type(ex).__name__}: {ex}'})
             _write_record(complete=False)
-            continue
+            return
         t_in += r['usage']['in']
         t_out += r['usage']['out']
         results.append({
@@ -494,9 +625,19 @@ def main():
         _write_record(complete=False)
         time.sleep(1)  # gentle pacing; this is 36 sequential vision calls
 
+    try:
+        for i, e in enumerate(entries, 1):
+            _run_one_book(i, e)
+    except BaseException:
+        # Run-level failure (DB gone, client error loop, Ctrl-C) — the partial
+        # record holds every book already paid for. Persist it before dying.
+        print('\nrun-level failure — persisting partial record before exit.')
+        _persist_offsite('CRASHED (partial)')
+        raise
+
     run = _write_record(complete=True)
     print(f'\nrun record written: {out_path}')
-    print('(container FS is ephemeral — copy the JSON out of the shell)')
+    _persist_offsite('complete')
     if skipped:
         print(f'⚠ {len(skipped)} book(s) SKIPPED: {[s["id"] for s in skipped]} — '
               f'aggregates below cover {len(results)} books, not {n}.')

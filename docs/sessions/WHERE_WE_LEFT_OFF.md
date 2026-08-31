@@ -1,4 +1,314 @@
-# Where We Left Off - Aug 12, 2026
+# Where We Left Off - Aug 30, 2026
+
+## 2026-08-30 (brand) — 🎨 **BRAND GUIDELINES ARE NOW A DOCUMENT. Decision of record: gold #facc15 IS the brand (Mike). SOURCE OF TRUTH: docs/SlabWorthy_Brand_Guidelines.md.**
+
+- **Canonical-source rule:** the repo .md governs; the .docx is the human copy; the
+  project-storage mirror (claude/SW_BRAND_GUIDELINES.md) is DO NOT EDIT. Brand changes
+  land in the repo .md FIRST and mirror outward. Never restate the palette elsewhere —
+  point at the doc. (The old CLAUDE.md fragment vs styles.css drift is the reason.)
+- **Done, uncommitted:** .docx→.md conversion (verified: hex multiset identical 40/40,
+  all 60 paragraphs verbatim, 4 tables, chrome-print fence intact; ONE addition
+  disclosed — a provenance blockquote under the Status line encoding the mirror rule);
+  `--brand-gold: #facc15` added to styles.css :root (TOKEN ONLY, deliberately
+  unapplied — where gold appears in the UI awaits Mike's taste call); CLAUDE.md brand
+  fragment replaced with a pointer (frontend change → purge on ship, no deploy).
+- **Wordmark sweep ("SLAB WORTHY" missing the $), report only:** ONE live user-facing
+  hit — **routes/waitlist.py:80**, the waitlist email H1 renders "SLAB WORTHY™"
+  (gold, but no $). Rest: internal docs/comments/console banners + archive/. HTML
+  surfaces clean — the 2026-07-29 footer fix held.
+- **Purple contrast audit (3.3:1 on dark, AA body needs 4.5:1), report only — NOT
+  empty, live a11y issue:** worst = `.defect-area-label` styles.css:2003 (0.65rem
+  purple labels on the grading report, every grader sees it); site-wide footer links
+  styles.css:894 (0.9rem); `.back-link`/`.serial-tag`/`.response-btn.active`
+  sightings.html (0.8-0.9rem); `.sell-dropdown-manage` 0.7rem, `.comics-list
+  .comic-grade` 0.9rem, `.bulk-count`, `.btn-draft` (collection.css + ebay modal);
+  `.details-toggle.active` 0.85rem; `.auth-link:hover` 0.85rem. Mike to decide.
+  Exempt-ish: defects-list bullets (markers), the 11px ✏️ icon (non-text, 3:1 ok).
+- Not on the critical path; grading calibration work unaffected.
+
+## 2026-08-30 (night) — 🔧 **MATCHER NEGATION BUG FIXED; VARIANT A = NULL RESULT; 2 of 3 run records LOST to a pod recycle; auto-persistence added.**
+
+**MOST RECENT CHANGE (Rule 5): three runs happened tonight (baseline ×2 + variant A);
+the pod recycled after an env change and destroyed two records. Baseline 1 was recovered
+from email → `scripts/regrade_run_20260830_2006_baseline.json` (normalized from a Yahoo
+webmail save: 301 bytes of mail chrome stripped, CRLF→LF; verified 36 books,
+cost_usd 1.186404). VARIANT A IS A NULL RESULT (Mike): passing the year moved nothing
+beyond the noise floor, ceiling unchanged (two books at 9.0, none above, all three runs).
+Next hypothesis: compression comes from the rubric itself — RULE 5 + universal flags +
+conservative tiebreak. Supporting shape: book 53 grades 3.5 on raw weighted 3.48 with
+structural/interior at 5.5 against spine 2.5.**
+
+- **Matcher bug:** `defect_theme_hits` counted NEGATED mentions ("No visible spine
+  stress lines", "rust-free", "No creases, tears, or writing") as defect instances, and
+  bare positional nouns ("lower left corner") as corner wear. **Scope verified:
+  harness-only** — THEMES/defect_theme_hits exist only in scripts/regrade_harness.py;
+  production renders defect strings verbatim (grading.py:890-893 → app.html
+  resultDefectsGrid), no theme-matching in any user-facing path. NOT a user-facing bug.
+- **Fix (verified 17/17 unit + 8/8 pipeline):** per-item, clause-aware, negation-aware
+  matching — cue window 7 tokens, "-free" suffixes, negation DISTRIBUTES across
+  comma-enumerations, corner wear requires a wear assertion, gloss ≠ 'glossy'. Theme
+  names/count unchanged. `--report <run.json>` re-derives base rates offline from raw
+  defect strings, zero API calls; stored-baseline column labelled legacy.
+- **Corrected baseline-1 rates (36 books):** crease 35→25, tear →5, staple rust →9,
+  tanning →30. ⚠️ **spine stress stays 35/36 and it is GENUINE** — every fire traces to
+  an explicit assertion ("2-3 ticks", "8+ visible"). Not tuned down (L-2026-028). That
+  near-universal *asserted* flag is itself the rubric-compression evidence.
+- **2026-08-30-morning DB base rates RE-DERIVED** (the originals used the naive
+  matcher): pre-1970 claims SURVIVE (oils 92%, tanning/soiling/fading/spine-stress
+  100%, crease 97%); the bug had inflated mostly modern/current (current crease
+  18/22→1/22, current tanning →0/22) — the era contrast is sharper than reported, not
+  weaker. Board-reorder decision unaffected.
+- **Persistence (Task 3):** run records now EMAIL themselves via the one repo sender
+  (send_one_email.send_email, extended with attachments) to ADMIN_EMAIL from
+  RESEND_FROM_EMAIL — automatically on completion, on run-level crash, and on SIGTERM
+  (pod recycle). Failure prints a loud unmissable block, never silent, never fatal.
+  Email chosen over R2: tonight's sole survivor survived BECAUSE it was emailed; an R2
+  object still needs the operator to remember to fetch it. Residual gap: SIGKILL is
+  uncatchable (incremental local writes still bound the loss to <1 book of progress).
+- **page_quality null (Task 4, report only):** neither (a) nor (b) — the field is
+  requested ONLY by Variant C's prompt; baseline/A prompts contain no such field, so
+  null on all 36 baseline books is correct-by-design, unrelated to CGC ground truth.
+  The COLOR_GLOSS and INTERIOR *categories* (the actual 15% weight) scored on all 36
+  books and fed every grade. No inert category exists.
+
+## 2026-08-30 (later) — 📏 **MEASURED PROPERTY OF THE GRADER: ±1.0 grade point of non-determinism at temperature 0. Not a harness defect. Changes how all harness results are read.**
+
+Book id 106: **6.0** in the smoke test, **7.0** in the baseline run — identical book,
+prompt, model (claude-sonnet-4-6), temperature 0. Corroborates the previously
+unexplained Spawn #77 result (8.0/7.0/7.0). Consequences, per Mike:
+**per-book deltas are NOT interpretable; the measurement is the aggregate mean across
+the 36-book set; the fresh double-baseline is essential, not precautionary.** Any
+future reader of a harness report: a single book moving ±1.0 between runs is noise.
+
+**Harness hardening after the first baseline run crashed at book 10/36 (~$0.28 spent,
+9 books' results lost):** cause was `media_type` hardcoded to `image/jpeg` while id 9's
+retained photo is PNG — pre-2026-07-16 submissions retain ORIGINAL phone bytes; prod
+never hits this because /api/grade re-encodes everything to JPEG via
+normalize_for_photo_type (grading.py:667). Fixed by MATCHING PROD (normalize-first,
+same GRADING_MAX_LONG_EDGE, so harness pixels = prod pixels) with magic-byte sniffing
+(PNG/JPEG/GIF/WebP/HEIC) as fallback; HEIC/unidentifiable → per-book skip. Plus:
+per-book failures no longer kill the run (skip, log, list in report), and the run
+record is rewritten atomically after EVERY book so a crash leaves a usable partial.
+Stub-verified offline 13/13. New `--preflight` mode (zero API spend) checks all 36
+photo sets' fetchability + real media types — run it in the Render shell before the
+next paid run. The 9 crashed books' results are unrecoverable (end-only write);
+baseline restarts from scratch, ~$1.13.
+
+## 2026-08-30 — 🧪 **RE-GRADE HARNESS BUILT (measuring instrument, not fix). Rubric untouched. Board reordered: era-blind grading now outranks comp-set purity (Mike).**
+
+**MOST RECENT CHANGE (Rule 5): grading-rubric findings landed 2026-08-30 — page colour
+feeds the numeric grade (COLOR_GLOSS 10% + INTERIOR 5%), zero era handling, defect flags
+at 92-100% base rate on pre-1970 books, and a hard 9.0 ceiling across all 138 submissions
+(no grade above 9.0 ever assigned). Mike's call: DO NOT tune the rubric without ground
+truth — undergrading loses an opportunity, overgrading costs a user $105+shipping. First
+unit = the measuring instrument. Supersedes any plan that opens CP-1 work on canonical
+fragmentation; grading is upstream of valuation and the defects multiply.**
+
+- **Built, verified offline 16/16, NOT committed:** [scripts/regrade_harness.py] +
+  [scripts/regrade_eval_set.json]. Fixed 36-book eval set (14 pre-1970 / 10 bronze /
+  7 modern / 5 current, all 4-photo, near-duplicate 1988 cluster ids 54-67 excluded).
+  Variants are prompt TRANSFORMS in the harness — grading_engine.py untouched; baseline
+  = exact prod prompt. Variant A: +publication year (request already carries it,
+  grading.py:900; it just never reaches the prompt). B: era-conditional baseline
+  language. C: brittleness unbundled from paper colour, page_quality captured
+  report-only. C fails loud if the prod prompt's anchor text changes.
+- **Cost, measured basis: ≈ $1.22 per 36-book variant run** (7,100 in / 850 out per
+  4-photo grade at claude-sonnet-4-6). Dry-run is default; --run required; ledger
+  append instructed in-tool. Runs in the Render shell (needs ANTHROPIC_API_KEY + R2).
+- **⚠️ Set survival:** images_purge_after on the set spans 2026-10-09→11-26, BUT the
+  auto-purge job is DEFERRED/UNBUILT (grade_retention.py:12) and `pinned` has NO
+  consumer (admin display only) — pinning is forward protection, not current
+  protection. Mike to run: `UPDATE grade_submissions SET pinned = TRUE WHERE id IN
+  (manifest ids);` and the future purge job MUST exempt pinned rows.
+- **cgc_grade slots** in the manifest for externally-graded ground truth (pursued
+  separately); harness reports error-vs-truth when populated.
+- **RULE 5 reconciliation (report only, not implemented):** nothing reconciles "every
+  defect must reduce its category score" with flags firing on 100% of an era —
+  together they guarantee era-normal traits reduce the grade. Assessment: fix belongs
+  in the ERA BASELINE (variant B's shape), not in weakening rule 5 (defects must stay
+  tied to scores) nor in flag suppression (hides real information).
+
+---
+
+# Where We Left Off - Aug 28, 2026
+
+## 2026-08-28 (SESSION CLOSE) — 🔴 **GATING UNIT COMMITTED + PUSHED, NOT DEPLOYED. DEPLOY IS BLOCKED on one unfinished verification. Plus: a storage-quota incident with an UNVERSIONED console mitigation, and two new units.**
+
+**MOST RECENT CHANGE (Rule 5): both gating commits are IN — `ea6a0c5` (server:
+auth.py + the two route files) and `eeed129` (extension: collectioncalc.js +
+manifest 2.43.0) — committed and pushed by Mike, 2026-08-28. Supersedes the
+"NOT COMMITTED" line in the entry below. `deploy` has NOT been run and MUST NOT
+be run until the gate immediately below clears.**
+
+### ⛔ THE DEPLOY GATE — open, and it is the only thing between here and done
+
+**The `X-Operator-Key` header has never been observed on a live fmv request.**
+Extension side is otherwise complete: `operatorApiKey` confirmed present in
+`chrome.storage.local` (length 20), extension reloaded, chrome://extensions
+reads **2.43.0**. The DevTools observation of the header on a real Whatnot fmv
+call was interrupted by the quota incident below and **not resumed**. Until
+someone sees that header on a real request, the pre-gate server (which ignores
+it) is the only safe deployed state. **Resume point: open a Whatnot live page →
+DevTools Network → confirm `X-Operator-Key` on an fmv request → then `deploy`
+(backend-only, no purge) → post-deploy curls per the entry below.**
+
+### 🟠 INCIDENT — extension storage quota, manually mitigated, mitigation UNVERSIONED
+
+`background.js` threw `Resource::kQuotaBytes quota exceeded`.
+`chrome.storage.local` was at **10,475,267 of 10,485,760 bytes**; `salesHistory`
+held 10,292,320 across **367 entries**, of which **94 carried a base64
+`imageDataUrl` totalling 10,128,598 bytes — 98.4% of the blob.** Capture itself
+was NOT failing: `[BG] Sale recorded` logged immediately before each throw —
+the failure was the LOCAL write after successful server recording.
+
+**Mitigation applied via the service-worker console, NOT in code:** every
+entry's `imageDataUrl` set to null, all 367 entries and their dedup value
+preserved. Usage → 347,647 bytes. ⚠️ **This is an unversioned console change.
+It does not exist in the repo, will not survive a fresh profile, and will not
+reproduce for anyone else.** The durable fix is New Unit 2.
+
+### 🆕 NEW UNIT 1 — box lots recorded as comics (HIGHER PRIORITY of the two)
+
+Observed live and in `salesHistory`: `rawTitle: "Box #18"` parsed to
+`title: "Box", issue: 18, platform: "whatnot"`, price 25; console showed
+`[BG] Sale recorded: Box - $50`. Also `"AAA) Random Raw Comic as shown"` at $3.
+**This creates plausible-looking fake series keys, not obvious junk.** Two
+questions to answer BEFORE proposing a fix:
+1. Does anything in `/api/sales/record` or downstream reject a payload of this
+   shape? (Nothing obvious does — the handler normalizes and INSERTs — but
+   answer it by reading the path, not from this parenthetical.)
+2. How many rows already in `market_sales` arrived this way? That count decides
+   go-forward-only vs also-a-cleanup.
+Related to the known Whatnot normalization item, but that item's framing —
+"contributes no depth" — **understates this**: it is not just useless rows, it
+is fake keys.
+
+### 🆕 NEW UNIT 2 — salesHistory grows without bound
+
+94 images in ~6 months ≈ 108 KB each ≈ **1.7 MB/month → the 10 MB wall returns
+in ~6 months.** ⚠️ **Do NOT fix with `unlimitedStorage`.** Likely correct fix is
+NOT eviction either: once an image has been sent to the server it has no reason
+to persist locally — **null `imageDataUrl` after upload** rather than capping
+the list. **Prerequisite: confirm what consumes `imageDataUrl`** before
+deciding; do not assume it is write-only.
+
+### 🔒 SECURITY ITEM — reported this session, DO NOT act (no rotation, no removal)
+
+`anthropic_api_key` (110 bytes) sits in the extension's `chrome.storage.local`.
+Findings, grep of the whatnot-valuator source with a positive control (the same
+probe finds the real `operatorApiKey` and `openai_api_key` storage reads):
+- **Nothing in the current extension reads that storage key.** It is residue of
+  the pre-Session-61 era — `lib/vision.js:4` records the migration to the
+  backend proxy, and its `loadApiKey`/`saveApiKey` are now JWT-based legacy
+  shims. **No code path calls Anthropic directly from the client.**
+- **BUT the same sweep found a live direct-from-client third-party AI call:**
+  `lib/audio.js:123-150` reads `openai_api_key` from the same storage and POSTs
+  audio to `https://api.openai.com/v1/audio/transcriptions` with
+  `Authorization: Bearer` — a real client-side secret in active use, unlike the
+  dead Anthropic one. Also observed: `api.openai.com` is NOT in the manifest's
+  `host_permissions`. Reported only; nothing rotated, removed, or changed.
+
+### 📋 FOLLOW-UP GATING UNIT — entry task defined, not started
+
+`/api/sales/count` and `/api/sales/recent` remain ungated; `recent` returns
+full `market_sales` rows with a caller-controlled `limit`. **Entry task before
+scoping: a complete inventory of every endpoint that reads corpus data, with
+its current auth state** — including `/api/sales/valuation`, which is
+**anonymous by design** (unauthenticated GET; its own refund docstring says so)
+and must appear in the inventory as such, not be assumed covered by the fmv
+gate. ⚠️ **The record must not overstate the shipped unit: it NARROWS the
+exposure, it does not close it.**
+
+---
+
+## 2026-08-28 (later) — 🟡 **OPERATOR-KEY GATE ON /sales/record + /sales/fmv: BUILT AND OFFLINE-VERIFIED, NOT COMMITTED. Rollout order matters — extension first, then deploy.**
+**⚰️ "NOT COMMITTED" is DEAD as of session close — commits `ea6a0c5` + `eeed129` are in and
+pushed; deploy blocked on the header-observation gate. See the SESSION CLOSE entry above.**
+
+**MOST RECENT CHANGE (Rule 5): both sales endpoints now require credentials in the working
+tree — `/api/sales/record` requires `X-Operator-Key` (env `OPERATOR_API_KEY`, already set on
+Render), `/api/sales/fmv` accepts the key OR a logged-in user. Supersedes the roadmap's
+"ungated" description once shipped. NOT yet committed/deployed — and unlike F, this defect
+WAS verified still live in prod (2026-08-28) before building: anonymous fmv returned 200
+with full tiers; an invalid-JSON probe on record reached the handler (Flask 400, no row
+written), proving no gate in front of it.**
+
+- **Files:** `auth.py` (`operator_key_status()` — X-Operator-Key header, per-request env
+  read like the Stripe webhook secret, `hmac.compare_digest`, 4-state: ok/invalid/absent/
+  unconfigured), `routes/sales_market.py` (require key; 60/5min/IP limiter),
+  `routes/sales_valuation.py` (key OR `g.user_id`; separate 120/5min service and 30/5min
+  user buckets; invalid key rejected loudly, no fall-through),
+  `CCExtensions/whatnot-valuator/lib/collectioncalc.js` (sends the header; key from
+  `chrome.storage.local.operatorApiKey`, NEVER a repo file) + manifest **2.42.2 → 2.43.0**.
+- **Verified offline: 20/20** positive-controlled checks (scratchpad harness) — every gate
+  blocks AND passes, 503 self-report on unconfigured env, limiters fire at N+1, buckets
+  independent. No DB/network touched.
+- **⚠️ ROLLOUT ORDER (zero capture downtime):** commit+push → set key in extension storage
+  → reload extension, CONFIRM 2.43.0 in chrome://extensions → confirm header visible in
+  DevTools on a Whatnot page (pre-gate server ignores it) → THEN `deploy`. Backend-only:
+  no `purge`. Post-deploy: anonymous fmv curl → 401; keyed fmv curl → 200; record proven by
+  the next real human-triggered capture returning `success:true`.
+- **Flagged, not built:** `/api/sales/count` and `/api/sales/recent` remain unauthenticated
+  (recent dumps full `market_sales` rows, caller-controlled limit) — the extension calls
+  both, so gating them is the same header wiring, a follow-up unit. `/api/sales/valuation`
+  stays public deliberately (website product surface). No API-key pattern existed in the
+  codebase to reuse (searched); the limiter reuses the images.py/monitor.py pattern.
+- Earlier same day: `2870749` (app.html extension-claim retirement) committed by Mike.
+
+## 2026-08-28 — ✅ **IMPLAUSIBLE-COMP GUARD: ALREADY SHIPPED AND LIVE. Task closed as verification, not build.**
+
+**MOST RECENT CHANGE (Rule 5): the X-Men #1 implausible-comp defect NO LONGER REPRODUCES —
+the multi_edition guard is committed (`f7cd04a` at HEAD) and deployed (prod version 5.6.0),
+verified live 2026-08-28. Supersedes any task framing that treats the guard as unbuilt,
+including the framing this session opened with.**
+
+⚠️ **WHY THIS ENTRY MATTERS MORE THAN ITS CONTENT:** the guard was scoped as new work because
+this file's newest entry was 2026-08-12 and `CP1_STATE_OF_PLAY.md` still says "nothing has
+been fixed." The guard shipped in sessions after those files were last written
+(`499371b` → `9ab7cc3` → `f7cd04a`) and the state record never caught up. A stale state file
+re-issued an already-completed unit — the exact failure the STATE-RECORDING PROTOCOL exists
+to prevent, arriving via omission rather than a stale plan.
+
+### Verified live, 2026-08-28 (read-only; production `collectioncalc-docker.onrender.com`, v5.6.0)
+
+- **X-Men #1 @ 9.0:** `graded_fmv: 36.0` (unchanged — the guard suppresses the verdict, it
+  does not invent a number), `verdict_reliable: false`, `verdict_basis: "multi_edition"`,
+  `edition_span: true`, `edition_price_ratio: 86.8`, verdict text = the hedge. `fmv_method`
+  = `exact`, so the gate condition matched as designed.
+- **Negative controls, all normal:** ASM #300 @ 9.4 → $666 supported/reliable · New Mutants
+  #98 @ 9.0 → $300 supported/reliable · Hulk #181 @ 5.0 → $2,625 supported/reliable. All
+  three: `edition_span: false`.
+- **Observed, not changed:** the refused X-Men response still carries `confidence: "high"`.
+  The guard is verdict-affecting only (deliberate per the comment at
+  `routes/sales_valuation.py:1144`); whether the confidence label should also be suppressed
+  is an open design question for the CP-1 display-consolidation item, not a defect in this unit.
+- The shipped design matured past the originally-scoped whole-range rule (15y span AND 20×
+  ratio): per-split gap test, cluster floor of 3 per side, best-ratio split reported. The
+  3-of-3 precision measurement is superseded by the wider one recorded in the code comments:
+  481 production-shaped cells, 6 fire, 0 false positives. Tombstone for the whole-range
+  version is in `_detect_multi_edition` itself.
+
+### Second unit, done this session: app.html false extension claim retired
+
+`app.html:1346` "Our Chrome extension flags candidate eBay listings for you to review" —
+same never-published-extension claim retired from `faq.html` on 2026-08-26 (`1bc4b58`), on
+the higher-traffic surface. Replaced with the live capabilities (photo check + sighting
+alert), tombstone comment in place. **Edited in working tree, NOT committed — Mike stages,
+commits, purges** (frontend-only: no `deploy`). Positive control run pre-edit: old string
+served live (1 hit), new string absent (0), so the post-purge check can assert both
+directions.
+
+### Also this session (session-open triage, Mike's 2026-08-26 instruction)
+
+Cold-read classification of the dirty tree — **nothing staged**:
+- `title_normalizer.py` — `by <Creator>` strip repair (`processor=str.lower` on the skip-check
+  only + " by "-in-matched-title requirement). Finished-looking; **corpus differential for
+  this exact diff not evidenced** — L-SW-2026-027 says measure before staging.
+- `scripts/backfill_canonical_titles.py` — SOURCE DRAIN report (FULL vs PARTIAL, split
+  warning). Finished.
+- `docs/EBAY_CAPTURE_WEEKLY.docx` — binary, untriaged, left alone.
+
+---
 
 ## 2026-08-12 — 🟠 **JOSEPH VICARIO PHOTO BACKFILL: SCOPED, SCRIPT WRITTEN, NOT RUN.**
 

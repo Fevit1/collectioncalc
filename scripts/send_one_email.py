@@ -40,13 +40,19 @@ if _ROOT not in sys.path:
 DEFAULT_FROM = 'Mike Berry <mike@slabworthy.com>'
 
 
-def send_email(sender, to, subject, body, reply_to=None, as_html=False):
+def send_email(sender, to, subject, body, reply_to=None, as_html=False,
+               attachments=None):
     """Send one message through Resend. Returns the provider's message id.
 
-    THE ONLY SENDER IN THIS REPO. scripts/cohort_mailer.py imports this rather
-    than building a second one: two senders means two places for a From address,
-    two payload shapes and two ways to get the reply_to wrong, and the second one
-    is always the one nobody tests.
+    THE ONLY SENDER IN THIS REPO. scripts/cohort_mailer.py and
+    scripts/regrade_harness.py import this rather than building a second one:
+    two senders means two places for a From address, two payload shapes and two
+    ways to get the reply_to wrong, and the second one is always the one nobody
+    tests.
+
+    attachments: optional list of (filename, raw_bytes) tuples. Encoded here as
+    Base64 strings, the shape the Resend API documents for `content` — callers
+    hand over bytes and never think about encoding.
 
     Raises on failure — the caller decides whether that aborts a run or is logged
     and skipped. Never prints; callers own their own output format.
@@ -67,6 +73,12 @@ def send_email(sender, to, subject, body, reply_to=None, as_html=False):
     }
     if reply_to:
         payload['reply_to'] = reply_to
+    if attachments:
+        import base64 as _b64
+        payload['attachments'] = [
+            {'filename': fname, 'content': _b64.standard_b64encode(data).decode()}
+            for fname, data in attachments
+        ]
 
     result = resend.Emails.send(payload)
     return result.get('id') if isinstance(result, dict) else str(result)

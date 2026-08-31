@@ -34,9 +34,14 @@
 ---
 
 # ⚠️ THIS IS SLAB WORTHY (collectioncalc repo)
-# Brand: $LAB WORTHY — purple/gold, comic grading, CGC authentication
-# Favicon: /favicon.svg (gold dollar sign on black background, 8° tilt)
-# Logo font: Bangers, gold (#facc15), purple accent (#7c3aed)
+# Brand: $LAB WORTHY (superscript ™) — comic grading, CGC authentication.
+# ⚠️ BRAND SOURCE OF TRUTH: docs/SlabWorthy_Brand_Guidelines.md — colours,
+#   fonts, wordmark rules, contrast rules, print rules ALL live THERE.
+#   Do NOT restate any of it here or anywhere else. The fragment that used
+#   to occupy these lines described a palette that drifted from styles.css
+#   for months (resolved 2026-08-30); a pointer cannot drift, a copy can
+#   and did. (Mirror in Claude project storage is DO NOT EDIT; repo .md
+#   changes first, mirrors follow.)
 # DO NOT apply MASSÉ branding (8-ball, red #C0392B, billiards, IBM Plex)
 # DO NOT apply TFO branding (theformof.com, agentic app platform)
 # GitHub repo: Fevit1/collectioncalc
