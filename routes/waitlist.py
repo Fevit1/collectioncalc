@@ -77,7 +77,7 @@ def _send_waitlist_confirmation(email, token):
       <div style="background: linear-gradient(135deg, #1e1b4b 0%, #0a0a12 50%, #1e1b4b 100%); padding: 40px 30px 30px; text-align: center; position: relative;">
         <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle, rgba(99,102,241,0.08) 1px, transparent 1px); background-size: 12px 12px;"></div>
         <div style="position: relative;">
-          <h1 style="font-family: Arial, Helvetica, sans-serif; font-size: 36px; font-weight: 900; color: #facc15; margin: 0; letter-spacing: 2px; text-shadow: 0 0 20px rgba(250,204,21,0.3);">SLAB WORTHY&trade;</h1>
+          <h1 style="font-family: Arial, Helvetica, sans-serif; font-size: 36px; font-weight: 900; color: #facc15; margin: 0; letter-spacing: 2px; text-shadow: 0 0 20px rgba(250,204,21,0.3);">$LAB WORTHY&trade;</h1>
           <p style="color: #a78bfa; font-size: 13px; margin: 6px 0 0; letter-spacing: 3px; text-transform: uppercase;">AI-Powered Comic Grading</p>
         </div>
         <div style="width: 60px; height: 3px; background: linear-gradient(90deg, #6366f1, #facc15); margin: 20px auto 0; border-radius: 2px;"></div>

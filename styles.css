@@ -891,7 +891,7 @@
         }
         
         footer { text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9rem; }
-        footer a { color: var(--brand-purple); text-decoration: none; transition: color 0.2s; }
+        footer a { color: #a78bfa; /* was var(--brand-purple) #7c3aed: 3.3:1 on --bg-primary, fails AA body (4.5:1). #a78bfa measures 7.0:1 (2026-09-02) */ text-decoration: none; transition: color 0.2s; }
         footer a:hover { color: var(--brand-cyan); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         /* Pulse animation only for loading states, not disabled */
@@ -2003,7 +2003,7 @@
 .defect-area-label {
     font-size: 0.65rem;
     font-weight: 600;
-    color: var(--brand-purple);
+    color: #a78bfa; /* was var(--brand-purple) #7c3aed: 3.0:1 on the #1a1a2e .defects-section, fails AA body (4.5:1). #a78bfa measures 6.3:1 (2026-09-02) */
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
