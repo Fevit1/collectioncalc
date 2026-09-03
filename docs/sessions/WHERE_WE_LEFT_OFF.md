@@ -1,4 +1,67 @@
-# Where We Left Off - Sep 3, 2026
+# Where We Left Off - Sep 3, 2026 (session closed)
+
+## 2026-09-03 (SESSION CLOSE, Mike's record; conversation `46ea11d3-7edc-4e73-abf6-974c15f1165b`) — 🔒 **Everything in this session SHIPPED; open items enumerated below so nothing resolved is re-raised and nothing unresolved is lost.**
+
+**MOST RECENT CHANGE (Rule 5): session closed with all three units shipped and verified —
+`fa62550` (contrast + wordmark, deployed + purged), `22fb8dd` (normalizer + docstring +
+L-SW-2026-029), `a89a10c` (verified backfill record). Supersedes every "waiting on Mike"
+line above. Nothing below is pending on Claude.**
+
+**SHIPPED AND VERIFIED**
+- Contrast: `.defect-area-label` + `footer a` → `#a78bfa`. Committed, pushed, deployed, purged.
+- Waitlist wordmark `routes/waitlist.py:80` restored (third recurrence). Same commit.
+- Normalizer by-phrase change: applied, backfilled by Mike (912 rows updated, 0 skipped),
+  verified from the RO connection 03:47 UTC — 724 / 156 / 14, zero rows differ from the
+  deployed normalizer, no non-Werewolf title lost rows. The 720 guard-commit drift rows are
+  resolved with the 192 from this change.
+- Backfill docstring corrected (flatness re-verified per run); drain-detector case-split
+  blindness commented at the defect.
+- **L-SW-2026-029 follow-up CLOSED (Mike):** the `*secret*` / `*password*` ignore-rule null
+  re-checked with plain `Select-String` over the working tree, `.claude` excluded — clean, six
+  hits, all prefix-inspection or placeholder code. The eight prior audits no longer carry an
+  untested credential conclusion. **Low-priority remainder:** same check against git HISTORY
+  (a key committed once and removed is still in the repo).
+
+**NEW, UNQUEUED (found 2026-09-03)**
+- `.claude/worktrees/` holds nested full copies of the codebase (worktrees inside worktrees).
+  Every filesystem-walking search multiplies hits by the copy count; any prior audit that
+  walked the filesystem rather than the git index counted duplicates. Cleanup pass wanted;
+  know this before the next audit.
+- ⚠️ **The deferred purple-contrast list is INVALID as a list.** `footer a` matched nothing
+  rendered; the "nine other occurrences" were selected by grepping `styles.css`, so an unknown
+  number are also dead, and a real failure in the footer injector (`js/footer.js`) was never
+  in scope. **Rebuild the list from computed styles on live pages before the deferred pass.
+  Do not work from the file.**
+- `--surface-elevated` is undefined everywhere; the site renders on the `#1a1a2e` fallbacks.
+- `WV/whatnot-valuator/content.js:345` renders a key placeholder from `key.slice(-4)` — the
+  extension holds an Anthropic key client-side (normal for BYOK). Where it is stored and
+  whether page context can reach it is an open DESIGN question, not a repo leak.
+- Two dirty tracked files nobody in this session touched: `docs/API_SPEND_LEDGER.md` (still
+  UTF-16, BOM `FF FE`, re-encoded at the 08-30 close — see line ~174 of the 08-30 entry) and
+  `docs/EBAY_CAPTURE_WEEKLY.docx` ("stopped here 8/28"). **Both predate 09-02.** Identify
+  before any commit sweep picks them up.
+
+**QUEUED — CHARACTERIZE BEFORE SCOPING (one unit or two is undecided)**
+Four title splits in one family:
+1. case-insensitive canonical-ASSIGNING match — 1,461 rows across nine existing splits plus
+   tonight's `Werewolf By/by Night`;
+2. `Werewolf by Night: Red Band` vs `Werewolf by Night Red Band` — colon split, 6 vs 3;
+3. `Giant-Size Werewolf` fragmenting three ways across a 5-row pool;
+4. M1 "of" bug → `Dead Night Werewolf by Night` (correct routing for this change, wrong
+   output string).
+**Question first:** do they share a code path, and would the case fix incidentally resolve
+any of the others? Row counts alone do not decide unit boundaries.
+
+**STILL UNSCOPED**
+- "free capture re-check" — appeared once in the agreed session order, never defined in any
+  record, no scope line from Mike. **Do not guess at it.**
+- Spine-angle capture ambiguity — exists only in the Bernard correspondence doc; needs a
+  ROADMAP entry. Live UX defect on every submission, retroactively unmeasurable confound
+  under all 139 existing ones. Bernard has a protocol; his books are months out.
+
+**Standing constraints unchanged:** Mike runs all git, deploys, env changes, production
+writes. Verification agent against anything new before presenting. A later record that
+contradicts this one → stop and say so.
 
 ## 2026-09-03 (later) — ✅ **BACKFILL EXECUTED BY MIKE AND VERIFIED from a second connection. Normalizer unit is DONE in production.**
 
