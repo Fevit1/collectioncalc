@@ -1,6 +1,21 @@
 # Where We Left Off - Sep 3, 2026
 
-## 2026-09-03 — 🚢 **Normalizer SHIP UNIT prepared: pre-flight differential re-run (identical), docstring corrected, drain-detector defect annotated; backfill + verification WAITING ON MIKE.**
+## 2026-09-03 (later) — ✅ **BACKFILL EXECUTED BY MIKE AND VERIFIED from a second connection. Normalizer unit is DONE in production.**
+
+**MOST RECENT CHANGE (Rule 5): Mike ran `scripts/backfill_canonical_titles.py --execute` on
+Render; verification (read-only `do_readonly`, 03:47 UTC) matched the recorded end state on
+all three checks. Supersedes "backfill + verification WAITING ON MIKE" below.**
+- Check 1 — stored `canonical_title` vs HEAD normalizer output: **0 rows differ** in
+  ebay_sales, **0** in market_sales (was 911 + 1 before the write).
+- Check 2 — ebay_sales spellings: `Werewolf By Night` **724**, `Werewolf by Night` **156**,
+  `Werewolf` **14** — exactly the pre-recorded expectation.
+- Check 3 — no non-Werewolf title lost rows (32 Werewolf-family sources decreased in
+  ebay_sales, 1 in market_sales; zero others). No capture growth in the window.
+- The accepted case split now exists in production (10th instance). The matcher unit
+  owns it. Remaining: Mike's commit/push/deploy of the code side if not already done —
+  the backfill ran against the deployed normalizer, so the image already carries it.
+
+## 2026-09-03 — 🚢 **Normalizer SHIP UNIT prepared (superseded above): pre-flight differential re-run (identical), docstring corrected, drain-detector defect annotated.**
 
 **MOST RECENT CHANGE (Rule 5): Mike ordered the normalizer ship unit (2026-09-03). The
 case-insensitive-matcher fix is explicitly NOT in it. Supersedes "ship/no-ship is Mike's
