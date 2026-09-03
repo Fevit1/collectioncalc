@@ -565,8 +565,21 @@ def _build_canonical_title(title_part):
     # title. A genuine "signed by Todd McFarlane" does not match one, so it is
     # still stripped. Corpus-measured 2026-08-17: 719 rows change, 19 pairs, all
     # landing on 'Werewolf By Night'; zero other pools affected.
-    if not (KNOWN_TITLES and process.extractOne(
-            text, KNOWN_TITLES, scorer=fuzz.token_sort_ratio, score_cutoff=75)):
+    # processor=str.lower on THIS check only. eBay titles are frequently ALL CAPS
+    # and token_sort_ratio is case-sensitive, so 'WEREWOLF BY NIGHT' failed the
+    # check, the strip ran, and the book split across two canonicals - 697 rows
+    # under 'Werewolf By Night' and 178 left behind under 'Werewolf'.
+    # This is NOT the same as lowercasing the canonical-assigning match below:
+    # this decides only whether to SKIP a destructive strip, so it can preserve
+    # tokens but can never merge two books.
+    _known = (process.extractOne(text, KNOWN_TITLES, scorer=fuzz.token_sort_ratio,
+                                score_cutoff=75, processor=str.lower)
+              if KNOWN_TITLES else None)
+    # Skip the strip ONLY when the matched title itself contains "by" - i.e. the
+    # word is part of the book's NAME ('Werewolf By Night'), not a creator credit.
+    # Matching 'Avengers' is not enough: 'Avengers by Jonathan Hickman Vol 1' would
+    # then keep the credit and canonicalise to 'Avengers by Vol'.
+    if not (_known and ' by ' in (' %s ' % _known[0]).lower()):
         text = re.sub(r'\s+by\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', '', text, flags=re.IGNORECASE)
 
     # Remove "comic" from title (e.g., "Batman Comic" → "Batman")

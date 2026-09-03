@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-08-26 (27 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-09-03 (28 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -18,6 +18,55 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
 > `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
 > silently redirect that link.
+
+### L-SW-2026-029 — The ripgrep-backed search tool honours `.gitignore`; an ignored file is INVISIBLE to it, and its silence is not absence
+
+- **RULE:** The `Grep` tool (ripgrep) **skips every path `.gitignore` matches** — that is
+  ripgrep's default, not a defect — so a null result from it means "no hit in the tracked-or-
+  unignored tree", never "no hit in the working tree". **Before letting a Grep-tool null decide
+  anything, run the same pattern through plain `grep -rn` (or `git status --ignored`) over the
+  paths that matter, and name which surface each answer came from.** Deliberately-ignored code
+  still runs: `scripts/cp1_*.py` are ignored on purpose and are real consumers of production
+  data.
+- **WHY:** 2026-09-03, the title-consumer audit for the normalizer ship. `Grep` for
+  `lookup_demand` (type py, whole repo) returned six files; plain `grep -rn` returned the same
+  six **plus 21 hits in `scripts/cp1_*.py`**. Scoped to `scripts/` the tool returned **zero**.
+  Three of the audit's affected consumers (the CP-1 sampling frames keying raw
+  `canonical_title`) existed in the report only because the verification agent read the files
+  directly and cross-checked with plain grep. Cause, reproduced: `.gitignore:106`
+  `scripts/cp1_*.py` (added `ad07a22`, 2026-08-26); `rg -c lookup_demand scripts/` in the shell
+  also returns nothing, `grep -c` returns 15/2/6/2. No NUL bytes, no encoding issue — pure
+  ignore-rule behaviour. **This is [[L-SW-2026-028]] with the surface named:** the tool's
+  world is the un-ignored tree.
+- **HOW TO APPLY:**
+  1. **Know what the tool cannot see in THIS repo** (from `git status --ignored`, 2026-09-03):
+     `.env`; `scripts/cp1_*.py` (9 scripts) and `scripts/cp1_output/`;
+     `scripts/e3_edge_sequence_test.py`; `AdminCheckjs.js`; `reset_test_passwords.py`;
+     `tests/7_8/`, `tests/Mobile/`, `tests/SectionBTest/`, `tests/SectionDTest/`,
+     `tests/Valuation/`, most of `tests/SlabGuardTests/`; `.claude/`; `*.png`, `*.db`, `*.log`;
+     and — easy to forget — **any file whose NAME matches `*password*`, `*secret*`,
+     `*credential*`, `*api*token*`, `*API_KEY*`, `*pwd*`**, which will silently hide a future
+     `api_token_rotation.py` from every sweep.
+  2. **A null from the tool is a claim about the tracked tree.** For "does anything in the
+     working tree do X" questions, pair it with `grep -rn` restricted to the directories in
+     question (plain recursive grep over the whole tree times out on `.claude/` — restrict the
+     path, don't drop the check).
+  3. **The `Explore` agent uses the same tool** and inherits the same blindness; its coverage
+     claims are tracked-tree claims.
+  4. **Prior audits run through the tool** (session transcripts, `Grep` tool_use events;
+     listed for Mike to decide what gets re-checked — NOT re-run):
+     2026-08-01 (`57dc4766`, CSP / Meta-pixel sweep, 2 calls) · 2026-08-02 (`9e78cebe`,
+     capture-schedule / `lookup_demand` sweep, 12 calls) · 2026-08-04 (`4361da48`, NLQ /
+     read-only role, 13 calls) · 2026-08-04 (`47687bd5`, auth / plan gating / extension
+     modal, 7 calls) · 2026-08-06 (`71fbab61`, 1 call) · 2026-08-10 (`ca5e1676`, index-drift /
+     valuation timing, 11 calls) · 2026-08-12 (`c5f0e79f`, photo backfill / `collections`,
+     15 calls) · 2026-09-03 (this session, `e97a7ccf`, title-consumer audit, 6 calls + the
+     Explore agent). **Exposure note:** `scripts/cp1_*.py` were untracked but NOT ignored until
+     `ad07a22` on 2026-08-26 — ripgrep searches untracked non-ignored files — so the cp1 blind
+     spot affects only the 2026-09-03 audit. The name-pattern rules (`*secret*` etc.) and
+     `.env` were in force for all eight.
+- **SOURCE:** 2026-09-03 normalizer ship pre-flight (this file, the backfill docstring
+  correction, and `docs/technical/NORMALIZER_DIFFERENTIAL_2026-09-02.md`).
 
 ### L-SW-2026-028 — A claim is only as good as the surface you checked it against — and some surfaces cannot return a hit
 

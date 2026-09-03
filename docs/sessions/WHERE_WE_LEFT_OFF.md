@@ -1,4 +1,187 @@
-# Where We Left Off - Aug 30, 2026
+# Where We Left Off - Sep 3, 2026
+
+## 2026-09-03 — 🚢 **Normalizer SHIP UNIT prepared: pre-flight differential re-run (identical), docstring corrected, drain-detector defect annotated; backfill + verification WAITING ON MIKE.**
+
+**MOST RECENT CHANGE (Rule 5): Mike ordered the normalizer ship unit (2026-09-03). The
+case-insensitive-matcher fix is explicitly NOT in it. Supersedes "ship/no-ship is Mike's
+call" (09-02 addendum) — the call is SHIP. Sequence: (1) docstring fix ✅ (2) normalizer
+change ✅ already in working tree (3) backfill — MIKE RUNS on Render (4) verification from a
+second connection — runs on Mike's word, script ready.**
+
+- **Pre-flight (read-only, 2026-09-03 01:05 UTC):** differential re-run against HEAD
+  `fa62550` (normalizer at HEAD byte-identical to `4212316`). **IDENTICAL to the 09-02 run:**
+  297,559 + 10,593 rows; HEAD≠proposed 192 (190 class A + 2 class C, all Werewolf by
+  Night); stored≠HEAD 720; stored≠proposed 912. No new title. Corpus row count unchanged
+  since the audit (no capture in between).
+- **Expected end state, recorded BEFORE the write** (ebay_sales, from the fresh
+  differential + a pre-write per-title snapshot taken 01:08 UTC):
+  `Werewolf By Night` 7 → **724** · `Werewolf by Night` 0 → **156** · `Werewolf` 875 → **14**
+  (residual: lots/TPBs, 1966 Dell, 2× Blood Moon Rise) · market_sales `Werewolf` 1 → 0,
+  `Werewolf By Night` 0 → 1. Backfill dry run should say **911 + 1 = 912 would change**.
+- **Backfill drain report will be WRONG in a known way:** it keys on exact spelling, so it
+  lists `Werewolf → Werewolf By Night` and `Werewolf → Werewolf by Night` as two pairs and
+  cannot flag that they are one split book. `Werewolf` shows PARTIAL (861 moving / 14
+  staying) — the 14 are genuine. Not a failure signal. Comment added at the defect
+  (`scripts/backfill_canonical_titles.py`, inside `scan()`); fix belongs to the matcher unit.
+- **Docstring at `scripts/backfill_canonical_titles.py:11-30` rewritten:** flat baseline is
+  a corpus property at a moment, true 2026-08-17 (274,344/274,344), FALSE by 2026-09-02
+  (720 rows), must be re-verified per run, never assumed.
+- **Verification instrument ready:** scratchpad `verify_backfill.py` (RO, second
+  connection): (1) stored==HEAD on every row → 0 diffs, (2) exactly two spellings with the
+  counts above, (3) no non-Werewolf title's row count moved vs the snapshot. Stops and
+  reports on any disagreement; corrects nothing.
+- **⚰️ Known, accepted, NOT fixed:** the case split is the 10th instance of a condition on
+  9 titles / 1,461 rows; coverage script already has 59 phantom keys. Real fix =
+  case-insensitive canonical-assigning match, own unit, own differential (1,461-row blast
+  radius).
+- **New lesson L-SW-2026-029:** the `Grep` tool honours `.gitignore` — `scripts/cp1_*.py`
+  (ignored since `ad07a22`, 08-26) were invisible to the 09-03 audit; three findings existed
+  only because the verification agent read files directly. Eight prior sessions used the
+  tool (listed in the lesson). **Mike decides what gets re-checked; nothing re-run.**
+- **HEAD moved during the session:** `fa62550` = Mike committed the 09-02 contrast + waitlist
+  fixes. Consistent with the record; nothing contradicts the brief.
+- API spend today: $0.
+
+# (prior header) Where We Left Off - Sep 2, 2026
+
+## 2026-09-02 — 📐 **Three narrow items done: 2 contrast fixes applied, waitlist wordmark fixed, normalizer DIFFERENTIAL RUN (report only, nothing staged).**
+
+**MOST RECENT CHANGE (Rule 5): the normalizer-pair differential that has gated
+`title_normalizer.py` + `scripts/backfill_canonical_titles.py` since 2026-08-26 has now
+been RUN (read-only, `do_readonly`, corpus read 2026-09-03 00:24 UTC). Supersedes
+"corpus differential NOT run" (08-28 triage). Result: HEAD→proposed changes 192 rows,
+ALL Werewolf by Night; zero rows in market_sales. Full report:
+`docs/technical/NORMALIZER_DIFFERENTIAL_2026-09-02.md`. Ship/no-ship is Mike's call —
+nothing from item 3 is staged or applied beyond the already-dirty working tree.**
+
+- **Contrast (styles.css:894 `footer a`, :2006 `.defect-area-label`) — APPLIED, unstaged.**
+  Both `var(--brand-purple)` → literal `#a78bfa` (brand-doc "purple on dark" value; also the
+  footer injector's hover fallback). Measured: #7c3aed was 3.0:1 on the defects panel's
+  `#1a1a2e` (`--surface-elevated` is undefined everywhere, so the fallback IS the
+  background) and 3.3:1 on `#0f0f1a`; #a78bfa is 6.3:1 / 7.0:1. One token serves both.
+  ⚠️ **`footer a` in styles.css matches NOTHING rendered:** styles.css loads on app.html
+  (`data-no-universal-footer`, no footer), collection.html (no footer) and sightings.html
+  (footer injected by /footer.js, whose `.footer-col a` out-specifies `footer a` and
+  paints links white on `#1e1b4b`). Confirmed live on index.html; sightings.html itself
+  redirects to /login unauthenticated so it was read from source. The fix is correct and
+  harmless; it changes no pixel. The nine other #7c3aed uses are untouched (deferred pass).
+- **Waitlist email wordmark (routes/waitlist.py:80) — APPLIED, unstaged.** `SLAB` → `$LAB`.
+  Root cause of the recurrence: the 03-04 rebrand commit `a6cc7e6` touched HTML/JS only;
+  HTML embedded in Python f-strings was invisible to that sweep (L-SW-2026-028 surface
+  blindness). Wordmark is retyped per template: `routes/admin_routes.py:942` (correct),
+  `routes/waitlist.py:80` (now correct); auth.py/verify.py emails use prose "Slab Worthy"
+  in h2s, no wordmark. No shared email module exists; the one shared email-config surface
+  is `auth.py:57-59` (`RESEND_FROM_EMAIL`, `FRONTEND_URL`), which admin_routes already
+  imports — a `WORDMARK_HTML` constant there is the single home. NOT refactored.
+- **Normalizer differential — key findings** (detail in the report): (1) **stored ≠ HEAD on
+  720 rows** — the 08-17 guard commit was never backfilled in prod (697 rows still stored
+  as 'Werewolf'); the backfill's "baseline is flat" claim is stale. (2) HEAD→proposed:
+  190 rows class A (by-phrase preserved, 19 pairs, 156 land on the known title), 2 rows
+  class C ('Dead of Night Werewolf by Night' 2009 MAX mini leaves 'Werewolf By Night' —
+  arguably correct, but lands on the M1-mangled 'Dead Night Werewolf by Night'). (3) 14 rows
+  stay under 'Werewolf' (lots/sets/TPBs, a 1966 Dell 'Werewolf', and 2× 'Blood Moon Rise'
+  which is a residual miss). (4) **Case split in the stored column:** proposed yields
+  'Werewolf by Night' (156, all-caps inputs via the title-caser) beside 'Werewolf By Night'
+  (723, assigned verbatim from known_titles.json) because the canonical-ASSIGNING match is
+  still case-sensitive (M3) — deliberately outside this change. `title_matching._norm`
+  lowercases both sides so comps unify; the stored strings do not.
+- **Verification:** code-reviewer agent over all three artifacts — clean; it reproduced
+  all four contrast figures independently.
+- **API spend today: $0.** No Anthropic calls. `docs/API_SPEND_LEDGER.md` is still UTF-16
+  (flagged 08-30, not touched — out of brief).
+
+# (prior header) Where We Left Off - Aug 31, 2026
+
+## 2026-08-31 (addendum) — 📐 **Spawn #77 RESOLVED (floor stands); ground truth now MONTHS out; spine-angle confound recorded.**
+
+**MOST RECENT CHANGE (Rule 5): the ground-truth timeline moved from days to MONTHS
+(Bilbo/Meisler, recorded in project storage). Slabbed-book purchase DEMOTED to optional
+partial — a sealed slab yields a cover shot only (no spine/interior/centerfold, plus
+glare), so it cannot answer the spine-stress question it was sought for. Real path:
+volunteer photographs raw books → app grades → press → CGC submit → compare (~10 books
+entering, more recruitable). Variant B blocked for months. Do NOT hold engineering
+capacity waiting on calibration. Next-session order UNCHANGED: capture re-check →
+two approved contrast fixes → normalizer differential (now clearly the highest-value
+unblocked engineering).**
+
+- **Spawn #77 outlier RESOLVED (measured, read-only, 2026-08-31):** the 8.0/7.0/7.0 are
+  grade_submissions ids 26/28/33 — three separate PRODUCTION submissions by user 38 on
+  2026-08-06, each a fresh 4-photo upload (raw scores 7.77/7.18/7.05; the 8.0-vs-7.0 is
+  snap boundaries amplifying a 0.72 raw spread). Cross-PHOTOGRAPHY variance, not
+  run-to-run model noise — Bilbo's hypothesis, confirmed stronger. **The 0.5 identical-
+  input floor stands; every read rule built on it holds.** Bonus decomposition: id 26
+  re-graded 8.0→8.0, id 28 7.0→7.5 in baseline 1 — within-photo-set ≤0.5, across photo
+  sets of the SAME book ~1.0. Photography dominates model noise.
+- **⚠️ Eval-set wrinkle found in the process:** ids 26 and 28 are the SAME physical
+  comic (Spawn #77) under two photo sessions — my near-duplicate screen caught the 1988
+  cluster but not this pair (different stored grades hid it). Two of 36 books
+  double-weight one comic; accidentally USEFUL as an in-run photo-variance probe. Left
+  in place deliberately — the set is pinned; note it when reading aggregates.
+- **Spine-angle confound (recorded, NOT acted on):** the spine-photo instruction never
+  specifies an angle; Meisler shot ~45° and guessed. Every spine photo in all 139
+  submissions is at a submitter-chosen, unrecorded angle — a quiet confound under the
+  corpus INCLUDING the pinned eval set, and unmeasurable retroactively. No input
+  changes while calibration is mid-flight.
+- **Backlog only:** user-declared defect checkboxes for photo-invisible decisive
+  defects (cut panel/coupon, interior tears, tidelines, mould, water ripple, staple
+  anomalies) — no AI, interacts with CP-1 verdict withholding.
+
+# (prior header) Where We Left Off - Aug 30, 2026
+
+## 2026-08-30 (SESSION CLOSE) — 🔒 **Brand + matcher work committed (`5f30c5c`) and deploying. Operator-key gate: CLOSED AND VERIFIED since Aug 28 (correction below).**
+
+**⚰️ CORRECTED same night (Mike): the paragraph that stood here claimed the Aug-28
+operator-key verification was "interrupted and never completed" and that tonight's
+deploy closed the gate unverified. FALSE — the check was COMPLETED on 2026-08-28,
+end-to-end across five links: X-Operator-Key observed on a live fmv request; deploy;
+anonymous curl 401; keyed curl 200; POST /api/sales/record 200 at 17:14:35 GMT; plus
+Mike's separate confirmation that the DevTools key matched Render. The gate has been
+closed and the endpoints live-verified since Aug 28. The three re-check commands are
+being run tonight anyway — a silent 401 costs a week of capture and the check is free
+— but as belt-and-braces on a VERIFIED state, not as closing an open gate. Do not
+re-raise this as open.**
+
+**Decisions of record (Mike, session close):**
+- Provenance blockquote in the brand .md STAYS — byte-parity with the .docx was never
+  the goal.
+- Contrast: fix ONLY `.defect-area-label` (styles.css:2003) + `footer a`
+  (styles.css:894) — the high-traffic surfaces; the other nine deferred to one later
+  pass. **Next session's work, not tonight's.**
+
+**Uncommitted / will-not-survive-cold inventory:**
+- ⚰️ ~~`scripts/regrade_run_20260830_2006_baseline.json` untracked~~ — **COMMITTED
+  same night**, per Mike. Resolved.
+- ⚰️ ~~`docs/SlabWorthy_Brand_Guidelines.docx` untracked~~ — **COMMITTED same
+  night**, per Mike. Resolved.
+- `title_normalizer.py` + `scripts/backfill_canonical_titles.py` — dirty since
+  2026-08-26, still awaiting the corpus differential before staging (L-SW-2026-027).
+- `docs/EBAY_CAPTURE_WEEKLY.docx` — dirty ("stopped here 8/28" marker).
+- ⚠️ `docs/API_SPEND_LEDGER.md` — modified AND **re-encoded to UTF-16** by tonight's
+  edit: grep/tooling reading UTF-8 sees byte soup, so spend greps will silently miss
+  (L-2026-029 surface blindness). One-line re-encode to UTF-8 next session.
+- Untracked BO exports at root/docs/business (Session State, Claims Audit, Roadmap,
+  "the 9.0 ceiling and era-blind rubric.docx") — need homes or .gitignore.
+
+**Loops closed tonight:** eval set pinned (36 rows, verified); baseline 1's complete
+36/36 run makes the media-type `--preflight` moot for this set; styles.css is frontend
+→ tonight's ship wants `purge` after the Pages build (token is inert, no urgency).
+
+**Flagged, unpicked, not in Mike's known-open list:** (1) `/api/messages` is still an
+uncapped authed Sonnet proxy (2026-08-29 finding) — dormant (0 calls/30d) but open;
+(2) `send_one_email` attachment path is committed but has never sent a real attachment
+through Resend — first harness completion exercises it live, loud-fail catches a
+payload rejection; (3) ⚰️ run_count=3 medians — **DEFERRED by Mike, same night, on a corrected
+measurement**: the run-to-run noise floor is **0.5, not ±1.0** (see the corrected
+entry below), and tripling spend to tighten an already half-point floor on a set
+with no ground truth buys precision we cannot use yet. **Revisit AFTER CGC books
+are in the set, not before.**
+
+**Entry point (calibration blocked on ground truth; not another variant):** after the
+capture check above and the two approved contrast fixes, the substantive block is
+**the normalizer-pair differential** — the 4-day-old dirty diff needs its corpus
+measurement to ship or die, and it is the same file the canonical-"of" fragmentation
+fix (CP-1 item 1, 6,815+ unreachable sales, the capture DO-NOT-SEARCH list) lives in.
+That is the highest-value engineering NOT blocked on ground truth.
 
 ## 2026-08-30 (brand) — 🎨 **BRAND GUIDELINES ARE NOW A DOCUMENT. Decision of record: gold #facc15 IS the brand (Mike). SOURCE OF TRUTH: docs/SlabWorthy_Brand_Guidelines.md.**
 
@@ -71,14 +254,19 @@ structural/interior at 5.5 against spine 2.5.**
   The COLOR_GLOSS and INTERIOR *categories* (the actual 15% weight) scored on all 36
   books and fed every grade. No inert category exists.
 
-## 2026-08-30 (later) — 📏 **MEASURED PROPERTY OF THE GRADER: ±1.0 grade point of non-determinism at temperature 0. Not a harness defect. Changes how all harness results are read.**
+## 2026-08-30 (later) — 📏 **MEASURED PROPERTY OF THE GRADER: run-to-run non-determinism at temperature 0. Not a harness defect. Changes how all harness results are read.**
 
-Book id 106: **6.0** in the smoke test, **7.0** in the baseline run — identical book,
-prompt, model (claude-sonnet-4-6), temperature 0. Corroborates the previously
-unexplained Spawn #77 result (8.0/7.0/7.0). Consequences, per Mike:
-**per-book deltas are NOT interpretable; the measurement is the aggregate mean across
-the 36-book set; the fresh double-baseline is essential, not precautionary.** Any
-future reader of a harness report: a single book moving ±1.0 between runs is noise.
+**⚰️ CORRECTED at session close (Mike): the noise FLOOR is 0.5, not ±1.0.** The
+measurement of record is the two identical baseline runs: **6 of 36 books moved by
+exactly 0.5, none moved a full step, zero aggregate drift.** The ±1.0 figure that
+first stood here conflated two different measurements — variant A's min/max against
+the STORED grades (a cross-measurement including whatever the stored runs' conditions
+were), not run-to-run noise under identical conditions. Original observation kept for
+provenance: id 106 graded 6.0 in the smoke test and 7.0 in the baseline run; Spawn
+#77's 8.0/7.0/7.0 remains an unexplained outlier against the 0.5 floor.
+Consequences unchanged: **per-book deltas are NOT interpretable; the measurement is
+the aggregate mean across the 36-book set; the fresh double-baseline is essential,
+not precautionary.** A single book moving 0.5 between runs is noise.
 
 **Harness hardening after the first baseline run crashed at book 10/36 (~$0.28 spent,
 9 books' results lost):** cause was `media_type` hardcoded to `image/jpeg` while id 9's
