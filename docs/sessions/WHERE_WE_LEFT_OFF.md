@@ -1,4 +1,281 @@
-# Where We Left Off - Sep 3, 2026 (session closed)
+# Where We Left Off - Sep 4, 2026
+
+## 2026-09-04 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): the 61 is ACCEPTED by Mike; APPLIED to the working tree; NOT committed, NOT deployed, backfill NOT run.**
+
+**MOST RECENT CHANGE (Rule 5): Mike accepted the 61 correct-rows-newly-rejected figure and
+ordered A + B4 + the rapidfuzz monitor check shipped as one unit (2026-09-04, Park City).
+Supersedes the 09-03 "NOT verified, NOT applied, 61 not yet accepted" state below. The code
+is in the working tree awaiting Mike's stage/commit/push/deploy; the backfill runs after
+deploy, by Mike, dry run first.**
+
+**Why 61 is acceptable (Mike's record):** 710 corrupted rows correctly rejected against 61
+correct rows newly rejected, roughly 12:1. Of the 61, 29 are correct separations of a
+different book the old stripper was falsely merging, so the real cost is closer to 32.
+292 rows repaired. Zero known→known swaps. The verification agent's whole-corpus run
+(308,152 rows) found zero changes outside the measured 153,171-row subset.
+
+**Verification (agent, 2026-09-04, independent recomputation from the pickles):** every
+headline figure reproduced — 3,340 changing, 710 should-reject (all change under A and A+B4,
+A+B4 == A on every one), 61 strict (B3: 67), 292 repaired, 2,277 junk→junk, 0 known→known;
+proposed file vs measured A+B4 output 0 mismatches on 153,171 rows; proposed file vs stored
+on ALL 308,152 rows = exactly 3,340, none outside the subset (B4's strip set is a strict
+subset of the old one, so every row it can touch is in the census; A only acts on rows in
+the guard probe). Code review: A's `>= 100` is equivalent to `(a + b) in pool`; `fuzz` in
+scope; `_STRAY_LETTERS`/`_JOINERS` are function-local (regex cache absorbs the compile).
+
+**⚰️ CORRECTIONS to the 09-03 entry (each also tombstoned in place below):**
+- **The 710 is a HAND LABEL, not the formula the 09-03 entry implies.** "HEAD known → A output
+  not known, under A alone" yields 1,171 (it includes the 461 correct losses). The 710 is the
+  16 hand-labelled REJECT `(candidate, weak token, pair~support)` triples in scratchpad
+  `guard_variants.py`, labelled from `guard_samples.txt`, applied to `guard_probe_modes.pkl`,
+  spot-checked by the 09-03 verifier, and HARD-CODED (`- 710`) in `fix_run3.py`. The count is
+  right and the labels are defensible; the record described a hand count as a computed result
+  (L-SW-2026-020 shape). This line is the correct description.
+- Line-596 census: **6,848** letter removals, not 5,848 (the four contexts sum to 6,848; typo).
+- Census harmful: `I Hate Fairyland` **117**, not 115. One known→known row (`Walking Dead` →
+  `The Walking Dead`) sits outside the four buckets (79 + 293 + 764 + 4,026 = 5,162 of 5,163).
+- Repaired composition: `WildC.A.T.S` **137** exact (not 138) + 27 `Wildc.a.t.s` case-split
+  + `X-Cutioner's Song` 1 (was folded into the 165); the 138th is the typo `WidlC.A.T.S`,
+  which B4 alone repairs but the tightened pair rescue blocks (`wildca`~`widlca` 83.3), so it
+  lands on its own string `Widlc.a.t.s`.
+- Shrink figures are now **net pool deltas** (stored − A+B4 over the whole corpus), not
+  should-reject leavers: Absolute Batman **−154** (149 `Absolute Catwoman` + 1 emoji-prefixed
+  Catwoman + `Abosulte Batman` 1 + `Absolute BatmanArk M` 1 + `D.C. Comics Absolute Batman` 1
+  + `Krs Absolute Catwoman` 1), Wonder Woman **−12**. EC Comics −330 = 321 market_sales rows
+  (271 titled `Comics #N`, 50 bare `Comics`) + 9 ebay (5 `Eerie Comics`, 4 misc — all four land on the string `Comics`, so `Comics` receives 325).
+
+**⚠️ T BEHAVIOUR, stated once where it cannot be missed: T STAYS IN THE STRIP LIST.** The
+09-03 framing "the range includes I and T" names the defect, not the remedy. Under the joiner
+rule only `T.` / `-T` / `T'` forms are kept (`WildC.A.T.S`, `T.M.N.T.`); a whitespace-delimited
+T is still stripped — `Mr. T` → `Mr.`. I is the letter rescued; T is not. Deliberate: T's
+standalone occurrences in the corpus are initialism residue and stray grade letters
+(`T X-MEN`), not words.
+
+**SHRINK RECORD — written before ship, part of this unit (per-title table:
+`pool_delta.md` / `pool_delta_full.tsv`, delivered 2026-09-04; regenerable from the pickles
+with `pool_delta.py`).** 3,340 rows move across 2,561 strings; 42 known titles change;
+rows leaving known pools 771, arriving 292, known→known 0. (Table tallies: 10 named
+negatives 729 + 27 small = 771 leaving; 1 + 10 + 27 + 117 + 137 = 292 arriving; 10 + 27 + 5 = 42
+titles.)
+
+| known title | before | after | Δ | leaving to |
+|---|--:|--:|--:|---|
+| EC Comics | 334 | 4 | −330 | `Comics` 325 (321 market_sales title-less Whatnot captures), `Eerie Comics` 5 |
+| Batman Adventures | 373 | 207 | −166 | `Amazing Adventures` 151, `Captain Adventures` 15 |
+| Absolute Batman | 26,239 | 26,085 | −154 | `Absolute Catwoman` 150, singletons 4 |
+| Edge of Spider-Verse | 203 | 183 | −20 | `Spider-Verse` 20 |
+| Hero for Hire | 335 | 318 | −17 | `Heroes for Hire` 17 |
+| Wonder Woman | 517 | 505 | −12 | `Wonder Man` 11, lot 1 |
+| Spider-Man | 3,604 | 3,593 | −11 | `W.e.b. Spider-Man` 11 |
+| Batman | 4,765 | 4,757 | −8 | `Batman: R.i.p` 4, `I Am Batman` 4 |
+| Carnage | 102 | 96 | −6 | `Carnage U.s.a` 6 |
+| Flash | 349 | 344 | −5 | `Flash V.2` 5 |
+| 27 titles at −1 to −3 | | | −42 | typos, initialisms, near-title substitutions (4 × −3, 7 × −2, 16 × −1) |
+| X-Cutioner's Song | 2 | 3 | +1 | from `X-Cutioner' Song` |
+| GI Joe | 74 | 84 | +10 | from `.. Joe` |
+| Wildc.a.t.s | 1 | 28 | +27 | from `Wildc.a..` (the accepted case split, 11th instance) |
+| I Hate Fairyland | 386 | 503 | +117 | from `Hate Fairyland` variants |
+| WildC.A.T.S | 58 | 195 | +137 | from `Wildc.a..` variants |
+
+**This is NOT a regression.** Every leaving row above was a wrong comp inflating a real
+pool (a different book, a title-less capture, or a lot). `scripts/coverage_assessment.py`
+will move as follows and each move is correct: **DEPTH** (rows per `canonical_title,
+issue_number`) falls for EC Comics, Batman Adventures, Absolute Batman, Edge of
+Spider-Verse, Hero for Hire, Wonder Woman and the −1..−3 titles, and rises for
+I Hate Fairyland, WildC.A.T.S, GI Joe; **BREADTH** (distinct `canonical_title,
+issue_number` keys) RISES, because the rejected rows become their own strings
+(`Absolute Catwoman`, `Amazing Adventures`, `W.e.b. Spider-Man` …); the **"canonical_title
+NULL/empty" count falls by 49** (DC `K.O.` listings that HEAD reduced to nothing now
+canonicalise as `K.o`; all 49 are ebay_sales rows, which is the table that metric reads). Whatnot `Comics #N` rows become their own junk string — better,
+not fixed; collector defect stays queued.
+
+**Non-known noise in the differential (read, do not fear — none of it moves a real pool):**
+`’orc` → `D’orc` 304 (the typographic-apostrophe fix), `Absolute Batman Ark-` → `Ark-M` 204
+across three spellings (hyphen guard now two-sided), `.. Joe` → `G.i. Joe` 70 across four
+spellings, `World' Finest` → `World's Finest` 15, `, Lusiphur` → `I, Lusiphur` 12, NULL → `K.o`
+49. Junk→junk total 2,277.
+
+**Monitor check — `check_rapidfuzz` exercised and fixed (2026-09-04):** eight branches run
+in isolation against the tree file (normal with live PyPI, cache hit with no refetch, verified-
+major mismatch, newer PyPI major, PyPI failure → `_error_entry` + 300 s backoff exactly as
+`check_stripe`, not importable → error entry, both warnings at once, unparseable version).
+PyPI latest today 3.14.6, installed 3.14.3, same major → 0 warnings. Two defects found by
+the verifier and FIXED before ship: (1) both warnings shared `item` → same `_alert_key` →
+`_send_alert_email` kept only the second, so an installed-major mismatch would never be
+emailed when a newer major was also published — now `rapidfuzz==X (verified major vN)` vs
+`rapidfuzz==X (PyPI major vM)`, distinct keys confirmed; (2) an unparseable installed
+version string returned 0 entries (silently healthy) — now warns with item
+`rapidfuzz==X (unparseable)`. Also: the module's header table gained the rapidfuzz row AND
+the AWS Rekognition row it never received at registration (2026-08-24); CLAUDE.md's
+monitored-services list updated. **Post-deploy check (Third-Party rule step 4) — ⚠️ read
+before looking:** `/api/admin/dependency-status` returns `check_all()`'s WARNINGS only
+(`routes/admin_routes.py:60-84`); a healthy check is ABSENT from it, so "rapidfuzz does not
+appear" is the healthy result, not a failed registration. Verify in the Render shell instead:
+`python -c "import dependency_monitor as d, inspect; print('rapidfuzz' in inspect.getsource(d.check_all)); print(d.check_rapidfuzz(force=True))"`
+→ expect `True` and `[]`. **QUEUED, pre-existing, not this unit:** the endpoint has no roster of
+checked services, so rule step 4 as written ("verify the new service appears") is
+unsatisfiable for any healthy check; a `services` list in the response would fix it.
+
+**`docs/technical/ARCHITECTURE.txt`: nothing to add** — it has no monitored-services section
+(only the env-var table) and this unit adds no env var; the 09-03 line saying it "still needs
+the entry" is tombstoned below. **`House of M`:** the tree normalizer maps that string to
+`House of` (HEAD: `House of X`, a wrong known-title match); no corpus row carries it (0 pairs
+in the pre-flight), so the 09-03 "not this unit" line stands as a corpus fact, not a code one.
+
+**IN THE WORKING TREE (applied 2026-09-04, Mike stages):** `title_normalizer.py` (A + B4 with
+comments), `dependency_monitor.py` (check + fixes + header), `CLAUDE.md` (list), this file.
+Backend change → `deploy` required; no frontend file touched → **no `purge`**. The backfill
+script is already in `scripts/` (in the image); the normalizer it imports is what `deploy`
+ships, so **deploy BEFORE the dry run** or the dry run measures HEAD, not the unit.
+
+**BACKFILL (Mike runs, Render shell, after deploy):** `python scripts/backfill_canonical_titles.py`
+(dry run) → read → `--execute` → re-run dry run expecting 0. Expected dry-run shape from the
+09-03 snapshot: **~3,340 would change** (+ any rows captured since the snapshot),
+**1,298 ebay + 11 market distinct (before, after) pairs** — the script's "distinct pairs" is
+transitions, NOT the 2,561 distinct strings with a nonzero delta above — **PRE-FLIGHT against the live RO connection (`do_readonly`, 2026-09-04
+21:00 UTC, `preflight.py` → `preflight.pkl`): IDENTICAL to the snapshot.** 297,559 + 10,593
+rows (no capture since 09-03); stored ≠ HEAD **0** on both tables (baseline flat, verified per
+run as the backfill docstring demands); stored ≠ tree **2,981 ebay + 359 market = 3,340**,
+1,298 + 11 distinct pairs; all 42 known-title deltas exactly as tabled above; classes
+771 / 292 / 2,277 / 0. The dry run should say **3,340 would change** — any other number is
+capture growth (account for it) or something else (stop). `verify_backfill.py` (scratchpad,
+compiled, reads `preflight.pkl` as the pre-write snapshot) is ready for the post-write check.
+`SOURCE DRAIN` will list `SOURCE DRAIN` will list many PARTIAL sources and that is expected —
+`Absolute Batman` 154 moving / 26,085 staying, `Batman` 8 / 4,757, `Spider-Man` 11 / 3,593
+are the true shape (the leavers are different books), NOT a split; the drain report keys on
+exact spelling and cannot tell a correct separation from a split (its known defect, 09-02).
+Flatness: stored == HEAD on every row at the 09-03 snapshot; a dry-run total materially above
+the differential means capture growth or an unbackfilled change — account for it, do not stop.
+Verification afterwards from the RO connection (second principal): (1) stored == tree
+normalizer on every row → 0; (2) the 15 named pools at their AFTER counts (± capture growth);
+(3) no known title outside the 42 changed count. Instrument to be written as `verify_backfill.py`
+in the session scratchpad on Mike's word, as on 09-03.
+
+**QUEUED (unchanged, log only):** plurals/single insertions (known-titles entry, not a
+threshold); Whatnot `Comics #N` collector defect; `House of M` / `Ark-M` M1 residue; the
+case-split family characterisation (09-03 close).
+
+## 2026-09-03 (later, PAUSED FOR TRAVEL — Mike) — 🧭 **Token-guard unit: measured, shape chosen, NOT verified, NOT applied. Read this before touching `title_normalizer.py`.**
+
+**MOST RECENT CHANGE (Rule 5): Mike decided the guard's pair-rescue fix (A) and the line-596
+single-letter stripper ship as ONE unit, and rejected the measured B1/B2 shapes; the redesign
+was chosen (joiner rule, below) and measured; work paused before verification. Supersedes the
+"case-insensitive canonical-assigning match" queue item below (see tombstone).**
+
+**Standing decisions this arc (Mike, 2026-09-03)**
+- ⚰️ **Case fix (M3, `processor=str.lower` on the assigning `extractOne`) is NOT shipping.**
+  DEAD as a unit. REASON: measured on the current corpus it relabels 9,146 non-case rows in
+  ebay_sales (≈450 substitution merges of a different real title, 4,507 sub-series absorbed
+  into parents) — M3 is load-bearing: it is the only thing keeping ALL-CAPS listings away from
+  a token guard with a hole in it. The Werewolf `By/by Night` split (156 rows) stands as
+  accepted debt. SUPERSEDES the "QUEUED — case-insensitive canonical-ASSIGNING match, 1,461
+  rows" item further down; do not re-queue it.
+- **Qualifier absorption** (annuals / spin-offs / crossovers into parent pools, 4,507 rows
+  under a hypothetical case fix) is a POLICY question, not decided, not this unit.
+- **A (guard) + line 596 ship together.** REASON: A alone newly rejects 461 correct rows, 385
+  of them the entire `I Hate Fairyland` pool, because the guard's hole is currently the only
+  thing repairing what line 596 breaks (L-SW-2026-027 masking shape again).
+- ⚰️ **B1 (`[B-HJ-W]`) and B2 (`[B-HJ-SU-W]`) DEAD.** REASON (Mike): a less readable range
+  that still mangles `Batman: R.I.P.` → `Batman: .i.`; trades one defect for a smaller one and
+  leaves the trap. "The range is the defect."
+- **rapidfuzz goes into `dependency_monitor.py` in this unit** (small, separable, same failure
+  shape as the Haiku retirement: pin `>=3.0.0`, 3.14.3 installed, the 2.x→3.x processor
+  default change is the likely origin of M3, and the monitor version-checks only stripe and
+  boto3 today).
+
+**Line 596 — what it is for, and the census (read-only, whole corpus, `census596.py`)**
+- Origin: day-one commit `ac9b2be` (2026-02-12). No lesson, no doc mentions it (plain grep 0,
+  rg 0). Purpose is only the comment: "Remove any remaining standalone single letters (except
+  common ones in titles). Keep X, A, D'". Someone intended an exclusion list and wrote the
+  RANGE `[B-W]`, which includes I and T.
+- It fires on 5,163 of 308,152 rows (⚰️ ~~5,848~~ **6,848** letter removals — CORRECTED 2026-09-04, typo; the contexts sum to 6,848). Contexts: adjacent to a period
+  (initialism) 2,422 · mid-string space-delimited 2,333 · leading 1,060 · trailing 1,033.
+  Letters: I 961, M 905, S 868, D 668, T 478 …
+- Against known titles: **beneficial (strip makes the match) 79 rows** — and ~23 of those are
+  false merges of a DIFFERENT book (`W.E.B. of Spider-Man`→Spider-Man 11, `Carnage U.S.A.` 6,
+  `I Am Batman` 4, `I Am Iron Man` 2); the genuine noise it removes is `U PICK` ×8, `B&W` ×3,
+  `V.2` ×7, `D.C.` ×3, stray grade letters (`F FANTASTIC FOUR`, `N ABSOLUTE BATMAN`, `T X-MEN`)
+  ~10, `Batman: R.I.P.`→Batman 4. **Harmful (strip breaks the match) 293 rows** — all
+  initialisms and the word I: `WildC.A.T.S` 165, `I Hate Fairyland` ⚰️ ~~115~~ **117** (CORRECTED 2026-09-04; +1 uncategorised `Walking Dead`→`The Walking Dead` row), `G.I. Joe` 10,
+  `X-CUTIONER'S SONG` 1. **No effect 764** (381 are `I Hate Fairyland` rows saved by the
+  guard's pair rescue — they become harmful the moment A ships). **Junk either way 4,026**
+  (`D’orc`→`’orc` 304: the apostrophe guard is ASCII-only, so the comment's own example fails
+  on a typographic apostrophe; `Ark-M`→`Ark-` ~330: the hyphen guard looks only forward;
+  `WORLD'S`→`World'`: possessive S in ALL-CAPS).
+- **Reading:** the line's purpose is stray whitespace-delimited residue. Every harm is a letter
+  JOINED to a neighbour by a period, an apostrophe (either kind) or a hyphen, or the word I.
+
+**Decision — the joiner rule (B4), chosen from purpose, not from score**
+- Explicit letter list replaces the range: `BCDEFGHJKLMNOPQRSTUVW` (not stripped: A, I — English
+  words that start titles; X; Y — `Y The Last Man`; Z).
+- A letter is stripped only when NOT joined to a neighbour by `.` `'` `’` `-`. Ampersand and
+  slash SEPARATE words (`B&W`, `W/COA`), so residue around them is still stripped — that is
+  the difference from the whitespace-only reading (B3), which loses 6 more rows (`B&W` 3,
+  `W/COA` 1, `#v` 2) for no purpose-based reason.
+- Proposed line (measured; the patch text is in the scratchpad `make_patch.py`, regenerable):
+  `_STRAY_LETTERS = 'BCDEFGHJKLMNOPQRSTUVW'`, `_JOINERS = r'\w.\'’-'`,
+  `text = re.sub(r'(?<![' + _JOINERS + r'])\b[' + _STRAY_LETTERS + r']\b(?![' + _JOINERS + r'])', '', text)`
+- Proposed A line: `pair_ok = {i for i, (a, b) in enumerate(zip(cand, cand[1:])) if max((fuzz.ratio(a + b, p) for p in pool), default=0) >= 100}`
+
+**Measurement (A + B4, current case-sensitive path only, 153,171-row subset = every row either
+change can touch; `fix_run2.py` / `fix_run3.py`; stored == HEAD on all rows)**
+| | rows |
+|---|---|
+| rows changing vs HEAD | 3,340 |
+| correctly rejected (the 710 mis-stored rows leave their wrong pools) | 710 |
+| **correct rows newly rejected, strict definition** (HEAD known title → not, minus 710 — ⚠️ the 710 is a HAND LABEL from 16 REJECT triples in `guard_variants.py`, hard-coded in `fix_run3.py`, NOT the output of this formula, which gives 1,171 under A alone; see 09-04 entry) | **61** (B3 whitespace-only: 67) — **ACCEPTED by Mike 2026-09-04** |
+| repaired (fall-through → known title) | 292: `WildC.A.T.S` ⚰️ ~~165 (138 exact + 27~~ **164 (137 exact + 27** `Wildc.a.t.s` case-split spellings), `I Hate Fairyland` 117, `GI Joe` 10, **`X-Cutioner's Song` 1** (CORRECTED 2026-09-04; the 138th is the `WidlC.A.T.S` typo, blocked by A) |
+| junk → junk (neither side a known title; NOISE, no pool moves) | 2,277 |
+- **The 61 is NOT at or under B2's 29, and the four `Batman: R.I.P.` rows ARE among them** — as
+  the clean string `Batman: R.i.p`, not a mangling; R.I.P. is a Batman storyline, so leaving
+  the Batman pool is a judgement call, not a defect. Composition of the 61: 17 A-side (13
+  typo/hyphen-glue legit + junk + 1 qualifier, enumerated in the 09-03 guard report); 44
+  B-side, of which **28–29 are correct separations of a different book that the old strip
+  was falsely merging** (`W.E.B. of Spider-Man` 11, `Carnage U.S.A.` 6, `I Am Batman` 4,
+  `U.S.Avengers` 3, `I Am Iron Man` 2, `Punisher: P.O.V.` 1, `Transformers/G.I. Joe` 1,
+  `W.I.P. Watchmen` 1), **11 are same-book residue now retained** (`Flash V.2` 5, `What If?
+  V.2` 2, `D.C. Comics …` 3, `T.M.N.T. …` 1) and 4 are `Batman: R.I.P.`. B2 scored 29 partly
+  by KEEPING the 28 false merges. Reported as-is; not tuned.
+- Pool shrink to record before ship (Mike's instruction): EC Comics −330 (321 of them
+  market_sales ⚰️ ~~Whatnot captures titled `Comics #N`~~ **271 `Comics #N` + 50 bare `Comics`**), Absolute Batman ⚰️ ~~−151~~ **−154**, Batman Adventures
+  −166, Edge of Spider-Verse −20, Hero for Hire −17, Wonder Woman ⚰️ ~~−11~~ **−12** (CORRECTED 2026-09-04: net deltas, not should-reject leavers) … `scripts/coverage_assessment.py`
+  BREADTH/DEPTH will drop for those titles; **that is not a regression, those comps were
+  wrong**. ⚰️ ~~Per-title before/after table NOT yet computed (see unmeasured).~~ **DONE 2026-09-04 — in the 09-04 entry.**
+- Patch check: the proposed `title_normalizer.py` (scratchpad `title_normalizer.py.proposed`)
+  reproduces the measured A+B4 output on all 153,171 rows, **0 mismatches**.
+
+**Proposed monitor check ⚰️ ~~(drafted, NOT compiled, NOT run)~~ — COMPILED, EXERCISED (8 branches), FIXED (dedup keys, unparseable version) and APPLIED 2026-09-04:** `check_rapidfuzz` in
+`dependency_monitor.py` — `RAPIDFUZZ_VERIFIED_MAJOR = 3`; warn when the installed major
+differs from it (behaviour changed with no code change) and when PyPI publishes a newer major
+(do not adopt without a corpus differential); `_caches['rapidfuzz']`; registered in the
+`check_all` tuple; `PYPI_RAPIDFUZZ_URL`. ⚰️ ~~CLAUDE.md's monitored-services list and
+`docs/technical/ARCHITECTURE.txt` still need the entry~~ (CLAUDE.md DONE 09-04; ARCHITECTURE.txt has no such section — nothing to add); `/api/admin/dependency-status` check is
+post-deploy.
+
+**UNMEASURED / NOT DONE (in order)** ⚰️ **ALL SIX RESOLVED OR SUPERSEDED 2026-09-04 — see the 09-04 entry; items 1–5 done, item 6 is the live backfill plan there.**
+1. Verification agent has NOT run on the B4 measurement, the census, or the patch.
+2. Proposed `dependency_monitor.py` NOT compiled or exercised (`py_compile`, `check_rapidfuzz(force=True)`).
+3. Per-title before/after pool table for the coverage record NOT computed (inputs exist:
+   `corpus.pkl` stored counts vs `fix_run3.pkl` AB4 output).
+4. Nothing applied to the working tree. Proposed copies + unified diffs live ONLY in the
+   session scratchpad (`…\21ae37af-…\scratchpad\*.proposed`, `*.diff`, `make_patch.py`) — a
+   temp dir that may not survive; `make_patch.py` regenerates them from HEAD and the two lines
+   above regenerate the code by hand.
+5. Record text for the unit (shrink numbers, junk-noise note, queued items) NOT written.
+6. Backfill after ship: `scripts/backfill_canonical_titles.py` ⚰️ ~~`--dry-run`~~ (no flags IS the dry run; there is no `--dry-run` flag) then `--execute`
+   (Mike), verification from the RO connection as on 09-03.
+
+**QUEUED (log only, Mike's instruction)**
+- **Plurals and single insertions are undecidable by score** (`Robins` 28, `Batgirls` 11,
+  `Thors` 3, `Outcasts` 4, `Daredevils` 4, `Secret War` 12, `Bartman` 8, `Fantastick` 5):
+  the mechanism is a known-titles entry, not a threshold. Open, not solved.
+- **Whatnot collector capture defect:** 321 market_sales rows carry the raw title `Comics #N`
+  (title-less captures). After this unit they become their own junk string instead of
+  corrupting the EC Comics pool — better, not fixed. File against the collector.
+- `House of M` (M stripped as trailing residue, `of` stripped by M1) and `Absolute Batman:
+  Ark-M` strings: residue of M1 and the qualifier question, not this unit.
+
+**Mystery file resolved:** repo-root `REPORT_DRAFT.md` was Mike's upload copy. Untracked; delete or leave.
 
 ## 2026-09-03 (SESSION CLOSE, Mike's record; conversation `46ea11d3-7edc-4e73-abf6-974c15f1165b`) — 🔒 **Everything in this session SHIPPED; open items enumerated below so nothing resolved is re-raised and nothing unresolved is lost.**
 

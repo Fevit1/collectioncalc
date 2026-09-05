@@ -13,7 +13,9 @@ Each check is cached 24 hours independently.
  eBay              │ check_ebay()                  │ developer.ebay.com RSS feed │ API deprecations
  eBay acct-del self│ check_ebay_account_deletion() │ our own live endpoint (GET) │ Notification endpoint up + valid challenge
  Stripe            │ check_stripe()                │ PyPI version check          │ SDK version drift
+ AWS Rekognition   │ check_aws_rekognition()       │ boto3 PyPI + live wiring    │ SDK drift, moderation wiring, model-version change
  Resources (self)  │ check_resources()             │ container cgroup + Postgres │ Memory + DB-connection ceilings (item 2f)
+ rapidfuzz         │ check_rapidfuzz()             │ installed module + PyPI     │ MAJOR-version drift vs the corpus-verified major
 
  TO ADD A NEW SERVICE:
  1. Write a check_<service>() function that returns a list of warning dicts:
@@ -55,6 +57,14 @@ DEPRECATIONS_API = "https://deprecations.info/v1/deprecations.json"
 EBAY_RSS_URL = "https://developer.ebay.com/rss/api-status"
 PYPI_STRIPE_URL = "https://pypi.org/pypi/stripe/json"
 PYPI_BOTO3_URL = "https://pypi.org/pypi/boto3/json"
+PYPI_RAPIDFUZZ_URL = "https://pypi.org/pypi/rapidfuzz/json"
+# The rapidfuzz MAJOR whose behaviour title_normalizer.py was measured against. rapidfuzz
+# 3.0 dropped the default lowercasing processor from process.extractOne / fuzz.*; the
+# repo pins ">=3.0.0" and the normalizer was corpus-verified on 3.x, so a different
+# installed major means the matcher's behaviour changed under us without any code change
+# (L-SW-2026-027 M3 is the 2.x->3.x instance of exactly that). Bump this ONLY after a
+# corpus differential on the new major.
+RAPIDFUZZ_VERIFIED_MAJOR = 3
 CACHE_TTL = 86400  # 24 hours
 
 # Cross-portfolio dependency manifest (github.com/Fevit1/ideabyhuman-ops).
@@ -134,6 +144,7 @@ _caches = {
     'aws_rekognition':      {"data": [], "fetched_at": 0},
     'manifest':             {"data": None, "fetched_at": 0},
     'resources':            {"data": [], "fetched_at": 0},
+    'rapidfuzz':            {"data": [], "fetched_at": 0},
 }
 _emailed_keys = set()  # Track what we've emailed about (service:identifier)
 
@@ -639,6 +650,100 @@ def check_stripe(force=False):
         cache["data"] = err
         cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
         return err
+
+    cache["data"] = warnings
+    cache["fetched_at"] = now
+    return warnings
+
+
+# =============================================
+# RAPIDFUZZ — the canonical-title matcher's similarity library
+# =============================================
+#
+# Registered 2026-09-04. title_normalizer.py canonicalises every captured sale through
+# rapidfuzz (process.extractOne + fuzz.token_sort_ratio + fuzz.ratio). The library's 3.0
+# release changed a DEFAULT (no lowercasing processor), and that change - not a code
+# edit - is the likely origin of the case-sensitive matcher defect (M3) that went
+# unnoticed for months. Same failure shape as a model retirement: the dependency moves,
+# nothing in the repo changes, output changes. Two checks:
+#   1. installed MAJOR != RAPIDFUZZ_VERIFIED_MAJOR  -> behaviour may have changed; loud.
+#   2. a newer MAJOR is published on PyPI           -> do not adopt without a differential.
+
+def _get_installed_rapidfuzz_version():
+    try:
+        import rapidfuzz
+        return rapidfuzz.__version__
+    except (ImportError, AttributeError):
+        return None
+
+
+def check_rapidfuzz(force=False):
+    """Watch rapidfuzz for a major-version change on either side of the pin."""
+    cache = _caches['rapidfuzz']
+    now = time.time()
+    if not force and (now - cache["fetched_at"]) < CACHE_TTL:
+        return cache["data"]
+
+    installed = _get_installed_rapidfuzz_version()
+    if not installed:
+        err = [_error_entry("rapidfuzz", "rapidfuzz not importable - the title normalizer "
+                                         "cannot canonicalise anything")]
+        cache["data"] = err
+        cache["fetched_at"] = now
+        return err
+
+    warnings = []
+    installed_major = _parse_major(installed)
+    # Each warning below carries a DISTINCT `item`, because _alert_key is service:item and
+    # _send_alert_email keeps one entry per key - two warnings sharing an item would mean
+    # only the second one is ever emailed (verification finding, 2026-09-04).
+    if installed_major is None:
+        warnings.append({
+            "service": "rapidfuzz",
+            "item": f"rapidfuzz=={installed} (unparseable)",
+            "detail": (f"Installed version string {installed!r} does not parse as MAJOR.x.y, so "
+                       f"the major-version comparison against the corpus-verified major "
+                       f"v{RAPIDFUZZ_VERIFIED_MAJOR} cannot run. Treat as unverified, not as healthy."),
+            "date": "",
+            "url": "https://github.com/rapidfuzz/RapidFuzz/blob/main/CHANGELOG.md",
+            "action": ("Confirm which rapidfuzz is actually installed in the container (pip show "
+                       "rapidfuzz) and whether its major is the verified one; fix _parse_major or "
+                       "the install so this check can compare again."),
+        })
+    if installed_major is not None and installed_major != RAPIDFUZZ_VERIFIED_MAJOR:
+        warnings.append({
+            "service": "rapidfuzz",
+            "item": f"rapidfuzz=={installed} (verified major v{RAPIDFUZZ_VERIFIED_MAJOR})",
+            "detail": (f"Installed major v{installed_major} differs from the corpus-verified "
+                       f"major v{RAPIDFUZZ_VERIFIED_MAJOR}. Matcher behaviour may have changed "
+                       f"with no code change (the 2.x->3.x processor default did exactly this)."),
+            "date": "",
+            "url": "https://github.com/rapidfuzz/RapidFuzz/blob/main/CHANGELOG.md",
+            "action": ("Run scripts/backfill_canonical_titles.py with NO flags (that is the dry run; "
+                       "there is no --dry-run flag) against the corpus BEFORE trusting any canonical_title "
+                       "written under this version; then set RAPIDFUZZ_VERIFIED_MAJOR."),
+        })
+
+    try:
+        latest = _latest_pypi_version(PYPI_RAPIDFUZZ_URL)
+        latest_major = _parse_major(latest)
+        if installed_major is not None and latest_major is not None and latest_major > installed_major:
+            warnings.append({
+                "service": "rapidfuzz",
+                "item": f"rapidfuzz=={installed} (PyPI major v{latest_major})",
+                "detail": f"PyPI has rapidfuzz v{latest} (major v{latest_major} > installed v{installed_major}).",
+                "date": "",
+                "url": "https://github.com/rapidfuzz/RapidFuzz/blob/main/CHANGELOG.md",
+                "action": ("Do NOT upgrade the major without a corpus differential of "
+                           "title_normalizer.py output (L-SW-2026-027: measure combinations, "
+                           "not components). The pin is a floor, not a ceiling."),
+            })
+    except Exception as e:
+        print(f"[DependencyMonitor] rapidfuzz PyPI check failed: {e}")
+        warnings.append(_error_entry("rapidfuzz", e))
+        cache["data"] = warnings
+        cache["fetched_at"] = now - CACHE_TTL + 300  # loud, but back off (see check_anthropic)
+        return warnings
 
     cache["data"] = warnings
     cache["fetched_at"] = now
@@ -1165,6 +1270,7 @@ def check_all(force=False):
         ("Stripe", check_stripe),
         ("AWS Rekognition", check_aws_rekognition),
         ("Resources (self)", check_resources),
+        ("rapidfuzz", check_rapidfuzz),
     )
 
     warnings = []

@@ -274,7 +274,11 @@ eBay (API deprecations), eBay account-deletion endpoint (self-check), Stripe (SD
 **AWS Rekognition (moderation wiring in the running app, boto3 SDK version, ModerationModelVersion
 change alert, + a narrowed within-version taxonomy gap)**, Resources
 (self — memory + DB-connection ceilings vs Standard 2GB (upgraded from Starter 512MB, 2026-07-16
-OOM incident) / max_connections, item 2f).
+OOM incident) / max_connections, item 2f), **rapidfuzz (installed MAJOR vs the corpus-verified
+major `RAPIDFUZZ_VERIFIED_MAJOR`, + a newer major on PyPI; registered 2026-09-04 because the
+2.x→3.x default-processor change is the likely origin of the case-sensitive matcher defect —
+the library moved, no code changed, output changed. Bump the constant ONLY after a corpus
+differential on the new major)**.
 
 ⚠️ `dependency_monitor.py` also caches **`manifest`** — the cross-portfolio dependency manifest from
 `Fevit1/ideabyhuman-ops`. It is **NOT a service check**: it is a data source feeding the Anthropic

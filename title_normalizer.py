@@ -521,7 +521,21 @@ def _fuzzy_tokens_supported(candidate, text, per_token_floor=83):
     def supported(tok):
         return max((fuzz.ratio(tok, p) for p in pool), default=0) >= per_token_floor
 
-    pair_ok = {i for i, (a, b) in enumerate(zip(cand, cand[1:])) if supported(a + b)}
+    # Pair rescue: a candidate token that is unsupported on its own is accepted when the
+    # candidate PAIR it belongs to appears in the listing as ONE squashed word
+    # ("Ironman" -> Iron Man, "Cyberforce" -> Cyber Force). That is the only case this
+    # rescue exists for (L-SW-2026-009: "the first guard version broke Ironman->Iron Man"),
+    # and in the whole corpus every such case scores exactly 100.
+    #
+    # TIGHTENED 2026-09-03: the pair used to pass at the per-token floor (83). At 83 the
+    # shared token's characters dominate the pair score, so a substituted word rides
+    # through on its neighbour: "absolutebatman" vs "absolutecatwoman" = 86.7, "eccomics"
+    # vs "comics" = 85.7, "batmanadventures" vs "amazingadventures" = 84.8. Corpus-measured:
+    # 710 rows stored under the wrong title through this path (EC Comics 330, Absolute
+    # Batman 151, Batman Adventures 166, ...), and not one legitimate squashed compound
+    # below 100. Exact match only.
+    pair_ok = {i for i, (a, b) in enumerate(zip(cand, cand[1:]))
+               if max((fuzz.ratio(a + b, p) for p in pool), default=0) >= 100}
     return all(
         supported(c) or (i - 1) in pair_ok or i in pair_ok
         for i, c in enumerate(cand)
@@ -588,10 +602,28 @@ def _build_canonical_title(title_part):
     # Remove standalone single digits at the end (quantity, not issue)
     text = re.sub(r'\s+\d\s*$', '', text)
 
-    # Remove any remaining standalone single letters (except common ones in titles)
-    # Keep: "X" (X-Men), "A" (A-Force), "D'" (D'orc), etc.
-    # Don't remove if followed by apostrophe (D'orc) or hyphen (X-Men)
-    text = re.sub(r'(?<!\w)\b([B-W])\b(?!\w)(?![-\'])', '', text)
+    # Remove any remaining STRAY single capital letters - leftover grade / lot / pick
+    # residue such as "F FANTASTIC FOUR", "Punisher U PICK", "B&W", "SIGNED ... N".
+    #
+    # REDESIGNED 2026-09-03 (was: re.sub(r'(?<!\w)\b([B-W])\b(?!\w)(?![-\'])', '', text)).
+    # The old class [B-W] was a RANGE, so it also stripped I and T, and its punctuation
+    # guard looked only at the following character and only at the ASCII apostrophe.
+    # Corpus-measured damage: "I Hate Fairyland" -> "Hate Fairyland" (the whole pool, held
+    # up only by the token guard's pair rescue), "WildC.A.T.S" -> "WildC.A..s", "G.I. Joe"
+    # -> ".. Joe", "Batman: R.I.P." -> "Batman", "D’orc" -> "’orc", "WORLD'S FINEST"
+    # -> "World' Finest", "Ark-M" -> "Ark-".
+    #
+    # Two explicit rules replace the range:
+    #   1. The letters stripped are listed. Not stripped: A, I (English words that start
+    #      titles), X (X-Men), Y (Y The Last Man), Z.
+    #   2. A letter JOINED to a neighbour by a period, an apostrophe (ASCII or typographic)
+    #      or a hyphen is part of an initialism, possessive or compound and is kept.
+    #      Ampersand and slash SEPARATE words ("B&W", "W/COA"), so residue around them is
+    #      still stripped.
+    _STRAY_LETTERS = 'BCDEFGHJKLMNOPQRSTUVW'
+    _JOINERS = r'\w.\'\u2019-'
+    text = re.sub(r'(?<![' + _JOINERS + r'])\b[' + _STRAY_LETTERS + r']\b(?![' + _JOINERS + r'])',
+                  '', text)
 
     # Clean up multiple spaces
     text = re.sub(r'\s+', ' ', text).strip()
