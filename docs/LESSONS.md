@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-09-03 (28 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-09-10 (29 lessons)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -18,6 +18,53 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
 > `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
 > silently redirect that link.
+
+### L-SW-2026-030 — A record that describes a unit as NOT YET SHIPPED must not ride in the commit that ships it; update it before staging, or commit it separately after the ship is verified
+
+- **RULE:** A state-file entry that says a unit is "not committed / not deployed / not run" is a
+  claim about the future of the working tree. The moment that entry is staged alongside the
+  unit's code, the claim is false — the commit that carries it is the ship. So: **before
+  `git add` of `WHERE_WE_LEFT_OFF.md` (or any record), read its top MOST RECENT CHANGE line and
+  ask whether it describes the commit about to be made as not having happened.** If it does,
+  either rewrite it in commit-relative terms ("A + B4 + monitor ship IN THIS COMMIT; deploy and
+  backfill are Mike's next steps") before staging, or leave the record out of the ship commit
+  and write the post-ship entry as its own commit once deploy and backfill are verified. A
+  record must never assert a state that the artifact carrying it contradicts.
+- **WHY:** 2026-09-04. The state-file entry was written at 21:10 UTC — "APPLIED to the working
+  tree; NOT committed, NOT deployed, backfill NOT run" — and was then committed at 01:25 UTC
+  inside `2e27098` together with `title_normalizer.py` and `dependency_monitor.py`, and deployed
+  at 01:26 UTC. Nothing updated it afterward. For six days the canonical live decision record
+  described the shipping commit's own contents as unshipped; the 2026-09-10 opening read
+  reported the unit as undeployed until git and the Render deploys endpoint said otherwise, and
+  the backfill's run state had to be re-measured from the database. The opening protocol's
+  safeguard — "scan recent conversation for decisions made after the file's last write" — could
+  not catch it, because the ship happened outside any Claude session and the file's own commit
+  timestamp post-dates its content. This is **[[L-SW-2026-020]]** applied to a record instead of
+  user-facing text: copy asserting a state the mechanism does not have. It is also the failure
+  **[[L-SW-2026-008]]** guards against, with the twist that the file git-verification would have
+  been checked against was itself the stale artifact.
+- **HOW TO APPLY:**
+  1. **The tell is `git show --stat` of a code commit listing a state file.** Two shapes are
+     legitimate: the record says "shipping in this commit" (pre-ship, commit-relative wording),
+     or the record is a separate post-ship commit. A record inside the ship commit that says
+     "not shipped" is neither, and is wrong by construction.
+  2. **When the ship is Mike-run outside the session, the post-ship record is necessarily a
+     separate write.** Make it an explicit step in the handoff, listed with `deploy` and the
+     backfill: *"after deploy + backfill, add the one-line ship record to the state file."* A
+     handoff that lists the mechanical steps but not the record step produces exactly this
+     failure.
+  3. **The cost is the duration, not the line.** Nothing re-reads a state file between
+     sessions; a wrong ship-state persists until the next opening protocol, and that protocol
+     instructs the reader to trust the file over spec docs. Six days here; it would have been
+     longer without a status pass.
+  4. **Do not fix it by deleting the false line.** Tombstone in place (Rule 2) so the correction
+     is visible and a future reader can see that the 09-04 entry was accurate about the 61 and
+     wrong about the ship — the two are separable, and the acceptance record still stands.
+- **SOURCE:** 2026-09-10 status pass (this file's 09-10 entry in
+  `docs/sessions/WHERE_WE_LEFT_OFF.md`; commit `2e27098`; Render deploy `2026-09-05T01:26Z`).
+  Mike's framing at the time of recording: *"a record describing a unit as not yet shipped must
+  not ride along in the commit that ships it. Either the record is updated before staging, or it
+  is committed separately after the ship is verified."*
 
 ### L-SW-2026-029 — The ripgrep-backed search tool honours `.gitignore`; an ignored file is INVISIBLE to it, and its silence is not absence
 

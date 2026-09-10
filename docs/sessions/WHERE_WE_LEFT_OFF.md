@@ -1,6 +1,132 @@
-# Where We Left Off - Sep 4, 2026
+# Where We Left Off - Sep 10, 2026
 
-## 2026-09-04 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): the 61 is ACCEPTED by Mike; APPLIED to the working tree; NOT committed, NOT deployed, backfill NOT run.**
+## 2026-09-10 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): COMMITTED + DEPLOYED 2026-09-04 (`2e27098`), BACKFILL RUN + VERIFIED 2026-09-10. The 09-04 heading below ("NOT committed, NOT deployed, backfill NOT run") is DEAD on all three claims.**
+
+**MOST RECENT CHANGE (Rule 5): the canonical-title backfill for the token-guard unit ran in
+production on 2026-09-10 (Mike, Render shell, between 20:37 and 21:26 UTC) and is verified from
+the RO connection — stored `canonical_title` equals the deployed normalizer's output on EVERY row
+of both tables. Supersedes the 09-04 entry's ship-state heading, which was already two-thirds
+false at the moment it was committed (see the tombstone and L-SW-2026-030).**
+
+**⚰️ TOMBSTONE — the three ship-state claims in the 09-04 entry, each DEAD, corrected in place:**
+- **"NOT committed"** — DEAD. Committed by Mike 2026-09-05 01:25 UTC (09-04 19:25 MDT) as
+  `2e27098` (`title_normalizer.py`, `dependency_monitor.py`, `CLAUDE.md`, this file); pushed;
+  `main` == `origin/main` on 09-10.
+- **"NOT deployed"** — DEAD. Render deploy of `2e27098` triggered via the API four seconds after
+  the commit (2026-09-05 01:26:00 UTC), finished 01:26:41, status **live** — read from the Render
+  deploys endpoint on 09-10 (GET only). `/health` reports `5.6.0`, a constant unchanged since
+  March; it does not identify builds.
+- **"backfill NOT run"** — DEAD as of 2026-09-10. Evidence below.
+**REPLACED BY:** this entry. **REASON:** the 09-04 entry was written at 21:10 UTC, before the
+unit shipped, and was then carried INSIDE `2e27098` — the commit whose contents it described as
+unshipped. Nothing updated it afterward; the record was wrong for six days and the 09-10 opening
+read reported the unit as undeployed until git and Render were checked. **SUPERSEDES** every
+"awaiting Mike's stage/commit/push/deploy" and "deploy BEFORE the dry run" instruction in the
+09-04 entry; do not re-present its command blocks. Lesson recorded as **L-SW-2026-030**.
+
+**VERIFICATION — what was ACTUALLY run (Claude, 2026-09-10, RO role `do_readonly`, hard
+read-only session).** ⚠️ **`verify_backfill.py` and `preflight.pkl` were NOT used.** Both lived
+in the 09-04 session scratchpad and were not available from this session (scratchpads are
+session-scoped). Verification was by direct database check instead: every `raw_title` in both
+tables re-normalized with the checked-out `title_normalizer.py` (HEAD = `2e27098` = the deployed
+commit) and compared with stored `canonical_title` using the backfill script's own comparison
+(`after != stored`, raw compare). Scripts: `status_ro.py`, `pools_ro.py`, `ba_ro.py` in the
+09-10 scratchpad, 33 / 15 / 13 lines, regenerable from this description.
+1. **Flatness — PASS.** `ebay_sales` 303,123 rows with `raw_title`, stored ≠ HEAD **0**, 0 pairs.
+   `market_sales` 10,614 rows, **0**, 0 pairs. The same check at 20:37 UTC the same day gave
+   **2,981 + 359 = 3,340** rows, **1,298 + 11** distinct pairs, top transitions `EC Comics → Comics`
+   321, `’orc → D’orc` 304, `Absolute Batman → Absolute Catwoman` 149, `Batman Adventures →
+   Amazing Adventures` 149, `NULL → K.o` 49 — exactly the 09-04 pre-flight differential. So the
+   baseline was still flat-to-old-HEAD and unwritten at 20:37, and the write landed between 20:37
+   and 21:26 UTC.
+2. **The 15 named pools — PASS, once 09-10 captures are subtracted.** ⚠️ **CAPTURE RESUMED
+   09-10** (see below), so the RAW counts are NOT the post-write state; the post-write state is
+   `count WHERE created_at < '2026-09-10'`. Both tables unioned:
+
+   | known title | expected AFTER (09-04) | now | of which created 09-10 | post-write |
+   |---|--:|--:|--:|--:|
+   | EC Comics | 4 | 4 | 0 | 4 ✓ |
+   | Batman Adventures | 207 | 208 | 1 | 207 ✓ |
+   | Absolute Batman | 26,085 | 29,353 | 3,268 | 26,085 ✓ |
+   | Edge of Spider-Verse | 183 | 183 | 0 | 183 ✓ |
+   | Hero for Hire | 318 | 328 | 10 | 318 ✓ |
+   | Wonder Woman | 505 | 505 | 0 | 505 ✓ |
+   | Spider-Man | 3,593 | 3,595 | 2 | 3,593 ✓ |
+   | Batman | 4,757 | 4,770 | 13 | 4,757 ✓ |
+   | Carnage | 96 | 96 | 0 | 96 ✓ |
+   | Flash | 344 | 344 | 0 | 344 ✓ |
+   | X-Cutioner's Song | 3 | 3 | 0 | 3 ✓ |
+   | GI Joe | 84 | 85 | 1 | 84 ✓ |
+   | Wildc.a.t.s | 28 | 28 | 0 | 28 ✓ |
+   | I Hate Fairyland | 503 | 503 | 0 | 503 ✓ |
+   | WildC.A.T.S | 195 | 195 | 0 | 195 ✓ |
+
+   Receiving strings (no 09-04 expectation was tabled for them): **`Comics` 415** (0 captured
+   09-10), **`Absolute Catwoman` 371** (27 captured 09-10 → 344 post-write), **`Amazing
+   Adventures` 203** (5 captured 09-10 → 198 post-write).
+3. **"No known title outside the 42 changed count" — NOT RUN.** It needs the pre-write snapshot
+   (`preflight.pkl`), which is unavailable. Check 1 covers the correctness of every stored value
+   (each row holds exactly what the deployed code produces); what check 3 would have added —
+   that no row moved for a reason other than this unit — cannot be reconstructed after the write
+   without the snapshot. Recorded as not done, not as passed.
+
+**CAPTURE RESUMED 2026-09-10 (first ingest since 08-31).** `ebay_sales` 297,559 → **303,123**
+(+5,564, all `created_at` 09-10, last ingest 21:24 UTC — i.e. still running during the
+verification); `market_sales` 10,593 → **10,614** (+21, last ingest 21:30 UTC). 3,264 of the
+5,564 ebay rows are `Absolute Batman` (the pools table's 3,268 is that query's own later
+snapshot, at ~5,981 ebay rows captured; each table is internally consistent at its own instant). The 09-04 "no capture since 09-03" statement was true
+through 09-09.
+
+**RECONCILED — Batman Adventures "165 moving of 367" (09-10 dry run) vs "−166 of 373" (09-04
+table): a SCOPE difference, not an error in either record.** The dry run's `SOURCE DRAIN` block
+is printed **per table** — it sits inside the `for table in TABLES` loop in
+`scripts/backfill_canonical_titles.py`, so "165 of 367" is the `ebay_sales` line. The 09-04
+table is **whole-corpus** (both tables). Post-write, `created_at < 09-10`: `ebay_sales`
+`Batman Adventures` **202** = 367 − 165; `market_sales` `Batman Adventures` **5** = 6 − 1; sum 207
+= 373 − 166. The arithmetic closes on both sides with no residue. The one `market_sales` leaver
+went to `Amazing Adventures` (that table holds exactly 1 `Amazing Adventures` row and 0
+`Captain Adventures`, and the 09-04 table's 166 leavers go only to those two strings — one ebay
+leaver actually lands on the distinct string `✦ Amazing Adventures`, which the 09-04 table folded
+into its 151; verifier, 09-10). Which
+`raw_title` it was cannot be listed now — the pre-write stored value is gone — but nothing about
+the reconciliation depends on it. ⚠️ Generalise this: EVERY per-source figure a dry run prints is
+per-table; compare it to whole-corpus tables only after summing the two tables' lines.
+
+**rapidfuzz monitor — post-deploy check (Third-Party rule step 4) STILL OWED.** Registered in
+the deployed code (`check_all` tuple, 7th entry; `RAPIDFUZZ_VERIFIED_MAJOR = 3`;
+`requirements.txt` pins `rapidfuzz>=3.0.0`). Run locally against the same code on 09-10,
+`check_rapidfuzz(force=True)` returned `[]` (installed 3.14.3, PyPI latest 3.x). **NOT verified in
+production** — the Render-shell one-liner in the 09-04 entry has not been run by anyone the record
+knows of, and it cannot be run from a Claude session. It is Mike's step and it is still open.
+
+**Also observed, NOT touched (read-only pass; pre-existing dirty files are outside this unit):**
+`docs/API_SPEND_LEDGER.md` is modified in the working tree and git now sees it as binary
+(4,389 → 13,430 bytes) — it appears to have been re-saved as UTF-16; the content reads correctly
+when decoded. Fourteen untracked entries (docx pile, `UniqueProperties/`, `body.html`, `headers.txt`,
+two report drafts) and `docs/EBAY_CAPTURE_WEEKLY.docx` modified, all unchanged since the 09-04
+snapshot.
+
+**Verification agent (09-10, read-only, independent recomputation incl. the pre-ship differential
+from `git show e690e04:title_normalizer.py` against pre-09-10 rows: 2,981 / 1,298 + 359 / 11 =
+3,340 reproduced):** 61 confirmed / 3 wrong / 5 uncheckable. The three wrong figures (3,268 →
+3,264; twelve → fourteen untracked; "~40 lines") and two imprecisions ("one minute" → four
+seconds; the `✦ Amazing Adventures` string) are corrected in place above. Uncheckable = the four
+statements about what happened outside this session (Mike ran the backfill in the Render shell;
+`verify_backfill.py` unused; the rapidfuzz shell check unrun; the 09-04 file mtime).
+
+**THIS UNIT'S ONLY WRITES (Mike stages):** this entry, and **L-SW-2026-030** in `docs/LESSONS.md`
+(header bumped 28 → 29 lessons, dated 2026-09-10). No code change, nothing else applied or staged.
+Docs-only → no `deploy`, no `purge`.
+
+**QUEUED (unchanged from 09-04, log only):** plurals/single insertions (known-titles entry);
+Whatnot `Comics #N` collector defect (the 321 title-less rows now sit on the string `Comics`,
+which is 415 rows in total); `House of M` / `Ark-M` M1 residue; case-split family
+characterisation; the dependency-status endpoint's missing service roster (rule step 4 is
+unsatisfiable for a healthy check without it).
+
+## 2026-09-04 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): the 61 is ACCEPTED by Mike; APPLIED to the working tree; ⚰️ ~~NOT committed, NOT deployed, backfill NOT run~~** — **⚰️ DEAD 2026-09-10: committed + deployed 2026-09-04 in `2e27098` (this very entry rode in that commit), backfill run + verified 2026-09-10. See the 09-10 entry above and L-SW-2026-030.**
+
+**⚰️ 2026-09-10: the ship-state in the paragraph below ("awaiting Mike's stage/commit/push/deploy; the backfill runs after deploy, by Mike, dry run first") is DEAD — all of it happened (commit + deploy 09-04, backfill 09-10). Kept for the 61-acceptance record, which stands.**
 
 **MOST RECENT CHANGE (Rule 5): Mike accepted the 61 correct-rows-newly-rejected figure and
 ordered A + B4 + the rapidfuzz monitor check shipped as one unit (2026-09-04, Park City).
