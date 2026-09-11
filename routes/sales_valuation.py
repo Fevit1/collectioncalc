@@ -459,7 +459,15 @@ def compute_variant_disclosure(base_count, excluded_variant_count,
         'variant_excluded_pct': pct,
         'variant_excluded_count': excluded_variant_count,
         'variant_disclosure': (
-            "Estimate reflects the standard cover; variant sales excluded."
+            # P1 (Mike, 2026-09-11). Describes LABELLING, not edition: the pool is
+            # every graded sale whose title names no variant, newsstand OR direct
+            # edition (all three are is_variant), i.e. the unlabelled market —
+            # mostly direct copies by base rate plus unlabelled newsstand copies.
+            # The old sentence ("standard cover; variant sales excluded") called a
+            # newsstand copy a variant and implied the pool was the direct market.
+            # Never claims to know which edition the user holds.
+            "Based on sales not labelled as a variant, newsstand or direct edition. "
+            "Newsstand and direct editions of the same issue can differ in value."
             if fires else None),
     }
 

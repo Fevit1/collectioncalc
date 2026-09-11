@@ -1,5 +1,285 @@
 # Where We Left Off - Sep 11, 2026
 
+## 2026-09-11 (later) — 🔎 **Newsstand vs direct edition — READ-ONLY CHARACTERISATION (Mike's brief). No code change, no proposed fix. Verdict: SMALL FEATURE on both sides, gated on one measurement (the live extraction prompt already returns an edition, unmeasured and discarded); and the premise "FMV is an average of two markets" is WRONG in a specific, worse way — newsstand-labelled comps are DISCARDED by `is_variant`, so the pool is ⚰️ ~~the direct market~~ **the UNLABELLED market** (direct-labelled comps are discarded by the same pattern — correction below) and a newsstand seller is quoted that pool's price.**
+
+**MOST RECENT CHANGE (Rule 5): the spine-caption unit is COMMITTED by Mike as `58044d5`
+(2026-09-11); push / Pages build / purge / assert are Mike's remaining steps and the one-line
+ship record here is still owed after the assert (L-SW-2026-030). This entry is a separate,
+read-only question and changes nothing in the tree.**
+
+**1. Does anything in the pipeline distinguish newsstand from direct? — NO, on every live
+path; and where the word appears it is treated as a VARIANT and thrown out.**
+- **Normalizer** (`title_normalizer.py:273–301`, `variant_patterns`): `\bnewsstand\s*(edition)?\b`
+  → label `Newsstand` and `\bdirect\s*(edition)?\b` → `Direct Edition` both set **`is_variant =
+  True`** (pattern list added with the normalizer itself, `ac9b2be` 2026-02-12). The label is
+  written into `title_notes` as text (`Variant: Newsstand`, 708 rows in that exact form) —
+  the FACT is recorded, but as a variant. ⚠️ `\bdirect\b` with the optional `edition` also
+  fires on "Direct Market" and bare "Direct" (2,673 rows; 1,112 say "direct edition").
+- **Valuation** (`routes/sales_valuation.py`): raw pools filter `is_variant` in SQL (:741, :851,
+  :1566, :1587); graded pools SELECT it and `continue` past it in Python (:342, :883). The user-facing
+  disclosure (:449–462) then says **"Estimate reflects the standard cover; variant sales
+  excluded."** — for a newsstand copy that sentence is false twice: it is not a cover variant,
+  and the "standard cover" pool is the direct-edition market. Fix F edition-span detection
+  (:219–294) is by design a **>15-year span AND ≥20× price-ratio** gate for reprint-era volumes
+  (X-Men 1963/1991); same-month editions at 1.5–2× cannot trip it and are not meant to.
+- **Dormant model** (`valuation_model.py:65–78`): `edition_multipliers` exist —
+  `direct 1.00`, `newsstand_pre_1990 1.10`, `newsstand_1990_1995 1.25`, `newsstand_post_1995
+  1.50`, `newsstand_post_2000 2.00` — hand-set, not measured. The only caller is the OLD
+  `/api/valuate` path (`ebay_valuation.py:1158`, `:1223`), which passes **`edition='direct'` as a
+  constant**; the route (`routes/grading.py:226–256`) never reads an `edition` from the request
+  even though the legacy bulk-mode UI sends one (`js/app.js:753`, dropdown :572–576 —
+  `#bulkMode` is `display:none` and shown only inside `js/app.js`'s legacy one-argument
+  `handlePhotoUpload(files)` (:389–394), which app.html's inline two-argument
+  `handlePhotoUpload(photoType, files)` shadows under the current load order — the dropdown is
+  unreachable). The grade
+  report's FMV (`/api/sales/valuation`) never touches this model. **Net: the multipliers have
+  never applied to any live valuation.**
+- **Extraction / the user's own copy:** `scan_barcode` (`comic_extraction.py:240`, pyzbar, 4
+  rotations) returns `upc_main` / `upc_addon` when it READS one; `extract_from_base64` writes
+  `barcode_scanned`, `upc_main`, `barcode_digits` into the extraction result **only on a hit**
+  (:826–842). A miss writes nothing — the only trace is the timing note `barcode=hit|miss`
+  in the request log (`routes/grading.py:174`). Nothing downstream stores it: `grade_submissions`
+  has no barcode/UPC column (schema read 09-11); `collections.comic_data` has 0 of 116 rows
+  with a `upc`/`barcode` key; the client never persists it. ⚰️ ~~The vision prompt on this
+  path asks for … not edition~~ — **WRONG, verifier 09-11: the live extraction prompt DOES ask
+  for `"edition"`** (`comic_extraction.py:385`; instruction :422 *"Check BOTTOM-LEFT CORNER. UPC
+  BARCODE = newsstand. ARTWORK/LOGO = direct. Unclear = unknown"*; default `unknown` :564).
+  The answer reaches the client (`js/grading.js:1662`, `app.html:1921` keeps `extractedData`)
+  and is then **dropped**: the grade request sends only title/issue/publisher/year
+  (`app.html:2394–2401`), nothing forwards it to `/api/sales/valuation`, and no table has a
+  column for it. A visual edition classifier therefore already runs on every front-cover
+  upload, unmeasured, and its output is discarded. **So barcode
+  presence/absence is neither a stored fact nor a usable one: a pyzbar miss cannot be read as
+  "no UPC printed" — it is also what a blurry, glared, or cropped newsstand barcode returns.
+  For 1990s Marvel the signal is the ABSENCE of a UPC (direct) or its PRESENCE (newsstand),
+  and the current check can only ever assert presence.**
+- **The SECOND place a newsstand detector exists (the first is the extraction prompt above):
+  the Whatnot collector's vision prompt**
+  (`WV/whatnot-valuator/lib/vision.js:154`: `"variant": "newsstand" or null`) — the model is
+  asked, from the cover image, whether the copy is newsstand. It writes `market_sales.variant`
+  (315 rows `newsstand`, 78 `direct…`, source = whatnot). ⚠️ That structured field is **NOT
+  consulted** by the normalizer or the valuation: only **13** of the 315 are `is_variant`
+  (exactly the 13 whose raw_title also says "newsstand"); the other **302 newsstand rows sit
+  INSIDE the pools**. So eBay newsstand comps are excluded and Whatnot newsstand comps are
+  included — inconsistent by source. Unmeasured: the accuracy of that vision field.
+
+**2. Comp side — what the data can support (RO, 2026-09-11, `ebay_sales` 311,526 rows,
+`market_sales` 10,878; `title_year` populated on 187,989 eBay rows, absent on `market_sales`):**
+
+| population | rows | newsstand in raw_title | share | direct in raw_title | share |
+|---|--:|--:|--:|--:|--:|
+| ebay_sales, all | 311,526 | 12,471 | 4.0% | 2,673 (1,112 "direct edition") | 0.9% |
+| ebay_sales, title_year 1980–89 | 37,100 | 5,610 | 15.1% | — | |
+| ebay_sales, title_year 1990–99 | 37,609 | 2,538 | 6.7% | 1,265 | 3.4% |
+| ebay_sales, 1990–99 AND grade ≥ 9.4 | 4,189 | 387 | 9.2% | — | |
+| ebay_sales, title_year ≥ 2000 | 67,427 | 219 | 0.3% | — | |
+| market_sales, all | 10,878 | 16 (title) / 315 (`variant` field) | 0.1% / 2.9% | 0 / 78 | |
+
+- **Of the 12,471 eBay newsstand-labelled rows, 12,320 (98.8%) are `is_variant = true`** and
+  therefore in no pool; 2,457 of those are graded (2,501 graded across all 12,471). The **151**
+  unflagged ones are a pattern-order
+  defect, not a data one: the signed / key-claim capture consumes the tail of the title first
+  (`Signed: David Michelinie NEWSSTAND`, `Key: 1st Appearance Quasar Newsstand`), so the
+  variant regex never sees the word. Log only.
+- **`is_variant` overall: 78,034 / 311,526 = 25.0% of ebay_sales** (market 258 / 10,878 =
+  2.4%). ⚠️ The "~27%" in the brief is `WHERE_WE_LEFT_OFF.md:4734` — *"~27% of eBay rows
+  excluded by variant/lot/reprint filters"* on the 53,840-row corpus of that day: a
+  variant+lot+reprint share, not `is_variant` alone, so not comparable with 25.0%. (⚰️ my first
+  draft said the figure was not found — verifier found it.) Newsstand-labelled rows are **12,320 / 78,034 = 15.8% of everything
+  `is_variant` discards** — the single largest nameable bucket inside it.
+- **`upc_main` / `upc_addon` exist on both sales tables and are EMPTY on eBay (0 of 311,526)**;
+  nothing in `routes/sales_ebay.py` or the collector writes them. `market_sales` has 1 filled
+  (server-side `scan_barcode_from_base64` on the listing image, `routes/sales_market.py:135`).
+  Not a usable split key today.
+- **The premium is visible in our own corpus** — CGC 9.8, eBay, all-time, newsstand-labelled
+  vs the unlabelled non-variant pool (the pool production would price from):
+
+  | key (1990s) | newsstand n / median | pooled-unlabelled n / median | ratio |
+  |---|--:|--:|--:|
+  | Amazing Spider-Man #361 | 18 / **$477** | 47 / $325 | 1.47× |
+  | New Mutants #98 | 11 / **$2,200** | 84 / $1,022 | 2.15× |
+  | Spider-Man #1 | 34 / **$180** | 361 / $110 | 1.64× |
+
+  Top 1990s keys by newsstand mentions (all rows): Spider-Man #1 128 of 1,789; ASM #361 94 of
+  388; New Mutants #98 86 of 497; Uncanny X-Men #266 84 of 558; X-Men #1 81 of 1,418; Spawn #1
+  71 of 830. **So on the books where the money is, the labelled-newsstand comp count at high
+  grade is 11–34 — enough for a second pool on those keys, thin everywhere else.**
+
+**3. Direction of the error (sharpens the brief's premise).** Because labelled newsstand comps
+are excluded rather than pooled, today's FMV is not an average of two markets; it is the
+⚰️ ~~direct/unlabelled market~~ **UNLABELLED market — CORRECTED 2026-09-11 (verifier, brief 1):
+`\bdirect\s*(edition)?\b` (`title_normalizer.py:282`) flags direct-labelled listings too, and
+2,646 of 2,673 eBay rows saying "direct" are `is_variant` (in the five keys' 365-day graded
+pools, 100% of direct-labelled rows are excluded: ASM #361 5, NM #98 11, SM #1 10, UXM #266 13,
+X-Men #1 1). So the pool is "sales whose title names no edition or variant": mostly direct
+copies by base rate, plus unlabelled newsstand copies.** A **newsstand seller is quoted that
+pool's price (too little, by the ratios above)**; a **direct seller is quoted approximately
+right**, not too much. The error is one-sided, and it is largest exactly where Mike said: high
+grade on 1990s keys. ⚠️ Any copy that says "based on direct-edition sales" is therefore FALSE;
+the honest description is about labelling, not edition.
+
+**4. VERDICT (Mike's three options):**
+- **Comp side — SMALL FEATURE.** The split key already exists as text (`title_notes`
+  `Variant: Newsstand` / `is_variant` reason) and `market_sales.variant`; a "newsstand-labelled"
+  pool is a query change plus a label taxonomy that stops treating an edition as a cover
+  variant. Ceiling of a text-based approach: 6.7% of 1990s eBay rows / 9.2% of 1990s graded
+  ≥ 9.4 / 11–34 comps at 9.8 on the top keys. Enough for a second FMV on the books that
+  matter, "insufficient data" honestly elsewhere.
+- **User side — ⚰️ ~~RESEARCH PROBLEM~~ → a SMALL FEATURE GATED ON ONE MEASUREMENT** (revised
+  after the verifier's finding). The visual classifier the first draft called for **already
+  exists and already runs**: the extraction prompt asks the model to read the lower-left
+  corner and return `newsstand` / `direct` / `unknown` on every front-cover upload. What is
+  missing is (a) its **accuracy**, unmeasured — false rate on glare, bagged, slabbed and
+  cropped corners, and the `unknown` rate — and (b) **plumbing**: the answer is discarded
+  before the grade request, and nothing stores it. Measuring (a) is a labelled-sample job
+  over retained front covers (the extraction call is API spend — estimate from `count_tokens`
+  first) or over new uploads by logging the field. Until (a) is measured, treating the field
+  as fact would be [[L-SW-2026-018]] (a value nothing verifies). A user-declared edition
+  remains the zero-model alternative (the dead bulk-mode dropdown was that) and interacts
+  with the CP-1 verdict-withholding design.
+- **Not addressable with current data — NO**, except for the long tail: keys with < ~5
+  labelled newsstand comps at the requested grade cannot be split and must say so.
+- **What changes the answer:** (i) the measured accuracy of the extraction prompt's
+  `edition` field (log it on live uploads at no extra spend, or score it on the 185 retained
+  front covers — an API-spend item, `count_tokens` estimate first); (ii) whether Mike accepts
+  a user-declared edition as an input; (iii) `market_sales.variant` accuracy, which decides
+  whether Whatnot rows can join the newsstand pool. **Overall: SMALL FEATURE on both sides,
+  gated on (i); not a research problem, and not blocked by data.**
+
+**Verification agent (09-11, read-only, recomputed every DB figure at 17:30 UTC on an unchanged
+corpus):** 37 confirmed / 5 wrong / 3 uncheckable. The five are corrected in place above: the
+extraction prompt DOES ask for edition (this reversed the user-side verdict); two detectors,
+not one; the ~27% exists at :4734 as a variant+lot+reprint share; 2,457 not 2,501 graded among
+the flagged; the Fix F span test is strictly > 15. Verifier also noted: `market_sales.variant
+ILIKE 'direct%'` includes 2 "Director's Cut" and 2 "Direct Sales" rows (4 of 78 are not
+editions); the 9.8 comparison's newsstand side carries no reprint/lot filter (Spider-Man #1
+becomes 32 / $177.49 with it — ratios unchanged to two decimals).
+
+**LOGGED, NOT ACTED:** the extraction prompt's `edition` answer is computed and discarded on
+every upload (plumbing + measurement candidate); the 151 pattern-order misses; `\bdirect\b` over-firing on "Direct
+Market"; the disclosure text calling newsstand copies "variant sales"; the source-inconsistent
+treatment of Whatnot newsstand rows (302 inside pools); empty `upc_main` on eBay; the dormant
+`edition_multipliers` (hand-set, never applied). **`is_variant` NOT touched, per Mike.**
+
+**📝 BRIEF 1 of 2 (Mike, 2026-09-11 evening) — variant-exclusion note, COPY FIX. ⚰️ ~~REPORT STAGE;
+nothing changed yet~~ → APPLIED the same evening, see the block at the end of this entry.**
+
+**Inventory (verified, 0 missed surfaces):**
+1. **The sentence is BACKEND-generated:** `routes/sales_valuation.py:462` inside
+   `compute_variant_disclosure` (:447–464) — `"Estimate reflects the standard cover; variant
+   sales excluded."` — returned as `variant_disclosure` (:1361–1364) and **gated**: fires only
+   when the graded pool has ≥ 5 rows, ≥ 3 excluded and **excluded ≥ 30%**.
+2. **Frontend pass-through:** `app.html:3138–3146` renders `valData.variant_disclosure` verbatim
+   into `#resultVariantNote` (`app.html:1295`, 0.8rem, `color: var(--text-muted)`). No client
+   wording of its own.
+3. **Second surface, FRONTEND, differently worded, NOT gated:** `js/verdict_basis.js` raw_only
+   (:216–218) "No graded sales of the standard cover, {N} graded variant sale(s) excluded.
+   Estimated from {R} raw sale(s), marked up 1.5×. A rule of thumb, not a comp." and fabricated
+   (:231–233) "No standard-cover sales we can price from, {N} graded variant sale(s) excluded.
+   Both figures come from typical prices for this grade, publisher and era." Fire on N > 0.
+4. Nowhere else: not FAQ (only :394 "Edition variations and variants", :627 "variant covers or
+   obscure issues"), not collection/verify/dashboard, no email, no PDF.
+
+**Three facts that shape the wording:**
+- **The 30% gate silences the note on most newsstand-heavy keys** (eBay-only approximation of
+  the 365-day graded pool; verifier reproduced to the decimal and checked production's extra
+  filters do not flip any): ASM #361 31.4% → fires; New Mutants #98 19.8%, Spider-Man #1 24.9%
+  (29.5% under the fuller filter — within 0.5 pt of the gate), Uncanny X-Men #266 16.6%,
+  X-Men #1 15.8% → **silent**. A NM #98 newsstand seller sees ~$1,022 at 9.8 with no note.
+  Changing the gate is logic, not copy — flagged, not in this unit.
+- **One sentence serves two exclusions:** on a modern multi-cover book the excluded rows are
+  cover variants; on a 1980s–90s book they are newsstand AND direct-labelled copies. Copy
+  cannot tell the eras apart without the year, so the replacement must be true for both and
+  must describe LABELLING, not edition.
+- **The note element is below the contrast floor:** `#64748b` on `#1a1a2e` = 3.58:1 (floor 4.5;
+  guidelines' body-copy token `#94a3b8` = 6.65:1). Style, not copy — Mike decides whether it
+  rides along.
+
+**Proposed wording (revised after the verifier killed "based on direct-edition sales"):**
+- Server note, **P1:** "Based on sales not labelled as a variant, newsstand or direct edition.
+  Newsstand and direct editions of the same issue can differ in value."
+- **P2 (shorter):** "Sales labelled variant, newsstand or direct edition are not included.
+  Newsstand and direct editions of the same issue can differ in value."
+- **P3 (era-hedged second sentence):** "Based on sales not labelled as a variant, newsstand or
+  direct edition. Where a newsstand edition exists, it can be worth more or less than the
+  direct edition."
+- verdict_basis raw_only: "No graded sales without a variant, newsstand or direct-edition label;
+  {N} labelled sale(s) set aside. Estimated from {R} raw sale(s), marked up 1.5×. A rule of
+  thumb, not a comp." fabricated: "No unlabelled sales we can price from; {N} labelled sale(s)
+  set aside. Both figures come from typical prices for this grade, publisher and era."
+None claims to know the user's edition. "Standard cover" dropped: it was accurate to the Cover-A
+mechanism but reads as a claim about the user's copy.
+
+**File split for the ship (Mike's call which option):**
+| change | file | tier | step |
+|---|---|---|---|
+| note sentence | `routes/sales_valuation.py:462` | **BACKEND** | `deploy` (auto-deploy OFF) |
+| verdict-basis clauses | `js/verdict_basis.js` | **FRONTEND** | push → ⏳ Pages build COMPLETES → `purge` |
+| (optional) note contrast | `app.html:1295` | **FRONTEND** | same purge |
+⚠️ "Frontend copy only" is not available for the sentence itself without a client-side override
+of the server string (leaves the API returning the old wording; second copy to drift). Options:
+(a) backend string + frontend clauses → `deploy` AND, after the build, `purge`; (b) frontend
+override + clauses → `purge` only, stale API string logged. **Purge only after the Pages build
+shows complete, never on push** (L-SW-2026-022).
+
+**Verification agent (brief 1, read-only):** 18 confirmed / 3 wrong / 5 unverified / 0 missed
+surfaces. The three wrong were one fact — "the pool is the direct market" — and the two
+proposals built on it; corrected above and tombstoned in the newsstand entry.
+
+**✅ BRIEF 1 APPLIED (Mike: P1, Option A, contrast fix included; 2026-09-11 evening) — in the
+working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT; needs BOTH `deploy` (backend
+string) AND, after the Pages build completes, `purge` (two frontend files).**
+- **`routes/sales_valuation.py:462–471` (BACKEND):** `variant_disclosure` now
+  *"Based on sales not labelled as a variant, newsstand or direct edition. Newsstand and direct
+  editions of the same issue can differ in value."* — with a comment stating the pool is the
+  UNLABELLED market and that the sentence never claims the user's edition. Gate unchanged
+  (≥ 5 / ≥ 3 / ≥ 30%). Verified locally: `compute_variant_disclosure(10, 5)` returns the new
+  sentence; `(10, 1)` returns `None`.
+- **`js/verdict_basis.js:221–223, :236–238` (FRONTEND; HEAD numbering was 216/231 — the added comment shifted them):** raw_only → *"No graded sales without a
+  variant, newsstand or direct-edition label; {N} labelled sale(s) set aside. Estimated from {R}
+  raw sale(s), marked up 1.5×. A rule of thumb, not a comp."*; fabricated → *"No unlabelled
+  sales we can price from; {N} labelled sale(s) set aside. Both figures come from typical prices
+  for this grade, publisher and era."* Comment added above raw_only explaining "labelled".
+  `node --check` passes. "standard cover" gone from every user-facing string (the only survivor
+  is a dead-badge tombstone comment at `app.html:2871`, plus code comments at
+  `sales_valuation.py:449` "base-cover" and `:893` "standard cover" — comments, not copy).
+- **`app.html:1295` (FRONTEND):** `#resultVariantNote` colour `var(--text-muted)` →
+  `var(--text-secondary)` — 3.58:1 → **6.65:1** on the card (`#94a3b8` on `#1a1a2e`; the
+  guidelines' body-copy token). Comment left inline.
+- Not touched: `is_variant`, the comp queries, the 30% gate, any detection.
+
+**⏭️ NEXT UNIT (Mike, 2026-09-11) — the 30% gate.** With the wording fixed, the note is still
+SILENT on the books where the error is largest: New Mutants #98 (19.8% of the graded pool
+excluded), Spider-Man #1 (24.9%; 29.5% under production's fuller filter — within 0.5 pt),
+Uncanny X-Men #266 (16.6%), X-Men #1 (15.8%). It fires on ASM #361 (31.4%). Fixing the wording
+while the note stays silent on the worst cases is half a fix. Scope for the next unit: the gate
+in `compute_variant_disclosure` (`pct_threshold=30.0, min_excluded=3, min_total=5`, `:447–456`)
+and/or a second, ungated signal for the newsstand/direct case — e.g. fire whenever the
+excluded set contains newsstand- or direct-labelled rows at all (the `title_notes` label text is
+already stored per row), independent of the cover-variant share. Logic, not copy; needs its own
+measurement of how many lookups would newly show the note (the 594-lookup sample in
+`verdict_basis.js` comments is the precedent), and it is BACKEND → `deploy`. Not started.
+
+**Verification agent (brief 1 applied, read-only):** 20 confirmed / 3 wrong / 0 uncheckable — the three
+were stale HEAD line numbers in this block (now working-tree numbers); the code diff had no defect.
+Template literals evaluated at N=11/R=3 and N=1/R=1 read grammatically.
+
+**SHIP (Mike) — Option A, both tiers:**
+```
+git add routes/sales_valuation.py js/verdict_basis.js app.html docs/sessions/WHERE_WE_LEFT_OFF.md
+git commit   # variant note: describe labelling not edition; newsstand/direct can differ; drop "standard cover"; note contrast 3.58→6.65
+git push
+deploy       # Render — the sentence lives in routes/sales_valuation.py; auto-deploy is OFF
+# ⏳ wait for the Pages build to COMPLETE (L-SW-2026-022) — then:
+purge
+# asserts:
+#   curl -s https://slabworthy.com/js/verdict_basis.js | grep -c "direct-edition label"     → 1
+#   curl -s https://slabworthy.com/js/verdict_basis.js | grep -c "standard cover"            → 0
+#   curl -s https://slabworthy.com/app.html | grep -c "resultVariantNote.*text-secondary"    → 1
+#   backend: Render Events shows the commit hash; then a grade on ASM #361 (fires) shows the new sentence
+```
+Post-ship: one-line ship record here (L-SW-2026-030).
+
 ## 2026-09-11 — ✅ **Spine-photo instruction unit: APPLIED AS REVISED (hold lifted by Mike, shape 1 always-on, trimmed spine line, primary-text colour), frontend only, SHIPS IN MIKE'S NEXT COMMIT. Plus PART 2: spine-photo validity characterised read-only — 0 real-user duplicate spines in 128; nothing on the grading path validates a spine. Nothing staged, nothing committed.**
 
 **MOST RECENT CHANGE (Rule 5): Mike chose Option 2 — one caption under the four upload

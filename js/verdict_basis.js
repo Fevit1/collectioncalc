@@ -205,6 +205,11 @@ function basisLong(ctx) {
                 ? `The slabbed figure is ${rawComps} raw sale${s(rawComps)} marked up 1.5×.`
                 : `The figures come from typical prices for this grade, publisher and era.`),
         // The variant clause is NOT optional and must survive any rework.
+        // 2026-09-11: "labelled" = is_variant, which the normalizer sets for
+        // cover variants AND for "newsstand" / "direct edition" titles (an
+        // edition is not a variant, and the priced pool is the UNLABELLED
+        // market). The clause names all three so it is true for a modern
+        // multi-cover book and for a 1990s newsstand/direct book alike.
         // Graded variants are excluded in PYTHON, not SQL, so a book
         // whose only graded sales are variants arrives with an empty
         // pool; "No graded sales for this book" is false there, and 7 of
@@ -213,9 +218,9 @@ function basisLong(ctx) {
         // stating it numerically is accurate. It will NOT reproduce from
         // the two displayed figures, which are Math.round'ed.
         raw_only: excludedVariants > 0
-            ? `No graded sales of the standard cover, ${excludedVariants} graded variant `
-              + `sale${s(excludedVariants)} excluded. Estimated from ${rawComps} raw `
-              + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`
+            ? `No graded sales without a variant, newsstand or direct-edition label; `
+              + `${excludedVariants} labelled sale${s(excludedVariants)} set aside. Estimated from `
+              + `${rawComps} raw sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`
             : `No graded sales for this book. Estimated from ${rawComps} raw `
               + `sale${s(rawComps)}, marked up 1.5×. A rule of thumb, not a comp.`,
         // "No USABLE sales", never "no sales at all". Two reachable
@@ -228,8 +233,8 @@ function basisLong(ctx) {
         // The dollars here carry ZERO information about the book: raw_fmv
         // is itself the synthetic baseline, graded_fmv = raw_fmv * 1.5.
         fabricated: excludedVariants > 0
-            ? `No standard-cover sales we can price from, ${excludedVariants} graded variant `
-              + `sale${s(excludedVariants)} excluded. Both figures come from typical prices for `
+            ? `No unlabelled sales we can price from; ${excludedVariants} labelled `
+              + `sale${s(excludedVariants)} set aside. Both figures come from typical prices for `
               + `this grade, publisher and era.`
             : `No usable sales for this book. Both figures come from typical prices for this `
               + `grade, publisher and era, nothing about this specific comic.`,
