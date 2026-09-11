@@ -1,4 +1,284 @@
-# Where We Left Off - Sep 10, 2026
+# Where We Left Off - Sep 11, 2026
+
+## 2026-09-11 — ✅ **Spine-photo instruction unit: APPLIED AS REVISED (hold lifted by Mike, shape 1 always-on, trimmed spine line, primary-text colour), frontend only, SHIPS IN MIKE'S NEXT COMMIT. Plus PART 2: spine-photo validity characterised read-only — 0 real-user duplicate spines in 128; nothing on the grading path validates a spine. Nothing staged, nothing committed.**
+
+**MOST RECENT CHANGE (Rule 5): Mike chose Option 2 — one caption under the four upload
+boxes in `app.html`, NOT a restored Photo Tips button — plus scoping the FAQ's blanket
+straight-on rule, plus deleting the dead Photo Tips modal (2026-09-11). Supersedes the 09-03
+"Spine-angle capture ambiguity … needs a ROADMAP entry" line (no roadmap entry was written;
+the unit is built and the residue is queued HERE) and the 08-31 "Spine-angle confound
+(recorded, NOT acted on)" line. The 08-31 "no input changes while calibration is mid-flight"
+constraint is not breached: the pinned 36-book eval set's photos are already stored; this
+changes future submissions only.**
+
+**⏸️ HOLD (Mike, 2026-09-11, after seeing the working tree) — supersedes the "ships in
+Mike's next commit" line above until decided.** Concern: the capture screen is clean and easy
+to act on; two permanent sentences under the boxes may cost more in friction than they buy in
+guidance, and the spine photo is optional — most users never shoot one, yet every user would
+read the spine sentence on every submission. **Screenshots delivered** (desktop 1280 and
+mobile 375 CSS px, before = HEAD / after = working tree; files `caption_desktop.png`,
+`before_desktop.png`, `caption_mobile_after.png`, `caption_mobile_before.png` in the 09-11
+scratchpad, sent to Mike in-conversation). Rendered caption: desktop ≈ 2 lines + 2 lines under
+the boxes, 13px; mobile 273 × 123 px, 3 + 3 lines. No mobile overflow in the pane's device
+emulation (scroll width 375, card 335). ⚠️ Headless desktop Chrome at `--window-size=375`
+clips the page on the right — identically on HEAD — because desktop Chrome clamps its minimum
+window width and ignores the viewport meta; it is a render artifact, not a layout defect. The
+mobile PNGs were produced through a 375px iframe wrapper to avoid it.
+
+**Three shapes on the table, none implemented, Mike decides:**
+1. **As applied** — always-on, both sentences under the boxes. Certain to be seen; costs
+   screen calm on every submission, for the majority who skip the spine.
+2. **Interaction-triggered** — per-photo guidance shown on interacting with the spine box;
+   reaches only the person shooting a spine. Keeps the screen clean.
+3. **Split** — the consistency line stays permanent (it applies to all four photos); the
+   spine-angle line appears on interaction.
+Weigh, don't dismiss: guidance behind an interaction is guidance most people never see — the
+Photo Tips modal existed, was reachable for two weeks (`4efa047` 01-27 → `0b32bfe` 02-11), and
+was apparently never used. Counter: a hint fired by the capture action itself is not a help
+button requiring a separate decision to seek help. That is judgment, not evidence.
+
+**Colour — MEASURED, not chosen by eye (pane, 2026-09-11):** the caption's composited
+background is `#1a1a2e` (`.card`; body `#0f0f1a` never shows through). The verifier's 09-11 note
+that the caption is "lighter than the guidelines' `#94a3b8` body-copy floor" means it EXCEEDS
+the floor, not that it violates it — the guidelines say body copy is `#94a3b8` *or lighter*.
+Ratios against `#1a1a2e`: current `rgba(255,255,255,.8)` renders `#d1d1d5` → **11.23:1**;
+`<strong>` `rgba(255,255,255,.95)` → 15.46:1; `--text-secondary #94a3b8` → **6.65:1**;
+`--text-muted #64748b` → 3.58:1 (fails 4.5); `.progress-text`'s `rgba(255,255,255,.7)` →
+8.86:1. **Proposed:** `var(--text-secondary)` (`#94a3b8`, 6.65:1) — it is the guidelines' named
+body-copy colour and a token rather than a literal, and instruction text should sit on the
+body-copy token, not on the warning-text literal. The current value also clears 4.5:1 by a wide
+margin; keeping it is defensible. `--brand-gold` excluded per Mike. Not applied — Mike decides.
+
+**Spine-submission frequency among the 139 — what the record holds:** no aggregate. Two
+data points only: user 42 (2026-08-06 entry) — 8 of 9 grade submissions `photos_used = 1`,
+"single-photo grading is simply how he uses the product"; matbanshee (2026-06-08, L-SW-2026-003
+retention lesson) — ~4 images inferred from token count. No count of `photo_labels` containing
+`spine` exists anywhere in the record. Not measured here (Mike: do not build an instrument);
+a read-only `SELECT count(*) FROM grade_submissions WHERE photo_labels ? 'spine'` would answer
+it in one query if he wants it.
+
+**▶️ HOLD LIFTED (Mike, 2026-09-11, later): ship the caption unit AS REVISED — shape 1
+(always-on), two changes applied to `app.html` only; everything else in the unit stands.**
+1. **Spine line trimmed** (the narrow vertical box already teaches the framing):
+   `Spine: hold the comic at about 45° so the spine and cover edge are both visible.`
+   Consistency line unchanged.
+2. **Colour → `var(--text-primary)` (`#ffffff`), the `strong` override removed.** Measured in
+   the pane on the rendered `.card` background `#1a1a2e`: **17.06:1**. For scale, the
+   "Click to upload" hints (`rgba(255,255,255,.5)`) render `#8a8a93` against their own
+   composited box background (≈`#151527`: `.photo-upload-box` `rgba(0,0,0,.3)` over the
+   diagram over the card) at **≈5.25:1** (verifier; my pane read of 5.28 took the box's
+   un-composited black), so the caption now
+   sits well above hint weight, which was Mike's stated concern (instruction text that
+   only works if it is read). `--brand-gold` excluded per Mike. ⚠️ On the premise: the 09-11
+   verifier's "lighter than the body-copy floor" meant *exceeds* the floor (the old value
+   measured 11.23:1, above `#94a3b8`'s 6.65:1); the change is made on the readability
+   argument, not on a contrast failure. Recorded so the next reader does not "fix" a
+   violation that never existed.
+Re-rendered (headless Chrome, desktop 1280 and mobile 375 via the iframe wrapper):
+`caption_desktop_rev.png`, `caption_mobile_rev.png` in the 09-11 scratchpad, sent to Mike.
+Working tree after revision: `app.html`, `faq.html`, `js/grading.js`,
+`docs/sessions/WHERE_WE_LEFT_OFF.md`. Nothing staged. **The SHIP block below is live again.**
+
+**⚰️ CORRECTION to the "LOG, DO NOT ACT" corpus line below (same day):** "retained spine
+photos ≤ 139" is DEAD — 139 was the submission count **through 2026-08-31**; the table has
+grown. Live counts (RO, 2026-09-11 ~17:00 UTC, `grade_submissions`):
+
+| | all | excluding operator accounts (users 3 = Mike admin, 30 = Mike Free test) |
+|---|--:|--:|
+| submissions | **185** (139 before 09-01, 46 since) | **140** |
+| with a `spine` R2 key | **173** | **128** |
+| distinct users | 28 | 26 |
+| `photos_used` = 4 / 3 / 2 / 1 | 143 / 30 / 4 / 8 | — |
+
+So the spine photo is submitted far more often than "most users skip it" assumed: **128 of
+140 real-user submissions (91%) carry one.** Top real spine submitters: user 68 (25), 38
+(24), 61 (13), 52 (8), 72 (7).
+
+**📐 PART 2 — spine-photo validity, READ-ONLY CHARACTERISATION (Mike's brief, 2026-09-11).
+Nothing built, nothing changed.**
+
+**(a) Can the app tell a spine photo is a spine? NO — nothing on the grading path checks
+it.** `/api/grade` (`routes/grading.py:503`) runs, per request: the photo-quality gate
+(`check_photo_quality_base64`, resolution + blur, **first image only** — `break` at :734);
+Rekognition moderation **per photo** (:738+, no break); orientation normalization per photo
+type; the vision call; retention. No per-image content check. The extraction path's
+`is_comic_cover` (a field the model returns from `extract_from_base64`,
+`comic_extraction.py:806–816`, "This doesn't appear to be a comic book cover") exists ONLY on
+`/api/extract` (front-cover identification, `routes/grading.py:376`); `/api/grade` never calls
+`extract_from_base64`, and nothing analogous exists for the spine. The only spine-specific
+check in the codebase ("Is the spine clearly visible and in focus?", `js/grading.js` per-step
+prompt) is in the dead `analyzeGradingPhoto` path — never sent. A per-image SHA-256
+(`content_moderation.get_image_hash`) IS computed on the grading path, but only to log
+moderation incidents; nothing compares the four hashes to each other.
+
+**(b) Cheap duplicate check — what exists and what it would cost.** Slab Guard's perceptual
+fingerprinting is `routes/registry.py`: `generate_fingerprint(photo_url)` → imagehash
+phash/dhash/ahash/whash (:385–424), `generate_edge_strip_hashes` (:317), and
+`assess_photo_quality` (SIFT keypoints, :142). All **server-side** (Python, `imagehash`,
+Pillow, `opencv-python-headless` — all in `requirements.txt`); nothing runs client-side
+(the client does EXIF orientation only). It is in-process with `/api/grade` — same Flask app —
+but takes a **URL**, not base64, so calling it on the grading path needs a small adapter
+(decode the already-normalized base64 → PIL → hash), not new machinery. Measured locally on
+a retained 1536×2048 pair: SHA-256 of both ≈ **0.1 ms**; JPEG decode **14.5–15.4 ms/image**
+(⚰️ my first figure "≈ 10 ms" was understated; verifier re-timed); dhash ≈ 9 ms/image; whole
+pipeline over three runs **41–48 ms** — so a spine-vs-front byte-and-perceptual compare is
+**< 50 ms CPU per submission on this desktop, with little margin; NOT measured on the Render
+Standard instance**, zero API spend, zero network. `/api/grade` already spends 4 Rekognition round
+trips and one vision call per request, so the compare would be invisible in the timing.
+
+**(c) What is in the corpus — MEASURED, no API call.** All 173 spine/front pairs fetched
+from `img.slabworthy.com` (the retained keys are publicly served; Cloudflare rejects the
+default Python UA, accepts a named one) and compared locally: SHA-256, dHash and pHash
+Hamming distance, 64×64 normalized correlation, and a multi-scale template match of the
+spine image against the front (crop-of-cover probe). Script `spine_dup.py`, results
+`spine_dup.json`, images under `subimg/` in the 09-11 scratchpad (delete after use — they are
+users' photos).
+- **Byte-identical spine == front: 11 of 173.** Every near-identical hit (dHash ≤ 10,
+  pHash ≤ 10, NCC ≥ 0.9) is one of the same 11 — there is no "near but not identical" case.
+  **All 11 are operator submissions**: user 3 (Mike admin) ×9, user 30 (Mike Free test) ×2,
+  ids 2, 3, 9, 12, 14, 15, 17, 18, 53, 55, 137, dated 06-27 → 08-30 — test runs that reused
+  one file for every slot (the 442×590 ASM #41 image four times).
+  **Among real users: 0 of 128.** The highest-confidence failure case does not occur in the
+  corpus.
+- **Crop-of-cover probe:** 3 hits ≥ 0.80 (none ≥ 0.90), all user 38, ids 31/35/39 — inspected
+  visually: genuine oblique spine shots where the cover artwork is visible at an angle;
+  the template match fires on the artwork. **False positives; 0 confirmed cropped covers.**
+  The probe as written cannot distinguish "oblique shot showing the cover" from "crop of
+  the cover" — that is exactly the research question in (d).
+- **Aspect ratio (w/h) of spine images:** < 0.35 strip-like **36**; 0.35–0.6 **36**;
+  ≥ 0.6 cover-like **101**. Visual sample (ids 4, 5, 10, 51 strips; 6, 7, 8 cover-like; all
+  operator submissions, so the sample says how the operator shoots, not how users do): the
+  strips are genuine spine photos cropped tight by the user (0.038 = a bare spine sliver;
+  0.13 = spine plus a sliver of cover); the 0.75 ones are the raw 3:4 phone frame holding
+  an oblique ~45° shot with the whole cover foreshortened. **Aspect measures cropping
+  habit, not validity.** A cropped cover and a cropped spine can share an aspect.
+- **Caveat on the population:** the 139 in the earlier record and the "spine optional /
+  most skip it" framing are both superseded by the table above; and user 3's 41
+  submissions are 22% of the table, so any corpus-wide statement should be made on the
+  140-row real-user subset.
+
+**(d) Beyond duplicates — research question, NOT scoped.** Distinguishing a genuine oblique
+spine shot from a cropped cover or a useless angle would need one of: (i) geometry — the
+spine edge as a near-vertical line with the cover plane receding from it (perspective
+foreshortening; a flat crop has none); (ii) a front-vs-spine homography test — a cropped
+cover is a *planar* sub-region of the front photo (Slab Guard's `findHomography` machinery,
+`routes/slab_guard_cv.py:487`, would find a clean planar map; an oblique spine shot would
+not); (iii) a vision-model classification ("is this an edge-on view of a comic?"), which is
+an API-spend item (~173 images at a fraction of a cent each; estimate from `count_tokens`
+before any run per the spend rule). None is built; (ii) is the cheapest credible signal and
+reuses existing code, but its false-positive rate on genuine shots that show most of the
+cover (the 0.75-aspect population) is unknown and is the first thing to measure.
+**Explicitly out of scope (Mike): the model-facing prompt is unchanged** — telling the
+model to expect a 45° view while users submit arbitrary spine images could make it score
+spine stress it cannot see; that needs its own argument and measurement. No diagram, info
+link or best-practices page (queued separately).
+
+**Why Option 2 (Mike):** restoring the button puts the instruction behind a click that the
+collector who reported this never made, and that nobody has made since 2026-02-11.
+
+**WHAT CHANGED — 3 files, ALL FRONTEND → `push` → ⏳ WAIT for the Pages build → `purge`
+→ assert. NO `deploy` (no backend file touched).**
+- **`app.html`** (+CSS, +markup, −modal):
+  - `.photo-capture-note` rules added directly after `.progress-text` in the inline style
+    block (13px, `color: var(--text-primary)` — ⚰️ first draft `rgba(255,255,255,0.8)` =
+    `.warning-text`'s literal, replaced same day on Mike's readability call, 17.06:1 measured),
+    `max-width: 520px`, centred.
+  - Caption `<div class="photo-capture-note" id="photoCaptureNote">` inserted between
+    `.photo-upload-diagram` and `.upload-progress-indicator`. Two paragraphs, Mike's text
+    verbatim: **"Spine:** hold the comic at about 45° so the spine and cover edge are both
+    visible." (⚰️ first draft "…the front cover edge are both visible, spine filling the frame
+    top to bottom" — trimmed by Mike, same day) / "Shoot every comic the same way each time.
+    Consistency matters more than hitting the angle exactly." The second
+    paragraph is deliberately unlabelled — it applies to all four photos, not the spine.
+  - Photo Tips modal deleted (former lines 1463–1513, 51 lines incl. its own straight-on
+    rule and "Turn comic sideways"; the hunk also drops the trailing blank line). It had had no opener since `0b32bfe` (2026-02-11).
+- **`js/grading.js`**: `togglePhotoTips()` / `closePhotoTips()` deleted (former 1161–1171;
+  zero callers anywhere).
+- **`faq.html`**:
+  - `Click "Photo tips" during upload for detailed guidance on lighting, angle, and focus.`
+    DELETED (former :320). ⚠️ The button and modal date from `4efa047` (2026-01-27, "Add
+    Grade My Comic UI"); the FAQ sentence pointing at them was added in `492390d`
+    (2026-02-09, faq.html only); the button was removed two days after that in `0b32bfe`
+    (2026-02-11). The pointer was true for two days and then live on a public page for **seven months** pointing at a
+    mechanism that did not exist — **L-SW-2026-020's exact shape (copy asserting a state the
+    mechanism does not have). Name it in the commit message; do not delete it quietly.**
+  - :345 `Taken straight-on (camera parallel to comic)` → **`Front, back and centerfold:
+    shoot straight on, camera parallel to the comic. Spine: about 45°.`**
+  - :349 `Blurry, dark, or angled photos` → **`Blurry, dark, or inconsistently angled photos`**.
+
+**Verified in the static preview (2026-09-11, `python -m http.server` on the working tree,
+placeholder `cc_token` in localStorage to pass the client-side auth gate; API calls fail
+harmlessly):** `#photoCaptureNote` present, previous sibling `.photo-upload-diagram`, next
+sibling `.upload-progress-indicator`, computed 13px / ⚰️ ~~`rgba(255, 255, 255, 0.8)`~~
+(first draft; after the revision it computes to `rgb(255, 255, 255)` via `var(--text-primary)`,
+re-measured 17.06:1 — see HOLD LIFTED above), not inside any hidden container; `#photoTipsModal` absent; `typeof togglePhotoTips` and
+`closePhotoTips` both `undefined`. Screenshot taken: caption reads directly under the four
+boxes, above "0 of 4 photos uploaded".
+
+**NOT TOUCHED — residue, log only:** `styles.css` `.tips-toggle` (:1621–1633) and
+`.tips-modal-*` / `.tips-section*` (:2255–~2340) are now unreferenced CSS; `js/sidebar.js:586`
+still lists `.tips-modal-overlay` in the selector of overlays it re-parents to `<body>`.
+Harmless; cleanup candidates, not this unit. **Model-facing prompts unchanged** —
+`grading_engine.py` and the per-step prompts say nothing about angle; telling the model what
+angle to expect is a separate BACKEND unit (needs `deploy`), if wanted at all.
+
+**Spine box "Click to upload" hint — reported, not fixed:** absent since the box was
+introduced in `e0c5754` (the first commit carrying `.upload-box-hint`) — never present, never
+removed, no comment records why. The hint is always-visible 11px text (brightened on hover);
+the spine box is 40px wide × 170px tall (30px on mobile) and carries its label as a vertical
+letter stack, so a horizontal 11px "Click to upload" would not fit. Geometry is the likely
+reason; "deliberate" cannot be established from the record.
+
+**LOG, DO NOT ACT (Mike, 2026-09-11):**
+- **Corpus constraint:** the spine photo is OPTIONAL (only the front box is
+  `data-required="true"`; FAQ says fewer photos are allowed). ⚰️ ~~Retained spine photos are
+  therefore ≤ 139 … the true count is unmeasured~~ — **DEAD same day, MEASURED: 173 spine
+  photos in 185 submissions (128 of 140 real-user); see the CORRECTION table above.**
+- **The confound, stated precisely:** there was **never** a spine-angle instruction on any
+  reachable surface. The only live angle guidance since 2026-02-11 was the FAQ's blanket
+  "Taken straight-on (camera parallel to comic)" (added `492390d`, 02-09); the Photo Tips
+  modal's own straight-on rule was unreachable from 02-11. So the existing spine photos are
+  most likely **two populations, not one**: straight-on (users who read the FAQ) and
+  improvised-angle (users who read nothing; ~45° in Meisler's case). Which is which is
+  unrecorded, and no metadata can recover it — the retained bytes are the server-normalized
+  JPEG (EXIF transposed and dropped), and EXIF carries no tilt field anyway. This is a
+  stronger claim than "users guessed" and replaces that wording.
+- **PARKED — pixel-content classification** of the retained spine photos (an oblique shot
+  shows the spine plus a foreshortened cover; a straight-on shot shows the strip alone) to
+  label the two populations retroactively. Real, but an **API-spend item** over ≤ 139 photos
+  and it **only becomes worth doing if CGC ground truth arrives** (calibration is blocked on
+  it — 08-31 entry). Not scoped, not estimated. If it is ever raised: measured
+  `count_tokens` estimate and the running daily total BEFORE anything runs (spend rule).
+
+**SHIP (Mike) — ▶️ live again after the revision above:**
+```
+git add app.html faq.html js/grading.js docs/sessions/WHERE_WE_LEFT_OFF.md
+git commit   # name the FAQ pointer: L-SW-2026-020-shape copy, live 7 months (2026-02-11 → 09-11)
+git push     # → Pages build
+# ⏳ wait for the Pages build to finish (L-SW-2026-022) — then:
+purge
+# assert the new content is served:
+#   curl -s https://slabworthy.com/faq.html | grep -c "inconsistently angled"   → 1
+#   curl -s https://slabworthy.com/app.html | grep -c "photoCaptureNote"         → 1
+#   curl -s https://slabworthy.com/app.html | grep -c "photoTipsModal"           → 0
+```
+No `deploy`. After the assert passes: one-line ship record here (the L-SW-2026-030 step).
+
+**Verification agents (09-11, read-only):** first pass 28 confirmed / 2 wrong / 1 uncheckable
+on the diff + this entry; second pass (revision + Part 2) 20 confirmed / 4 wrong / 0 uncheckable —
+the four (quality-gate `break` line :734 not :735; hint grey `#8a8a93` not `#808080`; decode
+14.5–15.4 ms not ≈10; stale `rgba(…,0.8)` in the preview paragraph) corrected in place. Both wrong figures corrected in place above (modal 51 lines not 50; the button
+predates the FAQ pointer — `4efa047`, not `492390d`). Diff confirmed to contain only the seven
+intended hunks; `<div>` balance net zero; `node --check js/grading.js` passes; caption colour
+is lighter than the guidelines' `#94a3b8` body-copy floor; no mobile media rule hides or
+overlaps the caption at 767px and below. Uncheckable = the preview screenshot (session
+activity).
+
+**QUEUED (log only):** delete `subimg/` (users' photos) from the 09-11 scratchpad once Part 2 is verified; a spine-vs-front duplicate compare on `/api/grade` (< 50 ms CPU, no API — see Part 2(b)) if Mike wants the highest-confidence case caught, though it occurs 0 times in real-user data; the homography crop-of-cover probe (Part 2(d)(ii)) as a measurement first; unreferenced tips CSS + sidebar selector cleanup; model-facing angle
+expectation (backend unit); spine-box hint (geometry, see above); the pixel classification
+above (parked, gated on ground truth). Unchanged from 09-10: plurals/single insertions;
+Whatnot `Comics #N`; `House of M` / `Ark-M`; case-split family; dependency-status roster;
+rapidfuzz Render-shell check still owed.
 
 ## 2026-09-10 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): COMMITTED + DEPLOYED 2026-09-04 (`2e27098`), BACKFILL RUN + VERIFIED 2026-09-10. The 09-04 heading below ("NOT committed, NOT deployed, backfill NOT run") is DEAD on all three claims.**
 

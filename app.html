@@ -674,6 +674,26 @@
             margin-bottom: 0.75rem;
         }
 
+        /* Capture note under the four upload boxes. The ONLY spine-angle
+           instruction a user sees during capture (2026-09-11); the Photo Tips
+           modal that used to carry per-photo guidance had no opener since
+           0b32bfe (2026-02-11) and is deleted. Colour is the primary text
+           token, not the .warning-text / hint literals: instruction text that
+           only works if it is read must not sit at hint weight. Measured on
+           the rendered .card background #1a1a2e: 17.06:1 (Mike, 2026-09-11). */
+        .photo-capture-note {
+            max-width: 520px;
+            margin: 0.75rem auto 0;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .photo-capture-note p {
+            margin: 0 0 0.4rem;
+        }
+
         .progress-bar-container {
             width: 100%;
             max-width: 400px;
@@ -1124,6 +1144,13 @@
                             </div>
                         </div>
                         
+                        <!-- Capture note (2026-09-11): spine angle + consistency. Applies to the
+                             live boxes above; there is no other instruction surface on this page. -->
+                        <div class="photo-capture-note" id="photoCaptureNote">
+                            <p><strong>Spine:</strong> hold the comic at about 45° so the spine and cover edge are both visible.</p>
+                            <p>Shoot every comic the same way each time. Consistency matters more than hitting the angle exactly.</p>
+                        </div>
+
                         <!-- Upload Progress -->
                         <div class="upload-progress-indicator">
                             <div class="progress-text" id="uploadProgressText">0 of 4 photos uploaded</div>
@@ -1456,58 +1483,6 @@
                     <div class="thinking-step pending" id="step4"><span class="icon"></span><span id="step4Text">Calculating confidence score</span></div>
                     <div class="thinking-step pending" id="step5"><span class="icon"></span><span id="step5Text">Generating valuation</span></div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Photo Tips Modal -->
-    <div class="tips-modal-overlay" id="photoTipsModal">
-        <div class="tips-modal">
-            <div class="tips-modal-header">
-                <h3>📸 How to Take Great Comic Photos</h3>
-                <button class="tips-modal-close" onclick="closePhotoTips()">&times;</button>
-            </div>
-            <div class="tips-modal-body">
-                <div class="tips-section">
-                    <h4>🔆 Lighting</h4>
-                    <ul>
-                        <li><strong>Do:</strong> Use natural light or bright, even lighting</li>
-                        <li><strong>Don't:</strong> Use flash (causes glare) or dim lighting</li>
-                    </ul>
-                </div>
-                <div class="tips-section">
-                    <h4>📐 Angle</h4>
-                    <ul>
-                        <li><strong>Do:</strong> Shoot straight on, perpendicular to the comic</li>
-                        <li><strong>Don't:</strong> Shoot at an angle (distorts proportions)</li>
-                    </ul>
-                </div>
-                <div class="tips-section">
-                    <h4>🔍 Focus</h4>
-                    <ul>
-                        <li><strong>Do:</strong> Tap to focus, hold steady, ensure sharp image</li>
-                        <li><strong>Don't:</strong> Move while shooting (causes blur)</li>
-                    </ul>
-                </div>
-                <div class="tips-section">
-                    <h4>📏 Framing</h4>
-                    <ul>
-                        <li><strong>Do:</strong> Include entire cover/spine with small margin</li>
-                        <li><strong>Don't:</strong> Cut off edges or get too close</li>
-                    </ul>
-                </div>
-                <div class="tips-section">
-                    <h4>🎯 By Photo Type</h4>
-                    <ul>
-                        <li><strong>Front Cover:</strong> Full cover, all corners visible</li>
-                        <li><strong>Spine:</strong> Turn comic sideways, spine fills frame vertically</li>
-                        <li><strong>Back Cover:</strong> Same as front, full cover visible</li>
-                        <li><strong>Centerfold:</strong> Open flat, show both staples clearly</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="tips-modal-footer">
-                <button class="btn-primary" onclick="closePhotoTips()">Got it!</button>
             </div>
         </div>
     </div>

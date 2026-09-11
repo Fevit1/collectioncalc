@@ -1158,17 +1158,6 @@ function initGradingMode() {
     }
 }
 
-// Photo Tips Modal
-function togglePhotoTips() {
-    const modal = document.getElementById('photoTipsModal');
-    modal.classList.add('show');
-}
-
-function closePhotoTips() {
-    const modal = document.getElementById('photoTipsModal');
-    modal.classList.remove('show');
-}
-
 // ============================================
 // EXIF ORIENTATION FIX FOR MOBILE PHOTOS
 // ============================================
