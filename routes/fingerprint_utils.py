@@ -195,9 +195,18 @@ def check_photo_quality_base64(base64_data, purpose='grade'):
                 message = f'This photo is too small to read the cover ({width}×{height}px).'
                 tip = 'Upload a larger, full-resolution image — avoid tiny thumbnails.'
             else:
-                message = f"This photo's too small for an accurate grade ({width}×{height}px) — upload a larger one for grading."
+                # 2026-09-11: state the TARGET, not just the measurement, so the
+                # message is actionable; the number comes from the constant so
+                # copy and gate cannot drift. Generic on purpose ("This photo"):
+                # /api/messages calls this on images it cannot know are front
+                # covers; the /api/grade client names the photo (it is always the
+                # front cover there — first image, front required).
+                message = (f"This photo is too small to grade ({width}×{height}px). "
+                           f"Grading needs at least {min_dim}px on the shorter side.")
                 tip = 'Use your phone camera at full resolution. Avoid screenshots or cropped thumbnails.'
-            return {'ok': False, 'message': message, 'tip': tip, 'width': width, 'height': height}
+            # min_dimension rides in the payload so no client ever hard-codes the floor.
+            return {'ok': False, 'message': message, 'tip': tip, 'width': width, 'height': height,
+                    'min_dimension': min_dim}
 
         # ── Blur check (Laplacian variance via OpenCV) ──
         try:

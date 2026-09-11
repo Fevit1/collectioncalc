@@ -1,5 +1,95 @@
 # Where We Left Off - Sep 11, 2026
 
+## 2026-09-11 (evening) — ⚠️ **The client-side image resize is UNREACHABLE on the grade path; the grade request has sent the RAW file since 2026-02-06. The July-16 OOM root-cause record assumed the resize was running. Own entry, on Mike's instruction.**
+
+**MOST RECENT CHANGE (Rule 5): established 2026-09-11 while characterising the "needs a larger
+photo" path; recorded separately because it re-frames an instance-size decision.** The Session 118
+record (2026-07-16, this file :3965, sentence :3970 — numbering after this entry's insertion) states *"the grading frontend client-resizes to ≤2048px
+(`js/grading.js:1313` MAX_IMAGE_DIM) — which is why every grade that COMPLETED today was
+harmless"*, and the HEIC finding the same day — *"raw 24MP HEIC has a ~198MB intrinsic decode floor
+(libheif double-buffers) — code CANNOT make this input class safe on the 512MB Starter (330 base +
+198 ≈ 528). Safe requires either the 2GB tier or an over-size reject policy"* — led to the
+Starter → Standard 2GB upgrade (plan_changed 2026-07-16 20:07Z, Mike; CLAUDE.md records it as the
+OOM remedy).
+
+**What is actually true (verified 2026-09-11, two independent passes):**
+- The live upload handler is the inline `handlePhotoUpload(photoType, files)` in `app.html`
+  (:1681, introduced `823820b` 2026-02-06). It stores `FileReader.readAsDataURL` output straight into
+  `gradingState.photos` (:1693–1696) — **no canvas pass, no resize** — and `gradeImages`
+  (:2376–2385) sends those bytes to `/api/grade`.
+- `processImageWithOrientation` (`js/grading.js:1310–1312`, the 2048px cap) is called only from
+  `handleGradingPhoto` and `handleAdditionalPhoto`, which have **zero callers** in `app.html` or
+  `js/` (the grading.js photo flow left app.html in `e0c5754` 2026-02-06 "Changing to single page
+  app", which removed all eight `onchange="handleGradingPhoto(…)"` inputs; `823820b` added the inline
+  handler four hours later). `processImageForExtraction` (`js/utils.js:93`, 1200–2400px) is called only from
+  `js/app.js:447` inside the bulk flow, whose entry `handlePhotoUpload(files)` is shadowed by the
+  inline two-argument declaration (later top-level declaration wins). **Both resize paths are dead
+  code.**
+- So on 2026-07-16 the grade requests that "completed harmlessly" were harmless because those
+  uploads were small at the source or JPEG, not because a client cap protected the server; a raw
+  24MP HEIC from the grade flow reaches `/api/grade` at full size. The mitigation that would have
+  lowered the memory floor was not running then and is not running now. **The server-side caps
+  shipped that day (`GRADING_MAX_LONG_EDGE=2000`, thumbnail-before-transpose, decode concurrency
+  gate) are the ONLY protection, and the ~198MB libheif floor sits UNDER them — it is the decode,
+  not the output size.** The 2GB decision therefore stands on its own arithmetic (330 + 198 on
+  512MB), but the record's "client-resized traffic is the normal case" framing was never true.
+- ⚰️ TOMBSTONE (in place, not deleted): Session 118's "the grading frontend client-resizes to
+  ≤2048px" is DEAD as a description of the live path from 2026-02-06 onward. The line stays where it
+  is with this entry as the correction; do not re-derive load or memory expectations from it.
+- Not acted on: restoring a client resize on the grade path is a real unit (it would also cut the
+  14.26 MB-of-base64 wire cost the `app.html:3627` comment measured), with its own barcode-parity
+  and orientation questions. Logged here, not scoped.
+
+**📐 "NEEDS A LARGER PHOTO" unit — ✅ APPLIED (Mike: all proposals as written, 2026-09-11 evening).
+In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT; needs `deploy`
+(two backend files) AND, after the Pages build completes, `purge` (one frontend file).**
+- **`routes/fingerprint_utils.py` (BACKEND, :193–209):** grade-floor message → *"This photo is too
+  small to grade ({w}×{h}px). Grading needs at least {min}px on the shorter side."* with `{min}`
+  from `GRADE_QUALITY_MIN_DIMENSION` (f-string, no literal); the failure dict now carries
+  `min_dimension`. Tip unchanged. Kept generic on purpose (comment in code). Verified: a 364×554
+  JPEG returns the new sentence with `min_dimension: 400`.
+- **`routes/grading.py` (BACKEND, :727–734):** the `/api/grade` 400 JSON passes `min_dimension`
+  through — one line. (Not in Mike's "backend = fingerprint_utils.py" sentence, but "returned in
+  the JSON" needs it; the messages endpoint's own 400 was not touched.)
+- **`app.html` (FRONTEND):** `#resultDefectsTitle` id on the header (:1310); quality branch — label
+  "Front cover too small", header "Photo check", badge "NEEDS A LARGER FRONT COVER PHOTO", tagline
+  "The front cover photo is too small to grade. A phone-camera photo of the front cover will work."
+  (drops "We identified the comic", which was asserted even after a failed identification), tip
+  colour `var(--text-muted)` → `var(--text-secondary)` (3.58 → 6.65:1, third instance of that token
+  carrying read-me text), fallback message text aligned; normal branch — explicit reset to "Defects
+  Found" before the grid is written (:2619); generic error branch — "Something went wrong" (:2664).
+  No restructuring. All three inline scripts parse (`new Function`); no `var(--text-muted)` remains
+  in the quality branch (the error branch's own "Please…" line still uses it — not in this unit).
+- **Measurement that bounds future work on this path (RO `request_logs`, 2026-09-11):** 516
+  `/api/grade` requests since March; **12 too-small rejections (2.3%), 0 blurry, 0 undecodable**;
+  all 12 `device_type = desktop`; shorter sides 302–396 px; **four exactly 394×572 = the eBay listing
+  thumbnail** (⚰️ first draft said six); users 3 ×7, 30 ×2, 27 ×2, 7 ×1 — ⚰️ ~~nine of twelve operator,
+  three from two real users~~ **ALL TWELVE are the operator's own accounts** (verifier: users 7, 27
+  and 30 are Mike's gmail test accounts — `Mike+3`, `MikeTest13`, `Billing Test 2`). **No real user
+  has ever hit the too-small path.** Caveat on the zeros: 8 of the 21 grade 400s in the log carry no
+  classifiable message (6 `error_message NULL`, 2 non-JSON "Bad Request"), all `device_type = mobile`,
+  users 11/17/38/53 — so "0 blurry / 0 undecodable" means "none identified by message text", and
+  the unexplained mobile 400s sit outside the desktop, saved-listing-image framing. Not investigated.
+
+**Verification agent (unit applied, read-only):** 27 confirmed / 6 wrong / 0 uncheckable. Wrong = four
+stale line refs (fixed above), "six" 394×572 → four, and the user attribution → all twelve operator. Diff
+behaviour confirmed: 364×554 → new sentence + `min_dimension: 400`; textured 450×600 → ok; flat 450×600 →
+blur rejection (blur check live); all three inline scripts parse; the three header lookups are `const` in
+distinct blocks. Note: `min_dimension` rides only on RESOLUTION failures (the blur dict lacks it) — fine
+for this unit, but the reason-code unit below should not assume it is always present.
+
+**⏭️ NEXT UNIT (Mike, 2026-09-11) — reason code for the quality branch.** The same client branch
+(`app.html:2478`, `quality_fail || quality_issue`) receives the **blur** rejection ("Photo is too
+blurry…", `fingerprint_utils.py` Laplacian < 60) and the **undecodable** rejection ("We couldn't read
+your {label} photo…", `grading.py:674–679`) and now shows "Front cover too small" / "NEEDS A LARGER
+FRONT COVER PHOTO" for all three — advice guaranteed not to work for a blurry upload, the same class
+as "please try again" on a deterministic rejection. 0 blur rejections in 516 requests, so nobody has
+hit it yet; it is a live wrong-advice path. **Scope:** backend `reason` field (`'resolution' |
+'blur' | 'undecodable'`) on every `quality_fail` 400 (`fingerprint_utils.py` return dict + both
+`grading.py` returns), and a client switch on `errData.reason` for label / header / badge / tagline,
+with the tip already correct per case server-side. Backend → `deploy`; frontend → `purge`. Not
+started.
+
 ## 2026-09-11 (later) — 🔎 **Newsstand vs direct edition — READ-ONLY CHARACTERISATION (Mike's brief). No code change, no proposed fix. Verdict: SMALL FEATURE on both sides, gated on one measurement (the live extraction prompt already returns an edition, unmeasured and discarded); and the premise "FMV is an average of two markets" is WRONG in a specific, worse way — newsstand-labelled comps are DISCARDED by `is_variant`, so the pool is ⚰️ ~~the direct market~~ **the UNLABELLED market** (direct-labelled comps are discarded by the same pattern — correction below) and a newsstand seller is quoted that pool's price.**
 
 **MOST RECENT CHANGE (Rule 5): the spine-caption unit is COMMITTED by Mike as `58044d5`
@@ -279,6 +369,96 @@ purge
 #   backend: Render Events shows the commit hash; then a grade on ASM #361 (fires) shows the new sentence
 ```
 Post-ship: one-line ship record here (L-SW-2026-030).
+
+**📐 "NEEDS A LARGER PHOTO" — copy + one header. ⚰️ ~~REPORT STAGE; NOTHING CHANGED~~ → APPLIED the
+same evening, all proposals as written; see the block under the resize entry above.**
+
+**Mechanism (verified, not inherited):** the quality gate on `/api/grade` runs on the **first image
+that has base64 and stops** (`routes/grading.py:718–734`, `break  # Only check first image`), and that
+image is **always the front cover**: `gradeImages` is built by `Object.entries(gradingState.photos)`
+(`app.html:2376–2385`), keys `1..4` from `photoMap` (:1689), integer-like keys iterate ascending
+(node-checked), and only the front box is `data-required` (:1095). **Threshold = shorter side ≥ 400 px**
+(`routes/fingerprint_utils.py:157` `GRADE_QUALITY_MIN_DIMENSION = 400`, test `min(width, height) <
+min_dim` :193, measured after `auto_orient_pil` and after server normalization which only shrinks);
+identification uses 250 (:158). That gap is the trigger: 364×554 passes 250, fails 400 — the book
+identifies, then the grade refuses. ⚠️ The same client branch (`app.html:2478`, `quality_fail ||
+quality_issue`) also receives the **blur** rejection ("Photo is too blurry…", :214–215, Laplacian < 60)
+and the **undecodable** rejection ("We couldn't read your {label} photo…", `grading.py:674–677`), and
+hard-codes "Photo too small" / "NEEDS A LARGER PHOTO" for all three. The server sends no `reason`.
+
+**Surfaces:**
+| what | text | where | tier |
+|---|---|---|---|
+| message | "This photo's too small for an accurate grade ({w}×{h}px) — upload a larger one for grading." | `fingerprint_utils.py:198` | **BACKEND** |
+| tip — KEEP | "Use your phone camera at full resolution. Avoid screenshots or cropped thumbnails." | `:199` | backend |
+| grade label / badge / tagline | "Photo too small" / "NEEDS A LARGER PHOTO" / "We identified the comic, but need a larger photo to grade it accurately." | `app.html:2491 / :2500 / :2501` | **FRONTEND** |
+| message + tip landing | `#resultDefectsGrid` (:2492–2495); tip in `var(--text-muted)` = 3.58:1 | `app.html` | frontend |
+| **the header** | "Defects Found" — static `<div class="defects-title">` at `app.html:1310`, no id, never written by JS | `app.html` | frontend |
+The header is a fixed string over a grid that receives THREE content kinds, all inside
+`window.generateGradeReport` (:2264): real defects (grid write :2606), this quality failure (:2492),
+and the generic catch-all "Error: …" (:2650). (`renderGradeReport` in `js/grading.js:2111` has zero
+callers; the :1313 comment "Populated by renderGradeReport" is stale. `runQuickTest` in grading.js
+also writes the grid but only under `?dev`.) The same class labels "Grade Breakdown" (:1300), so the
+fix must vary by branch, not rename globally, and the normal branch must RESET it — the element
+persists across grades in a session.
+
+**Proposals (Mike decides):**
+- **Message (backend, `fingerprint_utils.py:198`) — M2 recommended:** "This photo is too small to
+  grade ({w}×{h}px). Grading needs at least {min}px on the shorter side." with `{min}` from
+  `GRADE_QUALITY_MIN_DIMENSION` (never a literal) and `min_dimension` added to the 400 JSON. The
+  client names the photo. (M1 — "This front cover photo…" inside the function — is rejected by the
+  verifier: `/api/messages` calls the same function on its first image block and cannot know it is a
+  front cover; the endpoint is live even though its only client is dead.) Tip unchanged.
+- **Client (app.html):** label "Front cover too small"; badge "NEEDS A LARGER FRONT COVER PHOTO";
+  tagline "The front cover photo is too small to grade. A phone-camera photo of the front cover
+  will work." (⚠️ the existing tagline's "We identified the comic" is false when identification
+  failed and details were typed — the branch reads `extractedData || {}` either way; the proposed
+  tagline drops that claim.) Tip colour `var(--text-muted)` → `var(--text-secondary)` (3.58 →
+  6.65:1) — style, Mike's call.
+- **Header (the one in scope):** id `resultDefectsTitle` on :1310 and three `textContent`
+  assignments — quality branch **"Photo check"** (alts: "Upload problem"), generic error branch
+  **"Something went wrong"** (alt: "Request failed"), normal branch "Defects Found" (explicit reset).
+  No restructuring.
+- **Report-only, not in scope:** the blur/undecodable conflation — honest fix is a server `reason`
+  field (two lines, backend) and a client switch; until then the badge lies to a blurry upload.
+
+**Worth reporting, not acted:**
+- **Resize premise: WRONG on the live path, conclusion right for another reason.** The grade
+  payload is the RAW file — `handlePhotoUpload(photoType, files)` (`app.html:1681`) stores
+  `readAsDataURL` output straight into `gradingState.photos` (:1693–1696), no canvas. The 2048px
+  path (`processImageWithOrientation`, `js/grading.js:1310–1312`, called from `handleGradingPhoto` and
+  `handleAdditionalPhoto`) and the 1200–2400px path (`processImageForExtraction`, `js/utils.js:93`,
+  called from `js/app.js:447` inside the shadowed bulk flow) are both unreachable. A full-resolution
+  capture reaches the server at full size and clears 400 by an order of magnitude; the server then
+  caps the long edge at 2000 and measures. So this path fires only on images already small at the
+  source.
+- **Frequency — MEASURED from `request_logs` (RO, 2026-09-11; ⚰️ my first draft said "no database
+  trace" — wrong, `wsgi.py:396–449` `after_request` logs every request with status + error_message;
+  correct only that `api_usage` and `grade_submissions` get no row):** `/api/grade` 516 requests
+  since 2026-03, **12 too-small rejections (2.3%)**, 0 blurry, 0 undecodable, 475 OK. **All 12 are
+  `device_type = desktop`**; shorter sides 302–396 px, six of them exactly 394×572 (the eBay listing
+  thumbnail size — the Session 99 origin case). Users: **3 (Mike admin) ×7, 30 (Mike Free test) ×2,
+  27 ×2 (June), 7 ×1 (March)** — 9 of 12 operator, 3 from two real users, none since June from a
+  real user. `/api/extract` too-small: 4 of 928. Render logs (retained since 09-04): 18 grade timing
+  lines, 1 `quality_fail` = the 20:54 UTC trigger; also `outcome=moderation_blocked` on the same
+  title at 20:57. Reading: this is a desktop, saved-listing-image path, mostly the operator's own
+  testing, not a phone-camera path.
+- Session 99 (2026-06-08) is where this copy and the purpose-split floor came from; nothing there
+  or in LESSONS forbids naming the photo or stating the threshold.
+
+**Ship split (when Mike picks):** `routes/fingerprint_utils.py` (message) → **BACKEND** → `deploy`
+(auto-deploy OFF). `app.html` (label, badge, tagline, header id + 3 assignments, tip colour) →
+**FRONTEND** → push → ⏳ Pages build shows COMPLETE → `purge` → assert. Never purge on the push
+(L-SW-2026-022). If Mike keeps the backend message untouched, the unit is frontend-only and the
+target size must then come from `width`/`height` plus a client-side 400 — a duplicated threshold.
+
+**Verification agent (read-only):** 27 confirmed / 6 wrong / 1 uncheckable. The six: five stale or
+misattributed line refs and function names (fixed above: constants :157–159, test :193, message
+:198–199, blur :214–215; `data-required` :1095; normal path is `generateGradeReport` not
+`renderGradeReport`; extract-fail render is :1992–1993; `handleAdditionalPhoto` not
+`rotateGradingPhoto`) and the "no database trace" sentence, replaced by the `request_logs` measurement.
+Verifier additions folded in: the undecodable third case; dims are post-normalization; `?dev` reaches
+`runQuickTest`.
 
 ## 2026-09-11 — ✅ **Spine-photo instruction unit: APPLIED AS REVISED (hold lifted by Mike, shape 1 always-on, trimmed spine line, primary-text colour), frontend only, SHIPS IN MIKE'S NEXT COMMIT. Plus PART 2: spine-photo validity characterised read-only — 0 real-user duplicate spines in 128; nothing on the grading path validates a spine. Nothing staged, nothing committed.**
 
@@ -3799,7 +3979,7 @@ Then, only after that discussion:
 **MOST RECENT CHANGE (2026-07-16 ~19:15 UTC, Rule 5): ⚠️ ACCIDENTAL REDEPLOY OF `d2e525d` + Unit-1 hardening round + 🆕 HEIC MEMORY FLOOR FOUND.** (1) Mike ran the Unit-2 ship block with its placeholder `git add [monitor storm fix files]` line intact → NOTHING was committed (HEAD still `d2e525d`, dependency_monitor.py still dirty) but the `deploy` step ran → **prod is back on `d2e525d` (live 18:48:26Z) — the rollback is UNDONE, the monitor fix is NOT deployed, email storm re-seeded on the fresh boot** (~11 emails by 18:51). Prod is stable under normal client-resized traffic; raw-HEIC standdown (already agreed) is the operative protection. Exit path = ship the units (any push-deploy carries `d2e525d` anyway since it's on main). (2) Unit 1 hardened twice more by its own suite, now **25/25** incl. Mike's requested **24MP raw-HEIC fixture** (subprocess-isolated — local libheif hard-crashes in-process) and 12MP barcode-parity check: fix #1 = thumbnail-BEFORE-exif-transpose (don't copy the full bitmap to rotate it); fix #2 = the finding: **(3) 🆕 raw 24MP HEIC has a ~198MB intrinsic decode floor (libheif double-buffers: C frame + PIL copy) — code CANNOT make this input class safe on the 512MB Starter (330 base + 198 ≈ 528). Safe requires either the 2GB tier or an over-size reject policy.** Suite records it as a <230MB regression guard + loud NOTE. Ship order (Mike): Unit 2 first (corrected block handed in chat — `git add dependency_monitor.py`), Unit 1 after his diff review (diffs delivered). Client-side 2048px resize for the extract upload path QUEUED (LAUNCH_READINESS post-launch, defense-in-depth). Health Check Path re-enabled by Mike (was briefly off during his investigation). *Prior same evening:*
 ROOT CAUSE UNIFIED + 2(d) HYPOTHESIS TESTED AND CLEARED. Render events (authoritative): exactly THREE `server_failed` events in recent history, ALL today, ALL `oomKilled (512Mi)` — 17:28:10 + 17:34:11 (96ngc, `d2e525d`) and 18:00:52 (qtq2g, `1437fdb` ROLLBACK build, 9 min after rollback went live). ⚰️ TOMBSTONE: this entry's earlier framing "regression from the HEIC ship / rollback restores stability" is DEAD — the vulnerability predates `d2e525d` and killed the rollback build too. ⚰️ ALSO DEAD: "DB-connectivity escalation" as a theory — Postgres healthy all day (111MB/256MB flat, CPU ~1%, active connections min 0/max 5 vs 103), exactly ONE SSL-abort blip (17:23:04, monitor + request failed the same second = external transient, never recurred).**
 
-**The unified mechanism (measured, not theorized):** the grading frontend client-resizes to ≤2048px (`js/grading.js:1313` MAX_IMAGE_DIM) — which is why every grade that COMPLETED today was harmless (retained photos = 1204×1600). But any path that ships FULL-RESOLUTION bytes server-side — raw HEIC library picks (Chrome can't canvas-decode HEIC → falls through at camera resolution; 24MP = current iPhone default), or any client that skips the resize — hits decode transients measured at **+187 to +310MB for ONE request** through `/api/extract` (normalize full-res + `scan_barcode` decoding the output AGAIN with up to 4 rotations). From the ~330MB service baseline that exceeds 512MB → `oomKilled`. Mike was actively testing with real iPhone photos (Gate 0 verification = the exact raw-HEIC class) when all three kills happened. `d2e525d` widened the hole (4 server-side decodes per grade); it did not create it.
+**The unified mechanism (measured, not theorized):** ⚰️ ~~the grading frontend client-resizes to ≤2048px (`js/grading.js:1313` MAX_IMAGE_DIM)~~ **[DEAD 2026-09-11: that resize has been unreachable since `823820b` 2026-02-06; the grade request sends the raw file — see the 2026-09-11 (evening) entry at the top]** — which is why every grade that COMPLETED today was harmless (retained photos = 1204×1600). But any path that ships FULL-RESOLUTION bytes server-side — raw HEIC library picks (Chrome can't canvas-decode HEIC → falls through at camera resolution; 24MP = current iPhone default), or any client that skips the resize — hits decode transients measured at **+187 to +310MB for ONE request** through `/api/extract` (normalize full-res + `scan_barcode` decoding the output AGAIN with up to 4 rotations). From the ~330MB service baseline that exceeds 512MB → `oomKilled`. Mike was actively testing with real iPhone photos (Gate 0 verification = the exact raw-HEIC class) when all three kills happened. `d2e525d` widened the hole (4 server-side decodes per grade); it did not create it.
 
 **Item 2(d)/healthCheckPath hypothesis — CLEARED on all four checks (Mike's ask):** (1) Render polls /health ~every 5s (observed via storm-email cadence) — but polling started 2026-07-12, and `1437fdb` ran under it ~90 hours with ZERO failures before today (events list: no server_failed before 17:28 today); (2) the SELECT 1 conn close is in `finally` with the outer except covering checkout failure (`routes/utils.py:57`) — no leak path, matches the 2(d) suite's close-on-exception test; (3) Postgres active connections FLAT (2–5) all day through all three kills and the heaviest polling — a leak would climb toward 103; zero `POOL EXHAUSTED`/`too many clients` in the full day's logs; (4) the SSL-abort was a single 17:23:04 event under 24/7 polling → unrelated to poll frequency. **healthCheckPath revert NOT recommended — it's real protection and not implicated.**
 

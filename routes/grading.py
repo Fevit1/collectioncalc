@@ -729,7 +729,8 @@ def api_grade():
                     'quality_fail': True,
                     'tip': quality['tip'],
                     'width': quality.get('width'),
-                    'height': quality.get('height')
+                    'height': quality.get('height'),
+                    'min_dimension': quality.get('min_dimension')   # the floor, from the constant
                 }), 400
             break  # Only check first image
     _t.mark('quality_done')

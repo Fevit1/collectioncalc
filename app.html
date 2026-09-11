@@ -1307,7 +1307,7 @@
                             <!-- Defects 2x2 Grid -->
                             <div class="defects-section" id="resultDefectsSection">
                                 <div class="defects-header">
-                                    <div class="defects-title">Defects Found</div>
+                                    <div class="defects-title" id="resultDefectsTitle">Defects Found</div>
                                 </div>
                                 <div class="defects-grid" id="resultDefectsGrid">
                                     <!-- Populated by renderGradeReport -->
@@ -2488,15 +2488,28 @@
                         const gnum = document.getElementById('resultGradeNumber');
                         const glabel = document.getElementById('resultGradeLabel');
                         if (gnum) gnum.textContent = '—';
-                        if (glabel) glabel.textContent = 'Photo too small';
+                        // 2026-09-11: name the photo. The gate checks the FIRST image only
+                        // (routes/grading.py "Only check first image") and gradeImages is
+                        // built from photos keyed 1..4 with the front required, so the
+                        // rejected image is always the front cover here. The server message
+                        // stays generic on purpose (/api/messages shares the function).
+                        if (glabel) glabel.textContent = 'Front cover too small';
+                        // This section's header is a fixed string over three content kinds
+                        // (defects / this quality failure / the generic error). Set it per
+                        // branch; the normal branch resets it, because the element persists
+                        // across grades in a session.
+                        const dtitleQ = document.getElementById('resultDefectsTitle');
+                        if (dtitleQ) dtitleQ.textContent = 'Photo check';
                         const dgrid = document.getElementById('resultDefectsGrid');
                         if (dgrid) dgrid.innerHTML =
-                            `<p style="color:#f59e0b; grid-column:1/-1;">${errData.error || "This photo's too small for an accurate grade."}</p>` +
-                            (errData.tip ? `<p style="color: var(--text-muted); margin-top:0.5rem; grid-column:1/-1;">${errData.tip}</p>` : '');
+                            `<p style="color:#f59e0b; grid-column:1/-1;">${errData.error || "This photo is too small to grade."}</p>` +
+                            (errData.tip ? `<p style="color: var(--text-secondary); margin-top:0.5rem; grid-column:1/-1;">${errData.tip}</p>` : '');
                         const vbadge = document.getElementById('resultVerdictBadge');
                         const vtag = document.getElementById('resultVerdictTagline');
-                        if (vbadge) { vbadge.textContent = 'NEEDS A LARGER PHOTO'; vbadge.className = 'verdict-badge'; }
-                        if (vtag) vtag.textContent = 'We identified the comic, but need a larger photo to grade it accurately.';
+                        if (vbadge) { vbadge.textContent = 'NEEDS A LARGER FRONT COVER PHOTO'; vbadge.className = 'verdict-badge'; }
+                        // Does NOT say "we identified the comic": this branch runs whether
+                        // identification succeeded or the user typed the details.
+                        if (vtag) vtag.textContent = 'The front cover photo is too small to grade. A phone-camera photo of the front cover will work.';
                         return;
                     }
                     throw new Error(errData.error || `API returned ${response.status}`);
@@ -2603,6 +2616,8 @@
                         }
                         return `<div class="defect-area"><div class="defect-area-label">${label}</div>${items.map(d => `<div class="defect-item"><span class="defect-dot ${getSeverity(d)}"></span>${d}</div>`).join('')}</div>`;
                     };
+                    const dtitleN = document.getElementById('resultDefectsTitle');
+                    if (dtitleN) dtitleN.textContent = 'Defects Found';   // reset: the quality/error branches retitle it
                     defectsGrid.innerHTML = [
                         buildArea('Front Cover', result.front_defects),
                         buildArea('Spine', result.spine_defects),
@@ -2646,6 +2661,8 @@
                 const defectsGrid = document.getElementById('resultDefectsGrid');
                 if (gradeResultBig) gradeResultBig.textContent = 'Error';
                 if (gradeResultLabel) gradeResultLabel.textContent = 'Failed';
+                const dtitleE = document.getElementById('resultDefectsTitle');
+                if (dtitleE) dtitleE.textContent = 'Something went wrong';   // an upload/request error is not a defect of the book
                 if (defectsGrid) {
                     defectsGrid.innerHTML = `<p style="color: #ef4444; grid-column: 1/-1;">Error: ${error.message}</p><p style="color: var(--text-muted); margin-top: 0.5rem; grid-column: 1/-1;">Please try again or contact support.</p>`;
                 }
