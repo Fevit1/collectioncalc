@@ -1,5 +1,85 @@
 # Where We Left Off - Sep 13, 2026
 
+## 2026-09-13 — 🔒 **SESSION CLOSE (Mike's record; conversation `05e7e4ef-890f-48e9-824f-8749f200ea15`, 09-10 → 09-13). Nothing to act on. Checkable facts re-verified at close; three small precisions noted inline.**
+
+**MOST RECENT CHANGE (Rule 5): session closed 2026-09-13 with every unit of the week shipped and
+recorded, one unit parked with its reasoning, and the open list below as the priority order for the
+next session. Live backend `fb3e0a8`; HEAD `56fe022` (the Rekognition characterisation, committed by
+Mike); `main` == `origin/main`; working tree carries only the two pre-existing docs modifications
+and 15 untracked entries.**
+
+**Shipped, deployed, asserted, recorded (all three verified live 09-13, see SHIP RECORDS):**
+- `58044d5` — spine capture instruction (45° + consistency note), FAQ straight-on rule scoped, dead
+  Photo Tips modal and its seven-month dangling pointer deleted. Frontend only.
+- `a19ffec` — newsstand honesty: FMV note and verdict-basis clauses describe labelling, not edition;
+  "standard cover" dropped; note contrast 3.58 → 6.65:1.
+- `fb3e0a8` — photo-too-small: front cover named, 400 px floor stated from the constant and returned
+  in the JSON, results header branched with the reset, tip contrast raised.
+- Plus the ship-record reconciliation (`93a43f3`), the rapidfuzz closure (`3fc5777`) and the
+  Rekognition characterisation (`56fe022`) — records only.
+
+**Parked with its reasoning:** the upload-box pre-flight. Path A rejected on measurement — 562 grade
+requests, twelve too-small rejections, all four of Mike's accounts, none from the other 34 users;
+revival condition is the runnable query in the 🅿️ entry (0 rows today); the design read (amber ⚠ not
+red X, property-and-number wording, Generate stays enabled, server stays the only gate, the three
+conditions for a narrow per-box promise) is preserved for revival.
+
+**OPEN, in Mike's priority order (2026-09-13):**
+1. **Save to Collection can write the previous book's grade under the current book's title.**
+   Reachable by construction: `saveToCollection` guards on `gradingState.finalGrade`, set only on
+   success and never cleared; `extractedData` is overwritten on the next identification. A
+   data-corruption path in a collection product — highest-priority open item. (Rekognition entry,
+   Part 2.)
+2. **`/api/extract` moderates BEFORE it normalizes**, so a raw upload over 5 MB is never screened at
+   identification (Rekognition returns a validation error, the fail-open branch allows it, the row
+   is logged as a "warning"). 21 logged instances, latest 2026-09-12, on the route most users hit
+   first.
+3. **"Please try again" on a deterministic moderation rejection** — one line (`app.html:2667`, :2672),
+   wrong advice; should not wait for the reason-code unit.
+4. **The `Weapon Violence` threshold.** All three grading-product rejections are that one label, all
+   within twelve points of the 80 floor, and the label is non-deterministic near the floor (user 68's
+   photos scored 84.1 / passing / 90.2 across re-encodes of the same book). A configuration
+   decision, Mike's to make; not a code change. Not proposed by Claude.
+5. **The reason-code unit**, widened to carry the failing photo label and a `moderation` value, covering
+   both failure screens through one renderer and hiding Save on failure (closes item 1's surface as
+   well).
+6. **The upload box has no reset path** and re-selecting the same file fires no event (LIVE DEFECT 1
+   in the 🅿️ entry).
+7. **Generate is enabled after a failed extraction** (LIVE DEFECT 2 in the 🅿️ entry).
+8. **Dependency-monitor roster gap:** Third-Party rule step 4's letter is unmeetable for any healthy
+   check because `/api/admin/dependency-status` emits warnings only.
+9. **Repo hygiene (⚠️ the `~$*` gap and the lock file are FIRST recorded here, not carried):** 15 untracked entries — 14 at session start plus `docs/~WRL1970.tmp`, a Word autosave that disappears when the docx closes, which a `~$*` pattern would NOT cover (incl. two Claude report drafts `REPORT_DRAFT.md` /
+   `GUARD_REPORT_DRAFT.md`, `body.html`, `headers.txt`, `UniqueProperties/`, the docx pile); `~$*` into
+   `.gitignore` (⚠️ precision: `.gitignore:24` already has `~$*.docx` — the gap is the general `~$*`);
+   the lock file that broke two history searches (Mike's observation — not reproduced in this
+   session; recorded on his word); the nested `.claude/worktrees` copies (18 directories, they
+   inflate filesystem audits and hang unrestricted greps — this session hit that once); and
+   `docs/API_SPEND_LEDGER.md` still UTF-16 (BOM `FF FE`), last committed `ff67ce2` 2026-08-14,
+   modified 2026-08-30, uncommitted since.
+10. **Stripe three majors behind (⚠️ FIRST recorded here; no earlier record in this file)** — `requirements.txt:32` pins `stripe>=12,<13` (Mike: 12.5.1
+    installed) against PyPI **15.6.1** (checked 09-13), on a live billing integration that has already
+    had one API-move incident.
+
+**Verification agent (close record, read-only):** 7 confirmed / 0 wrong / 0 uncheckable; two precisions
+folded in above (the autosave temp file; items 9–10 are new). Every open item 1–8 has a matching earlier
+record in this file.
+
+**Two method findings worth carrying (Mike):**
+- **Cloudflare Pages answers `/app.html` and `/faq.html` with a 308** to the clean URL, so a bare
+  `curl -s` gets an empty body and every grep returns zero — indistinguishable from a failed purge.
+  Use `curl -sL` or the clean URL; `/js/…` serves directly. Every curl assert written for `.html`
+  paths this week was wrong for that reason (SHIP RECORDS entry carries the mechanics; platform
+  default, nothing in the repo configures it).
+- **A pushed-but-undeployed commit is invisible:** clean `git status`, branch up to date, and `/health`
+  reports a hard-coded `5.6.0` (`routes/utils.py:23`, unchanged since March). Making the version
+  string reflect the deployed commit would turn a dashboard visit into a one-second check. **Worth
+  its own lesson once the fix exists** — not written yet; the Render deploys endpoint (GET) is the
+  interim check and is what this week's verifications used.
+
+**Standing constraints unchanged:** Mike runs all git, deploys, env changes and production writes.
+Claude never commits, pushes, deploys or writes to production. Verification agent before presenting.
+A later record that contradicts this one → stop and say so.
+
 ## 2026-09-13 — 🔎 **Rekognition false positive (ASM #361 back cover) — READ-ONLY CHARACTERISATION. No code change, no fix proposed. Verified 52 confirmed / 10 wrong (line refs and two scope words) / 1 uncheckable; corrections folded in. Headline: it was `Weapon Violence` 91.3% on the BACK cover, blocked via its parent `Graphic Violence`; the whole grade aborts; NO credit is lost; Save can write the PREVIOUS book; and every block on the product's own surfaces is that one label.**
 
 **MOST RECENT CHANGE (Rule 5): this characterisation, recorded 2026-09-13. Nothing in the tree
