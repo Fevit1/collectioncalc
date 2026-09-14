@@ -1,5 +1,16 @@
 # Where We Left Off - Sep 13, 2026
 
+## 2026-09-13 — ✅ **rapidfuzz post-deploy check (Third-Party rule step 4) CLOSED. Mike ran it in the Render shell on 2026-09-11: `'rapidfuzz' in inspect.getsource(check_all)` → `True`, `check_rapidfuzz(force=True)` → `[]`. Relayed 2026-09-13 (Mike, via Bilbo). Was carried as "still owed" in two places below — tombstoned.**
+
+**Provenance, stated plainly:** this is Mike's terminal fact, not something a Claude session can
+observe (no Render shell access). It is recorded on his word. What IS independently verified from
+here: the deployed commit (`fb3e0a8`, live 2026-09-13 19:41 UTC, whose ancestry includes `2e27098`)
+carries the check as the 7th `check_all` entry with `RAPIDFUZZ_VERIFIED_MAJOR = 3`; the same code run
+locally on 09-10 returned `[]` at installed 3.14.3. Together with Mike's shell result the rule's
+step 4 is satisfied for rapidfuzz; the pre-existing gap — the dependency-status endpoint has no
+roster, so a healthy check is ABSENT from its output and step 4 as written cannot be shown from the
+endpoint — stays queued as its own item, unchanged.
+
 ## 2026-09-13 — 🚢 **SHIP RECORDS for the three 09-11 units — all three LIVE and asserted. Reconciled against git, the Render deploys endpoint and the live site (read-only, 2026-09-13 ~18:30 PDT). Every line below that still called them pending is tombstoned in place.**
 
 **MOST RECENT CHANGE (Rule 5): Mike reported deploy, purge and asserts complete on `a19ffec` and
@@ -934,7 +945,7 @@ activity).
 expectation (backend unit); spine-box hint (geometry, see above); the pixel classification
 above (parked, gated on ground truth). Unchanged from 09-10: plurals/single insertions;
 Whatnot `Comics #N`; `House of M` / `Ark-M`; case-split family; dependency-status roster;
-rapidfuzz Render-shell check still owed.
+⚰️ ~~rapidfuzz Render-shell check still owed~~ (closed 2026-09-13 — run by Mike 09-11).
 
 ## 2026-09-10 — ✅ **Token-guard unit (A + B4 + rapidfuzz monitor): COMMITTED + DEPLOYED 2026-09-04 (`2e27098`), BACKFILL RUN + VERIFIED 2026-09-10. The 09-04 heading below ("NOT committed, NOT deployed, backfill NOT run") is DEAD on all three claims.**
 
@@ -1028,12 +1039,13 @@ into its 151; verifier, 09-10). Which
 the reconciliation depends on it. ⚠️ Generalise this: EVERY per-source figure a dry run prints is
 per-table; compare it to whole-corpus tables only after summing the two tables' lines.
 
-**rapidfuzz monitor — post-deploy check (Third-Party rule step 4) STILL OWED.** Registered in
+**rapidfuzz monitor — post-deploy check (Third-Party rule step 4) ⚰️ ~~STILL OWED~~ → CLOSED: run by Mike in the Render shell 2026-09-11, `True` / `[]` (recorded 2026-09-13, see the top entry).** Registered in
 the deployed code (`check_all` tuple, 7th entry; `RAPIDFUZZ_VERIFIED_MAJOR = 3`;
 `requirements.txt` pins `rapidfuzz>=3.0.0`). Run locally against the same code on 09-10,
-`check_rapidfuzz(force=True)` returned `[]` (installed 3.14.3, PyPI latest 3.x). **NOT verified in
+`check_rapidfuzz(force=True)` returned `[]` (installed 3.14.3, PyPI latest 3.x). ⚰️ ~~**NOT verified in
 production** — the Render-shell one-liner in the 09-04 entry has not been run by anyone the record
-knows of, and it cannot be run from a Claude session. It is Mike's step and it is still open.
+knows of … it is still open.~~ Mike ran it on 2026-09-11 (`True`, `[]`); the record did not learn of it
+until 2026-09-13 — two days carried as open after it was done, the L-SW-2026-030 shape in miniature.
 
 **Also observed, NOT touched (read-only pass; pre-existing dirty files are outside this unit):**
 `docs/API_SPEND_LEDGER.md` is modified in the working tree and git now sees it as binary
