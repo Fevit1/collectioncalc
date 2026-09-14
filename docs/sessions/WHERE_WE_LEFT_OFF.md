@@ -1,4 +1,195 @@
-# Where We Left Off - Sep 11, 2026
+# Where We Left Off - Sep 13, 2026
+
+## 2026-09-13 — 🚢 **SHIP RECORDS for the three 09-11 units — all three LIVE and asserted. Reconciled against git, the Render deploys endpoint and the live site (read-only, 2026-09-13 ~18:30 PDT). Every line below that still called them pending is tombstoned in place.**
+
+**MOST RECENT CHANGE (Rule 5): Mike reported deploy, purge and asserts complete on `a19ffec` and
+`fb3e0a8` (2026-09-13); this entry verifies that, adds `58044d5`, and closes the L-SW-2026-030
+step for all three. Supersedes every "SHIPS IN MIKE'S NEXT COMMIT", "NOT staged, NOT committed",
+"ship record still owed" and "SHIP (Mike)" block for these units below.**
+
+| unit | commit | committed (PDT) | deploy (Render, UTC) | purge + assert | live now |
+|---|---|---|---|---|---|
+| Spine capture instruction (caption, FAQ scoping, dead-modal deletion) — frontend only | `58044d5` | 2026-09-11 10:16 | none needed (no backend file) | done — `app`: `photoCaptureNote` 1, `photoTipsModal` 0, "Consistency matters more" 1; `faq`: "inconsistently angled" 1, "Photo tips" 0 | ✅ |
+| Newsstand honesty (FMV note + verdict-basis clauses, note contrast) — backend + frontend | `a19ffec` | 2026-09-11 13:33 | `a19ffec` live 2026-09-11 20:33:37→20:34:23 UTC (= 13:33 PDT, Mike's figure); since deactivated by the next deploy, code carried forward | done — `verdict_basis.js`: "direct-edition label" 1, "standard cover" 0; `app`: `resultVariantNote…text-secondary` 1 | ✅ |
+| Photo-too-small (front-cover naming, 400 floor from the constant, per-branch header, tip contrast) — backend + frontend | `fb3e0a8` | 2026-09-11 14:51 | `fb3e0a8` deployed twice: 2026-09-11 21:51 UTC (deactivated) and **2026-09-13 19:41:22→19:41:58 UTC = 12:41 PDT, Mike's figure, status live** | done — `app`: `resultDefectsTitle` 4 (Mike's assert also returned 4), "NEEDS A LARGER PHOTO'" 0, "NEEDS A LARGER FRONT COVER PHOTO" 1 | ✅ |
+
+`main` == `origin/main` at `fb3e0a8`; the working tree carries no code change (only this file and the
+two pre-existing docs). The live backend is `fb3e0a8`, which contains `a19ffec`'s change.
+
+⚠️ **Assert mechanics, for the next ship block:** Cloudflare Pages answers `/app.html` and `/faq.html`
+with **308 → `/app`, `/faq`** (clean URLs — Cloudflare Pages' platform default; nothing in the repo
+configures it: `_redirects` holds only the collectioncalc.com rules and `_routes.json` is Functions routing,
+so do not hunt for a redirect rule), so a bare `curl -s …/app.html | grep -c` returns 0 for
+everything — a false failure. Use `curl -sL` (follow redirects), or the clean URL. `/js/…` paths serve
+directly. The ship blocks below were written with bare `curl -s` and would have reported 0/0/0 on a
+successful ship; Mike's assert of 4 was taken with the redirect followed. Verified 2026-09-13: 41 confirmed / 0 wrong (git, Render, live site, every tombstone). Recorded so the next
+assert is not misread as a failed purge (L-SW-2026-022's failure mode is silent; a wrong probe is
+the same silence from the other side).
+
+## 2026-09-13 — 🅿️ **Front-cover pre-flight: PARKED by Mike (analysis kept; two live defects logged as their own items). No code change. The two 09-11 units are COMMITTED by Mike — `a19ffec` (newsstand honesty: FMV note + verdict-basis clauses) and `fb3e0a8` (photo-too-small copy + header + contrast); ⚰️ ~~their push / deploy / Pages build / purge / assert and the one-line ship records here are still Mike's steps~~ — DONE, see the SHIP RECORDS entry above (2026-09-13).**
+
+**🟦 FRONT-COVER PRE-FLIGHT (Mike's brief, 2026-09-13) — ⚰️ ~~REPORT STAGE … Mike decides~~ → PARKED the
+same day (block after §7). Verified 27/5/0; corrections folded in below. Analysis retained.**
+
+**§1 What the box ✓ means today — confirmed: "file received", nothing more.** The ✓ is static markup
+(`app.html:1103` front; :1114/:1126/:1141), shown by the `uploaded` class (CSS :632–634; green
+`rgb(16,185,129)` :648). The ONLY writer is `handlePhotoUpload(photoType, files)` (:1681): after the
+FileReader resolves — read own EXIF (:1708), `img.src` (:1711), rotate thumb (:1712), show (:1713),
+add `uploaded` (:1714), remove `highlight`, update "N of 4" (:1718), highlight next (:1721), front
+only: `await extractComicData` (:1724–1726), enable Generate if `photos[1] && extractedData`
+(:1729–1731). **Nothing removes it**: no `classList.remove('uploaded')` anywhere; `window.gradingState`
+is created once at script evaluation (:2236–2243; the `DOMContentLoaded` handler :2228–2234 only
+highlights the front box); `grading.js`'s `resetGrading` (:2485) targets a different, dead object
+and has zero callers; a page reload is the only reset. Extraction failure renders into
+`#uploadProgressText` (:1990–1998) and touches no box; the grade-time rejection renders into the
+result card only. Re-selecting the SAME file does not fire `onchange` (input value never cleared).
+
+**§2 Can the client read dimensions?** JPEG/PNG/WebP — yes; the thumbnail `<img>` already holds the
+data URL (:1711), so `naturalWidth/Height` exist on load; `min(w,h)` is rotation-invariant so EXIF
+orientation is moot. **HEIC — not in Chrome/Edge/Firefox** (`<img>` errors, `naturalWidth` 0);
+Safari decodes it. Inputs are `accept="image/*"`; iOS transcodes library HEIC to JPEG for such inputs
+by default, so HEIC on the wire is mostly desktop-Chrome/Android. The server decodes HEIC everywhere
+(`pillow_heif.register_heif_opener()` at `comic_extraction.py:60–61`, process-global, imported by
+`wsgi.py:98` before any route). **Rule: a client check must treat "did not decode" as UNKNOWN — no X,
+no ✓-as-validation — and fall through to the server.** Client/server divergence for decodable files:
+only the long-edge cap, and for JPEG the draft-halving path (`comic_extraction.py:165–166`) can put
+the short side under 400 at **aspect > 2.5:1** (measured: 2001×790 JPEG → 1001×395; PNG/WebP/HEIC
+only at > 5:1) — not a comic (~1.5:1), but the bound is 2.5, not 5.
+
+**§3 Is the 400 reachable from the client? NO.** After the 09-11 unit it is returned only in the
+`/api/grade` FAILURE JSON (`min_dimension`); `/api/auth/me` returns id/email/verified/approved/admin
+only; no config route exists; the client holds no 400 (nothing to duplicate yet).
+- **Path A (recommended): three keys on the `/api/extract` SUCCESS response** — `image_width`,
+  `image_height`, `grade_min_dimension` (from `GRADE_QUALITY_MIN_DIMENSION`). The extract route ALREADY
+  runs `check_photo_quality_base64(image_data, purpose='extract')` on the raw upload (`routes/grading.py:341`)
+  and discards the dict's `width/height` on success (`return jsonify(result)` :392 — plain dict, extra
+  keys safe). The client already awaits that call on every front upload. Same measuring function as
+  the grade gate; for a too-small image (short side < 400, long edge ≤ 2000) no shrink occurs on
+  either path, so extract-time and grade-time dims are equal. HEIC covered. No client decode. Cost:
+  ~3 backend lines in `routes/grading.py`, ~15 client lines + a CSS state in `app.html`. ⚠️ The ok
+  dict's dims are post-`auto_orient_pil`, which forces portrait — fine for `min`, must not be shown
+  as the file's orientation; the fail-open branch returns `width: None` → treat as unknown.
+- **Path B: a config GET + client `naturalWidth`.** Instant on JPEG/PNG, blind on HEIC, new endpoint to
+  monitor (Third-Party rule shape), client re-implements a server measurement. Not recommended.
+- **Timing, stated plainly:** Path A shows the state when identification returns (5–20 s), not at file
+  selection. ⚠️ Corrected coverage: Generate is enabled at THREE sites — :1969 (extract success),
+  :1730, and **:2062 (extract FAILURE, after the manual-entry form)** — so on a busy/timeout
+  extraction the button is enabled and Path A's dims never arrive; that user reaches today's
+  grade-time card with no pre-flight. Also the `/api/extract` 400 for < 250px already surfaces the
+  server's dimension message (:1913–1916), so Path A adds coverage for the **250–399 px band** on
+  successful identifications — exactly the trigger case.
+
+**§4 Design read.** Any negative state on a box says "this box was evaluated"; no glyph makes an X
+mean "one property checked." The promise can be kept narrow on three conditions: (1) ✓ never changes
+meaning — "received", every box, never upgraded to "passed"; (2) the negative state is shown only for
+a property the SERVER measured with the gate's own function (Path A) — a preview of the server's
+verdict, not a new client validation; (3) wording names the property and number, never a verdict:
+"Too small to grade — 364×554px", not "Invalid". Glyph: a red X reads as "validated: false" and
+implies the other three passed; an amber ⚠ reads as "heads-up about this file" and matches the
+result card's amber (`#f59e0b`, :2505). My read: ⚠ over X; Mike's call. Zero-semantics fallback:
+keep box ✓ untouched and carry the message in the existing advisory banner `#uploadWarning`
+(:1163–1166, shown by `updateUploadProgress` :2192–2197) — less discoverable, implies nothing about
+the other boxes. Whichever surface: the state must CLEAR on the next front upload (today's box is
+write-once; the new state must not be).
+
+**§5 Generate button — leave ENABLED.** The server is the authority and must stay the only gate; a
+client block can be stale (file replaced), blind (HEIC), or wrong (any future divergence) and then
+strands the user with no path to the authoritative answer. Enabled costs nothing new: ignoring the ⚠
+yields today's failure card with the corrected copy. The identification call is already spent by the
+time the state shows, so "save a vision call" does not apply.
+
+**§6 Scope: Path A is modest** — `routes/grading.py` (BACKEND, three keys; `fingerprint_utils`
+untouched) + `app.html` (FRONTEND: compare in `extractComicData`'s success branch, toggle a `too-small`
+state on `#uploadBoxFront` with a caption, clear it at the top of the next front upload). No change
+to the gate, the threshold, the upload path, or the other three boxes. Path B is where "more than
+modest" begins. **Ship:** `deploy` for the backend FIRST; client must treat a missing
+`grade_min_dimension` as unknown (no state) so a purged frontend against an un-deployed backend
+degrades to today's behaviour; then push → ⏳ Pages build COMPLETE → `purge` → assert. Never purge
+on the push.
+
+**§7 Context (RO, verified):** `/api/grade` 516 requests through 09-11 (562 by 09-12: +46 on 09-12);
+12 too-small 400s, all `desktop`, four accounts (3 admin; 7 "Mike+3"; 27 "MikeTest13"; 30 "Billing
+Test 2") — all operator; 38 distinct users have graded, none of the other 34 hit the path. Overall
+`/api/grade` traffic is 357 mobile / 205 desktop. Quality-of-experience on a rare path.
+
+**🅿️ PARKED (Mike, 2026-09-13): the front-cover pre-flight is NOT built. Path A is not built. The
+analysis below stays because the reasoning is the durable part.**
+
+**Why parked — the measurement decides it.** 562 `/api/grade` requests (through 09-12), 12 too-small
+rejections, all four accounts the operator's, none from the other 34 users who have graded. Path A
+covers only the 250–399 px band on SUCCESSFUL identifications, so it misses the extraction-timeout
+case — the moment a struggling user is most likely to need it. The original appeal was catching the
+problem at file selection; Path A shows it 5–20 s later, when identification returns; Path B is
+blind on HEIC and duplicates a measurement the server already makes. The design that motivated the
+unit is not available at reasonable cost, so it is parked rather than compromised.
+
+**What would revive it:** real-user traffic on this path — too-small rejections from accounts that are
+not the operator's (query: `request_logs`, `endpoint LIKE '%/api/grade%'`, `status_code = 400`,
+`error_message ILIKE '%too small%'`, `user_id NOT IN (3, 7, 27, 30)`). If it revives, the decisions
+below are already made and should not be re-litigated:
+- **Amber ⚠ rather than red X** (an X reads "validated: false" and implies the other three boxes
+  passed; ⚠ reads "heads-up about this file" and matches the result card's amber `#f59e0b`).
+- **Wording names the property and the number, never a verdict** — "Too small to grade — 364×554px",
+  not "Invalid" / "Rejected".
+- **Generate stays ENABLED; the server stays the ONLY gate.** A client block can be stale (file
+  replaced), blind (HEIC), or wrong, and then strands the user with no path to the authoritative
+  answer; ignoring the ⚠ yields the existing failure card, so enabled costs nothing new.
+- **A negative box state keeps its promise narrow only under three conditions:** (1) ✓ never changes
+  meaning — "received", every box, never upgraded to "passed"; (2) the negative state is shown only
+  for a property the SERVER measured with the gate's own function (a preview of the server's
+  verdict, not a client validation); (3) the state CLEARS on the next front upload.
+- **Path of record if built: A** (three keys on the `/api/extract` success response — `image_width`,
+  `image_height`, `grade_min_dimension` from `GRADE_QUALITY_MIN_DIMENSION`; the route already
+  computes the dict at `routes/grading.py:341` and discards it on success; `return jsonify(result)`
+  :392 accepts extra keys; client compares in `extractComicData`'s success branch; deploy backend
+  FIRST and treat a missing key as unknown). Path B (config GET + client `naturalWidth`) is
+  recorded as rejected: blind on HEIC in Chrome/Edge/Firefox, a new endpoint to monitor, a second
+  implementation of a server measurement.
+- **Client/server divergence, for the record:** none for decodable too-small files; the long-edge
+  cap can only push a short side under 400 at aspect > 2.5:1 (JPEG draft-halving,
+  `comic_extraction.py:165–166`) or > 5:1 (PNG/WebP/HEIC) — not a comic. HEIC and undecodable files
+  must read as UNKNOWN client-side, never as a pass.
+
+**Verification agent (parked block + two defects, read-only):** 14 confirmed / 4 wrong / 1 uncheckable —
+the four were line refs (:392 not :394; :1913–1916 not :1917–1919; :1982–1987 not :1983–1988) and the
+"no `.value = ''` anywhere" wording; all corrected in place. Revival query runs and returns 0 rows.
+
+**🐞 LIVE DEFECT 1 (logged 2026-09-13, not fixed) — the upload box has no reset path, and re-selecting
+the same file does nothing.** `uploaded` is added exactly once (`app.html:1714`) and never removed; no
+reset flow exists in app.html (`window.gradingState` is created once at script evaluation
+:2236–2243; `grading.js`'s `resetGrading` :2485 targets a different dead object, zero callers); a
+page reload is the only reset. The four per-box `<input type="file">` elements are never cleared (the only `.value = ''` on
+file inputs are in `js/grading.js` against ids that do not exist in app.html — dead; a fifth file
+input, `#photoInput` :1064, sits in the never-shown bulk mode), so choosing the SAME file again does
+not fire `onchange` and the handler does not run (HTML `change` fires only when the selection
+changes; Chrome/Edge/Firefox behave so, Safari has historically fired it anyway, and a Chrome
+dialog-cancel can clear the value — so the failure is a gallery/desktop-picker scenario; a
+`capture="environment"` camera shot is always a fresh file). **Consequence:** a user who lands on a failure card (too-small, blur, moderation, generic
+error) and tries to swap the photo — especially re-picking the same file after e.g. cropping or
+re-exporting it under the same name — sees the same green ✓ and thumbnail and may believe the photo
+was replaced when it was not. Real users reach failure cards (`request_logs`: 21 grade 400s, of
+which 8 mobile from non-operator accounts 11/17/38/53 — all `error_message` NULL or the
+`non-json-400` sentinel, so which card they saw is not recoverable; five of the eight predate the
+current card code). **Scope for a fix:** (a) set
+`input.value = ''` after reading the file (or on box click) so re-selection always fires; (b) on a
+new front upload, clear `extractedData`, the identification panel and any result-card state; (c)
+decide whether a "start over" control belongs on the result card (there is none today — the only
+route back is reload). Frontend only (`app.html`) → purge after the Pages build.
+
+**🐞 LIVE DEFECT 2 (logged 2026-09-13, not fixed) — Generate is enabled after a FAILED extraction, so a
+timed-out identification can be submitted blind.** `#generateReportBtn` is enabled at three sites:
+`app.html:1730` (front stored AND `extractedData` set), `:1969` (extraction success), and **`:2062`
+(extraction FAILURE — after the manual-entry form is rendered and `extractedData` is set to the
+empty default, :1982–1987)**. The manual form is deliberate (the user can type title/issue and
+proceed when identification fails), but it also means: on a busy/timeout/503 extraction the user
+can press Generate with a photo the app has never measured, and the first information about the
+photo arrives as the grade-time failure card. The extract-time quality message only reaches the
+user for the < 250 px case (:1913–1916); the 250–399 band and every non-quality failure carry no
+photo information at all. **Scope for a fix:** on the failure branch, (a) distinguish "we could not
+identify it" (keep the form, keep the button) from "we could not process the photo" (quality —
+keep the button disabled or carry the server's message onto the box), and (b) surface why the
+extraction failed next to the form, not only in the transient headline. Frontend (`app.html`) plus,
+if the extract response should carry dimensions, the same three backend keys as Path A. Not started.
 
 ## 2026-09-11 (evening) — ⚠️ **The client-side image resize is UNREACHABLE on the grade path; the grade request has sent the RAW file since 2026-02-06. The July-16 OOM root-cause record assumed the resize was running. Own entry, on Mike's instruction.**
 
@@ -41,8 +232,10 @@ OOM remedy).
   and orientation questions. Logged here, not scoped.
 
 **📐 "NEEDS A LARGER PHOTO" unit — ✅ APPLIED (Mike: all proposals as written, 2026-09-11 evening).
-In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT; needs `deploy`
-(two backend files) AND, after the Pages build completes, `purge` (one frontend file).**
+⚰️ ~~In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT; needs `deploy`
+(two backend files) AND, after the Pages build completes, `purge` (one frontend file).~~
+**SHIPPED: committed `fb3e0a8` 2026-09-11 14:51 PDT; deployed live 2026-09-13 19:41 UTC; purged and
+asserted (`resultDefectsTitle` 4). See SHIP RECORDS, 2026-09-13.**
 - **`routes/fingerprint_utils.py` (BACKEND, :193–209):** grade-floor message → *"This photo is too
   small to grade ({w}×{h}px). Grading needs at least {min}px on the shorter side."* with `{min}`
   from `GRADE_QUALITY_MIN_DIMENSION` (f-string, no literal); the failure dict now carries
@@ -93,9 +286,10 @@ started.
 ## 2026-09-11 (later) — 🔎 **Newsstand vs direct edition — READ-ONLY CHARACTERISATION (Mike's brief). No code change, no proposed fix. Verdict: SMALL FEATURE on both sides, gated on one measurement (the live extraction prompt already returns an edition, unmeasured and discarded); and the premise "FMV is an average of two markets" is WRONG in a specific, worse way — newsstand-labelled comps are DISCARDED by `is_variant`, so the pool is ⚰️ ~~the direct market~~ **the UNLABELLED market** (direct-labelled comps are discarded by the same pattern — correction below) and a newsstand seller is quoted that pool's price.**
 
 **MOST RECENT CHANGE (Rule 5): the spine-caption unit is COMMITTED by Mike as `58044d5`
-(2026-09-11); push / Pages build / purge / assert are Mike's remaining steps and the one-line
-ship record here is still owed after the assert (L-SW-2026-030). This entry is a separate,
-read-only question and changes nothing in the tree.**
+(2026-09-11); ⚰️ ~~push / Pages build / purge / assert are Mike's remaining steps and the one-line
+ship record here is still owed after the assert~~ — DONE, live and asserted; see SHIP RECORDS,
+2026-09-13 (L-SW-2026-030 closed). This entry is a separate, read-only question and changes nothing
+in the tree.**
 
 **1. Does anything in the pipeline distinguish newsstand from direct? — NO, on every live
 path; and where the word appears it is treated as a VARIANT and thrown out.**
@@ -316,9 +510,11 @@ shows complete, never on push** (L-SW-2026-022).
 surfaces. The three wrong were one fact — "the pool is the direct market" — and the two
 proposals built on it; corrected above and tombstoned in the newsstand entry.
 
-**✅ BRIEF 1 APPLIED (Mike: P1, Option A, contrast fix included; 2026-09-11 evening) — in the
+**✅ BRIEF 1 APPLIED (Mike: P1, Option A, contrast fix included; 2026-09-11 evening) — ⚰️ ~~in the
 working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT; needs BOTH `deploy` (backend
-string) AND, after the Pages build completes, `purge` (two frontend files).**
+string) AND, after the Pages build completes, `purge` (two frontend files).~~
+**SHIPPED: committed `a19ffec` 2026-09-11 13:33 PDT; deployed live 2026-09-11 20:33 UTC (now carried
+by `fb3e0a8`); purged and asserted. See SHIP RECORDS, 2026-09-13.**
 - **`routes/sales_valuation.py:462–471` (BACKEND):** `variant_disclosure` now
   *"Based on sales not labelled as a variant, newsstand or direct edition. Newsstand and direct
   editions of the same issue can differ in value."* — with a comment stating the pool is the
@@ -354,7 +550,7 @@ measurement of how many lookups would newly show the note (the 594-lookup sample
 were stale HEAD line numbers in this block (now working-tree numbers); the code diff had no defect.
 Template literals evaluated at N=11/R=3 and N=1/R=1 read grammatically.
 
-**SHIP (Mike) — Option A, both tiers:**
+**SHIP (Mike) — Option A, both tiers — ⚰️ DONE 2026-09-11/13, see SHIP RECORDS; kept for the command shape only (note the `curl -sL` correction there):**
 ```
 git add routes/sales_valuation.py js/verdict_basis.js app.html docs/sessions/WHERE_WE_LEFT_OFF.md
 git commit   # variant note: describe labelling not edition; newsstand/direct can differ; drop "standard cover"; note contrast 3.58→6.65
@@ -368,7 +564,7 @@ purge
 #   curl -s https://slabworthy.com/app.html | grep -c "resultVariantNote.*text-secondary"    → 1
 #   backend: Render Events shows the commit hash; then a grade on ASM #361 (fires) shows the new sentence
 ```
-Post-ship: one-line ship record here (L-SW-2026-030).
+⚰️ ~~Post-ship: one-line ship record here (L-SW-2026-030).~~ Written — SHIP RECORDS, 2026-09-13.
 
 **📐 "NEEDS A LARGER PHOTO" — copy + one header. ⚰️ ~~REPORT STAGE; NOTHING CHANGED~~ → APPLIED the
 same evening, all proposals as written; see the block under the resize entry above.**
@@ -460,7 +656,7 @@ misattributed line refs and function names (fixed above: constants :157–159, t
 Verifier additions folded in: the undecodable third case; dims are post-normalization; `?dev` reaches
 `runQuickTest`.
 
-## 2026-09-11 — ✅ **Spine-photo instruction unit: APPLIED AS REVISED (hold lifted by Mike, shape 1 always-on, trimmed spine line, primary-text colour), frontend only, SHIPS IN MIKE'S NEXT COMMIT. Plus PART 2: spine-photo validity characterised read-only — 0 real-user duplicate spines in 128; nothing on the grading path validates a spine. Nothing staged, nothing committed.**
+## 2026-09-11 — ✅ **Spine-photo instruction unit: APPLIED AS REVISED (hold lifted by Mike, shape 1 always-on, trimmed spine line, primary-text colour), frontend only, ⚰️ ~~SHIPS IN MIKE'S NEXT COMMIT~~ SHIPPED as `58044d5` (2026-09-11 10:16 PDT), purged, asserted — SHIP RECORDS 2026-09-13. Plus PART 2: spine-photo validity characterised read-only — 0 real-user duplicate spines in 128; nothing on the grading path validates a spine. Nothing staged, nothing committed.**
 
 **MOST RECENT CHANGE (Rule 5): Mike chose Option 2 — one caption under the four upload
 boxes in `app.html`, NOT a restored Photo Tips button — plus scoping the FAQ's blanket
@@ -710,7 +906,7 @@ reason; "deliberate" cannot be established from the record.
   it — 08-31 entry). Not scoped, not estimated. If it is ever raised: measured
   `count_tokens` estimate and the running daily total BEFORE anything runs (spend rule).
 
-**SHIP (Mike) — ▶️ live again after the revision above:**
+**SHIP (Mike) — ▶️ live again after the revision above — ⚰️ DONE as `58044d5`, see SHIP RECORDS 2026-09-13; command shape kept (use `curl -sL`):**
 ```
 git add app.html faq.html js/grading.js docs/sessions/WHERE_WE_LEFT_OFF.md
 git commit   # name the FAQ pointer: L-SW-2026-020-shape copy, live 7 months (2026-02-11 → 09-11)
@@ -722,7 +918,7 @@ purge
 #   curl -s https://slabworthy.com/app.html | grep -c "photoCaptureNote"         → 1
 #   curl -s https://slabworthy.com/app.html | grep -c "photoTipsModal"           → 0
 ```
-No `deploy`. After the assert passes: one-line ship record here (the L-SW-2026-030 step).
+No `deploy`. ⚰️ ~~After the assert passes: one-line ship record here (the L-SW-2026-030 step).~~ Written — SHIP RECORDS, 2026-09-13.
 
 **Verification agents (09-11, read-only):** first pass 28 confirmed / 2 wrong / 1 uncheckable
 on the diff + this entry; second pass (revision + Part 2) 20 confirmed / 4 wrong / 0 uncheckable —
