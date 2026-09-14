@@ -1,5 +1,112 @@
 # Where We Left Off - Sep 13, 2026
 
+## 2026-09-13 — 🔎 **Rekognition false positive (ASM #361 back cover) — READ-ONLY CHARACTERISATION. No code change, no fix proposed. Verified 52 confirmed / 10 wrong (line refs and two scope words) / 1 uncheckable; corrections folded in. Headline: it was `Weapon Violence` 91.3% on the BACK cover, blocked via its parent `Graphic Violence`; the whole grade aborts; NO credit is lost; Save can write the PREVIOUS book; and every block on the product's own surfaces is that one label.**
+
+**MOST RECENT CHANGE (Rule 5): this characterisation, recorded 2026-09-13. Nothing in the tree
+changed. The moderation policy set on 2026-08-25 is unchanged and not proposed to change here.**
+
+**Part 1 — configuration (`content_moderation.py`).** Threshold `MODERATION_CONFIDENCE_THRESHOLD = 80`
+(:40) → Rekognition `MinConfidence` (:219). `BLOCKED_CATEGORIES` (:53–65) is exactly `'Explicit'`
+(L1), `'Graphic Violence'` (L2 under Violence — catches Weapon Violence, Physical Violence, Self-Harm,
+Blood & Gore, Explosions and Blasts via ParentName), `'Hate Symbols'` (L1). `WARNING_CATEGORIES`
+(:82–85) is `'Violence'`, `'Visually Disturbing'`. Match rule :241–243 (Name / ParentName /
+"Parent: Name"); `reason` = first blocked label (:259, :264). A cover returning only `Violence` +
+`Weapons` PASSES with a warning (verifier confirmed from the loop and from rows 71/95/96).
+
+**What fired — recovered.** `content_incidents` id 112, 2026-09-11 20:57:35 UTC, user 3, `/api/grade`,
+hash `06de0b57fc…`: **`Weapon Violence` 91.3** (parent `Graphic Violence` 91.3, `Violence` 91.3).
+Render `[GRADE-TIMING]` for the request: `images=4 dims=484x720,80x1096,478x714,872x706
+moderation_calls=3 outcome=moderation_blocked title='The Amazing Spider-Man' issue='361'`; the loop
+increments `_mod_calls` before each call (:747→:748) and the client sends front, spine, back,
+centerfold (`app.html:2339`, `:2376–2385`), so **call 3 = the 478×714 back cover**. `[MODERATION]
+BLOCKED: Weapon Violence (confidence: 91.3%)` same second.
+
+**How often (RO, `content_incidents` 2026-02-12 → 09-12):** 113 rows; **71 blocked**; blocked by
+endpoint `/api/vision/analyze` **68** / `/api/extract` 1 / `/api/images/submission` 1 / `/api/grade`
+1; by month Feb 18, Mar 44, Jun 1, Jul 1, Aug 4, Sep 3; users WITH A BLOCK: **2** — user 3 (Mike admin)
+69, **user 68 (real, free, joined 09-01) 2**; 71 distinct hashes. By label: Exposed Female Nipple
+26, **Weapon Violence 20**, Exposed Buttocks or Anus 18, Exposed Female Genitalia 5, Blood & Gore 1,
+bare `Explicit` 1. The 68 vision/analyze blocks are the **Whatnot valuator extension**
+(`CCExtensions/whatnot-valuator/lib/vision.js:106`, its only caller) — operator use on listing
+images: 49 Explicit-Nudity family (82.9–99.9), 18 Graphic-Violence family (80.5–95.9), 1 bare
+Explicit 90.7. **On the grading product's own surfaces every block is `Weapon Violence`** — 84.1
+(extract), 90.2 (submission), 91.3 (grade) — all within 12 points of the 80 floor; 2 of those 3 are
+a real user. `request_logs` agrees: 71 × `Image rejected: inappropriate content detected.`, same
+split.
+
+**User 68, 2026-09-03, mobile (the only real-user blocks):** 00:52:45 `/api/extract` **400 — the
+FRONT cover rejected at identification** (84.1); 00:54:56 `/api/extract` 200 with a different image
+(the re-shoot the brief says not to propose, performed unprompted); 00:55:39 grade 200 with all
+four passing; 00:57:42 **one of the four collection-save uploads rejected at 90.2**
+(`/api/images/submission`, hash differs — the save path re-encodes at 1568/0.85) while three stored
+and `/api/collection/save` returned 200. Two facts: the label is non-deterministic near the floor
+across re-encodes, and **the save path already drops the photo and keeps the record — silently**
+(`app.html:3663` catches the per-photo error, the slot stays `null` from :3607, save proceeds :3730).
+
+**⚠️ Side finding (verifier): 39 of the 42 "warn-only" rows are NOT content warnings.** Their `labels`
+payload is one string — Rekognition `ValidationException … image.bytes … less than or equal to
+5242880` — the fail-open branch (:281–289) logged as a warning (:330). Split: `/api/extract` **21**
+(2026-03-15 → **2026-09-12**, still occurring), `/api/grade` 15 (03-15 → 06-16, none since the 07-12
+normalize-before-moderate change), `/api/messages` 3. **`/api/extract` moderates at :355 BEFORE
+normalizing, so any raw upload over 5 MB is never screened at identification.** Only 3 real
+content warnings exist (Weapons/Violence). Logged, not acted.
+
+**Part 2 — the failure path (`routes/grading.py`).** **All four images are moderated**, one Rekognition
+round trip each, sequentially, no `break` (:743–759). The front is also moderated at `/api/extract`
+(:355–365), so a front rejection normally surfaces at identification. **On any rejection the whole
+request aborts** — `return jsonify({'error': 'Image rejected: inappropriate content detected.',
+'moderation': True}), 400` (:754–757); no vision call, no result, no retention row; the response
+names no image and no label. **Credit: NONE lost, nothing to refund.** The credit is
+`users.gradings_this_month`; its only writes are the new-month reset to 0 in the cap check (:569),
+the **increment at :866–870 after the vision call and `log_api_usage` (:859)**, and the refund
+decrement (`sales_valuation.py:78–82`, keyed on `grade_submissions.grading_uuid` for the
+multi-edition refusal, which happens AFTER a counted grade). The moderation return at :754 precedes
+the increment, as do the quality (:727) and undecodable (:674) returns — no 400 path increments the
+counter. `vision=-1ms post=-1ms` on the 09-11 line confirms the counted stages never ran. **Save to
+Collection on a failed grade:** the button is a static `.results-actions` div (`app.html:1318–1321`),
+no id, no visibility logic — shown on both failure branches. `saveToCollection` (:3574) guards on
+`gradingState.finalGrade` (:3576), set only on success (:2536) and never cleared. Fresh page → "No
+grade data to save". **But after one successful grade in the same page session, a rejection on the
+next book leaves the FIRST book's `finalGrade` in place while `extractedData` now holds the SECOND
+book (:1921): Save writes the previous grade (:3681) under the new title/publisher/year
+(:3677–3680).** Not observed in the data; reachable by construction. **The `--` title** is the
+default markup (:1198): the moderation 400 has no quality flag, falls to `throw` (:2515) and lands in
+the generic catch (:2653–2673), which never sets the title; it shows header "Something went wrong"
+(since `fb3e0a8`), body "Error: Image rejected…" + **"Please try again or contact support."** (:2667,
+muted token), badge "ERROR", tagline **"Grading failed. Please try again."** (:2672). No client-side
+moderation handling exists.
+
+**Part 3 — the expected shape is SUPPORTED by the code; small on the server.** Moderation runs on
+the already-assembled `images` list; everything downstream consumes that list AFTER the loop —
+`image_content`/`photo_labels` (:764–775), `build_grading_prompt` (:779), `photos_used`/`confidence`
+(:884–885), retention (:965). Dropping a rejected non-front image is a list filter at the loop plus
+a record of what was dropped; front = `images[0]` (front required, keys 1..4), so "only a rejected
+front fails" is an index test. A three-photo retention row is already a normal shape. ⚠️ The model's
+`areas_not_visible` field (`grading_engine.py:283, :344`) reaches the response but **the client
+never reads it** (0 hits in app.html / js), so the "tell the user which surface was excluded" half
+is client work from scratch: an explicit `excluded_photos: [{label, reason}]` in the response and a
+result-card line ("Back cover: not assessed — image excluded"). Estimate: server ~20 lines in one
+function; client ~30 lines + copy; no new endpoint; no change to the set. Not proposed here.
+
+**Part 4 — the error-state family, scope only (state after `fb3e0a8`):** quality branch (:2478–2513)
+= header "Photo check", names "front cover" (hard-coded — wrong for blur/undecodable, queued unit),
+title set, server tip; generic catch = header "Something went wrong", names nothing, title `--`,
+"Please try again" twice. Both show Save and Grade Next. **One change covers the family:** a single
+`renderGradeFailure({header, title, label, badge, body, tip})` fed by a server `reason`
+(`resolution | blur | undecodable | moderation`) plus the failing photo label — the already-queued
+reason-code unit widened by one value — and hiding `.results-actions` (or Save alone) on every failure
+render, which also closes the previous-book save. **The "Please try again" copy is a one-line fix and
+should not wait for that unit.**
+
+**Not the answer (per Mike):** re-shoot advice (user 68 did it anyway; for many books every photo of
+that surface fails identically); a second vision call. Recorded for the record only: the false-positive
+surface in this product's data is ONE label, `Weapon Violence`, entering through the parent
+`Graphic Violence`; any policy change is a separate decision.
+
+**Uncheckable:** Render log lines older than ~2 weeks (the logs API rejects a start before 09-01), so
+pre-September `moderation_blocked` timing lines cannot be confirmed from the API; `content_incidents`
+is the durable record and is complete for the product surfaces.
+
 ## 2026-09-13 — ✅ **rapidfuzz post-deploy check (Third-Party rule step 4) CLOSED. Mike ran it in the Render shell on 2026-09-11: `'rapidfuzz' in inspect.getsource(check_all)` → `True`, `check_rapidfuzz(force=True)` → `[]`. Relayed 2026-09-13 (Mike, via Bilbo). Was carried as "still owed" in two places below — tombstoned.**
 
 **Provenance, stated plainly:** this is Mike's terminal fact, not something a Claude session can
