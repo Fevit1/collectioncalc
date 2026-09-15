@@ -1,5 +1,75 @@
 # Where We Left Off - Sep 14, 2026
 
+## 2026-09-14 — 🌙 **SESSION CLOSE (Mike, 23:10 PDT). Everything below is committed; the working tree holds only the two pre-existing modified files (`docs/API_SPEND_LEDGER.md`, `docs/EBAY_CAPTURE_WEEKLY.docx`) plus Mike's untracked `docs/LESSONS_INDEX.md`. Next unit: queue item 2.**
+
+**MOST RECENT CHANGE (Rule 5): Mike closed the session after `bb8aeed` (lessons index). Nothing
+pending. Supersedes nothing. State checked before writing, per the CLAUDE.md rule: `git log -1` =
+`bb8aeed` 2026-09-14 23:02 -0700; live `app.html` at 06:11 UTC has "This grade is already saved" 1,
+"Already in your collection" 0, `withInFlight` 7.**
+
+**Shipped and verified this session (all Mike-run):**
+- `c23cd7f` — collection save phase 1: grading uuid as the natural key, `ON CONFLICT DO NOTHING`,
+  `saved_collection_id` populated, shared in-flight guard on five async buttons. Deployed, purged,
+  **confirmed by hand by Mike:** grade → Save → Save again gives the toast and ONE row; two separate
+  grades of the same book give TWO rows (correct — one grade, one uuid, one row).
+- `d0785d3` — duplicate-save toast names the grade, not the book. Live; old string gone.
+- `5df3073` — CLAUDE.md rule "Ship state comes from evidence, not intention" (L-SW-2026-030's
+  operational form).
+- `bb8aeed` — lessons index, 29 trigger lines at the top of `docs/LESSONS.md`; stale content in
+  003/012/017/021/013 reported, not fixed.
+- Cleanup **block A** run 22:40 PDT (explicit transaction, three pre-checks): 8 rows deleted,
+  `collections` 150 → 142, registry 23 unchanged, eight survivors present, **re-confirmed at 142
+  outside the transaction (Mike, in the close message; the file's own 142 read is the verifier's at
+  05:41 UTC).** **Block B NOT run, stays unrun.** 32 orphaned R2 objects:
+  unscheduled, harmless.
+
+**Findings carried forward:**
+- Nothing anywhere groups the collection by title+issue; multi-copy collections display as separate
+  rows (Mike holds ~a dozen doubles, a couple of triples). ⚰️ ~~Heroes for Hope #1 ×3 saved tonight as
+  rows 191/192/193~~ — **CORRECTED by Mike at close: rows 191/192/193 are TWO physical copies, not three.**
+  The two copies graded 7.5 and 8.5; the third row is a RE-GRADE of one of them, run to test the toast,
+  and returned 7.5 again — matching its first run. (By id order and grade, 191 and 193 are the same
+  copy and 192 the other; that pairing is inferred from the grades, not stated by Mike.) Two things
+  follow: (a) the re-grade is the "same copy graded twice" case — a new uuid, a new row, by design, the
+  same shape as operator rows 45/47 — so one of 191/193 is a test row Mike may want to delete, his call;
+  (b) one copy graded 7.5 twice in a row is a single data point on same-copy consistency, consistent
+  with the 0.5 noise floor. Product note (doubles side by side) recorded in ROADMAP regardless.
+- **Row 191 carries a legacy client-minted id: saved after the deploy, before the purge.** The
+  backend half alone does not close the defect — between `deploy` and `purge` the old client still
+  mints random ids. On this unit the purge was half the fix, not cosmetic. (A backend-first ship
+  order is still right; the window is the Pages build + purge, and it is real.)
+- Lessons gap measure: three lessons would have changed outcomes this week and none fired (024 on
+  the nine-row cleanup premise; 024 §3a/027 on the FK guard; 020 on the first toast wording).
+  Mike's own account of which four lessons were in use was wrong — 027 was cited zero times.
+
+**Open for the morning (Mike's decisions, nothing pending on Claude):**
+1. Stale content inside five lessons — 003 (retention exists since 06-19), 012 (512MB → Standard
+   2GB since 07-16), 017 (purge artifact now defined; "UNRELIABLE" superseded), 021 (Web Store claim
+   retired 08-26; monitor manifest 1.0.1), 013 (the cited test was a scratchpad file). Reported.
+2. Three duplication families — 008/030/the new rule (the git-log check); 015/028/029 (null and
+   surface); 016/018/019/020/021 (label is not a mechanism). Consolidation is Mike's.
+3. **The index is being placed in Bilbo's project knowledge** (Mike) — the half that closes the gap,
+   since the in-repo copy only helps this side. The copy exists as **`docs/LESSONS_INDEX.md`, UNTRACKED,
+   created 23:09 PDT by Mike** (40 lines), and its first line already carries the dated header naming
+   `LESSONS.md` as authoritative — the drift guard is in place. Whether it is committed is Mike's call;
+   if it is, the index in `LESSONS.md` stays the source and this file is the derived copy.
+
+**NEXT UNIT when work resumes — queue item 2 (ROADMAP Pattern-Sweep Queue):** the Whatnot valuator
+carries applied vision data across listings when a listing ends without a sale, so the next sale can
+be recorded as the wrong book. Present in both the live and the stale copies of the extension. It
+corrupts the comp corpus every user's FMV is computed from, and a wrong record is indistinguishable
+from a right one afterward. Report first (read-only), then propose; extension change → manifest bump,
+repo-only, no deploy.
+
+**Verification agent (close record, read-only):** 7 confirmed / 1 wrong / 0 uncheckable — "distinct
+grades" corrected to distinct grading ids; the untracked Bilbo copy and the source of the 142 re-read
+added.
+
+**Standing constraints unchanged:** Mike runs all git, deploys, env changes and production writes.
+Claude never commits, pushes, deploys or writes to production. Mechanism-vs-outcome convention
+applies. Verification agent before presenting. A later record that contradicts a brief → stop and
+say so.
+
 ## 2026-09-14 — 📇 **LESSONS INDEX added to `docs/LESSONS.md` (records only, no code) + read-only report: stale/duplicative lessons, and which lessons this week's units needed and did not use.**
 
 **MOST RECENT CHANGE (Rule 5): a 29-line trigger-condition index now sits at the top of
@@ -193,9 +263,10 @@ count, one row per serial, not per copy); registry→collections joins in `route
 `routes/verify.py`, `routes/registry.py` are one row per registry row; `admin.html:1310` shows
 `saved_collection_id` per retained grade.
 
-**Live evidence of both halves, 09-15 UTC (verifier, RO):** rows 191/192/193 are Mike's THREE Heroes for
-Hope #1 (02:58–03:00 UTC, grades 7.5 / 8.5 / 7.5, three distinct grading ids) — the product-note scenario,
-saved as three rows as it should be. Row 191 carries a legacy `SW-` id, 192/193 carry server uuids:
+**Live evidence of both halves, 09-15 UTC (verifier, RO):** rows 191/192/193 are ⚰️ ~~Mike's THREE Heroes
+for Hope #1~~ **TWO copies of Heroes for Hope #1 plus a re-grade of one of them (Mike, session close —
+tombstoned in the close entry)** (02:58–03:00 UTC, grades 7.5 / 8.5 / 7.5, three distinct grading ids) —
+three grades, three rows, as designed; the re-grade row is a test artefact, Mike's to keep or delete. Row 191 carries a legacy `SW-` id, 192/193 carry server uuids:
 191 was saved 8 min after the deploy finished, before the purge landed (the cached page still minted).
 `grade_submissions.saved_collection_id` is now non-NULL on 2 rows — the link column is being written.
 
