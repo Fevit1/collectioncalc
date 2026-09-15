@@ -1,5 +1,102 @@
 # Where We Left Off - Sep 14, 2026
 
+## 2026-09-14 — 🟦 **Queue item 1 (Save to Collection: double-click duplicate + stale-grade save) — REPORT STAGE. Nothing changed. Verified 35/3/1; corrections folded in. Mike decides the unit shape.**
+
+**MOST RECENT CHANGE (Rule 5): read-only characterisation of queue item 1 delivered 2026-09-14 with a
+proposal that differs from the brief's sketch — the natural key already exists at every layer and is
+ignored by the one call that matters; using it closes both defects without a per-button guard being the
+only protection and without clearing cached state. Mike has not decided. HEAD `77ac111` (roadmap
+committed by Mike).**
+
+**A. What a second click does.** `saveToCollection` (`app.html:3574`) guards only on
+`finalGrade` (:3576); the Save button (:1319, no id) is never disabled — the only `disabled = true`
+in the function is the Register button (:3597). Each click **mints its own id** `SW-${Date.now()}-…`
+(:3604), uploads the four photos to `submissions/{that id}/{type}.jpg` (`r2_storage.py:141`; plain
+`put_object`, no hash check) and POSTs `/api/collection/save` with that id (:3705). The server
+(`routes/collection.py:110–178`) is a plain INSERT loop with one commit (:175) and **no `ON CONFLICT`**.
+Two clicks = two independent async runs, both 200, nothing idempotent at any layer;
+`lastSavedComicId` (:3752) ends on whichever finished last. **The natural key is ignored at exactly one
+place:** `/api/grade` mints `grading_uuid` (`routes/grading.py:958–959`), the client holds it as
+`finalGrade.grading_id` (:2534–2536, with a client fallback mint) and sends it to valuation (:2706)
+and feedback (:3216) — but NOT to the save — and **`collections.grading_id` already carries a UNIQUE
+constraint (`collections_grading_id_key`, contype u)** that never fires because every click sends a
+fresh random id. Side finding (P1 shape): the comment at `app.html:2530–2532` lists "collection save
+:3697" as a consumer of the server id; it is not.
+
+**B. Duplicates already in `collections` (RO, 137 rows, 29 op / 108 real):** 11 near-duplicate pairs
+(same user/title/issue/grade within 3 min) = **9 surplus rows: 3 operator (23/24, 45/47, 53/54) and 6
+real-user** — user 38: Strange Academy #1 (91, 92), **Daredevil #196 ×4 (93, 94, 95, 96)**; user 61:
+Tales to Astonish #93 (128, 129), #90 (131, 132). All 137 `grading_id`s distinct; every pair's photos
+sit under different `submissions/SW-…/` prefixes (duplicate R2 object sets). Gaps: the real-user
+clusters are 23–140 s apart — not double-clicks but **re-clicks after a save that shows no in-progress
+signal** (four uploads then a POST, only a toast); operator pair 53/54 is 1.0 s, a true double-click.
+`grade_submissions.saved_collection_id` is NULL on all 215 rows — the retained-grade → collection link
+has never been written. **Consequence: prevention PLUS cleanup; cleanup is a production write and is
+Mike's** (surplus rows 92; 94, 95, 96; 129; 132, keeping the earliest of each cluster, plus their R2
+objects; the three operator pairs likewise).
+
+**C. Register on a duplicate.** `routes/registry.py:576–581` checks `WHERE comic_id = %s` — the
+collection ROW id — so a duplicate row is a different comic and mints a new serial (:641–668); no
+fingerprint match runs at register. Demonstrated: rows 45 and 47 (operator) carry **SW-2026-000007 and
+SW-2026-000009 — two serials, one book** (their hashes differ, so a hash-equality check would not have
+caught it either). Three other registrations (68/69/70) share one hash. Users 38/61 have no
+registrations → no real-user double serial today. **Recoverable:** `sighting_reports` 0 rows,
+`match_reports` 0 rows, both certificate fields NULL — nothing external references either serial.
+
+**D. Route back to the upload step: none via UI.** `generateGradeReport` removes `.active` from
+`#gradingContent1` (:2282); nothing in app.html re-adds it; no `pageshow` handler; "Grade Next" is a
+reload (:1320); bfcache restores the results screen. **The stale-grade save is latent, not live** —
+narrower than the ranking assumed. ⚠️ **Load-bearing for the separate "start-over control" scoping
+question:** `js/grading.js:2510` `resetGrading()` (dead, zero callers) DOES re-show step 1 — and it
+resets grading.js's own module-scoped `gradingState`, a different object from `window.gradingState`.
+Wired as-is as a start-over control, it would re-open the upload step with `window.gradingState.finalGrade`
+intact: the stale-grade save exactly.
+
+**E. Mike's structural questions, answered from the code:**
+1. **Same root cause?** Same class (page state with no lifecycle) — different mechanisms (request
+   identity vs state lifetime). Bundled correctly, but the reason is that ONE change closes both.
+2. **Idempotency key vs natural key?** The natural key exists (uuid minted, held, indexed UNIQUE) and is
+   unused by the save. A new key would duplicate it. Send `finalGrade.grading_id`; key the R2 uploads on
+   it (a second PUT to the same path is idempotent — duplicate objects vanish without content hashing);
+   server `INSERT … ON CONFLICT (grading_id) DO NOTHING` then `SELECT id WHERE grading_id = %s` → the
+   same collection id, 200, `already_saved: true`. ⚠️ The follow-up SELECT is mandatory: `RETURNING id`
+   yields no row on conflict and the current `fetchone()['id']` would raise. Legacy `SW-` ids and 32-hex
+   uuids coexist (varchar, no format constraint); `grade_submissions.grading_uuid` has a partial UNIQUE
+   index usable by the link UPDATE.
+3. **Clear the cache, or not cache?** With the natural key, a stale `finalGrade` carries the FIRST book's
+   uuid and collides with its existing row — the wrong-title-under-old-grade row becomes structurally
+   impossible **without clearing anything**. The stronger form (server copies grade/subgrades/defects
+   from `grade_submissions` by uuid; client stops re-uploading photos) is where the grade actually lives
+   and is available, at a cost: the retention row is written on a daemon thread (INSERT+commit
+   :66–102, photos backfilled :105–119) so a save within ~1–3 s needs a retry/409, and pointing
+   collection photos at retained keys couples them to the 24-month purge (the never-written
+   `saved_collection_id` is the column that would let the purge skip linked rows). Recommendation:
+   **phase 1 = natural key + ON CONFLICT + write `saved_collection_id`; phase 2, separate unit =
+   server-side copy from `grade_submissions`.** Phase 1 removes the defect class for this button; phase 2
+   removes the cache.
+4. **Structural double-click?** The structural layer is the server's uniqueness — it lives in the data
+   and cannot be forgotten on the next button. The client layer today is per-button and inconsistent:
+   `submitGradingFeedback` has a real latch (`feedbackSubmitted` + disabled thumbs); `registerComic` and
+   `saveAllToCollection` disable Register; `generateGradeReport` and `runSignatureCheck` have nothing;
+   `saveToCollection` disables the wrong button. No shared helper exists. A `withInFlight(button, fn)`
+   wrapper on the five async buttons makes the client half structural in one place and supplies the
+   missing in-progress signal that produced the 23–140 s re-clicks.
+
+**F. Proposed unit (phase 1), NOT applied:** frontend `app.html` — send `finalGrade.grading_id` as
+`grading_id` and as the R2 `submission_id` (fallback to the `SW-` mint only if absent — verifier: it is
+never absent on the app.html path, incl. the `?dev` quick test, which cannot reach the save); `withInFlight`
+on Save (and the other four); treat `already_saved` as success. Backend `routes/collection.py` —
+`ON CONFLICT (grading_id) DO NOTHING` + SELECT existing id + `UPDATE grade_submissions SET
+saved_collection_id … WHERE grading_uuid = %s` in the same transaction. Not touched: result card,
+start-over control, Register flow. **Deploy backend FIRST** (an old server given a uuid simply inserts
+it; the ON CONFLICT must be live before the guard is trusted); frontend → push → Pages build → purge.
+Cleanup (Mike, production write) as in §B, plus a decision on serial SW-2026-000009.
+
+**Verification agent (read-only):** 35 confirmed / 3 wrong / 1 uncheckable. Wrong: the surplus-row
+arithmetic (9 total: 3 op + 6 real — corrected above); "gaps are not double-clicks" (true for real users;
+53/54 at 1.0 s is one); "nothing re-adds `.active` to step 1" (dead `resetGrading` does — noted in §D).
+Uncheckable: that users 7/27/30 are operator accounts (a scratchpad constant; only user 3 is `is_admin`).
+
 ## 2026-09-14 — 🧹 **PATTERN SWEEP (Mike's brief, Todoist item "run the pattern sweep", due 08-28) — READ-ONLY, bounded to seven named shapes. Findings only; no fixes, no proposals, no differentials. Checkpointed per pattern below as each sub-sweep returns.**
 
 **MOST RECENT CHANGE (Rule 5): sweep STARTED 2026-09-14. Seven parallel read-only sub-sweeps, one per
