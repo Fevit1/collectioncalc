@@ -1,5 +1,99 @@
 # Where We Left Off - Sep 14, 2026
 
+## 2026-09-14 — 📇 **LESSONS INDEX added to `docs/LESSONS.md` (records only, no code) + read-only report: stale/duplicative lessons, and which lessons this week's units needed and did not use.**
+
+**MOST RECENT CHANGE (Rule 5): a 29-line trigger-condition index now sits at the top of
+`docs/LESSONS.md`, above `## Format`. In the working tree, pending Mike's commit (this file and
+LESSONS.md). Nothing merged, nothing deleted; the staleness and duplication findings below are for
+Mike to decide.**
+
+**Why (Mike):** the side of the work that writes the briefs does not read LESSONS.md; four lessons
+(020, 027, 029, 030) were applied this week because they surfaced in conversation, not because they
+fit. Twenty-five have never been read by that side. The pattern sweep's seven shapes came from the
+conversation plus one old task description, not from the file.
+
+**Shape decision:** in-file section, not a separate file. A second file is a second record to drift
+(the P4 shape this week was spent on); an index directly above the entries it indexes drifts only when a
+lesson is added without a line, and the section header says so. Numeric order (stable for lookup); the
+entries themselves stay in recency order.
+
+**Stale content INSIDE lessons (mechanism moved; rule still stands unless noted) — REPORTED, NOT FIXED:**
+- **003** — WHY/HOW describe a world with no retention ("gated on a privacy/consent decision");
+  `grade_submissions` has existed since **2026-06-19** (`e87b8cf` table, `801e79d` writer; Session 107
+  "RETENTION shipped & verified"). The rule survives only as "check whether the grade was retained".
+- **012** — "512MB Starter ceiling": instance is Standard 2GB since 2026-07-16 (CLAUDE.md). Illustrative.
+- **017** — SOURCE says "Cloudflare purge still has no artifact defined": CLAUDE.md's ship sequence now
+  defines it (assert the new content is served, `curl -sL`). WHY quotes CLAUDE.md's old "auto-deploy
+  UNRELIABLE" wording, corrected to OFF on 2026-08-07.
+- **021** — "STILL OPEN: `faq.html:541` Chrome Web Store claim, pending Mike": `faq.html` no longer
+  contains the phrase (resolved, unrecorded in the lesson). "`slab-guard-monitor` manifest 1.0.0": now
+  1.0.1. The `marketplace_monitoring` false-restriction in `PLANS` is still there (routes/billing.py:63,
+  82, 101, 120) — that part is current.
+- **013** — cites `test_monitor_flap.py` (S4, "40 alternating polls → exactly 1 email") as the offline
+  storm test. **No such file is tracked, and none ever was** (`git ls-files`, `git log --all -- '*flap*'`
+  both empty; `find` over the working tree empty). The test the lesson points at does not exist in the
+  repo — WWLO Session 118 records it as a *scratchpad* file, never a repo artifact, so nobody should
+  hunt for a lost commit; the mechanism (`37d5e97`) is unaffected.
+- Current, spot-checked: 005 (`scripts/stripe_preflight.py` exists), 010 (`PYTHONUNBUFFERED=1`
+  Dockerfile:7), 014 (says its own figures age), 016 (instances 5–7 "left": `My Reports` still in
+  `popup.html:149`, consistent), 021 (`docs/EXTERNAL_COPY_SURFACES.md` exists), 023 (`.dockerignore`
+  list matches), 024 (025 still reserved), 029 (`.gitignore:106` still `scripts/cp1_*.py`).
+
+**Duplicative / overlapping (the file already marks 011/027, 015/017 and 026/020 "do not merge", and
+018 "DISTINCT FROM 015/024" without the merge wording; those are not re-raised). Mike decides:**
+- **008 + 030 + the new CLAUDE.md rule** — one check (git log before writing or presenting ship state)
+  in three places. 030 describes itself primarily as **020** "applied to a record instead of user-facing
+  text" and secondarily as "the failure 008 guards against", so it sits in both families; the CLAUDE.md
+  bullet is the operational form of the 008 half. Candidate: 030 becomes a second instance under 008
+  (the check) with a cross-reference from 020 (the shape); the index points at one line.
+- **015 → 028 → 029** — 028 calls itself "the general form of 021(a)" and "015 applied to lookups";
+  029 calls itself "028 with the surface named". One rule (name the surface; positive-control the
+  null), three entries. 029 could be a HOW TO APPLY bullet under 028.
+- **016 → 018 → 020 → 021(b)** — 020 says it generalises 016 and 018; 021(b) is "018 inside the fix
+  for 016". One root rule (a label, flag, or claim is not a mechanism — find the reader or the
+  expression), four entries with different war stories.
+- **017 / 022 / 023** — distinct (artifact / timing / location), but all three are now encoded in
+  CLAUDE.md's ship sequence; they are diagnosis, CLAUDE.md is the rule — the same promotion 030 got.
+- **009 / 019 / 026 — the recall-vs-precision asymmetry** (a miss shrinks a pool, a false merge poisons
+  one): 019 and 026 each say "the same asymmetry as [[L-SW-2026-009]]". One principle, three carriers;
+  a cross-reference family, not a merge.
+- **019 → 016**: 019 calls itself "[[L-SW-2026-016]] at the data layer", so it also belongs in the
+  label-is-not-a-mechanism family above (five entries, not four).
+- **001** is restated in CLAUDE.md and in memory. Correct; it is the one rule that belongs everywhere.
+
+**Gap measure — lessons this week's units needed and did not apply (the cost of reading a seventh):**
+1. **024 (measure THAT population)** — the cleanup's nine-row premise "surplus rows are duplicate
+   saves" was a plausible story (same user/title/issue/grade within 3 min); the grade blobs were not
+   compared until Mike asked. Rows 45/47 are two grading runs and 47 carries a live serial; the first
+   SQL (committed in `c23cd7f`'s record) would have deleted row 47 and its serial. Caught by Mike's
+   question. The lesson's first instance (FF #1, "asserted… and never counted") is this shape.
+2. **024 §3a (run the whole predicate, verbatim) / 027 ("positive-control every new guard against a
+   case it must block")** — the FK guard was checked for row 47 only, not for all nine; registry row
+   19 → 54 was found by the verifier before the draft reached a commit. The survivor rule had been
+   applied to the wrong row of the Handbook #1 pair.
+3. **020 rules 1 and 4 (name for the condition; a mislabel fix is where the next mislabel lands)** —
+   the first toast, "Already in your collection", named a representative case (one copy) inside the
+   save fix, in the same pass that cited 020 for another string. Caught by Mike.
+4. **016 rule 6 + 013 (state that only resets by a button is not a session; per-worker observations
+   vs shared state)** — the sweep's P7 shape and its gunicorn per-worker finding were already in the
+   file; the sweep derived them from conversation. No outcome cost; the direct evidence for the brief.
+5. **030 / 008** — read, cited, and violated twice (recorded; now a CLAUDE.md rule).
+Applied without citation, for the record: 017 (Render deploys GET as the
+artifact), 022 (wait before purge in every ship block), 028 (CLAUDE.md "no such line" reported rather
+than acted on), 018 in mirror form (queue item 1's root cause — a UNIQUE constraint no caller fed —
+was found by grepping for the reader). 015 WAS cited (the sweep entry: "positive control required on
+every pattern"). ⚠️ The file's own count of this week's citations is 030×5, 020×3, 029×1, 015×1, 026×1,
+**027×0** — so of the four Mike named as applied, 027 was applied in a brief, not in a record; 015 and
+026 were cited and unlisted. **Verdict: the four in use were not the four that mattered;
+three others would have changed outcomes this week and were caught by Mike or the verifier instead of
+by the file. The index is worth maintaining.**
+
+**Verification agent (read-only):** 46 confirmed / 5 wrong / 3 uncheckable. The five, folded above:
+retention date 06-27 → 06-19; 030's primary self-description is 020, not 008; 018's note is "DISTINCT
+FROM 015/024", not "do not merge"; 015 was cited this week; the index header's "recency order" claim.
+Four index lines rewritten to state the moment rather than the finding (009, 015, 018, 019). Uncheckable:
+the row count, and the conversation-side claims about what the brief-writing side has read.
+
 ## 2026-09-14 — 📏 **RULE ADDED to CLAUDE.md (records only, no code): "Ship state comes from evidence, not intention." L-SW-2026-030 stays in LESSONS.md as the diagnosis, with a pointer to the rule.**
 
 **MOST RECENT CHANGE (Rule 5): Mike promoted the ship-state check from lesson to rule, 2026-09-14 late
