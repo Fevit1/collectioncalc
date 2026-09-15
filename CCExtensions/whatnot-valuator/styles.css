@@ -78,6 +78,14 @@
   margin-bottom: 4px;
 }
 
+/* 2.44.0 — held-state drop counters (queue item 2) */
+.valuator-drops {
+  font-size: 10px;
+  color: #8a8f98;
+  padding: 4px 10px 6px;
+  letter-spacing: 0.2px;
+}
+
 .valuator-note {
   color: #81c784;
   font-size: 12px;

@@ -251,7 +251,7 @@ class of silent no-op as a Render deploy that doesn't fire. The version in `chro
 only observable proof the reload took. This bit us once: `ebay-collector` sat at **1.3.5 from
 2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
 reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-14; ⚰️ the 2026-08-24 list read 2.42.1 / 1.0.0 and was stale for two of three from 08-28 — corrected by the pattern sweep): `ebay-collector` 1.4.0,
-`whatnot-valuator` 2.43.0, `slab-guard-monitor` 1.0.1.
+`whatnot-valuator` **2.44.0 in the working tree 2026-09-15 (queue item 2), pending Mike's commit + reload; 2.43.0 is what is loaded until the reload shows 2.44.0**, `slab-guard-monitor` 1.0.1.
 
 **Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5 → 1.4.0):**
 - **patch** — fixes/comments with no observable behaviour change

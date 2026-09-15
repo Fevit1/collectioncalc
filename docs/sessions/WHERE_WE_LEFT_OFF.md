@@ -1,4 +1,133 @@
-# Where We Left Off - Sep 14, 2026
+# Where We Left Off - Sep 15, 2026
+
+## 2026-09-15 — 🧭 **QUEUE ITEM 2 BUILT: whatnot-valuator 2.44.0 — held vision and held previous listing now have an owner and an expiry. In the working tree, pending Mike's commit and an unpacked reload. Repo-only: no deploy, no purge.**
+
+**MOST RECENT CHANGE (Rule 5): the 2.44.0 build of the Whatnot valuator is in the working tree (four files
+under `CCExtensions/whatnot-valuator/`), verified in a stubbed-page harness with zero network and zero
+production writes, verification agent run. `git log -1` = `93d0274` 2026-09-14 23:18 -0700, so NOTHING of
+this is committed; the next observable step is Mike's commit, then a reload showing 2.44.0 in
+`chrome://extensions`. Supersedes the 09-14 close's "next unit: queue item 2 — report first". The report
+was delivered in chat (three rounds: mechanism + measurement, then step 1/2 measurements, then the build).**
+
+**The defect, as read.** All state lives in `content.js`. `appliedVisionData` (set :276 in 2.43.0) and
+`previousListing` (set :522) were cleared ONLY in the branch that had just recorded a sale (:966, :1007).
+There was no end-of-listing detection at all: the reader skips Apollo listings marked ENDED/SOLD
+(`apollo-reader.js:146`), so an unsold end was invisible, and the only sale signal is page text "sold"/"won".
+Three carry paths, one root: (1) vision across an unsold listing — the next sale gets the previous
+book's title/issue/grade/variant/slab and R2 image with its own price; (2) previousListing across an
+unsold listing — if the won text is seen while the next listing is current, the record is the previous
+book's title AND price, and the real sale is lost; (3) a scan that returns after its listing's sale was
+recorded stamps the listing after. `background.js` holds nothing relevant (it mirrors recorded sales into
+storage); the POST is built in `lib/collectioncalc.js` `insertSale` and its shape is UNCHANGED.
+
+**Shape shipped (Mike's brief 09-15, two refinements made from the read and stated here):**
+- **Stable DOM-fallback id** (`apollo-reader.js` `makeFallbackId`): `dom-<seller>:<lot label>`, replacing
+  `'dom-' + Date.now()` at both fallback sites. Decided from the step-1 measurement (below).
+- **Vision is stamped with the listing id at scan start** (`handleVisionScan` → `result.forListingId`)
+  and attaches at record time only when it equals the sold listing's id (`visionForSale`).
+  ⚑ Refinement 1: on a mismatch the vision is WITHHELD from that record, but DISCARDED only if it does not
+  belong to the listing that is current now. The common mismatch is "next listing already scanned, then
+  the previous listing's sold text lands"; discarding there would strip vision from the next sale. The
+  harness showed the kept vision attaching to its own sale afterwards.
+- **Unsold expiry**: at a listing switch, a still-held `previousListing` means no sale was detected across
+  the whole listing that just ended → dropped, logged. Plus a **provisional 10 s timeout**
+  (`HELD_PREVIOUS_EXPIRY_MS`) checked every poll before sale detection.
+  ⚑ Refinement 2: held vision is dropped with the expired listing ONLY when it was scanned for that
+  listing. Vision scanned for the listing now moving into the held slot survives, because the designed
+  flow detects that listing's sale AFTER the switch; dropping it would lose vision on every sale that
+  follows an unsold listing.
+- **Late scan**: the scan handler re-reads `currentListing.id` when the result arrives and discards a
+  result whose listing changed while it ran ("Scan outdated").
+- **Four counters** in the overlay line `drops · mismatch n · fallback-id n · unsold-expiry n · late-scan n`,
+  each with a `[Valuator] DROP <kind>: …` console line naming both listings. `fallback-id` is the
+  mismatch sub-bucket where either id is a fallback id — kept separate so a label-derived id that
+  flickers mid-listing shows up as its own signal. `ValuatorDebug.getDropCounts()`.
+- **Timing ring buffer** `valuator_timing` in `chrome.storage.local`: `['sw', t, fromId, toId]` per switch,
+  `['sale', t, msSinceSwitch, usedPrev]` per detected sale; ids cut to 40 chars; **≤ ~106 bytes per entry
+  as JSON, capped at 500 entries → under 60 KB** of the 10 MB quota (harness measured 54 bytes max, 652
+  bytes for 19 entries). `ValuatorDebug.getTiming()`. Its purpose is to replace the 10 s guess with data.
+- **Manifest 2.43.0 → 2.44.0; console banner 2.41.2 → 2.44.0** (the banner had been stale since 2.42).
+- ⚑ **One fix outside the brief, flagged for Mike to keep or strip:** `checkForSale` referenced
+  `finalSlabType` before its `const` (a TDZ ReferenceError) on the path "seller's label carries a grade
+  AND vision has a grade AND the sale is detected after the switch". Pre-existing (2.43.0 had the same
+  reference); the harness reproduced it — `Watch error: Cannot access 'finalSlabType' before
+  initialization`, sale detected, NOT recorded, and never re-detected because `lastSaleCheck` was already
+  set. Slab sellers' labels ("ASM 300 CGC 9.8") are exactly this path. Replaced with `vision.slabType`,
+  which is what the later block computes anyway. Re-run: recorded, grade 9.6, `slab_label`.
+
+**Step 1 measurement — fallback exposure.** The record carries no listing id (`source_id` is a timestamp;
+extension storage and the March export carry the same object). Proxy from the code: the Apollo path never
+sets `seller`/`viewers` (the normalizer has neither; the DOM merge copies only title/subtitle/price), the
+fallback path sets both from the DOM scrape → **seller present ⇒ fallback, certain; seller null ⇏ Apollo**
+(lower bound). Since 08-28: **50 of 970 rows (5.2%)**, all one contiguous block 23:00–23:29 on 09-10, one
+seller, two labels, Apollo before and after. All-time 89 of 11,024. Corroborated: 48 of the 57
+repeat-record rows since 08-28 are inside that block, 47 gaps exactly 30 s (the debounce); fallback rows
+carry a bid count 50/50 vs 13/920 on Apollo. Reading: fallback is **per page load**, not per listing —
+rare, but an entire session when it happens, and it is also the storm. Hence the stable id.
+
+**Step 2 measurement — the expiry bound.** The "using previous" console lines are retained nowhere.
+**Unmeasured; no percentile can be stated.** Mechanics: the "switch" is the reader skipping the listing
+once Apollo flips it SOLD, and the won text is Whatnot's render of the same event → expected gap ≈ poll
+500 ms + cache 400 ms + bridge 300 ms, under ~1.5 s with the next item queued; ≈ 0 from the switch when
+nothing is queued. Harness gaps on the designed flow: 487–3,015 ms (the 2.5–3 s ones are the harness's
+own waits). Asymmetry: too tight = the defect itself (A's sale recorded under B). 10 s provisional; the
+ring buffer measures the real distribution over one capture evening; set the bound at max + margin then.
+
+**Backfill audit of affected rows: NOT POSSIBLE from the corpus, and why.** Nothing in a row ties the
+vision fields to the listing they were scanned from. On Whatnot `raw_title` is the seller's LOT LABEL
+("$1 starts #25", "Box #17", "Fight me bro #6"), so vision disagreeing with the label is the normal case:
+of 2,611 vision rows with a "#N" label, 2,408 disagree, and the N is the lot counter, not an issue. Both
+proxies tried (title mismatch, issue mismatch) return the whole population. Consecutive identical vision
+identity (28 pairs since 08-28) is also what a seller running multiple copies produces. Exposed
+population: 736 vision rows since 08-28, 4,849 all-time; the number actually wrong is unknowable
+retroactively. The counters are the first instrument that can measure the rate, going forward only.
+
+**Known limitation of the stable id (Mike, addition 1) — multi-copy lots, harness-confirmed, NOT scoped:**
+a seller running several copies under one label at the same price: the first sale records; the relist's
+price reset is detected as a new item (price-drop rule), which re-holds the old copy's snapshot as
+"previous" (expires as one `unsold-expiry` count, harmless, logged); the second sale at the **same hammer
+price is DROPPED** by the existing sold-text dedup (`saleKey = id-price-label` unchanged since the first
+sale); a **different hammer price is recorded**; any second sale inside 30 s is dropped by the debounce
+regardless. This is the behaviour Apollo-path listings with a reused product id already had; the stable id
+makes fallback sessions match it rather than storm.
+
+**Hulk stack storm — EXPECTED to stop, UNVERIFIED (Mike, addition 2).** Rows 10678–10692 (09-10, seller
+`85a650c7…`, label "Hulk stack", $65) were one sale recorded 15 times at 30 s intervals with a fresh scan
+each time, because the fallback id changed every poll. With the stable id the harness shows one
+new-listing event, one scan and one record for a fallback listing polled 30 s with the sold text left on
+for 36 s. **The observation that confirms it in the field: a fallback session (rows with `seller`
+present) with NO 30 s repeat clusters (same seller + raw_title + price within 90 s).** Until that is seen
+it is not fixed. Logged as its own ROADMAP queue item (13).
+
+**Harness evidence (scratchpad `harness/`, real `content.js` + real normalizer/valuator/sale-tracker/
+apollo-reader, stubbed `chrome`/`ComicVision`/`SupabaseClient`, `insertSale` captured in-page — no
+network, no production write; served by the gitignored `valuator-harness` launch config):**
+| counter | sequence that increments it | observed |
+|---|---|---|
+| designed flow (control) | scan A → switch to B → A's sold text | A recorded with A's vision + image, drops 0 |
+| mismatch | B current → switch to C → scan C → B's sold text within 10 s | B recorded under its own label, no image; `DROP mismatch … (kept for the current listing)`; C's vision then attached to C's own sale |
+| fallback-id | fallback F1 → switch F2 → scan F2 → F1's sold text | F1 recorded, no image; `DROP fallbackId … dom-sam:box #2 … dom-sam:box #1 (kept …)` |
+| unsold-expiry (switch) | held prev, no sale, next switch | `… ended without a detected sale (switch); dropped its vision "Superman"` |
+| unsold-expiry (timeout) | scan F2 → switch to G → 11 s silence | `… (timeout 10000 ms); dropped its vision "Incredible Hulk"` |
+| late-scan | scan held on G → switch to K → resolve | not applied, status "Scan outdated", `DROP lateScan: … L-G returned on L-K (result "Thor")` |
+No counter needed a production write to observe. Overlay line and `getDropCounts()` agreed throughout.
+
+**Verification agent (read-only; it had no shell, so it read the full current files rather than the diff,
+and it read `content.js` BEFORE the TDZ fix landed):** brief items 1–7 all found implemented; payload shape
+to `insertSale` unchanged; ring buffer cannot exceed 500 and cannot throw without storage; designed flow
+internally consistent. **1 critical: the `finalSlabType` TDZ** — the same defect the harness had already
+reproduced, fixed as above (converged independently). **1 low: a first-load race in `recordTiming`** — two
+entries in the same tick before the first storage read resolved could each start a load and the later
+callback overwrite the earlier entry; fixed by queueing entries until the load drains. One ambiguity it
+raised, read as intended: an unsold expiry that also drops vision is one counter increment and one console
+line naming both, not two.
+
+**Ship block (Mike):** `git add CCExtensions/whatnot-valuator/content.js
+CCExtensions/whatnot-valuator/lib/apollo-reader.js CCExtensions/whatnot-valuator/manifest.json
+CCExtensions/whatnot-valuator/styles.css` + records → commit → push. **No `deploy`, no `purge`.** Then
+reload the unpacked extension; **expected version in `chrome://extensions`: 2.44.0**; console banner
+`Initializing Comic Valuator v2.44.0`; the overlay shows the `drops ·` line. `WV/` untouched (still
+2.41.1, queue item 12). CLAUDE.md's version list updated to 2.44.0 with the pending note.
 
 ## 2026-09-14 — 🌙 **SESSION CLOSE (Mike, 23:10 PDT). Everything below is committed; the working tree holds only the two pre-existing modified files (`docs/API_SPEND_LEDGER.md`, `docs/EBAY_CAPTURE_WEEKLY.docx`) plus Mike's untracked `docs/LESSONS_INDEX.md`. Next unit: queue item 2.**
 

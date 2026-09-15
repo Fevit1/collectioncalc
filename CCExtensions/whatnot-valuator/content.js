@@ -4,7 +4,7 @@
 (function() {
   'use strict';
 
-  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.41.2...');
+  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.44.0...');
   console.log('[Valuator] Vision:', window.ComicVision ? '✅ Loaded' : '❌ Not loaded');
   console.log('[Valuator] CollectionCalc:', window.SupabaseClient ? '✅ Connected' : '❌ Not loaded');
 
@@ -26,6 +26,107 @@
   let scanCooldownUntil = 0;    // Timestamp - no new scans until this time
   let lastScannedListingId = null; // Track by listing.id only (not title)
   let lastScanTime = 0;         // When we last scanned
+
+  // 2.44.0 — held-state ownership (queue item 2). Before this build appliedVisionData and
+  // previousListing were cleared ONLY after a recorded sale, so a listing that ended without
+  // a detected sale left the previous book's identity, grade and image on the next sale
+  // record. Now: vision is stamped with the listing it was scanned for and attaches only to
+  // that listing's sale; a held previous listing expires at the next switch or after
+  // HELD_PREVIOUS_EXPIRY_MS; a scan whose listing changed while it ran is discarded.
+  // Every drop is logged, counted, and shown in the overlay.
+  let previousListingHeldAt = 0;         // when previousListing was captured at a switch
+  let lastSwitchAt = 0;                  // last listing switch, for the timing ring buffer
+  const HELD_PREVIOUS_EXPIRY_MS = 10000; // PROVISIONAL (WWLO 2026-09-15): mechanics say the
+                                         // switch-to-sold-text gap is under ~1.5 s; the ring
+                                         // buffer below measures it. Revisit from that data.
+  const dropCounts = { mismatch: 0, fallbackId: 0, unsoldExpiry: 0, lateScan: 0 };
+
+  function isFallbackId(id) {
+    return typeof id === 'string' && id.startsWith('dom-');
+  }
+
+  function recordDrop(kind, detail) {
+    dropCounts[kind] = (dropCounts[kind] || 0) + 1;
+    console.warn(`[Valuator] DROP ${kind}: ${detail}`);
+    renderDropCounts();
+  }
+
+  function renderDropCounts() {
+    const el = overlayEl && overlayEl.querySelector('.valuator-drops');
+    if (!el) return;
+    el.textContent = `drops · mismatch ${dropCounts.mismatch} · fallback-id ${dropCounts.fallbackId}` +
+      ` · unsold-expiry ${dropCounts.unsoldExpiry} · late-scan ${dropCounts.lateScan}`;
+  }
+
+  // Timing ring buffer — measures the gap between a listing switch and the sold text, the
+  // number HELD_PREVIOUS_EXPIRY_MS is a guess at. Entries are compact arrays:
+  //   ['sw',   t, fromId, toId]           on every listing switch
+  //   ['sale', t, msSinceSwitch, usedPrev] on every detected sale (usedPrev 1 = previousListing)
+  // Ids are cut to 40 chars, so an entry is at most ~106 bytes as JSON; 500 entries is under
+  // 60 KB of the 10 MB chrome.storage.local quota (whatnot_sales is capped at 500 for the
+  // same reason). Read it with ValuatorDebug.getTiming().
+  const TIMING_KEY = 'valuator_timing';
+  const TIMING_MAX = 500;
+  let timingBuffer = null;   // loaded from storage on first use
+  let timingPending = [];    // entries that arrive while that first load is in flight
+  function recordTiming(entry) {
+    const push = (e) => {
+      timingBuffer.push(e);
+      while (timingBuffer.length > TIMING_MAX) timingBuffer.shift();
+      try { chrome.storage.local.set({ [TIMING_KEY]: timingBuffer }); } catch (err) { /* storage gone */ }
+    };
+    if (timingBuffer) { push(entry); return; }
+    timingPending.push(entry);
+    if (timingPending.length > 1) return; // a load is already in flight; it will drain the queue
+    const drain = (loaded) => {
+      timingBuffer = Array.isArray(loaded) ? loaded : [];
+      const queued = timingPending; timingPending = [];
+      queued.forEach(push);
+    };
+    try {
+      chrome.storage.local.get([TIMING_KEY], (result) => drain(result && result[TIMING_KEY]));
+    } catch (e) { drain([]); }
+  }
+  const shortId = (id) => (id == null ? null : String(id).slice(0, 40));
+
+  // The held previous listing ended without a detected sale: drop it, and drop held vision
+  // only when that vision was scanned for it. Vision scanned for the listing now moving into
+  // the held slot must survive, because the sold text for it arrives AFTER the switch.
+  function dropHeldPrevious(reason) {
+    const held = previousListing;
+    previousListing = null;
+    previousListingHeldAt = 0;
+    let detail = `held listing ${held.id} "${held.title}" ended without a detected sale (${reason})`;
+    if (appliedVisionData && appliedVisionData.forListingId === held.id) {
+      detail += `; dropped its vision "${appliedVisionData.title}"`;
+      appliedVisionData = null;
+    }
+    recordDrop('unsoldExpiry', detail);
+  }
+
+  function expireHeldPrevious() {
+    if (previousListing && previousListingHeldAt &&
+        Date.now() - previousListingHeldAt > HELD_PREVIOUS_EXPIRY_MS) {
+      dropHeldPrevious(`timeout ${HELD_PREVIOUS_EXPIRY_MS} ms`);
+    }
+  }
+
+  // Vision attaches to a sale only when it was scanned for the listing that sold. On a
+  // mismatch it is withheld from this record; it is discarded unless it belongs to the
+  // listing that is current now (the usual mismatch: the previous listing's sold text lands
+  // after the next listing was already scanned), in which case it is kept for that sale.
+  function visionForSale(soldListing) {
+    const v = appliedVisionData;
+    if (!v) return null;
+    const soldId = soldListing ? soldListing.id : null;
+    if (v.forListingId != null && soldId != null && v.forListingId === soldId) return v;
+    const kind = (isFallbackId(v.forListingId) || isFallbackId(soldId)) ? 'fallbackId' : 'mismatch';
+    const keep = currentListing && v.forListingId != null && v.forListingId === currentListing.id;
+    recordDrop(kind, `vision "${v.title}" was scanned for listing ${v.forListingId}, sold listing is ${soldId}` +
+      (keep ? ' (kept for the current listing)' : ' (discarded)'));
+    if (!keep) appliedVisionData = null;
+    return null;
+  }
 
   // Initialize
   function init() {
@@ -89,6 +190,7 @@
         <a class="valuator-ebay" href="#" target="_blank" style="display:none;">🔍 Check eBay</a>
       </div>
       <div class="valuator-footer">📈 <span class="sale-count">0</span> sales tracked</div>
+      <div class="valuator-drops" title="Held vision or listing data dropped instead of being recorded (2.44.0)">drops · mismatch 0 · fallback-id 0 · unsold-expiry 0 · late-scan 0</div>
       <div class="valuator-api-modal" style="display:none;">
         <div class="api-modal-content">
           <h4>🔐 Sign In Required</h4>
@@ -151,22 +253,33 @@
     
     // Set scanning flag
     isScanning = true;
-    
+
     // Update UI to show scanning
     scanBtn.disabled = true;
     scanBtn.textContent = '📷 Scan';
     statusEl.textContent = 'Scanning...';
-    
+
+    // 2.44.0 — the listing this scan is FOR. Checked again when the result arrives.
+    const scanListingId = currentListing ? currentListing.id : null;
+
     try {
       const result = await window.ComicVision.scan();
-      
-      if (result.error) {
+      const nowListingId = currentListing ? currentListing.id : null;
+
+      if (nowListingId !== scanListingId) {
+        // Late result: the listing changed while the scan ran. Applying it would stamp the
+        // next listing with this one's book.
+        statusEl.textContent = 'Scan outdated';
+        recordDrop('lateScan', `scan started on listing ${scanListingId} returned on ${nowListingId}` +
+          (result && result.title ? ` (result "${result.title}")` : ''));
+      } else if (result.error) {
         statusEl.textContent = '❌ ' + result.error;
         console.log('[Vision] Error:', result.error);
         // Still show the card with error state
         showScanError(result.error, result.frameData);
       } else {
         // Show result in overlay
+        result.forListingId = scanListingId;
         lastVisionResult = result;
         showVisionResult(result);
         statusEl.textContent = 'Complete';
@@ -281,7 +394,8 @@
       keyInfo: result.keyInfo,
       isKey: !!result.keyInfo,  // Boolean for database
       grade: result.grade,
-      frameData: result.frameData  // Save the scanned image
+      frameData: result.frameData,  // Save the scanned image
+      forListingId: result.forListingId == null ? null : result.forListingId  // 2.44.0 owner
     };
     
     // Update the overlay with vision data
@@ -519,8 +633,14 @@
         if (isNewItem) {
           // Save previous listing before switching (for sale detection)
           if (currentListing) {
+            // 2.44.0 — a previous listing still held here means no sale was detected for it
+            // across the whole listing that just ended: it ended unsold. Drop before overwrite.
+            if (previousListing) dropHeldPrevious('switch');
             previousListing = { ...currentListing };
+            previousListingHeldAt = Date.now();
+            recordTiming(['sw', previousListingHeldAt, shortId(currentListing.id), shortId(listing.id)]);
           }
+          lastSwitchAt = Date.now();
           currentItemId = listingKey;
           currentListing = listing;
           
@@ -571,9 +691,12 @@
           updateTimer(listing.endsAt);
         }
         
+        // 2.44.0 — a held previous listing older than the bound is not a sale candidate
+        expireHeldPrevious();
+
         // Check for sale
         checkForSale(listing);
-        
+
       } catch (e) {
         console.log('[Valuator] Watch error:', e.message);
       }
@@ -824,6 +947,10 @@
       console.log('[Valuator] 🎯 Sale detected! Item:', soldListing.title, '(using', previousListing ? 'previous' : 'current', 'listing)');
       lastSaleCheck = saleKey;
       lastSaleTime = now;  // Update debounce timer
+      recordTiming(['sale', now, lastSwitchAt ? now - lastSwitchAt : null, previousListing ? 1 : 0]);
+
+      // 2.44.0 — vision is used only if it was scanned for the listing that sold
+      const vision = visionForSale(soldListing);
       
       const parsed = window.ComicNormalizer ? 
         window.ComicNormalizer.parse(soldListing.title, soldListing.subtitle) : 
@@ -907,9 +1034,11 @@
           // Determine source based on how we got the grade
           if (manualGrade) {
             gradeSource = 'seller_verbal';  // User typed it (probably from seller)
-          } else if (appliedVisionData?.grade) {
-            // Vision provided the grade
-            gradeSource = (finalSlabType && finalSlabType !== 'raw') ? 'slab_label' : 'vision_cover';
+          } else if (vision?.grade) {
+            // Vision provided the grade. 2.44.0: was `finalSlabType`, a const declared further
+            // down this block — a TDZ ReferenceError that threw away the sale whenever the
+            // seller's label carried a grade and vision had one (harness-confirmed 2026-09-15).
+            gradeSource = (vision.slabType && vision.slabType !== 'raw') ? 'slab_label' : 'vision_cover';
           } else if (slabType && slabType !== 'raw') {
             gradeSource = 'slab_label';  // From slab
           } else {
@@ -919,16 +1048,16 @@
       }
       
       // Prefer Vision data if user clicked "Use This"
-      const finalTitle = appliedVisionData?.title || cleanTitle;
-      const finalIssue = appliedVisionData?.issue || issueNum;
-      const finalSlabType = appliedVisionData?.slabType || slabType;
-      const finalVariant = appliedVisionData?.variant || variant;
-      
+      const finalTitle = vision?.title || cleanTitle;
+      const finalIssue = vision?.issue || issueNum;
+      const finalSlabType = vision?.slabType || slabType;
+      const finalVariant = vision?.variant || variant;
+
       // If grade came from Vision and user applied it
-      if (appliedVisionData?.grade && !manualGrade) {
-        numericGrade = appliedVisionData.grade;
+      if (vision?.grade && !manualGrade) {
+        numericGrade = vision.grade;
         // Distinguish slab label vs cover-only estimate
-        if (appliedVisionData.slabType && appliedVisionData.slabType !== 'raw') {
+        if (vision.slabType && vision.slabType !== 'raw') {
           gradeSource = 'slab_label';  // Vision read it from slab
         } else {
           gradeSource = 'vision_cover';  // Cover-only estimate
@@ -944,14 +1073,14 @@
         condition: soldListing.subtitle || null,
         slabType: finalSlabType,
         variant: finalVariant,
-        isKey: appliedVisionData?.isKey || false,
+        isKey: vision?.isKey || false,
         price: soldListing.price / 100,
         bids: bids,
         viewers: viewers,
         seller: soldListing.seller || null,
         platform: 'whatnot',
         rawTitle: soldListing.title,
-        imageDataUrl: appliedVisionData?.frameData || null,  // Scanned image
+        imageDataUrl: vision?.frameData || null,  // Scanned image
         timestamp: Date.now()
       };
       
@@ -962,9 +1091,13 @@
         soldEl.style.display = 'block';
       }
       
-      // Clear vision data after recording
-      appliedVisionData = null;
-      
+      // Clear vision data after recording. Vision withheld and kept for the current listing
+      // (see visionForSale) survives; everything else is spent or already dropped.
+      if (appliedVisionData === vision || !(currentListing && appliedVisionData &&
+          appliedVisionData.forListingId === currentListing.id)) {
+        appliedVisionData = null;
+      }
+
       // Flash overlay green
       console.log('[Valuator] 💚 Flashing green for sale!');
       overlayEl.classList.add('sale-flash');
@@ -1005,6 +1138,7 @@
       
       // Clear previousListing after recording
       previousListing = null;
+      previousListingHeldAt = 0;
       manualGrade = null;  // Reset for next item
       
       console.log('[Valuator] 💰 SALE:', sale);
@@ -1020,6 +1154,11 @@
 
   // Debug interface
   window.ValuatorDebug = {
+    // 2.44.0 — drop counters and the switch-to-sale timing ring buffer
+    getDropCounts: () => ({ ...dropCounts }),
+    getTiming: () => new Promise(resolve => {
+      chrome.storage.local.get([TIMING_KEY], (result) => resolve((result && result[TIMING_KEY]) || []));
+    }),
     getStats: () => {
       return new Promise(resolve => {
         chrome.runtime.sendMessage({ type: 'GET_STATS' }, response => {

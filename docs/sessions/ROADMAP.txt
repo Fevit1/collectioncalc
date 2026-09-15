@@ -73,7 +73,7 @@ rediscovered.
    duplicate on reachability: there is no UI route back to the upload step without a reload, so it needs a
    back-button or bfcache restore. Evidence: WWLO P7 checkpoint; the 09-13 Rekognition entry, Part 2.
    Frontend only (`app.html`).
-2. **The Whatnot valuator carrying applied vision data across listings.** Operator-only tool, so no user
+2. **The Whatnot valuator carrying applied vision data across listings.** ✅ BUILT 2026-09-15 as whatnot-valuator 2.44.0 (WWLO entry of that date: stable fallback id, vision bound to its listing, unsold expiry with a provisional 10 s bound, late-scan discard, four counters, timing ring buffer) — in the working tree, **pending Mike's commit + unpacked reload showing 2.44.0**; backfill audit of affected rows NOT possible from the corpus (see WWLO). Operator-only tool, so no user
    touches it, but what it corrupts is `market_sales` — the comp corpus every user's FMV is computed from —
    and a wrong-book sale record is indistinguishable from a right one afterward. Silent, stored,
    compounding. Present in BOTH copies of the extension (the live `CCExtensions/` one and the stale tracked
@@ -148,6 +148,17 @@ rediscovered.
     clearing the cached user record; three different "confidence" ladders for one concept; the `WV/`
     duplicate of the whatnot-valuator at 2.41.1 sitting tracked beside the live 2.43.0. Evidence: P7, P6,
     P2 checkpoints.
+
+13. **The Hulk stack storm — EXPECTED to stop with 2.44.0, UNVERIFIED (added 2026-09-15).** Rows 10678–10692
+    (09-10, one seller, label "Hulk stack", $65) are one sale recorded 15 times at 30 s intervals, each with
+    a fresh paid scan: in a DOM-fallback session the listing id was `'dom-' + Date.now()`, a new id every
+    poll, so every poll was a new listing and the persistent sold text re-fired on each 30 s debounce. The
+    2.44.0 stable fallback id (seller + lot label) removes the changing key, and the harness shows one
+    event, one scan, one record — but that is a stub, not Whatnot. **Confirming observation, in the field: a
+    fallback session (rows with `seller` present) with NO 30 s repeat clusters (same seller + raw_title +
+    price within 90 s).** Do not mark fixed until seen. Repeat-cluster rows: 57 since 08-28 (48 in that
+    block), 1,350 all-time, some legitimately multi-copy. Related, not the same: sold text persisting past
+    30 s under a changed label can still yield one phantom record per label change. Evidence: WWLO 09-15.
 
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).

@@ -82,6 +82,19 @@ window.ApolloReader = (function() {
     return cachedData;
   }
 
+  // 2.44.0 — STABLE fallback id (queue item 2, WWLO 2026-09-15). Was 'dom-' + Date.now():
+  // a fresh id on every 500 ms poll, so in a session without the Apollo cache every poll
+  // was a "new listing", every listing was re-scanned on the cooldown, and the sold text
+  // re-recorded the same sale every 30 s (the 09-10 "Hulk stack" rows, 15 records of one
+  // sale). The id is now the seller plus the lot label, and changes when the label changes.
+  // KNOWN LIMIT: several copies sold under one label share one id; see WWLO.
+  function makeFallbackId(domInfo) {
+    const norm = (v) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 80);
+    const seller = norm(domInfo && domInfo.seller) || 'unknown';
+    const label = norm(domInfo && domInfo.title);
+    return `dom-${seller}:${label}`;
+  }
+
   // Find current active listing (sync version using cached data)
   function getCurrentListing() {
     const cache = getCacheSync();
@@ -94,7 +107,7 @@ window.ApolloReader = (function() {
       // If we have DOM info, return that
       if (domInfo) {
         return {
-          id: 'dom-' + Date.now(),
+          id: makeFallbackId(domInfo),
           title: domInfo.title,
           subtitle: domInfo.condition || '',
           price: domInfo.price || 0,
@@ -119,7 +132,7 @@ window.ApolloReader = (function() {
         // Fallback to DOM if no cache
         if (domInfo) {
           return {
-            id: 'dom-' + Date.now(),
+            id: makeFallbackId(domInfo),
             title: domInfo.title,
             subtitle: domInfo.condition || '',
             price: domInfo.price || 0,
@@ -427,6 +440,7 @@ window.ApolloReader = (function() {
   return {
     getCache,
     getCacheSync,
+    makeFallbackId,
     getCurrentListing,
     getFromDOM,
     getAllListings
