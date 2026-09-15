@@ -1,6 +1,7 @@
 # Slab Worthy Roadmap
 
 ## Current Version: 5.6.0 (March 24, 2026)
+> ⚰️ NOTE 2026-09-14: this is the hard-coded `/health` string, unchanged since March across 60+ backend commits; it does not identify the deployed build (see the Pattern-Sweep Queue, superseded-items list).
 
 ### v5.6.0 — Mobile Extraction Fix + Dependency Monitor (Session 90)
 - Fixed mobile image extraction (resize, EXIF parser, cover validation)
@@ -18,6 +19,7 @@
 ### 🎉 PATENTS PENDING
 1. Multi-angle comic grading system (Filed Jan 27, 2026)
 2. Comic fingerprinting theft recovery (Filed Feb 12, 2026)
+3. Signature identification (Filed Feb 25, 2026 — App #63/990,743; added 2026-09-14, was missing here, present in CLAUDE.md)
 
 ### 💰 BUSINESS PLANNING (Session 80)
 - Year 1 P&L: 15,000 users (5K comics + 10K baseball cards) → **$739K revenue, $379K net profit (51% margin)**
@@ -25,6 +27,189 @@
 - First hire planned: Marketing + Front-End Design ($97.5K/yr all-in)
 - Marketing budget: $54K/yr (ads, content, conventions, tools)
 - File: `docs/business/SlabWorthy_Year1_PnL.xlsx`
+
+---
+
+## 🧹 Pattern-Sweep Queue (2026-09-14) — ranked on consequence and reachability, not effort
+
+**Provenance.** This order was produced by the agent that ran the seven-pattern read-only sweep on
+2026-09-14 (seven parallel sub-sweeps, positive control on every pattern, plain grep primary with rg
+cross-check, verified 31/6/0 before recording), ranked on three questions — what happens if the item is
+never fixed, who it affects, and whether a real user can reach it today — with **two amendments from
+Mike** (marked ⚑). It is the agent's ranking, not the sweep write-up's: the write-up ranks within each
+pattern; this queue ranks across them. The reasoning stays beside each item on purpose; a bare list is how
+an item gets re-ranked by whoever reads it next.
+
+**Where the inventory lives.** The full per-pattern findings, with file and line for every item, are in
+`docs/sessions/WHERE_WE_LEFT_OFF.md`, entry "2026-09-14 — 🧹 PATTERN SWEEP" (checkpoints P7, P6, P3, P1,
+P4, P5, P2 in that order, then the close). **This section does not repeat the inventory.** Two places
+holding the same list is how the capture schedule ended up telling the operator not to search a title the
+backfill had fixed; this file carries the queue and the why, that file carries the evidence.
+
+**Two cross-pattern observations that belong in the record:**
+- **Pattern 3 as a class is underweighted relative to Patterns 1 and 5.** Wrong copy and wrong numbers are
+  visible and fixable later; instruments that cannot fail — a moderation gate that fail-opens as a
+  "warning", a deprecation check whose empty result means both "all clear" and "feed shape changed", an
+  alert channel with no positive control — are what let every other class stay invisible. Boring, and
+  first-order.
+- **Pattern 6 is a reference table, not a work item.** Sixty-two thresholds, most unargued, are the input to
+  the valuation-honesty programme (`docs/technical/CP1_STATE_OF_PLAY.md`), which already owns the 0.25
+  floor, the per-grade slope, the fabricated-FMV multipliers and the confidence maps. Ranking the table as
+  work would be ranking a table of contents. It is referenced here once and not queued.
+
+**One shape that fit none of the seven, named rather than forced in:** backend module-level state is
+per-gunicorn-worker AND reset every ~30–60 min by `--max-requests 500` under Render health polling — the
+inverse of Pattern 7 (state that resets when it should persist). It turns "daily" and "hourly" limits and
+multi-sample alert streaks into per-worker-per-recycle quantities. Low today; recorded so it is not
+rediscovered.
+
+### The queue
+
+1. **Save to Collection: the double-click duplicate, and the stale-grade save, as one unit.** Two clicks
+   write two collection rows and two full photo uploads for one grade, and Register then issues a Slab
+   Guard serial for the duplicate. Stored data, created by a real user, one click away on every save, in
+   the recovery registry. The stale-grade path (previous book's grade saved under the current book's
+   title) ships in the same unit because the same guard-and-reset closes both, but it ranks below the
+   duplicate on reachability: there is no UI route back to the upload step without a reload, so it needs a
+   back-button or bfcache restore. Evidence: WWLO P7 checkpoint; the 09-13 Rekognition entry, Part 2.
+   Frontend only (`app.html`).
+2. **The Whatnot valuator carrying applied vision data across listings.** Operator-only tool, so no user
+   touches it, but what it corrupts is `market_sales` — the comp corpus every user's FMV is computed from —
+   and a wrong-book sale record is indistinguishable from a right one afterward. Silent, stored,
+   compounding. Present in BOTH copies of the extension (the live `CCExtensions/` one and the stale tracked
+   `WV/` one). Evidence: P7 checkpoint. Extension change → manifest bump, no deploy.
+3. **Nothing runs the tests.** Tests with real positive controls exist for moderation, uploads, the credit
+   refund and card checks; there is no CI workflow, no pytest configuration, nothing that executes them.
+   Every unit this week was verified by a reading agent and by hand, and three briefs this week started
+   from a false premise about what code was live. The cost never appears as a defect; it appears as every
+   future item costing more, indefinitely. This is the item most likely to be undervalued because it is
+   boring, and it changes the price of everything below it. Evidence: P3 checkpoint ("no CI/pytest
+   config"). Scope note: the existing roadmap lines "Session 59 test plan ~40 of 47 untested" and
+   "Valuation endpoint 12-test plan" (Phase 2 Testing) are about writing tests; this item is about
+   running the ones that exist, and comes first.
+4. **The retention module stamps a 90-day purge date on every row while the policy is 24 months.**
+   Nothing acts on `images_purge_after` today — which is why it is dangerous: the first purge job written
+   from the column deletes user photos 22 months early, and `TODO.md` still names a hard deadline three
+   days past. A materialized value that contradicts policy is a loaded trap, not a stale number (L-SW-2026-026
+   shape). Evidence: P1 checkpoint (DEV item), P4 checkpoint (TODO.md:34). Backend (`grade_retention.py`)
+   + the TODO line.
+5. ⚑ **The terms-page purge promise (Amendment 1 — pulled out of the records batch by Mike).** `terms.html`
+   promises that, if a user deletes their account, Slab Guard registrations are permanently removed after 90 days. No mechanism honours it — and the account deletion it is conditioned on does not exist either:
+   no purge logic, no user-facing delete route, and the privacy page carries a comment asserting the policy
+   is correct. A published commitment with no mechanism is a different category from a wrong count in a
+   README, and it must not sit inside a batch whose label reads cosmetic-adjacent, because that is how it
+   gets deferred indefinitely. **The decision — build the purge, or amend the terms — is Mike's and has
+   not been made.** Ranked above the records batch; does not need to be first. Evidence: P1 checkpoint.
+   Interacts with the existing "Delete my account" backlog line (Privacy & Compliance).
+6. **The stale-records batch, one pass.** `docs/LAUNCH_READINESS.md` says the capture pipeline is DOWN
+   (fixed 07-16; 243,942 rows since); `docs/SECTION_F_CHECKLIST.md` says HEIC is BLOCKED and the gate not
+   run (closed 07-16 with two real-iPhone grades); `TODO.md` carries the dead purge deadline and a dead
+   launch target; `README.md` (public) has every count stale and attaches patent application 63/990,743 to
+   the wrong patent; `CLAUDE.md`'s extension-version list — the one the reload rule tells a reader to check
+   against — is stale for two of three; the capture-schedule docx still says not to search Werewolf by
+   Night. Plus the two consequential public claims that belong with records rather than mechanisms: the
+   verify page's "The owner has been notified" shown even when the email failed (read the `owner_notified`
+   flag the backend already sends), and the FAQ's "Check Another" / auto-save sentence. Cheap, and
+   compounding in the way that matters: every future session, human or Claude, reasons from these files
+   first, and this week produced two wrong briefs and one wrong memory note from them. Evidence: P4 and P1
+   checkpoints. Docs + two HTML pages; the docx is Mike's (see below).
+7. **Moderation runs before normalization on the identification route.** Any photo over 5 MB passes
+   unscreened on the route every user hits first, deterministically, and the failure is logged as a
+   warning (39 of the 42 "warnings" in the incident table are this). The grade route already normalizes
+   first. A two-step reorder in `routes/grading.py` that closes a gate hole open since March on the
+   highest-traffic path. Evidence: P3 checkpoint; the 09-13 Rekognition entry. Backend → deploy.
+8. **The alert channel that cannot fail loudly.** The alert-key collision means a real Rekognition or eBay
+   check error is never emailed (the permanent unmonitorable entries already hold the key); nothing proves
+   the email path works at all (last evidence of a send: 08-25); the Anthropic deprecation check returns
+   the same empty list for "all clear", "feed shape changed" and "field renamed"; the Stripe check returns
+   empty when the SDK is not importable. Monitoring that cannot fail is what lets items 1–7 persist
+   unnoticed. One unit in `dependency_monitor.py`, with a test-send or a rendered "last email sent".
+   Evidence: P3 checkpoint. Backend → deploy.
+9. **The dead-code and shadowing structure.** `app.html` redefines ten same-named functions after the script files
+   load; the grading.js legacy cluster, the app.js bulk path, an entire orphan file
+   (`js/thinking_messages_expanded.js`) and an orphan page (`modal-ebay-listing.html`) look live; 68 CSS
+   classes match nothing rendered; 27 routes have no in-repo caller (decide, do not delete blind — some may
+   be curl/admin surfaces). No user is harmed directly. It ranks here because it has already misled
+   analysis three times this week and every reading of the frontend pays the tax again. Deletion is
+   boring; the payoff is entirely in future reasoning. Evidence: P2 checkpoint. Frontend + backend.
+10. **The user-facing wrong numbers and strings.** "Based on N sales" under every reliable verdict counts
+    the very sales the note beside it says were set aside; the thin-tier basis text says "nearby" with no
+    distance bound; one reliable-verdict arm says "recent" on a year window; the valuation strip shows
+    three `--` cards and a blank badge under a real grade on any valuation failure; the extension's price
+    endpoint labels a tier "4.5–7.9" that also receives every ungraded sale. Every user sees these. They
+    rank this low only because a wrong number is fixable later and corrupts nothing. The failure-screen
+    family (header, title, Save visibility, "Please try again") is the already-queued reason-code unit
+    (WWLO 09-11), widened — not duplicated here. Evidence: P5 and P7 checkpoints. Mostly frontend.
+11. **The cosmetic public claims** — the landing page's "PDF / Export Reports" tile with no PDF code
+    anywhere. Whenever. Evidence: P1 checkpoint.
+12. **The low tier, recorded so it is not rediscovered:** per-worker resets (a daily scan cap on an
+    unsellable tier that is effectively unbounded; hour-long rate-limit windows that reset before the hour;
+    the sustained-memory alert needing 15 consecutive minutes on one worker); one of six logout paths
+    clearing the cached user record; three different "confidence" ladders for one concept; the `WV/`
+    duplicate of the whatnot-valuator at 2.41.1 sitting tracked beside the live 2.43.0. Evidence: P7, P6,
+    P2 checkpoints.
+
+**⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
+(`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
+The sweep's static reading says the control throws and the manual valuation path is unreachable; the
+ranking rested on that path being legacy and unused, which is reasonable and unestablished. Five minutes in
+a browser settles both questions — does it throw, is the path reachable — and the answer either drops the
+item or moves it up. Ranking an unverified assumption is the thing the sweep exists to catch.
+
+**Already queued elsewhere and deliberately NOT re-listed here.** From the 09-13 SESSION CLOSE open
+list in WHERE_WE_LEFT_OFF.md: the reason-code unit for the failure screens; the upload box's missing reset
+path (LIVE DEFECT 1); Generate enabled after a failed extraction (LIVE DEFECT 2); the parked front-cover
+pre-flight; the Weapon Violence threshold (Mike's configuration decision); Stripe three majors behind; repo
+hygiene; the dependency-status roster gap. From the 2026-09-11 newsstand entry (not the close list — the
+first draft of this paragraph misattributed them): the 30 % variant-note gate (its "NEXT UNIT") and the
+newsstand-pool feature. **Two queue items above ARE also 09-13 close items, re-listed here on purpose
+because the ranking moved them:** queue item 1 ↔ close item 1 (the stale-grade save — this queue puts the
+double-click duplicate ahead of it in the same unit) and queue item 7 ↔ close item 2 (the extract-route
+ordering). Other overlaps: item 10 ↔ the reason-code unit; item 9 ↔ repo hygiene; item 1 ↔ LIVE DEFECT 1's
+reset. The unit boundary is decided when the unit is scoped, not here.
+
+### Existing roadmap items this queue supersedes, duplicates, or contradicts — said, not merged
+
+- **"Technical Debt: wsgi.py Refactoring" (Medium Priority)** — describes splitting `wsgi.py` into
+  blueprints as a future plan. It was done on 2026-02-06 (this file's own Version History: 4.3.0 "Blueprint
+  refactor (wsgi.py split)"); 25 blueprints are registered today. A Pattern 4 instance inside the roadmap.
+  Superseded; left in place with a note.
+- **"Phase 2 Testing: Session 59 test plan ~40 of 47 untested; Valuation endpoint 12-test plan"** — about
+  writing tests; queue item 3 (make the existing tests run) comes first and is not the same item.
+- **"Slab Guard check UI — currently API-only, no frontend" (Phase 2 Testing)** — `check.html` exists
+  ("Check a Comic - Slab Guard™", calls `/api/monitor/check-image`). Stale; the line reads as open.
+- **Known Bugs: "Single-page upload missing extraction — Front photo upload doesn't call extraction API
+  (needs verification)"** — false today: the front-cover upload awaits `extractComicData` (`app.html`
+  handlePhotoUpload). Verified this week from three directions. Closeable.
+- **"User Settings: Auto-Save to My Collection"** — proposed as a future feature; `faq.html` already tells
+  users it exists (queue item 6). The feature line and the FAQ line cannot both stand.
+- **"Delete my account" (Privacy & Compliance → Future)** — interacts with queue item 5: the terms page
+  promises a purge that would need this route or a scheduled job.
+- **"Content Moderation (COMPLETE — Pre-Beta)"** — says "Blocks uploads > 75 % confidence … Warns on
+  suggestive content (50–75 %) … Admin dashboard for monitoring". The code is a single 80 floor with a
+  three-entry block set and a two-entry warn set (no 50–75 band; "Suggestive" deliberately excluded
+  2026-08-25), and the moderation admin endpoint has no UI consumer. Stale on all three points; queue
+  item 7 sits under it.
+- **Header "Current Version: 5.6.0 (March 24, 2026)"** — the constant has not moved since March through
+  60+ backend commits, so the header describes a string, not the deployed build. See the 09-13 close's
+  method finding on `/health`.
+- **"Patents Pending" lists two** — the third (Signature Identification, filed 2026-02-25, #63/990,743) is
+  in CLAUDE.md and missing here.
+- **"Defect Image Linking" mentions "Supabase storage or R2"** — Supabase is dead for this project
+  (CLAUDE.md, 2026-08-08); R2 is the only store.
+- **"Mobile testing … (started, incomplete)"** — Section F device tests ran on real iPhones 2026-07-16 (Gate
+  0 closed); the matrix beyond the grade flow is still open. Partially stale as written.
+- **The spine-angle capture item the 09-03 close said "needs a ROADMAP entry"** — it never got one; the
+  unit shipped 2026-09-11 (`58044d5`). No entry is needed now; noted so the 09-03 line is not re-actioned.
+
+**Project-storage copy.** `SW Roadmap 2026 08 26.docx` in Claude project storage (and an untracked copy in
+`docs/business/`, dated 08-28) predates every entry above and the whole 09-10 → 09-14 arc. **This repo file
+is authoritative; the docx is stale.** Not updated here — Mike holds project storage.
+
+**Standing constraints for every item:** Mike runs all git, deploys, env changes and production writes;
+frontend changes purge after the Pages build completes (never on the push); backend changes deploy
+(auto-deploy is OFF); extension changes bump the manifest in the same commit. Verification agent before
+any unit is presented.
 
 ---
 
@@ -126,13 +311,13 @@
 
 ### Phase 2 Testing & Bug Fixes (IN PROGRESS)
 - [ ] **Chrome extension testing** - Slab Guard Monitor (load unpacked in dev mode)
-- [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete)
+- [ ] **Mobile testing** - Pricing page, verify page, full app flow (started, incomplete) — ⚰️ partially stale 2026-09-14: Section F Gate 0 ran on real iPhones 2026-07-16; the matrix beyond the grade flow is still open
 - [x] **AI grading consistency** — ✅ RESOLVED (Session 81)
 - [ ] **Comic ID bug** - Ghost Rider reboot vs original series confusion
 - [x] **Fingerprint testing** - ✅ Composite fingerprinting tested & deployed (Session 46)
 - [x] **Live Slab Guard test** - ✅ Session 80: Full E2E on production (register → stolen → recovered → verify page)
-- [ ] **Slab Guard check UI** - User-facing page to upload a photo and check against registry (currently API-only, no frontend)
-- [ ] **Session 59 test plan** - ~40 of 47 tests still formally untested
+- [x] **Slab Guard check UI** — ⚰️ ~~(currently API-only, no frontend)~~ `check.html` exists ("Check a Comic - Slab Guard™", calls `/api/monitor/check-image`) and this file's own Slab Guard section already lists it done; marked done here 2026-09-14 (P4)
+- [ ] **Session 59 test plan** - ~40 of 47 tests still formally untested — see Pattern-Sweep Queue item 3 (make the EXISTING tests run) which comes first
 - [ ] **Valuation endpoint testing** - 12-test plan in Valuation_Endpoint_Test_Plan.docx
 
 ---
@@ -330,10 +515,10 @@ non-goal-for-now, not a commitment to build.
 ### Content Moderation (COMPLETE - Pre-Beta)
 
 **Status:** AWS Rekognition integrated
-- [x] Blocks uploads > 75% confidence for explicit content
-- [x] Warns on suggestive content (50-75%)
+- [x] Blocks uploads > 75% confidence for explicit content — ⚰️ STALE 2026-09-14: the code is a single 80 floor (`MODERATION_CONFIDENCE_THRESHOLD`) with a three-entry block set (Explicit, Graphic Violence, Hate Symbols)
+- [x] Warns on suggestive content (50-75%) — ⚰️ STALE: no 50–75 band exists; 'Suggestive' was deliberately excluded 2026-08-25; warn set is Violence + Visually Disturbing
 - [x] Moderation incident logging
-- [x] Admin dashboard for monitoring
+- [x] Admin dashboard for monitoring — ⚰️ STALE: `/api/admin/moderation` has no UI consumer (P3, 2026-09-14); see Pattern-Sweep Queue item 7 for the extract-route ordering hole
 - [x] Protects /api/extract, /api/messages, /api/images/submission
 
 **Phase 2: Enhanced Protection (Future)**
@@ -697,7 +882,7 @@ Notes → custom_notes (custom field)
 **Goal:** Power users can opt into automatic collection save and Slab Guard registration after every grading
 
 **Settings (all default to OFF):**
-- [ ] **Auto-save to My Collection** — After grading completes, automatically save to collection (skip the "Save" button)
+- [ ] **Auto-save to My Collection** — After grading completes, automatically save to collection (skip the "Save" button) — ⚠️ 2026-09-14: `faq.html` already tells users this exists (Pattern-Sweep Queue item 6); the feature line and the FAQ line cannot both stand
 - [ ] **Auto-register with Slab Guard** — After save, automatically register with Slab Guard (skip the "Register" button). Requires Guard tier or higher.
 - [ ] Settings UI in account/settings page with toggle switches
 - [ ] Tooltip explaining what each toggle does
@@ -724,7 +909,7 @@ Notes → custom_notes (custom field)
 **Implementation:**
 - [ ] Vision API returns location data (coordinates or quadrant) for each defect
 - [ ] Crop or annotate the original cover photo at each defect location
-- [ ] Store defect images alongside grading results (Supabase storage or R2)
+- [ ] Store defect images alongside grading results (~~Supabase storage or~~ R2 — Supabase is dead for this project, CLAUDE.md 2026-08-08)
 - [ ] Tappable defect items in results UI — opens overlay/bottom sheet with zoomed image
 - [ ] Bounding box or highlight overlay on the defect region
 - [ ] Fallback: quadrant-based crop if Vision only returns text like "top-right"
@@ -752,7 +937,7 @@ Email → Resend webhook → API → Claude → auto-respond or escalate
 - [ ] Update Chrome extensions to reference Slab Worthy
 - [ ] Consider more playful tone - "Slab Worthy" is casual phrase
 
-### Technical Debt: wsgi.py Refactoring
+### Technical Debt: wsgi.py Refactoring — ⚰️ DONE 2026-02-06 (v4.3.0 "Blueprint refactor (wsgi.py split)", this file's Version History); 25 blueprints registered today. Section left as written; a Pattern 4 instance inside the roadmap (2026-09-14).
 **Current:** ~1,900 lines
 **Threshold:** Refactor at ~2,500 lines
 
@@ -788,7 +973,7 @@ Consider:
 - [x] Support email (support@slabworthy.com)
 
 ### Future Enhancements
-- [ ] Add "Delete my account" option in user settings
+- [ ] Add "Delete my account" option in user settings — interacts with Pattern-Sweep Queue item 5 (the terms-page 90-day registration-purge promise has no mechanism; build vs amend is Mike's undecided call)
 - [ ] Add "Export my data" option
 - [ ] Cookie consent component (if adding tracking)
 - [x] Contact form with topic routing ✅ (Session 61 — contact.html + routes/contact.py)
@@ -908,7 +1093,7 @@ Consider:
 - [ ] 🔴 **Comic identification bug** - Ghost Rider reboot #1 vs original #1 confusion
 - [x] ✅ **Auto-rotation steps 2-4** — FIXED (Session 81).
 - [ ] 🐛 **Browser cached 301 redirect** - Users may have old slabworthy→collectioncalc redirect cached
-- [ ] 🐛 **Single-page upload missing extraction** - Front photo upload doesn't call extraction API (needs verification)
+- [x] 🐛 **Single-page upload missing extraction** — ⚰️ ~~Front photo upload doesn't call extraction API (needs verification)~~ FALSE as of 2026-09-14: the front upload awaits `extractComicData` (`app.html` handlePhotoUpload); verified three ways during the 09-13 pre-flight work. Closed.
 
 **Fixed in Session 45:**
 - [x] ✅ **Registry bug (CRITICAL)** - Collections table mismatch, issue_number→issue column fix

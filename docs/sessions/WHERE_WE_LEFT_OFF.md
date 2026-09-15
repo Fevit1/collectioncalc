@@ -162,7 +162,7 @@ its inverse (resets when it should persist). **Verification agent (whole entry, 
 verdict_basis :101/:189/:202 and :320/:82); and the `rg '\.route('` framing (it errors loudly). All corrected in place, first
 drafts tombstoned where the claim itself changed. Precisions folded: valuation strip :2543; mid-tier :1709–1710; the
 whatnot-valuator defect exists in both the stale `WV/` copy and the live `CCExtensions/` copy; `modal-ebay-listing` has one
-comment mention. Consolidated ranking is in the 2026-09-14 reply to Mike.
+comment mention. Consolidated ranking is in the 2026-09-14 reply to Mike **and, as the durable queue, in `docs/sessions/ROADMAP.txt` § "🧹 Pattern-Sweep Queue (2026-09-14) — ranked on consequence and reachability, not effort"** (verified 37/1/0; the one wrong was a misattribution of two already-queued items to the close list instead of the 09-11 newsstand entry — corrected) — the agent's consequence-and-reachability order with two amendments from Mike (the terms-page purge promise pulled out of the records batch onto its own line; the Manual-mode toggle left UNRANKED pending a browser check). The roadmap carries the queue and the why, this entry carries the evidence; neither repeats the other. Eleven of the roadmap's own lines were annotated in place as stale or superseded (P4 applied to the roadmap itself); the project-storage docx `SW Roadmap 2026 08 26` is noted there as stale and authoritative-no-longer, not updated (Mike holds project storage).
 
 ## 2026-09-13 — 🔒 **SESSION CLOSE (Mike's record; conversation `05e7e4ef-890f-48e9-824f-8749f200ea15`, 09-10 → 09-13). Nothing to act on. Checkable facts re-verified at close; three small precisions noted inline.**
 
