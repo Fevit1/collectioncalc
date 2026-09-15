@@ -1,6 +1,38 @@
 # Where We Left Off - Sep 14, 2026
 
-## 2026-09-14 — ✅ **Save toast REWORDED (frontend, uncommitted) + read-only answer: nothing groups the collection by title/issue + cleanup premise PARTLY CONTRADICTED (rows 45/47 are two grading runs, not one save twice) + product note recorded.**
+## 2026-09-14 — ✅ **CLEANUP BLOCK A RUN AND COMMITTED (Mike, DBeaver, 22:40 PDT = 2026-09-15 05:40 UTC). Eight duplicate-save rows deleted. Block B NOT run and STAYS unrun.**
+
+**MOST RECENT CHANGE (Rule 5): production cleanup block A executed by Mike 2026-09-14 22:40 PDT.
+Supersedes "prepared, NOT run" in the phase-1 entry's cleanup block (annotated there). Block B — row 47 +
+serial SW-2026-000009 — is not run and is not pending: it stays unrun unless Mike decides otherwise.**
+
+**What ran:** `DELETE FROM collections WHERE id IN (24, 53, 92, 94, 95, 96, 129, 132) AND user_id IN
+(3, 38, 61)` inside an explicit transaction, after the pre-checks (8 rows listed; 0 registry references;
+0 `saved_collection_id` references). **Mike's result:** 8 rows deleted; `collections` 150 → 142;
+`comic_registry` unchanged at 23; all eight survivors (23, 45, 47, 54, 91, 93, 128, 131) present.
+**Verified read-only 05:41 UTC:** `collections` 142; `comic_registry` 23; none of the eight ids remain;
+survivors 23, 45, 47, 54, 91, 93, 128, 131 all present; registry rows 11 → 45 (000007), 13 → 47
+(000009), 19 → 54 (000015) untouched.
+
+**Net effect on the duplicate clusters:** Iron Man #109 → one row (23); Handbook #1 → one row (54, the
+registered one); Strange Academy #1 → one row (91); Daredevil #196 → one row (93, of four); Tales to
+Astonish #93 → one row (128); Tales to Astonish #90 → one row (131). Handbook #2 stays TWO rows (45,
+47), two serials — two grading runs, Mike's call, block B unrun.
+
+**R2:** 32 objects orphaned under the eight `submissions/SW-…/` prefixes listed in the cleanup block
+(row 54's prefix `SW-1771631680710-qcbei61jr/` is NOT among them and is live). Nothing reads them.
+Deleting them is optional, from the Render shell, and NOT scheduled.
+
+**Toast SHIP RECORD (also written after the fact):** `d0785d3` (Mike, 2026-09-14 22:28 -0700, three files:
+app.html, ROADMAP.txt, this file) — pushed, Pages built, purged: live `app.html` at 05:42 UTC has
+"This grade is already saved" 1, "Already in your collection" 0. Frontend only, no deploy, correct.
+⚠️ L-SW-2026-030 shape again, twice tonight: the toast entry below read "uncommitted" inside `d0785d3`,
+and this block-A record was first drafted calling the toast uncommitted twelve minutes after it shipped.
+Both tombstoned in place. The cause is the same both times — Mike commits faster than the record is
+re-read — and the fix is procedural: **before writing any ship state, run `git log -1` and the live
+asserts, never trust the last message.** Only these two record files remain uncommitted.
+
+## 2026-09-14 — ✅ **Save toast REWORDED (frontend, ⚰️ ~~uncommitted~~ SHIPPED `d0785d3` — record at top) + read-only answer: nothing groups the collection by title/issue + cleanup premise PARTLY CONTRADICTED (rows 45/47 are two grading runs, not one save twice) + product note recorded.**
 
 **MOST RECENT CHANGE (Rule 5): the prepared cleanup was re-cut 2026-09-14 from nine rows to EIGHT
 confirmed duplicate saves plus an OPT-IN block for row 47 / serial 000009, after Mike asked whether the
@@ -8,7 +40,7 @@ nine were duplicate saves or distinct grades of distinct copies. Supersedes the 
 in the phase-1 entry below). Toast wording changed in the same pass. **Phase 1 itself SHIPPED while this
 pass was running: `c23cd7f` (Mike, 2026-09-14 19:49 -0700), Render deploy `live` on that commit, Pages
 built and purged — live asserts pass (ship record in the phase-1 entry below).** The toast rewording is
-a NEW frontend-only commit, NOT committed.**
+a NEW frontend-only commit — ⚰️ ~~NOT committed~~ **shipped as `d0785d3` 22:28 PDT, live-asserted 05:42 UTC (entry above).****
 
 **1. String (frontend, `app.html`, a NEW commit after `c23cd7f`):** ⚰️ ~~"Already in your collection — This grade
 was saved before — no duplicate was created."~~ → **"This grade is already saved — It went into your
@@ -154,7 +186,8 @@ phase 1 is the column that would let a purge skip linked rows, and it must be po
 forward) before that coupling is safe. Phase 2 removes the client cache and the client re-upload;
 phase 1 makes the cache unable to create a wrong row.
 
-**CLEANUP — prepared, NOT run. Prevention IS live as of `c23cd7f` (deploy finished 2026-09-15 02:50 UTC),
+**CLEANUP — ⚰️ ~~prepared, NOT run~~ → BLOCK A RUN 2026-09-14 22:40 PDT (entry at top: 8 rows, 150 → 142,
+registry 23 unchanged, verified RO). BLOCK B NOT RUN, STAYS UNRUN. Prevention was live from `c23cd7f` (deploy finished 2026-09-15 02:50 UTC),
 so block A is runnable now, as a separate production step (DBeaver, per the SQL-delivery rule).** Survivor rule: the EARLIEST row of each cluster (first
 save, lowest id, the row most likely already looked at) — **EXCEPT where the later row carries the
 cluster's only Slab Guard registration, in which case the registered row survives** (one exception:
@@ -189,7 +222,8 @@ the uuid column — so "same uuid" is established by the retained row + identica
 
 ```sql
 BEGIN;
--- A. The EIGHT confirmed duplicate saves (identical grade blob; one retained grade per cluster).
+-- A. ✅ RUN 2026-09-14 22:40 PDT by Mike — 8 rows deleted, 150 → 142. Kept verbatim as the record of what ran.
+--    The EIGHT confirmed duplicate saves (identical grade blob; one retained grade per cluster).
 --    Survivor = earliest row, except Handbook #1 where 54 stays (registry row 19 → 54; 53 is
 --    unregistered and 1.0 s earlier). Guard: no comic_registry row may reference any id here,
 --    or the FK (no cascade) aborts the transaction.
@@ -206,7 +240,8 @@ DELETE FROM collections
 COMMIT;
 ```
 ```sql
--- B. OPT-IN, ONLY IF MIKE CONFIRMS rows 45/47 were ONE physical copy graded twice (Feb 18, 14:16 and
+-- B. ⛔ NOT RUN 2026-09-14 and STAYS UNRUN (Mike). Not pending; do not re-propose without a new decision.
+--    OPT-IN, ONLY IF MIKE CONFIRMS rows 45/47 were ONE physical copy graded twice (Feb 18, 14:16 and
 --    14:18). If they were two copies, run nothing here: two rows, two serials, is correct.
 BEGIN;
 DELETE FROM comic_registry
