@@ -1316,7 +1316,7 @@
 
                             <!-- Actions -->
                             <div class="results-actions">
-                                <button type="button" class="results-btn results-btn-primary" onclick="saveGradeToCollection()">Save to Collection</button>
+                                <button type="button" class="results-btn results-btn-primary" id="saveGradeBtn" onclick="saveGradeToCollection()">Save to Collection</button>
                                 <button type="button" class="results-btn results-btn-secondary" onclick="window.location.href='/app'">Grade Next</button>
                             </div>
 
@@ -2261,7 +2261,10 @@
 
         // app.html's standalone grading flow — posts to /api/grade, which grades
         // and snaps to the CGC scale server-side. Overrides grading.js's stub.
-        window.generateGradeReport = async function() {
+        window.generateGradeReport = function() {
+            return withInFlight('generate', document.getElementById('generateReportBtn'), window._generateGradeReportImpl);
+        };
+        window._generateGradeReportImpl = async function() {
             // Check if at least front is uploaded
             if (!window.gradingState.photos[1]) {
                 alert('Please upload at least the front cover photo.');
@@ -3183,6 +3186,11 @@
         }
 
         async function submitGradingFeedback(rating) {
+            // Own latch below is intentional and permanent (one vote per grade); the wrapper
+            // adds in-flight re-entrancy only and does not touch the thumb buttons.
+            return withInFlight('feedback', null, () => _submitGradingFeedbackImpl(rating), { restore: false });
+        }
+        async function _submitGradingFeedbackImpl(rating) {
             if (feedbackSubmitted) return;
             feedbackSubmitted = true;
 
@@ -3302,18 +3310,48 @@
             }
         }
 
-        // Save current grading to collection
-        async function saveGradeToCollection() {
-            return await saveToCollection();
+        // ── Shared in-flight guard for every async button on this page (2026-09-14) ──
+        // WHY: the real-user duplicate collection rows (users 38 and 61, 23–140 s apart)
+        // were RE-CLICKS on a Save that showed nothing while four photos uploaded — not
+        // impatience. One wrapper, five call sites, so the rule is not re-implemented per
+        // button. It is the CLIENT half only: the server's UNIQUE(grading_id) + ON CONFLICT
+        // is the structural half and makes any client bypass harmless.
+        //   key      — re-entrancy key (a second call with the same key while one is in
+        //              flight is dropped, button or no button)
+        //   btn      — element to disable for the duration (may be null)
+        //   restore  — re-enable btn in finally (false where the handler manages its own
+        //              button state: Register sets its own text/disabled; feedback stays
+        //              disabled on purpose after a vote)
+        const _inFlight = new Set();
+        async function withInFlight(key, btn, fn, { restore = true } = {}) {
+            if (_inFlight.has(key)) return;
+            _inFlight.add(key);
+            if (btn) btn.disabled = true;
+            try {
+                return await fn();
+            } finally {
+                _inFlight.delete(key);
+                if (btn && restore) btn.disabled = false;
+            }
         }
-        
+
+        // Save current grading to collection (both entry points share one key)
+        async function saveGradeToCollection() {
+            return withInFlight('save', document.getElementById('saveGradeBtn'), saveToCollection);
+        }
+
         // Save all grading data to collection (same as above)
         async function saveAllToCollection() {
-            return await saveToCollection();
+            return withInFlight('save', document.getElementById('saveGradeBtn'), saveToCollection);
         }
 
         // Register comic for theft protection
         async function registerComic() {
+            // Register manages its own button text/disabled state (upgrade branch, error
+            // branch); the wrapper adds re-entrancy only, so restore=false.
+            return withInFlight('register', document.getElementById('registerBtn'), _registerComicImpl, { restore: false });
+        }
+        async function _registerComicImpl() {
             const token = localStorage.getItem('cc_token');
             if (!token) {
                 showSaveToast('Please log in first', 'error');
@@ -3419,6 +3457,9 @@
         // Core save to collection function
         // Run signature identification on the front cover photo (non-blocking)
         async function runSignatureCheck(photo) {
+            return withInFlight('signature', null, () => _runSignatureCheckImpl(photo));
+        }
+        async function _runSignatureCheckImpl(photo) {
             const sigSection = document.getElementById('gradeReportSignature');
             const sigInfo = document.getElementById('signatureInfo');
             if (!sigSection || !sigInfo) return;
@@ -3601,7 +3642,17 @@
 
             // Do all the work in the background
             try {
-                const gradingId = `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                // THE NATURAL KEY (2026-09-14). /api/grade mints a grading_uuid and the client
+                // holds it as finalGrade.grading_id (already sent to valuation and feedback).
+                // collections.grading_id carries a UNIQUE constraint that never fired because
+                // this call used to mint a fresh random SW- id per click. Sending the server's
+                // id makes the save idempotent end to end: a second click, a slow-network
+                // double submit, or a stale re-save all collide with the same row and the
+                // server returns it (already_saved). The R2 uploads are keyed on the same id,
+                // so a repeat PUT overwrites the same objects instead of creating a new set.
+                // The SW- mint survives only as a fallback for a grade with no server id.
+                const gradingId = (window.gradingState.finalGrade && window.gradingState.finalGrade.grading_id)
+                    || `SW-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
                 // Upload photos to R2 with timeout — save proceeds even if uploads fail
                 const photoMap = { 1: 'front', 2: 'spine', 3: 'back', 4: 'centerfold' };
@@ -3744,8 +3795,14 @@
                 const result = await response.json();
                 console.log('Save complete:', result);
 
-                // NOW show actual success — save confirmed by server
-                showSaveToast('Saved to Collection!', 'success', 'Your comic has been saved.');
+                // NOW show actual success — save confirmed by server. already_saved means the
+                // server found this grading_id in the collection already (a repeat save) and
+                // returned the existing row: still a success, and the honest message says so.
+                if (result.already_saved) {
+                    showSaveToast('Already in your collection', 'success', 'This grade was saved before — no duplicate was created.');
+                } else {
+                    showSaveToast('Saved to Collection!', 'success', 'Your comic has been saved.');
+                }
 
                 // Store comic ID for registration
                 if (result.ids && result.ids.length > 0) {

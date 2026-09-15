@@ -128,6 +128,7 @@ def api_save_collection():
     cur = conn.cursor()
     
     saved_ids = []
+    already_saved = 0
     for item in items:
         # Convert defects, photos, and signature_data to JSON strings if they're dicts
         defects_json = json.dumps(item.get('defects')) if item.get('defects') else None
@@ -144,6 +145,7 @@ def api_save_collection():
                 signature_data
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (grading_id) DO NOTHING
             RETURNING id
         """, (
             g.user_id,
@@ -170,12 +172,45 @@ def api_save_collection():
             item.get('slab_label_type'),
             signature_json
         ))
-        saved_ids.append(cur.fetchone()['id'])
-    
+        # THE NATURAL KEY (2026-09-14). collections.grading_id has carried a UNIQUE
+        # constraint (collections_grading_id_key) since the schema was written; it never
+        # fired because the client minted a fresh random id per click. The client now sends
+        # the grading_uuid /api/grade minted, so a repeat save — double click, slow-network
+        # resubmit, stale re-save — conflicts here instead of writing a second row.
+        # ON CONFLICT DO NOTHING returns NO row, so the follow-up SELECT is mandatory (the old
+        # fetchone()['id'] would raise TypeError on None). Ownership is part of the SELECT: a
+        # conflict with another user's row (a uuid collision, practically impossible) is a
+        # 409, never that user's id. NULL grading_id never conflicts (unchanged behaviour).
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "SELECT id FROM collections WHERE grading_id = %s AND user_id = %s",
+                (item.get('grading_id'), g.user_id))
+            row = cur.fetchone()
+            if row is None:
+                conn.rollback()
+                cur.close()
+                conn.close()
+                return jsonify({'success': False, 'error': 'grading_id belongs to another account',
+                                'conflict': True}), 409
+            already_saved += 1
+        saved_id = row['id']
+        saved_ids.append(saved_id)
+        # Write the never-written link (grade_submissions.saved_collection_id, NULL on every
+        # row until 2026-09-14). Keyed on grading_uuid; a legacy SW- id or a NULL simply
+        # matches nothing. saved_collection_id IS NULL keeps the first link authoritative.
+        if item.get('grading_id'):
+            cur.execute(
+                """UPDATE grade_submissions
+                   SET saved_collection_id = %s
+                   WHERE grading_uuid = %s AND user_id = %s AND saved_collection_id IS NULL""",
+                (saved_id, item.get('grading_id'), g.user_id))
+
     conn.commit()
     cur.close()
     conn.close()
-    return jsonify({'success': True, 'saved': len(saved_ids), 'ids': saved_ids})
+    return jsonify({'success': True, 'saved': len(saved_ids), 'ids': saved_ids,
+                    'already_saved': already_saved > 0})
 
 
 @collection_bp.route('/<int:item_id>', methods=['DELETE'])

@@ -65,7 +65,7 @@ rediscovered.
 
 ### The queue
 
-1. **Save to Collection: the double-click duplicate, and the stale-grade save, as one unit.** Two clicks
+1. **Save to Collection: the double-click duplicate, and the stale-grade save, as one unit.** ✅ PHASE 1 APPLIED 2026-09-14 (natural key + ON CONFLICT + link column + shared in-flight guard; WWLO entry of that date) — awaiting Mike's commit/deploy/purge; cleanup (9 rows + 1 serial) prepared there, NOT run; phase 2 (server reads the grade from the retained row) stays a separate unit. Two clicks
    write two collection rows and two full photo uploads for one grade, and Register then issues a Slab
    Guard serial for the duplicate. Stored data, created by a real user, one click away on every save, in
    the recovery registry. The stale-grade path (previous book's grade saved under the current book's

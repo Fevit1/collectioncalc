@@ -1,6 +1,174 @@
 # Where We Left Off - Sep 14, 2026
 
-## 2026-09-14 — 🟦 **Queue item 1 (Save to Collection: double-click duplicate + stale-grade save) — REPORT STAGE. Nothing changed. Verified 35/3/1; corrections folded in. Mike decides the unit shape.**
+## 2026-09-14 — ✅ **Queue item 1, PHASE 1 APPLIED (Save to Collection: natural key + ON CONFLICT + link column + shared in-flight guard; plus CLAUDE.md convention + two P4 fixes). In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT — deploy backend FIRST, then push → Pages build → purge. Cleanup is a separate production step (prepared below, NOT run).**
+
+**MOST RECENT CHANGE (Rule 5): Mike approved the agent's shape over the brief's sketch ("wiring up a
+constraint that has been sitting unused rather than bolting on a guard"), phase 1 only, with the
+in-flight wrapper promoted to a primary item. Applied 2026-09-14; verified before presentation (see
+the verification line at the end of this entry).**
+
+**What changed (four files):**
+- **`app.html` (FRONTEND):** (1) the Save button gains `id="saveGradeBtn"` (`saveCollectionBtn` was
+  already taken by the dead bulk-mode button); (2) `withInFlight(key, btn, fn, {restore})` — one
+  shared guard: a re-entrancy key (a second call with the same key while one is in flight is
+  dropped), an optional button to disable for the duration, and `restore` to re-enable it in
+  `finally`; (3) the five async handlers rewired through it — `saveGradeToCollection` and
+  `saveAllToCollection` share key `'save'` on `#saveGradeBtn`; `registerComic` → wrapper +
+  `_registerComicImpl` (`restore:false`, it manages its own text/disabled); `window.generateGradeReport`
+  → wrapper + `_generateGradeReportImpl` on `#generateReportBtn` (restore true = today's post-failure
+  state); `runSignatureCheck` → wrapper + `_runSignatureCheckImpl` (no button is wired to it; re-entrancy
+  only); `submitGradingFeedback` → wrapper + `_submitGradingFeedbackImpl` (`restore:false`, no button —
+  its own permanent latch is kept, see below); (4) **the natural key**: `gradingId =
+  finalGrade.grading_id || SW-mint` — the server-minted `grading_uuid` now goes out as the save's
+  `grading_id` AND as the R2 `submission_id`, so a repeat PUT overwrites `submissions/{uuid}/{type}.jpg`
+  instead of creating a new object set; the `SW-` mint survives only as a fallback (verifier 09-14: the
+  id is never absent on this page, including the `?dev` quick test, which cannot reach the save);
+  (5) `result.already_saved` → toast "Already in your collection — This grade was saved before — no
+  duplicate was created." (still a success; Register enables on the returned id as before).
+- **`routes/collection.py` (BACKEND):** `INSERT … ON CONFLICT (grading_id) DO NOTHING RETURNING id`;
+  on no row → `SELECT id FROM collections WHERE grading_id = %s AND user_id = %s` (mandatory — the old
+  `fetchone()['id']` would raise on None); ownership is in the SELECT, so a conflict with another
+  account's row is a **409** `{conflict: true}`, never that user's id; NULL `grading_id` never conflicts
+  (unchanged). **The never-written link column is written:** `UPDATE grade_submissions SET
+  saved_collection_id = %s WHERE grading_uuid = %s AND user_id = %s AND saved_collection_id IS NULL`
+  (a legacy `SW-` id matches nothing; the first link stays authoritative). Response gains
+  `already_saved: bool`.
+- **`CLAUDE.md`:** the mechanism-vs-outcome convention, two sentences, as a bullet under Session
+  Conventions (Mike's revised wording: mechanisms are proposals; decisions already made are
+  challengeable only on new evidence or an unforeseen consequence — say what changed and let him
+  decide). The extension-version list corrected 2.42.1 → **2.43.0**, 1.0.0 → **1.0.1**, dated
+  2026-09-14, with the stale list tombstoned inline.
+- **`docs/LAUNCH_READINESS.md:79`:** ⚠️ the brief placed "the three unauthenticated uploads line" in
+  CLAUDE.md and said it "is now one". Neither held on reading: CLAUDE.md has no such line (it is
+  LAUNCH_READINESS.md:79), and the count is **two, not one** — `/upload-for-sale` was deleted in
+  `d8a0100`, but `/api/images/upload` (`routes/images.py:75`) and `/submission` (`:164`) still carry no
+  `@require_auth` (both now moderate; `/upload` is rate-limited). Corrected to two, in place, with the
+  reason. Recorded under the convention: the outcome (no known-wrong content under a new rule) is met;
+  the stated mechanism was wrong on both the file and the number.
+
+**Latch inventory — what each of the five had before, so nothing regresses:** `submitGradingFeedback`
+had a REAL latch (`feedbackSubmitted` flag + thumbs disabled, intentionally permanent after a vote) —
+kept, wrapper adds re-entrancy only; `registerComic` disabled and re-labelled its own button (upgrade
+and error branches) — kept, wrapper `restore:false`; `saveAllToCollection` only disabled Register
+transitively — now shares the Save key; `generateGradeReport` had NOTHING — now disabled for the run,
+re-enabled after; `runSignatureCheck` had NOTHING and no caller — now re-entrancy-guarded;
+`saveToCollection` disabled the WRONG button (Register) — now disables Save for the whole
+four-upload-plus-POST duration, which is the missing in-progress signal that produced the 23–140 s
+re-clicks.
+
+**⚠️ TRAP, recorded loudly for whoever scopes the start-over control:** `js/grading.js:2510`
+`resetGrading()` (dead, zero callers) re-shows step 1 by adding `.active` to `gradingContent1` — and it
+resets grading.js's own module-scoped `let gradingState` (`js/grading.js:10`), which is a DIFFERENT
+object from `window.gradingState` (`app.html:2236`, created precisely because the top-level `let` is
+not a window property). Wired as-is as "start over", it would re-open the upload step while
+`window.gradingState.finalGrade` (and `extractedData`) survive from the previous book. With phase 1
+the stale re-save then collides on the previous book's uuid and returns that row (no wrong row) — but
+the identification panel, `extractedData` and every result-card element would still be the previous
+book's. **Do not wire `resetGrading`; a start-over control must reset `window.gradingState` (photos,
+extractedData, finalGrade, confidence, signatureResult), `lastSavedComicId`, `feedbackSubmitted`, and
+the result card, and re-show step 1 — or reload.**
+
+**Stale-grade save: LATENT, not live — reason, for the record.** `generateGradeReport` removes
+`.active` from `#gradingContent1` (:2282) on every Generate; nothing in `app.html` re-adds it; there is
+no `pageshow` handler; "Grade Next" is `window.location.href='/app'` (a new document); a back-button /
+bfcache restore brings back the results screen with the upload step still hidden. No UI route reaches
+a second grade in one page session. Phase 1 closes the path structurally anyway (the collision above).
+
+**Phase 2 stays separate — two reasons:** (1) the retained `grade_submissions` row is written on a
+daemon thread (`grade_retention.py:66–102` INSERT+commit, photos backfilled :105–119), one to three
+seconds after the grade, so a server that reads the grade from that row needs a retry/409 path for a
+fast Save; (2) pointing collection photos at the retained keys (`grade_submissions/{id}/{label}.jpg`)
+couples them to the 24-month `images_purge_after` purge — the `saved_collection_id` link written in
+phase 1 is the column that would let a purge skip linked rows, and it must be populated (it now is,
+forward) before that coupling is safe. Phase 2 removes the client cache and the client re-upload;
+phase 1 makes the cache unable to create a wrong row.
+
+**CLEANUP — prepared, NOT run. Mike runs it AFTER prevention is live, as a separate production
+step (DBeaver, per the SQL-delivery rule).** Survivor rule: the EARLIEST row of each cluster (first
+save, lowest id, the row most likely already looked at) — **EXCEPT where the later row carries the
+cluster's only Slab Guard registration, in which case the registered row survives** (one exception:
+the Handbook #1 pair, below). Grade, title, issue identical across each cluster; only `created_at` and
+the photo paths differ. FK facts (RO 09-14): `comic_registry.comic_id → collections(id)` with NO
+cascade, so a collection row with a registry row cannot be deleted first; `sighting_reports.serial_number
+→ comic_registry` (0 rows) and `match_reports.registry_id → comic_registry` (0 rows, cascade)
+reference nothing here; all three registry rows involved have NULL certificate fields.
+
+⚰️ ~~first draft deleted 54 and kept 53~~ — **DEAD (verifier 09-14, RO): registry row 19
+(`SW-2026-000015`, user 3, active) points at collection row 54, and row 53 has NO registry row.** The
+FK has no cascade, so step 2 as first drafted would have raised on `comic_registry_comic_id_fkey`
+and aborted the transaction; the expected counts could never have been reached. **REPLACED BY:** keep
+54 (the registered one), delete 53 — the registry is untouched for that pair and the serial stays
+valid. The other two options were (a) delete row 19 as well (loses a live registration; registry →
+20) and (b) re-point row 19 to 53 (a registration then references photos it was not fingerprinted
+from). Neither is better than keeping the row the registration already describes. **Mike can still
+choose (a) or (b) instead; the SQL below encodes the recommendation.**
+
+```sql
+BEGIN;
+-- 1. Retire the duplicate Slab Guard serial (row 47 is the later of the Official Handbook #2 pair;
+--    row 45 keeps SW-2026-000007). generate_serial_number() checks uniqueness, so 000009 is never reused.
+DELETE FROM comic_registry
+ WHERE id = 13 AND comic_id = 47 AND serial_number = 'SW-2026-000009' AND user_id = 3;
+-- expect: DELETE 1
+-- 2. Delete the nine surplus collection rows: the later member of each near-duplicate cluster,
+--    EXCEPT the Handbook #1 pair, where 53 (unregistered, 1.0 s earlier) goes and 54 stays because
+--    registry row 19 (SW-2026-000015) points at 54. Guard: nothing in comic_registry may reference
+--    any id in the list, or the FK (no cascade) aborts the transaction.
+--    SELECT id, comic_id FROM comic_registry WHERE comic_id IN (24,47,53,92,94,95,96,129,132);  -- expect 0 rows AFTER step 1
+DELETE FROM collections
+ WHERE id IN (24, 47, 53, 92, 94, 95, 96, 129, 132)
+   AND user_id IN (3, 38, 61);
+-- expect: DELETE 9
+-- 3. Verify before COMMIT:
+--    SELECT count(*) FROM collections;        -- expect 128 (was 137)
+--    SELECT count(*) FROM comic_registry;      -- expect 21  (was 22; only row 13 goes, row 19 stays)
+--    SELECT id FROM collections WHERE id IN (23,45,54,91,93,128,131);   -- expect all 7 survivors
+--    SELECT id, comic_id, serial_number FROM comic_registry WHERE id IN (11, 19);  -- expect 11→45, 19→54
+COMMIT;
+```
+Survivors: 23 (Iron Man #109), 45 (Handbook #2, keeps serial 000007), **54** (Handbook #1, keeps serial
+000015 — the exception), 91 (Strange Academy #1), 93 (Daredevil #196 — of four), 128 (Tales to Astonish
+#93), 131 (Tales to Astonish #90).
+**R2 orphans:** the nine deleted rows' photos, 4 objects each = **36 objects** under
+`submissions/SW-1771014006939-jz2iv6dpc/`, `SW-1771424312151-xk42vlgol/`, `SW-1771631675832-0306rdbak/`
+(row 53 — ⚰️ ~~`SW-1771631680710-qcbei61jr/`~~, that prefix is row 54's and now SURVIVES),
+`SW-1785987376943-mrxox0r5g/`, `SW-1785988153694-p473fc7vw/`, `SW-1785988229358-5pkha8z0z/`,
+`SW-1785988274708-m7ig7lpon/`, `SW-1787949297009-wbeteig3g/`, `SW-1787950609258-plh212x9t/`. Nothing
+references them after the DELETE (the verify page and Slab Guard read `collections.photos` of the
+surviving rows). They are harmless storage; deleting them is a `boto3 delete_object` per key from the
+Render shell (36 calls), optional, and NOT part of this unit. No `grade_submissions.saved_collection_id`
+points at any deleted id (the column was NULL everywhere until today).
+
+**SHIP (Mike):**
+```
+git add app.html routes/collection.py CLAUDE.md docs/LAUNCH_READINESS.md docs/sessions/WHERE_WE_LEFT_OFF.md docs/sessions/ROADMAP.txt
+git commit   # Save to Collection: use the server grading_uuid as the natural key; ON CONFLICT + link column; shared in-flight guard on five buttons; CLAUDE.md convention; two P4 fixes
+git push
+deploy       # BACKEND FIRST — an old server given a uuid simply inserts it; the ON CONFLICT must be live before the client guard is trusted
+# ⏳ wait for the Pages build to COMPLETE, then:
+purge
+# asserts (curl -sL — the .html paths 308 to clean URLs):
+#   curl -sL https://slabworthy.com/app.html | grep -c "withInFlight"        → 7
+#   curl -sL https://slabworthy.com/app.html | grep -c "saveGradeBtn"        → 3
+#   backend: Render Events shows the commit; then a grade + Save, then Save again → toast "Already in your collection", collections gains ONE row, grade_submissions.saved_collection_id set on that grading_uuid
+```
+Post-ship: one-line ship record here (L-SW-2026-030); then the cleanup above as its own step.
+
+**Verification agent (phase 1 applied, read-only; app.html diff hunks, wrapper simulation in node,
+collection.py loop exercised with a scripted fake cursor for the three outcomes, RO schema/row checks,
+CLAUDE.md/LAUNCH_READINESS diffs, latch inventory and trap against `git show HEAD:app.html`):**
+32 confirmed / 2 wrong / 1 uncheckable. **Wrong 1 (material, corrected above):** the cleanup SQL would
+have failed — registry row 19 references collection row 54. **Wrong 2 (a recipe in the verifier's
+brief, not in any record):** `git log -S"upload-for-sale"` returns `b36a2e5`, not `d8a0100`; the
+removal commit is found with `-G`, and `d8a0100` is correct. Uncheckable: the live-site asserts
+(pre-deploy). **One latent note the verifier added, recorded so "nothing regresses" is honest:**
+`_registerComicImpl` has two early returns (no token → login redirect in 1.5 s; no
+`lastSavedComicId`) that at HEAD left the Register button enabled; with `restore:false` the wrapper now
+leaves it disabled on those paths. The first redirects anyway; the second needs the protection section
+visible with no saved id, which only an empty `ids` array from a 200 could produce (the server 400s on
+no items). Not reachable today; not fixed; named.
+
+## 2026-09-14 — 🟦 **Queue item 1 (Save to Collection) — ⚰️ ~~REPORT STAGE … Mike decides~~ → Mike chose the agent's shape, phase 1 APPLIED the same day (entry above). Findings retained.**
 
 **MOST RECENT CHANGE (Rule 5): read-only characterisation of queue item 1 delivered 2026-09-14 with a
 proposal that differs from the brief's sketch — the natural key already exists at every layer and is

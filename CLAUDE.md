@@ -138,6 +138,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 - **Session notes:** docs/sessions/CLAUDE_NOTES.txt (full history), docs/sessions/WHERE_WE_LEFT_OFF.md (last session detail)
 - **Roadmap:** docs/sessions/ROADMAP.txt (mixed planning + session log; treat session log portions as historical)
 - **Task list:** TODO.md
+- **Mechanism vs outcome (2026-09-14):** Where a brief specifies a mechanism rather than an outcome, treat the mechanism as a proposal made without reading the code; if your read suggests a better shape, say so and make the case rather than implementing what is written. Decisions Mike has already made are also open to challenge, but the bar is new evidence or a consequence he could not have seen, not preference: say what changed and let him decide.
 - **🚦 Launch readiness (SINGLE SOURCE OF TRUTH):** docs/LAUNCH_READINESS.md — honest A–F status + the launch-critical sequence to July 21. Status lives HERE, not in browser windows or session-note labels. Read it before any "what's left before launch" question.
 - **BO primer (Slab Worthy specific):** docs/SW_BO_PRIMER.md (mirror of the file uploaded to BO project storage)
 - **No Supabase.** Slab Worthy's only database is Render PostgreSQL
@@ -248,8 +249,8 @@ Without a bump, **a forgotten or failed reload is indistinguishable from a succe
 class of silent no-op as a Render deploy that doesn't fire. The version in `chrome://extensions` is the
 only observable proof the reload took. This bit us once: `ebay-collector` sat at **1.3.5 from
 2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
-reloads. **Resolved — it is now 1.4.0.** Current versions (2026-08-24): `ebay-collector` 1.4.0,
-`whatnot-valuator` 2.42.1, `slab-guard-monitor` 1.0.0.
+reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-14; ⚰️ the 2026-08-24 list read 2.42.1 / 1.0.0 and was stale for two of three from 08-28 — corrected by the pattern sweep): `ebay-collector` 1.4.0,
+`whatnot-valuator` 2.43.0, `slab-guard-monitor` 1.0.1.
 
 **Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5 → 1.4.0):**
 - **patch** — fixes/comments with no observable behaviour change
