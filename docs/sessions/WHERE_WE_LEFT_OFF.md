@@ -1,5 +1,21 @@
 # Where We Left Off - Sep 14, 2026
 
+## 2026-09-14 — 📏 **RULE ADDED to CLAUDE.md (records only, no code): "Ship state comes from evidence, not intention." L-SW-2026-030 stays in LESSONS.md as the diagnosis, with a pointer to the rule.**
+
+**MOST RECENT CHANGE (Rule 5): Mike promoted the ship-state check from lesson to rule, 2026-09-14 late
+evening, after the fourth violation in ten days. Supersedes nothing; adds the operational form. Uncommitted
+in the working tree: `CLAUDE.md`, `docs/LESSONS.md`, this file. Records only — no deploy, no purge.**
+
+The rule (three sentences, under Session Conventions after "Mechanism vs outcome"): before any record says
+a unit is committed, deployed, purged, or not, run `git log -1` and the live assert and write what they show;
+if a unit has not shipped, name what is pending rather than describing it as unshipped. Why in CLAUDE.md
+rather than LESSONS.md (Mike): the lesson described the failure accurately for a week and did not prevent it —
+lessons get read, rules get followed. The four instances: `2e27098` (09-04, the lesson's source), `c23cd7f`
+and `d0785d3` (09-14, phase-1 and toast entries each calling themselves uncommitted inside their own
+commit), and the block-A record's first draft (09-14 22:52 PDT, calling the toast uncommitted twelve minutes
+after it shipped, inside the pass that was tombstoning the previous instance). Queue item 1 is closed
+(`7a03470`, Mike): block A run and verified, block B not run and staying unrun.
+
 ## 2026-09-14 — ✅ **CLEANUP BLOCK A RUN AND COMMITTED (Mike, DBeaver, 22:40 PDT = 2026-09-15 05:40 UTC). Eight duplicate-save rows deleted. Block B NOT run and STAYS unrun.**
 
 **MOST RECENT CHANGE (Rule 5): production cleanup block A executed by Mike 2026-09-14 22:40 PDT.

@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-09-10 (29 lessons)
+> **Operator:** Mike Berry · **Last updated:** 2026-09-14 (29 lessons; L-SW-2026-030 gained its operational form in CLAUDE.md)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -20,6 +20,8 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > silently redirect that link.
 
 ### L-SW-2026-030 — A record that describes a unit as NOT YET SHIPPED must not ride in the commit that ships it; update it before staging, or commit it separately after the ship is verified
+
+> **Operational form (2026-09-14): `CLAUDE.md` § Session Conventions → "Ship state comes from evidence, not intention."** This lesson is the diagnosis; that bullet is the rule to follow. Promoted after the fourth violation in ten days (09-04 `2e27098`; 09-14 `c23cd7f` and `d0785d3`, each carrying a record that called itself uncommitted; and a fourth draft written twelve minutes after `d0785d3` shipped, inside the pass that was tombstoning the third). A lesson that is read four times and violated four times is not preventing anything; the rule states the check to run before writing.
 
 - **RULE:** A state-file entry that says a unit is "not committed / not deployed / not run" is a
   claim about the future of the working tree. The moment that entry is staged alongside the
