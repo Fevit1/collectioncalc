@@ -3799,7 +3799,11 @@
                 // server found this grading_id in the collection already (a repeat save) and
                 // returned the existing row: still a success, and the honest message says so.
                 if (result.already_saved) {
-                    showSaveToast('Already in your collection', 'success', 'This grade was saved before — no duplicate was created.');
+                    // Wording (2026-09-14): a claim about THIS GRADE, not about the comic. A collector
+                    // holding three copies of one book gets three grades, three uuids, three rows;
+                    // this toast fires only when the SAME grade is saved twice, so it must not
+                    // read as "you already own this comic".
+                    showSaveToast('This grade is already saved', 'success', 'It went into your collection on an earlier save. Nothing was added twice.');
                 } else {
                     showSaveToast('Saved to Collection!', 'success', 'Your comic has been saved.');
                 }

@@ -65,7 +65,7 @@ rediscovered.
 
 ### The queue
 
-1. **Save to Collection: the double-click duplicate, and the stale-grade save, as one unit.** ✅ PHASE 1 APPLIED 2026-09-14 (natural key + ON CONFLICT + link column + shared in-flight guard; WWLO entry of that date) — awaiting Mike's commit/deploy/purge; cleanup (9 rows + 1 serial) prepared there, NOT run; phase 2 (server reads the grade from the retained row) stays a separate unit. Two clicks
+1. **Save to Collection: the double-click duplicate, and the stale-grade save, as one unit.** ✅ PHASE 1 APPLIED 2026-09-14 (natural key + ON CONFLICT + link column + shared in-flight guard; WWLO entry of that date) — ⚰️ ~~awaiting Mike's commit/deploy/purge~~ **SHIPPED `c23cd7f` 2026-09-14, deploy live, purged, asserted**; toast reworded in a follow-up frontend commit (WWLO 09-14, top); cleanup ⚰️ ~~(9 rows + 1 serial)~~ re-cut 2026-09-14 to 8 confirmed duplicate saves + an OPT-IN block for row 47/serial 000009 (that pair is two grading runs, not one save twice — WWLO 09-14), prepared there, NOT run; phase 2 (server reads the grade from the retained row) stays a separate unit. Two clicks
    write two collection rows and two full photo uploads for one grade, and Register then issues a Slab
    Guard serial for the duplicate. Stored data, created by a real user, one click away on every save, in
    the recovery registry. The stale-grade path (previous book's grade saved under the current book's
@@ -592,6 +592,18 @@ non-goal-for-now, not a commitment to build.
 - [ ] "List to Whatnot" button in grade report
 
 **Note:** Landing page promises "Whatnot integration coming soon!" - need timeline
+
+### 📝 Product note — doubles and triples side by side (recorded 2026-09-14, NOT built, not a defect)
+A collector who owns two or three copies of one title/issue grades each copy and gets a row per copy —
+correct, and unchanged by the 2026-09-14 save-idempotency unit (one grade = one uuid = one row; three
+copies = three rows). What the product does NOT do is relate those rows: three Heroes for Hope #1 with
+visibly different grades (whiter cover on one, a colour-breaking crease on another) sit as three unrelated
+cards, sorted apart by grade or date. The side-by-side comparison of one's own doubles — which copy to
+slab, which to sell, which to keep — is exactly the view a collector with doubles wants, and nothing
+surfaces it. Source: Mike, 2026-09-14, from his own collection (about a dozen books in duplicate, a
+couple in triplicate). Shape, if ever built: a "you have N copies" grouping toggle on the collection page
+keyed on title+issue (opt-in, never the default — the default stays one row per copy), with the copies'
+grades, defects and values in one strip. Not scoped, not queued; recorded so the observation is not lost.
 
 ### CSV Collection Import 🆕 HIGH PRIORITY
 **Goal:** Remove switching barrier from competitor apps (CLZ Comics, ComicBase, League of Comic Geeks)

@@ -1,6 +1,75 @@
 # Where We Left Off - Sep 14, 2026
 
-## 2026-09-14 — ✅ **Queue item 1, PHASE 1 APPLIED (Save to Collection: natural key + ON CONFLICT + link column + shared in-flight guard; plus CLAUDE.md convention + two P4 fixes). In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT — deploy backend FIRST, then push → Pages build → purge. Cleanup is a separate production step (prepared below, NOT run).**
+## 2026-09-14 — ✅ **Save toast REWORDED (frontend, uncommitted) + read-only answer: nothing groups the collection by title/issue + cleanup premise PARTLY CONTRADICTED (rows 45/47 are two grading runs, not one save twice) + product note recorded.**
+
+**MOST RECENT CHANGE (Rule 5): the prepared cleanup was re-cut 2026-09-14 from nine rows to EIGHT
+confirmed duplicate saves plus an OPT-IN block for row 47 / serial 000009, after Mike asked whether the
+nine were duplicate saves or distinct grades of distinct copies. Supersedes the nine-row form (tombstoned
+in the phase-1 entry below). Toast wording changed in the same pass. **Phase 1 itself SHIPPED while this
+pass was running: `c23cd7f` (Mike, 2026-09-14 19:49 -0700), Render deploy `live` on that commit, Pages
+built and purged — live asserts pass (ship record in the phase-1 entry below).** The toast rewording is
+a NEW frontend-only commit, NOT committed.**
+
+**1. String (frontend, `app.html`, a NEW commit after `c23cd7f`):** ⚰️ ~~"Already in your collection — This grade
+was saved before — no duplicate was created."~~ → **"This grade is already saved — It went into your
+collection on an earlier save. Nothing was added twice."** REASON (Mike): the first wording is a claim
+about the comic; for a collector holding three copies of one book it is false. The toast fires only on a
+repeat save of the SAME grading uuid; three copies are three grades, three uuids, three rows, and never
+see it. Ship: push → Pages build → purge (never on the push); the phase-1 asserts still hold
+(`withInFlight` 7, `saveGradeBtn` 3); add `grep -c "This grade is already saved"` → 1 and
+`grep -c "Already in your collection"` → 0 (it is 1 on the live page now).
+```
+git add app.html docs/sessions/WHERE_WE_LEFT_OFF.md docs/sessions/ROADMAP.txt
+git commit   # Save toast: claim the grade, not the comic; cleanup re-cut to 8 confirmed + opt-in 47; doubles product note
+git push
+# frontend only — NO deploy. ⏳ wait for the Pages build to COMPLETE, then:
+purge
+#   curl -sL https://slabworthy.com/app.html | grep -c "This grade is already saved"   → 1
+#   curl -sL https://slabworthy.com/app.html | grep -c "Already in your collection"     → 0
+```
+
+**2. Read-only answer — does anything dedupe or group by title+issue rather than by row? NO, nowhere.**
+Every surface is per-row: `js/collection.js:131–160` (`totalComics = collection.length`; raw, slabbed and
+rated-profit sums are `reduce` over every row; "worth slabbing" is a row filter); `:188–288` filter and
+sort — search matches title/issue substrings, sorts tie-break title→issue, nothing collapses; each card
+is one row (`createComicCard`). `dashboard.html:413–433` `renderPortfolio` — count = `length`, FMV sum,
+average grade over rows; `:438–466` `renderTopComics` — top 5 rows. `routes/collection.py:54–107` GET — one row per `collections` row
+(the only aggregate in the query is `COUNT(*)` of sightings per serial, a LEFT JOIN, not a collapse).
+`routes/admin_routes.py:104–108` — `COUNT(*) … GROUP BY user_id` (per user, still per row). Account page:
+NO collection count is rendered at all (`account.html` only has the plan-feature grid, where "Excel/CSV
+Export" is forced SOON at :758). **Excel export of the collection does not exist**: `collection.html:175`
+is a disabled SOON button, `js/collection.js:1098` `exportSelected` is a stub; the only `downloadExcel`
+(`js/app.js:956–977`) is the bulk-photo VALUATION tool on `app.html#bulkMode` and exports
+`extractedItems`, not the collection. The gallery "Export" (`js/collection.js:1043`) is an html2canvas
+screenshot of the rendered per-row cards. **Consequence: a three-copy collection displays as three rows,
+three counts, three values, everywhere. Not a defect; nothing to fix.** (`routes/feedback.py:111–119`
+LATERAL-joins the NEAREST-IN-TIME collection row to a grading rating — a one-row pick for the admin
+feedback view, not a collapse; noted because it will pick arbitrarily among a same-minute cluster.) Verifier's
+independent sweep added, all per-row: `admin.html:928` renders the per-user count from the admin query;
+`routes/admin_routes.py:1130–1138` groups SIGHTINGS per registered serial (displays title+issue with a
+count, one row per serial, not per copy); registry→collections joins in `routes/monitor.py`,
+`routes/verify.py`, `routes/registry.py` are one row per registry row; `admin.html:1310` shows
+`saved_collection_id` per retained grade.
+
+**Live evidence of both halves, 09-15 UTC (verifier, RO):** rows 191/192/193 are Mike's THREE Heroes for
+Hope #1 (02:58–03:00 UTC, grades 7.5 / 8.5 / 7.5, three distinct grading ids) — the product-note scenario,
+saved as three rows as it should be. Row 191 carries a legacy `SW-` id, 192/193 carry server uuids:
+191 was saved 8 min after the deploy finished, before the purge landed (the cached page still minted).
+`grade_submissions.saved_collection_id` is now non-NULL on 2 rows — the link column is being written.
+
+**3. Cleanup premise checked (RO, block-level detail in the phase-1 entry's cleanup block):** eight of
+the nine are duplicate saves of one grade (identical blob; one retained grade per real-user cluster);
+**45/47 are two grading runs** (different defect lists on three of four surfaces — spine identical — 151 s apart, same 7.0).
+Cleanup re-cut to block A (eight, confirmed) + block B (47 + serial 000009, opt-in on Mike's memory of
+Feb 18). Expected counts as DELTAS — A: collections −8, registry unchanged; A+B: −9 / −1. ⚰️ ~~A → 129 / 22;
+A+B → 128 / 21~~ (verifier 09-15: `collections` is 141 now, not 137 — rows 190–193 were saved after the
+deploy, so absolute post-run counts are wrong the moment anyone saves; re-census immediately before running).
+
+**4. Product note (recorded, NOT built):** `docs/sessions/ROADMAP.txt` — doubles/triples side by side
+(three grades of one title/issue is the comparison a collector with doubles wants, and the product does
+not surface it; the rows exist, nothing relates them). Against the collection area, next to CSV import.
+
+## 2026-09-14 — ✅ **Queue item 1, PHASE 1 APPLIED (Save to Collection: natural key + ON CONFLICT + link column + shared in-flight guard; plus CLAUDE.md convention + two P4 fixes). ⚰️ ~~In the working tree, NOT staged, NOT committed. SHIPS IN MIKE'S NEXT COMMIT~~ → **SHIPPED `c23cd7f`, deploy live, purged, asserted (ship record at the end of this entry).** Cleanup is a separate production step (prepared below, NOT run).**
 
 **MOST RECENT CHANGE (Rule 5): Mike approved the agent's shape over the brief's sketch ("wiring up a
 constraint that has been sitting unused rather than bolting on a guard"), phase 1 only, with the
@@ -23,8 +92,10 @@ the verification line at the end of this entry).**
   `grading_id` AND as the R2 `submission_id`, so a repeat PUT overwrites `submissions/{uuid}/{type}.jpg`
   instead of creating a new object set; the `SW-` mint survives only as a fallback (verifier 09-14: the
   id is never absent on this page, including the `?dev` quick test, which cannot reach the save);
-  (5) `result.already_saved` → toast "Already in your collection — This grade was saved before — no
-  duplicate was created." (still a success; Register enables on the returned id as before).
+  (5) `result.already_saved` → toast ⚰️ ~~"Already in your collection — This grade was saved before — no
+  duplicate was created."~~ → **"This grade is already saved — It went into your collection on an earlier
+  save. Nothing was added twice."** (reworded 2026-09-14, entry above: the first wording claimed the comic,
+  not the grade) (still a success; Register enables on the returned id as before).
 - **`routes/collection.py` (BACKEND):** `INSERT … ON CONFLICT (grading_id) DO NOTHING RETURNING id`;
   on no row → `SELECT id FROM collections WHERE grading_id = %s AND user_id = %s` (mandatory — the old
   `fetchone()['id']` would raise on None); ownership is in the SELECT, so a conflict with another
@@ -83,8 +154,8 @@ phase 1 is the column that would let a purge skip linked rows, and it must be po
 forward) before that coupling is safe. Phase 2 removes the client cache and the client re-upload;
 phase 1 makes the cache unable to create a wrong row.
 
-**CLEANUP — prepared, NOT run. Mike runs it AFTER prevention is live, as a separate production
-step (DBeaver, per the SQL-delivery rule).** Survivor rule: the EARLIEST row of each cluster (first
+**CLEANUP — prepared, NOT run. Prevention IS live as of `c23cd7f` (deploy finished 2026-09-15 02:50 UTC),
+so block A is runnable now, as a separate production step (DBeaver, per the SQL-delivery rule).** Survivor rule: the EARLIEST row of each cluster (first
 save, lowest id, the row most likely already looked at) — **EXCEPT where the later row carries the
 cluster's only Slab Guard registration, in which case the registered row survives** (one exception:
 the Handbook #1 pair, below). Grade, title, issue identical across each cluster; only `created_at` and
@@ -103,40 +174,61 @@ valid. The other two options were (a) delete row 19 as well (loses a live regist
 from). Neither is better than keeping the row the registration already describes. **Mike can still
 choose (a) or (b) instead; the SQL below encodes the recommendation.**
 
+⚰️ ~~second draft: nine rows in one statement, registry row 13 retired first~~ — **DEAD 2026-09-14 (Mike's
+question: are the nine duplicate SAVES, or distinct grades of distinct copies?). RO answer: EIGHT are
+duplicate saves — identical grade blob (defects on all four surfaces, confidence, values, verdict) across
+every row of the cluster, and for the four real-user clusters exactly ONE retained `grade_submissions` row
+for that title/issue in the minutes before the saves (48, 50, 135, 136). Rows 45/47 are NOT: the two
+Handbook #2 rows carry DIFFERENT defect lists on three of four surfaces (front, back, interior; spine identical) — two separate `/api/grade` runs, 151 s
+apart, that landed on the same 7.0. Whether that was one copy graded twice or two copies is not
+decidable from the data; it is Mike's book (user 3) and both rows are registered (000007, 000009).**
+**REPLACED BY:** the confirmed eight in one block; row 47 + registry row 13 as a separate OPT-IN block
+Mike runs only if he confirms it was one copy. (No `grading_uuid` is shared at the collections level in
+any cluster — the old client minted a fresh `SW-` id per click, and the user-38 retained rows predate
+the uuid column — so "same uuid" is established by the retained row + identical blob, not by the key.)
+
 ```sql
 BEGIN;
--- 1. Retire the duplicate Slab Guard serial (row 47 is the later of the Official Handbook #2 pair;
---    row 45 keeps SW-2026-000007). generate_serial_number() checks uniqueness, so 000009 is never reused.
+-- A. The EIGHT confirmed duplicate saves (identical grade blob; one retained grade per cluster).
+--    Survivor = earliest row, except Handbook #1 where 54 stays (registry row 19 → 54; 53 is
+--    unregistered and 1.0 s earlier). Guard: no comic_registry row may reference any id here,
+--    or the FK (no cascade) aborts the transaction.
+--    SELECT id, comic_id FROM comic_registry WHERE comic_id IN (24,53,92,94,95,96,129,132);  -- expect 0 rows
+DELETE FROM collections
+ WHERE id IN (24, 53, 92, 94, 95, 96, 129, 132)
+   AND user_id IN (3, 38, 61);
+-- expect: DELETE 8
+-- Verify before COMMIT:
+--    SELECT count(*) FROM collections;        -- expect (pre-run count) − 8. ⚠️ NOT an absolute: the base moves
+--    (137 at the 09-14 census, 141 at 03:00 UTC 09-15 — rows 190–193 arrived after the deploy). Re-census first.
+--    SELECT count(*) FROM comic_registry;      -- expect 22  (unchanged by block A)
+--    SELECT id FROM collections WHERE id IN (23,45,47,54,91,93,128,131);   -- expect all 8 present
+COMMIT;
+```
+```sql
+-- B. OPT-IN, ONLY IF MIKE CONFIRMS rows 45/47 were ONE physical copy graded twice (Feb 18, 14:16 and
+--    14:18). If they were two copies, run nothing here: two rows, two serials, is correct.
+BEGIN;
 DELETE FROM comic_registry
  WHERE id = 13 AND comic_id = 47 AND serial_number = 'SW-2026-000009' AND user_id = 3;
+-- expect: DELETE 1   (generate_serial_number() checks uniqueness, so 000009 is never reused)
+DELETE FROM collections WHERE id = 47 AND user_id = 3;
 -- expect: DELETE 1
--- 2. Delete the nine surplus collection rows: the later member of each near-duplicate cluster,
---    EXCEPT the Handbook #1 pair, where 53 (unregistered, 1.0 s earlier) goes and 54 stays because
---    registry row 19 (SW-2026-000015) points at 54. Guard: nothing in comic_registry may reference
---    any id in the list, or the FK (no cascade) aborts the transaction.
---    SELECT id, comic_id FROM comic_registry WHERE comic_id IN (24,47,53,92,94,95,96,129,132);  -- expect 0 rows AFTER step 1
-DELETE FROM collections
- WHERE id IN (24, 47, 53, 92, 94, 95, 96, 129, 132)
-   AND user_id IN (3, 38, 61);
--- expect: DELETE 9
--- 3. Verify before COMMIT:
---    SELECT count(*) FROM collections;        -- expect 128 (was 137)
---    SELECT count(*) FROM comic_registry;      -- expect 21  (was 22; only row 13 goes, row 19 stays)
---    SELECT id FROM collections WHERE id IN (23,45,54,91,93,128,131);   -- expect all 7 survivors
+--    SELECT count(*) FROM collections;        -- expect (pre-run count) − 9 after A+B
+--    SELECT count(*) FROM comic_registry;      -- expect 21  after B
 --    SELECT id, comic_id, serial_number FROM comic_registry WHERE id IN (11, 19);  -- expect 11→45, 19→54
 COMMIT;
 ```
-Survivors: 23 (Iron Man #109), 45 (Handbook #2, keeps serial 000007), **54** (Handbook #1, keeps serial
-000015 — the exception), 91 (Strange Academy #1), 93 (Daredevil #196 — of four), 128 (Tales to Astonish
-#93), 131 (Tales to Astonish #90).
-**R2 orphans:** the nine deleted rows' photos, 4 objects each = **36 objects** under
-`submissions/SW-1771014006939-jz2iv6dpc/`, `SW-1771424312151-xk42vlgol/`, `SW-1771631675832-0306rdbak/`
-(row 53 — ⚰️ ~~`SW-1771631680710-qcbei61jr/`~~, that prefix is row 54's and now SURVIVES),
-`SW-1785987376943-mrxox0r5g/`, `SW-1785988153694-p473fc7vw/`, `SW-1785988229358-5pkha8z0z/`,
-`SW-1785988274708-m7ig7lpon/`, `SW-1787949297009-wbeteig3g/`, `SW-1787950609258-plh212x9t/`. Nothing
-references them after the DELETE (the verify page and Slab Guard read `collections.photos` of the
+Survivors (block A): 23 (Iron Man #109), **54** (Handbook #1, keeps serial 000015 — the exception), 91
+(Strange Academy #1), 93 (Daredevil #196 — of four), 128 (Tales to Astonish #93), 131 (Tales to
+Astonish #90); 45 AND 47 both stay unless block B runs.
+**R2 orphans:** block A leaves 8 × 4 = **32 objects** under `submissions/SW-1771014006939-jz2iv6dpc/`,
+`SW-1771631675832-0306rdbak/` (row 53 — ⚰️ ~~`SW-1771631680710-qcbei61jr/`~~, that prefix is row 54's and
+SURVIVES), `SW-1785987376943-mrxox0r5g/`, `SW-1785988153694-p473fc7vw/`, `SW-1785988229358-5pkha8z0z/`,
+`SW-1785988274708-m7ig7lpon/`, `SW-1787949297009-wbeteig3g/`, `SW-1787950609258-plh212x9t/`; block B adds
+4 under `SW-1771424312151-xk42vlgol/` (row 47). Nothing references them after the DELETE (the verify page and Slab Guard read `collections.photos` of the
 surviving rows). They are harmless storage; deleting them is a `boto3 delete_object` per key from the
-Render shell (36 calls), optional, and NOT part of this unit. No `grade_submissions.saved_collection_id`
+Render shell (32 calls, 36 with block B), optional, and NOT part of this unit. No `grade_submissions.saved_collection_id`
 points at any deleted id (the column was NULL everywhere until today).
 
 **SHIP (Mike):**
@@ -150,9 +242,16 @@ purge
 # asserts (curl -sL — the .html paths 308 to clean URLs):
 #   curl -sL https://slabworthy.com/app.html | grep -c "withInFlight"        → 7
 #   curl -sL https://slabworthy.com/app.html | grep -c "saveGradeBtn"        → 3
-#   backend: Render Events shows the commit; then a grade + Save, then Save again → toast "Already in your collection", collections gains ONE row, grade_submissions.saved_collection_id set on that grading_uuid
+#   backend: Render Events shows the commit; then a grade + Save, then Save again → toast "This grade is already saved" (⚰️ ~~"Already in your collection"~~), collections gains ONE row, grade_submissions.saved_collection_id set on that grading_uuid
 ```
-Post-ship: one-line ship record here (L-SW-2026-030); then the cleanup above as its own step.
+**SHIP RECORD (written 2026-09-15 UTC, after the fact):** commit `c23cd7f` (Mike, 2026-09-14 19:49 -0700,
+six files: app.html, routes/collection.py, CLAUDE.md, docs/LAUNCH_READINESS.md, ROADMAP.txt, this file);
+Render deploy on `c23cd7f` created 02:49:36 UTC, finished 02:50:19 UTC, status `live` (deploys GET);
+live page (`curl -sL`): `withInFlight` 7, `saveGradeBtn` 3 — so the Pages build and purge both
+happened. Not exercised: the grade → Save → Save-again round trip (Mike's, on the live site). ⚠️
+L-SW-2026-030 shape, recorded not blamed: this entry's header read "NOT committed" inside the commit
+that shipped it, because the commit ran while the follow-up brief was being worked; tombstoned in place
+above. Cleanup: block A runnable now; block B on Mike's decision.
 
 **Verification agent (phase 1 applied, read-only; app.html diff hunks, wrapper simulation in node,
 collection.py loop exercised with a scripted fake cursor for the three outcomes, RO schema/row checks,
