@@ -73,7 +73,7 @@ rediscovered.
    duplicate on reachability: there is no UI route back to the upload step without a reload, so it needs a
    back-button or bfcache restore. Evidence: WWLO P7 checkpoint; the 09-13 Rekognition entry, Part 2.
    Frontend only (`app.html`).
-2. **The Whatnot valuator carrying applied vision data across listings.** ✅ BUILT 2026-09-15 as whatnot-valuator 2.44.0 (WWLO entry of that date: stable fallback id, vision bound to its listing, unsold expiry with a provisional 10 s bound, late-scan discard, four counters, timing ring buffer) — in the working tree, **pending Mike's commit + unpacked reload showing 2.44.0**; backfill audit of affected rows NOT possible from the corpus (see WWLO). Operator-only tool, so no user
+2. **The Whatnot valuator carrying applied vision data across listings.** ✅ BUILT 2026-09-15 as whatnot-valuator 2.44.0 (WWLO entry of that date: stable fallback id, vision bound to its listing, unsold expiry with a provisional 10 s bound, late-scan discard, four counters, timing ring buffer) — ⚰️ ~~in the working tree, pending Mike's commit + unpacked reload showing 2.44.0~~ **SHIPPED: committed `d1d10dd` 2026-09-15 16:22 -0700, unpacked reload done, 2.44.0 confirmed by Mike on the extensions page and the drops line seen on a live stream (repo-only, no deploy/purge applies)**; ⚠️ **2.44.0 FIELD FINDING 2026-09-15: `unsold-expiry` fires on listing-KEY flaps with the id unchanged and can drop vision for the listing still running — false fires, a missing-vision regression on flapping lots; fix proposed as 2.45.0 (hold/expiry keyed on listing id; `flap` vs `sw` timing entries), NOT built, Mike's call — WWLO 09-15 top entry**; backfill audit of affected rows NOT possible from the corpus (see WWLO). Operator-only tool, so no user
    touches it, but what it corrupts is `market_sales` — the comp corpus every user's FMV is computed from —
    and a wrong-book sale record is indistinguishable from a right one afterward. Silent, stored,
    compounding. Present in BOTH copies of the extension (the live `CCExtensions/` one and the stale tracked
@@ -158,7 +158,7 @@ rediscovered.
     fallback session (rows with `seller` present) with NO 30 s repeat clusters (same seller + raw_title +
     price within 90 s).** Do not mark fixed until seen. Repeat-cluster rows: 57 since 08-28 (48 in that
     block), 1,350 all-time, some legitimately multi-copy. Related, not the same: sold text persisting past
-    30 s under a changed label can still yield one phantom record per label change. Evidence: WWLO 09-15.
+    30 s under a changed label can still yield one phantom record per label change. **Apollo-mode twin seen in the field 2026-09-15: two sale detections 30.0 s apart on one listing id whose key was flapping (WWLO 09-15 top entry) — same family, not touched by the stable fallback id.** Evidence: WWLO 09-15.
 
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).

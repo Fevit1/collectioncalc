@@ -1,5 +1,71 @@
 # Where We Left Off - Sep 15, 2026
 
+## 2026-09-15 — ⚠️ **2.44.0 FIELD FINDING (Mike's first-stream observation): the `unsold-expiry 1` was a FALSE FIRE. Cause: a listing-KEY change on an UNCHANGED listing id ("flap") is treated as a listing switch. Consequence: the live 2.44.0 build can drop vision for the listing that is still running. Fix proposed below, NOT built — awaiting Mike's call.**
+
+**MOST RECENT CHANGE (Rule 5): 2.44.0 is committed (`d1d10dd` 16:22 -0700) and reloaded, confirmed by
+Mike; ROADMAP item 2's awaiting clause tombstoned and CLAUDE.md's version line flipped. Then Mike's
+observation was checked against the timing ring buffer, pulled read-only from the extension's own
+`chrome.storage.local` LevelDB files (profile `Default`, extension `ajlbioldbphabbminilahhenhapnkfkj`,
+newest of 11 stored versions, 21 entries, 16:33:43–16:36:12). Supersedes the "expected gap under
+~1.5 s" reading of the 10 s bound as MEASURED — it is not yet measured, see below. The bound is unchanged.**
+
+**What the buffer shows.** Every `sw` entry has `from == to`: seventeen "switches" and not one of them
+changed the listing id. Two ids appear, `ListingNode:2310331993` (one entry, then a page navigation —
+Mike moved streams; a fresh content script records no `sw` for its first listing) and
+`ListingNode:2309812493` for everything after 16:33:50. The `sw` at +6.6 s on 2309812493 held that
+listing as "previous" of ITSELF; no sold text within 10 s; the timeout fired at ≈+16.6 s. **That is
+Mike's `unsold-expiry 1`: not a real unsold lot, not the first listing after page load (that one holds
+nothing), but the 10 s timeout on a held copy of the listing still on screen.** Later, at +143.4 s to
++148.4 s, the key flapped EVERY 500 ms poll (eleven `sw` entries), each one a "switch with a held
+previous" → `unsold-expiry (switch)` per tick. The overlay in Mike's screenshot was early; the counter
+will have run well past 1 by the time he read this.
+
+**Why the key flaps with the id constant.** `isNewItem` (content.js watcher) is `listingKey !==
+currentItemId || priceDropped`, where `listingKey = id + '-' + title` and the title is the DOM scrape
+(`getAuctionInfoFromDOM`), merged over the Apollo listing. A title that alternates between two DOM
+readings, or a price scrape that alternates with a smaller dollar figure in the same footer
+("Shipping is $4.85" beside "$9" satisfies the >50 % drop and ≤ $20 rule), flips the key without the
+listing changing. 2.43.0 already had this — its own comment resets scan tracking "only when the actual
+listing ID changes (not on title fluctuations)" — and it was harmless there because `previousListing`
+was merely overwritten. **2.44.0 made it harmful: `dropHeldPrevious` fires on a held previous at a
+switch, and drops held vision when `forListingId === held.id` — which is the CURRENT listing's id when
+the "switch" is a flap.** Net: on a flapping listing, the auto-scan's vision is dropped before the sale,
+and the sale records WITHOUT vision, i.e. under the lot label. That is a data-loss regression against
+2.43.0 (which would have attached it correctly on the same-id path), not a wrong-book record. Whether
+the +16.6 s expiry took vision with it is in Mike's console (`DROP unsoldExpiry … ; dropped its vision`
+suffix), not in the buffer.
+
+**Which entry the buffer cannot tell, and the instrument gap.** The `sw` entry carries ids only, so
+title-flap vs price-flap is not decidable from it; both are ruled in. And no REAL id change has been
+recorded yet, so the switch→sold-text gap the 10 s bound guesses at is still unmeasured; the +7.5/+8.5 s
+`usedPrev=1` gaps are flap→sold-text on one listing and must not be read as switch gaps.
+**Bound unchanged per Mike: no measurement, no change.**
+
+**Also in the buffer, pre-existing, logged under item 13's family:** sales detected at +96.9 s and
++126.9 s on the same listing, exactly 30.0 s apart, `usedPrev` 1 then 0 — the persistent sold text
+re-firing after the debounce because the flapping key changes `saleKey`. Apollo-mode twin of the Hulk
+stack storm; the stable fallback id does not touch it.
+
+**Proposed fix (2.45.0 — behaviour Mike can see changes, so minor, not patch), NOT built:**
+1. **Hold and expiry keyed on the listing ID, not the key.** `previousListing` is still captured on
+   every `isNewItem` (2.43.0 semantics, keeps the price-reset snapshot for a multi-copy relist), but
+   the unsold-on-switch rule, the vision drop and the `unsold-expiry` counter apply ONLY when
+   `held.id !== listing.id`. A same-id hold expires by timeout silently (debug line, no counter) and
+   never touches vision.
+2. **Never drop vision owned by the listing that is current now**, in `dropHeldPrevious` as well —
+   the guard already in `visionForSale`, applied symmetrically.
+3. **Timing entries distinguish `sw` (id changed) from `flap` (id unchanged) and carry the key
+   parts** — title cut to 40 chars and price — so the cause becomes decidable and the bound can be
+   measured from real switches only. Entry grows to ≤ ~170 bytes; 500 entries stays under 90 KB.
+4. Manifest and banner 2.44.0 → 2.45.0. Content script only. `WV/` untouched.
+**Not proposed:** changing `isNewItem` itself (the flap also re-runs `processListing` and the FMV
+lookup every poll — pre-existing since 2.43.0 or earlier, out of this unit), or the bound.
+
+**Decision for Mike:** 2.44.0 as loaded trades wrong-book records (the queue-item-2 defect, closed) for
+missing-vision records on flapping listings (new). Options: (a) build 2.45.0 now, (b) reload 2.43.0 until
+it is built, (c) capture with 2.44.0 and accept label-only records on flapping lots for the evening.
+The buffer's `flap` vs `sw` split in (a) is also what makes the bound measurable.
+
 ## 2026-09-15 — 🧭 **QUEUE ITEM 2 BUILT: whatnot-valuator 2.44.0 — held vision and held previous listing now have an owner and an expiry. In the working tree, pending Mike's commit and an unpacked reload. Repo-only: no deploy, no purge.**
 
 **MOST RECENT CHANGE (Rule 5): the 2.44.0 build of the Whatnot valuator is in the working tree (four files
