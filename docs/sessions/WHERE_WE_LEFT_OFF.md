@@ -1,4 +1,113 @@
-# Where We Left Off - Sep 15, 2026
+# Where We Left Off - Sep 16, 2026
+
+## 2026-09-16 — 🔧 **2.46.0 BUILT (Mike's brief): a sold text is consumed by the record it produced; the ring buffer merges on flush; teardown listeners once via `pagehide`. In the working tree, pending Mike's commit and an unpacked reload showing 2.46.0. Repo-only, no deploy, no purge.**
+
+**MOST RECENT CHANGE (Rule 5): `content.js` + `manifest.json` under `CCExtensions/whatnot-valuator/`
+carry 2.46.0; `git log -1` = `ba6f42c` 2026-09-15 17:05 -0700 (2.45.0, which Mike reloaded and confirmed),
+so 2.46.0 is NOT committed and 2.45.0 is what Chrome runs until the reload shows 2.46.0. Supersedes the
+"scoped into 2.46.0" lines of the two-findings entry below. Three side findings from the post-reload
+rows are logged in this entry and as ROADMAP items 15–16; none is scoped.**
+
+**What changed (content script only; `WV/` untouched; the POST payload unchanged):**
+1. **Won-text consumption.** `checkForSale` computes a signature of the sold text — the auction
+   FOOTER's first line carrying "won"/"sold" (`won:<winner>`), and the page-wide "X won!" match only
+   when the footer has none, so a pinned chat line cannot become every sale's signature. After a record
+   the signature is consumed; the same text is ignored until it changes or disappears for a poll.
+   A one-poll blink inside the 30 s debounce re-consumes rather than re-arming (verifier finding).
+   **Deliberately NOT scoped to the listing id:** a banner persisting across a real listing change
+   would otherwise record the next lot at its opening price on the new id. Known limit, stated in the
+   code: the same winner on consecutive lots with no banner gap in between registers once.
+2. **Ring buffer read-merge-write.** Each flush reads the stored array, unions it with the tab's own
+   (dedupe on the entry's JSON), sorts by `t`, caps at 500, writes; a read that errors skips the write
+   rather than clobbering the other tabs' history. **Merged size bound unchanged: 500 entries, ~210 B
+   each for ASCII, ~450 B worst case → under 110 KB typical, under 250 KB worst, of 10 MB.** Two tabs
+   on the same stream double-count that stream's events (different `t`); an analysis caveat, not a loss.
+3. **Teardown once, `pagehide`.** `startWatching` re-runs on every tab-visible resume; the three
+   listeners are now registered once, and `unload` (refused by whatnot.com's permissions policy, the
+   two violations Mike saw) is `pagehide`, which does fire. Nothing lost: `unload` never ran.
+4. Manifest and banner 2.45.0 → 2.46.0.
+
+**Harness (real `content.js` on the stubbed page; no network, no production write; cache-busted script
+tags after one run was found to be on a stale copy):**
+| case | result |
+|---|---|
+| won-text: lot 1 hammers $65, banner stays, price reset to $1 on the same id at +3 s, one-poll blink at +12 s, banner still on at +38 s (past the 30 s debounce and the 10 s same-id release) | **1 record at $65, none at $1**; "sold text cleared" logged once at the blink |
+| banner clears, lot 2 with the SAME winner hammers $22 | recorded ($22) — the gap re-arms |
+| title flap on a fixed id, auto-scan on (pre-refinement 2.46.0 file) | 15 re-render events, 1 scan, 0 drops, sale carries the vision |
+| price flap $9/$4 after a real switch (same) | 1 scan, 0 drops, sale carries the vision, "using previous" at $9 |
+| sale while current → real switch → next sale 3 s later (same) | recorded for the new listing, 0 drops |
+| mismatch, fallback-id, unsold-expiry by switch with vision (same) | all fired with the expected lines |
+| unsold-expiry by timeout with vision, late-scan (final file) | fired: `… (timeout 10000 ms); dropped its vision "Thor"`, `DROP lateScan … (result "Venom")` |
+The teardown once-guard cannot be exercised in the harness (no visibility change); the verifier traced it.
+The refinements between the two harness passes touched only the consumed check and `flushTiming`.
+
+**Verification agent (read-only, final diff):** brief items 1–4 implemented; payload untouched; no TDZ;
+merge cap and sort correct, entries pushed mid-flush are kept; `pagehide` fires where `unload` never did.
+Its findings, all taken: footer-first signature (a stable "won!" earlier in the page would have starved
+later sales), blink re-consume inside the debounce, no write on a failed read. Its remaining caveats:
+two tabs flushing at once still last-writer-wins for that write (each re-merges on its next flush; a tab
+whose stream ends inside its last 2 s window can lose those entries); display names with spaces share a
+signature on the surname; a footer that only ever says "sold" carries no winner and starves same-lot
+follow-ups until it clears.
+
+**Phantom query, run read-only on 2026-09-16 (results in the chat report):** 123 Whatnot rows since the
+2.44.0 reload; the strict same-label/opening-price shape returns 2 candidates (11048, 11100), both WITH
+vision and `seller_verbal`, which argues against the timeout phantom (that path had dropped vision).
+The 10 s hold is not in the database, so the DB shape is "same label as the row before, ≤ $5, cheaper
+than it, within 5 min"; a true phantom is that plus no vision, and a later row with the same label at a
+higher price. The SQL is in the chat report and in `scratchpad` history; it deletes nothing.
+
+**Side finding 1 — same-second duplicate pairs, 18:57–20:33 PDT on 09-15: 33 pairs** (11066/11067 …
+11142/11143), identical title, price and second, `source_id` differing by a few ms, both with vision.
+Two writers on one stream: two tabs open on it, or the pre-reload 2.44.0 content script surviving
+beside the reloaded one (an unpacked reload orphans old content scripts; `fetch` to the API still
+works from an orphan while `chrome.*` does not). Mike knows which. `ON CONFLICT (source, source_id)`
+cannot catch it because `source_id` is a millisecond timestamp. Backend-side dedup is a separate unit.
+**Side finding 2 — "Captain America" under unrelated labels** (nine rows 16:37–16:54 on stream
+2257274543, no vision, issue copied from the label; also "Iron Man #616" under a Batman #616 label):
+the extension normaliser matches series aliases as substrings, `'ca'` included. Wrong-book by a
+different mechanism, on exactly the rows where vision did not attach. ROADMAP item 16.
+
+**Ship block (Mike):** `git add CCExtensions/whatnot-valuator/content.js
+CCExtensions/whatnot-valuator/manifest.json CLAUDE.md docs/sessions/ROADMAP.txt
+docs/sessions/WHERE_WE_LEFT_OFF.md` → commit → push. **No `deploy`, no `purge`.** Reload the unpacked
+extension; **expected version in `chrome://extensions`: 2.46.0**; banner `v2.46.0`; the errors page
+should show no more unload violations. Field tells: "sold text cleared" between lots in the console;
+the timing buffer keeps every open tab's `sw`/`flap` entries after a multi-tab evening.
+
+## 2026-09-16 — 🔎 **Two findings from the 2.44.0 error page and the stored ring buffer (Mike's three questions, answered 09-15 late; logged here before the 2.46.0 build). Both pre-existing in shape; both scoped into 2.46.0 by Mike.**
+
+**MOST RECENT CHANGE (Rule 5): 2.45.0 committed and reloaded (confirmed by Mike on the extensions page,
+2026-09-15 evening); the two DROP entries and two unload violations he saw predate 2.45.0's first write
+(every stored buffer entry is 2.44.0-shaped, and the trace's line 707 is 2.44.0's line for the unload
+listener; 2.45.0 has it at 777). 2.46.0 is the next unit, scoped by Mike: consume the won-text after a
+record; merge the ring buffer on flush; teardown listeners once via pagehide. Supersedes the 2.45.0
+entry's "first field check" as the next step.**
+
+**Finding A — the ring buffer loses history across tabs (2.44.0 and 2.45.0 alike).** Each content-script
+instance loads the stored array once, then writes its own copy on every flush; with two or three
+streams open the last writer wins. Seen in the store: three instance chains, the largest (69 entries,
+16:44) overwritten by a 6-entry one at 16:45. Consequence: the Underdog drop Mike saw cannot be tied to
+a chain (2.44.0 stored ids only and the title appears nowhere in the store); every surviving chain shows
+zero real id changes, so on the evidence it was another flap hold. Fix (2.46.0): read, merge by
+timestamp, write at each flush.
+
+**Finding B — persistent won-text becomes a phantom record on a price reset.** Stream id 2257274543
+repeats for half an hour: a same-id hold, then a "sale" using the current listing exactly ~10 s later,
+`usedPrev=0`. That is the previous lot's won-text still on screen when the seller resets the price for
+the next lot: the stale hold dedupes it for 10 s (`saleKey` equals `lastSaleCheck`), the release exposes
+the new price reading, and a record goes out at the next lot's OPENING price. 2.45.0 has the same path
+through the silent same-id release; 2.43.0 deduped those away (and lost real next-lot sales instead).
+Root: the extension never marks a sold text as consumed. Fix (2.46.0): after a record, remember the
+winner text and ignore it until it changes. Item 13's family; the DB-side check is the phantom query
+in this entry's sibling (2.46.0 entry).
+
+**Unload listener, for the record:** ours, in `startWatching`, pre-existing since 2.43.0 (lines 583–584
+there). Chrome refuses `unload` handlers under whatnot.com's permissions policy and logs the violation at
+registration; the listener never runs; nothing else is affected. Its job (clear the poll interval at
+teardown) is done by the document dying and by the `beforeunload` listener beside it. Two entries because
+`startWatching` re-registers all three listeners on every tab-visible resume. 2.46.0 item 3: register
+once, `pagehide`.
 
 ## 2026-09-15 — 🔧 **2.45.0 BUILT (Mike's go on the proposed fix): hold, expiry and vision drop keyed on the listing ID, never the change key. In the working tree, pending Mike's commit and an unpacked reload showing 2.45.0. Repo-only, no deploy, no purge.**
 

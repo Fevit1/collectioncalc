@@ -4,7 +4,7 @@
 (function() {
   'use strict';
 
-  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.45.0...');
+  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.46.0...');
   console.log('[Valuator] Vision:', window.ComicVision ? '✅ Loaded' : '❌ Not loaded');
   console.log('[Valuator] CollectionCalc:', window.SupabaseClient ? '✅ Connected' : '❌ Not loaded');
 
@@ -51,6 +51,26 @@
                                          // to the already-sold previous and was deduped away
                                          // (harness-reproduced 2026-09-15), and 2.44.0 counted
                                          // the same stale hold as an unsold listing.
+  // 2.46.0 — a sold text is CONSUMED by the record it produced and ignored until it changes or
+  // disappears. Before this, the previous lot's "X won!" banner persisting across the seller's
+  // price reset for the next lot was re-detected once the same-id hold released (~10 s) and
+  // recorded at the NEXT lot's opening price (stream 2257274543, 2026-09-15, half an hour of
+  // them). Known limit: two consecutive lots won by the same user under a banner that never
+  // disappears in between register once.
+  let consumedSaleSig = null;
+  let lastConsumedSig = null;   // survives a one-poll banner blink (see the debounce branch)
+  // The signature is taken from the auction FOOTER first (its first line is "<winner> won!"), and
+  // only from the whole page when the footer carries no sold text — a pinned chat line such as
+  // "congrats you won!" earlier in the page must not become the signature of every sale.
+  function saleTextSignature(footerText, pageText) {
+    const line = footerText.split('\n').find(l => /\bwon\b/.test(l) || l.includes('sold'));
+    if (line) {
+      const w = line.match(/(\S{1,40})\s+won\b/);
+      return w ? 'won:' + w[1] : 'footer:' + line.replace(/\s+/g, ' ').trim().slice(0, 120);
+    }
+    const m = pageText.match(/(\S{1,40})\s+won[!\n]/);
+    return m ? 'page-won:' + m[1] : 'page:' + pageText.slice(0, 40);
+  }
   let relistedSinceSale = false;         // ...UNLESS a same-id price reset was seen after that
                                          // sale (a second copy under the same id/label): then
                                          // the ending listing is a different sale and IS held,
@@ -95,9 +115,33 @@
   let timingBuffer = null;   // loaded from storage on first use
   let timingPending = [];    // entries that arrive while that first load is in flight
   let timingFlushTimer = null;
+  // 2.46.0 — read, merge by timestamp, write: every content-script instance (one per open stream)
+  // used to rewrite the stored array from its own copy, so the last tab to flush won and the
+  // others' history was lost (09-15: a 69-entry chain overwritten by a 6-entry one). The merge
+  // is a union keyed on the entry's own JSON, sorted by t, capped at TIMING_MAX — so the merged
+  // bound is unchanged: 500 entries, under 110 KB typical / 250 KB worst case.
   function flushTiming() {
     timingFlushTimer = null;
-    try { chrome.storage.local.set({ [TIMING_KEY]: timingBuffer }); } catch (err) { /* storage gone */ }
+    const local = timingBuffer;
+    const write = (stored) => {
+      if (chrome.runtime && chrome.runtime.lastError) {
+        // the read failed: writing now would replace the other tabs' history with ours alone.
+        // Keep ours in memory; the next push re-arms the flush and retries the merge.
+        return;
+      }
+      const seen = new Set(); const merged = [];
+      for (const e of [...(Array.isArray(stored) ? stored : []), ...local]) {
+        const k = JSON.stringify(e);
+        if (!seen.has(k)) { seen.add(k); merged.push(e); }
+      }
+      merged.sort((a, b) => (a[1] || 0) - (b[1] || 0));
+      while (merged.length > TIMING_MAX) merged.shift();
+      timingBuffer = merged;
+      try { chrome.storage.local.set({ [TIMING_KEY]: merged }); } catch (err) { /* storage gone */ }
+    };
+    try {
+      chrome.storage.local.get([TIMING_KEY], (result) => write(result && result[TIMING_KEY]));
+    } catch (e) { write([]); }
   }
   function recordTiming(entry) {
     const push = (e) => {
@@ -645,6 +689,7 @@
   // Watch for auction changes
   let watchCount = 0;
   let watchIntervalId = null;  // Store interval ID for cleanup
+  let teardownRegistered = false;  // 2.46.0
   
   function startWatching() {
     // Clear any existing interval first
@@ -772,10 +817,14 @@
       }
     }, 500);
     
-    // Cleanup when tab closes or navigates away
+    // Cleanup when tab closes or navigates away. 2.46.0: registered ONCE (startWatching re-runs
+    // on every tab-visible resume and used to stack these), and 'pagehide' instead of 'unload',
+    // which whatnot.com's permissions policy refuses (logged as a violation, never fired).
+    if (teardownRegistered) return;
+    teardownRegistered = true;
     window.addEventListener('beforeunload', cleanupWatcher);
-    window.addEventListener('unload', cleanupWatcher);
-    
+    window.addEventListener('pagehide', cleanupWatcher);
+
     // Also listen for visibility changes (tab hidden = pause, reduces server load)
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -997,19 +1046,31 @@
     const hasSaleInFooter = footerText.includes('sold') || /\bwon\b/.test(footerText);
     const hasWinner = pageText.includes(' won!') || pageText.includes(' won\n');
     const hasSale = hasSaleInFooter || hasWinner;
-    
-    if (!hasSale) return;
+
+    if (!hasSale) {
+      if (consumedSaleSig !== null) {
+        console.log('[Valuator] sold text cleared; the next sold text is a new sale');
+        consumedSaleSig = null;
+      }
+      return;
+    }
+
+    // 2.46.0 — this sold text already produced a record: ignore it until it changes or clears.
+    // Deliberately NOT scoped to the listing id: a banner that persists across a real listing
+    // change would otherwise record the next lot at its opening price on the new id. The cost is
+    // the documented limit (same winner on consecutive lots with no banner gap registers once).
+    const saleSig = saleTextSignature(footerText, pageText);
+    const soldListing = previousListing || listing;
+    if (!soldListing) return;
+    if (consumedSaleSig !== null && saleSig === consumedSaleSig) return;
     
     // DEBOUNCE: Ignore sales within 30 seconds of last recorded sale
     const now = Date.now();
     if (now - lastSaleTime < 30000) {
+      // the banner blinked out for a poll and came back inside the debounce: still the same sale
+      if (saleSig === lastConsumedSig && soldListing.id === lastSoldListingId) consumedSaleSig = saleSig;
       return; // Too soon, skip
     }
-    
-    // Use previousListing if available (the item that just sold)
-    // Fall back to current listing if no previous exists
-    const soldListing = previousListing || listing;
-    if (!soldListing) return;
     
     const saleKey = `${soldListing.id}-${soldListing.price}-${soldListing.title}`;
     
@@ -1212,6 +1273,8 @@
       previousListingHeldAt = 0;
       lastSoldListingId = soldListing.id;  // 2.45.0
       relistedSinceSale = false;
+      consumedSaleSig = saleSig;           // 2.46.0
+      lastConsumedSig = saleSig;
       manualGrade = null;  // Reset for next item
       
       console.log('[Valuator] 💰 SALE:', sale);
