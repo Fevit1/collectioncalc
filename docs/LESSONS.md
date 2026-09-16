@@ -1,6 +1,6 @@
 # Slab Worthy — Project Lessons
 
-> **Operator:** Mike Berry · **Last updated:** 2026-09-14 (29 lessons; L-SW-2026-030 gained its operational form in CLAUDE.md)
+> **Operator:** Mike Berry · **Last updated:** 2026-09-15 (29 lessons + 1 CANDIDATE, L-SW-2026-031, awaiting Mike's confirmation)
 > **Scope:** Lessons specific to working on Slab Worthy. Read after `CLAUDE.md` during the
 > session-opening protocol. Cross-project lessons live in
 > `C:\Users\mberr\.claude\projects\shared\LESSONS_CROSS_PROJECT.md`.
@@ -41,6 +41,7 @@
 - **028** — Asserting something exists or does not, without naming a surface that could return a hit.
 - **029** — A `Grep`-tool null over paths `.gitignore` hides (`scripts/cp1_*`, `.env`, `*secret*`).
 - **030** — A record saying "not committed / not deployed" is about to ride in the commit that ships it.
+- **031** (candidate) — About to attach a side effect (drop, reset, counter, expiry) to an existing "it changed" branch whose key contains anything besides the entity's id.
 
 (025 is reserved — see the ID note under Active lessons.)
 
@@ -59,6 +60,43 @@ Promotion to the cross-project file is Mike's call; Claude only proposes at sess
 > **ID note:** 025 is deliberately skipped. [[L-SW-2026-024]] carries a forward reference to
 > `[[L-SW-2026-025]]` reserved for condition-estimation resolution; reusing the number would
 > silently redirect that link.
+
+### L-SW-2026-031 — A change-detection key is not an identity: state that outlives an entity (holds, ownership, expiry) is keyed on the entity's id, never on the key that decides "something changed" — **CANDIDATE 2026-09-15, Mike to confirm**
+
+- **RULE:** A "new item" / "it changed" predicate is built to be sensitive: it includes every
+  input that should trigger a re-render (id AND title AND a price-drop heuristic). Anything
+  keyed on that predicate inherits its sensitivity, so a flicker in one input becomes a
+  lifecycle event. Before attaching a consequence to an existing changed-branch — a drop, a
+  reset, a counter, an expiry — list every input to its predicate and ask which can move while
+  the entity stays. Lifecycle logic (held-until, owned-by, ended-without) keys on the stable id
+  and nothing else; the change key only says "redraw".
+- **WHY:** whatnot-valuator 2.44.0 (queue item 2) added "a held previous listing at a switch
+  ended unsold → drop it, drop vision it owns, count it" to the watcher's `isNewItem` branch.
+  That branch fires on `id-title` key changes and on a price drop. On the first live stream the
+  timing buffer showed seventeen "switches" and not one changed the listing id: a DOM title
+  reading or a price scrape (the shipping figure beside the bid) flapped the key every 500 ms
+  on one listing. Each flap held the listing as "previous" of itself and the 10 s timeout, or
+  the next flap, counted it as unsold and could drop the auto-scan's vision for the listing
+  still on screen — a missing-vision regression on exactly the sales the unit was built to
+  protect. **2.43.0 had the same flaps and tolerated them only because its switch branch did
+  nothing but overwrite a slot**; its own comment even said scan tracking resets "only when the
+  actual listing ID changes (not on title fluctuations)" — the distinction existed in the file
+  and the new code was attached to the wrong side of it. Shape of [[L-SW-2026-019]] (a change
+  scoped from the named clause, not the whole definition) and [[L-SW-2026-016]] (a number whose
+  label you cannot trace to what computes it: "switch" did not mean "listing changed").
+- **HOW TO APPLY:**
+  1. Read the predicate, not the branch name. `isNewItem`, `changed`, `dirty` — open the
+     expression and enumerate its inputs. If any input is a scraped reading, a heuristic, or a
+     composite key, the branch is a render trigger, not an identity boundary.
+  2. Keep two tests where the code already keeps two: here `listingIdChanged` sat one line
+     below `isNewItem`, unused by the new logic. If the file already distinguishes id-change
+     from key-change, new lifecycle code goes on the id-change side without discussion.
+  3. Instrument the event with its inputs, not just its ids. The 2.44.0 buffer carried ids only
+     and could not decide title-flap from price-flap; 2.45.0 carries both readings.
+  4. Harness the flap: a fixed id with the title alternating, and with the price scrape catching
+     a smaller figure, must produce zero lifecycle events and must not lose owned state.
+- **SOURCE:** WWLO 2026-09-15 (field finding on the 2.44.0 reload; the 2.45.0 fix), ROADMAP
+  queue item 2.
 
 ### L-SW-2026-030 — A record that describes a unit as NOT YET SHIPPED must not ride in the commit that ships it; update it before staging, or commit it separately after the ship is verified
 

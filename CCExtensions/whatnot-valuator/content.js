@@ -4,7 +4,7 @@
 (function() {
   'use strict';
 
-  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.44.0...');
+  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.45.0...');
   console.log('[Valuator] Vision:', window.ComicVision ? '✅ Loaded' : '❌ Not loaded');
   console.log('[Valuator] CollectionCalc:', window.SupabaseClient ? '✅ Connected' : '❌ Not loaded');
 
@@ -34,11 +34,31 @@
   // that listing's sale; a held previous listing expires at the next switch or after
   // HELD_PREVIOUS_EXPIRY_MS; a scan whose listing changed while it ran is discarded.
   // Every drop is logged, counted, and shown in the overlay.
-  let previousListingHeldAt = 0;         // when previousListing was captured at a switch
-  let lastSwitchAt = 0;                  // last listing switch, for the timing ring buffer
-  const HELD_PREVIOUS_EXPIRY_MS = 10000; // PROVISIONAL (WWLO 2026-09-15): mechanics say the
-                                         // switch-to-sold-text gap is under ~1.5 s; the ring
-                                         // buffer below measures it. Revisit from that data.
+  //
+  // 2.45.0 — IDENTITY IS THE LISTING ID, NEVER THE CHANGE KEY. The watcher's "new item" test is
+  // the key `id-title` (or a price drop), and that key moves on a DOM title reading or a price
+  // scrape while the listing id does not (a "flap"; the 2026-09-15 field buffer showed flaps
+  // every 500 ms on one id). 2.43.0 tolerated flaps because its switch branch only overwrote a
+  // slot; 2.44.0 attached consequences to the same branch and every flap became a false
+  // "ended unsold" that could drop vision for the listing still on screen. Now: the unsold
+  // rule, the expiry counter and the vision drop fire only when the listing ID changes; a flap
+  // keeps 2.43.0's snapshot semantics and is recorded as its own timing entry.
+  let previousListingHeldAt = 0;         // when previousListing was captured
+  let lastSwitchAt = 0;                  // last REAL switch (id changed), for the timing buffer
+  let lastSoldListingId = null;          // 2.45.0 — a listing whose sale is recorded is not
+                                         // held as "previous" again: 2.43.0 re-held it at the
+                                         // next switch, so the NEXT listing's sold text resolved
+                                         // to the already-sold previous and was deduped away
+                                         // (harness-reproduced 2026-09-15), and 2.44.0 counted
+                                         // the same stale hold as an unsold listing.
+  let relistedSinceSale = false;         // ...UNLESS a same-id price reset was seen after that
+                                         // sale (a second copy under the same id/label): then
+                                         // the ending listing is a different sale and IS held,
+                                         // so its late sold text attributes to it, not to the
+                                         // listing after (verifier finding, 2026-09-15).
+  const HELD_PREVIOUS_EXPIRY_MS = 10000; // PROVISIONAL (WWLO 2026-09-15): measured from 'sw'
+                                         // entries (real switches) only, never from 'flap'
+                                         // entries. Do not change without that measurement.
   const dropCounts = { mismatch: 0, fallbackId: 0, unsoldExpiry: 0, lateScan: 0 };
 
   function isFallbackId(id) {
@@ -58,25 +78,36 @@
       ` · unsold-expiry ${dropCounts.unsoldExpiry} · late-scan ${dropCounts.lateScan}`;
   }
 
-  // Timing ring buffer — measures the gap between a listing switch and the sold text, the
-  // number HELD_PREVIOUS_EXPIRY_MS is a guess at. Entries are compact arrays:
-  //   ['sw',   t, fromId, toId]           on every listing switch
-  //   ['sale', t, msSinceSwitch, usedPrev] on every detected sale (usedPrev 1 = previousListing)
-  // Ids are cut to 40 chars, so an entry is at most ~106 bytes as JSON; 500 entries is under
-  // 60 KB of the 10 MB chrome.storage.local quota (whatnot_sales is capped at 500 for the
-  // same reason). Read it with ValuatorDebug.getTiming().
+  // Timing ring buffer — measures the gap between a REAL listing switch and the sold text, the
+  // number HELD_PREVIOUS_EXPIRY_MS is a guess at. Entries are compact arrays (2.45.0 shape):
+  //   ['sw',   t, fromId, toId, fromTitle, fromPrice, toTitle, toPrice]  listing ID changed
+  //   ['flap', t, id, fromTitle, fromPrice, toTitle, toPrice]            key moved, id did not
+  //   ['sale', t, msSinceRealSwitch, usedPrev, soldId]                   sale detected
+  // Ids and titles are cut to 40 chars: ~210 bytes per entry as JSON for ASCII, up to ~450
+  // for a title of 4-byte characters with escapes, so 500 entries is under 110 KB typical and
+  // under 250 KB worst case, of the 10 MB chrome.storage.local quota (whatnot_sales is capped
+  // at 500 for the same reason). Writes are coalesced to one per 2 s so a flapping listing
+  // does not rewrite the buffer every poll. Read it with ValuatorDebug.getTiming(). Entries
+  // written by 2.44.0 (['sw', t, fromId, toId] with from == to) are flaps mislabelled as
+  // switches: ignore them.
   const TIMING_KEY = 'valuator_timing';
   const TIMING_MAX = 500;
   let timingBuffer = null;   // loaded from storage on first use
   let timingPending = [];    // entries that arrive while that first load is in flight
+  let timingFlushTimer = null;
+  function flushTiming() {
+    timingFlushTimer = null;
+    try { chrome.storage.local.set({ [TIMING_KEY]: timingBuffer }); } catch (err) { /* storage gone */ }
+  }
   function recordTiming(entry) {
     const push = (e) => {
       timingBuffer.push(e);
       while (timingBuffer.length > TIMING_MAX) timingBuffer.shift();
-      try { chrome.storage.local.set({ [TIMING_KEY]: timingBuffer }); } catch (err) { /* storage gone */ }
+      if (!timingFlushTimer) timingFlushTimer = setTimeout(flushTiming, 2000);
     };
     if (timingBuffer) { push(entry); return; }
     timingPending.push(entry);
+    while (timingPending.length > TIMING_MAX) timingPending.shift();
     if (timingPending.length > 1) return; // a load is already in flight; it will drain the queue
     const drain = (loaded) => {
       timingBuffer = Array.isArray(loaded) ? loaded : [];
@@ -97,7 +128,10 @@
     previousListing = null;
     previousListingHeldAt = 0;
     let detail = `held listing ${held.id} "${held.title}" ended without a detected sale (${reason})`;
-    if (appliedVisionData && appliedVisionData.forListingId === held.id) {
+    // 2.45.0 — never drop vision owned by the listing that is on screen now
+    const ownedByCurrent = currentListing && appliedVisionData &&
+      appliedVisionData.forListingId === currentListing.id;
+    if (appliedVisionData && appliedVisionData.forListingId === held.id && !ownedByCurrent) {
       detail += `; dropped its vision "${appliedVisionData.title}"`;
       appliedVisionData = null;
     }
@@ -105,10 +139,17 @@
   }
 
   function expireHeldPrevious() {
-    if (previousListing && previousListingHeldAt &&
-        Date.now() - previousListingHeldAt > HELD_PREVIOUS_EXPIRY_MS) {
-      dropHeldPrevious(`timeout ${HELD_PREVIOUS_EXPIRY_MS} ms`);
+    if (!previousListing || !previousListingHeldAt) return;
+    if (Date.now() - previousListingHeldAt <= HELD_PREVIOUS_EXPIRY_MS) return;
+    if (currentListing && previousListing.id === currentListing.id) {
+      // 2.45.0 — a same-id snapshot (held at a flap or a price reset) of the listing still on
+      // screen: releasing it is housekeeping, not an unsold listing. No counter, no vision.
+      previousListing = null;
+      previousListingHeldAt = 0;
+      console.log('[Valuator] released same-id snapshot of', currentListing.id, 'after', HELD_PREVIOUS_EXPIRY_MS, 'ms');
+      return;
     }
+    dropHeldPrevious(`timeout ${HELD_PREVIOUS_EXPIRY_MS} ms`);
   }
 
   // Vision attaches to a sale only when it was scanned for the listing that sold. On a
@@ -633,14 +674,43 @@
         if (isNewItem) {
           // Save previous listing before switching (for sale detection)
           if (currentListing) {
-            // 2.44.0 — a previous listing still held here means no sale was detected for it
-            // across the whole listing that just ended: it ended unsold. Drop before overwrite.
-            if (previousListing) dropHeldPrevious('switch');
-            previousListing = { ...currentListing };
-            previousListingHeldAt = Date.now();
-            recordTiming(['sw', previousListingHeldAt, shortId(currentListing.id), shortId(listing.id)]);
+            const now = Date.now();
+            if (listingIdChanged) {
+              // 2.45.0 — a REAL switch. A previous listing still held here whose id is neither
+              // the listing ending now nor the one arriving saw no detected sale across the whole
+              // listing that just ended: it ended unsold. Drop it before it is overwritten. A held
+              // same-id snapshot of the ending listing is simply refreshed (2.44.0 counted that as
+              // unsold — the false fire).
+              if (previousListing && previousListing.id !== currentListing.id &&
+                  previousListing.id !== listing.id) {
+                dropHeldPrevious('switch');
+              }
+              if (currentListing.id === lastSoldListingId && !relistedSinceSale) {
+                // its sale is already recorded: nothing to wait for, nothing to expire
+                previousListing = null;
+                previousListingHeldAt = 0;
+              } else {
+                previousListing = { ...currentListing };
+                previousListingHeldAt = now;
+              }
+              lastSwitchAt = now;
+              recordTiming(['sw', now, shortId(currentListing.id), shortId(listing.id),
+                shortId(currentListing.title), currentListing.price, shortId(listing.title), listing.price]);
+            } else {
+              // 2.45.0 — a FLAP (or a same-id price reset): the key moved, the id did not. Not a
+              // listing end. 2.43.0 semantics kept: hold the snapshot only when nothing else is
+              // held or the held one is this same listing (keeps the pre-reset price for a
+              // same-label relist); a held previous with ANOTHER id is left alone so its sold text
+              // still attributes to it.
+              if (!previousListing || previousListing.id === listing.id) {
+                previousListing = { ...currentListing };
+                previousListingHeldAt = now;
+              }
+              if (priceDropped && listing.id === lastSoldListingId) relistedSinceSale = true;
+              recordTiming(['flap', now, shortId(listing.id),
+                shortId(currentListing.title), currentListing.price, shortId(listing.title), listing.price]);
+            }
           }
-          lastSwitchAt = Date.now();
           currentItemId = listingKey;
           currentListing = listing;
           
@@ -947,7 +1017,8 @@
       console.log('[Valuator] 🎯 Sale detected! Item:', soldListing.title, '(using', previousListing ? 'previous' : 'current', 'listing)');
       lastSaleCheck = saleKey;
       lastSaleTime = now;  // Update debounce timer
-      recordTiming(['sale', now, lastSwitchAt ? now - lastSwitchAt : null, previousListing ? 1 : 0]);
+      recordTiming(['sale', now, lastSwitchAt ? now - lastSwitchAt : null, previousListing ? 1 : 0,
+        shortId(soldListing.id)]);
 
       // 2.44.0 — vision is used only if it was scanned for the listing that sold
       const vision = visionForSale(soldListing);
@@ -1139,6 +1210,8 @@
       // Clear previousListing after recording
       previousListing = null;
       previousListingHeldAt = 0;
+      lastSoldListingId = soldListing.id;  // 2.45.0
+      relistedSinceSale = false;
       manualGrade = null;  // Reset for next item
       
       console.log('[Valuator] 💰 SALE:', sale);
@@ -1157,7 +1230,10 @@
     // 2.44.0 — drop counters and the switch-to-sale timing ring buffer
     getDropCounts: () => ({ ...dropCounts }),
     getTiming: () => new Promise(resolve => {
-      chrome.storage.local.get([TIMING_KEY], (result) => resolve((result && result[TIMING_KEY]) || []));
+      if (timingBuffer) { resolve(timingBuffer.slice()); return; }
+      try {
+        chrome.storage.local.get([TIMING_KEY], (result) => resolve((result && result[TIMING_KEY]) || []));
+      } catch (e) { resolve([]); }
     }),
     getStats: () => {
       return new Promise(resolve => {

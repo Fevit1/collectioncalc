@@ -1,5 +1,77 @@
 # Where We Left Off - Sep 15, 2026
 
+## 2026-09-15 — 🔧 **2.45.0 BUILT (Mike's go on the proposed fix): hold, expiry and vision drop keyed on the listing ID, never the change key. In the working tree, pending Mike's commit and an unpacked reload showing 2.45.0. Repo-only, no deploy, no purge.**
+
+**MOST RECENT CHANGE (Rule 5): `content.js` + `manifest.json` under `CCExtensions/whatnot-valuator/`
+carry 2.45.0; `git log -1` = `4908ed4` 16:48 -0700 (Mike's records commit), so the extension change is
+NOT committed and 2.44.0 (`d1d10dd`) is what Chrome has loaded until the reload shows 2.45.0.
+Supersedes the "proposed, NOT built" line of the false-fire entry below. Lesson candidate
+L-SW-2026-031 added to `docs/LESSONS.md` (index line + entry, awaiting Mike's confirmation).**
+
+**What changed (content script only; `WV/` untouched; the POST payload unchanged):**
+- The watcher already computed `listingIdChanged` beside `isNewItem`; the 2.44.0 logic was attached
+  to the wrong one. Now a **real switch** (id changed) is the only place the unsold rule fires: a held
+  previous whose id is neither the listing ending nor the one arriving is dropped and counted; a
+  same-id snapshot of the ending listing is refreshed, not counted. A **flap** (key moved, id did
+  not — title reading or price scrape) keeps 2.43.0's snapshot semantics (hold when nothing is held
+  or the held one is this id; a held previous with another id is left alone) and touches no counter
+  and no vision.
+- `expireHeldPrevious`: a same-id snapshot past 10 s is released silently (console line, no counter,
+  no vision). `dropHeldPrevious` additionally never drops vision owned by the listing on screen.
+- **A listing whose sale is recorded is not re-held at the next real switch** (`lastSoldListingId`)
+  — a pre-existing 2.43.0 loss the harness reproduced: a sale detected while current, then the next
+  listing's sold text inside the hold window resolved to the already-sold previous and was deduped by
+  `lastSaleCheck`; 2.44.0 also counted that stale hold as unsold. **Verifier caught the regression in
+  the first cut of this guard** (a same-label relist whose sold text lands after the switch away was
+  misattributed to the listing after); fixed: the guard is suspended when a same-id price reset was
+  seen since that sale (`relistedSinceSale`), so a second copy is held and its late sold text
+  attributes to it.
+- Timing ring buffer: `['sw', t, fromId, toId, fromTitle, fromPrice, toTitle, toPrice]`,
+  `['flap', t, id, fromTitle, fromPrice, toTitle, toPrice]`, `['sale', t, msSinceRealSwitch,
+  usedPrev, soldId]`; `lastSwitchAt` moves only on `sw`, so the bound is measured from real switches
+  only. Writes coalesced to one per 2 s; pending queue capped; `getTiming` guarded. Size: ~210 B/entry
+  ASCII, ~450 B worst case → under 110 KB typical, under 250 KB worst, of 10 MB. 2.44.0's entries
+  (from == to) are flaps mislabelled as switches: ignore them when reading the bound.
+- **Bound unchanged: provisional 10 s.** Still unmeasured — no real switch with sold text after it has
+  been recorded in the field yet.
+- Manifest and banner 2.44.0 → 2.45.0.
+
+**Harness (same stubbed page, real `content.js`; no network, no production write):**
+| case | result |
+|---|---|
+| title flap, fixed id, auto-scan on, 6.5 s | 13 re-render events, 1 scan, **0 drops**; sale recorded with the vision title, image, under the real label |
+| price flap $9/$4 scrape, fixed id, after a real switch | 0 price-reset log lines (scan skipped by the 30 s same-id rule), 1 scan, **0 drops**; sale recorded with vision and image |
+| same-id snapshot past 10 s | one "released same-id snapshot" console line, counter unchanged |
+| sale while current → real switch → next sale 3 s later | recorded under the NEW listing "using current listing" (2.43.0/2.44.0 deduped it away) |
+| same-label relist: sold $3 → reset $1 → real switch → sold text 2 s after | recorded under the relisted listing "using previous listing", 0 drops; **price recorded $1** — see queue item 14, pre-existing |
+| mismatch | switch to E (unsold) → switch to D → manual scan on D → E's sold text: E recorded without vision, `DROP mismatch … (kept for the current listing)` |
+| unsold-expiry (switch) | D, unsold, dropped at the next real switch with its vision "Superman" |
+| fallback-id | F1 → F2 (fallback ids) → scan F2 → F1's sold text: `DROP fallbackId … (kept …)` |
+| unsold-expiry (timeout) | scan C → switch to G → 11 s: `… (timeout 10000 ms); dropped its vision "Thor"` |
+| late-scan | scan held on G → switch to K → resolve: not applied, "Scan outdated", `DROP lateScan` |
+One harness note for the record: the second listing's auto-scan is skipped by the pre-existing 10 s
+scan cooldown when listings change inside 10 s, so the counter sequences use the Scan button.
+
+**Verification agent (read-only, on the final diff after the relist guard was messaged to it):**
+(a) no same-id path fires the unsold rule, the counter or a vision null; (b) no path nulls vision owned
+by the current listing; (c) designed flow traced, A's vision attaches and A's record goes out, also
+when A flapped before ending; (d) multi-copy reset: no counter, no vision touch; (e) an id-flap
+(Apollo alternating two ids) produces no drops and is strictly better than 2.44.0, though it churns
+the buffer; (f) cap holds, storage-unavailable is safe — its size-bound and write-frequency notes and
+the unbounded pending queue are fixed as above; (g) no TDZ; (h) brief fully implemented. Its one
+regression finding (the relist case) is fixed and harness-confirmed.
+
+**Pre-existing, found on the way, NOT scoped (ROADMAP item 14):** the held snapshot's price is the
+last "new item" reading, not the final one, and the price scrape can catch the shipping figure.
+
+**Ship block (Mike):** `git add CCExtensions/whatnot-valuator/content.js
+CCExtensions/whatnot-valuator/manifest.json CLAUDE.md docs/LESSONS.md docs/sessions/ROADMAP.txt
+docs/sessions/WHERE_WE_LEFT_OFF.md` → commit → push. **No `deploy`, no `purge`.** Reload the unpacked
+extension; **expected version in `chrome://extensions`: 2.45.0**; banner `v2.45.0`. First field check:
+the overlay's `unsold-expiry` should stay at 0 across a flapping listing, and `ValuatorDebug.getTiming()`
+should show `flap` entries carrying the two title/price readings, which decides title-flap vs
+price-flap. The Hulk stack observation (item 13) still stands as the confirmation for the storm.
+
 ## 2026-09-15 — ⚠️ **2.44.0 FIELD FINDING (Mike's first-stream observation): the `unsold-expiry 1` was a FALSE FIRE. Cause: a listing-KEY change on an UNCHANGED listing id ("flap") is treated as a listing switch. Consequence: the live 2.44.0 build can drop vision for the listing that is still running. Fix proposed below, NOT built — awaiting Mike's call.**
 
 **MOST RECENT CHANGE (Rule 5): 2.44.0 is committed (`d1d10dd` 16:22 -0700) and reloaded, confirmed by
