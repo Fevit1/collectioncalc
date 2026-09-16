@@ -1,5 +1,66 @@
 # Where We Left Off - Sep 16, 2026
 
+## 2026-09-16 — 🔧 **2.47.0 BUILT (grade provenance): the record's grade comes only from the scan bound to the sold listing or from the sold listing's own label with grade context; `seller_verbal` retired; the `manualGrade` leak closed. In the working tree, pending Mike's commit and a reload showing 2.47.0 in the banner. Relabel SQL handed to Mike (NOT run).**
+
+**MOST RECENT CHANGE (Rule 5): `content.js` + `manifest.json` carry 2.47.0; `git log -1` = `c644764`
+(2.46.0, reloaded and confirmed), so 2.47.0 is NOT committed and 2.46.0 runs until the banner shows
+2.47.0. CLAUDE.md and ROADMAP item 2 flipped to "pending". Supersedes the grade-provenance entry's
+"proposed shape (not built)". The corpus relabel is Mike's to run; branch counts re-read after his
+cleanup (they moved by his deletes/nulls).**
+
+**What changed (content script only; POST payload unchanged; `WV/` untouched):**
+- `numericGrade` no longer reads `manualGrade`. `manualGrade` remains a DISPLAY value for the overlay
+  verdict (its comment now says so); the sale path reads the scan's grade from `vision` — the object
+  `visionForSale` bound to the sold listing — or a label grade, nothing else.
+- `gradeSource`: the `seller_verbal` branch is gone. Scan grade → `vision_cover` / `slab_label` by the
+  scan's slab type; label grade → `slab_label` when the label carries a slab word, else `dom`.
+- A label grade (`parsed.grade`, the extension normaliser's regex) is accepted only with grade context:
+  a decimal `d.d` in the title/condition text, or a slab word, or "grade"/"graded". The normaliser's
+  bare `10|9.x|…` pattern had been reading the dollar figure (67 corpus rows at grade 10 from "$10 starts").
+- Manifest and banner 2.46.0 → 2.47.0.
+
+**Harness (real `content.js`, stubbed page, no network, no production write):**
+| case | result |
+|---|---|
+| designed flow, scan 8.0 raw on A, A's sold text after the switch | A recorded, grade 8, `vision_cover`, image |
+| LEAK: E unsold → switch to D → manual scan on D (9.6) → E's sold text | E recorded with **grade null, source null**; the scan withheld (`DROP mismatch … kept for the current listing`) — on 2.46.0 this row would have carried 9.6 as `seller_verbal` |
+| "$10 starts #14", no scan, own sold text | grade **null**, source null |
+| "Comics #37" with condition text "9.2", no scan | grade 9.2, `dom` |
+| "ASM 300 CGC 9.8", no scan | grade 9.8, `slab_label`, slab CGC |
+Two pre-existing things the harness showed in passing, not scoped: a `$10 starts` title passes
+`isValidSale` (the `badTitles` list has no dollar rule though `isGarbageTitle` does), and the
+normaliser gives the series "300" for "ASM 300 CGC 9.8" (the issue number becomes the title) — both
+item 16.
+
+**Verification agent (read-only, on the first 2.47.0 cut):** `manualGrade` has no remaining path into the
+record (its one read is the overlay verdict, short-circuited by `parsed.grade` in both callers);
+`seller_verbal` exists only in a comment; payload untouched; no TDZ. **Its real finding: the label-grade
+gate was presence-based, not adjacency-based** — "Spawn #1 CGC 9.8" recorded grade **1** as `slab_label`
+because the normaliser's `N cgc` pattern captures the issue number and the gate, seeing CGC, accepted it;
+"$10 start … NM 9.4" kept the 10 because a decimal existed elsewhere; "ungraded" matched the grade word.
+**Fixed in the same build:** the record's label grade now comes from the TEXT with three tied patterns,
+in order — the number adjacent to a slab word; the number after a word-bounded "grade/graded"; the
+first decimal `d.d` after dollar amounts are stripped — range-checked 0.5–10; the normaliser's own
+grade output is no longer read by the sale path at all. Harness on the final file: "Spawn #1 CGC 9.8" →
+9.8 `slab_label`; "$10 start Batman 5 NM 9.4" → 9.4 `dom`; "Ungraded raw copy, $10 start" → null;
+"Box 44, $9.5 start" → null; "Comics #37" + condition "9.2" → 9.2 `dom`; scan grade 8.0 → `vision_cover`.
+Accepted residuals, stated: "NM 10" and "NM 10.0" raw labels record no grade (an integer needs a slab or
+"graded" tie); the extension's `series`/`title` still come from the substring aliases ("$10 start
+Batman 5 NM 9.4" was titled "New Mutants" via `'nm'`) — ROADMAP item 16, not this unit.
+
+**Relabel SQL (Mike, DBeaver; counts re-read 2026-09-16 after the cleanup; NOT run):**
+A `seller_verbal` + image + slab raw/null → `vision_cover` (2,613); B `seller_verbal` + image + slab set →
+`slab_label` (228); C `seller_verbal` + no image → grade and source NULL, Mike's call (436); D `dom` +
+grade = 10 → grade and source NULL (67); E `dom` other grades → keep (94). D is the `dom` predicate
+Mike asked for; C and D are the two branches that null a grade. Statements in the chat report.
+
+**Ship block (Mike):** `git add CCExtensions/whatnot-valuator/content.js
+CCExtensions/whatnot-valuator/manifest.json CLAUDE.md docs/sessions/ROADMAP.txt
+docs/sessions/WHERE_WE_LEFT_OFF.md` → commit → push. **No `deploy`, no `purge`.** Reload the unpacked
+extension, **refresh or close every open Whatnot tab** (CLAUDE.md reload procedure), verify
+`v2.47.0` in the banner. Field tell: no new `seller_verbal` rows after the reload;
+`grade_source` on new rows is only `vision_cover`, `slab_label`, `dom` or null.
+
 ## 2026-09-16 — ✅ **2.46.0 SHIPPED and confirmed; phantom candidates ruled legitimate; two cleanup queries handed to Mike (NOT run); ROADMAP item 16 ranked second; grade-provenance measurement — REPORT ONLY: `seller_verbal` is a false label on every one of its 3,303 rows, and the grade rides outside the ownership guard.**
 
 **MOST RECENT CHANGE (Rule 5): 2.46.0 committed `c644764` 2026-09-16 14:44 -0700 and reloaded, confirmed
@@ -10,6 +71,16 @@ deleted in the database; the delete statements below are Mike's to run.**
 
 **Phantom candidates 11048 / 11100 (the strict same-label/opening-price shape since the 2.44.0 reload):
 both carry vision and a scan-derived grade → legitimate quick sales. No delete.** Logged on ROADMAP item 2.
+
+**WHAT RAN (Mike, 2026-09-16 afternoon — supersedes the plan wording below):** duplicate delete: 125 before
+(two rows had arrived since the count of 123), 92 after, 33 removed. Captain America block: the four
+title/issue corrections ran BEFORE the amended report, so Mike nulled `grade` and `grade_source` on
+11033/11035/11037/11038 separately; the three deletes (11036/11039/11042) ran. Count 90 at that point with
+live capture ongoing (91 at the next read). **Still wrong on the four ids: the `series` column** ('Captain
+America' ×3, 'Iron Man' on 11035) — the extension normaliser's alias output, written beside `title`;
+`slab_type`, `variant`, `is_key` are null/false (they were label-derived, not vision-derived, because no
+vision was attached at record time), so nothing else needs clearing. Statement handed to Mike, not run:
+`UPDATE market_sales SET series = NULL WHERE id IN (11033, 11035, 11037, 11038);`
 
 **Cleanup 1 — the 33 same-second duplicate pairs (18:57–20:33 PDT, 2026-09-15).** Two writers on one
 stream (the orphaned 2.44.0 content script beside the reloaded one; the reload procedure above is the
@@ -47,6 +118,23 @@ from the label by the backend and was right where `title` was wrong.
   in January, 8 since the 09-15 reload)**; the eight Captain America rows are in the 8 (grades 4, 9.2,
   10, 9.6, 9.2, 7.5 on books the scan never saw). An image can also be missing because the R2 upload
   failed, so 442 is a ceiling, not a count. `vision_cover` with no image: 226, all January.
+- **`dom` (Mike's question 2): 161 rows, 0 with a slab word in the label, 0 equal to the backend's
+  `grade_from_title`.** Written by `checkForSale` when the extension normaliser's loose regexes find a
+  number in the label or condition text: `/grade[d]?\s*(\d+\.?\d*)/` or a bare `10|9.x|…|0.x`. The
+  bare pattern matches the dollar figure — **67 rows carry grade 10, from "$10 starts", "$3 - $10 Random
+  Start", "Bulk of 10 comics"** — and 91 rows carry 9.2 from a seller whose condition text said 9.2 on
+  every lot. So `dom` = "a number the label-parser found", sometimes a seller's stated grade, often a
+  price. Predicate for the relabel: EXCLUDE `dom` from the seller_verbal → vision relabel (they are not
+  vision), NULL the grade where `grade_source='dom' AND grade = 10` (67 rows: no seller writes "10" as a
+  grade on a $10 lot), keep the remaining 94 as `dom`. Both parsers belong to ROADMAP item 16.
+- **Rows 11159 / 11160 (today, 2.46.0, 14:47 PDT, 19 s apart, no vision): plausibly REAL sales, both
+  mis-titled.** "Singles #33" → title "Green Lantern" via the `'gl'` alias inside "sin**gl**es"; "AAA
+  awesomeness #19" → title "AAA awesomeness" (no alias hit; the label minus its counter). $3 and $5 on a
+  singles stream at a fast-auction cadence, recorded once each under the 2.46.0 won-text rule — nothing
+  in the shape says phantom. All-time: 32 rows whose label starts "AAA", 18 titled "AAA awesomeness", 33
+  titled "Box". **"AAA awesomeness" is a lot-label series exactly like "Box" and belongs on the same
+  junk list** — but that list is not in this repo: `title_normalizer.py` has no junk list and the
+  extension's `badTitles` has neither "box" nor "aaa"; if the list is Mike's own, add both there.
 - **Downstream.** The valuation reads `grade`, not `grade_source` (no reference in
   `routes/sales_valuation.py`), so the mislabel is invisible to FMV today and the LEAKED grades are
   not: a wrong-book grade at a wrong-book price feeds the tiers.

@@ -4,7 +4,7 @@
 (function() {
   'use strict';
 
-  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.46.0...');
+  console.log('[Valuator] 🚀 Initializing Comic Valuator v2.47.0...');
   console.log('[Valuator] Vision:', window.ComicVision ? '✅ Loaded' : '❌ Not loaded');
   console.log('[Valuator] CollectionCalc:', window.SupabaseClient ? '✅ Connected' : '❌ Not loaded');
 
@@ -15,7 +15,9 @@
   let previousListing = null;  // Track the listing that was showing before current
   let currentListing = null;   // Current listing for manual grade recalc
   let currentParsed = null;    // Current parsed data for manual grade recalc
-  let manualGrade = null;      // User-entered grade
+  let manualGrade = null;      // Display grade from the last applied scan. 2.47.0: NEVER a sale
+                               // input — there is no grade input in the overlay; the sale path
+                               // used to read it as "user typed it" and wrote seller_verbal.
   let lastSaleCheck = null;    // Prevent duplicate sale recording
   let lastSaleTime = 0;        // Timestamp of last sale for debounce
   let appliedVisionData = null; // Vision data that was applied via "Use This"
@@ -1148,25 +1150,34 @@
         }
       }
       
-      // Try to extract numeric grade from CGC/CBCS listings (e.g., "CGC 9.8")
-      let numericGrade = parsed.grade || manualGrade || null;
+      // 2.47.0 — a label grade is accepted only when it is TIED to grade context, not merely
+      // near it. The normaliser's patterns capture whatever number comes first: its bare
+      // `10|9.x|…` matched the dollar figure (67 corpus rows at grade 10 from "$10 starts"), and
+      // its `N cgc` pattern captures the ISSUE number on "Spawn #1 CGC 9.8" (verifier, 2026-09-16).
+      // Order: (1) the number adjacent to a slab word; (2) the number after "graded"/"grade";
+      // (3) the first decimal grade in the text that is not a price ("$9.5"). The normaliser's
+      // own grade output is NOT used here: its leftmost-match order returns the "10" of "$10
+      // start" even when "NM 9.4" follows. A bare integer with no such tie is never a grade.
+      let numericGrade = null;
       let gradeSource = null;
-      
-      if (!numericGrade && slabType) {
-        const gradeMatch = titleAndCondition.match(/(?:CGC|CBCS|PGX)\s*(\d+\.?\d*)/);
-        if (gradeMatch) {
-          numericGrade = parseFloat(gradeMatch[1]);
-          gradeSource = 'dom';
-        }
+      const slabAdj = titleAndCondition.match(/(?:CGC|CBCS|PGX)\s*(10(?:\.0)?|[0-9](?:\.[0-9])?)\b/);
+      const gradedWord = titleAndCondition.match(/\bGRADED?\s*(10(?:\.0)?|[0-9](?:\.[0-9])?)\b/);
+      const decimalWord = titleAndCondition.replace(/\$\s*[0-9]+(?:\.[0-9]+)?/g, ' ').match(/\b([0-9]\.[0-9])\b/);
+      if (slabAdj) {
+        numericGrade = parseFloat(slabAdj[1]);
+      } else if (gradedWord) {
+        numericGrade = parseFloat(gradedWord[1]);
+      } else if (decimalWord) {
+        numericGrade = parseFloat(decimalWord[1]);
       }
+      if (numericGrade !== null && (numericGrade < 0.5 || numericGrade > 10)) numericGrade = null;
       
-      // Track grade source
+      // Track grade source. 2.47.0: 'seller_verbal' is no longer written — nothing in the
+      // overlay lets anyone type a grade, and every row that carried it was a scan's grade.
       if (numericGrade) {
         if (!gradeSource) {
           // Determine source based on how we got the grade
-          if (manualGrade) {
-            gradeSource = 'seller_verbal';  // User typed it (probably from seller)
-          } else if (vision?.grade) {
+          if (vision?.grade) {
             // Vision provided the grade. 2.44.0: was `finalSlabType`, a const declared further
             // down this block — a TDZ ReferenceError that threw away the sale whenever the
             // seller's label carried a grade and vision had one (harness-confirmed 2026-09-15).
@@ -1185,8 +1196,11 @@
       const finalSlabType = vision?.slabType || slabType;
       const finalVariant = vision?.variant || variant;
 
-      // If grade came from Vision and user applied it
-      if (vision?.grade && !manualGrade) {
+      // A scan's grade belongs to the listing it was scanned for (visionForSale enforced that)
+      // and outranks a label-parsed grade. 2.47.0: the grade can no longer ride on manualGrade
+      // after the scan was withheld or dropped — the record carries a grade only from `vision`
+      // or from the label text of the listing that sold.
+      if (vision?.grade) {
         numericGrade = vision.grade;
         // Distinguish slab label vs cover-only estimate
         if (vision.slabType && vision.slabType !== 'raw') {
