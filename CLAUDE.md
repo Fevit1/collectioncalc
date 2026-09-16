@@ -251,7 +251,7 @@ class of silent no-op as a Render deploy that doesn't fire. The version in `chro
 only observable proof the reload took. This bit us once: `ebay-collector` sat at **1.3.5 from
 2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
 reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-14; ⚰️ the 2026-08-24 list read 2.42.1 / 1.0.0 and was stale for two of three from 08-28 — corrected by the pattern sweep): `ebay-collector` 1.4.0,
-`whatnot-valuator` **2.46.0 in the working tree 2026-09-16 (won-text consumed after a record; ring buffer merged on flush; teardown once via pagehide), pending Mike's commit + reload; 2.45.0 (`ba6f42c`) is what is loaded until the reload shows 2.46.0**, `slab-guard-monitor` 1.0.1.
+`whatnot-valuator` 2.46.0 (committed `c644764`, reload confirmed by Mike 2026-09-16 in the overlay banner), `slab-guard-monitor` 1.0.1.
 
 **Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5 → 1.4.0):**
 - **patch** — fixes/comments with no observable behaviour change
@@ -259,6 +259,13 @@ reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-14; ⚰️ 
 - **major** — rewrite, or a breaking change to capture semantics
 
 ⚠️ Extension changes are **repo-only — NO Render deploy.** Always pair the bump with the reload callout.
+
+⚠️ **Reload procedure (2026-09-16):** after reloading the unpacked extension, **refresh or close every open
+Whatnot tab.** An unpacked reload orphans the previous build's content scripts: they lose `chrome.*` but keep
+their poll loop and their `fetch` to the API, so they **keep recording beside the new build** (2026-09-15:
+33 same-second duplicate pairs in `market_sales` from one stream, 18:57–20:33). Then **verify the version in
+the overlay banner** (`Initializing Comic Valuator vX.Y.Z` in the console, and the overlay itself), not only on
+the extensions page — the extensions page shows what is installed, the banner shows what is running in that tab.
 
 ---
 

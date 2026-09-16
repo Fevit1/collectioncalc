@@ -1,5 +1,64 @@
 # Where We Left Off - Sep 16, 2026
 
+## 2026-09-16 — ✅ **2.46.0 SHIPPED and confirmed; phantom candidates ruled legitimate; two cleanup queries handed to Mike (NOT run); ROADMAP item 16 ranked second; grade-provenance measurement — REPORT ONLY: `seller_verbal` is a false label on every one of its 3,303 rows, and the grade rides outside the ownership guard.**
+
+**MOST RECENT CHANGE (Rule 5): 2.46.0 committed `c644764` 2026-09-16 14:44 -0700 and reloaded, confirmed
+by Mike in the overlay banner. CLAUDE.md flipped and given the reload procedure (refresh or close every
+Whatnot tab after an unpacked reload; verify the banner, not only the extensions page). Working tree
+after this entry: this file, CLAUDE.md, ROADMAP.txt, plus the two pre-existing modified files. Nothing
+deleted in the database; the delete statements below are Mike's to run.**
+
+**Phantom candidates 11048 / 11100 (the strict same-label/opening-price shape since the 2.44.0 reload):
+both carry vision and a scan-derived grade → legitimate quick sales. No delete.** Logged on ROADMAP item 2.
+
+**Cleanup 1 — the 33 same-second duplicate pairs (18:57–20:33 PDT, 2026-09-15).** Two writers on one
+stream (the orphaned 2.44.0 content script beside the reloaded one; the reload procedure above is the
+fix). Rule: keep the row with the EARLIER `source_id` (the millisecond timestamp), delete the later.
+Listing query, delete statement and before/after counts are in the chat report of this date; the delete
+targets 33 explicit ids. Not run.
+
+**Cleanup 2 — the "Captain America" rows on stream 2257274543 (16:37–17:00 PDT, 2026-09-15).** Eight
+rows, not nine: 11032 is a genuine Captain America #114 (the label says so) and stays. The extension's
+normaliser (`lib/normalizer.js`, `combined.includes('ca')`) produced the title; the BACKEND normaliser
+wrote `canonical_title` from the label independently and got it right where the label names a book.
+Correctable from the label: 11033 → Batman #191, 11035 → Batman #616, 11037 → Critical Hits Comics #1,
+11038 → Ghost Rider #15. Delete: 11036 and 11039 (label "$3 - $10 Random Start #4/#5" names no book) and
+11042 (label "M"). Statements in the chat report. Not run. The grades on all eight are `seller_verbal`
+with no image — see the provenance finding: those grades are not the seller's and not these books'.
+
+**ROADMAP item 16 ranked (Mike): SECOND, beside item 2, above item 3.** Same class (wrong-book records in
+`market_sales`, indistinguishable afterward), on the no-vision path, which is the majority path: 6,175
+of 11,024 Whatnot rows carry no image. Mitigation already in the corpus: `canonical_title` is written
+from the label by the backend and was right where `title` was wrong.
+
+**Grade-provenance measurement (report only; NOT scoped, NOT built). Read of `content.js` + the table.**
+- **The code path.** `grade_source` is decided in `checkForSale`: `seller_verbal` when `manualGrade` is
+  set ("User typed it (probably from seller)"), else vision (`vision_cover` / `slab_label`), else `dom`.
+  **There is no grade input anywhere in the overlay.** `manualGrade` is assigned in exactly one place,
+  `applyVisionResult` (`manualGrade = result.grade`), i.e. by a scan; it is reset on a new item and after a
+  record. So every `seller_verbal` row is a VISION grade under a label that says a human said it.
+- **The numbers.** 3,303 rows are `seller_verbal` — 57.1% of the 5,783 graded Whatnot rows, and the
+  largest provenance class. Since the 2.46.0-era reload: 73 of 118 graded rows. Only 23 of 3,303 equal
+  `grade_from_title` (the label's own grade), so they are not label grades either.
+- **The grade escapes the ownership guard.** 2.44–2.46 bind title/issue/slab/variant/key/image to the
+  scanned listing and withhold them on a mismatch — but the GRADE rides on `manualGrade`, which the
+  guard never clears. A withheld or dropped vision still leaves its grade on the record, labelled
+  `seller_verbal`. Upper bound on such leaks: `seller_verbal` with no image = **442 rows all-time (434
+  in January, 8 since the 09-15 reload)**; the eight Captain America rows are in the 8 (grades 4, 9.2,
+  10, 9.6, 9.2, 7.5 on books the scan never saw). An image can also be missing because the R2 upload
+  failed, so 442 is a ceiling, not a count. `vision_cover` with no image: 226, all January.
+- **Downstream.** The valuation reads `grade`, not `grade_source` (no reference in
+  `routes/sales_valuation.py`), so the mislabel is invisible to FMV today and the LEAKED grades are
+  not: a wrong-book grade at a wrong-book price feeds the tiers.
+- **Proposed shape (for Mike, not built).** Extension, one unit: take the grade from `vision` only, clear
+  `manualGrade` wherever vision is withheld or dropped (mismatch, unsold expiry, late scan), and stop
+  writing `seller_verbal` until a real input exists — the label then means what it says. Corpus, one
+  statement each, counts above: relabel `seller_verbal` → `vision_cover` where an image exists and
+  `slab_type` is raw/null (2,633), → `slab_label` where a slab is set (228); for the 442 with no image,
+  either NULL the grade (unowned) or leave and flag — Mike's call. A `grade_source` value the reader can
+  trust is CP-1's input (`docs/technical/CP1_STATE_OF_PLAY.md` already lists provenance as one of the
+  inconsistent notions of confidence).
+
 ## 2026-09-16 — 🔧 **2.46.0 BUILT (Mike's brief): a sold text is consumed by the record it produced; the ring buffer merges on flush; teardown listeners once via `pagehide`. In the working tree, pending Mike's commit and an unpacked reload showing 2.46.0. Repo-only, no deploy, no purge.**
 
 **MOST RECENT CHANGE (Rule 5): `content.js` + `manifest.json` under `CCExtensions/whatnot-valuator/`
