@@ -22,6 +22,30 @@ from title_matching import qualifier_title_clause, compose_qualified_title
 from lookup_demand import record_lookup_async
 from auth import operator_key_status
 
+# ---------------------------------------------------------------------------
+# GRADE PROVENANCE (2026-09-17). market_sales.grade_source says where a Whatnot
+# grade came from: 'slab_label' (read off a slab, by the scan or the label),
+# 'dom' (the seller's own text -- a seller-stated grade), 'vision_cover' (the
+# scan's estimate of a raw cover). A vision estimate is a grading of a video
+# frame, not a sale at a known grade: measured 2026-09-16 on ASM #300 it put a
+# $5 lot-price sale into the 4.5-7.9 tier as a "7.0". So:
+#   - graded pools take only rows whose source is known AND not excluded;
+#   - excluded and null-source rows join the RAW (ungraded) pool, never a
+#     graded tier and never the mid tier by default (that default was the
+#     queue-item-10 defect in api_sales_fmv: `grade is None` -> tiers['mid']).
+#     EXCEPTION: the raw pool has never held variants, so an excluded or
+#     null-source row that is ALSO a variant is counted nowhere in
+#     api_sales_valuation (it used to feed only the variant-disclosure count);
+#   - ebay rows are 'ebay_listing' -- the listing's own statement; there is no
+#     vision anywhere in the eBay path.
+# 'dom' -> 'seller_label' rename and the slab_label split are a later unit.
+# Corpus state at ship: every graded Whatnot row carries a source (branches
+# A-F ran 2026-09-16), so the null guard excludes nothing today; it is the
+# guard for rows that arrive without one.
+# ---------------------------------------------------------------------------
+EXCLUDED_GRADE_SOURCES = ['vision_cover']
+EBAY_GRADE_SOURCE = 'ebay_listing'
+
 # Create blueprint
 valuation_bp = Blueprint('valuation', __name__, url_prefix='/api')
 
@@ -664,7 +688,7 @@ def api_sales_valuation():
         # by falling back to created_at (documented mixed-semantics fallback).
         ebay_graded_query = """
             SELECT grade, sale_price as price, sale_date as sold_date, 'ebay' as source, is_variant,
-                   title_year
+                   title_year, %s AS grade_source
             FROM ebay_sales
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -725,9 +749,10 @@ def api_sales_valuation():
               AND raw_title !~* '[a-z]\\s*#?\\d{1,4}\\s*[+&]\\s*[a-z][a-z0-9 .''-]*?\\d{1,4}'
         """
         # Order matters and is positional: the literal's placeholders are read
-        # left to right -- INTERVAL days first, then the signature pattern, then
-        # the title clause appended below.
-        ebay_graded_params = [days, SIGNED_TITLE_PATTERN]
+        # left to right -- the grade_source constant in the SELECT first
+        # (2026-09-17), then INTERVAL days, then the signature pattern, then the
+        # title clause appended below.
+        ebay_graded_params = [EBAY_GRADE_SOURCE, days, SIGNED_TITLE_PATTERN]
 
         # Batch 8: qualifier-precise title match (was canonical=OR parsed LIKE)
         ebay_graded_query += f" AND {ebay_title_sql}"
@@ -832,16 +857,21 @@ def api_sales_valuation():
             -- and _detect_multi_edition() does not have to know which table a row
             -- came from.
             SELECT grade, price, sold_at as sold_date, 'whatnot' as source, is_variant,
-                   NULL::int AS title_year
+                   NULL::int AS title_year, grade_source
             FROM market_sales
             WHERE grade IS NOT NULL AND price > 2
+              -- provenance gate (2026-09-17): a grade with no known source is not
+              -- evidence of a sale at that grade, and a vision estimate is not a
+              -- graded sale. Both go to the raw pool below instead.
+              AND grade_source IS NOT NULL
+              AND grade_source <> ALL(%s)
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sold_at, created_at) > NOW() - INTERVAL '%s days'
         """
         # Batch 8: qualifier-precise title match
         market_graded_query += f" AND {market_title_sql}"
-        market_graded_params = [days] + list(market_title_params)
+        market_graded_params = [EXCLUDED_GRADE_SOURCES, days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_graded_query += " AND (issue = %s OR issue = %s)"
@@ -853,7 +883,11 @@ def api_sales_valuation():
         market_raw_query = """
             SELECT price, sold_at as sold_date, 'whatnot' as source
             FROM market_sales
-            WHERE (grade IS NULL) AND price > 1
+            -- ungraded rows, plus graded rows the provenance gate above set aside
+            -- (no source, or an excluded source): still sales of this book at an
+            -- unknown grade, which is what the raw pool is. Variants stay out, as
+            -- they always have here, so a set-aside VARIANT row is in neither pool.
+            WHERE (grade IS NULL OR grade_source IS NULL OR grade_source = ANY(%s)) AND price > 1
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
@@ -861,7 +895,7 @@ def api_sales_valuation():
         """
         # Batch 8: qualifier-precise title match
         market_raw_query += f" AND {market_title_sql}"
-        market_raw_params = [days] + list(market_title_params)
+        market_raw_params = [EXCLUDED_GRADE_SOURCES, days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_raw_query += " AND (issue = %s OR issue = %s)"
@@ -1565,7 +1599,7 @@ def api_sales_fmv():
         # Batch 5: filter on actual sale date (sold_at), fallback to created_at
         # when NULL — created_at alone ages out the corpus during capture stalls.
         market_query = f"""
-            SELECT grade, price, 'whatnot' as source
+            SELECT grade, price, 'whatnot' as source, grade_source
             FROM market_sales
             WHERE {fmv_market_title_sql}
             AND price > 0
@@ -1587,7 +1621,7 @@ def api_sales_fmv():
         # Filter out facsimiles, lots, bundles, reprints, and very low prices
         # Batch 8: qualifier-precise title match (replaces the parsed/raw LIKE pair).
         ebay_query = f"""
-            SELECT grade, sale_price as price, 'ebay' as source
+            SELECT grade, sale_price as price, 'ebay' as source, '{EBAY_GRADE_SOURCE}' as grade_source
             FROM ebay_sales
             WHERE {fmv_ebay_title_sql}
             AND sale_price > 5
@@ -1686,7 +1720,9 @@ def api_sales_fmv():
             'low': [],    # < 4.5
             'mid': [],    # 4.5 - 7.9
             'high': [],   # 8.0 - 8.9
-            'top': []     # 9.0+
+            'top': [],    # 9.0+
+            'raw': []     # ungraded, plus grades with no source or an excluded source
+                          # (2026-09-17 -- these used to be appended to 'mid', queue item 10)
         }
 
         whatnot_count = 0
@@ -1706,8 +1742,9 @@ def api_sales_fmv():
             elif source == 'ebay':
                 ebay_count += 1
 
-            if sale_grade is None:
-                tiers['mid'].append(price)
+            grade_src = sale.get('grade_source')
+            if sale_grade is None or grade_src is None or grade_src in EXCLUDED_GRADE_SOURCES:
+                tiers['raw'].append(price)
             elif sale_grade >= 9.0:
                 tiers['top'].append(price)
             elif sale_grade >= 8.0:
@@ -1723,7 +1760,8 @@ def api_sales_fmv():
             'low': '<4.5',
             'mid': '4.5-7.9',
             'high': '8.0-8.9',
-            'top': '9.0+'
+            'top': '9.0+',
+            'raw': 'ungraded'
         }
 
         for tier, prices in tiers.items():
@@ -1750,11 +1788,15 @@ def api_sales_fmv():
             user_tier = 'low'
 
         # Get raw FMV from the user's tier, or fall back to nearest available tier
+        # 'raw' is the LAST fallback everywhere: a book with only ungraded sales
+        # still gets a number (it used to get one through 'mid'; now used_tier
+        # says 'raw'), and a single graded sale outranks any number of ungraded
+        # ones -- the confidence fields carry that.
         tier_priority = {
-            'top': ['top', 'high', 'mid', 'low'],
-            'high': ['high', 'mid', 'top', 'low'],
-            'mid': ['mid', 'high', 'low', 'top'],
-            'low': ['low', 'mid', 'high', 'top']
+            'top': ['top', 'high', 'mid', 'low', 'raw'],
+            'high': ['high', 'mid', 'top', 'low', 'raw'],
+            'mid': ['mid', 'high', 'low', 'top', 'raw'],
+            'low': ['low', 'mid', 'high', 'top', 'raw']
         }
 
         raw_fmv = 0
