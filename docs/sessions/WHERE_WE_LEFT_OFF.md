@@ -1,8 +1,245 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 🔧 **MULTI-EDITION UNIT BUILT (approved shape + amendment): both pools carry the year, two triggers, the pools narrow to the caller's edition BEFORE pricing, figures withheld when nothing narrows them, the edition line prints whenever the detector fired. Backend + two frontend files: needs `deploy` AND `purge`. In the working tree, pending Mike's read of the verifier's report, then his two commits.**
+
+**MOST RECENT CHANGE (Rule 5): `routes/sales_valuation.py` (+~130/−15), `app.html` (two edits), `js/verdict_basis.js`
+(one string); `git log -1` = `d900c5a`, so nothing here is committed, deployed or purged. Verified locally on the
+read-only database, nine cells below. Supersedes the "shape for approval" entry below it.**
+
+**What changed.**
+- **Both pools carry the year:** q2 (ebay raw) selects `title_year`; q4 (market raw) `NULL::int AS title_year`.
+- **Two triggers, either fires:** the existing year-gap split on the GRADED pool (gap > 15 y, >= 3 comps a side,
+  trimmed-median ratio >= 20), OR the pool-level graded-to-raw trimmed-median ratio >= 20
+  (`EDITION_GRADED_RAW_RATIO`). Pool-level rather than at the user's grade because it must be decided before the
+  pools are narrowed and priced. The raw pool is NARROWED by the boundary but NEVER triggers on its own: the first
+  cut ran the detector on it too, and ASM #300's raw pool split at 1988|2006 at 25.7x on reprints that slip the
+  word filters, withholding the most looked-up book's figures for every caller without a year. Caught by the
+  item-17 control cells before it left the working tree.
+- **Narrowing, BEFORE pricing:** when the detector fired and `year` is on the request, both pools are cut to the
+  cluster containing that year (<= the boundary's low year, or >= its high year; a year inside the gap narrows
+  nothing; ratio-only trigger -> +/-15 years), year-unknown rows dropped. Everything downstream — exact/
+  interpolated/raw FMV, `total_graded`, confidence, verdict tier, price curve, `sources`, the demand record — is
+  computed from what is left. **Amendment confirmed by construction, with one precision:** confidence is a
+  function of the GRADED counts only (`exact_count` >= 10 -> high; >= 3 exact or >= 10 graded -> medium; >= 3
+  graded -> low); the raw pool size never enters it. After narrowing ASM #1 has 4 exact / 28 graded -> `medium`,
+  and `high` needs ten same-grade comps of the narrowed edition. A 12-row (here 35-row) raw pool cannot make it
+  high because raw is not an input; the raw figure's own hedge is `raw_sample_size`, which the client carries.
+- **Fired, not narrowed -> `verdict_basis = 'multi_edition'` on EVERY method** (was `exact` only), ROI withheld
+  (existing 08-08 rule), **`graded_fmv` and `raw_fmv` returned null, `confidence` null.** The page prints a dash
+  for null figures (was `$0` via `|| 0`).
+- **`edition_used` {year, year_low, year_high, graded_comps, raw_comps, trigger}, `edition_trigger`, and a
+  server-side `edition_note`** — the page prints the note WHENEVER `edition_span` is true (it used to suppress
+  it when the basis was multi_edition), preferring the server text: narrowed -> "Priced as the 1963–1971 edition
+  from your publication year, on 28 graded and 35 raw sales…; if the year is wrong, so is this."; not narrowed
+  -> "Add the publication year to price it". The `multi_edition` verdict string in `verdict_basis.js` now asks
+  for the year instead of describing figures that are no longer shown.
+
+**Cells (local, read-only DB, 365 d):**
+| cell | before | after |
+|---|---|---|
+| ASM #1 @ 4.5, year 1963 | $16 raw / $9,588 slabbed / ROI —, basis multi_edition | **$260 raw (35 rows) / $9,587.50 (4 exact, 28 graded) / ROI +$8,943.50**, basis supported, confidence medium, edition 1963–1971 named, trigger year+ratio (64.8x, pool 45.2x) |
+| ASM #1 @ 4.5, no year | same two figures, ROI — | **no figures**, multi_edition verdict, edition line asks for the year |
+| X-Men #1 @ 9.0, year 1963 | fired; figures printed | $221 raw (34) / $22,387.50 interpolated (0 exact, 33 graded) -> basis interpolated, ROI withheld by the existing rule, edition 1963 named |
+| X-Men #1 @ 9.0, year 1991 | | $10.50 raw (460) / $39 (4 exact, 231 graded), supported, edition 1991–2025 named |
+| X-Men #1 @ 9.0, no year | | no figures, multi_edition |
+| Spider-Man #1 @ 9.4, with and without 1990 | $18 / $62, 34 exact | **unchanged**, edition_span false |
+| New Mutants #98 @ 9.4 | $299.49 / $375, 57 | **unchanged** |
+| ASM #300 @ 6.5 | $380 / $347.50, 10 exact | **unchanged** (after the raw-trigger fix) |
+| fmv ASM #300 @ 6.5 | mid 55, raw 393 | **unchanged** |
+
+**Logged, NOT scoped (Mike):** (1) the 12 raw rows of 1990 Spider-Man #1 filed under Amazing Spider-Man #1
+(`title_year` 1990, median $6.54) — ROADMAP item 16, title filing; after narrowing they sit outside the 1963
+cluster, so they no longer touch this book's figures, but they are still wrong rows. (2) **The fmv endpoint is
+still edition-blind** — no `year` reaches it from the overlay — **so the operator overlay keeps showing ~$16 on
+ASM #1 until it is addressed**; ROADMAP item 19.
+
+**Verification agent (read-only, three-file diff, re-read after the raw-trigger fix):** narrowing precedes
+every consumer (grade buckets, exact/CI, interpolation, raw FMV, fallback, confidence, verdict, ROI, price curve,
+sources, the demand record); no consumer still reads the pre-narrowing lists; no syntax/TDZ issue in any of the
+three files; item-17 gating and the fmv endpoint untouched; the response is additive with three keys newly
+nullable. **Its findings and what was done with each:**
+- **Year inside the gap** (e.g. X-Men #1 with 1975) was told "add the publication year". FIXED: the note now
+  says the year was received and falls between the editions on record (1963 and 1991); `edition_year_received`
+  echoed in the response; the verdict string says "add or check the year". Cell added below.
+- **Narrowed to an edition with too few priced sales** → the grade/era fallback fires and the note claimed the
+  figure came from "N graded and M raw sales". FIXED: the note is built after the fallback with the estimated
+  flag and says the figure is an estimate from grade and era, not from sales of that edition; `graded_comps`
+  now counts non-variant rows only. (Every Whatnot row is year-unknown by construction, so a narrowed lookup
+  prices from eBay rows only — stated, accepted.)
+- **Ratio-trigger false positives:** the 1.5–5× premium claim was unmeasured. MEASURED read-only on twelve
+  expensive keys: single-edition names top out at 4.5× (Tales of Suspense #39), Showcase #4 4.4×, Batman #181
+  3.0×, Hulk #181 2.0×, ASM #129 1.6×, Giant-Size X-Men #1 2.0×, ASM #300 1.5×; the four that fire — ASM #14
+  70× (147× on the endpoint's pool), Avengers #1 21×, Fantastic Four #1 193×, Hulk #1 72× — are all names with
+  relaunches under them. Threshold 20 stands; Avengers #1 at 21× is the nearest correct fire. ASM #300's own
+  pool ratio is 1.5×, so the reprint rows that broke the raw-pool trigger cannot reach it through the ratio.
+- **`g` shadowed Flask's request `g`** in the price-curve loop (`for g in sorted(grade_buckets…)`), so the credit
+  refund's `getattr(g, 'user_id')` read a grade float and the refund never fired — pre-existing, broadened by
+  multi_edition now reaching every method. FIXED (one rename, `curve_grade`); **out of brief, flagged for Mike;**
+  `tests/test_credit_refund.py` calls the helper directly and could not see it.
+- Ratio-trigger wording: "differing in price by 147×" read as edition-vs-edition when it was graded-vs-raw.
+  FIXED: the ratio-only note says "graded sales run N× the raw sales of this name, which points to more than one
+  edition under it".
+- `ROUGH ESTIMATE` badge beside two dashes → FIXED: `YEAR NEEDED` when the basis is multi_edition. Short basis
+  string "these figures may be for the wrong one" → "figures are withheld until the publication year is known".
+- Six stale "gated on 'exact'" comments and the page's "suppressed when the basis already says it" comment →
+  tombstoned in place.
+- **Logged, not fixed:** the collection card renders `raw_value || 0` as $0.00 for a null figure
+  (`js/collection.js:457`, pre-existing; every multi_edition save now lands there) — ROADMAP item 10; in the
+  withheld state `ci_95_*`, `price_curve`, `graded_sample_size`, `nearby_thin_comps` still carry un-narrowed
+  values beside null figures (nothing renders them; noted).
+
+**Two cells added to the standard set:** X-Men #1 @ 9.0 with `year=1975` → figures null, basis multi_edition,
+`edition_note` contains "falls between the editions on record (1963 and 1991)"; ASM #14 @ 9.0 without a year →
+null, `edition_trigger` "ratio", ratio ≈ 147; with `year=1964` → `graded_fmv` ≈ 7,679 blended, edition
+1963–1967 named. Final local run of all twelve cells matched; the item-17 controls unchanged.
+
+**Ship block (Mike), per the 08-16 conventions — TWO commits, then deploy AND purge (frontend files changed):**
+1. `git log origin/main..HEAD` first.
+2. Code commit, expected list exactly: `routes/sales_valuation.py`, `app.html`, `js/verdict_basis.js`. Stage ->
+   `git diff --cached --stat` -> verify -> commit. Records commit: `docs/sessions/ROADMAP.txt`,
+   `docs/sessions/WHERE_WE_LEFT_OFF.md`, worded commit-relative.
+3. `git push` -> `deploy` (Render) -> wait for it -> **`purge` only after the Pages build has finished**
+   (L-SW-2026-022).
+4. **Post-deploy curl set (the standing set from item 17 plus the new multi-edition cells; GET; the fmv call
+   needs `X-Operator-Key`):** ASM #1 @ 4.5 with `year=1963` -> `graded_fmv` 9587.5, `raw_fmv` ~260,
+   `edition_used.year_low` 1963 / `year_high` 1971, basis supported, confidence medium, `edition_note` names
+   1963–1971; without `year` -> both figures null, basis multi_edition, confidence null, `edition_note` present.
+   X-Men #1 @ 9.0 with `year=1963` -> `edition_used.year_low` 1963, basis interpolated, `graded_fmv` ~22,387;
+   with `year=1991` -> `graded_fmv` 39.0, supported; without -> nulls. Spider-Man #1 @ 9.4 -> 34 / 432,
+   `edition_span` false. New Mutants #98 @ 9.4 -> 375.0 / 57. ASM #300 @ 6.5 -> 347.5, `edition_span` false.
+   fmv ASM #300 @ 6.5 -> `tiers.mid.count` 55, `tiers.raw` present. After the purge: `app.html` served contains
+   `edition_note`, `js/verdict_basis.js` served contains "Add the year". Counts drift with live capture; the
+   multi-edition cells must show the STATE (nulls vs a named edition).
+
+## 2026-09-17 — 🔎 **ASM #1 (1963) @ 4.5 Slab Report: raw $16 / slabbed $9,588 / ROI dash — REPORT ONLY, with the multi-edition proposal (shape for Mike's approval; no code). Priority over the capture-schedule unit.**
+
+**MOST RECENT CHANGE (Rule 5): nothing built; the four answers below are from the pre-change (`22dcbe0`)
+and live (`33a7362`) valuation modules run locally against the current rows, plus read-only SQL.
+Supersedes nothing. The capture-schedule unit resumes after this.**
+
+1. **`raw_fmv` did NOT move today.** Pre-change $15.59 (234 raw rows) vs live $15.50 (235 rows): the one-row
+   difference is a sale captured since, not the deploy. Slabbed $9,587.50 (5 comps at 4.5) identical on both.
+   The Slab Report reads the *valuation* endpoint, whose raw pool the item-17 change only widened by this
+   book's two Whatnot rows. (The fmv endpoint's mid tier did move, $800 → $7,025, because its 232 ungraded
+   rows left mid — but nothing on the report reads it.)
+2. **Neither pool has a year or edition clause; the graded pool merely SELECTs `title_year` for the
+   detector, the raw pool does not even select it.** The $16 is the median of 235 ungraded eBay rows of
+   everything ever called "Amazing Spider-Man #1": by `title_year`, unknown 82 rows (median $34), 2014
+   relaunch 65 ($10), 2025 relaunch 27 ($6), 1964 21 ($230), 2022 14 ($37), 1990 12 ($6.54 — Spider-Man #1
+   filed under the wrong title), **1963 12 ($1,935)**, 2018 9 ($10), 2015 8 ($10), 1999 6 ($12). The 1963
+   book is 12 of 235 raw rows. The graded pool is the mirror image: 1963 has 17 rows at ~$7,800 and the
+   five 4.5 comps average $8,584.
+3. **`edition_span` is TRUE for ASM #1** (ratio 64.8, `verdict_basis = multi_edition`, verdict "These
+   figures may be for the wrong edition…"). What the detector tests (`_detect_multi_edition`, graded pool
+   only, year-known non-variant rows): for every split between consecutive years with a gap > 15 years,
+   both sides ≥ 3 comps and trimmed-median price ratio ≥ 20 → fires; the largest ratio is reported.
+   **For Spider-Man #1 it is FALSE because the ratio fails, not the gap:** clusters are 1990 (407 rows,
+   median $95) and 2009 (23, $521) with 2016/2019/2025 (11 rows) behind it; the only > 15-year gap is
+   1990 → 2009 and the price ratio at that split is ~5×, under 20. Its $3 floor and $4,999 ceiling are
+   not editions at all (item 18: lot-price slab rows and the unflagged Platinum variant).
+4. **The ROI dash is the 2026-08-08 rule "ROI is withheld, not hedged, when `verdict_reliable` is
+   false"** (`sales_valuation.py` ~:1277): `_detect_multi_edition` fired → `verdict_basis = multi_edition`
+   → `verdict_reliable = false` → `slabbing_roi`/`roi_percentage` stay `None` → `app.html:2864` prints
+   the dash. No ratio guard exists; the guard is the edition flag. The page still prints both dollar
+   figures (`app.html:2751-2752` take `raw_fmv`/`graded_fmv` unconditionally) and, because the basis is
+   multi_edition, HIDES the separate edition note (`:3130`) and relies on the verdict sentence. So the
+   report says "may be for the wrong edition" under two numbers that are 600× apart.
+
+**PROPOSAL (shape only; backend, `routes/sales_valuation.py`; deploy; Mike to approve before the file list):**
+- **A. Both pools carry the edition.** The raw queries SELECT `title_year` (they do not today) and
+  `_detect_multi_edition` runs on the UNION of graded and raw year-known rows, so the raw pool is
+  clustered by the same boundary. When the user's `year` param is present (the grading page sends it),
+  BOTH pools are restricted to the cluster containing that year (boundary from the detector; year-unknown
+  rows dropped, since they cannot be placed) and the response says which edition was priced
+  (`edition_used: {year_low, year_high, comps}`); the 1963 ASM #1 then prices from 12 raw and 17 graded
+  1963-cluster rows, not from 2014 relaunches. Without a `year`, no restriction — see C.
+- **B. Two triggers, either fires.** Keep the year test (gap > 15 years at a split, ≥ 3 comps a side, ratio
+  ≥ 20) and add a **graded-to-raw ratio test: `graded_fmv / raw_fmv ≥ 20`** at the user's grade. A slab
+  premium on one edition is 1.5–5×; 20× says the raw pool is a different book. ASM #1 is 600×; Spider-Man
+  #1 does not trip either (correctly: its problem is item 18).
+- **C. When it fires and the year cannot narrow it, the report prints NO dollar figures** — the verdict
+  reads "More than one edition shares this name; give the year to price it" (the page already carries the
+  input), `raw_fmv`/`graded_fmv` are returned as null with `edition_span` true, and ROI stays withheld.
+  When the year DOES narrow it, the figures print with the edition line and the ordinary hedges apply.
+  This retires the state where two numbers 600× apart sit under a caution sentence.
+- **D. Post-deploy curls gain a multi-edition cell, permanently:** `Amazing Spider-Man #1 @ 4.5` with and
+  without `year=1963` (without: no figures, `edition_span` true; with: figures from the 1963 cluster,
+  `edition_used` present), and `X-Men #1 @ 9.0` (the originating case) the same way, beside the three
+  cells from item 17.
+- Not in this shape: the fmv endpoint (extension overlay; no year available there), and item 18's two
+  mechanisms.
+
+## 2026-09-17 — 📊 **eBay capture schedule — READ-ONLY measurement for Mike's decision (two tables, delivered in chat; the docx NOT regenerated).**
+
+**MOST RECENT CHANGE (Rule 5): measurement only; no file under `docs/` changed except this record; the
+2026-08-17 weekly list stands until Mike cuts a new one. Supersedes nothing.**
+
+**Method.** The list was parsed from `docs/EBAY_CAPTURE_WEEKLY.docx` (2026-08-17): 146 title/issue
+cells (the three Absolute ranges expanded, #1–20 / #1–12 / #1–12; Thursday is cut in the doc). "Capture
+week" = an ISO week in which ≥ 1,000 `ebay_sales` rows were written; the last four are 08-17 (7,830 rows),
+08-24 (22,980), 09-07 (15,130) and 09-14 (3,229 — the current, partial week: the Monday/Tuesday cells show 0
+for it because those days' captures had not run by 09-17). Per cell: rows held (lots excluded), graded,
+graded 9.4+, new rows per capture week, and the average. **Thresholds stated:** WEEKLY where the average
+is ≥ 3.0 new rows per capture week and the pool is not saturated; MONTHLY (saturated) where ≥ 20 graded
+9.4+ are already held; MONTHLY (thin) otherwise. Broken-name titles get no cadence until the filing is
+fixed. Result: 74 weekly, 37 monthly-saturated,
+29 monthly-thin, 2 with no rows at all
+(Marvel Two-in-One 1, Saga of the Swamp Thing 1 — the filing has these under another name, or the
+searches never ran), 4 on the broken-name list.
+**Flagged — on the weekly list AND on the doc's own broken-name list:** Captain Marvel 26, Web of
+Spider-Man 18 and 19, Legion of Super-Heroes 1. Web of Spider-Man and Legion now show rows under BOTH
+the fixed and the broken filing (the 09-03 normaliser unit repaired part of the "of" family), as do
+Conan the Barbarian, Tomb of Dracula, Omega the Unknown, Batman The Killing Joke, The Darkness, The Wicked
++ The Divine and Shade the Changing Man: 12 cells split across two canonical names. Those are
+item-16 filing work, and their held counts here are the SUM of both names.
+**Demand table.** `lookup_demand`, `endpoint = 'valuation'`, external users only, since 2026-07-21 (Mike's
+date; the fmv endpoint's 5,167 rows are the operator's own overlay lookups and were excluded): 223
+lookups, 176 distinct title/issue pairs, 141 with fewer than 20 graded comps in 365 days (the threshold
+stated). Top 30 delivered in chat after excluding list cells and broken-name titles. Caveat: demand is
+thin — the top pair has 4 lookups and most have 1 — and the demand rows carry "The Amazing Spider-Man"
+where the corpus files "Amazing Spider-Man", joined here on a leading-"The"-stripped key; other spelling
+drift (X-men / The X-Men / Uncanny X-men) is visible in the table and is the same filing family.
+
+## 2026-09-17 — 📋 **Post-deploy follow-ups on the valuation unit (report only) + Spider-Man #1 price-curve anomaly queued (item 18). Nothing built, nothing written to the database.**
+
+**MOST RECENT CHANGE (Rule 5): item 17 live and verified (`33a7362`); this entry adds three answers and one
+queue item; the eBay capture-schedule unit follows in its own entry. Supersedes nothing.**
+
+1. **Variant-disclosure count: it DROPS.** `excluded_variant_count` is taken from the graded pool, and a
+   vision-graded or null-source variant row no longer enters that pool (the raw pool never held variants).
+   Magnitude: **70 such rows in the 365-day window** across all books (read-only count). `variant_excluded*`
+   fields and `sources.whatnot` fall by the per-book share; nothing priced changes, since variants were
+   never priced. Documented in the module header and q4 comment.
+2. **ASM #300's two graded Whatnot rows match neither endpoint's title clause:** their `canonical_title` is
+   the DOM lot label ("Bid", "30 Pre-Bids") and the valuation clause matches `canonical_title`/`title`/
+   `series` by normalised exact equality — `title` is "Amazing Spider-Man" but the clause did not take it
+   here (live `sources.whatnot` 0). Logged on ROADMAP item 16 (title filing) as the field evidence.
+3. **`raw_fmv` on the fmv endpoint is BY DESIGN the average of the user's grade tier** (the "raw comic at
+   this grade" number; `slabbed_fmv` is the next tier up), not the ungraded pool — `tiers.raw.avg` is the
+   ungraded pool. **Nothing renders the fmv endpoint's `raw_fmv`:** the Whatnot overlay reads only
+   `tiers.low/mid/high/top`; the grade report page's `raw_fmv` comes from the *valuation* endpoint, a
+   different field with the same name. So: pre-existing, by design, misleading name on a field with no
+   reader → **copy-audit list** (ROADMAP item 10, strings half).
+
+**Spider-Man #1 price curve (queued as item 18, ranked with item 10):** 9.6 tier minimum $3.00 and 9.8
+maximum $4,999.95 in one window, `edition_span` false. Both ends traced read-only: the **$3 floor is
+`market_sales` rows 9533 and 9499, `slab_label` 9.6 at $3 under the label "Spiderman Comic"** — lot-price
+Whatnot sales carrying a scan-read slab grade (pre-2.47 data; `slab_label` still counts as graded, by
+Mike's rule 5) — and **the $4,999.95 ceiling is the 1990 PLATINUM EDITION, not flagged as a variant:
+39 Platinum rows, 5 flagged.** The span detector is not the gap: the Platinum shares 1990 with the
+newsstand run (519 of 1,090 graded rows are `title_year` 1990; 2009 has 33), so there is no year split
+to find. Two mechanisms, two fixes: a "platinum/gold/silver edition" rule in the variant detector
+(backend, both tables), and a floor on graded comps from lot-labelled Whatnot rows (or a `slab_label`
+that is scan-read vs label-read — the split already logged for 2.48.0).
+
 ## 2026-09-17 — 🔧 **SOURCE-AWARE VALUATION BUILT (ROADMAP item 17 + item 10's mid-tier dump): `routes/sales_valuation.py` reads `grade_source`, gates graded pools on it, routes excluded and ungraded rows to the raw pool in both endpoints. In the working tree, pending Mike's commit, push and `deploy` (backend). Branches E and F recorded in the 2.47.0 entry.**
 
-**MOST RECENT CHANGE (Rule 5): one backend file changed, `routes/sales_valuation.py` (+51/−16); `git log
+**⚰️ SUPERSEDED the same day: DEPLOYED AND VERIFIED (Mike, 2026-09-17).** Code `33a7362`, records `d900c5a`;
+Render deploy done; live cells: Spider-Man #1 `graded_sample_size` 34, `graded_total_sales` 432; New Mutants
+#98 `graded_fmv` 375.0, sample 57, unchanged; ASM #300 fmv `tiers.mid.count` 55, `tiers.raw` present with 393
+rows, `sources.whatnot` 0. All three match the local AFTER run. Item 17 SHIPPED; item 10's mid-tier half SHIPPED.
+
+**MOST RECENT CHANGE at write time (Rule 5): one backend file changed, `routes/sales_valuation.py` (+51/−16); `git log
 -1` = `84524fc` (2.47.0), so NOTHING of this is deployed and prod still serves the old tiers. Verified
 locally by running both endpoints from the working tree against the READ-ONLY database (a minimal Flask
 app registering only the valuation blueprint; `DATABASE_URL` pointed at `DATABASE_URL_RO`), before and

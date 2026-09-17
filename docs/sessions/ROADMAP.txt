@@ -132,7 +132,7 @@ rediscovered.
    be curl/admin surfaces). No user is harmed directly. It ranks here because it has already misled
    analysis three times this week and every reading of the frontend pays the tax again. Deletion is
    boring; the payoff is entirely in future reasoning. Evidence: P2 checkpoint. Frontend + backend.
-10. **The user-facing wrong numbers and strings.** ⚑ 2026-09-17: the "4.5–7.9 tier also receives every ungraded sale" half is FIXED in the item-17 build (pending deploy) — ungraded rows go to a `raw` bucket in `api_sales_fmv`; the strings half stands. "Based on N sales" under every reliable verdict counts
+10. **The user-facing wrong numbers and strings.** ⚑ 2026-09-17: the "4.5–7.9 tier also receives every ungraded sale" half is FIXED and SHIPPED with item 17 (`33a7362`, 2026-09-17) — ungraded rows go to a `raw` bucket in `api_sales_fmv`; the strings half stands — add: the fmv endpoint's `raw_fmv` (the user's grade-tier average, not the ungraded pool; rendered by nothing) is a misleading field name (2026-09-17). "Based on N sales" under every reliable verdict counts
     the very sales the note beside it says were set aside; the thin-tier basis text says "nearby" with no
     distance bound; one reliable-verdict arm says "recent" on a year window; the valuation strip shows
     three `--` cards and a blank badge under a real grade on any valuation failure; the extension's price
@@ -188,17 +188,32 @@ rediscovered.
     "J**IM** LEE" gave "Iron Man" on the Batman #616 label, `'gl'` inside "Sin**gl**es" gave "Green Lantern"
     on row 11159 — eight two-letter keys exist (`nm ff ih im ca dd ww gl`), each its own failure. The same
     normaliser's GRADE regexes are the source of the `dom` provenance junk: a bare `10|9.x|…` matches the
-    dollar figure ("$10 starts" → grade 10; 67 rows), see WWLO 09-16. Candidate fix: word-boundary matching and a minimum alias length, with a corpus
+    dollar figure ("$10 starts" → grade 10; 67 rows), see WWLO 09-16. **Field evidence 2026-09-17 (2):** 12 raw eBay rows of the 1990 Spider-Man #1 are filed under Amazing Spider-Man #1 (`title_year` 1990, median $6.54) — outside the 1963 cluster after the multi-edition narrowing, still wrong rows. **Field evidence 2026-09-17:** ASM #300's two graded Whatnot rows are filed under `canonical_title` "Bid" / "30 Pre-Bids" (the DOM lot label) and match neither valuation endpoint's title clause — the corpus holds the comps and cannot find them. Candidate fix: word-boundary matching and a minimum alias length, with a corpus
     differential on `canonical_title` before/after (the backend normaliser is separate; check whether it
     shares the table). Evidence: WWLO 09-16 (2.46.0 entry).
 
-17. **Source-aware valuation tiers — ⚰️ ~~SCOPED 2026-09-16, not built~~ BUILT 2026-09-17 in `routes/sales_valuation.py` (both endpoints; `vision_cover` and null-source grades → raw pool; item 10's mid-tier dump fixed for both tables; `raw` bucket added to fmv), in the working tree, pending Mike's commit + push + `deploy`; before/after cells and the deploy block in WWLO 09-17. (backend → deploy).** `routes/sales_valuation.py`
+17. **Source-aware valuation tiers — ⚰️ ~~SCOPED 2026-09-16, not built~~ BUILT 2026-09-17 in `routes/sales_valuation.py` (both endpoints; `vision_cover` and null-source grades → raw pool; item 10's mid-tier dump fixed for both tables; `raw` bucket added to fmv), ⚰️ ~~in the working tree, pending Mike's commit + push + `deploy`~~ **SHIPPED `33a7362` 2026-09-17, deployed, verified live on the three cells (Spider-Man #1 34/432; New Mutants #98 375.0/57 unchanged; ASM #300 fmv mid 55, raw 393)**; before/after cells in WWLO 09-17.** `routes/sales_valuation.py`
     selects `grade` without `grade_source` in both endpoints. Shape: select the source; exclude null-source
     grades; treat `vision_cover` as ungraded in the graded tiers (exclusion preferred over a 0.5 weight — the
     ASM #300 example keeps a $5 "7.0" comp under any discount); ebay rows are all listing-stated (no vision in
     that path). Coupled to item 10's "ungraded rows land in the mid tier" in `api_sales_fmv`. Evidence and
     the measured ASM #300 spread: WWLO 09-16 (four-questions entry). Junk-series blocklist shape for the
     normaliser is under item 16, same entry.
+
+18. **Spider-Man #1 price curve: $3.00 at 9.6 and $4,999.95 at 9.8 in one window (found 2026-09-17 on the
+    live item-17 verify; RANK: with item 10 — user-facing wrong numbers on one of the most looked-up
+    books; reachable on every Spider-Man #1 lookup).** Two mechanisms, neither the edition-span detector:
+    (a) the 1990 Platinum Edition is not flagged as a variant (39 rows, 5 flagged) — add
+    platinum/gold/silver-edition to the variant rule, both tables; (b) lot-price Whatnot rows carrying a
+    scan-read `slab_label` grade ($3 "Spiderman Comic" at 9.6) count as graded comps — the `slab_label`
+    scan-vs-label split (2.48.0 candidate) or a price floor on label-less Whatnot comps. Evidence: WWLO
+    09-17 follow-ups entry.
+
+19. **fmv endpoint edition-blind (logged 2026-09-17, not scoped).** The multi-edition unit narrows the
+    VALUATION endpoint by the caller's `year`; `api_sales_fmv` (the Whatnot overlay) receives no year and runs
+    no detector, so the operator overlay keeps showing ~$16 for ASM #1 and every other multi-edition name
+    until it is addressed. Shape: the overlay has the scan's year when vision reads it; pass it, run the same
+    narrowing, print the edition line in the overlay. Evidence: WWLO 09-17 (multi-edition build entry).
 
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
