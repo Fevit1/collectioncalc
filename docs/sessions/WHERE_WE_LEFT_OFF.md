@@ -1,8 +1,56 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 🔎 **Two open questions on the multi-edition unit answered + the refund count. One small backend change (the multi-edition verdict sentence) in the working tree → needs a `deploy`; the edition-label test is PROPOSED with measured numbers, not built.**
+
+**MOST RECENT CHANGE (Rule 5): multi-edition unit deployed and verified (`cd22ba2`), purge pending the Pages build at
+the flip. This entry adds one line to `routes/sales_valuation.py` (verdict sentence), pending Mike's commit + deploy.
+Supersedes nothing.**
+
+**Q1 — what contaminates the 1963–1971 cluster, and it is NOT the Golden Record reprint.** Every graded and raw row
+in the cluster was read with its listing title. The cheap graded rows Mike named — 1.5 at $399, 2.5 at $515, 4.5 at
+$820, 6.0 at $1,380/$1,399 — are **Amazing Spider-Man ANNUAL #1 (1964)** filed as issue 1; 7.0 at $142.70 is
+"Amazing Spider-Man Vol 1 98" and 6.5 at $2,173 is "Vol 1 13" — the collector's issue parse took the "1" of "Vol 1".
+Two more graded rows are RESTORED and QUALIFIED slabs. The raw pool is worse: 24 of 35 rows are Annual #1 or
+"Vol 1 N", 8 are coverless / incomplete / partial / "page 14 only" / NG copies, and one "$20,000 CGC 6.5" slab sits in
+the RAW pool with `graded = false` (a collector flag miss). "Golden Record" appears in 2 listings of this book all
+year; "reprint" 12 and "facsimile" 32 are already excluded by the LIKE filters. So the year-gap rule cannot separate
+these because they ARE 1963–1971 rows; the separation is by LABEL.
+**Proposed — three label tests beside the year test, applied in SQL to BOTH pools (backend, deploy):**
+(a) FILING: `\bannual\b`, `\bvol(ume)?\.?\s*\d+\s+\d+`, `#\d+\.\d` (the 2014 "#1.1") — a different issue filed
+under this number; the real fix is the collector's issue parse (ROADMAP item 16), this is the belt.
+(b) CONDITION: coverless / no cover / missing cover / incomplete / not complete / partial / page N only / NG /
+restored / qualified — not comps for a complete unrestored copy; on the graded side restored and qualified are
+different-priced labels.
+(c) EDITION: reprint, facsimile (kept), golden record, marvel milestone, true believers, 2nd/second print, treasury,
+marvel tales, omnibus.
+**Measured effect on the 1963 book (365 d, cluster rows):** graded 28 → 15 clean; **4.5 exact comps 4 → 3
+($9,587.50, $9,587.50, $10,723.80; median $9,587.50 — unchanged, the $820 Annual was the outlier the trim was
+absorbing)**; raw 35 → 3 clean ($1,871, $5,990, $20,000) → **raw median $260 → $5,990, on THREE rows** — honest and
+thin; `raw_sample_size` 3 will hedge it. Not built; the parse fix and these patterns belong in one unit with item 16.
+
+**Q2 — which sentence the report renders.** Neither the server `verdict` nor `edition_note` is the tagline: the page
+builds the tagline client-side (`app.html` ~2995–3036) from ROI and `verdict_basis`, and the basis sentence
+(`js/verdict_basis.js` `basisLong.multi_edition`, "More than one edition shares this name … add or check the
+year") sits in the badge expansion; `edition_note` is the separate edition line (now always shown). The server
+`verdict` string — "Not enough recent sales to value this reliably" on X-Men #1's 480 graded sales — is API-only:
+Mike saw it in the curl output, not on the page. **Built anyway:** `multi_edition` now writes its own sentence,
+"More than one edition shares this name — add the publication year to price your copy", ahead of the thin-data
+branch. One line, confirmed locally on X-Men #1 (no year) and unchanged on the controls. Pending commit + deploy.
+
+**Q3 — the refund count.** `grade_submissions.credit_refunded = true`: **0 rows, all time.** Multi-edition valuation
+lookups since the refund rule (2026-08-27), external: **3, all anonymous** (X-Men #1 ×2, ASM #14 ×1; `user_id`
+null), so none was refund-eligible and **the shadowing bug cost no refund** — it would have, on the first
+signed-in multi-edition lookup with a grading id. `lookup_demand` does not carry `grading_id`, so eligibility is
+user + basis only. Since the 09-17 deploy: 0 multi-edition lookups yet.
+
 ## 2026-09-17 — 🔧 **MULTI-EDITION UNIT BUILT (approved shape + amendment): both pools carry the year, two triggers, the pools narrow to the caller's edition BEFORE pricing, figures withheld when nothing narrows them, the edition line prints whenever the detector fired. Backend + two frontend files: needs `deploy` AND `purge`. In the working tree, pending Mike's read of the verifier's report, then his two commits.**
 
-**MOST RECENT CHANGE (Rule 5): `routes/sales_valuation.py` (+~130/−15), `app.html` (two edits), `js/verdict_basis.js`
+**⚰️ SUPERSEDED the same day: DEPLOYED AND VERIFIED (Mike, 2026-09-17 evening).** Code `cd22ba2`, records `9fa4711`;
+Render deploy done and the curl set verified by Mike; **`purge` PENDING the Pages build** at the time of this flip —
+until it runs, slabworthy.com may still serve the old `app.html`/`verdict_basis.js` (the dash and the edition line
+are frontend), so a report showing `$0` or no edition line before the purge is the cache, not the deploy.
+
+**MOST RECENT CHANGE at write time (Rule 5): `routes/sales_valuation.py` (+~130/−15), `app.html` (two edits), `js/verdict_basis.js`
 (one string); `git log -1` = `d900c5a`, so nothing here is committed, deployed or purged. Verified locally on the
 read-only database, nine cells below. Supersedes the "shape for approval" entry below it.**
 
