@@ -1,4 +1,77 @@
-# Where We Left Off - Sep 16, 2026
+# Where We Left Off - Sep 17, 2026
+
+## 2026-09-17 — 🔧 **SOURCE-AWARE VALUATION BUILT (ROADMAP item 17 + item 10's mid-tier dump): `routes/sales_valuation.py` reads `grade_source`, gates graded pools on it, routes excluded and ungraded rows to the raw pool in both endpoints. In the working tree, pending Mike's commit, push and `deploy` (backend). Branches E and F recorded in the 2.47.0 entry.**
+
+**MOST RECENT CHANGE (Rule 5): one backend file changed, `routes/sales_valuation.py` (+51/−16); `git log
+-1` = `84524fc` (2.47.0), so NOTHING of this is deployed and prod still serves the old tiers. Verified
+locally by running both endpoints from the working tree against the READ-ONLY database (a minimal Flask
+app registering only the valuation blueprint; `DATABASE_URL` pointed at `DATABASE_URL_RO`), before and
+after, six cells. Supersedes the item-17 "scoped, not built" line.**
+
+**What changed (both endpoints):**
+- market_sales queries SELECT `grade_source`; ebay rows carry the constant `'ebay_listing'` (`%s` param in
+  q1, a literal in the fmv f-string) — the listing's own statement; no vision exists on the eBay path.
+- Graded pool (q3): `grade_source IS NOT NULL AND grade_source <> ALL(%s)` with
+  `EXCLUDED_GRADE_SOURCES = ['vision_cover']` (module constant; `dom` and `slab_label` still count).
+- Raw pool (q4): `grade IS NULL OR grade_source IS NULL OR grade_source = ANY(%s)` — excluded and
+  null-source rows are ungraded sales of the book, not lost.
+- `api_sales_fmv`: new `'raw'` bucket; the loop sends ungraded, null-source and excluded rows there
+  instead of `'mid'` (queue item 10's dump, fixed for BOTH tables — ungraded eBay rows were in mid too);
+  `'raw'` is the last fallback in every `tier_priority` list so a book with only ungraded sales still
+  returns a number; response gains `tiers.raw` (additive; the extension reads low/mid/high/top only).
+- No discount path; no rename; no change to the title match.
+
+**Before → after, local run on the RO database, 365-day window (valuation endpoint | fmv endpoint):**
+| cell | valuation BEFORE graded_fmv (exact n, graded n, raw n; whatnot rows) | valuation AFTER | fmv BEFORE mid (n / avg) | fmv AFTER | fmv raw_fmv |
+|---|---|---|---|---|---|
+| Amazing Spider-Man #300 @ 6.5 | 347.5 (10 exact, 386 graded, 366 raw; wn 0) | 347.5 (10 exact, 386 graded, 366 raw; wn 0) | mid 448 / $459.71 | mid 55 / $401.83 · raw 393 / $467.81 | 459.71 → 401.83 |
+| Amazing Spider-Man #300 @ 9.4 | 699.95 (77 exact, 386 graded, 366 raw; wn 0) | 699.95 (77 exact, 386 graded, 366 raw; wn 0) | mid 448 / $459.71 | mid 55 / $401.83 · raw 393 / $467.81 | 1059.91 → 1059.91 |
+| Spider-Man #1 @ 9.4 | 55.0 (43 exact, 446 graded, 864 raw; wn 16) | 62.0 (34 exact, 432 graded, 878 raw; wn 16) | mid 1020 / $82.56 | mid 9 / $171.16 · raw 1025 / $80.7 | 258.35 → 264.83 |
+| Invincible #1 @ 9.4 | 3609.0 (5 exact, 34 graded, 44 raw; wn 2) | 3609.0 (5 exact, 34 graded, 44 raw; wn 1) | mid 51 / $1812.22 | mid — · raw 51 / $1812.22 | 3508.78 → 3508.78 |
+| Batman #3 @ 8.0 | 50.98 (0 exact, 0 graded, 8 raw; wn 0) | 50.98 (0 exact, 0 graded, 8 raw; wn 0) | mid 7 / $36.72 | mid — · raw 7 / $36.72 | 36.72 → 36.72 |
+| New Mutants #98 @ 9.4 | 375.0 (57 exact, 334 graded, 288 raw; wn 0) | 375.0 (57 exact, 334 graded, 288 raw; wn 0) | mid 320 / $311.16 | mid 14 / $261.14 · raw 306 / $313.45 | 611.36 → 611.36 |
+Readings: **ASM #300** — the valuation endpoint did not move (its title match finds no Whatnot rows for
+this book: their `canonical_title` is the lot label, item 16), the fmv endpoint's mid tier went from 448
+rows to 55: it had been 88% ungraded rows, the item-10 dump; mid avg $459.71 → $401.83. **Spider-Man #1
+(Whatnot-heavy, all 11 Whatnot grades `vision_cover`)** — 14 graded rows left the graded pool for raw
+(432 vs 446; raw 878 vs 864), exact comps at 9.4 fell 43 → 34, graded_fmv $55 → $62; fmv mid 1,020 → 9.
+**Invincible #1** — one Whatnot row left; note `sources.whatnot` 2 → 1: a `vision_cover` row that is a
+VARIANT drops out of both pools, because the raw query excludes variants (verifier asked to confirm).
+**Batman #3 (Whatnot-only in fmv)** — all 7 rows were ungraded/vision: mid 7 → raw 7, and `raw_fmv`
+$36.72 unchanged via the new last-fallback. **New Mutants #98 (eBay-only)** — valuation endpoint
+UNCHANGED ($375.00, 57 exact), as intended for a listing-stated pool; fmv mid 320 → 14 because 306
+ungraded eBay rows had been in mid — item 10, not provenance.
+
+**Verification agent (read-only, on the diff):** every `%s` placeholder in the four modified queries
+matched to its params in order (the list → `ARRAY[...]` adaptation and the f-string literal both checked);
+`_detect_multi_edition` and every other consumer of the graded pool unaffected beyond the intended
+shifts; the fmv endpoint cannot now return a number where it returned none, and `raw` never outranks
+a graded tier; empty-pool branch untouched; brief items 1–5 all implemented. **Two findings, both
+taken as records, not code:** (1) a `vision_cover` or null-source row that is ALSO a variant now sits in
+neither pool — the raw pool has never held variants — so it no longer feeds the variant-disclosure
+count or `sources.whatnot` (Invincible #1's 2 → 1 is exactly this); header and q4 comments now say so.
+(2) The Whatnot overlay reads only `tiers.low/mid/high/top`, so a book whose sales are all ungraded now
+shows four `N/A` slots and no verdict where it used to show the mid average; the number survives in
+`raw_fmv`. Rendering the `raw` bucket is a one-line extension change for a later build (2.48.0
+candidate), logged, not scoped. Three stale comments it flagged were fixed (placeholder order after the
+new first `%s`; the raw-pool wording; the fallback wording).
+
+**Deploy block (Mike), per the 2026-08-16 conventions:**
+1. `git log origin/main..HEAD` first (a committed-but-unpushed change is unshipped).
+2. Expected file list for the code commit: `routes/sales_valuation.py` ONLY. Stage → `git diff --cached
+   --stat` → verify → commit. Records (`CLAUDE.md`? no — `docs/sessions/ROADMAP.txt`,
+   `docs/sessions/WHERE_WE_LEFT_OFF.md`) in their own commit, worded commit-relative.
+3. `git push` → `deploy` (Render; auto-deploy is OFF) → wait for the deploy → **verify with the endpoint
+   that exercises the change, not `/health`:**
+   `curl -s "https://collectioncalc-docker.onrender.com/api/sales/valuation?title=Spider-Man&issue=1&grade=9.4&days=365"`
+   → `graded_sample_size` **34** (was 43), `graded_total_sales` **432** (was 446);
+   `curl -s -H "X-Operator-Key: <key>" "https://collectioncalc-docker.onrender.com/api/sales/fmv?title=Amazing%20Spider-Man&issue=300&grade=6.5&days=365"`
+   → `tiers.mid.count` **55** (was 448) and a `tiers.raw` key present;
+   `…/api/sales/valuation?title=New%20Mutants&issue=98&grade=9.4&days=365` → `graded_fmv` **375.0** and
+   `graded_sample_size` **57**, unchanged (the eBay-only control).
+   Live capture moves counts by a few rows per day; a small drift is fine, a return to the BEFORE
+   figures means the deploy did not take.
+4. No `purge` (backend only).
 
 ## 2026-09-16 — 📋 **Four provenance questions answered + the source-aware valuation SCOPED (report only; nothing built, nothing written to the database). 2.47.0 confirmed in the banner (`84524fc`); relabel A–D ran (table in the 2.47.0 entry).**
 
@@ -112,6 +185,10 @@ Batman 5 NM 9.4" was titled "New Mutants" via `'nm'`) — ROADMAP item 16, not t
 | slab_label | 231 / 231 | 459 / 459 | +228 (B) |
 | dom | 161 / 161 | 94 / 94 | −67 (D) |
 The 164 null-source rows WITH a grade were present before and unchanged after (question 2, below).
+**Branches E and F approved and RUN by Mike 2026-09-16 (after the four-questions entry):** E — `dom` blanket
+9.2 → NULL: **dom 94 → 3**; F — grade with no source → NULL: **164 → 0**. So after E+F: (null) 6,128 rows /
+0 with a grade (6,037 + 91), `dom` 3, `vision_cover` 4,525, `slab_label` 459, `seller_verbal` 0. Every
+remaining graded Whatnot row now carries a source.
 2.47.0 reloaded and confirmed in the banner the same afternoon (`84524fc`); CLAUDE.md flipped.
 
 **Relabel SQL as handed over (counts re-read 2026-09-16 after the cleanup; superseded by the table above):**

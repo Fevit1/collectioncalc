@@ -132,7 +132,7 @@ rediscovered.
    be curl/admin surfaces). No user is harmed directly. It ranks here because it has already misled
    analysis three times this week and every reading of the frontend pays the tax again. Deletion is
    boring; the payoff is entirely in future reasoning. Evidence: P2 checkpoint. Frontend + backend.
-10. **The user-facing wrong numbers and strings.** "Based on N sales" under every reliable verdict counts
+10. **The user-facing wrong numbers and strings.** ⚑ 2026-09-17: the "4.5–7.9 tier also receives every ungraded sale" half is FIXED in the item-17 build (pending deploy) — ungraded rows go to a `raw` bucket in `api_sales_fmv`; the strings half stands. "Based on N sales" under every reliable verdict counts
     the very sales the note beside it says were set aside; the thin-tier basis text says "nearby" with no
     distance bound; one reliable-verdict arm says "recent" on a year window; the valuation strip shows
     three `--` cards and a blank badge under a real grade on any valuation failure; the extension's price
@@ -192,7 +192,7 @@ rediscovered.
     differential on `canonical_title` before/after (the backend normaliser is separate; check whether it
     shares the table). Evidence: WWLO 09-16 (2.46.0 entry).
 
-17. **Source-aware valuation tiers (SCOPED 2026-09-16, not built; backend → deploy).** `routes/sales_valuation.py`
+17. **Source-aware valuation tiers — ⚰️ ~~SCOPED 2026-09-16, not built~~ BUILT 2026-09-17 in `routes/sales_valuation.py` (both endpoints; `vision_cover` and null-source grades → raw pool; item 10's mid-tier dump fixed for both tables; `raw` bucket added to fmv), in the working tree, pending Mike's commit + push + `deploy`; before/after cells and the deploy block in WWLO 09-17. (backend → deploy).** `routes/sales_valuation.py`
     selects `grade` without `grade_source` in both endpoints. Shape: select the source; exclude null-source
     grades; treat `vision_cover` as ungraded in the graded tiers (exclusion preferred over a 0.5 weight — the
     ASM #300 example keeps a $5 "7.0" comp under any discount); ebay rows are all listing-stated (no vision in
