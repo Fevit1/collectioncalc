@@ -1401,7 +1401,14 @@ def api_sales_valuation():
         verdict = 'Insufficient data'
 
         if graded_fmv and raw_fmv:
-            if not verdict_reliable:
+            if multi_edition:
+                # 2026-09-17 — its own sentence. The thin-data string below was
+                # being written for this condition too, on books with hundreds of
+                # graded sales (X-Men #1: 480). The page does not render `verdict`
+                # (it builds its tagline client-side), but the API does carry it.
+                verdict = ('More than one edition shares this name — add the publication '
+                           'year to price your copy')
+            elif not verdict_reliable:
                 # 2026-08-08 — ROI IS NOW WITHHELD, NOT MERELY HEDGED.
                 # ⚰️ DEAD: "keep the number but refuse a confident call" (the old
                 # comment on this branch, which computed slabbing_roi anyway).
