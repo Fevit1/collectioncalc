@@ -2851,8 +2851,11 @@
                 const verdictBadge = document.getElementById('resultVerdictBadge');
                 const verdictTagline = document.getElementById('resultVerdictTagline');
 
-                if (rawFmvEl) rawFmvEl.textContent = `$${Math.round(raw_value)}`;
-                if (slabbedFmvEl) slabbedFmvEl.textContent = `$${Math.round(slabbed_value)}`;
+                // 2026-09-17: the server WITHHOLDS both figures (null) when more than
+                // one edition shares the name and no year narrowed the pools. A dash,
+                // not $0 — the same load-bearing rule as the ROI branch below.
+                if (rawFmvEl) rawFmvEl.textContent = valData.raw_fmv == null ? '—' : `$${Math.round(raw_value)}`;
+                if (slabbedFmvEl) slabbedFmvEl.textContent = valData.graded_fmv == null ? '—' : `$${Math.round(slabbed_value)}`;
                 if (netRoiEl) {
                     if (roi == null) {
                         // Withheld. An em-dash, NOT a zero \u2014 this is the same pattern as
@@ -2958,8 +2961,10 @@
                     const MARGINAL_ROI_CEILING = 50;
                     // No map lookup any more, so no per-tier label can go missing and
                     // silently fall through to a default that misdescribes the tier.
+                    // 2026-09-17: withheld-for-edition is not an estimate — there is no
+                    // figure — so it gets its own label instead of 'ROUGH ESTIMATE'.
                     const badgeLabel = !canRate
-                        ? HEDGED_BADGE
+                        ? (valData.verdict_basis === 'multi_edition' ? 'YEAR NEEDED' : HEDGED_BADGE)
                         : (roi > MARGINAL_ROI_CEILING ? 'WORTH THE SLAB'
                            : roi > 0 ? 'MARGINAL' : 'KEEP IT RAW');
                     if (!canRate) {
@@ -3121,15 +3126,19 @@
 
                     // ── Edition note ────────────────────────────────────────────────
                     // Rendered off `edition_span` (ungated, pool-level), NOT off
-                    // verdict_basis. Suppressed when the basis already says it, or the
-                    // same sentence appears twice on the one screen — the only
-                    // precedence rule this design needs, and it exists because the two
-                    // flags are deliberately separate facts.
+                    // verdict_basis. ⚰️ 2026-09-17: no longer suppressed when the basis
+                    // is multi_edition — the line now names the edition priced (or why
+                    // none was) and must be visible in every fired state; the basis
+                    // expansion is collapsed by default, so the two do not double up.
                     const editionNoteEl = document.getElementById('resultEditionNote');
                     if (editionNoteEl) {
-                        const showNote = valData.edition_span && verdictBasis !== 'multi_edition';
+                        // 2026-09-17: the edition line prints WHENEVER the detector fired,
+                        // with or without a year, so a wrong year (vision-read or typed)
+                        // is visible: the server's `edition_note` names the edition that
+                        // was priced and the comps behind it.
+                        const showNote = !!valData.edition_span;
                         editionNoteEl.textContent = showNote
-                            ? editionNote(valData.edition_price_ratio)
+                            ? (valData.edition_note || editionNote(valData.edition_price_ratio))
                             : '';
                         editionNoteEl.hidden = !showNote;
                     }

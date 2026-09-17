@@ -316,6 +316,12 @@ def percentile_trim(prices, pct=5):
 EDITION_YEAR_SPAN_YEARS = 15
 EDITION_PRICE_RATIO = 20.0
 MIN_EDITION_CLUSTER_COMPS = 3
+# 2026-09-17 — second trigger. Pool-level trimmed median of the GRADED comps over
+# the RAW comps. A slab premium within one edition runs 1.5-5x; at 20x the raw
+# pool is a different book (ASM #1: ~$8,000 graded over $16 raw = ~500x, from
+# 2014/2025 relaunches filling the raw side). Pool-level, not at the user's
+# grade, because it has to be decided BEFORE the pools are narrowed and priced.
+EDITION_GRADED_RAW_RATIO = 20.0
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SIGNATURE-SHAPE VOCABULARY
@@ -335,6 +341,36 @@ MIN_EDITION_CLUSTER_COMPS = 3
 # \m and \M are Postgres word boundaries and they are load-bearing: without them
 # "sig" matches "Design Insight" and "auto" matches "Autobots".
 SIGNED_TITLE_PATTERN = r'\m(sketch(ed)?|sig|coa|auto|autograph(ed)?|remarque|remarqued|remarked)\M'
+
+
+def _edition_note(edition_span, ratio, used, trigger=None, year_received=None,
+                  gap=None, estimated=False):
+    """One sentence the report prints whenever the detector fired. States which
+    edition was priced, or why none was: no year, a year between the editions on
+    record, or an edition with too few priced sales (then the figure is the
+    grade/era estimate, and the sentence must not claim it came from sales)."""
+    if not edition_span:
+        return None
+    if trigger == 'ratio':
+        lead = (f"Graded sales run {ratio}\u00d7 the raw sales of this name, which points to more "
+                f"than one edition under it.") if ratio else "More than one edition appears to share this name."
+    else:
+        spread = f", differing in price by {ratio}\u00d7" if ratio else ""
+        lead = f"More than one edition shares this name{spread}."
+    if used:
+        lo, hi = used.get('year_low'), used.get('year_high')
+        span = (f"{lo}\u2013{hi}" if lo and hi and lo != hi else str(lo or hi or used.get('year')))
+        if estimated:
+            return (f"{lead} Your publication year places your copy in the {span} edition, which has too "
+                    f"few priced sales in the window ({used['graded_comps']} graded, {used['raw_comps']} raw), "
+                    f"so this figure is an estimate from grade and era, not from sales of that edition.")
+        return (f"{lead} Priced as the {span} edition from your publication year, on "
+                f"{used['graded_comps']} graded and {used['raw_comps']} raw sales of that edition; "
+                f"if the year is wrong, so is this.")
+    if year_received and gap:
+        return (f"{lead} Your publication year, {year_received}, falls between the editions on record "
+                f"({gap[0]} and {gap[1]}), so these sales cannot be matched to it; check the year.")
+    return f"{lead} Add the publication year to price it; without it these sales cannot be told apart."
 
 
 def _detect_multi_edition(graded_sales):
@@ -766,7 +802,8 @@ def api_sales_valuation():
 
         # ---------- EBAY: raw (ungraded) sales for this title ----------
         ebay_raw_query = """
-            SELECT sale_price as price, sale_date as sold_date, 'ebay' as source
+            SELECT sale_price as price, sale_date as sold_date, 'ebay' as source,
+                   title_year
             FROM ebay_sales
             WHERE (graded = false OR graded IS NULL) AND sale_price > 2
               AND (is_reprint IS NULL OR is_reprint = false)
@@ -881,7 +918,8 @@ def api_sales_valuation():
 
         # ---------- MARKET_SALES: raw (ungraded) ----------
         market_raw_query = """
-            SELECT price, sold_at as sold_date, 'whatnot' as source
+            SELECT price, sold_at as sold_date, 'whatnot' as source,
+                   NULL::int AS title_year
             FROM market_sales
             -- ungraded rows, plus graded rows the provenance gate above set aside
             -- (no source, or an excluded source): still sales of this book at an
@@ -910,6 +948,92 @@ def api_sales_valuation():
         # ---------- Combine graded sales ----------
         all_graded = list(ebay_graded) + list(market_graded)
         all_raw = list(ebay_raw) + list(market_raw)
+
+        # ---------- EDITION (2026-09-17) ----------
+        # Detect on the UN-narrowed pools, then narrow BOTH pools to the edition
+        # the caller's `year` sits in, BEFORE anything downstream is computed —
+        # so exact/interpolated/raw FMVs, confidence, the verdict tier and every
+        # count in the response read the post-narrowing samples. (Mike's
+        # amendment: a 12-row raw pool after narrowing must not print as high
+        # confidence — it cannot, because confidence is computed from what is
+        # left.) Two triggers, either fires: the year-gap split on the graded pool
+        # or the pool-level graded-to-raw ratio (EDITION_GRADED_RAW_RATIO). The
+        # raw pool now carries title_year so it can be NARROWED by the boundary,
+        # but it never triggers on its own: measured 2026-09-17, the raw pool of
+        # ASM #300 (1988) splits at 1988|2006 at 25.7x on reprints that slip the
+        # word filters, and a raw-only trigger withheld the most looked-up book's
+        # figures for every caller without a year. The boundary reported is the
+        # graded year split's when it fired; the ratio trigger alone narrows by
+        # +/- EDITION_YEAR_SPAN_YEARS around the caller's year.
+        def _year_of(s):
+            try:
+                y = s.get('title_year')
+                return int(y) if y else None
+            except (TypeError, ValueError):
+                return None
+        def _price_of(s):
+            try:
+                return float(s.get('price') or 0)
+            except (TypeError, ValueError):
+                return 0.0
+        edition_year = request.args.get('year', type=int, default=None)
+        ed_g = _detect_multi_edition(all_graded)
+        ed_r = (False, None, None, None)   # raw pool: narrowed, never a trigger (see above)
+        _g_prices = [_price_of(s) for s in all_graded if not s.get('is_variant') and _price_of(s) > 0]
+        _r_prices = [_price_of(s) for s in all_raw if _price_of(s) > 0]
+        pool_ratio = None
+        if (len(_g_prices) >= MIN_EDITION_CLUSTER_COMPS
+                and len(_r_prices) >= MIN_EDITION_CLUSTER_COMPS):
+            _gm = compute_median(percentile_trim(_g_prices))
+            _rm = compute_median(percentile_trim(_r_prices))
+            if _gm and _rm and _rm > 0:
+                pool_ratio = _gm / _rm
+        year_fired = bool(ed_g[0] or ed_r[0])
+        ratio_fired = pool_ratio is not None and pool_ratio >= EDITION_GRADED_RAW_RATIO
+        edition_span = year_fired or ratio_fired
+        edition_trigger = ('year' if year_fired else '') + ('+' if year_fired and ratio_fired else '') + ('ratio' if ratio_fired else '')
+        edition_price_ratio = (ed_g[1] if ed_g[0] else (ed_r[1] if ed_r[0] else
+                               (round(pool_ratio, 1) if ratio_fired else None)))
+        _ed_lo, _ed_hi = ((ed_g[2], ed_g[3]) if ed_g[0] else ((ed_r[2], ed_r[3]) if ed_r[0] else (None, None)))
+        edition_used = None       # set when the pools were narrowed to one edition
+        edition_narrowed = False
+        edition_gap = None        # (low, high) when the caller's year fell between the editions
+        if edition_span and edition_year:
+            keep = None
+            if _ed_lo is not None and _ed_hi is not None:
+                if edition_year <= _ed_lo:
+                    keep = (lambda y, lo=_ed_lo: y <= lo)
+                    _used_lo, _used_hi = None, _ed_lo
+                elif edition_year >= _ed_hi:
+                    keep = (lambda y, hi=_ed_hi: y >= hi)
+                    _used_lo, _used_hi = _ed_hi, None
+                else:
+                    # a year INSIDE the gap places the copy in neither cluster: no
+                    # narrowing, and the note must say the year was received and
+                    # could not be matched, not "add the year" (verifier, 09-17)
+                    edition_gap = (_ed_lo, _ed_hi)
+            else:
+                keep = (lambda y, c=edition_year: abs(y - c) <= EDITION_YEAR_SPAN_YEARS)
+                _used_lo, _used_hi = edition_year - EDITION_YEAR_SPAN_YEARS, edition_year + EDITION_YEAR_SPAN_YEARS
+            if keep is not None:
+                _ng = [s for s in all_graded if _year_of(s) is not None and keep(_year_of(s))]
+                _nr = [s for s in all_raw if _year_of(s) is not None and keep(_year_of(s))]
+                _yrs = sorted({_year_of(s) for s in _ng + _nr})
+                all_graded, all_raw = _ng, _nr
+                edition_narrowed = True
+                edition_used = {
+                    'year': edition_year,
+                    'year_low': _yrs[0] if _yrs else _used_lo,
+                    'year_high': _yrs[-1] if _yrs else _used_hi,
+                    # the comps the priced pool can use: variants are set aside downstream
+                    'graded_comps': sum(1 for s_ in _ng if not s_.get('is_variant')),
+                    'raw_comps': len(_nr),
+                    'trigger': edition_trigger,
+                }
+        if edition_span:
+            print(f"[VALUATION-F] edition span: trigger={edition_trigger} ratio={edition_price_ratio}x "
+                  f"boundary={_ed_lo}|{_ed_hi} pool_ratio={None if pool_ratio is None else round(pool_ratio, 1)} "
+                  f"year={edition_year} narrowed={edition_narrowed} used={edition_used}")
 
         # Convert Decimal to float
         def to_float(val):
@@ -1160,6 +1284,10 @@ def api_sales_valuation():
         THIN_SAME_GRADE = ('exact_thin', 'blended')             # 1-2 same-grade comps
 
         # ── Fix F: edition span ──────────────────────────────────────────────
+        # ⚰️ 2026-09-17: the 'exact' gate below is DEAD. multi_edition now fires on
+        # EVERY fmv_method when the detector fired and no year narrowed the pools,
+        # and the figures are withheld (null), so the reasons that followed from
+        # the gate no longer apply. Kept for the history of why it existed.
         # ⚠️ GATED ON fmv_method == 'exact', AND THE GATE IS THE DESIGN, not a
         # performance shortcut. Two things follow from it, both load-bearing:
         #
@@ -1184,7 +1312,7 @@ def api_sales_valuation():
         #                    more than one edition." A property of the POOL, which
         #                    feeds BOTH the raw and the graded figure, and true
         #                    regardless of which tier the verdict lands in.
-        #   multi_edition  — VERDICT-AFFECTING. Gated on fmv_method == 'exact'.
+        #   multi_edition  — VERDICT-AFFECTING. (Was gated on 'exact'; not since 09-17.)
         #                    "…and that is the reason this verdict is withheld."
         #
         # The detection runs ONCE and is free (pure Python over an
@@ -1201,13 +1329,12 @@ def api_sales_valuation():
         # only 46. X-Men #1 @4.5 is the case: hedged for thinness, correctly, and
         # showing RAW $17 beside SLABBED $10,200 with no edition explanation
         # anywhere. Those are two different comics and the pairing is what lies.
-        edition_span, edition_price_ratio, _ed_lo, _ed_hi = _detect_multi_edition(all_graded)
-
-        multi_edition = edition_span and fmv_method == 'exact'
-        if edition_span:
-            print(f"[VALUATION-F] edition span: ratio={edition_price_ratio}x "
-                  f"boundary={_ed_lo}|{_ed_hi} method={fmv_method} "
-                  f"exact_count={exact_count} verdict_gated={multi_edition}")
+        # edition_span / edition_price_ratio / _ed_lo / _ed_hi were computed on
+        # the un-narrowed pools above (2026-09-17). The verdict tier is
+        # `multi_edition` — figures withheld — whenever the detector fired and no
+        # year narrowed the pools, on EVERY fmv_method (it used to gate only
+        # 'exact', which left interpolated/blended figures 600x apart on screen).
+        multi_edition = edition_span and not edition_narrowed
 
         verdict_reliable = not (
             estimated_flag
@@ -1232,7 +1359,8 @@ def api_sales_valuation():
         # ⚠️ CHECKED FIRST, and it can only be true when fmv_method == 'exact'.
         # Every branch below keys on estimated_flag or on a non-'exact' method,
         # so this is not a precedence choice between competing descriptions —
-        # the branches are disjoint by construction. It is first so a reader
+        # the branches WERE disjoint by construction (until 09-17: multi_edition now
+        # takes precedence over every other tier, by position). It is first so a reader
         # sees the gate before the ladder rather than having to prove the
         # disjointness themselves.
         if multi_edition:
@@ -1337,7 +1465,7 @@ def api_sales_valuation():
         # inherit it silently because the curve looks plausible.
         #
         # Fix F detects the condition and already emits `edition_price_ratio`
-        # beside this payload — but F is GATED ON fmv_method == 'exact', so the
+        # beside this payload — F WAS gated on fmv_method == 'exact' (not since 09-17), so the
         # flag is absent on exactly the thin-bucket grades where the curve is
         # most misleading. Do not treat `edition_price_ratio` being null as
         # evidence the curve is clean. If you are building a chart from this,
@@ -1345,11 +1473,14 @@ def api_sales_valuation():
         # split the series by edition, or plot only the cluster that matches the
         # user's book. Plotting it as one series is the defect.
         price_curve = []
-        for g in sorted(grade_buckets.keys()):
-            prices = grade_buckets[g]
+        # loop variable renamed 2026-09-17: `g` shadowed Flask's request-context `g`
+        # (imported at the top), so `getattr(g, 'user_id', None)` in the refund path
+        # below read a grade float and the refund never fired. Verifier finding.
+        for curve_grade in sorted(grade_buckets.keys()):
+            prices = grade_buckets[curve_grade]
             trimmed_curve = percentile_trim(prices)
             price_curve.append({
-                'grade': g,
+                'grade': curve_grade,
                 'avg_price': round(compute_median(trimmed_curve), 2),
                 'sales_count': len(prices),
                 'min_price': round(min(prices), 2),
@@ -1357,8 +1488,9 @@ def api_sales_valuation():
             })
 
         # ---------- Source counts ----------
-        ebay_count = len(ebay_graded) + len(ebay_raw)
-        whatnot_count = len(market_graded) + len(market_raw)
+        # counts from the pools actually priced (post-narrowing, 2026-09-17)
+        ebay_count = sum(1 for s_ in all_graded + all_raw if s_.get('source') == 'ebay')
+        whatnot_count = sum(1 for s_ in all_graded + all_raw if s_.get('source') == 'whatnot')
 
         # Lookup-demand instrumentation (non-blocking, additive — see lookup_demand.py)
         # Marked BEFORE _record_demand so post_sql measures OUR work. If the
@@ -1375,7 +1507,7 @@ def api_sales_valuation():
 
         # ── Credit refund on the multi_edition refusal ONLY ──────────────────
         # The rule: "if we can't estimate its value, you don't pay." Gated on
-        # verdict_basis (not fmv_method — the gate fires INSIDE 'exact') and on
+        # verdict_basis (not fmv_method — since 09-17 it fires on every method) and on
         # a verified user + their own grading_id; see _maybe_refund_grading_credit
         # for the full security shape. False here means "no refund happened on
         # this call" — including replays of an already-refunded grading — and
@@ -1393,8 +1525,9 @@ def api_sales_valuation():
             'issue': issue or None,
             'grade': grade,
 
-            # Core valuation
-            'graded_fmv': graded_fmv,
+            # Core valuation. multi_edition (fired, not narrowed): NO figures —
+            # two numbers 600x apart under a caution sentence was the defect.
+            'graded_fmv': None if multi_edition else graded_fmv,
             'graded_sample_size': exact_count,
             'graded_total_sales': total_graded,
             'fmv_method': fmv_method,
@@ -1405,7 +1538,7 @@ def api_sales_valuation():
             'variant_excluded_count': disclosure['variant_excluded_count'],
             'variant_disclosure': disclosure['variant_disclosure'],
 
-            'raw_fmv': raw_fmv,
+            'raw_fmv': None if multi_edition else raw_fmv,
             'raw_sample_size': raw_count,
 
             # Confidence interval (null when interpolated/estimated or < 5 exact matches)
@@ -1436,8 +1569,18 @@ def api_sales_valuation():
             # The client renders the note off THIS, and suppresses it when the
             # basis already says it — otherwise the same sentence appears twice.
             'edition_span': edition_span,
+            'edition_trigger': edition_trigger or None,
+            # Which edition was priced (null when not narrowed). The client prints
+            # this line WHENEVER the detector fired, so a wrong year is visible.
+            'edition_used': edition_used,
+            'edition_year_received': edition_year,
+            'edition_note': _edition_note(edition_span, edition_price_ratio, edition_used,
+                                          trigger=edition_trigger, year_received=edition_year,
+                                          gap=edition_gap, estimated=bool(estimated_flag)),
             'nearby_thin_comps': nearby_thin_comps,  # sales near this grade that were too thin to anchor from
-            'confidence': confidence,
+            # No figure, no confidence in it (2026-09-17): 'high' beside two dashes
+            # would describe the un-narrowed pool the caller is not being shown.
+            'confidence': None if multi_edition else confidence,
 
             # Grade price curve for charts
             'price_curve': price_curve,

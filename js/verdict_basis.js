@@ -268,10 +268,13 @@ function basisLong(ctx) {
         multi_edition: (() => {
             const ratio = editionPriceRatio;
             const ratioClause = ratio ? `, differing in price by ${ratio}×` : '';
-            return `These figures may be for the wrong edition. This issue has sales from `
-                 + `more than one edition${ratioClause}, and the ${sameGradeComps} `
-                 + `sale${s(sameGradeComps)}${gradeAt} behind this figure may be any mix `
-                 + `of them.`;
+            // 2026-09-17: this basis now means "fired AND no year narrowed the
+            // pools" — the figures are withheld, so the sentence asks for the
+            // one input that would let them print. Narrowed lookups carry a
+            // different basis plus the edition line.
+            return `More than one edition shares this name${ratioClause}, and the sales `
+                 + `cannot be told apart without a publication year that matches one of `
+                 + `them. Add or check the year and grade again to price your copy.`;
         })()
     };
     // ⚠️ The fallback asserts NOTHING about counts or provenance, on
@@ -444,8 +447,8 @@ function basisShort(basis, opts) {
         // sales may not. With no count available the short form cannot even
         // gesture at "these N sales", which removes the trap rather than
         // avoiding it. NO scarcity language — this tier has abundant comps.
-        multi_edition: 'This issue has sales from more than one edition, so these figures '
-            + 'may be for the wrong one.',
+        multi_edition: 'More than one edition shares this name; the figures are withheld '
+            + 'until the publication year is known.',
     };
 
     // Unknown or missing basis returns NULL rather than a generic sentence.
