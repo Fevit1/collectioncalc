@@ -192,6 +192,14 @@ rediscovered.
     differential on `canonical_title` before/after (the backend normaliser is separate; check whether it
     shares the table). Evidence: WWLO 09-16 (2.46.0 entry).
 
+17. **Source-aware valuation tiers (SCOPED 2026-09-16, not built; backend → deploy).** `routes/sales_valuation.py`
+    selects `grade` without `grade_source` in both endpoints. Shape: select the source; exclude null-source
+    grades; treat `vision_cover` as ungraded in the graded tiers (exclusion preferred over a 0.5 weight — the
+    ASM #300 example keeps a $5 "7.0" comp under any discount); ebay rows are all listing-stated (no vision in
+    that path). Coupled to item 10's "ungraded rows land in the mid tier" in `api_sales_fmv`. Evidence and
+    the measured ASM #300 spread: WWLO 09-16 (four-questions entry). Junk-series blocklist shape for the
+    normaliser is under item 16, same entry.
+
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
 The sweep's static reading says the control throws and the manual valuation path is unreachable; the

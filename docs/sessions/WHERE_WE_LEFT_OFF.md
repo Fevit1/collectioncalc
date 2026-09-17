@@ -1,5 +1,59 @@
 # Where We Left Off - Sep 16, 2026
 
+## 2026-09-16 — 📋 **Four provenance questions answered + the source-aware valuation SCOPED (report only; nothing built, nothing written to the database). 2.47.0 confirmed in the banner (`84524fc`); relabel A–D ran (table in the 2.47.0 entry).**
+
+**MOST RECENT CHANGE (Rule 5): CLAUDE.md flipped to 2.47.0 confirmed. Two more corpus branches proposed
+below (E: 91 blanket-9.2 `dom` rows; F: 164 pre-provenance graded rows) — NOT run, Mike's call. Supersedes
+nothing else.**
+
+**Q1 — the 94 `dom` rows do not all stay.** 91 are grade 9.2 from ONE seller family ("Single", "Single #391"
+… "A"), over six days 01-26 → 03-18, 41 distinct labels on 01-26 alone: a blanket condition text applied to
+every lot, not a per-book grade. **Branch E: NULL grade and source where `grade_source = 'dom' AND grade =
+9.2` → before dom 94, after dom 3.** The three survivors are real seller-stated decimals in the label
+("Strange Tales #179 5.0", "Secret Wars #1 8.5🔑", "Invaders #2 8.5 🔑", all 02-07).
+**Q2 — the 164 graded rows with no source: all 01-24 → 01-26, the corpus's first days, written by the
+extension build BEFORE `grade_source` existed, by the same loose regex.** 159 are the same seller's blanket
+9.2 ("Single #319…"), 2 are 10.0 from "#10" labels ("2-PACK #10", "MISTER MIRACLE #10"), 2 are 4.0, 1 is 7.5;
+no image, no slab, `grade_from_title` null on all. Same junk class. **Branch F: NULL grade and source where
+`grade IS NOT NULL AND grade_source IS NULL` → before 164, after 0.** Otherwise they count in tiers with no
+way to weight them.
+**Q3 — 2.47.0 writes `dom` for a seller-stated decimal with no slab** ("$10 start Batman 5 NM 9.4" → 9.4,
+`dom`; "graded 8.5" → `dom`). Distinguishable from `slab_label` (grade adjacent to a slab word, from label OR
+scan) and `vision_cover` (scan, raw) today. Two naming defects for a later 2.48.0, shape only: rename `dom`
+→ `seller_label` (and relabel the survivors), and split `slab_label` into label-read vs scan-read, since one
+name currently covers two provenances.
+**Q4 — junk-series blocklist (shape only, under ROADMAP item 16):** no such list exists anywhere in the
+repo. Shape: `lib/normalizer.js` gains `JUNK_SERIES` (exact, lowercase: box, aaa, aaa awesomeness, single,
+singles, comics, comic, bulk, lot, random start, pre-bid, bid, plus any single-letter label); `parse()`
+checks the label's leading token before "#" against it and returns `series: null` so `makeKey` yields no
+key; `content.js` leaves the record in with the raw label as title and `series` null. The backend
+`title_normalizer.py` needs the same list or `canonical_title` still says "Box" (that half is a deploy).
+Test: "Box #18" and "AAA awesomeness #19" parse with no series key and record with `series` null.
+
+**Valuation scope — source-aware tiers (shape; NOT built; backend → needs a `deploy`).**
+- **Files:** `routes/sales_valuation.py` only, both endpoints: `api_sales_valuation` (`market_graded_query`,
+  `market_raw_query`) and `api_sales_fmv` (`market_query`). Neither selects `grade_source` today.
+- **Step 1:** add `grade_source` to the market_sales SELECTs; ebay rows get a constant source
+  `'ebay_listing'` — the eBay path has NO vision anywhere (the collector has no vision code; the route
+  parses `grade_from_title`), so all 42,255 graded ebay rows are listing-stated. **Answer to the open
+  question: no `ebay_sales` row carries a vision-derived grade.**
+- **Step 2, exclude null-source grades:** `AND grade_source IS NOT NULL` on the graded query. After branch F
+  it excludes nothing today; it is the guard for future rows.
+- **Step 3, `vision_cover`:** (a) EXCLUDE from graded tiers — in `api_sales_valuation` widen the raw pool to
+  `grade IS NULL OR grade_source = 'vision_cover'` so the rows still count as ungraded comps rather than
+  vanishing; in `api_sales_fmv` note that ungraded rows are already dumped into the mid tier (`sale_grade
+  is None → tiers['mid']`, queue item 10), so "exclude" there means "lands in mid" until that dump is fixed
+  in the same unit. (b) DISCOUNT — carry a weight (0.5) per row into the median; `compute_median` /
+  `percentile_trim` take plain price lists, so this needs a weighted-percentile helper.
+- **ASM #300 mid tier (4.5–7.9), measured read-only:** Whatnot has TWO mid rows — `vision_cover` 7.0 at **$5**
+  and `slab_label` 6.0 at $205; eBay has 88 at median $377.50 (IQR $325–$425). Combined, every option lands at
+  ~$375 with n 89–90, because the eBay pool dominates. Market-only: as-is and discount keep the $5 "7.0"
+  comp (a lot-price sale with a scan grade — a wrong comp at any weight); exclusion leaves the one slab
+  comp at $205. The example argues for (a): a discount keeps a comp that should not be in a graded tier.
+- Not changed by this scope: the `title`/`series` match (`qualifier_title_clause` over `title`,`series`,
+  `canonical_title`) — on these rows `canonical_title` is "Bid" / "30 Pre-Bids" / "Comics", the DOM lot
+  label, so the match rides on the extension's `title`, which item 16 owns.
+
 ## 2026-09-16 — 🔧 **2.47.0 BUILT (grade provenance): the record's grade comes only from the scan bound to the sold listing or from the sold listing's own label with grade context; `seller_verbal` retired; the `manualGrade` leak closed. In the working tree, pending Mike's commit and a reload showing 2.47.0 in the banner. Relabel SQL handed to Mike (NOT run).**
 
 **MOST RECENT CHANGE (Rule 5): `content.js` + `manifest.json` carry 2.47.0; `git log -1` = `c644764`
@@ -48,7 +102,19 @@ Accepted residuals, stated: "NM 10" and "NM 10.0" raw labels record no grade (an
 "graded" tie); the extension's `series`/`title` still come from the substring aliases ("$10 start
 Batman 5 NM 9.4" was titled "New Mutants" via `'nm'`) — ROADMAP item 16, not this unit.
 
-**Relabel SQL (Mike, DBeaver; counts re-read 2026-09-16 after the cleanup; NOT run):**
+**RELABEL RAN (Mike, 2026-09-16, branches A–D; plus `series = NULL` on 11033/11035/11037/11038).**
+`grade_source` on `market_sales` (source = whatnot), rows / rows with a grade:
+| grade_source | before | after | moved |
+|---|---|---|---|
+| (null) | 5,534 / 164 | 6,037 / 164 | +503 = C 436 (seller_verbal, no image → grade+source NULL) + D 67 (dom grade 10 → NULL) |
+| seller_verbal | 3,277 / 3,277 | 0 / 0 | −3,277 = A 2,613 + B 228 + C 436 |
+| vision_cover | 1,912 / 1,912 | 4,525 / 4,525 | +2,613 (A) |
+| slab_label | 231 / 231 | 459 / 459 | +228 (B) |
+| dom | 161 / 161 | 94 / 94 | −67 (D) |
+The 164 null-source rows WITH a grade were present before and unchanged after (question 2, below).
+2.47.0 reloaded and confirmed in the banner the same afternoon (`84524fc`); CLAUDE.md flipped.
+
+**Relabel SQL as handed over (counts re-read 2026-09-16 after the cleanup; superseded by the table above):**
 A `seller_verbal` + image + slab raw/null → `vision_cover` (2,613); B `seller_verbal` + image + slab set →
 `slab_label` (228); C `seller_verbal` + no image → grade and source NULL, Mike's call (436); D `dom` +
 grade = 10 → grade and source NULL (67); E `dom` other grades → keep (94). D is the `dom` predicate
