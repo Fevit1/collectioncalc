@@ -1,5 +1,171 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 🔧 **PRIVACY PAGE: the Slab Guard retention paragraph replaced (Mike's copy, verbatim) and "delete your account" → "ask us to delete your account". `privacy.html` only, one commit, push, `purge`. In the working tree pending Mike's commit. The two pre-edit checks both came back the way the copy needed: nothing purges or freezes a registration, and account deletion is request-only.**
+
+**MOST RECENT CHANGE (Rule 5): `privacy.html` lines 353–364 edited; `git log -1` = `aa84391`, nothing committed.
+Supersedes the page's own HTML comment ("✅ 90 DAYS IS CORRECT HERE"), now a tombstone in the file, and the "queue the
+purge for the terms page" thread — this unit is privacy.html; terms.html is named below as still wrong.**
+
+**Check 1 — nothing deletes or freezes registrations on downgrade: TRUE.** `routes/billing.py`'s Stripe handlers
+(`handle_subscription_updated`, `handle_subscription_deleted`) write `users.plan`/`users.status` only; the only
+`comic_registry` status writes are the owner's own report-stolen / mark-recovered (`routes/registry.py:945, 1008`);
+no scheduler, cron or `INTERVAL '90'` exists in the repo; the one DELETE is `routes/collection.py:263`, which removes a
+registration when the owner deletes that comic from the collection. So "retained for as long as they exist in our
+monitoring database, including if you downgrade" is what the system does. The OLD copy promised a 90-day purge that
+nothing performs — and terms.html:398 and :405 already said downgrade retains registrations, so the two pages disagreed.
+
+**Check 2 — account deletion is REQUEST-ONLY.** No self-serve route (`grep methods=['DELETE']` finds only the admin
+grade-submission purge); `auth.reject_user` is the only `DELETE FROM users` and is admin-only; deletion runs by hand off
+`docs/SW_deletion_request_runbook.md` ("Human-run; never auto-delete", within 30 days). The Account data line now reads
+"If you ask us to delete your account". ⚠️ **The runbook has no registrations step** (no "registr" in the file) and the
+repo shows no `ON DELETE CASCADE` for `comic_registry.user_id` — so "Deleting your account deletes your registrations as
+well" is a promise the runbook must carry: add "delete `comic_registry` rows for the user" to it (docs, not in this
+commit). Item 22.
+
+**Not in this commit, named so it cannot be lost:** `terms.html:490` still says registrations are kept "for 90 days" after
+account deletion, under a comment block that makes the same "verified against privacy.html" claim. Same false promise,
+same fix, next small unit.
+
+**Lesson candidate (not written to LESSONS.md):** the dead comment had verified the 90 days against two other pages and
+told the next reader not to reconcile — copy checked against copy. The check that would have caught it is copy against
+mechanism: "which job deletes these rows?" (the reachability rule, applied to a promise instead of a feature).
+
+**Ship block (Mike):** `git add privacy.html` → commit → push → **wait for the Pages build** → `purge`. Post-purge:
+`curl -sL https://slabworthy.com/privacy | grep -c "complete the request within 30 days"` → 1, and the Slab Guard
+paragraph (`grep -o '<p><span class="highlight">Slab Guard registrations:</span>[^<]*'`) contains no "90 days". ("90
+days" still appears on the page twice by design: the Grading Data card's "We previously said 90 days" history line and
+the tombstone comment.)
+
+## 2026-09-17 — 🔧 **THREE UNITS BUILT, in the working tree pending Mike's commits: (1) the PAGE-PATTERN unit (single pages and cover-only out of every pool — "detached" was in for one cut and Mike took it out; slab lots out of the eBay pools; the count-as-grade parse fixed in BOTH parsers; the withheld response no longer returns the un-narrowed curve or CI) — backend + `ebay-collector` 1.5.0 + fixture → `deploy`, extension reload, no purge; (2) ROADMAP item 21, the three null renderers → `purge` only; (3) ROADMAP item 20, the listing path inherits grade provenance and edition state (eBay path) → `deploy` AND `purge`. No database write. Capture schedule decided by Mike; the 2026-09-17 docx replaces the August one (committed with the records, `aa84391`).**
+
+**MOST RECENT CHANGE (Rule 5): `git log -1` = `aa84391`; nothing from these three units is committed. Supersedes the
+"proposed, not built" lines for the page shapes, the slab-set parse and the withheld curve in the four-items entry
+below, and item 21's "NEXT" and item 20's "not scoped" status in ROADMAP. CLAUDE.md lists `ebay-collector` 1.4.0 with
+1.5.0 built and the reload NOT yet confirmed.**
+
+### Unit 1 — page patterns, slab lots, the count-as-grade parse, the withheld curve
+
+**What the measurement changed on the way in.** The 24-row audit was canonical-title-only; the endpoint's title clause
+also matches "The X-Men" rows, so the live 1963 raw pool was **30 rows, median $221.25**, and after this unit it is
+**15 rows, median $3,829.79** (`raw_sample_size` 30 → 15; graded side unchanged at 30 / $22,387.50 interpolated). (With "detached" in, one cut earlier: 14 rows, $3,914.89.)
+The residual four cheap rows are named, not filtered: a bare "page," row ($199 — 575 bare-"page" rows in the window
+include "White Page" slab notes and "signed inside page", so a bare-word test would drop real copies), a title
+truncated before the word "facsimile" ($8.89, "2023 F..."), and a $163.50 row with no defect word in it.
+
+**The slab-lot finding is bigger than the slab-set parse.** 53 graded rows in the window match a plural slab word:
+24 are "X-MEN #1 (ALL 5 COVERS) ALL CGC 9.8 NEW SLABS" at $265–$495, filed as ONE 9.8 sale each with `is_lot` false
+and **no `title_year`** — so they sat in X-Men #1's un-narrowed graded pool (477 → 446 total) and in the withheld
+price curve Mike read, but never in the 1991-narrowed cell (its 9.8 figure is $74.39 before and after). Three more
+moved Spider-Man #1 @ 9.8 from $89.99 to $89.95, and its curve lost a "3.0 at $140" point that was "CGC 3 books".
+The lot detector had only "lot of N / set of N / comic lot / book lot" shapes; a plural "slabs" is never one book.
+
+**What changed.** `routes/sales_valuation.py`: `CONDITION_TITLE_PATTERN` gains `\ycgc\s*pg\y`, `\ypg\s*[0-9]{1,2}\y`,
+`\y(splash|interior|single|title)\s+page\y`, `\ypage\s*[0-9]{1,2}\y` (two-digit bound so "WHITE PAGE 1972" on a slab
+label stays a comp — a real 9.2 at $5,000 would otherwise have gone), `\ycover\s+only\y` (27 rows, "LOOSE BACK COVER
+Only"). **"detached" was in for one cut and is OUT (Mike, 2026-09-17):** a detached-cover CGC 3.0 is a low-grade comp,
+not a non-book, and the rule is now written above the pattern — the condition list is for what is NOT the book or
+NOT comparable, never a defect CGC would grade. New
+`EBAY_SLAB_LOT_SQL` (`\yslabs\y|slabs?\s*(set|lot)|\y(cgc|cbcs|pgx)\s*[0-9]+\s*(books|comics|copies|graded\s+(books|
+comics|copies))\y`) inline on q1 and q2 beside the lot shield; accepted loss: 7 "ALL SLABS SALE $50" single books
+from one seller's store-sale phrase. Withheld response: `price_curve` is `[]` and `ci_95_low/high` null when
+`multi_edition` (the "5.0 at $142.50" Mike took for a cheap 1963 copy was the five-slab set; nothing in js/ or
+.html reads the curve — `js/sidebar.js` only comments on it). `title_normalizer.py`: the grade parse iterates
+matches, skips a number outside 0.5–10 ("CGC 2024" was stored as grade 2024.0) or followed by a count word, and
+"2X" is rejected in the lookahead; the lot pattern gains the slab shapes. `CCExtensions/ebay-collector/content.js`
+(**1.5.0**): the same rule in `parseComicTitle` — the collector's `grade` column is what the pools read, the
+backend's `grade_from_title` was the same bug in a second parser, and fixing one alone would have left the other
+writing the wrong value. `tests/test_lot_detection.py`: `RE_SLABS` + 6 positives / 4 negatives (14/14, 12/12).
+
+**Verification (local, read-only DB, no API call, $0).** Server-side regex proof on 25 title shapes, 0 mismatches
+(old suite 0 mismatches). Normalizer: "CGC 5 Slab Set CGC 9.4" → 9.4, lot=True; "CGC 3 books" → grade None,
+lot=True; "CGC 2X SIGNED" → None, signed=True (unchanged); "CBCS 9.4 slab" → 9.4, lot=False. Collector under node:
+16 shapes, 0 mismatches after one fix (the first cut read "AUTO CGC 9  X-MEN" as a count; the 2X rule now lives in
+the lookahead). Standing cells: ASM #1 @ 4.5/1963 SAME ($9,587.50 / $4,620 on 3 and 4); ASM #14 both SAME; ASM #300
+SAME to the cent; New Mutants #98 raw $299.49 → $299.98 (one row); Spider-Man #1 @ 9.4 SAME figures (4 lot rows
+out of the total); Amazing Fantasy #15 @ 3.0 withheld, raw pool 138 → 99, same-moment HEAD vs working tree (AF15
+pages and cover-only rows are common); X-Men #1 withheld raw pool 548 → 528, graded 477 → 446.
+
+**Verification agent (read-only):** no blocker, no should-fix. Notes: the detached tension above; "ALL SLABS SALE"
+confirmed as designed. Confirmed: parameter order on all four queries (the new clause is inline, no placeholder),
+escaping through the Python string layers, no un-doubled `%`, `gradeRe` is a fresh `const` per call (no `lastIndex`
+bug), `result.condition` is written to a column and never parsed back, `market_sales.raw_title` exists.
+
+**Queued under item 16 (not run — Mike's DBeaver, read first):** the 9 stored count-as-grade rows and the 53 slab-lot
+rows are out of the pools by SQL; a backfill can set `grade` from the corrected parse and `is_lot` true. Count
+first: `SELECT count(*) FROM ebay_sales WHERE raw_title ~* '\yslabs\y|slabs?\s*(set|lot)' AND (is_lot IS NULL OR
+is_lot = false);` — expected 65 in the 365-day window, more all-time.
+
+### Unit 2 — ROADMAP item 21, the three null renderers (`js/collection.js`, `collection.html`) — `purge` only
+
+`hasFigure(v)` (null or 0 = no figure: the valuation never prices a book at $0, and `app.html:2752` still writes
+`raw_fmv || 0` into the grade result while the save path writes `|| null`, so both shapes reach the page) and
+`money(v)` (dash on no figure) are the one formatter; the card helper shipped 09-17 now calls it. Detail panel
+"$0.00" → dash. The alert (`viewDetails`) has **no caller in the repo** — made null-safe rather than left printing
+"$null". Totals sum the priced rows and a new `summary-subtitle` under Raw Value / Slabbed Value says "n without a
+figure" when any row has none (empty otherwise; the class already exists in `js/collection.css`). Sorts: a row with
+no figure goes LAST in both directions — before, value-ascending put a withheld book first as the "cheapest".
+
+### Unit 3 — ROADMAP item 20, the listing path inherits grade provenance and edition state — `deploy` AND `purge`
+
+Three symptoms, one cause, eBay path only (the marketplace and Whatnot generators have the same year/era prompt
+shape and are queued below, not built). (a) **Title grade token**: `listingGradeToken(c)` in `js/ebay-modal.js`
+and `grade_token()` in `ebay_listing.py` print "CGC 3.5" for a slabbed row (`slab_company`/`slab_grade`) and
+"Raw est. 3.5" for an estimate, never a bare "3.5"; used by the prefilled title, the KEY ISSUE title rewrite, the
+fallback description, and the server's fallback title/description (which also appends "grade estimated by Slab
+Worthy, not certified" for a raw copy). The listing payload now carries `is_slabbed`, `slab_company`, `slab_grade`,
+`verdict_basis`. (b) **Edition**: `routes/ebay.py` never passed publisher, year or basis to the generator — the
+prompt could not know which edition it described, so "X-Men #1" got the 1963 copy whether the seller's copy was
+1963, 1991 or unknown. `_build_prompt()` (separated so it can be read without an API call) names the edition when
+the year is known, and on `verdict_basis == 'multi_edition'` forbids era, first-appearance, KEY ISSUE, year and
+per-edition creator claims, with a matching neutral example; a KEY ISSUE claim that comes back anyway falls to the
+template; the client skips the KEY ISSUE title rewrite on an unresolved edition. (c) **Fee copy**: the static
+"(~$20-$40)" is gone from `collection.html`; the modal recovers the report's own figure from the saved row
+(`slabbed − raw − roi`, the save-time arithmetic) and prints "Your Slab Report priced grading at $X" when all three
+are present, otherwise "Grading fees scale with the book's value — check your Slab Report". `modal-ebay-listing.html`
+keeps its "$20-$40" — orphan, item 9.
+
+**Verified locally ($0):** both prompt branches asserted (unresolved has the rules and no era/KEY ISSUE line;
+resolved names 1991; no-year non-multi keeps claims general), template path with the key removed, `grade_token`
+on 9 cases, `node --check` on both scripts. Not exercised: a live description (an API call) and a live eBay draft.
+
+**Queued, not built (item 20 follow-on):** the same `verdict_basis` passthrough + prompt rule for
+`marketplace_prep.py` / `whatnot_description.py` (via `routes/marketplace.py`, `routes/whatnot.py`,
+`js/marketplace-modal.js`): their prompts ask for "era" and "first appearance" off a year the payload carries but
+the basis it does not. The eBay "Grade" item-specific still sends the bare number for a raw book (`ebay_listing.py`
+aspects) — eBay's field, not the title; noted, not changed.
+
+**Verification agent (items 21 + 20, read-only, six files):** no blocker, no should-fix. Confirmed: no global-name
+collision for `money`/`hasFigure`/`cmpFigure` across the eight scripts collection.html loads; `cmpFigure` is
+antisymmetric with nulls last in both directions; no `|| 0` / `.toFixed` on `raw_value`/`slabbed_value` remains;
+`raw_fmv = 0` is the server's own "no comps" sentinel (so 0 = no figure is right); every title path truncates at
+80; the grade regex is safe because `snap_to_cgc_grade` persists single-decimal grades; the collection SELECT
+returns every field the modal now reads; `slabbing_roi = graded_fmv - raw_fmv - grading_cost` so the fee recovery
+is exact; both `generate_description` and `create_listing` have exactly one caller each. **Logged, not fixed
+(out of the diff):** `dashboard.html:416,440,454` still do `parseFloat(c.slabbed_value) || parseFloat(c.raw_value)
+|| 0`, so a withheld book contributes $0 to the dashboard's sums and rankings — the item-21 defect on a sibling
+surface; ROADMAP item 21 follow-on.
+
+**Ship block (Mike) — `git log origin/main..HEAD` first; three code commits, then records.**
+1. Page unit: `routes/sales_valuation.py`, `title_normalizer.py`, `CCExtensions/ebay-collector/content.js`,
+   `CCExtensions/ebay-collector/manifest.json`, `tests/test_lot_detection.py`. Push → `deploy`. Reload the unpacked
+   `ebay-collector` and confirm **1.5.0** on `chrome://extensions`; no purge.
+2. Item 21: `js/collection.js`, `collection.html` (the two subtitle divs). Push → wait for the Pages build → `purge`.
+3. Item 20: `js/ebay-modal.js`, `collection.html` (the fee-help span), `ebay_description.py`, `ebay_listing.py`,
+   `routes/ebay.py`. Push → `deploy` → wait → `purge`. (One `deploy` and one `purge` cover all three if pushed together.)
+4. Records: `docs/sessions/WHERE_WE_LEFT_OFF.md`, `docs/sessions/ROADMAP.txt`, `CLAUDE.md`.
+
+**Post-deploy curls (backend):**
+`curl -s "https://collectioncalc-docker.onrender.com/api/sales/valuation?title=X-Men&issue=1&grade=9.0&days=365&year=1963"`
+→ `raw_fmv` 3829.79, `raw_sample_size` 15, `graded_fmv` 22387.5 (was 221.25 / 30).
+`curl -s "https://collectioncalc-docker.onrender.com/api/sales/valuation?title=X-Men&issue=1&grade=9.0&days=365"`
+→ `verdict_basis` multi_edition, `price_curve` `[]`, `ci_95_low` null (was a 23-point curve, CI 30–41).
+`curl -s "https://collectioncalc-docker.onrender.com/api/sales/valuation?title=Amazing%20Spider-Man&issue=1&grade=4.5&days=365&year=1963"`
+→ unchanged: `graded_fmv` 9587.5, `raw_fmv` 4620.0, sizes 3 / 4.
+**Post-purge (frontend):** served `js/collection.js` contains `without a figure`; served `js/ebay-modal.js` contains
+`Raw est.`; on a withheld report in the collection, the detail panel shows a dash, the Raw Value card shows "n without
+a figure", value-ascending sort puts it last, and Sell on eBay prefills "… Comic Book - Raw est. 3.5 …" with the fee
+line naming the report's figure or no figure.
+
 ## 2026-09-17 — 📋 **Four read-only items after the $9.99 unit: the 9.99 exposure count, the X-Men #1 raw-pool audit, and two logged units (listing path inherits the report's edition state; the three null renderers). Nothing built, nothing written to the database.**
 
 **MOST RECENT CHANGE (Rule 5): $9.99 unit shipped (`f12994d`), deployed, purged, verified by Mike. This entry logs
