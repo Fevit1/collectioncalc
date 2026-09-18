@@ -1,5 +1,54 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 🔧 **$9.99 FALLBACK RETIRED (ranked above the null renderers by Mike: a fabricated figure shown as data). Small unit, under an hour: four frontend sites + the two backend generators that did the same thing. Needs `deploy` AND `purge`. In the working tree, pending the verifier and Mike's two commits. "Hole" decision logged (stays out).**
+
+**MOST RECENT CHANGE (Rule 5): `js/ebay-modal.js`, `js/marketplace-modal.js`, `marketplace_prep.py`,
+`whatnot_description.py`; `git log -1` = `dafc5df`, nothing committed. Supersedes the "logged, not fixed" line for the
+$9.99 item in the label-test entry; the three null renderers ($0.00 / $null in `js/collection.js`) remain logged under
+item 10, ranked below this one.**
+
+**What was found on the way.** The backend generators fabricated the same figure: `marketplace_prep.py` and
+`whatnot_description.py` both did `fmv = float(price) if price else 9.99`, so even a frontend that sent nothing would
+have had "$9.99" written into the AI prompt ("FMV: $9.99") and into `suggested_buy_now`. Exercised with the API key
+removed from the subprocess (template path, no Anthropic call, $0): before — `price=None` → `suggested_buy_now` 9.99 and
+"9.99" in the notes; after — None/None and no "9.99" anywhere for None and 0, 12.5 passes through unchanged.
+
+**What changed.** Frontend: one helper `comicFmv(c)` (null for null/0) in each modal script; the eBay auction hint
+and the fixed-price suggestion say "FMV not available for this book" and leave the price field EMPTY for the seller
+(no prefill); the marketplace notes line says "FMV: not available"; the AI request carries `price: null`. Backend:
+`fmv` None when no positive price; `suggested_start`/`suggested_buy_now` None in that case (`_fallback_show_notes`
+already guarded on `fmv > 0`); the prompt line reads "FMV: not available -- do not state or imply a market price".
+Both .py files are CRLF; the patch preserved the endings.
+
+**Verification agent (read-only, four-file diff, re-read after the buy-now hunk): "do not ship as-is" on the first
+cut, and it was right.** Findings and what was done: (1) BLOCKER — `js/marketplace-modal.js` pre-populates the
+pricing card BEFORE the modal opens, and two of those lines still called `.toFixed` on the now-null figure
+(`$${fmv.toFixed(2)}`) or multiplied it (`null * 0.5` → "$0.00" for Heritage/ComicConnect, which then reached the
+clipboard via Copy All) — for a withheld book the modal would never have opened. FIXED: both lines print "not
+available" on null. (2) The eBay fixed-price field is no longer prefilled, and Save Draft / Publish had no client
+check, so an empty price would have reached the server as null and failed with a generic error. FIXED: a
+client guard ("Enter a price first — no market figure is available for this book"). Confirmed safe by the
+verifier: `price: null` survives `JSON.stringify` and `data.get('price', 0)` returns None (key present), the
+backend `float(price) > 0` gate handles it, `_fallback_show_notes` already guards, no endpoint requires price,
+the eBay description generator never formats the price, `comicFmv` is a hoisted declaration in both scripts,
+`??` is already the site's floor, both .py files stayed uniformly CRLF (git stores LF; the warning is
+autocrlf noise), 0 and null are the same state on the save path so "0 → not available" is correct.
+**Logged, not fixed:** `comicFmv` is defined identically in both modal scripts — on collection.html the later
+definition wins, so an edit to one copy alone would have no effect; `js/utils.js` is its natural single home
+(item 10 housekeeping). The backend `_fallback_show_notes` omits the FMV bullet entirely on null rather than
+writing "not available" — defensible, noted. The generators' docstrings still say "price: Fair market value in
+USD" without the nullable case. `modal-ebay-listing.html:586` keeps a `|| 9.99` but is an orphan page nothing
+loads (item 9).
+
+**Ship block (Mike):** two commits — code: `js/ebay-modal.js`, `js/marketplace-modal.js`, `marketplace_prep.py`,
+`whatnot_description.py`; records: `docs/sessions/ROADMAP.txt`, `docs/sessions/WHERE_WE_LEFT_OFF.md`.
+`git log origin/main..HEAD` first. Push → `deploy` (two backend files) → wait → **`purge` after the Pages build** (two
+frontend files). Post-deploy: after the purge the served `js/marketplace-modal.js` contains "not available"; then, on
+a saved report whose valuation was withheld (an ASM #1 without a year), open Sell on eBay → the price field is empty
+and the hint reads "FMV not available", and open a marketplace prep → the notes say "FMV: not available"; a report
+with a figure still prefills it. (No API call is needed for the check: the fallback content is what renders before
+generation.)
+
 ## 2026-09-17 — 🔧 **LABEL TESTS BUILT (Q1 accepted: Annual and Vol-parse rows, not the reprint): filing, condition and edition tests in SQL on all four valuation pools, plus a slab-in-raw test; collection card renders null as a dash. Backend + one frontend file → `deploy` AND `purge`. In the working tree, pending the verifier's report and Mike's two commits. Backfills queued under item 16 with counts.**
 
 **⚰️ SUPERSEDED: DEPLOYED AND VERIFIED (Mike, 2026-09-17 evening).** Live cell ASM #1 @ 4.5 `year=1963`: `graded_fmv`
@@ -46,8 +95,8 @@ graded_total 28 → 15; raw $260 on 35 → $4,620 on 4 rows.** ⚑ Mike's stated
 figure came from my exploratory classification, which also excluded "hole" ("Amazing Spider-Man #1 1963 Marvel
 Raw Low Grade Hole Key", $3,250). The built patterns follow the proposal list, which did not include "hole" — a
 copy with a hole is a complete low-grade copy, which is a legitimate raw comp — so the fourth row stays and the
-trimmed median of {1,871 · 3,250 · 5,990 · 20,000} is $4,620. Mike's call whether "hole" joins the condition
-list; one word, no other effect. Standing cells: Spider-Man #1 @ 9.4 unchanged ($62 / 34 exact; raw 878 → 873
+trimmed median of {1,871 · 3,250 · 5,990 · 20,000} is $4,620. **DECIDED (Mike, 2026-09-17): "hole" STAYS OUT — a copy with a hole is a low-grade comp, not a non-book.** The
+condition list is final as shipped. Standing cells: Spider-Man #1 @ 9.4 unchanged ($62 / 34 exact; raw 878 → 873
 rows); New Mutants #98 unchanged; ASM #300 @ 6.5 $347.50 unchanged, raw $380 → $382 on 366 → 359 rows (the
 filters took 7 raw and 3 graded rows: annual/Vol/condition words); X-Men #1 cells unchanged in state (1963: 33/34
 → 30/30 rows; 1991: raw $10.50 → $10.00); fmv ASM #300 mid 55 / raw 393 unchanged (fmv untouched). Spot checks:
