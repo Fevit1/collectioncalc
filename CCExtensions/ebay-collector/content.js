@@ -806,10 +806,21 @@ function scrapeListingSignals() {
   function parseComicTitle(title) {
     const result = { title: '', issue: '', publisher: '', condition: '', graded: false, grade: null };
 
-    const cgcMatch = title.match(/CGC\s+([\d.]+)/i);
-    const cbcsMatch = title.match(/CBCS\s+([\d.]+)/i);
-    if (cgcMatch) { result.graded = true; result.grade = parseFloat(cgcMatch[1]); result.condition = `CGC ${cgcMatch[1]}`; }
-    else if (cbcsMatch) { result.graded = true; result.grade = parseFloat(cbcsMatch[1]); result.condition = `CBCS ${cbcsMatch[1]}`; }
+    // A slab word + number is a grade ONLY when the number is one (0.5-10) and is
+    // not a COUNT: "X-Men #1 CGC 5 Slab Set CGC 9.4" is five slabs, one a 9.4 (it
+    // was stored as grade 5.0); "CGC 3 books", "CGC 7 Graded Comics", "CGC 2X
+    // SIGNED" are counts too. A rejected match is skipped, not fatal -- the next
+    // slab word may carry the grade. Same rule as title_normalizer.py (1.5.0, 2026-09-17).
+    const gradeRe = /\b(CGC|CBCS)\s+(\d+(?:\.\d)?)(?![\d.]|x\b)/gi;   // "CGC 2X" is a count; "CGC 9  X-MEN" is a grade
+    const countAfter = /^\s*(?:slabs?\s*(?:set|lot)\b|slabs\b|books\b|comics\b|copies\b|graded\s+(?:books|comics|copies)\b)/i;
+    let gm;
+    while ((gm = gradeRe.exec(title)) !== null) {
+      const value = parseFloat(gm[2]);
+      if (value < 0.5 || value > 10) continue;
+      if (countAfter.test(title.slice(gm.index + gm[0].length))) continue;
+      result.graded = true; result.grade = value; result.condition = `${gm[1].toUpperCase()} ${gm[2]}`;
+      break;
+    }
 
     const issueMatch = title.match(/#\s*(\d+)/);
     if (issueMatch) result.issue = issueMatch[1];

@@ -342,7 +342,16 @@ FILING_TITLE_PATTERN = r'#\s*[0-9]+\.[0-9]'
 # not a comp for a complete, unrestored copy; RESTORED/QUALIFIED are
 # different-priced slab labels on the graded side
 CONDITION_TITLE_PATTERN = (r'coverless|\yno cover\y|missing cover|cover missing|incomplete|not[- ]?complete|'
-                           r'\ypartial\y|page [0-9]+ only|\yng\y|\yrestored\y|\yqualified\y')
+                           r'\ypartial\y|page [0-9]+ only|\yng\y|\yrestored\y|\yqualified\y|'
+                           # single PAGES of a disassembled copy ("CGC PG 16" is a CGC-graded page, not a
+                           # book: 15 of X-Men #1's 24 filtered 1963 raw rows, $51-$598, priced the raw
+                           # median at $221) and a cover on its own (2026-09-17). Page numbers are bounded
+                           # to two digits so "WHITE PAGE 1972" on a slab label stays a comp.
+                           # THE RULE (Mike, 2026-09-17): this list is for what is NOT the book or NOT
+                           # comparable -- never a defect CGC would grade. "detached" was in for one
+                           # cut and came out: a detached-cover CGC 3.0 is a low-grade comp, like a hole.
+                           r'\ycgc\s*pg\y|\ypg\s*[0-9]{1,2}\y|\y(splash|interior|single|title)\s+page\y|'
+                           r'\ypage\s*[0-9]{1,2}\y|\ycover\s+only\y')
 # (verifier 2026-09-17: bare 'restored' matched "Unrestored", bare 'no cover' matched "Rhino cover")
 # a different printing under the same name (reprint/facsimile are filtered
 # by the existing LIKE clauses; these are the ones that do not say so)
@@ -362,6 +371,20 @@ EBAY_FILING_SQL = (
     " AND NOT (raw_title ~* '\\yannual\\y' AND canonical_title !~* 'annual')"
     " AND NOT (raw_title ~* '\\yvol(ume)?\\.?\\s*[0-9]+\\s+#?[0-9]{1,3}(?!\\.[0-9])\\y'"
     "          AND substring(raw_title from '(?i)\\yvol(?:ume)?\\.?\\s*[0-9]+\\s+#?([0-9]{1,3})(?!\\.[0-9])\\y') IS DISTINCT FROM issue_number)"
+)
+# A SLAB LOT that the lot shield below misses: a plural slab word, "slab set/lot",
+# or a slab word + a count + a plural noun. 53 graded rows in the window
+# (2026-09-17): 24 are "X-MEN #1 (ALL 5 COVERS) ALL CGC 9.8 NEW SLABS" at
+# $265-$495, filed as one 9.8 sale each with no title_year -- so they sat in
+# X-Men #1's un-narrowed graded pool and its withheld price curve, never in the
+# 1991-narrowed cell; three more moved Spider-Man #1 @ 9.8 by four cents.
+# "X-Men #1 CGC 5 Slab Set CGC 9.4" was stored as grade 5.0 because both
+# parsers read the count as the grade. The parsers are fixed
+# (title_normalizer.py, ebay-collector 1.5.0); this keeps the stored rows out.
+# Mirrored in tests/test_lot_detection.py (RE_SLABS; \y there is \b).
+EBAY_SLAB_LOT_SQL = (
+    " AND raw_title !~* '\\yslabs\\y|slabs?\\s*(set|lot)|"
+    "\\y(cgc|cbcs|pgx)\\s*[0-9]+\\s*(books|comics|copies|graded\\s+(books|comics|copies))\\y'"
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -772,7 +795,7 @@ def api_sales_valuation():
               -- (the printing test is guarded: a title that IS that series keeps its comps)
               AND raw_title !~* %s AND raw_title !~* %s
               AND NOT (raw_title ~* %s AND canonical_title !~* %s)
-              """ + EBAY_FILING_SQL + """
+              """ + EBAY_FILING_SQL + EBAY_SLAB_LOT_SQL + """
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
@@ -858,7 +881,7 @@ def api_sales_valuation():
               AND raw_title !~* %s AND raw_title !~* %s
               AND NOT (raw_title ~* %s AND canonical_title !~* %s)
               AND raw_title !~* %s
-              """ + EBAY_FILING_SQL + """
+              """ + EBAY_FILING_SQL + EBAY_SLAB_LOT_SQL + """
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
@@ -1611,9 +1634,10 @@ def api_sales_valuation():
             'raw_fmv': None if multi_edition else raw_fmv,
             'raw_sample_size': raw_count,
 
-            # Confidence interval (null when interpolated/estimated or < 5 exact matches)
-            'ci_95_low': ci_95_low,
-            'ci_95_high': ci_95_high,
+            # Confidence interval (null when interpolated/estimated or < 5 exact matches;
+            # and null when withheld -- it would describe the un-narrowed pool)
+            'ci_95_low': None if multi_edition else ci_95_low,
+            'ci_95_high': None if multi_edition else ci_95_high,
 
             # ROI
             'grading_cost': grading_cost,
@@ -1652,8 +1676,12 @@ def api_sales_valuation():
             # would describe the un-narrowed pool the caller is not being shown.
             'confidence': None if multi_edition else confidence,
 
-            # Grade price curve for charts
-            'price_curve': price_curve,
+            # Grade price curve for charts. EMPTY when the figures are withheld
+            # (2026-09-17): with no year the pool cannot be narrowed, and the
+            # un-narrowed curve is two comics interleaved -- the "5.0 at $142.50"
+            # a reader took for a cheap 1963 X-Men #1 was a five-slab set. When
+            # the pool WAS narrowed the curve is built from the narrowed pool.
+            'price_curve': [] if multi_edition else price_curve,
 
             # Data sources
             'sources': {

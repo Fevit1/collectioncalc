@@ -43,6 +43,12 @@ RE_RANGE = re.compile(r"#\s*\d{1,4}\s*[-–]\s*\d{2,4}")
 #    variant", "CGC 9.8 + Signed", and "9.8 NM+/M" from tripping it.
 #    -> raw_title ~* "[a-z]\s*#?\d{1,4}\s*[+&]\s*[a-z][a-z0-9 .'\-]*?\d{1,4}"
 RE_COMBO = re.compile(r"[a-z]\s*#?\d{1,4}\s*[+&]\s*[a-z][a-z0-9 .'\-]*?\d{1,4}", re.IGNORECASE)
+# 5) SLAB LOT (2026-09-17): a plural slab word, "slab set/lot", or a slab word +
+#    count + plural noun. "X-MEN #1 (ALL 5 COVERS) ALL CGC 9.8 NEW SLABS" was
+#    filed as one 9.8 sale (24 rows, $265-$495). Mirrors EBAY_SLAB_LOT_SQL in routes/sales_valuation.py:
+#    -> raw_title !~* '\yslabs\y|slabs?\s*(set|lot)|\y(cgc|cbcs|pgx)\s*[0-9]+\s*(books|comics|copies|graded\s+(books|comics|copies))\y'
+#    (Postgres \y is Python \b; otherwise byte-identical.)
+RE_SLABS = re.compile(r"\bslabs\b|slabs?\s*(set|lot)|\b(cgc|cbcs|pgx)\s*[0-9]+\s*(books|comics|copies|graded\s+(books|comics|copies))\b", re.IGNORECASE)
 
 
 def lot_shield_signal(raw_title):
@@ -63,6 +69,9 @@ def lot_shield_signal(raw_title):
     m = RE_COMBO.search(raw_title)
     if m:
         return ("combo", m.group(0))
+    m = RE_SLABS.search(raw_title)
+    if m:
+        return ("slab_lot", m.group(0))
     return None
 
 
@@ -77,6 +86,13 @@ POSITIVES = [
     "INCREDIBLE HULK #181 CGC 5.5 - 1ST APPEARANCE OF WOLVERINE -plus 9 Extra Books",
     "X-Men #1-35 (Complete) Marvel 1991 Series Lot, 1 2 3 4 5 6 7 8 9 10 11",
     "X-Men (1991) #1-100 Set Lot Full Run All 5 #1 Covers, 95, 96, 97, 98",
+    # slab lots (2026-09-17): real titles from the X-Men #1 9.8 bucket and the count-as-grade rows
+    "X-MEN #1 (ALL 5 COVERS) ALL CGC 9.8 NEW SLABS - All Matching Custom Labels",
+    "X-Men #1 CGC 5 Slab Set CGC 9.4",
+    "Colin 10 Slabs Cgc 9.8s",
+    "Marvel Comics 2-Slab Lot: Venom: Lethal Protector #1, #2 (1993) CGC 9.8 (Key)",
+    "Spider Man #1, 1990 CGC  3 books.  8.5 gold cvr, 9.8 silver cvr  and 9.4 reg cvr",
+    "Absolute Batman #20 CGC 9.8 & Other Batman CGC 7 Graded Comics",
 ]
 
 NEGATIVES = [
@@ -89,6 +105,11 @@ NEGATIVES = [
     "Amazing Spider-Man #129 (1974) CGC 8.5 - 1st app Punisher (Frank Castle)",
     "X-Men #1 (2024) Alex Ross Storm Variant CGC 9.8 NM+/M SDCC",   # NM+ must not trip combo
     "Incredible Hulk #181 - 1st Full App Wolverine / Wendigo App (CGC 4.5) 1974",
+    # one slab, singular (2026-09-17): must not trip the slab-lot pattern
+    "CBCS 9.4 slab Hulk #181",
+    "Hulk 181 CGC 5 Slab",
+    "Amazing Spider-Man #1 CGC 6.5 1963 slabbed",
+    "Spawn #1 CGC 9.8 candidate",
 ]
 
 

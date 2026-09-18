@@ -86,12 +86,29 @@ def normalize_title(raw_title):
     grading_company = None
     is_signed = False
 
-    # CGC/CBCS/PGX with optional SS and grade
+    # CGC/CBCS/PGX with optional SS and grade. The number is a grade ONLY when it
+    # is one (0.5-10) and is not a COUNT: "X-Men #1 CGC 5 Slab Set CGC 9.4" is
+    # five slabs, one of them a 9.4 (stored as grade 5.0 until 2026-09-17);
+    # "CGC 3 books", "CGC 7 Graded Comics" are counts too. A rejected match is
+    # skipped, not fatal: the next slab word in the title may carry the grade.
     grade_pattern = re.compile(
-        r'\b(CGC|CBCS|PGX)\s*(SS)?\s*(\d+\.?\d?)\b',
+        r'\b(CGC|CBCS|PGX)\s*(SS)?\s*(\d+(?:\.\d)?)(?![\d.]|x\b)',
         re.IGNORECASE
     )
-    grade_match = grade_pattern.search(working)
+    count_after = re.compile(
+        r'^\s*(?:slabs?\s*(?:set|lot)\b|slabs\b|books\b|comics\b|copies\b|'
+        r'graded\s+(?:books|comics|copies)\b)',
+        re.IGNORECASE
+    )
+    grade_match = None
+    for m in grade_pattern.finditer(working):
+        value = float(m.group(3))
+        if value < 0.5 or value > 10:
+            continue
+        if count_after.match(working[m.end():]):
+            continue
+        grade_match = m
+        break
     if grade_match:
         grading_company = grade_match.group(1).upper()
         if grade_match.group(2):
@@ -187,10 +204,16 @@ def normalize_title(raw_title):
 
     # ── Step 3: Detect lot/bundle ─────────────────────────────────
     is_lot = False
+    # 2026-09-17: a plural slab word is more than one book ("ALL CGC 9.8 NEW
+    # SLABS", "Slab Set", "2-Slab Lot"), as is a slab word + count + plural noun.
+    # Same shapes as EBAY_SLAB_LOT_SQL in routes/sales_valuation.py, which keeps
+    # the rows captured before this parse out of the comp pools.
     lot_pattern = re.compile(
         r'\b(lot\s+of\s+\d+|bundle\s+of\s+\d+|set\s+of\s+\d+|'
         r'\d+\s+comic\s+lot|comic\s+lot|book\s+lot|'
-        r'multilist|sold\s+separately)\b',
+        r'multilist|sold\s+separately|'
+        r'slabs?\s*(set|lot)|slabs|'
+        r'(cgc|cbcs|pgx)\s*[0-9]+\s*(books|comics|copies|graded\s+(books|comics|copies)))\b',
         re.IGNORECASE
     )
     lot_match = lot_pattern.search(working)
