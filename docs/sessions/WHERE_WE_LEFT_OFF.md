@@ -2,7 +2,14 @@
 
 ## 2026-09-17 — 🔧 **LABEL TESTS BUILT (Q1 accepted: Annual and Vol-parse rows, not the reprint): filing, condition and edition tests in SQL on all four valuation pools, plus a slab-in-raw test; collection card renders null as a dash. Backend + one frontend file → `deploy` AND `purge`. In the working tree, pending the verifier's report and Mike's two commits. Backfills queued under item 16 with counts.**
 
-**MOST RECENT CHANGE (Rule 5): `routes/sales_valuation.py` (+~50) and `js/collection.js` (one template literal);
+**⚰️ SUPERSEDED: DEPLOYED AND VERIFIED (Mike, 2026-09-17 evening).** Live cell ASM #1 @ 4.5 `year=1963`: `graded_fmv`
+9587.5, `graded_sample_size` 3, `graded_total_sales` 15, `raw_fmv` 4620.0, `raw_sample_size` 4, confidence medium,
+basis supported, ROI +$4,583.50 — identical to the local run. Two readings of the live payload: `edition_used`
+now says **1963–1963** (with the Annual #1 rows filtered, no 1964–1971 row survives in the cluster; the earlier
+"1963–1971" span was the contamination itself), and the pool ratio is **111.1×** (was 45.2×) because the raw
+pool lost its Annual and coverless rows. `sources.whatnot` 0, `sources.total` 19 = 15 graded + 4 raw.
+
+**MOST RECENT CHANGE at write time (Rule 5): `routes/sales_valuation.py` (+~50) and `js/collection.js` (one template literal);
 `git log -1` = `fdf70a1`, so nothing here is committed, deployed or purged. Verified locally on the read-only
 database, twelve cells plus two spot checks. Supersedes the "proposed, not built" line of the Q1 entry.**
 
