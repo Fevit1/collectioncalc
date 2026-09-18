@@ -1,8 +1,55 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 📋 **Four read-only items after the $9.99 unit: the 9.99 exposure count, the X-Men #1 raw-pool audit, and two logged units (listing path inherits the report's edition state; the three null renderers). Nothing built, nothing written to the database.**
+
+**MOST RECENT CHANGE (Rule 5): $9.99 unit shipped (`f12994d`), deployed, purged, verified by Mike. This entry logs
+findings and two queue items (ROADMAP 20, 21). Supersedes nothing.**
+
+**1. The 9.99 count: not storable, so not countable — the exposure is four published listings.** No table holds a
+generated description or prep note (no listing/draft table exists; `ebay_listing.py` has no INSERT; drafts and
+listings go straight to eBay's API). `request_logs` records the calls but `request_data` is null for all of
+them, so "9.99 where the FMV was null at generation" cannot be reconstructed. What the log does say, all time:
+`/api/ebay/generate-description` 43 POSTs by 3 users (02-11 → 09-18); **`/api/ebay/list` 4 successful POSTs by 2
+users (03-04 → 06-16)** — the listings that actually reached eBay — plus 2 failed; `/api/marketplace/generate-content`
+7 by 1 user; `/api/whatnot/generate-content` 11 by 2 users. All predate the multi-edition withholding (09-17), when
+the old valuation produced a number for every book (the fabricated tier), so a null FMV at generation time was
+rare-to-impossible then; the 9.99 path was reachable only for a report saved with no value at all. **The four
+published listings are the whole exposure and are checkable only on the two sellers' eBay accounts.**
+
+**2. X-Men #1, year 1963: the raw pool after the label filters is SINGLE PAGES.** 24 raw rows survive the filters;
+**17 are one page of a disassembled copy** — "X-Men #1 Origin & 1st App … 1963 CGC PG 16" ($51–$237, CGC-graded
+page N), "X-Men 1 1963 page, Magneto first appearance", "Splash Page … CGC PG 1" ($598); the other 7 are real
+copies ($2,100 "cover detached" → $16,813). So the $221 raw median is the price of a page. **A shape the filters
+miss, not a year mis-parse:** every row is genuinely 1963. Corpus-wide in the window: 84 "CGC PG" rows, 562 "page"
+(singular) rows, 8 "splash page" rows. The cheap 1963-side GRADED rows Mike saw in the earlier curl (5.0 at
+$142.50, 4.0 at $80) are "X-Men #1 CGC 5 Slab Set CGC 9.4" — a SET of five 1991 slabs, the "5" parsed as the
+grade, `title_year` null — visible only in the un-narrowed price curve the withheld state still returns; the $44
+at 1.0 was not found in a ±10% band. Proposed, not built: (a) CONDITION gains the page shapes
+(`\ycgc\s*pg\y`, `\ypg\s*[0-9]+\y`, `\y(splash|interior|single|title)\s+page\y`, `\ypage\s*[0-9]+\y`) and
+"detached"; (b) the collector's grade parse must not read "CGC N Slab Set" / "N slab lot" as a grade (item 16);
+(c) the withheld response should return the narrowed-or-empty price curve, not the un-narrowed one (item 17
+follow-on). Expected effect on X-Men #1 @ 9.0 / 1963: raw pool 24 → 7 rows, median from $221 to the low
+thousands, `raw_sample_size` 7.
+
+**3. Logged, not scoped — ROADMAP item 20: the listing path inherits the report's edition state and grade
+provenance.** Three symptoms from one cause, the listing generators trusting inputs the valuation no longer
+trusts: the eBay title prints a bare "3.5" on a public listing with no "estimated" qualifier; the description
+asserts the 1963 book (Silver Age, first appearance) on a report whose valuation was withheld for lack of a
+year; the price-field copy says grading fees ~$20–$40 where the report priced them at $384. One follow-on unit:
+the listing payload carries `edition_span`/`edition_used`/`verdict_basis`/grade provenance and `grading_cost`, and
+the generators qualify or refuse accordingly.
+
+**4. Logged — ROADMAP item 21 (next small frontend unit after the capture schedule):** the collection rows behind
+the eBay modal show "$0.00" for withheld figures — the three null renderers (`js/collection.js:552` detail panel,
+`:750` alert, totals/sorts at `:133`, `:240–274`), now visible on every withheld report.
+
 ## 2026-09-17 — 🔧 **$9.99 FALLBACK RETIRED (ranked above the null renderers by Mike: a fabricated figure shown as data). Small unit, under an hour: four frontend sites + the two backend generators that did the same thing. Needs `deploy` AND `purge`. In the working tree, pending the verifier and Mike's two commits. "Hole" decision logged (stays out).**
 
-**MOST RECENT CHANGE (Rule 5): `js/ebay-modal.js`, `js/marketplace-modal.js`, `marketplace_prep.py`,
+**⚰️ SUPERSEDED: DEPLOYED AND PURGED, all checks passed (Mike, 2026-09-17 evening):** served file carries the new
+strings; a withheld X-Men #1 report gives an empty eBay price with the hint and "FMV: not available" in marketplace
+prep; ASM #1 still prefills.
+
+**MOST RECENT CHANGE at write time (Rule 5): `js/ebay-modal.js`, `js/marketplace-modal.js`, `marketplace_prep.py`,
 `whatnot_description.py`; `git log -1` = `dafc5df`, nothing committed. Supersedes the "logged, not fixed" line for the
 $9.99 item in the label-test entry; the three null renderers ($0.00 / $null in `js/collection.js`) remain logged under
 item 10, ranked below this one.**
