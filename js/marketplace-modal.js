@@ -128,10 +128,11 @@ async function openMarketplacePrepModal(comicId, platformKey) {
     copyBtn.style.background = `linear-gradient(135deg, ${platform.color}, ${adjustColor(platform.color, -20)})`;
 
     // Pre-populate with fallback content immediately (never leave fields empty)
-    const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
+    const fmv = comicFmv(mpComic);
+    const fmvLine = fmv == null ? 'not available' : `$${fmv.toFixed(2)}`;
     const fallbackTitle = `${mpComic.title} #${mpComic.issue || '?'} ${mpComic.grade || ''}`.trim();
     const fallbackDesc = `${mpComic.title} #${mpComic.issue || '?'} (${mpComic.publisher || 'Unknown'}, ${mpComic.year || '?'}) — Grade: ${mpComic.grade || 'N/A'}. A great pickup for any collection!`;
-    let fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: $${fmv.toFixed(2)}`;
+    let fallbackNotes = `• ${mpComic.title} #${mpComic.issue || '?'}\n• ${mpComic.publisher || ''} ${mpComic.year || ''}\n• Graded ${mpComic.grade || 'N/A'} by Slab Worthy AI\n• FMV: ${fmvLine}`;
     if (mpComic.registry_serial) {
         fallbackNotes += `\n• Slab Guard Verified: ${mpComic.registry_serial}`;
         fallbackNotes += `\n  Verify: https://slabworthy.com/verify.html?serial=${mpComic.registry_serial}`;
@@ -153,10 +154,12 @@ async function openMarketplacePrepModal(comicId, platformKey) {
         mpSetField('mpShowNotes', fallbackNotes);
     }
 
+    // 2026-09-17: fmv is null for a withheld valuation — never a number here
+    // (null * 0.5 is 0 and null.toFixed throws before the modal opens)
     const preStartEl = document.getElementById('mpStartPrice');
-    if (preStartEl) preStartEl.textContent = platformKey === 'whatnot' ? '$0.99' : `$${(fmv * 0.5).toFixed(2)}`;
+    if (preStartEl) preStartEl.textContent = platformKey === 'whatnot' ? '$0.99' : (fmv == null ? 'not available' : `$${(fmv * 0.5).toFixed(2)}`);
     const preBuyEl = document.getElementById('mpBuyNow');
-    if (preBuyEl) preBuyEl.textContent = `$${fmv.toFixed(2)}`;
+    if (preBuyEl) preBuyEl.textContent = fmv == null ? 'not available' : `$${fmv.toFixed(2)}`;
 
     // Show modal
     document.getElementById('mpModalOverlay').classList.add('active');
@@ -202,7 +205,7 @@ async function generateMarketplaceContent(platformKey) {
     console.log(`[MP] Generating content for ${platformKey}...`);
 
     try {
-        const fmv = mpComic.is_slabbed ? (mpComic.slabbed_value || mpComic.raw_value || 9.99) : (mpComic.raw_value || 9.99);
+        const fmv = comicFmv(mpComic);   // null when withheld: the request carries null, not 9.99
 
         // Use dedicated Whatnot endpoint for better content; generic marketplace for others
         const endpoint = platformKey === 'whatnot'
@@ -268,7 +271,9 @@ async function generateMarketplaceContent(platformKey) {
             }
             const buyEl = document.getElementById('mpBuyNow');
             if (buyEl) {
-                buyEl.textContent = `$${(data.suggested_buy_now || fmv).toFixed(2)}`;
+                // 2026-09-17: both can be null now (withheld valuation); say so, never $0 or a crash
+                const buy = data.suggested_buy_now ?? fmv;
+                buyEl.textContent = buy == null ? 'not available' : `$${Number(buy).toFixed(2)}`;
             }
 
             const sourceLabel = data.source === 'ai' ? '✓ AI content generated' : '✓ Content ready (template)';
@@ -403,4 +408,14 @@ async function downloadAllMpPhotos() {
 
     btn.textContent = '✓ Downloaded!';
     setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+}
+
+// 2026-09-17: the figure a listing is priced from. null or 0 means the valuation
+// was WITHHELD (a multi-edition title without a year) or never computed; it used
+// to fall through to a hard-coded 9.99, a fabricated price shown as data. Never
+// invent a number here: return null and let the caller say "not available".
+function comicFmv(c) {
+    if (!c) return null;
+    const v = c.is_slabbed ? (c.slabbed_value ?? c.raw_value) : c.raw_value;
+    return (v == null || !(Number(v) > 0)) ? null : Number(v);
 }

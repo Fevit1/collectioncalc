@@ -27,9 +27,12 @@ def generate_whatnot_content(title, issue, grade, price,
         'suggested_start', 'suggested_buy_now'
     """
     # Pricing suggestions
-    fmv = float(price) if price else 9.99
+    # 2026-09-17: no figure means the valuation was WITHHELD (multi-edition title
+    # without a year) or never computed. It used to become 9.99 here -- a fabricated
+    # price that then reached the listing form and the AI prompt as data.
+    fmv = float(price) if price and float(price) > 0 else None
     suggested_start = 0.99  # Whatnot convention: low starts drive engagement
-    suggested_buy_now = round(fmv, 2)
+    suggested_buy_now = round(fmv, 2) if fmv else None
 
     # Build listing title (Whatnot titles are shorter, punchier)
     grade_str = str(grade).strip() if grade else ''
@@ -66,7 +69,7 @@ def generate_whatnot_content(title, issue, grade, price,
 
 Comic: {comic_info}
 Grade: {grade_str or 'Unknown'}
-FMV: ${fmv:.2f}
+FMV: {('$%.2f' % fmv) if fmv else 'not available -- do not state or imply a market price'}
 
 PIECE 1 — LISTING DESCRIPTION (100-150 characters):
 This appears on the listing card in the Whatnot app before the live show starts. Keep it short and punchy.

@@ -22,12 +22,14 @@ function setListingFormat(format) {
     document.getElementById('auctionFields').style.display = format === 'AUCTION' ? 'block' : 'none';
     // Pre-fill auction start price from FMV if switching to auction
     if (format === 'AUCTION' && currentComic) {
-        const fmv = currentComic.is_slabbed ? (currentComic.slabbed_value || currentComic.raw_value || 9.99) : (currentComic.raw_value || 9.99);
+        const fmv = comicFmv(currentComic);
         const startPrice = document.getElementById('auctionStartPrice');
         if (!startPrice.value) {
             startPrice.value = '0.99'; // Low start to drive bidding
         }
-        document.getElementById('auctionFmvHint').textContent = `FMV: $${fmv.toFixed(2)}`;
+        document.getElementById('auctionFmvHint').textContent = fmv == null
+            ? 'FMV not available for this book \u2014 set the reserve yourself'
+            : `FMV: $${fmv.toFixed(2)}`;
     }
 }
 
@@ -154,9 +156,15 @@ function populateListingForm() {
     updateCharCounter('title');
 
     // Price - suggest FMV or slightly below
-    const suggestedPrice = currentComic.is_slabbed ? (currentComic.slabbed_value || currentComic.raw_value || 9.99) : (currentComic.raw_value || 9.99);
-    document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
-    document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
+    const suggestedPrice = comicFmv(currentComic);
+    if (suggestedPrice == null) {
+        // no figure: leave the price for the seller, and say why
+        document.getElementById('listingPrice').value = '';
+        document.getElementById('priceSuggestion').textContent = 'FMV not available for this book \u2014 enter your price';
+    } else {
+        document.getElementById('listingPrice').value = suggestedPrice.toFixed(2);
+        document.getElementById('priceSuggestion').textContent = `FMV: $${suggestedPrice.toFixed(2)}`;
+    }
 
     // Grading ID
     const gradingId = currentComic.grading_id || 'SW-' + currentComic.id;
@@ -378,6 +386,19 @@ async function createListing(publish) {
             listing_format: currentListingFormat
         };
 
+        // 2026-09-17: the fixed price is no longer prefilled when the valuation was
+        // withheld; an empty field must stop here, not reach the server as null.
+        if (!isAuction) {
+            const fixedPrice = parseFloat(document.getElementById('listingPrice').value);
+            if (!(fixedPrice > 0)) {
+                alert('Enter a price first — no market figure is available for this book.');
+                publishBtn.disabled = !window.ebayConnected;
+                draftBtn.disabled = false;
+                publishBtn.textContent = '🚀 Publish Now';
+                return;
+            }
+        }
+
         // Add auction-specific fields with validation
         if (isAuction) {
             const startPrice = parseFloat(document.getElementById('auctionStartPrice').value || '0.99');
@@ -450,4 +471,14 @@ async function createListing(publish) {
         draftBtn.disabled = false;
         publishBtn.textContent = '🚀 Publish Now';
     }
+}
+
+// 2026-09-17: the figure a listing is priced from. null or 0 means the valuation
+// was WITHHELD (a multi-edition title without a year) or never computed; it used
+// to fall through to a hard-coded 9.99, a fabricated price shown as data. Never
+// invent a number here: return null and let the caller say "not available".
+function comicFmv(c) {
+    if (!c) return null;
+    const v = c.is_slabbed ? (c.slabbed_value ?? c.raw_value) : c.raw_value;
+    return (v == null || !(Number(v) > 0)) ? null : Number(v);
 }

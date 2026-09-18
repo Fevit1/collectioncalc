@@ -155,7 +155,10 @@ def generate_platform_content(platform_key, title, issue, grade, price,
     if not platform:
         return {'success': False, 'error': f'Unknown platform: {platform_key}'}
 
-    fmv = float(price) if price else 9.99
+    # 2026-09-17: no figure means the valuation was WITHHELD (multi-edition title
+    # without a year) or never computed. It used to become 9.99 here -- a fabricated
+    # price that then reached the listing form and the AI prompt as data.
+    fmv = float(price) if price and float(price) > 0 else None
     grade_str = str(grade).strip() if grade else ''
 
     # Build listing title
@@ -168,11 +171,11 @@ def generate_platform_content(platform_key, title, issue, grade, price,
     if platform['suggested_start'] is not None:
         suggested_start = platform['suggested_start']
     elif platform['type'] in ('consignment_auction', 'consignment'):
-        suggested_start = round(fmv * 0.8, 2)  # 80% of FMV as estimate
+        suggested_start = round(fmv * 0.8, 2) if fmv else None  # 80% of FMV as estimate
     else:
         suggested_start = None
 
-    suggested_buy_now = round(fmv, 2)
+    suggested_buy_now = round(fmv, 2) if fmv else None
 
     # Try AI generation
     api_key = os.environ.get('ANTHROPIC_API_KEY')
@@ -211,7 +214,7 @@ SHOW_NOTES:
 
 Comic: {comic_info}
 Grade: {grade_str or 'Unknown'}
-FMV: ${fmv:.2f}
+FMV: {('$%.2f' % fmv) if fmv else 'not available -- do not state or imply a market price'}
 Platform type: {platform['type']}
 
 PIECE 1 — LISTING DESCRIPTION (target {platform['desc_target']}):
