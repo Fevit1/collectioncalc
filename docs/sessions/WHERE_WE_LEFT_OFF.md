@@ -1,8 +1,84 @@
 # Where We Left Off - Sep 17, 2026
 
+## 2026-09-17 — 🔧 **LABEL TESTS BUILT (Q1 accepted: Annual and Vol-parse rows, not the reprint): filing, condition and edition tests in SQL on all four valuation pools, plus a slab-in-raw test; collection card renders null as a dash. Backend + one frontend file → `deploy` AND `purge`. In the working tree, pending the verifier's report and Mike's two commits. Backfills queued under item 16 with counts.**
+
+**MOST RECENT CHANGE (Rule 5): `routes/sales_valuation.py` (+~50) and `js/collection.js` (one template literal);
+`git log -1` = `fdf70a1`, so nothing here is committed, deployed or purged. Verified locally on the read-only
+database, twelve cells plus two spot checks. Supersedes the "proposed, not built" line of the Q1 entry.**
+
+**The two corpus-wide counts Mike asked for, and the shape decision.**
+1. **Slab word in the title with `graded = false`: 5,150 rows** (5,149 in the window), top titles Absolute Batman
+   832, Amazing Spider-Man 435, Batman 173, X-Men 152, Spider-Man 134. **But only 165 carry a grade number after
+   the slab word** (9.8 ×30, 9.4 ×21, 9.2 ×12 …) and 130 are negations ("not CGC", "raw"): the rest is "CGC
+   candidate" language on raw listings. So a blanket slab-word exclusion would have thrown 5,000 real raw comps
+   out of the raw pool; the filter is the 165 shape — slab word FOLLOWED by a grade — on the raw pool only.
+   Backfill queued: set `graded = true` and parse the grade on those 165 (item 16).
+2. **"Vol N M" with M ≠ issue_number: 996 rows** (995 in the window, 53 graded), top titles Silver Surfer 44,
+   Amazing Spider-Man 37, X-Men 37, Daredevil 32. The looser count (any second number) was 8,931 because
+   "Vol 1 1963" reads the year as the issue, and "#3 VOL. 1 8.5" reads the grade — the filter takes a 1–3-digit
+   second number not followed by a decimal digit. The plain "Vol N = issue" count was 7,502, mostly correct
+   #1s ("Ultimate Spider-Man Vol 1 #1"), so it was not the wrong-issue set. **"Annual" under a non-annual title:
+   3,056 rows (297 graded)** — the third mechanism from the same book.
+**Decision: filters now, backfills queued.** The counts are large enough that the filing errors matter corpus-wide
+(996 + 3,056 + 165 rows), but the filters remove all of them from every valuation at query time today; the
+backfills — re-parse `issue_number` for the Vol rows, re-file Annuals under "<Title> Annual", flag the 165 slabs
+graded — are the collector-parse fix's data half and belong with it (item 16), not in this deploy.
+
+**What changed.** Module constants (Postgres regex, `!~*`): `FILING_TITLE_PATTERN` (#N.N point issues),
+`CONDITION_TITLE_PATTERN` (coverless / no cover / missing cover / cover missing / incomplete / not complete /
+partial / page N only / NG / restored / qualified), `EDITION_TITLE_PATTERN` (golden record, marvel milestone, true
+believers, 2nd/second print, treasury, marvel tales, omnibus), `SLAB_IN_RAW_PATTERN` (slab word + grade, raw pool
+only), and `EBAY_FILING_SQL` (the Annual-under-plain-title and Vol-N-M clauses, which reference columns so they
+are inlined, ebay queries only). q1/q2 take the three patterns as params (q2 also the slab test) plus the two
+inlined clauses; q3/q4 (market_sales, where `raw_title` is the seller's lot label) take condition and edition on
+`COALESCE(raw_title, '')`. `js/collection.js`: a null value renders "—" instead of "$0.00" (the multi-edition
+saves land there). No fmv-endpoint change.
+
+**Cells (local, RO database):** ASM #1 @ 4.5, year 1963 → **4.5 exact comps 4 → 3, median $9,587.50 unchanged;
+graded_total 28 → 15; raw $260 on 35 → $4,620 on 4 rows.** ⚑ Mike's stated target was "$5,990 on 3 rows": that
+figure came from my exploratory classification, which also excluded "hole" ("Amazing Spider-Man #1 1963 Marvel
+Raw Low Grade Hole Key", $3,250). The built patterns follow the proposal list, which did not include "hole" — a
+copy with a hole is a complete low-grade copy, which is a legitimate raw comp — so the fourth row stays and the
+trimmed median of {1,871 · 3,250 · 5,990 · 20,000} is $4,620. Mike's call whether "hole" joins the condition
+list; one word, no other effect. Standing cells: Spider-Man #1 @ 9.4 unchanged ($62 / 34 exact; raw 878 → 873
+rows); New Mutants #98 unchanged; ASM #300 @ 6.5 $347.50 unchanged, raw $380 → $382 on 366 → 359 rows (the
+filters took 7 raw and 3 graded rows: annual/Vol/condition words); X-Men #1 cells unchanged in state (1963: 33/34
+→ 30/30 rows; 1991: raw $10.50 → $10.00); fmv ASM #300 mid 55 / raw 393 unchanged (fmv untouched). Spot checks:
+Silver Surfer #4 (44 Vol-parse rows corpus-wide) prices normally, 59 graded / 90 raw; Moon Knight #2 raw_only.
+Guardians of the Galaxy #3 returns fabricated — that is the broken-name filing ("Guardians the Galaxy", six
+canonical spellings), pre-existing, not the filter.
+
+**Verification agent (read-only, two-file diff):** every placeholder in the four queries aligned with its params
+list, counted in textual order; the inlined Annual/Vol clauses render with the right backslashes, the `(?!…)`
+lookahead is valid ARE, `IS DISTINCT FROM` on a text column is fine; the Annual guard keeps a title that is itself
+an Annual; `EBAY_FILING_SQL` touches ebay queries only; `??` in collection.js is already the site's floor
+(admin.html uses it). **Four pattern findings, all fixed and then PROVED ON THE SERVER with read-only SELECTs
+against 39 title shapes (0 mismatches):** (1) bare `restored` matched "Unrestored" → `\yrestored\y`, same for
+`qualified`; (2) bare `no cover` matched "1st Rhino cover" / "Domino cover" → `\yno cover\y`; (3) the edition
+words had no canonical guard, so "Marvel Tales #1" or "Marvel Treasury Edition #28" would have lost every comp
+→ the edition test is now `NOT (raw_title ~* P AND canonical_title !~* P)` on all four pools (pattern passed
+twice); (4) the slab-in-raw test excluded "CGC 9.8 candidate" / "CGC 9.8 ready" raws → look-around for
+candidate/ready/worthy/potential/contender/material, plus `(?![.0-9])` after the grade so the engine cannot
+backtrack to "CGC 9" and pass the word test against ".8" (the first fix alone still matched — caught by the
+server proof). Known false negatives, accepted: "CGC-9.8", "CGC SS 9.8", "Volume 1, #98", "Vol 1 No. 98".
+Three stale placeholder-order comments rewritten. **Logged, not fixed (other renderers that print a number for a
+null figure):** `js/collection.js:552` detail modal ("$0.00"), `:750` alert ("$null"), totals/sorts treat null as 0
+(`:133`, `:240–274`); `js/ebay-modal.js:25,157` and `js/marketplace-modal.js:131,205` fall back to 9.99 — a
+fabricated suggested price from a withheld figure — ROADMAP item 10.
+
+**Ship block (Mike):** two commits — code: `routes/sales_valuation.py`, `js/collection.js`; records:
+`docs/sessions/ROADMAP.txt`, `docs/sessions/WHERE_WE_LEFT_OFF.md`. `git log origin/main..HEAD` first. Push →
+`deploy` → wait → **`purge` after the Pages build** (collection.js moved). Post-deploy: ASM #1 @ 4.5 `year=1963`
+→ `graded_sample_size` 3, `graded_total_sales` 15, `raw_sample_size` 4, `raw_fmv` ≈ 4,620, `graded_fmv` 9587.5;
+ASM #300 @ 6.5 → `graded_fmv` 347.5, `raw_sample_size` ≈ 359; the standing cells as before; after the purge the
+served `js/collection.js` contains "withheld figure is saved as null".
+
 ## 2026-09-17 — 🔎 **Two open questions on the multi-edition unit answered + the refund count. One small backend change (the multi-edition verdict sentence) in the working tree → needs a `deploy`; the edition-label test is PROPOSED with measured numbers, not built.**
 
-**MOST RECENT CHANGE (Rule 5): multi-edition unit deployed and verified (`cd22ba2`), purge pending the Pages build at
+**⚰️ SUPERSEDED: the verdict sentence is DEPLOYED (Mike, 2026-09-17 evening). Q3 CLOSED by Mike: no make-good, since no
+refund was owed. Q1 ACCEPTED as the Annual and Vol-parse rows, not the reprint → the label-test unit follows (next entry).**
+
+**MOST RECENT CHANGE at write time (Rule 5): multi-edition unit deployed and verified (`cd22ba2`), purge pending the Pages build at
 the flip. This entry adds one line to `routes/sales_valuation.py` (verdict sentence), pending Mike's commit + deploy.
 Supersedes nothing.**
 
