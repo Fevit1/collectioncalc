@@ -454,7 +454,12 @@ function createComicCard(comic) {
                     ${comic.grade} ${comic.grade_label || ''}
                     ${defectsTooltip}
                 </div>
-                <div class="value-amount">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <div class="value-amount">${(() => {
+                    // 2026-09-17: a withheld figure is saved as null (multi-edition
+                    // titles without a year); render a dash, not $0.00.
+                    const v = comic.is_slabbed ? (comic.slabbed_value ?? comic.raw_value) : comic.raw_value;
+                    return v == null ? '\u2014' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                })()}</div>
                 <!-- Verdict sits immediately after the value it qualifies. The
                      user's own valuation must NOT come between our number and
                      our hedge about it. Empty cell for legacy rows keeps the

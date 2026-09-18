@@ -323,6 +323,47 @@ MIN_EDITION_CLUSTER_COMPS = 3
 # grade, because it has to be decided BEFORE the pools are narrowed and priced.
 EDITION_GRADED_RAW_RATIO = 20.0
 
+# ---------------------------------------------------------------------------
+# LABEL TESTS (2026-09-17). The year rule separates editions that are years
+# apart; it cannot separate rows that carry the right year and the wrong BOOK.
+# ASM #1's 1963-1971 cluster held Annual #1 (1964) filed as #1, "Vol 1 98"
+# parsed as #1, coverless/partial/restored copies, and a CGC 6.5 slab in the
+# raw pool with graded = false. Corpus-wide (2026-09-17): 3,056 "annual" rows
+# under a non-annual title; 1,223 "Vol N M" rows with M the real issue;
+# 165 slab-word-plus-grade rows flagged ungraded. Applied in SQL: condition and
+# edition tests on every pool (the edition test is guarded so a title that IS
+# "Marvel Tales" / "Marvel Treasury Edition" keeps its comps); the filing and
+# slab tests on the ebay pools, whose columns they read. The collector's parse
+# and a backfill are the real fix (ROADMAP item 16).
+# Postgres regex, case-insensitive (~*). \y is a word boundary in Postgres.
+# ---------------------------------------------------------------------------
+# a different issue filed under this number: "#1.1" point issues
+FILING_TITLE_PATTERN = r'#\s*[0-9]+\.[0-9]'
+# not a comp for a complete, unrestored copy; RESTORED/QUALIFIED are
+# different-priced slab labels on the graded side
+CONDITION_TITLE_PATTERN = (r'coverless|\yno cover\y|missing cover|cover missing|incomplete|not[- ]?complete|'
+                           r'\ypartial\y|page [0-9]+ only|\yng\y|\yrestored\y|\yqualified\y')
+# (verifier 2026-09-17: bare 'restored' matched "Unrestored", bare 'no cover' matched "Rhino cover")
+# a different printing under the same name (reprint/facsimile are filtered
+# by the existing LIKE clauses; these are the ones that do not say so)
+EDITION_TITLE_PATTERN = (r'golden record|marvel milestone|true believers|2nd print|second print|'
+                         r'\ytreasury\y|marvel tales|omnibus')
+# a slab in the RAW pool: slab word followed by a grade number. The bare slab
+# word is NOT enough (5,150 rows, mostly "CGC candidate" language on raws), and
+# "CGC 9.8 candidate" / "potential CGC 9.6" are raws too — the look-around
+# spares them (Postgres ARE: lookahead, and lookbehind since 9.6).
+SLAB_IN_RAW_PATTERN = (r'(?<!potential\s)(?<!possible\s)\y(cgc|cbcs|pgx)\y\s*(10|[0-9])(\.[0-9])?(?![.0-9])'
+                       r'(?!\s*(?:candidate|ready|worthy|potential|contender|material))')
+# (?![.0-9]) stops the engine backtracking to "CGC 9" on "CGC 9.8 candidate" and
+# then passing the word lookahead against ".8" (server-tested 2026-09-17).
+# Column-referencing clauses (no placeholders; inlined into the ebay queries):
+# an Annual filed under the regular title, and "Vol N M" where M is not the issue
+EBAY_FILING_SQL = (
+    " AND NOT (raw_title ~* '\\yannual\\y' AND canonical_title !~* 'annual')"
+    " AND NOT (raw_title ~* '\\yvol(ume)?\\.?\\s*[0-9]+\\s+#?[0-9]{1,3}(?!\\.[0-9])\\y'"
+    "          AND substring(raw_title from '(?i)\\yvol(?:ume)?\\.?\\s*[0-9]+\\s+#?([0-9]{1,3})(?!\\.[0-9])\\y') IS DISTINCT FROM issue_number)"
+)
+
 # ──────────────────────────────────────────────────────────────────────────────
 # SIGNATURE-SHAPE VOCABULARY
 # ──────────────────────────────────────────────────────────────────────────────
@@ -727,6 +768,11 @@ def api_sales_valuation():
                    title_year, %s AS grade_source
             FROM ebay_sales
             WHERE graded = true AND grade IS NOT NULL AND sale_price > 5
+              -- label tests (2026-09-17): wrong book / wrong condition / wrong printing
+              -- (the printing test is guarded: a title that IS that series keeps its comps)
+              AND raw_title !~* %s AND raw_title !~* %s
+              AND NOT (raw_title ~* %s AND canonical_title !~* %s)
+              """ + EBAY_FILING_SQL + """
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND COALESCE(sale_date, created_at) > NOW() - INTERVAL '%s days'
@@ -786,9 +832,11 @@ def api_sales_valuation():
         """
         # Order matters and is positional: the literal's placeholders are read
         # left to right -- the grade_source constant in the SELECT first
-        # (2026-09-17), then INTERVAL days, then the signature pattern, then the
-        # title clause appended below.
-        ebay_graded_params = [EBAY_GRADE_SOURCE, days, SIGNED_TITLE_PATTERN]
+        # (2026-09-17), then the label patterns (filing, condition, edition twice:
+        # the test and its canonical guard), then INTERVAL days, then the
+        # signature pattern, then the title clause appended below.
+        ebay_graded_params = [EBAY_GRADE_SOURCE, FILING_TITLE_PATTERN, CONDITION_TITLE_PATTERN,
+                              EDITION_TITLE_PATTERN, EDITION_TITLE_PATTERN, days, SIGNED_TITLE_PATTERN]
 
         # Batch 8: qualifier-precise title match (was canonical=OR parsed LIKE)
         ebay_graded_query += f" AND {ebay_title_sql}"
@@ -806,6 +854,11 @@ def api_sales_valuation():
                    title_year
             FROM ebay_sales
             WHERE (graded = false OR graded IS NULL) AND sale_price > 2
+              -- label tests (2026-09-17), plus: a slab word with a grade is a slab, not a raw
+              AND raw_title !~* %s AND raw_title !~* %s
+              AND NOT (raw_title ~* %s AND canonical_title !~* %s)
+              AND raw_title !~* %s
+              """ + EBAY_FILING_SQL + """
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
@@ -877,8 +930,11 @@ def api_sales_valuation():
         """
         # Batch 8: qualifier-precise title match
         ebay_raw_query += f" AND {ebay_title_sql}"
-        # Positional, same as the graded query: days, signature pattern, title.
-        ebay_raw_params = [days, SIGNED_TITLE_PATTERN] + list(ebay_title_params)
+        # Positional: filing, condition, edition (test + canonical guard), slab-in-raw,
+        # then days, signature pattern, title -- the raw query has no grade_source
+        # placeholder and one more pattern than the graded one.
+        ebay_raw_params = [FILING_TITLE_PATTERN, CONDITION_TITLE_PATTERN, EDITION_TITLE_PATTERN,
+                           EDITION_TITLE_PATTERN, SLAB_IN_RAW_PATTERN, days, SIGNED_TITLE_PATTERN] + list(ebay_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             ebay_raw_query += " AND issue_number = %s"
@@ -897,6 +953,9 @@ def api_sales_valuation():
                    NULL::int AS title_year, grade_source
             FROM market_sales
             WHERE grade IS NOT NULL AND price > 2
+              -- label tests (2026-09-17): the lot label can say coverless/reprint too
+              AND COALESCE(raw_title, '') !~* %s
+              AND NOT (COALESCE(raw_title, '') ~* %s AND COALESCE(canonical_title, '') !~* %s)
               -- provenance gate (2026-09-17): a grade with no known source is not
               -- evidence of a sale at that grade, and a vision estimate is not a
               -- graded sale. Both go to the raw pool below instead.
@@ -908,7 +967,8 @@ def api_sales_valuation():
         """
         # Batch 8: qualifier-precise title match
         market_graded_query += f" AND {market_title_sql}"
-        market_graded_params = [EXCLUDED_GRADE_SOURCES, days] + list(market_title_params)
+        market_graded_params = [CONDITION_TITLE_PATTERN, EDITION_TITLE_PATTERN, EDITION_TITLE_PATTERN,
+                                EXCLUDED_GRADE_SOURCES, days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_graded_query += " AND (issue = %s OR issue = %s)"
@@ -926,6 +986,8 @@ def api_sales_valuation():
             -- unknown grade, which is what the raw pool is. Variants stay out, as
             -- they always have here, so a set-aside VARIANT row is in neither pool.
             WHERE (grade IS NULL OR grade_source IS NULL OR grade_source = ANY(%s)) AND price > 1
+              AND COALESCE(raw_title, '') !~* %s
+              AND NOT (COALESCE(raw_title, '') ~* %s AND COALESCE(canonical_title, '') !~* %s)
               AND (is_reprint IS NULL OR is_reprint = false)
               AND (is_lot IS NULL OR is_lot = false)
               AND (is_variant IS NULL OR is_variant = false)
@@ -933,7 +995,8 @@ def api_sales_valuation():
         """
         # Batch 8: qualifier-precise title match
         market_raw_query += f" AND {market_title_sql}"
-        market_raw_params = [EXCLUDED_GRADE_SOURCES, days] + list(market_title_params)
+        market_raw_params = [EXCLUDED_GRADE_SOURCES, CONDITION_TITLE_PATTERN, EDITION_TITLE_PATTERN,
+                             EDITION_TITLE_PATTERN, days] + list(market_title_params)
 
         if issue and issue not in ['null', 'undefined', 'None']:
             market_raw_query += " AND (issue = %s OR issue = %s)"
