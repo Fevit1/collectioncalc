@@ -283,11 +283,30 @@ def get_or_create_listing_policies(access_token: str) -> dict:
         return policies
 
 
+def grade_token(grade, is_slabbed: bool = False, slab_company: str = None, slab_grade=None) -> str:
+    """The grade as it may honestly appear on a PUBLIC listing (2026-09-17).
+
+    A slab's grade carries its company ("CGC 3.5"). An estimate is labelled as
+    one ("Raw est. 3.5") -- a bare "3.5" on an eBay title reads as a certified
+    grade, and the report it came from says "estimated" on every surface. Letter
+    grades pass through ("VF"). Mirrors listingGradeToken() in js/ebay-modal.js.
+    """
+    import re as _re
+    if is_slabbed:
+        g = slab_grade if slab_grade not in (None, '') else grade
+        return f"{(slab_company or 'CGC').strip()} {g}".strip()
+    g = str(grade).strip() if grade not in (None, '') else ''
+    if not g:
+        return 'ungraded'
+    return f"Raw est. {g}" if _re.match(r'^\d+(\.\d)?$', g) else g
+
+
 def create_listing(user_id: str, title: str, issue: str, price: float, grade: str = 'VF',
                     description: str = None, publish: bool = False, image_urls: list = None,
                     listing_format: str = 'FIXED_PRICE', auction_duration: str = 'DAYS_7',
                     start_price: float = None, reserve_price: float = None,
-                    buy_it_now_price: float = None, listing_title: str = None) -> dict:
+                    buy_it_now_price: float = None, listing_title: str = None,
+                    is_slabbed: bool = False, slab_company: str = None, slab_grade=None) -> dict:
     """
     Create a listing on eBay for a comic book.
 
@@ -305,6 +324,8 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
         start_price: Starting bid price for auctions (defaults to price if not set)
         reserve_price: Optional reserve price for auctions (minimum sale price)
         buy_it_now_price: Optional Buy It Now price for auctions
+        is_slabbed / slab_company / slab_grade: grade provenance from the saved
+            report; the fallback title and description label an estimate as one
 
     Returns:
         Dict with success status and listing details or error
@@ -339,8 +360,10 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     if listing_title and listing_title.strip():
         listing_title = listing_title.strip()[:80]
     else:
-        # Fallback: auto-generate title
-        display_grade = grade_str if grade_str != letter_grade else letter_grade
+        # Fallback: auto-generate title. The grade is qualified by its provenance
+        # (2026-09-17): "CGC 3.5" or "Raw est. 3.5", never a bare number.
+        display_grade = grade_token(grade_str if grade_str != letter_grade else letter_grade,
+                                    is_slabbed, slab_company, slab_grade)
         is_key_issue = bool(description and 'KEY ISSUE' in description.upper())
 
         if is_key_issue:
@@ -356,7 +379,7 @@ def create_listing(user_id: str, title: str, issue: str, price: float, grade: st
     if not description:
         description = f"""
         <h2>{title} #{issue}</h2>
-        <p><strong>Condition:</strong> {grade} - {condition_desc}</p>
+        <p><strong>Condition:</strong> {grade_token(grade, is_slabbed, slab_company, slab_grade)} - {condition_desc}{'' if is_slabbed else ' (grade estimated by Slab Worthy, not certified)'}</p>
         <p>Listed via Slab Worthy - AI-powered comic valuation.</p>
         <p>Please review photos carefully. Feel free to ask any questions before purchasing.</p>
         """

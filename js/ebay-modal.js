@@ -150,10 +150,24 @@ function populateListingForm() {
         </div>
     `;
 
-    // Title - auto-generate (eBay max 80 chars)
-    const title = `${currentComic.title} #${currentComic.issue || '?'} Comic Book - ${currentComic.grade || 'VG'} ${currentComic.publisher || ''}`.trim();
+    // Title - auto-generate (eBay max 80 chars). The grade token carries its
+    // provenance: "CGC 3.5" or "Raw est. 3.5", never a bare "3.5" (2026-09-17).
+    const title = `${currentComic.title} #${currentComic.issue || '?'} Comic Book - ${listingGradeToken(currentComic)} ${currentComic.publisher || ''}`.trim();
     document.getElementById('listingTitle').value = title.substring(0, 80);
     updateCharCounter('title');
+
+    // Grading-fee copy: the report's own figure when it can be recovered from the
+    // saved row (roi = slabbed - raw - grading cost at save time), otherwise no
+    // number at all. The static "~$20-$40" was wrong by 10x on a $384 report.
+    const feeHelp = document.getElementById('priceFeeHelp');
+    if (feeHelp) {
+        const num = (v) => (v != null && Number.isFinite(Number(v))) ? Number(v) : null;
+        const sv = num(currentComic.slabbed_value), rv = num(currentComic.raw_value), roi = num(currentComic.roi);
+        const cost = (sv != null && rv != null && roi != null) ? sv - rv - roi : null;
+        feeHelp.textContent = 'eBay minimum: $0.99. ' + (cost != null && cost > 0
+            ? `Your Slab Report priced grading at $${cost.toFixed(2)} \u2014 a slabbed sale has to clear it.`
+            : 'Grading fees scale with the book\u2019s value \u2014 check your Slab Report before listing as slabbed.');
+    }
 
     // Price - suggest FMV or slightly below
     const suggestedPrice = comicFmv(currentComic);
@@ -193,7 +207,10 @@ async function generateDescription() {
                 grade: currentComic.grade,
                 price: parseFloat(document.getElementById('listingPrice').value),
                 publisher: currentComic.publisher,
-                year: currentComic.year
+                year: currentComic.year,
+                // the report's valuation basis: 'multi_edition' = the edition is
+                // not established, and the description must not pick one
+                verdict_basis: currentComic.verdict_basis || null
             })
         });
 
@@ -208,12 +225,14 @@ async function generateDescription() {
             descriptionField.value = fullDescription;
             updateCharCounter('desc');
 
-            // Update title with KEY ISSUE if the AI flagged it
-            if (data.description.toUpperCase().includes('KEY ISSUE')) {
+            // Update title with KEY ISSUE if the AI flagged it -- never on an
+            // unresolved edition, where the claim would be about a book the
+            // report could not identify
+            if (data.description.toUpperCase().includes('KEY ISSUE') && currentComic.verdict_basis !== 'multi_edition') {
                 const titleInput = document.getElementById('listingTitle');
                 const currentTitle = titleInput.value;
                 if (!currentTitle.toUpperCase().includes('KEY ISSUE')) {
-                    const keyTitle = `${currentComic.title} #${currentComic.issue || '?'} KEY ISSUE Comic Book - ${currentComic.grade || 'VG'}`.substring(0, 80);
+                    const keyTitle = `${currentComic.title} #${currentComic.issue || '?'} KEY ISSUE Comic Book - ${listingGradeToken(currentComic)}`.substring(0, 80);
                     titleInput.value = keyTitle;
                     updateCharCounter('title');
                 }
@@ -232,7 +251,7 @@ async function generateDescription() {
 
         // Fallback description
         const gradingId = document.getElementById('gradingIdDisplay').value;
-        descriptionField.value = `${currentComic.title} #${currentComic.issue} in ${currentComic.grade} condition.\n\nSlab Worthy™ Assessment ID: ${gradingId}`;
+        descriptionField.value = `${currentComic.title} #${currentComic.issue}, ${listingGradeToken(currentComic)}${currentComic.is_slabbed ? '' : ' (grade estimated by Slab Worthy, not certified)'}.\n\nSlab Worthy™ Assessment ID: ${gradingId}`;
         updateCharCounter('desc');
     }
 }
@@ -379,6 +398,11 @@ async function createListing(publish) {
             grade: currentComic.grade,
             publisher: currentComic.publisher,
             year: currentComic.year,
+            // grade provenance, for the server's fallback title/description
+            is_slabbed: !!currentComic.is_slabbed,
+            slab_company: currentComic.slab_company || null,
+            slab_grade: currentComic.slab_grade ?? null,
+            verdict_basis: currentComic.verdict_basis || null,
             description: document.getElementById('listingDescription').value,
             image_urls: uploadedImageUrls,
             publish: publish,
@@ -477,6 +501,17 @@ async function createListing(publish) {
 // was WITHHELD (a multi-edition title without a year) or never computed; it used
 // to fall through to a hard-coded 9.99, a fabricated price shown as data. Never
 // invent a number here: return null and let the caller say "not available".
+// The grade as it may appear on a PUBLIC listing: a slab's grade carries its
+// company ("CGC 3.5"); an estimate is labelled as one ("Raw est. 3.5"). A bare
+// "3.5" reads as a certified grade. Mirrors grade_token() in ebay_listing.py.
+function listingGradeToken(c) {
+    if (!c) return 'ungraded';
+    if (c.is_slabbed) return `${c.slab_company || 'CGC'} ${c.slab_grade ?? c.grade ?? ''}`.trim();
+    const g = (c.grade == null) ? '' : String(c.grade).trim();
+    if (!g) return 'ungraded';
+    return /^\d+(\.\d)?$/.test(g) ? `Raw est. ${g}` : g;
+}
+
 function comicFmv(c) {
     if (!c) return null;
     const v = c.is_slabbed ? (c.slabbed_value ?? c.raw_value) : c.raw_value;

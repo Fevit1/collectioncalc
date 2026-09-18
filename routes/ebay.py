@@ -279,11 +279,16 @@ def api_generate_description():
     if not generate_description:
         return jsonify({'success': False, 'error': 'Description module not available'}), 503
     data = request.get_json() or {}
+    # publisher/year/verdict_basis were accepted by the generator and never passed
+    # (2026-09-17): the prompt could not know which edition it was describing
     result = generate_description(
         data.get('title', ''),
         data.get('issue', ''),
         data.get('grade', 'VF'),
-        data.get('price', 0)
+        data.get('price', 0),
+        publisher=data.get('publisher'),
+        year=data.get('year'),
+        verdict_basis=data.get('verdict_basis')
     )
     if result.get('success'):
         log_api_usage(g.user_id, '/api/ebay/generate-description', SONNET,
@@ -347,6 +352,10 @@ def api_ebay_list():
         start_price=data.get('start_price'),
         reserve_price=data.get('reserve_price'),
         buy_it_now_price=data.get('buy_it_now_price'),
-        listing_title=data.get('listing_title')
+        listing_title=data.get('listing_title'),
+        # grade provenance for the fallback title/description (2026-09-17)
+        is_slabbed=bool(data.get('is_slabbed', False)),
+        slab_company=data.get('slab_company'),
+        slab_grade=data.get('slab_grade')
     )
     return jsonify(result)

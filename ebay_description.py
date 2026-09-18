@@ -12,8 +12,74 @@ MAX_DESCRIPTION_LENGTH = 4000
 # Only match standalone bad words, not parts of names like "Cassidy" or "classic"
 BANNED_WORDS_PATTERN = r'\b(fuck|shit|damn|bitch|crap)\b'
 
+# The valuation's "more than one edition shares this name, and no year was given"
+# basis (routes/sales_valuation.py verdict_basis). A description written for
+# that report must not pick an edition the report itself declined to pick.
+EDITION_UNRESOLVED = 'multi_edition'
+
+
+def _build_prompt(title, issue, publisher=None, year=None, verdict_basis=None) -> str:
+    """The AI prompt. Separated from the API call so it can be read without one.
+
+    2026-09-17: the prompt used to omit the year entirely and ask for era, first
+    appearance and KEY ISSUE status -- so "X-Men #1" got the 1963 book's copy
+    whether the seller's copy was 1963, 1991 or unknown, and a report whose
+    valuation was WITHHELD for lack of a year still shipped "Silver Age. KEY
+    ISSUE: first appearance of..." onto a public listing. Now: a known year names
+    the edition to describe; an unresolved edition forbids edition claims.
+    """
+    comic_info = f"{title} #{issue}"
+    if publisher:
+        comic_info += f" ({publisher})"
+    if year:
+        comic_info += f" - {year}"
+    unresolved = (verdict_basis == EDITION_UNRESOLVED)
+    if unresolved:
+        edition_rules = """EDITION NOT ESTABLISHED. More than one edition shares this title and issue number, and the seller has NOT said which this copy is (no publication year was given). So:
+- Do NOT name an era (Golden/Silver/Bronze/Copper/Modern Age)
+- Do NOT claim a first appearance, origin, death, major event, or KEY ISSUE status
+- Do NOT name a publication year, or the writer or artist of any one edition
+Describe only what is true of the title itself: the characters it features and why collectors follow the series."""
+        include = """Include ONLY:
+- The characters and series the book belongs to
+- Why the title is collected (1-2 short phrases), without tying it to one edition"""
+        example = """Example (232 characters):
+"Gotham's Dark Knight in one of the most-collected numbers in the title, with Robin and the rogues gallery that made the series. A cornerstone issue number for Batman collectors, sought after in every printing that carries it.\""""
+    else:
+        edition_rules = (f"The publication year is {year}: describe THAT edition, not another printing that shares the number."
+                         if year else "No publication year was given: if this title has more than one edition, keep era and first-appearance claims general.")
+        include = """Include ONLY:
+- Era (Golden/Silver/Bronze/Copper/Modern Age)
+- KEY ISSUE status if applicable (first appearance, origin, death, major event) - call this out explicitly
+- Key characters introduced or featured
+- Creators (writer/artist) if notable
+- Why it's collectible (1-2 short phrases)"""
+        example = """Example (238 characters):
+"Copper Age. KEY ISSUE: First full appearance of Blue Devil (Dan Cassidy). The definitive origin story. Created by Dan Mishkin, Gary Cohn, and Paris Cullins. Essential for Bronze Age DC collectors and fans of supernatural superhero comics.\""""
+    return f"""Generate an eBay listing description for this comic book.
+
+Comic: {comic_info}
+{edition_rules}
+
+TARGET: Exactly 235-245 characters. A verification URL (~55 chars) will be appended, bringing total to ~300 characters for optimal eBay mobile display.
+
+{example}
+
+{include}
+
+Do NOT include:
+- Title, publisher, or year (already shown in eBay listing fields)
+- Grade or condition (shown separately on eBay)
+- "Please review photos" or similar (seller policies cover this)
+- Shipping or packaging info
+- CollectionCalc or AI mentions
+- HTML tags - plain text only
+
+Generate only the description, nothing else."""
+
+
 def generate_description(title, issue, grade, price,
-                         publisher=None, year=None) -> dict:
+                         publisher=None, year=None, verdict_basis=None) -> dict:
     """
     Generate a professional eBay-ready description for a comic book listing.
 
@@ -24,6 +90,8 @@ def generate_description(title, issue, grade, price,
         price: Listing price in USD
         publisher: Publisher name (optional)
         year: Publication year (optional)
+        verdict_basis: the saved report's valuation basis; 'multi_edition' means
+            the edition is not established and the prompt forbids edition claims
     
     Returns:
         Dict with 'success', 'description', and optional 'error'
@@ -41,52 +109,7 @@ def generate_description(title, issue, grade, price,
     try:
         client = anthropic.Anthropic(api_key=api_key)
         
-        # Build context
-        comic_info = f"{title} #{issue}"
-        if publisher:
-            comic_info += f" ({publisher})"
-        if year:
-            comic_info += f" - {year}"
-        
-        grade_descriptions = {
-            'MT': 'Mint condition - Perfect, as-new state',
-            'NM': 'Near Mint - Excellent condition with minimal wear',
-            'VF': 'Very Fine - Minor wear, presents beautifully',
-            'FN': 'Fine - Light wear, very good overall condition',
-            'VG': 'Very Good - Moderate wear but complete and intact',
-            'G': 'Good - Noticeable wear, solid reading copy',
-            'FR': 'Fair - Heavy wear but complete',
-            'PR': 'Poor - Significant wear and possible damage'
-        }
-        
-        grade = str(grade) if grade else 'VF'
-        grade_desc = grade_descriptions.get(grade.upper(), f'{grade} condition')
-        
-        prompt = f"""Generate an eBay listing description for this comic book.
-
-Comic: {comic_info}
-
-TARGET: Exactly 235-245 characters. A verification URL (~55 chars) will be appended, bringing total to ~300 characters for optimal eBay mobile display.
-
-Example (238 characters):
-"Copper Age. KEY ISSUE: First full appearance of Blue Devil (Dan Cassidy). The definitive origin story. Created by Dan Mishkin, Gary Cohn, and Paris Cullins. Essential for Bronze Age DC collectors and fans of supernatural superhero comics."
-
-Include ONLY:
-- Era (Golden/Silver/Bronze/Copper/Modern Age)
-- KEY ISSUE status if applicable (first appearance, origin, death, major event) - call this out explicitly
-- Key characters introduced or featured
-- Creators (writer/artist) if notable
-- Why it's collectible (1-2 short phrases)
-
-Do NOT include:
-- Title, publisher, or year (already shown in eBay listing fields)
-- Grade or condition (shown separately on eBay)
-- "Please review photos" or similar (seller policies cover this)
-- Shipping or packaging info
-- CollectionCalc or AI mentions
-- HTML tags - plain text only
-
-Generate only the description, nothing else."""
+        prompt = _build_prompt(title, issue, publisher, year, verdict_basis)
 
         response = client.messages.create(
             model=SONNET,
@@ -98,6 +121,14 @@ Generate only the description, nothing else."""
         
         # Clean up the description
         description = _sanitize_description(description)
+
+        # An unresolved edition that still came back with a KEY ISSUE claim is the
+        # AI ignoring the rule; the template says nothing edition-specific.
+        if verdict_basis == EDITION_UNRESOLVED and 'KEY ISSUE' in description.upper():
+            print(f"Description for {title} #{issue} claimed KEY ISSUE on an unresolved edition; using template")
+            return {'success': True,
+                    'description': _generate_template_description(title, issue, grade, price, publisher, year),
+                    'source': 'template'}
         
         # Validate length
         if len(description) > MAX_DESCRIPTION_LENGTH:
