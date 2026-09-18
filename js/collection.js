@@ -128,10 +128,27 @@ async function loadCollection() {
     }
 }
 
+// A withheld figure is saved as null (2026-09-17: multi-edition titles without a
+// year). null is not $0: it must not render as one, sum as one, or sort as one.
+// (0 counts as no figure: the valuation never prices a book at $0, and older saves wrote 0 for null)
+function hasFigure(v) { return v != null && Number(v) > 0; }
+function money(v) { return hasFigure(v) ? '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '\u2014'; }
+// sort key: rows without a figure go LAST in either direction, so a withheld
+// book is never the "cheapest" of a value-ascending list
+function cmpFigure(a, b, dir) {
+    const ha = hasFigure(a), hb = hasFigure(b);
+    if (ha && hb) return (Number(a) - Number(b)) * dir;
+    if (ha) return -1;
+    if (hb) return 1;
+    return 0;
+}
+
 function updateSummary() {
     const totalComics = collection.length;
-    const rawValue = collection.reduce((sum, comic) => sum + (comic.raw_value || 0), 0);
-    const slabbedValue = collection.reduce((sum, comic) => sum + (comic.slabbed_value || 0), 0);
+    const rawValue = collection.reduce((sum, comic) => sum + (hasFigure(comic.raw_value) ? Number(comic.raw_value) : 0), 0);
+    const slabbedValue = collection.reduce((sum, comic) => sum + (hasFigure(comic.slabbed_value) ? Number(comic.slabbed_value) : 0), 0);
+    const rawUnpriced = collection.filter(comic => !hasFigure(comic.raw_value)).length;
+    const slabbedUnpriced = collection.filter(comic => !hasFigure(comic.slabbed_value)).length;
     // Use the STORED roi, not slabbedValue - rawValue. The stored column is
     // written at save time from the grade report and already subtracts the CGC
     // grading cost; the recompute silently omitted it.
@@ -160,6 +177,11 @@ function updateSummary() {
     document.getElementById('totalComics').textContent = totalComics;
     document.getElementById('rawValue').textContent = `$${rawValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     document.getElementById('slabbedValue').textContent = `$${slabbedValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    // the total is of the PRICED rows; say so when any row has no figure
+    const rawNote = document.getElementById('rawValueNote');
+    const slabbedNote = document.getElementById('slabbedValueNote');
+    if (rawNote) rawNote.textContent = rawUnpriced ? `${rawUnpriced} without a figure` : '';
+    if (slabbedNote) slabbedNote.textContent = slabbedUnpriced ? `${slabbedUnpriced} without a figure` : '';
     const profitEl = document.getElementById('potentialProfit');
     profitEl.textContent = `${potentialProfit >= 0 ? '+' : '-'}$${Math.abs(potentialProfit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     // The 'positive' class used to be hardcoded in collection.html. This figure
@@ -237,7 +259,7 @@ function filterAndDisplay() {
                     case 'grade':
                         return ((parseFloat(a.grade) || 0) - (parseFloat(b.grade) || 0)) * dir;
                     case 'fmv':
-                        return ((a.raw_value || 0) - (b.raw_value || 0)) * dir;
+                        return cmpFigure(a.raw_value, b.raw_value, dir);
                     case 'valuation':
                         return ((parseFloat(a.my_valuation) || 0) - (parseFloat(b.my_valuation) || 0)) * dir;
                     default:
@@ -249,8 +271,8 @@ function filterAndDisplay() {
                 switch(listSortValue) {
                     case 'date-desc': return new Date(b.created_at) - new Date(a.created_at);
                     case 'date-asc': return new Date(a.created_at) - new Date(b.created_at);
-                    case 'value-desc': return (b.raw_value || 0) - (a.raw_value || 0);
-                    case 'value-asc': return (a.raw_value || 0) - (b.raw_value || 0);
+                    case 'value-desc': return cmpFigure(a.raw_value, b.raw_value, -1);
+                    case 'value-asc': return cmpFigure(a.raw_value, b.raw_value, 1);
                     case 'grade-desc': return parseFloat(b.grade) - parseFloat(a.grade);
                     case 'title-asc': {
                         const cmp = a.title.localeCompare(b.title);
@@ -269,9 +291,9 @@ function filterAndDisplay() {
                     if (titleCompare !== 0) return titleCompare;
                     return (parseInt(a.issue) || 0) - (parseInt(b.issue) || 0);
                 case 'value-high':
-                    return (b.raw_value || 0) - (a.raw_value || 0);
+                    return cmpFigure(a.raw_value, b.raw_value, -1);
                 case 'value-low':
-                    return (a.raw_value || 0) - (b.raw_value || 0);
+                    return cmpFigure(a.raw_value, b.raw_value, 1);
                 case 'grade-high':
                     return parseFloat(b.grade) - parseFloat(a.grade);
                 case 'grade-low':
@@ -457,8 +479,7 @@ function createComicCard(comic) {
                 <div class="value-amount">${(() => {
                     // 2026-09-17: a withheld figure is saved as null (multi-edition
                     // titles without a year); render a dash, not $0.00.
-                    const v = comic.is_slabbed ? (comic.slabbed_value ?? comic.raw_value) : comic.raw_value;
-                    return v == null ? '\u2014' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    return money(comic.is_slabbed ? (comic.slabbed_value ?? comic.raw_value) : comic.raw_value);
                 })()}</div>
                 <!-- Verdict sits immediately after the value it qualifies. The
                      user's own valuation must NOT come between our number and
@@ -549,7 +570,7 @@ function createComicCard(comic) {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">FMV${comic.is_slabbed ? ' (Slabbed)' : ' (Raw)'}</span>
-                        <span class="detail-value">$${(comic.is_slabbed ? (comic.slabbed_value || comic.raw_value || 0) : (comic.raw_value || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span class="detail-value">${money(comic.is_slabbed ? (comic.slabbed_value ?? comic.raw_value) : comic.raw_value)}</span>
                     </div>
                     ${verdictChip ? `<div class="detail-row">
                         <span class="detail-label">Verdict</span>
@@ -747,7 +768,7 @@ function viewDetails(comicId) {
     // TODO: Show modal with full details
     const comic = collection.find(c => c.id === comicId);
     if (comic) {
-        alert(`Details for ${comic.title} #${comic.issue}\n\nGrade: ${comic.grade}\nRaw: $${comic.raw_value}\nSlabbed: $${comic.slabbed_value}`);
+        alert(`Details for ${comic.title} #${comic.issue}\n\nGrade: ${comic.grade}\nRaw: ${money(comic.raw_value)}\nSlabbed: ${money(comic.slabbed_value)}`);
     }
 }
 
