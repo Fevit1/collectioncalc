@@ -235,7 +235,7 @@ rediscovered.
 22. **Registration purge job + self-serve account deletion — the build that would let the privacy and terms pages
     promise them (logged 2026-09-17, not scoped).** Today: no job deletes a Slab Guard registration on any timeline,
     nothing runs on downgrade, and account deletion is request-only by runbook. privacy.html, terms.html and the
-    deletion runbook now say so (one unit, 2026-09-17, pending commit + purge). The cascade is confirmed in the live
+    deletion runbook now say so (one unit, 2026-09-17, ⚰️ ~~pending commit + purge~~ **SHIPPED `70e8a88` 2026-09-18, purged after the Pages build, four live checks passed — Mike's output, WWLO 09-18**). The cascade is confirmed in the live
     schema (`comic_registry.user_id` ON DELETE CASCADE). **`sighting_reports.serial_number` references the registry
     WITHOUT a cascade, so until the schema changes the runbook deletes sighting rows first, by hand (Mike, session
     close 2026-09-17); the schema fix — a cascade or an explicit cleanup — belongs with this item, beside the purge

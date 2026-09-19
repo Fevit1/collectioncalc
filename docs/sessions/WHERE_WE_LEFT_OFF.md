@@ -1,5 +1,84 @@
 # Where We Left Off - Sep 18, 2026
 
+## 2026-09-18 (evening) — ✅ **PRIVACY UNIT SHIPPED AND VERIFIED (`70e8a88`; records `0b5999d`). 🔧 SIGNATURE MATCHER FIX BUILT — one file, `routes/signature_orchestrator.py`, pending Mike's commit, push and `deploy`, then ONE real call to the match route as the proof. Usage count since 06-23 done (DB can see Guard only: zero). Demand table: none of the adds is anonymous-only; The Terminator 1 is operator-only; X-Men 1 (1963)'s "most looked-up" claim is 1 real user + 8 anonymous lookups shaped like our curls.**
+
+**MOST RECENT CHANGE (Rule 5): Mike's four signature decisions, 2026-09-18 — fix the matcher FIRST as its own unit,
+count affected users before it ships, a cross-project lesson candidate (scheduled canary calls), then (2) at one
+pass today if spend allows and (3) tomorrow, with the harness calling the fixed production route. Supersedes the
+"design choice is Mike's call" line in the entry below. `git log -1` = `0b5999d`, 0 ahead of `origin/main`.**
+
+**Privacy unit — shipped, as observed by Mike:** `/privacy` and `/terms` each return one line for "complete the
+request within 30 days"; both "…90 days" patterns return nothing. Pushed, Pages build waited, purged. The
+registration-retention entry below and ROADMAP item 22's copy line are flipped. Item 22 itself (purge job,
+self-serve deletion, the sightings cascade) stays open — it is the build, not the copy.
+
+### Signature matcher fix (Mike's decision 1) — BUILT, pending Mike's commit + push + `deploy`
+**File list: `routes/signature_orchestrator.py` only.** Backend → `deploy`, no `purge`, no DB write, no extension.
+1. `run_single_pass` no longer sends `temperature` (Opus 4.8: 400 "`temperature` is deprecated for this model",
+   proven by probe). `PASS_TEMPERATURES` stays as pass LABELS — `aggregate_passes` picks the "0.2" pass's analysis
+   and the logs print it — with a comment saying what they now are. The three passes are three independent samples
+   at the model's own sampling, not a temperature ladder.
+2. New `_sniff_media_type()` labels every image block — references and the target — from its magic bytes
+   (PNG/JPEG/GIF/WebP; unknown → `image/jpeg`, the old behaviour, so the API's error names the problem). Local test:
+   4 formats correct, garbage and empty input fall back without raising; file parses.
+**Verification agent (read-only, whole file + callers): no blocker.** One should-fix, TAKEN: six log strings said
+`temp=` for what are now pass labels → `label=`. Confirmed: the request carries only `model`, `max_tokens`, `system`,
+`messages`; no `top_p`/`top_k`/`thinking`/prefill anywhere in the repo; the only other live Opus-tier call
+(`routes/slab_guard_cv.py:1691`) sends no sampling parameter; every other `temperature=0` site is Sonnet-tier and
+unaffected; both frontend callers send a clean JPEG blob by multipart; `[:32]` always decodes; aggregation is
+unchanged; the "3-pass, ~90 seconds" copy is still true. **Logged, not fixed (pre-existing):** `OPUS` is a string
+frozen at import and this route does not use `call_with_fallback`, so a retired head model would fail it the same
+silent way (TODO item 5's resilience gap — this route is on that list); the JSON `image_b64` branch has no caller
+and would mislabel a `data:`-prefixed image; the module header still says "Opus 4.6".
+**Post-deploy proof (the day's measured spend):** one real POST to `/api/signatures/v2/match` with a known reference
+image → expect 200 and a ranked `top5`. Estimate **$0.66** (3 passes × 38.9k input, uncached; $0.70 worst case);
+today's total would be **$0.66**. It needs a JWT for an entitled account (admin/dealer) — Mike's call how it is
+sent; no credential goes through chat.
+
+### Users affected since 06-23 (Mike's decision 2) — what each surface can and cannot show
+- The route writes `signature_identification_log` only on SUCCESS: **0 rows since 06-23** (last 06-16) — consistent
+  with total failure, and unable to count failures.
+- Reachability: the "🔍 ID Sigs" button is on every collection card (`js/collection.js:501,594`), not tier-hidden.
+  Free/Pro get a 403 before any model call — not this defect. Guard / Dealer / admin reach the 500.
+- **Guard: provably zero.** A capped-plan request stamps `users.sig_checks_reset_date` before the match runs; the one
+  Guard account (id 25) has it NULL. Dealer (id 26, one account) and admin (id 3) leave no DB trace at all —
+  **could not determine from the database**; the surface that can answer is the Render log (`Orchestration runtime
+  error` / `All Opus passes failed`, and the absence of `[SigID] match served`), within its retention.
+- Ids 25 and 26 were both created 2026-06-10 — they look like billing test accounts; Mike to confirm. If so, no
+  paying stranger could have hit this, and the post-mortem is about detection, not harm.
+
+### Lesson candidate, CROSS-PROJECT (Mike's decision 3) — not yet written to `LESSONS_CROSS_PROJECT.md`
+`dependency_monitor.py` checks that a model EXISTS, not that a feature WORKS. The matcher died on a rejected
+parameter, not a retirement; the model check stayed green and nothing noticed for three months (06-23 → 09-18),
+found only because a measurement unit read the code. Rule: every feature with an external dependency gets a
+scheduled canary call through the real request shape. Index line: "A dependency check is green and the feature
+has not produced a success row in weeks." Same family as L-2026-024 (a null is not a pass) and L-SW-2026-017.
+
+### Decision 4 and a conflict to settle before (2) runs
+"The harness calls the fixed production route" and "(2) at $5.70" cannot both hold. The $5.70 figure is one pass
+with fixed candidate pools and a cached reference block. The production route runs three passes, uncached, and
+its reference set CONTAINS the held-out image (so a cross-validation query would be matched against itself), and
+its pool is the arbitrary 15. Through the route as deployed, (2) is 97 × $0.66 = **$64** and measures nothing.
+Proposal (Mike to decide): the harness IMPORTS the production functions (`build_identification_messages`,
+`run_single_pass`, `aggregate_passes`) — the same code, never a patched copy — and supplies its own candidate list
+with the held-out image removed. Separately, a cache breakpoint after the last reference block in
+`build_identification_messages` would cut the production route's own cost by ~55% (passes 2 and 3 re-read the same
+38k-token prefix) — a production change, NOT in the fix unit, argued on its own.
+
+### Demand table — which adds were anonymous-only (Mike's question)
+`lookup_demand`, `valuation`, since 07-21, split into signed-in / anonymous / internal; "operator-owned" = accounts
+whose email matches Mike's patterns (a proxy, 16 accounts). Whole table: 171 signed-in, 34 anonymous, 38 internal.
+- **None of the 14 tagged adds is anonymous-only.** 13 rest on a signed-in non-operator user: ASM 166 (user 53),
+  ASM 258 (74, 78), Avengers 49 (42), Bloodlines 6 (70), Hulk 340 (11, 64), Spawn 77 (38), Trees 1 (23), UXM 129
+  (73), 164 (38), 165 (42), 172 (42), 207 (74), X-Men 59 (68, 74). Thin — one user each for nine of them.
+- **The Terminator 1: operator-only.** Its one signed-in lookup is user 43 (operator pattern), plus 1 anonymous
+  (08-07) and 13 internal. No outside user has looked it up.
+- **X-Men 1 (1963)** — the 15th add, "New, the most looked-up book since launch" in the 09-17 docx: 9 external
+  lookups = **1 real user (id 38, 08-06) + 8 anonymous, all at grade 9.0** — 09-17 23:49Z, 09-18 00:31Z, 23:49Z,
+  23:51Z are this week's post-deploy curls; 08-07, 08-14, 08-27, 08-28 fall on valuation-unit ship days and have the
+  same shape (not provable after the fact). The "most looked-up" claim is ours, not users'. Pulling it from the
+  weekly list is Mike's call; one real user did look it up, and the 1963/1991 split is a standing valuation cell.
+
 ## 2026-09-18 — ✅ **THE THREE 09-17 UNITS ARE SHIPPED AND VERIFIED LIVE on Mike's confirmations (page unit `b80a284`, item 21 `a2cf34a`, item 20 `4a70809`; `ebay-collector` 1.5.0 reload confirmed). Two records additions (operator traffic in the demand table → ROADMAP item 23; valuation-as-a-service → ROADMAP strategy section). Signature measurement unit: prep only, $0.0002 (probe), estimate delivered, blockers found. The privacy unit is pending Mike's two commits, push, purge and the four checks.**
 
 **MOST RECENT CHANGE (Rule 5): the page unit, item 21, item 20 and CLAUDE.md's 1.5.0 line flipped from "pending"
@@ -21,7 +100,7 @@ confirmed" wording in the 09-17 session-close and three-units entries below and 
 confirmed". **REPLACED BY** this entry. **REASON:** committed 09-17 21:32–21:33 PDT, deployed and purged that night,
 asserted by Mike 09-18. **SUPERSEDES** the three-units ship block — do not re-present it.
 
-**Privacy unit — what is pending:** Mike's commit of `privacy.html`, `terms.html`,
+⚰️ **[DEAD 2026-09-18 evening — shipped `70e8a88`, see the entry above]** ~~Privacy unit — what is pending:~~ Mike's commit of `privacy.html`, `terms.html`,
 `docs/SW_deletion_request_runbook.md`; a records commit; push; the Pages build; `purge`; the four PowerShell checks
 in the registration-retention entry below. That entry and ROADMAP item 22 flip on Mike's confirmation of the checks.
 
@@ -88,7 +167,7 @@ redone elsewhere; scratch scripts close their connection in `finally`; never a b
 4. The Whatnot 2.47.0 field read after Mike's next capture evening (the expiry bound from real switches; item 13 storm
    verification).
 
-## 2026-09-17 — 🔧 **REGISTRATION-RETENTION UNIT, WIDENED BY MIKE: `privacy.html` (Mike's paragraph, verbatim), `terms.html` (the same promise in the terms voice, plus "asking us to delete your account" in the Termination line), and `docs/SW_deletion_request_runbook.md` (a registrations step, so "deleting your account deletes your registrations" is carried by the procedure). One commit, push, wait for the Pages build, `purge`. In the working tree pending Mike's commit. The two pre-edit checks both came back the way the copy needed: nothing purges or freezes a registration, and account deletion is request-only.**
+## 2026-09-17 — 🔧 ✅ **[SHIPPED 2026-09-18: `70e8a88`, purged after the Pages build, four live checks passed — see the 09-18 entries at the top; the ship block in this entry is EXECUTED, do not re-run]** **REGISTRATION-RETENTION UNIT, WIDENED BY MIKE: `privacy.html` (Mike's paragraph, verbatim), `terms.html` (the same promise in the terms voice, plus "asking us to delete your account" in the Termination line), and `docs/SW_deletion_request_runbook.md` (a registrations step, so "deleting your account deletes your registrations" is carried by the procedure). One commit, push, wait for the Pages build, `purge`. In the working tree pending Mike's commit. The two pre-edit checks both came back the way the copy needed: nothing purges or freezes a registration, and account deletion is request-only.**
 
 **MOST RECENT CHANGE (Rule 5): the unit is three files, not one — Mike widened it before the commit. `git log -1` =
 `aa84391`, nothing committed. Supersedes: both pages' HTML comments ("✅ 90 DAYS IS CORRECT HERE"), now tombstones in
