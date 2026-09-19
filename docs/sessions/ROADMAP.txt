@@ -188,7 +188,7 @@ rediscovered.
     "J**IM** LEE" gave "Iron Man" on the Batman #616 label, `'gl'` inside "Sin**gl**es" gave "Green Lantern"
     on row 11159 — eight two-letter keys exist (`nm ff ih im ca dd ww gl`), each its own failure. The same
     normaliser's GRADE regexes are the source of the `dom` provenance junk: a bare `10|9.x|…` matches the
-    dollar figure ("$10 starts" → grade 10; 67 rows), see WWLO 09-16. **THE REAL FIX + BACKFILLS (2026-09-17, queued here, counts measured):** the collector's issue parse (Vol N M → issue M; Annual → "<Title> Annual"; #N.N kept as its own issue) and the graded flag when a slab word is followed by a grade; corpus backfills once the parse ships — 996 Vol-parse rows (53 graded), 3,056 Annual rows (297 graded), 165 slab rows flagged ungraded. Until then the valuation-side label tests (**SHIPPED and verified live 2026-09-17 evening**: ASM #1 @ 4.5/1963 → 3 exact, 15 graded, raw $4,620 on 4) keep them out of every pool. **Field evidence 2026-09-17 (4) — grade parse and single pages — BUILT 2026-09-17 (pending commit + deploy + `ebay-collector` 1.5.0 reload):** "X-Men #1 CGC 5 Slab Set CGC 9.4" was stored as grade 5.0 by BOTH parsers (the collector's `grade`, which the pools read, and the backend's `grade_from_title`); both now skip a count; single CGC-graded PAGES ("CGC PG 16", "splash page"), "cover only" are condition-filtered on every pool ("detached" was in for one cut; OUT by Mike's rule — the list is for what is not the book or not comparable, never a defect CGC would grade); a plural slab word is a lot in the normaliser AND excluded by SQL on the eBay pools (53 graded rows, 24 of them five-slab X-Men #1 '97 sets filed as one 9.8 sale with no year). X-Men #1 @ 9.0/1963: raw 30 rows/$221 → 15 rows/$3,830. Backfill queued (count query in WWLO 09-17). **Field evidence 2026-09-17 (3) — the collector's issue parse:** Amazing Spider-Man ANNUAL #1 (1964) is filed as ASM #1 (11 of 28 graded rows in the 1963–1971 cluster; 24 of 35 raw), and "Vol 1 98" / "Vol 1 13" are filed as #1; a $20,000 CGC 6.5 sits in the raw pool with `graded = false`. Proposed belt (WWLO 09-17 Q1): three label tests in SQL on both pools — filing (annual, Vol N M, #N.N), condition (coverless/incomplete/partial/page-only/NG/restored/qualified), edition (golden record, marvel milestone, true believers, 2nd print, treasury, marvel tales, omnibus) — measured on the 1963 book: 4.5 comps 4 → 3 (median unchanged), raw median $260 → $5,990 on three rows. **Field evidence 2026-09-17 (2):** 12 raw eBay rows of the 1990 Spider-Man #1 are filed under Amazing Spider-Man #1 (`title_year` 1990, median $6.54) — outside the 1963 cluster after the multi-edition narrowing, still wrong rows. **Field evidence 2026-09-17:** ASM #300's two graded Whatnot rows are filed under `canonical_title` "Bid" / "30 Pre-Bids" (the DOM lot label) and match neither valuation endpoint's title clause — the corpus holds the comps and cannot find them. Candidate fix: word-boundary matching and a minimum alias length, with a corpus
+    dollar figure ("$10 starts" → grade 10; 67 rows), see WWLO 09-16. **THE REAL FIX + BACKFILLS (2026-09-17, queued here, counts measured):** the collector's issue parse (Vol N M → issue M; Annual → "<Title> Annual"; #N.N kept as its own issue) and the graded flag when a slab word is followed by a grade; corpus backfills once the parse ships — 996 Vol-parse rows (53 graded), 3,056 Annual rows (297 graded), 165 slab rows flagged ungraded. Until then the valuation-side label tests (**SHIPPED and verified live 2026-09-17 evening**: ASM #1 @ 4.5/1963 → 3 exact, 15 graded, raw $4,620 on 4) keep them out of every pool. **Field evidence 2026-09-17 (4) — grade parse and single pages — BUILT 2026-09-17 ⚰️ ~~(pending commit + deploy + `ebay-collector` 1.5.0 reload)~~ SHIPPED `b80a284`, deployed, 1.5.0 reload confirmed by Mike 2026-09-18, verified live the same day (X-Men #1 @ 9.0/1963 → raw_fmv 3829.79 on 15, graded 22387.5 interpolated, edition 1963 alone; no year → `multi_edition`, `price_curve` empty, `ci_95_low` null, raw pool 528; ASM #1 @ 4.5/1963 unchanged 9587.5 on 3 / 4620.0 on 4):** "X-Men #1 CGC 5 Slab Set CGC 9.4" was stored as grade 5.0 by BOTH parsers (the collector's `grade`, which the pools read, and the backend's `grade_from_title`); both now skip a count; single CGC-graded PAGES ("CGC PG 16", "splash page"), "cover only" are condition-filtered on every pool ("detached" was in for one cut; OUT by Mike's rule — the list is for what is not the book or not comparable, never a defect CGC would grade); a plural slab word is a lot in the normaliser AND excluded by SQL on the eBay pools (53 graded rows, 24 of them five-slab X-Men #1 '97 sets filed as one 9.8 sale with no year). X-Men #1 @ 9.0/1963: raw 30 rows/$221 → 15 rows/$3,830. Backfill queued (count query in WWLO 09-17). **Field evidence 2026-09-17 (3) — the collector's issue parse:** Amazing Spider-Man ANNUAL #1 (1964) is filed as ASM #1 (11 of 28 graded rows in the 1963–1971 cluster; 24 of 35 raw), and "Vol 1 98" / "Vol 1 13" are filed as #1; a $20,000 CGC 6.5 sits in the raw pool with `graded = false`. Proposed belt (WWLO 09-17 Q1): three label tests in SQL on both pools — filing (annual, Vol N M, #N.N), condition (coverless/incomplete/partial/page-only/NG/restored/qualified), edition (golden record, marvel milestone, true believers, 2nd print, treasury, marvel tales, omnibus) — measured on the 1963 book: 4.5 comps 4 → 3 (median unchanged), raw median $260 → $5,990 on three rows. **Field evidence 2026-09-17 (2):** 12 raw eBay rows of the 1990 Spider-Man #1 are filed under Amazing Spider-Man #1 (`title_year` 1990, median $6.54) — outside the 1963 cluster after the multi-edition narrowing, still wrong rows. **Field evidence 2026-09-17:** ASM #300's two graded Whatnot rows are filed under `canonical_title` "Bid" / "30 Pre-Bids" (the DOM lot label) and match neither valuation endpoint's title clause — the corpus holds the comps and cannot find them. Candidate fix: word-boundary matching and a minimum alias length, with a corpus
     differential on `canonical_title` before/after (the backend normaliser is separate; check whether it
     shares the table). Evidence: WWLO 09-16 (2.46.0 entry).
 
@@ -216,8 +216,10 @@ rediscovered.
     narrowing, print the edition line in the overlay. Evidence: WWLO 09-17 (multi-edition build entry).
 
 20. **The listing path inherits the report's edition state and grade provenance — BUILT 2026-09-17 (eBay path:
-    `js/ebay-modal.js`, `routes/ebay.py`, `ebay_description.py`, `ebay_listing.py`, `collection.html`), in the
-    working tree pending commit + deploy + purge; the marketplace/Whatnot generators are the QUEUED follow-on
+    `js/ebay-modal.js`, `routes/ebay.py`, `ebay_description.py`, `ebay_listing.py`, `collection.html`), ⚰️ ~~in the
+    working tree pending commit + deploy + purge~~ **SHIPPED `4a70809` 2026-09-17, deployed and purged; served
+    `js/ebay-modal.js` contains "Raw est." (Mike's check, 2026-09-18). Not exercised live: a generated description
+    and an eBay draft**; the marketplace/Whatnot generators are the QUEUED follow-on
     (same `verdict_basis` passthrough + prompt rule). WWLO 09-17 (three-units entry).** Original: eBay title prints a bare "3.5" with no "estimated" qualifier; the description asserts the 1963
     book on a report whose valuation was withheld for lack of a year; the price copy says grading fees ~$20–$40
     where the report said $384. One unit: the listing payload carries `edition_span`/`edition_used`/
@@ -225,17 +227,33 @@ rediscovered.
     Evidence: WWLO 09-17 (four-items entry).
 
 21. **The three null renderers — BUILT 2026-09-17 (`js/collection.js` + two subtitle divs in `collection.html`),
-    in the working tree pending commit + purge; WWLO 09-17 (three-units entry). FOLLOW-ON (verifier, 09-17): `dashboard.html:416,440,454` sum `parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0` — the same null-as-$0 on the dashboard; not built.** Original:
+    ⚰️ ~~in the working tree pending commit + purge~~ **SHIPPED `a2cf34a` 2026-09-17, purged; served
+    `js/collection.js` contains "without a figure" (Mike's check, 2026-09-18)**; WWLO 09-17 (three-units entry). FOLLOW-ON (verifier, 09-17): `dashboard.html:416,440,454` sum `parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0` — the same null-as-$0 on the dashboard; not built.** Original:
     `js/collection.js:552` (detail panel "$0.00"), `:750` (alert "$null"), totals/sorts at `:133`, `:240–274`;
     visible on every withheld report behind the eBay modal. Purge only. Evidence: WWLO 09-17.
 
 22. **Registration purge job + self-serve account deletion — the build that would let the privacy and terms pages
     promise them (logged 2026-09-17, not scoped).** Today: no job deletes a Slab Guard registration on any timeline,
-    nothing runs on downgrade, and account deletion is request-only by runbook. privacy.html now says so (unit
-    2026-09-17); `terms.html:490` still promises a 90-day purge after account deletion — same fix, next small unit.
-    Companion, docs only: `docs/SW_deletion_request_runbook.md` needs a `comic_registry` step so "deleting your account
-    deletes your registrations" is executed, and the `comic_registry.user_id` cascade should be confirmed in the live
-    schema. Evidence: WWLO 09-17 (privacy entry).
+    nothing runs on downgrade, and account deletion is request-only by runbook. privacy.html, terms.html and the
+    deletion runbook now say so (one unit, 2026-09-17, pending commit + purge). The cascade is confirmed in the live
+    schema (`comic_registry.user_id` ON DELETE CASCADE). **`sighting_reports.serial_number` references the registry
+    WITHOUT a cascade, so until the schema changes the runbook deletes sighting rows first, by hand (Mike, session
+    close 2026-09-17); the schema fix — a cascade or an explicit cleanup — belongs with this item, beside the purge
+    job and self-serve deletion, not in the runbook.** What this item builds: the purge job (if a timeline is ever
+    promised again), self-serve account deletion, and that cascade. Evidence: WWLO 09-17 (registration-retention entry).
+
+23. **Operator traffic counted as demand (logged 2026-09-18, Mike; not scoped, not built).** The 09-17 capture
+    schedule's demand table counted anonymous `valuation` lookups, and some were Mike's and Claude's post-deploy
+    curls (X-Men #1: 4 lookups, 0 users). `lookup_demand` stores neither an IP nor a header — only `user_id` and
+    `is_internal`, and `is_internal` is set from `g.admin_id` alone (`routes/sales_valuation.py:150`), so a curl
+    with no JWT is written as an anonymous external row. **Which: the HEADER, not the IP** — the existing
+    `X-Operator-Key` (`auth.operator_key_status()`, already imported in that file): a valid key sets
+    `is_internal = true`. No schema change, no personal data added to a demand table, and it follows the operator
+    to any network; an IP column would be a new retained identifier and breaks on the first address change.
+    Build = one condition in `_record_demand` + `deploy`; the verification curls then send the key from the local
+    env. **Until it ships, the next version of the demand query ranks on rows with `user_id IS NOT NULL AND
+    is_internal = false` and reports the anonymous count beside it, unranked** — rows already written cannot be
+    told apart after the fact. Evidence: WWLO 09-18.
 
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
@@ -298,6 +316,25 @@ is authoritative; the docx is stale.** Not updated here — Mike holds project s
 frontend changes purge after the Pages build completes (never on the push); backend changes deploy
 (auto-deploy is OFF); extension changes bump the manifest in the same commit. Verification agent before
 any unit is presented.
+
+---
+
+## 🧭 Strategy items — NOT builds
+
+### Valuation-as-a-service (logged 2026-09-18, Mike). A strategy item; nothing here is scoped or queued to build.
+
+The Dealer tier and the operator key are halfway to an API product. The differentiator as of this week is
+edition awareness (pools narrowed by year, figures withheld when the edition is unresolved) and grade
+provenance (a certified grade and an estimate are never printed as the same thing).
+
+**Three open questions before it is a build:**
+1. **Rights** to redistribute comps derived from eBay and Whatnot sold listings — how GoCollect and CovrPrice
+   handle it.
+2. **Protecting the consumer flywheel** that feeds the corpus.
+3. **The operational surface:** auth, rate limits, SLA, billing.
+
+**First likely customer: Courtyard.io** — an undisclosed FMV model pricing its buybacks, expanding into comics
+(`docs/business/COMPETITORS.txt`, 2026-09-17 entry). **A pilot conversation precedes any build.**
 
 ---
 

@@ -250,7 +250,7 @@ Without a bump, **a forgotten or failed reload is indistinguishable from a succe
 class of silent no-op as a Render deploy that doesn't fire. The version in `chrome://extensions` is the
 only observable proof the reload took. This bit us once: `ebay-collector` sat at **1.3.5 from
 2026-03-19** while `content.js` changed repeatedly through July–August — ~4.5 months of unverifiable
-reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-14; ⚰️ the 2026-08-24 list read 2.42.1 / 1.0.0 and was stale for two of three from 08-28 — corrected by the pattern sweep): `ebay-collector` 1.4.0 (**1.5.0 built 2026-09-17** — the count-as-grade parse; reload NOT yet confirmed, flip this when Mike confirms on `chrome://extensions`),
+reloads. **Resolved — it is now 1.4.0.** Current versions (2026-09-18; ⚰️ the 2026-08-24 list read 2.42.1 / 1.0.0 and was stale for two of three from 08-28 — corrected by the pattern sweep): `ebay-collector` **1.5.0** (the count-as-grade parse, `b80a284`; ⚰️ ~~1.4.0, "1.5.0 built, reload NOT yet confirmed"~~ — reload confirmed by Mike 2026-09-18: `chrome://extensions` shows 1.5.0, open eBay tabs refreshed or closed),
 `whatnot-valuator` 2.47.0 (reload confirmed by Mike in the banner 2026-09-16; grade provenance build), `slab-guard-monitor` 1.0.1.
 
 **Scheme (semver; existing history 1.0.4 → 1.1.0 → 1.3.5 → 1.4.0):**

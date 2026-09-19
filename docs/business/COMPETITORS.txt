@@ -282,7 +282,37 @@ Based on competitor gaps, prioritize:
 | Tabi | ~40 comics | Subscription |
 | GPA | None | ~$99/year |
 
+*Note: This analysis is based on public information, app store reviews, and web research as of January 2026. Competitor features and pricing may change.*
+
+
 ---
 
-*Note: This analysis is based on public information, app store reviews, and web research as of January 2026. Competitor features and pricing may change.*
+Courtyard.io (downstream, adjacent; not a competitor as of 2026-09-17)
+
+What: tokenized vault marketplace for graded collectibles. Owner sends in a slabbed item, Brink's stores and insures it, Courtyard mints a 1:1 token, item trades on their marketplace without shipping, redeemable any time. Revenue from mystery packs, slab vending machines and an instant buyback at a percentage of their own undisclosed FMV; 0% seller fee on vaulted items. YC W22, $30M Series A, founders ex-Google and ex-Apple. Primary category is graded cards; comics, watches and others added to marketplace copy.
+
+Overlap with Slab Worthy: an internal FMV model used to price their buyback. Not sold as a tool, not disclosed. No raw-book product, no grade estimate, no slab-ROI verdict. Their input is our output.
+
+Relationship: the user who gets a "worth the slab" verdict and sends the book to CGC is Courtyard's next customer. Channel or partner shape, not head-to-head. Their card-first, comics-added trajectory is the mirror of our comics-first, cards-Q4 plan; watch their comic inventory as a read on what a funded team thinks that market wants.
+
+Threat scenario: if they build or partner a raw-to-vault on-ramp ("send us the raw book, we grade and vault it") they need our front end and have the capital to build or buy it. Reason to open a conversation first, not a reason to defend.
+
+Slab Guard fit: weak. A vaulted book has no theft-recovery problem. Slab Guard's buyer stays the LCS and the con floor.
+
+Talking point for a partnership pitch: their reviews complain about low-end slabs cluttering the marketplace. Slab Worthy's ROI verdict stops those slabs being made.
+
+
+--- New as of 9-18-26 ---
+
+
+
+SpinnerRack.io (watch, unverified; 2026-09-17)
+Landing page claims a fifty-screen collector platform on iOS and Android: catalog, market dashboard, AI chat, AI grading, CGC submission tools, deal finder, trade board, gamification, community. No search footprint as of 09-17: no reviews, press, or store-listing hits. Page describes itself as "designed from a complete feature map," no grading method, photo count, sales-data source or number named. Treat as a claim until a grade on a real book is seen. If real, native mobile and gamification are the differentiating axes.
+
+AI Comic Grading (live; aicomicgrading.com; 2026-09-17)
+Native iOS and Android. Grades on the 0.5 to 10 scale from photos with a questionnaire; spine-photo guidance. Free credits tapering to paid credit packs. Play Store update within the past month. Positioning: grade before you buy at a show, no slab needed. Support replies ask users for the CGC cert number to check a disputed grade, which is a ground-truth loop run through the inbox. No evidence of multi-photo structured scoring, grade provenance, or an edition-aware comp pool.
+
+ComicMintAI (update; 2026-09-17)
+Copy now sells the Slab Worthy wedge directly: raw versus slabbed side by side minus the fee, a straight answer on whether slabbing nets more than selling raw, sort a long box by expected net return and send only the books that clear break-even. Browser-based, no install, cloud-synced collection, sub-grade breakdown (centering, corners, edges, surface). Quality of the numbers unverified; the positioning is no longer ours alone.
+
 

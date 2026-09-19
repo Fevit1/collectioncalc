@@ -82,3 +82,58 @@ Total ≈ **$1.39** at standard rates, no batch (the sample is interactive).
 
 Assert `cache_read_input_tokens > 0` on the first calls: a silent cache miss is
 a 2.7× cost event, and a rubric under 1,024 tokens does not cache at all.
+
+---
+
+## 2026-08-30 — running total: **$3.49** (standard rates) · est. before runs 2-4
+
+**Scope note:** in-scope. The re-grade harness is a Claude-initiated sweep, not
+user-driven grading — Mike chooses to start it and it re-grades retained photos
+against rubric variants. Purpose: establish the noise floor and measure whether
+passing publication year to the prompt breaks the 9.0 grading ceiling.
+
+| # | run | est. | actual | notes |
+|---|-----|------|--------|-------|
+| 3 | Re-grade harness smoke test — 3 books, variant baseline | ~$0.100 | **$0.094** | −6%. Pipeline proof before spending on the full set. All 3 grades identical to stored; defect flags moved. |
+| 4 | Re-grade harness — 36 books, variant baseline (run 1 of 2) | **$1.132** | | Noise floor, first half. |
+| 5 | Re-grade harness — 36 books, variant baseline (run 2 of 2) | **$1.132** | | Noise floor, second half. Run 4 vs run 5 **is** the measurement. |
+| 6 | Re-grade harness — 36 books, variant A (year passed to prompt) | **$1.132** | | Read only against the run-4/run-5 delta. Primary question: does any book cross 9.0? |
+
+**Estimated session total: $3.49** at standard $3/$15. Under the $10 ceiling, so
+no written permission needed. Model: `claude-sonnet-4-6`, temperature 0.
+
+⚠️ **Rate question, unresolved:** the header records an intro rate of $2/$10
+through 2026-08-31, attributed to Sonnet 5. These runs are on
+`claude-sonnet-4-6`. If the intro rate applies here, the session is ~$2.33
+rather than $3.49. Recorded at standard rates because assuming the discount
+would understate the ceiling. Verify against the actual invoice.
+
+### Estimate calibration — the smoke test already moved the number
+
+- **Frodo's basis was 7,100 input tokens per 4-photo book. Actual: 6,207. The
+  estimate ran 12.6% high.** Output was 855 against a basis of 850, within 1%.
+- The per-run figure was therefore revised **$1.22 → $1.132** before spending
+  anything, and the three-run total from $3.66 to $3.40. The smoke test paid for
+  itself in estimate accuracy before it proved the pipeline.
+- Consistent with the 2026-08-14 lesson in reverse: re-estimating from a *larger*
+  in-hand sample is exactly when a correction is warranted. The CP-1 mistake was
+  re-estimating from a smaller one.
+
+---
+
+## 2026-09-18 — running total: **$0.0002** (actual) · Opus 4.8 at $5 / $25 per MTok
+
+**Housekeeping:** this file was found UTF-16LE in the working tree (git saw it as binary, 4,389 → 13,430
+bytes; a PowerShell redirect is the likely cause). Converted back to UTF-8 / LF on Mike's go, content
+unchanged: HEAD's text is a byte-for-byte prefix of the decoded file, and the 2026-08-30 section above is
+the only addition it carried. ⚠️ Runs 4–6 of 2026-08-30 still have no actuals recorded.
+
+| # | run | est. | actual | notes |
+|---|-----|------|--------|-------|
+| 7 | Signature matcher probe — 1 text-only call to `claude-opus-4-8` with `temperature=0.2`, `max_tokens=5` | ~$0.0001 | **$0.0002** | **RESULT: 400 — "`temperature` is deprecated for this model."** Control without the parameter → 200 (16 in / 4 out, the only billed call). Does the model the v2 matcher calls accept the parameter the matcher sends? A 400 costs nothing. Approved by Mike 2026-09-18. |
+
+Queued behind Mike's design choice, NOT approved, NOT run: signature cross-validation (one pass, cached)
+**$5.70** est. / $7.00 worst case; external 100-row test (one pass, cached) **$8.10** est. / $9.40 worst
+case. Together $13.80 — over the ceiling on one day. Basis: `count_tokens` on a real 15 × 4 + 1 request =
+38,903 input tokens; output assumed 1,000 per pass (unmeasured; cap 1,500).
+Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.

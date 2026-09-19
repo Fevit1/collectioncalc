@@ -1,10 +1,116 @@
-# Where We Left Off - Sep 17, 2026
+# Where We Left Off - Sep 18, 2026
 
-## 2026-09-17 — 🔧 **PRIVACY PAGE: the Slab Guard retention paragraph replaced (Mike's copy, verbatim) and "delete your account" → "ask us to delete your account". `privacy.html` only, one commit, push, `purge`. In the working tree pending Mike's commit. The two pre-edit checks both came back the way the copy needed: nothing purges or freezes a registration, and account deletion is request-only.**
+## 2026-09-18 — ✅ **THE THREE 09-17 UNITS ARE SHIPPED AND VERIFIED LIVE on Mike's confirmations (page unit `b80a284`, item 21 `a2cf34a`, item 20 `4a70809`; `ebay-collector` 1.5.0 reload confirmed). Two records additions (operator traffic in the demand table → ROADMAP item 23; valuation-as-a-service → ROADMAP strategy section). Signature measurement unit: prep only, $0.0002 (probe), estimate delivered, blockers found. The privacy unit is pending Mike's two commits, push, purge and the four checks.**
 
-**MOST RECENT CHANGE (Rule 5): `privacy.html` lines 353–364 edited; `git log -1` = `aa84391`, nothing committed.
-Supersedes the page's own HTML comment ("✅ 90 DAYS IS CORRECT HERE"), now a tombstone in the file, and the "queue the
-purge for the terms page" thread — this unit is privacy.html; terms.html is named below as still wrong.**
+**MOST RECENT CHANGE (Rule 5): the page unit, item 21, item 20 and CLAUDE.md's 1.5.0 line flipped from "pending"
+to shipped, 2026-09-18, on Mike's observed values. Supersedes the "pending Mike's commits / reload NOT yet
+confirmed" wording in the 09-17 session-close and three-units entries below and in ROADMAP items 16, 20, 21.
+`git log -1` at the flip = `d6fbb68`, 0 commits ahead of `origin/main`.**
+
+**As observed by Mike (2026-09-18), against what was expected:**
+- `ebay-collector`: `chrome://extensions` shows **1.5.0**; open eBay tabs refreshed or closed.
+- X-Men #1 @ 9.0 / 1963: `raw_fmv` **3829.79**, `raw_sample_size` **15**, `graded_fmv` 22387.5, `fmv_method`
+  interpolated, edition 1963 alone — as expected.
+- X-Men #1 @ 9.0, no year: `verdict_basis` `multi_edition`, `price_curve` empty, `ci_95_low` null,
+  `raw_sample_size` 528 — as expected (the withheld response no longer leaks the un-narrowed curve).
+- ASM #1 @ 4.5 / 1963: `graded_fmv` 9587.5 on 3, `raw_fmv` 4620.0 on 4 — unchanged.
+- Served `js/collection.js` contains "without a figure"; served `js/ebay-modal.js` contains "Raw est.".
+- Not exercised live and still not: a generated eBay description and an eBay draft (item 20).
+
+⚰️ **DEAD:** "Three units built, in the working tree pending Mike's commits"; "1.5.0 built, reload NOT yet
+confirmed". **REPLACED BY** this entry. **REASON:** committed 09-17 21:32–21:33 PDT, deployed and purged that night,
+asserted by Mike 09-18. **SUPERSEDES** the three-units ship block — do not re-present it.
+
+**Privacy unit — what is pending:** Mike's commit of `privacy.html`, `terms.html`,
+`docs/SW_deletion_request_runbook.md`; a records commit; push; the Pages build; `purge`; the four PowerShell checks
+in the registration-retention entry below. That entry and ROADMAP item 22 flip on Mike's confirmation of the checks.
+
+**Addition 1 — the demand table counted operator traffic (Mike).** The capture schedule's demand table counted
+anonymous `valuation` lookups, and some were Mike's and Claude's post-deploy curls this week (X-Men #1: 4 lookups,
+0 users). "External users only" in the 09-17 entry was wrong in effect: `is_internal` comes from `g.admin_id` alone,
+so an unauthenticated curl is an anonymous external row. `lookup_demand` has no IP and no header column. **Which:
+the header, not the IP** — a valid `X-Operator-Key` sets `is_internal = true`; reasons and the interim query rule
+(rank on `user_id IS NOT NULL AND is_internal = false`, report the anonymous count beside it unranked) are in
+ROADMAP item 23. Not built. The 15 demand adds in the 09-17 schedule were drawn from the top 30 of a thin table
+(top pair 4 lookups); any add whose only demand was anonymous is suspect until the query is re-run.
+
+**Addition 2 — valuation-as-a-service (Mike), a strategy item, not a build.** Recorded in ROADMAP under
+"Strategy items — NOT builds": the Dealer tier and operator key as half an API product; edition awareness and grade
+provenance as the differentiator; three open questions (comp redistribution rights — GoCollect / CovrPrice;
+protecting the consumer flywheel; auth, rate limits, SLA, billing); Courtyard.io as first likely customer; a pilot
+conversation precedes any build.
+
+**Signature measurement unit — prep only, $0.0002 (the probe), no matcher call.** Full findings:
+`docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`. Reference set verified loaded: 389 images, 99 of 100
+creators; below the matcher's floor of 2: Whilce Portacio (0), Ryan Stegman (1), Warren Ellis (1). Measured 38,903
+input tokens per pass → $0.22 a pass, $0.66 per three-pass identification on Opus 4.8; (2) as written is $255 and
+(3) is $66, so both stopped at the estimate; the one-pass cached designs are $5.70 and $8.10. Blockers found, not
+fixed: `temperature` is sent to `claude-opus-4-8` — **PROVEN by probe 2026-09-18 ($0.0002, Mike's go): 400
+"`temperature` is deprecated for this model", control without it 200** — so the v2 match route has failed on
+every request since the 06-23 model switch (the match log's last row is 06-16), and a three-temperature design
+cannot run on this model; every reference is labelled `image/jpeg` while most are PNG; the
+pre-filter's 15 is arbitrary among 94 creators tied at four images. Part 3 needs no eBay request — 5,002 signed
+slab rows already have an R2 image. The design choice and the run are Mike's call.
+
+## 2026-09-17 — 🌙 **SESSION CLOSE (Mike; conversation `400d6215-43b0-422d-8e2d-0a113456906b` on the Bilbo side, covering the label-test unit through the page unit, the $9.99 unit, the multi-edition unit, the corpus relabel and cleanups, the capture schedule, and the privacy unit). Mike is stopping after the `deploy` and `purge` of `d6fbb68`. The privacy unit is approved as built and ships TOMORROW. No records flipped tonight; no commit, push, deploy, purge, or database write until Mike is back.**
+
+**MOST RECENT CHANGE (Rule 5): session closed with the three code units and the first records pass committed as
+`d6fbb68`, their deploy and purge in Mike's hands tonight, and the registration-retention unit (`privacy.html`,
+`terms.html`, `docs/SW_deletion_request_runbook.md`) built, approved and UNCOMMITTED in the working tree with the
+records that describe it. Supersedes nothing; the entries below stand.**
+
+**Working tree at close (mine):** `privacy.html`, `terms.html`, `docs/SW_deletion_request_runbook.md`,
+`docs/sessions/WHERE_WE_LEFT_OFF.md`, `docs/sessions/ROADMAP.txt`. Not mine, pre-existing: `docs/API_SPEND_LEDGER.md`,
+`docs/business/COMPETITORS.txt`. `CLAUDE.md` is committed with `ebay-collector` 1.4.0 and "1.5.0 built, reload NOT yet
+confirmed" — that line flips only on Mike's confirmation.
+
+**Tomorrow's sequence (Mike's order; confirmation of each step comes to me BEFORE the matching record flips):**
+1. `ebay-collector` 1.5.0 reload, with every open eBay tab refreshed or closed; version confirmed on `chrome://extensions`.
+2. The three post-deploy curls (X-Men #1 @ 9.0/1963 → `raw_fmv` 3829.79 on 15; X-Men #1 @ 9.0 no year → withheld,
+   `price_curve` `[]`, `ci_95_low` null; ASM #1 @ 4.5/1963 unchanged at 9587.5 / 4620.0) and the two frontend checks
+   (served `js/collection.js` contains "without a figure"; served `js/ebay-modal.js` contains "Raw est.").
+3. The privacy unit: `git add privacy.html terms.html docs/SW_deletion_request_runbook.md` → commit; `git add
+   docs/sessions/WHERE_WE_LEFT_OFF.md docs/sessions/ROADMAP.txt` → commit; push → wait for the Pages build → `purge` →
+   the four PowerShell checks in the registration-retention entry below.
+Then the flips: CLAUDE.md to 1.5.0 confirmed; the three-units entry and ROADMAP items 16, 20, 21 from "pending" to
+shipped with the curl values as observed; the registration-retention entry and item 22 to shipped.
+
+**The background-task explanation is accepted and the three rules stand** (stop a backgrounded call once its work is
+redone elsewhere; scratch scripts close their connection in `finally`; never a bare `cat >`).
+
+**Open after tomorrow's ship, in ranked order (Mike):**
+1. The marketplace and Whatnot generator halves of item 20 — the same `verdict_basis` passthrough and prompt rule as
+   the eBay path (`marketplace_prep.py`, `whatnot_description.py`, `routes/marketplace.py`, `routes/whatnot.py`,
+   `js/marketplace-modal.js`).
+2. The dashboard $0 follow-on to item 21 (`dashboard.html:416,440,454`).
+3. The corpus backfills under item 16 (Vol-parse, Annual, slab-flag, count-as-grade and slab-lot rows; counts and
+   the count-first query are in the entries below).
+4. The Whatnot 2.47.0 field read after Mike's next capture evening (the expiry bound from real switches; item 13 storm
+   verification).
+
+## 2026-09-17 — 🔧 **REGISTRATION-RETENTION UNIT, WIDENED BY MIKE: `privacy.html` (Mike's paragraph, verbatim), `terms.html` (the same promise in the terms voice, plus "asking us to delete your account" in the Termination line), and `docs/SW_deletion_request_runbook.md` (a registrations step, so "deleting your account deletes your registrations" is carried by the procedure). One commit, push, wait for the Pages build, `purge`. In the working tree pending Mike's commit. The two pre-edit checks both came back the way the copy needed: nothing purges or freezes a registration, and account deletion is request-only.**
+
+**MOST RECENT CHANGE (Rule 5): the unit is three files, not one — Mike widened it before the commit. `git log -1` =
+`aa84391`, nothing committed. Supersedes: both pages' HTML comments ("✅ 90 DAYS IS CORRECT HERE"), now tombstones in
+the files; and the "privacy.html only" ship block of the first draft of this entry. Mike committed the three code
+units and the first records pass as `d6fbb68` while this was being widened; the records files carry this widening and
+need one more records commit beside the unit.**
+
+**The orphaned background task (Mike's question).** "Profile vision-sourced market_sales rows and the title-vs-DOM
+mismatch proxy" ran from 2026-09-15 22:24Z until Mike stopped it 2026-09-18 04:28Z, 54 hours. **It held no database
+connection and did no work at all:** its output file holds only "[killed]". The command began with a stray
+`cat > "$TMP/../q1.py" 2>/dev/null;` — a `cat` with no input, which blocked on stdin forever, so the heredoc that
+wrote the real script and the `python` that would have opened the connection never ran (the re-run 21 seconds later
+failed with "q1.py: No such file"). The harness moved the 120-second-timed-out call to the background; I read its
+empty output, re-ran the profile in a fresh call, reported from that, and never issued TaskStop on the orphan.
+`pg_stat_activity` now (RO role, which sees only its own backends): 0 connections idle over an hour; the two
+app-user backends are opaque to that role. Rules from it: a call the harness backgrounds on timeout is stopped the
+moment its work is redone elsewhere; scratch scripts close their connection in `finally`; never a bare `cat >`.
+
+**Same-day fact for the runbook step:** `comic_registry.user_id` IS `ON DELETE CASCADE` in the live schema (the repo
+has no CREATE for the table; checked `pg_constraint`), `match_reports.registry_id` cascades, `sighting_reports.serial_number`
+does NOT — so the runbook deletes sightings first. Registrations are fingerprint-only (no image column; a
+`certificate_url` may point at R2). Live: 23 registrations, 21 active, 2 recovered, 0 sightings.
 
 **Check 1 — nothing deletes or freezes registrations on downgrade: TRUE.** `routes/billing.py`'s Stripe handlers
 (`handle_subscription_updated`, `handle_subscription_deleted`) write `users.plan`/`users.status` only; the only
@@ -22,21 +128,32 @@ repo shows no `ON DELETE CASCADE` for `comic_registry.user_id` — so "Deleting 
 well" is a promise the runbook must carry: add "delete `comic_registry` rows for the user" to it (docs, not in this
 commit). Item 22.
 
-**Not in this commit, named so it cannot be lost:** `terms.html:490` still says registrations are kept "for 90 days" after
-account deletion, under a comment block that makes the same "verified against privacy.html" claim. Same false promise,
-same fix, next small unit.
+**terms.html, in this commit (Mike's widening):** line 490 carried the same 90-day promise under a comment making the
+same "verified against privacy.html" claim; now the registrations paragraph in the terms voice (account deletion
+deletes them within 30 days; otherwise retained as long as they exist, including on downgrade; any or all deletable
+on request within 30 days; the export sentence kept). The Termination line's "deleting your account" is now "asking
+us to delete your account" — the same request-only fact. The comment's separate note about the "Your Content" licence
+grant being broader than privacy.html's is untouched and still stands.
+
+**Runbook, in this commit:** Step 2 gains the registrations scope; a new Step 3b lists the rows, says what deleting a
+`reported_stolen` registration means (it stops being matchable, so the confirmation must say so; the owner may keep
+that one when the request is "some"), deletes `sighting_reports` first, then `comic_registry` (match reports cascade),
+and states that a whole-account delete cascades the registrations by itself but still needs the sightings delete first.
 
 **Lesson candidate (not written to LESSONS.md):** the dead comment had verified the 90 days against two other pages and
 told the next reader not to reconcile — copy checked against copy. The check that would have caught it is copy against
 mechanism: "which job deletes these rows?" (the reachability rule, applied to a promise instead of a feature).
 
-**Ship block (Mike):** `git add privacy.html` → commit → push → **wait for the Pages build** → `purge`. Post-purge:
-`curl -sL https://slabworthy.com/privacy | grep -c "complete the request within 30 days"` → 1, and the Slab Guard
-paragraph (`grep -o '<p><span class="highlight">Slab Guard registrations:</span>[^<]*'`) contains no "90 days". ("90
-days" still appears on the page twice by design: the Grading Data card's "We previously said 90 days" history line and
-the tombstone comment.)
+**Ship block (Mike):** `git add privacy.html terms.html docs/SW_deletion_request_runbook.md` → one commit → push →
+**wait for the Pages build** → `purge`. Post-purge (PowerShell):
+`curl.exe -sL https://slabworthy.com/privacy | Select-String "complete the request within 30 days"` → one line;
+`curl.exe -sL https://slabworthy.com/terms | Select-String "complete the request within 30 days"` → one line;
+`curl.exe -sL https://slabworthy.com/privacy | Select-String "Slab Guard registrations:</span>[^<]*90 days"` → nothing;
+`curl.exe -sL https://slabworthy.com/terms | Select-String "What happens to your data:</span>[^<]*90 days"` → nothing.
+("90 days" still appears on the privacy page by design in the Grading Data card's history line and in both tombstone
+comments.)
 
-## 2026-09-17 — 🔧 **THREE UNITS BUILT, in the working tree pending Mike's commits: (1) the PAGE-PATTERN unit (single pages and cover-only out of every pool — "detached" was in for one cut and Mike took it out; slab lots out of the eBay pools; the count-as-grade parse fixed in BOTH parsers; the withheld response no longer returns the un-narrowed curve or CI) — backend + `ebay-collector` 1.5.0 + fixture → `deploy`, extension reload, no purge; (2) ROADMAP item 21, the three null renderers → `purge` only; (3) ROADMAP item 20, the listing path inherits grade provenance and edition state (eBay path) → `deploy` AND `purge`. No database write. Capture schedule decided by Mike; the 2026-09-17 docx replaces the August one (committed with the records, `aa84391`).**
+## 2026-09-17 — 🔧 ⚰️ **[STATUS SUPERSEDED 2026-09-18: all three SHIPPED `b80a284` / `a2cf34a` / `4a70809` and verified live — see the 09-18 entry at the top; the ship block at the foot of this entry is EXECUTED, do not re-run]** **THREE UNITS BUILT, ~~in the working tree pending Mike's commits~~: (1) the PAGE-PATTERN unit (single pages and cover-only out of every pool — "detached" was in for one cut and Mike took it out; slab lots out of the eBay pools; the count-as-grade parse fixed in BOTH parsers; the withheld response no longer returns the un-narrowed curve or CI) — backend + `ebay-collector` 1.5.0 + fixture → `deploy`, extension reload, no purge; (2) ROADMAP item 21, the three null renderers → `purge` only; (3) ROADMAP item 20, the listing path inherits grade provenance and edition state (eBay path) → `deploy` AND `purge`. No database write. Capture schedule decided by Mike; the 2026-09-17 docx replaces the August one (committed with the records, `aa84391`).**
 
 **MOST RECENT CHANGE (Rule 5): `git log -1` = `aa84391`; nothing from these three units is committed. Supersedes the
 "proposed, not built" lines for the page shapes, the slab-set parse and the withheld curve in the four-items entry
