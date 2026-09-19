@@ -1854,3 +1854,8 @@ textarea.form-input {
 .sw-toast.show { transform: translateY(0); opacity: 1; }
 .sw-toast.success { border-left-color: var(--status-success); }
 .sw-toast.error { border-left-color: var(--status-error); }
+/* Signature ID result block (2026-09-18). In the list view the card is a 9-column
+   grid and this block is a direct child: without a span it auto-placed into the
+   80px thumbnail column and wrapped one word per line. */
+.sig-results { min-width: 0; }
+.comics-list .comic-card > .sig-results { grid-column: 1 / -1; }

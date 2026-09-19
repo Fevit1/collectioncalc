@@ -511,7 +511,7 @@ function createComicCard(comic) {
                         🗑️
                     </button>
                 </div>
-                <div id="sig-results-${comic.id}" style="display: none;"></div>
+                <div id="sig-results-${comic.id}" class="sig-results" style="display: none;"></div>
             </div>
         `;
     }
@@ -604,7 +604,7 @@ function createComicCard(comic) {
                             🗑️ Delete
                         </button>
                     </div>
-                    <div id="sig-results-${comic.id}" style="display: none;"></div>
+                    <div id="sig-results-${comic.id}" class="sig-results" style="display: none;"></div>
                 </div>
             </div>
         `;
@@ -1193,6 +1193,7 @@ async function handleCollectionIdentifySignatures(event, comicId) {
     if (!container) {
         container = document.createElement('div');
         container.id = `sig-results-${comicId}`;
+        container.className = 'sig-results';
         container.style.display = 'none';
         if (btn && btn.parentNode) {
             btn.parentNode.insertAdjacentElement('afterend', container);
@@ -1231,9 +1232,12 @@ async function handleCollectionIdentifySignatures(event, comicId) {
         // Display v2 results
         displaySignatureV2Results(result, container);
 
-        // If confident match, save signature_data via PUT
+        // Save signature_data ONLY on the server's `matched` (its 0.50 floor). This
+        // page used its own 0.40 here and a 0.25 "possible" tier below it, so a
+        // result the server called no-match could be saved as a badge or toasted
+        // as "Possible: <name> (26%)" beside a block saying no match (2026-09-18).
         const topMatch = result.top5 && result.top5[0];
-        if (topMatch && topMatch.confidence >= 0.40) {
+        if (result.matched === true && topMatch) {
             const sigData = {
                 creator: topMatch.creator,
                 confidence: topMatch.confidence,
@@ -1260,10 +1264,8 @@ async function handleCollectionIdentifySignatures(event, comicId) {
             } catch (e) {
                 console.error('Failed to save signature data:', e);
             }
-        } else if (!topMatch || topMatch.confidence < 0.25) {
-            showToast('No signatures detected on this cover', 'info');
         } else {
-            showToast(`Possible: ${topMatch.creator} (${Math.round(topMatch.confidence * 100)}% — low confidence)`, 'info');
+            showToast('No confident signature match — see the note on this comic', 'info');
         }
     } catch (error) {
         container.innerHTML = `<div style="padding: 8px; color: var(--status-error); font-size: 12px;">Error: ${error.message}</div>`;

@@ -442,10 +442,34 @@ async function identifySignaturesV2(imageB64, metadata = {}) {
  * @param {HTMLElement} container - Target element to render into
  */
 function displaySignatureV2Results(result, container) {
-    if (!result.top5 || result.top5.length === 0 || result.top5[0].confidence < 0.25) {
+    // BELOW THE FLOOR (2026-09-18). `matched` is the server's decision (top
+    // confidence >= LOW_CONFIDENCE_THRESHOLD, routes/signature_orchestrator.py) and
+    // this page reflects it, never re-decides it. Below the floor NO candidate and
+    // NO percentage is shown: the ranking is forced from whichever creators the
+    // pre-filter happened to compare, and it is not stable — two runs on the same
+    // ASM #252 cover nine minutes apart kept rank 1 at 24% / 26% and reshuffled
+    // ranks 2-5 (Romita Jr., McFarlane, Ditko  ->  Ditko, Byrne, Romita Jr.).
+    // A name with a percentage reads as an identification; the model's own note
+    // ("resembles Stan Lee, who was not among the creators compared") is the
+    // honest headline. Notes arrive as the passes' notes joined by " | "; the
+    // first pass's note is shown. Model text is escaped.
+    if (result.matched !== true) {
+        const f = result.flags || {};
+        const note = String(f.notes || '').split(' | ')[0].trim();
         container.innerHTML = `
-            <div style="padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
-                <div style="font-size: 13px; color: var(--text-secondary);">No signatures detected on this cover.</div>
+            <div style="margin-top: 12px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
+                <div style="font-weight: 600; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                    Signature ID — no confident match
+                </div>
+                <div style="font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+                    ${note ? escapeHtml(note) : 'Nothing on this cover matched a signature in our reference set closely enough to name.'}
+                </div>
+                ${f.multiple_signatures_detected ? '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">More than one signature appears to be on this cover. Only the most prominent one was compared.</div>' : ''}
+                ${f.poor_image_quality ? '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">The photo limited the comparison — a closer, sharper shot of the signature may do better.</div>' : ''}
+                <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 10px;">
+                    No creator is named because none was a confident match. For authentication, submit to CGC Signature Series or CBCS Verified Signature
+                    ${result.latency_ms ? ` · ${(result.latency_ms / 1000).toFixed(1)}s` : ''}
+                </div>
             </div>`;
         container.style.display = 'block';
         return;
