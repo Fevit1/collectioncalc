@@ -1138,6 +1138,33 @@ function clearSelection() {
 // ============================================
 
 /**
+ * Transient notice, bottom-right. Added 2026-09-18: this file called showToast()
+ * in eight places and NO script loaded by collection.html defined it (admin.html
+ * and signatures.html each carry their own inline copy). Every call threw a
+ * ReferenceError — a failed delete never told the user its comic was restored,
+ * and a finished signature match had its rendered result replaced by
+ * "Error: showToast is not defined". The element is created on first use;
+ * styles are .sw-toast in js/collection.css.
+ * @param {string} message
+ * @param {'success'|'error'|'info'} [type]
+ */
+let _toastTimer = null;
+function showToast(message, type = 'info') {
+    let toast = document.getElementById('swToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'swToast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.className = 'sw-toast ' + type + ' show';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+/**
  * Handle "Identify Signatures" button click on a comic in the collection.
  * Fetches the front cover from R2 and calls the identify endpoint.
  * @param {Event} event - Click event (to stop propagation in gallery view)

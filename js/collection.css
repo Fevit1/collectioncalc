@@ -1831,3 +1831,26 @@ textarea.form-input {
         flex-direction: row;
     }
 }
+
+/* Transient notice — showToast() in js/collection.js (2026-09-18) */
+.sw-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    max-width: min(360px, calc(100vw - 32px));
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-left-width: 3px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    z-index: 10000;
+    transform: translateY(100px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s, opacity 0.3s;
+}
+.sw-toast.show { transform: translateY(0); opacity: 1; }
+.sw-toast.success { border-left-color: var(--status-success); }
+.sw-toast.error { border-left-color: var(--status-error); }
