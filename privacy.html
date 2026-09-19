@@ -350,18 +350,25 @@
 
         <div class="content-card">
             <h2>Data Retention</h2>
-            <p><span class="highlight">Account data:</span> We retain your account information for as long as your account is active. If you delete your account, we will delete your personal information within 30 days, except where we are required to retain it for legal purposes.</p>
-            <!-- ✅ 90 DAYS IS CORRECT HERE. Slab Guard registrations are a
-                 DIFFERENT DATA TYPE from grading submissions and keep their own
-                 window; the 2026-08-13 change to 24 months applies only to
-                 grading data. Verified against the Grading Data & Image
-                 Retention card below. Do not "reconcile" the two numbers — the
-                 same note applies to terms.html's account-deletion paragraph,
-                 which states the same 90 days about the same registrations.
-                 (L-SW-2026-014: copy investigated and found correct gets a
-                 tombstone, or the next sweep re-raises it and someone
-                 eventually breaks it.) -->
-            <p><span class="highlight">Slab Guard registrations:</span> If you delete your account or downgrade, your Slab Guard registrations are retained in our monitoring database for 90 days. After 90 days, they are permanently deleted. You can request immediate deletion by contacting us.</p>
+            <p><span class="highlight">Account data:</span> We retain your account information for as long as your account is active. If you ask us to delete your account, we will delete your personal information within 30 days, except where we are required to retain it for legal purposes.</p>
+            <!-- ⚰️ THE 90-DAY CLAIM IS DEAD (2026-09-17). The comment that stood here
+                 said "90 DAYS IS CORRECT HERE" and had verified it against the
+                 Grading Data card and terms.html -- copy against copy. Verified
+                 against the CODE the same day: nothing purges a registration
+                 after 90 days (no scheduler, no job, no INTERVAL '90' anywhere in
+                 routes/registry.py or routes/billing.py), and nothing deletes or
+                 freezes one on downgrade (the Stripe handlers write users.plan
+                 and users.status only; comic_registry.status changes only when
+                 the owner reports a comic stolen or recovered). The page promised
+                 a deletion the system does not perform. REPLACED BY the paragraph
+                 below: retained as long as they exist, deletion on request within
+                 30 days. Account deletion is REQUEST-ONLY today (no self-serve
+                 route; auth.reject_user is admin-only), hence "ask us to delete"
+                 in the Account data line above. A 90-day purge job and self-serve
+                 account deletion are the build that would let this page promise
+                 them later (ROADMAP item 22). Same tombstone on the matching
+                 paragraph in terms.html, which ships in the same commit. -->
+            <p><span class="highlight">Slab Guard registrations:</span> Your registrations are retained for as long as they exist in our monitoring database, including if you downgrade from a Guard plan, so that a stolen or recovered comic can still be matched. You can request deletion of any or all of your registrations at any time by contacting <a href="mailto:privacy@slabworthy.com">privacy@slabworthy.com</a>, and we will complete the request within 30 days. Deleting your account deletes your registrations as well, on the same timeline.</p>
             <p><span class="highlight">Grading data and images:</span> See <a href="#grading-data-retention">Grading Data &amp; Image Retention</a> below.</p>
             <p>If you save a graded comic to My Collection, its photos and grade are retained as part of your collection until you delete the comic, at which point we remove its images and grade data.</p>
             <p><span class="highlight">Payment records:</span> Transaction records are retained as required by tax and financial regulations (typically 7 years). Stripe retains payment data in accordance with their own retention policies.</p>
