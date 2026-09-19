@@ -255,6 +255,15 @@ rediscovered.
     is_internal = false` and reports the anonymous count beside it, unranked** — rows already written cannot be
     told apart after the fact. Evidence: WWLO 09-18.
 
+24. **ID Sigs: a progress indicator tied to the three passes (logged 2026-09-18, Mike; AFTER the signature
+    measurement; not scoped).** "Pass 1 of 3" and elapsed seconds, not a decoration — the copy already promises
+    "3-pass, ~90 seconds" (`js/collection.js`). The route is one blocking POST, so honest per-pass progress needs the
+    backend to report it (a stream, or a job id the page polls); a client timer alone is the decoration. Found the
+    same day, NOT fixed: no logging level is configured anywhere, so every `logger.info` in
+    `routes/signature_orchestrator.py` — including `[SigID] match served`, the stated usage signal for unlimited
+    plans — is dropped in production; and the route does not keep `response.usage`, so a match has no measured
+    cost. Evidence: WWLO 09-18 (late).
+
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
 The sweep's static reading says the control throws and the manual valuation path is unreachable; the

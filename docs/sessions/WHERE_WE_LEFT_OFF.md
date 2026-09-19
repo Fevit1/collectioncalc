@@ -1,5 +1,46 @@
 # Where We Left Off - Sep 18, 2026
 
+## 2026-09-18 (late) — ✅ **THE MATCHER FIX IS PROVEN LIVE: Mike's second "ID Sigs" click SUCCEEDED (log row 16, 03:28:45Z, 3 passes, 71 s) — the "showToast is not defined" error came AFTER the result and overwrote it. ~$0.66 was spent; "nothing spent" was wrong. 🔧 showToast unit BUILT (`js/collection.js`, `js/collection.css`), pending Mike's commit, push, Pages build, `purge`.**
+
+**MOST RECENT CHANGE (Rule 5): the signature matcher fix (`547c6dc`, records `ed708fb`) is deployed and verified by a
+real match, 2026-09-18 20:28 PDT. Supersedes "pending Mike's commit + push + `deploy`" and "one real call … as the
+proof" in the entry below — the proof call HAS RUN; a curl would be a second ~$0.66, not the first.**
+
+**What the two clicks were (ASM #252, submission #237).**
+1. Old build: six 400s, "image/jpeg media type but the image appears to be image/png" at content index 2 — blocker 2
+   of the prep doc seen live (the API reports the media-type mismatch before it reports `temperature`). Zero billed.
+2. New build: **200.** `signature_identification_log` row 16: top5 John Romita Sr. 0.243 / Romita Jr. 0.201 /
+   McFarlane 0.191 / Ditko 0.182 / Neal Adams 0.182; below the 0.50 floor, so the route answered an honest
+   `matched: false`. The model's note: "the red loop strongly resembles a 'Stan Lee' signature, but Stan Lee is not
+   in the candidate pool." **Stan Lee IS in the reference set** — the pre-filter left him out of the 15. That is
+   prep-doc blocker 3 (arbitrary pool) on the first live call, and it is what (2)/(3) will mostly measure unless
+   the pool is fixed first.
+3. Why the row showed an error: top confidence 0.243 < 0.25 → `showToast('No signatures detected…')` →
+   ReferenceError → the `catch` replaced the rendered result with the error text.
+4. Why Render showed no route lines: **nothing configures logging** (no `basicConfig`/`setLevel` in `wsgi.py`, the
+   Dockerfile or the module), so the root level is WARNING and every `logger.info` in this route is dropped —
+   including `[SigID] match served`, the line its own comment calls "the per-account usage signal for unlimited
+   plans". The first click was visible only because failures log at ERROR. Logged, not fixed. It also means
+   Render logs CANNOT answer "did Dealer/admin hit the route since 06-23" for successes — only for failures.
+
+**Spend:** the route does not keep `response.usage`, so the proof call has no measured actual; ~$0.66 (estimate) is
+recorded as the charge, today's total ~$0.66. The Anthropic console has the real figure.
+
+### showToast unit — BUILT, pending Mike's commit + push + Pages build + `purge` (frontend only, no `deploy`)
+**File list: `js/collection.js`, `js/collection.css`.** `collection.js` called `showToast()` in eight places and no
+script `collection.html` loads defined it (admin.html and signatures.html have inline copies). Every call threw:
+a failed delete never said the comic was restored (`:714`, `:720`), and every finished signature match lost its
+result. Now a self-contained `showToast(message, type)` in `collection.js` (creates `#swToast` on first use,
+`role="status"`, 4 s) and `.sw-toast` styles on the page's own tokens. `node --check` clean; stub-DOM run: one
+element, reused, classes `sw-toast error show`. No name collision in any script the page loads.
+**Post-purge assert:** `curl.exe -sL https://slabworthy.com/js/collection.js | Select-String "function showToast"`
+→ one line; `curl.exe -sL https://slabworthy.com/js/collection.css | Select-String "sw-toast"` → lines.
+
+**Queued for the frontend list, AFTER the measurement (Mike):** the ID Sigs wait needs a progress indicator tied to
+the three passes — "Pass 1 of 3", elapsed seconds — not a decoration; the copy already promises "3-pass, ~90
+seconds". Note for scoping: the route is one blocking POST, so real per-pass progress needs the backend to report it
+(stream, or a job id the page polls); a client-side timer alone would be the decoration. ROADMAP item 24.
+
 ## 2026-09-18 (evening) — ✅ **PRIVACY UNIT SHIPPED AND VERIFIED (`70e8a88`; records `0b5999d`). 🔧 SIGNATURE MATCHER FIX BUILT — one file, `routes/signature_orchestrator.py`, pending Mike's commit, push and `deploy`, then ONE real call to the match route as the proof. Usage count since 06-23 done (DB can see Guard only: zero). Demand table: none of the adds is anonymous-only; The Terminator 1 is operator-only; X-Men 1 (1963)'s "most looked-up" claim is 1 real user + 8 anonymous lookups shaped like our curls.**
 
 **MOST RECENT CHANGE (Rule 5): Mike's four signature decisions, 2026-09-18 — fix the matcher FIRST as its own unit,
@@ -12,7 +53,7 @@ request within 30 days"; both "…90 days" patterns return nothing. Pushed, Page
 registration-retention entry below and ROADMAP item 22's copy line are flipped. Item 22 itself (purge job,
 self-serve deletion, the sightings cascade) stays open — it is the build, not the copy.
 
-### Signature matcher fix (Mike's decision 1) — BUILT, pending Mike's commit + push + `deploy`
+### Signature matcher fix (Mike's decision 1) — ⚰️ ~~BUILT, pending Mike's commit + push + `deploy`~~ **SHIPPED `547c6dc`, deployed, proven by a real match (row 16) — see the entry above**
 **File list: `routes/signature_orchestrator.py` only.** Backend → `deploy`, no `purge`, no DB write, no extension.
 1. `run_single_pass` no longer sends `temperature` (Opus 4.8: 400 "`temperature` is deprecated for this model",
    proven by probe). `PASS_TEMPERATURES` stays as pass LABELS — `aggregate_passes` picks the "0.2" pass's analysis

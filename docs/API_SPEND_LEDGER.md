@@ -121,7 +121,7 @@ would understate the ceiling. Verify against the actual invoice.
 
 ---
 
-## 2026-09-18 — running total: **$0.0002** (actual) · Opus 4.8 at $5 / $25 per MTok
+## 2026-09-18 — running total: **~$0.66** (probe $0.0002 actual + proof call ~$0.66 est., usage not captured) · Opus 4.8 at $5 / $25 per MTok
 
 **Housekeeping:** this file was found UTF-16LE in the working tree (git saw it as binary, 4,389 → 13,430
 bytes; a PowerShell redirect is the likely cause). Converted back to UTF-8 / LF on Mike's go, content
@@ -131,7 +131,7 @@ the only addition it carried. ⚠️ Runs 4–6 of 2026-08-30 still have no actu
 | # | run | est. | actual | notes |
 |---|-----|------|--------|-------|
 | 7 | Signature matcher probe — 1 text-only call to `claude-opus-4-8` with `temperature=0.2`, `max_tokens=5` | ~$0.0001 | **$0.0002** | **RESULT: 400 — "`temperature` is deprecated for this model."** Control without the parameter → 200 (16 in / 4 out, the only billed call). Does the model the v2 matcher calls accept the parameter the matcher sends? A 400 costs nothing. Approved by Mike 2026-09-18. |
-| 8 | Signature matcher post-deploy proof — ONE real POST to `/api/signatures/v2/match` (3 passes × ~38.9k input, uncached, known reference image as target) | **$0.66** ($0.70 worst case) | | Runs only after Mike's commit + `deploy` of the matcher fix. Expected: 200 with a ranked `top5`. Day's total after it: **$0.66**. Mike's decision 1, 2026-09-18. |
+| 8 | Signature matcher post-deploy proof — ONE real POST to `/api/signatures/v2/match` (3 passes × ~38.9k input, uncached, known reference image as target) | **$0.66** ($0.70 worst case) | **~$0.66, NOT MEASURED** | **RAN 2026-09-19 03:28:45Z as Mike's second "ID Sigs" click (ASM #252) — `signature_identification_log` row 16, 3 passes, 71.4 s, 200.** The route does not store `response.usage`, so there is no actual; the estimate stands as the charge until the Anthropic console is read. The first click (old build) was six 400s, zero billed. Runs only after Mike's commit + `deploy` of the matcher fix. Expected: 200 with a ranked `top5`. Day's total after it: **$0.66**. Mike's decision 1, 2026-09-18. |
 
 Queued behind Mike's design choice, NOT approved, NOT run: signature cross-validation (one pass, cached)
 **$5.70** est. / $7.00 worst case; external 100-row test (one pass, cached) **$8.10** est. / $9.40 worst
