@@ -1,5 +1,54 @@
 # Where We Left Off - Sep 18, 2026
 
+## 2026-09-18 (night) — ✅ **showToast SHIPPED AND VERIFIED (`914a8f2`, records `87979c1`; served `js/collection.js` contains "function showToast"; Mike's next click rendered a result). 🔧 SIGNATURE RESULT-BLOCK UNIT BUILT — `js/utils.js`, `js/collection.js`, `js/collection.css` — pending Mike's commit, push, Pages build, `purge`. Frontend only.**
+
+**MOST RECENT CHANGE (Rule 5): below the server's floor the result block no longer names a creator or prints a
+percentage — the model's note is the headline (Mike, 2026-09-18). Supersedes the 0.25 / 0.40 client-side tiers in
+`js/utils.js` and `js/collection.js`, which are gone. `git log -1` = `87979c1`, 0 ahead of `origin/main`.**
+
+**What the screenshot showed (ASM #252, log row 17, 03:38:25Z):** "John Romita Sr. — 26% speculative" as the headline,
+three other names with percentages, in a column one word wide — on a result the server had answered
+`matched: false`, whose own note said the red signature resembles Stan Lee.
+
+**The unit.**
+1. `displaySignatureV2Results` (`js/utils.js`): when `result.matched !== true` — the SERVER's decision — it shows
+   "Signature ID — no confident match", the first pass's note (escaped; the passes' notes arrive joined by " | "), a
+   line when `multiple_signatures_detected`, a line when `poor_image_quality`, and the CGC/CBCS footer. No name, no
+   percentage, no "other candidates". The old `< 0.25 → "No signatures detected"` branch is gone: below the floor the
+   page cannot claim there is no signature. The matched path is unchanged.
+2. `handleCollectionIdentifySignatures` (`js/collection.js`): saves `signature_data` and toasts "Identified" only on
+   `matched === true`. Before, the page saved a badge at its own 0.40 (the server's floor is 0.50 — TODO
+   "Signatures v2" item (e)) and toasted "Possible: <name> (26% — low confidence)" beside a no-match. Otherwise one
+   toast: "No confident signature match — see the note on this comic".
+3. Width: the block is a direct child of the list view's 9-column card grid and auto-placed into the 80px thumbnail
+   column. Now `class="sig-results"` on both templates and the dynamic fallback, `.comics-list .comic-card >
+   .sig-results { grid-column: 1 / -1 }`. Gallery cards are not grids and were not affected.
+**Verified locally ($0):** `node --check` on both scripts; stub render of row 17's shape → no name, no percentage,
+note shown, second pass's note hidden, markup escaped, multi-signature line present; matched shape still names the
+creator with its percentage; empty shape falls back to fixed copy. NOT verified in a browser — the width fix is
+read from the CSS, not seen. **Post-purge assert:** `curl.exe -sL https://slabworthy.com/js/utils.js |
+Select-String "no confident match"` → a line; `… /js/collection.css | Select-String "sig-results"` → lines; then
+one look at the collection row (a click is a real ~$0.66 match).
+⚠️ The headline is the model's wording: row 17's note says "NOT in the candidate pool", which is matcher jargon and,
+for a user, misleading — Stan Lee IS in the reference set; the pre-filter left him out. The honest fix is the pool.
+
+**Two observations logged (Mike):**
+- **Second signature → the multi-signature case.** Both runs flagged `multiple_signatures_detected`: "a second faint
+  black signature near the lower center … too small/low-contrast to analyze". The matcher compares ONE target and
+  returns one ranking; a cover with two signers cannot be answered correctly by it at all. Filed with TODO
+  "Signatures v2" item (f) multi-signature handling; it also bears on the external test (3), where CGC SS books
+  signed by two or more creators are common (145 of the 5,002 candidate rows name several in-set signers).
+- **Run-to-run variance below the floor → do not display below-floor rankings.** Same cover, same build, nine
+  minutes apart: row 16 = Romita Sr. .243 / Romita Jr. .201 / McFarlane .191 / Ditko .182 / N. Adams .182; row 17 =
+  Romita Sr. .262 / Ditko .206 / Byrne .196 / Romita Jr. .187 / N. Adams .150. Rank 1 held; ranks 2–5 reshuffled and
+  one name changed. With `temperature` gone the three passes are three default samples, so this is the matcher's
+  own noise. It is also a measurement fact for (2)/(3): score top-1 against the floor, and treat below-floor
+  rankings as unranked.
+
+**Spend:** rows 16 and 17 are both real matches (~$0.66 each by estimate; the route keeps no usage). Row 16 is the
+planned proof call and is in the ledger; row 17 was Mike's own click in the app — user-driven, outside the
+Claude-initiated scope — noted in the ledger, not added to the day's total (~$0.66).
+
 ## 2026-09-18 (late) — ✅ **THE MATCHER FIX IS PROVEN LIVE: Mike's second "ID Sigs" click SUCCEEDED (log row 16, 03:28:45Z, 3 passes, 71 s) — the "showToast is not defined" error came AFTER the result and overwrote it. ~$0.66 was spent; "nothing spent" was wrong. 🔧 showToast unit BUILT (`js/collection.js`, `js/collection.css`), pending Mike's commit, push, Pages build, `purge`.**
 
 **MOST RECENT CHANGE (Rule 5): the signature matcher fix (`547c6dc`, records `ed708fb`) is deployed and verified by a
@@ -26,7 +75,7 @@ proof" in the entry below — the proof call HAS RUN; a curl would be a second ~
 **Spend:** the route does not keep `response.usage`, so the proof call has no measured actual; ~$0.66 (estimate) is
 recorded as the charge, today's total ~$0.66. The Anthropic console has the real figure.
 
-### showToast unit — BUILT, pending Mike's commit + push + Pages build + `purge` (frontend only, no `deploy`)
+### showToast unit — ⚰️ ~~BUILT, pending Mike's commit + push + Pages build + `purge`~~ **SHIPPED `914a8f2`, purged, served file asserted, confirmed by Mike in the app — see the entry above**
 **File list: `js/collection.js`, `js/collection.css`.** `collection.js` called `showToast()` in eight places and no
 script `collection.html` loads defined it (admin.html and signatures.html have inline copies). Every call threw:
 a failed delete never said the comic was restored (`:714`, `:720`), and every finished signature match lost its
