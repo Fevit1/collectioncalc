@@ -70,6 +70,13 @@ def init_modules(anthropic_key, anthropic_lib=None, anthropic_avail=None):
 OPUS_MODEL = OPUS
 MAX_CANDIDATES = 15          # Pre-filter target before vision calls
 REFERENCE_IMAGES_PER_CREATOR = 4
+# PASS LABELS, not sampling temperatures (2026-09-18). These values were sent as
+# `temperature` until Opus 4.7/4.8 removed the parameter: claude-opus-4-8 answers
+# 400 "`temperature` is deprecated for this model", the 400 was swallowed by
+# run_single_pass, and every match request failed from the 2026-06-23 model switch
+# until this fix. Nothing is sent now; the three passes are three independent
+# samples at the model's own sampling. The numbers survive only as pass ids
+# (logs, PassResult.temperature, aggregate_passes picks the 0.2 pass's analysis).
 PASS_TEMPERATURES = [0.2, 0.5, 0.7]
 # Single source of truth: this one value defines BOTH the honest no-match floor
 # AND the Guard cap boundary (a match counts only if confidence >= this). Env
@@ -307,6 +314,29 @@ def log_result_to_db(
 # R2 Image Retrieval (via public HTTP — matches v1 pattern)
 # ---------------------------------------------------------------------------
 
+def _sniff_media_type(image_b64: str) -> str:
+    """Media type from the image's own bytes, never from a name or an assumption.
+
+    The API checks the declared media_type against the bytes and rejects a
+    mismatch; references are uploaded as PNG, JPEG and WebP alike, so a fixed
+    "image/jpeg" label fails the whole request. Unknown bytes fall back to
+    image/jpeg, the old behaviour, so the API's own error names the problem.
+    """
+    try:
+        head = base64.b64decode(image_b64[:32])
+    except Exception:
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
+
+
 def _fetch_and_encode_image(image_url: str) -> Optional[str]:
     """Fetch an image from its public URL and return base64-encoded string."""
     try:
@@ -388,7 +418,7 @@ REFERENCE IMAGES FOLLOW (grouped by creator, {REFERENCE_IMAGES_PER_CREATOR} per 
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/jpeg",
+                    "media_type": _sniff_media_type(img_b64),
                     "data": img_b64,
                 },
             })
@@ -401,7 +431,7 @@ REFERENCE IMAGES FOLLOW (grouped by creator, {REFERENCE_IMAGES_PER_CREATOR} per 
         "type": "image",
         "source": {
             "type": "base64",
-            "media_type": "image/jpeg",
+            "media_type": _sniff_media_type(unknown_image_b64),
             "data": unknown_image_b64,
         },
     })
@@ -435,7 +465,7 @@ def run_single_pass(
         response = client.messages.create(
             model=OPUS_MODEL,
             max_tokens=1500,
-            temperature=temperature,
+            # no `temperature`: removed on Opus 4.7/4.8 (400) — see PASS_TEMPERATURES
             system=system_prompt,
             messages=messages,
         )
@@ -459,7 +489,7 @@ def run_single_pass(
         )
 
     except json.JSONDecodeError as e:
-        logger.error("JSON parse error on pass temp=%.1f: %s", temperature, e)
+        logger.error("JSON parse error on pass label=%.1f: %s", temperature, e)
         return PassResult(
             temperature=temperature,
             rankings=[],
@@ -468,7 +498,7 @@ def run_single_pass(
             raw_response="",
         )
     except Exception as e:
-        logger.error("Opus call failed on pass temp=%.1f: %s", temperature, e)
+        logger.error("Opus call failed on pass label=%.1f: %s", temperature, e)
         return PassResult(
             temperature=temperature,
             rankings=[],
@@ -660,7 +690,7 @@ def run_orchestrated_identification(
         if result.rankings:
             pass_results.append(result)
             logger.info(
-                "Pass temp=%.1f complete — top result: %s (%.2f)",
+                "Pass label=%.1f complete — top result: %s (%.2f)",
                 result.temperature,
                 result.rankings[0].get("creator", "unknown"),
                 result.rankings[0].get("confidence", 0),
@@ -668,7 +698,7 @@ def run_orchestrated_identification(
         else:
             failed_temps.append(temp)
             logger.warning(
-                "Pass temp=%.1f FAILED — flags: %s",
+                "Pass label=%.1f FAILED — flags: %s",
                 result.temperature, result.flags,
             )
 
@@ -682,14 +712,14 @@ def run_orchestrated_identification(
             if result.rankings:
                 pass_results.append(result)
                 logger.info(
-                    "Retry pass temp=%.1f SUCCEEDED — top: %s (%.2f)",
+                    "Retry pass label=%.1f SUCCEEDED — top: %s (%.2f)",
                     result.temperature,
                     result.rankings[0].get("creator", "unknown"),
                     result.rankings[0].get("confidence", 0),
                 )
             else:
                 logger.warning(
-                    "Retry pass temp=%.1f FAILED again — flags: %s",
+                    "Retry pass label=%.1f FAILED again — flags: %s",
                     result.temperature, result.flags,
                 )
 
