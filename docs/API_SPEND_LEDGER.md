@@ -142,3 +142,12 @@ Queued behind Mike's design choice, NOT approved, NOT run: signature cross-valid
 case. Together $13.80 — over the ceiling on one day. Basis: `count_tokens` on a real 15 × 4 + 1 request =
 38,903 input tokens; output assumed 1,000 per pass (unmeasured; cap 1,500).
 Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.
+
+---
+
+## 2026-09-19 — running total: **$0.00** · Opus 4.8 at $5 / $25 per MTok
+
+| # | run | est. | actual | notes |
+|---|-----|------|--------|-------|
+| 9 | ASM #252 — ONE "ID Sigs" click after the logging and pool deploys (the logging assert and the first pool test in one) | **$0.66** ($0.70 worst case) | **~$0.66, NOT MEASURED** | **RAN 2026-09-20 01:31:09Z — log row 18, Stan Lee 0.882, matched, 3 passes, 75.7 s.** Two earlier clicks failed in the browser (CORS) and never reached the backend: $0. Planned by Mike as part of today's sequence. Pass = Render prints the pre-filter line with Stan Lee in the 15. Day's total after it: **$0.66**. No measured actual is possible until the route keeps `response.usage` (ROADMAP item 24). |
+| 10 | Signature cross-validation (2) — 97 held-out queries, ONE pass each, fixed pools, cached reference block; harness imports the production functions | **$5.70** ($7.00 worst case) | | Approved in principle by Mike ("(2) at $5.70 if the day's spend allows"). Day's total after it: **$6.36** est. / $7.70 worst case — under $10. The harness records `response.usage`, so this one WILL have a measured actual. Output tokens per pass are still an assumption (1,000); the first five calls re-base the estimate before the rest run. |

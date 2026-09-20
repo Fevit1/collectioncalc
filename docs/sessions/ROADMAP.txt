@@ -228,7 +228,7 @@ rediscovered.
 
 21. **The three null renderers — BUILT 2026-09-17 (`js/collection.js` + two subtitle divs in `collection.html`),
     ⚰️ ~~in the working tree pending commit + purge~~ **SHIPPED `a2cf34a` 2026-09-17, purged; served
-    `js/collection.js` contains "without a figure" (Mike's check, 2026-09-18)**; WWLO 09-17 (three-units entry). FOLLOW-ON (verifier, 09-17): `dashboard.html:416,440,454` sum `parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0` — the same null-as-$0 on the dashboard; not built.** Original:
+    `js/collection.js` contains "without a figure" (Mike's check, 2026-09-18)**; WWLO 09-17 (three-units entry). FOLLOW-ON (verifier, 09-17): `dashboard.html:416,440,454` sum `parseFloat(c.slabbed_value) || parseFloat(c.raw_value) || 0` — the same null-as-$0 on the dashboard; not built. **Added 2026-09-18 (Mike's "$0.00 tile" question): (a) the tile between Keep Raw and Register in list view is the "My Val" input's PLACEHOLDER (`js/collection.js:492,584`), not a rendered null — but it reads as a price; change it to "Add yours" or a dash; (b) the My Val column SORT (`js/collection.js:264`) still does `parseFloat(my_valuation) || 0`, so empty rows sort first ascending as $0 — the one sort item 21's `cmpFigure` did not reach.** ** Original:
     `js/collection.js:552` (detail panel "$0.00"), `:750` (alert "$null"), totals/sorts at `:133`, `:240–274`;
     visible on every withheld report behind the eBay modal. Purge only. Evidence: WWLO 09-17.
 

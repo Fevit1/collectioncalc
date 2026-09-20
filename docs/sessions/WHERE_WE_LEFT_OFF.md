@@ -1,6 +1,198 @@
-# Where We Left Off - Sep 18, 2026
+# Where We Left Off - Sep 19, 2026
 
-## 2026-09-18 (night) — ✅ **showToast SHIPPED AND VERIFIED (`914a8f2`, records `87979c1`; served `js/collection.js` contains "function showToast"; Mike's next click rendered a result). 🔧 SIGNATURE RESULT-BLOCK UNIT BUILT — `js/utils.js`, `js/collection.js`, `js/collection.css` — pending Mike's commit, push, Pages build, `purge`. Frontend only.**
+## 2026-09-19 (evening) — ✅ **POOL FIX SHIPPED AND PROVEN: ASM #252 → Stan Lee, matched, badge saved (log row 18, 01:31:09Z, 3 passes, 75.7 s) — commits `7928a53` (logging) and `c21810a` (pool), 0 ahead of origin. (2) IS RUNNING. 🔧 CORS unit BUILT — `js/utils.js` — pending Mike's commit, push, Pages build, `purge`. ⚠️ The My Val placeholder has NOT shipped: `js/collection.js` is still uncommitted; what Mike sees is the old "$0.00" clipped.**
+
+**MOST RECENT CHANGE (Rule 5): Design A is live and the first run on it is the known Stan Lee, identified — 2026-09-19.
+Supersedes "BUILT, pending Mike's commit + push + `deploy`" for the pool and logging units in the entry below.**
+
+**Evidence.** `git log`: `c21810a` signature pool, `7928a53` logging, both pushed. Row 18: Stan Lee 0.882, Mike Zeck
+0.040, John Romita Sr. 0.033, Mark Bagley 0.025, Todd McFarlane 0.020; stability 1.0 for Stan Lee; flags
+`multiple_signatures_detected` and `poor_image_quality` again; `collections` row 207 now carries `signature_data`.
+Rows 16 and 17 (same cover, old pool) were 0.24 and 0.26 for John Romita Sr. — the pool, not the matcher, was the
+defect. **The logging deploy is NOT yet asserted on my side:** Mike's message carried the placeholder "[paste the
+Pre-filter line]", not the line. Row 18 proves the pool deploy (Stan Lee could not have been compared otherwise);
+only the Render line proves `logger.info` now prints. Pending: Mike pastes it.
+
+**⚠️ Found reading the aggregation for the harness — a LABEL finding (L-SW-2026-016), not fixed:** the percentages the
+page shows are NOT confidences. `aggregate_passes` renormalises the top five so they SUM TO 1
+(`entry["confidence"] / total`). "Stan Lee 88%" is his share of the top-five mass; rows 16/17's "24%" was a
+near-uniform split (uniform = 20%). The 0.50 floor is therefore a floor on SHARE: a weak field where one candidate
+is merely less bad than four others can clear it. The badge text "88% high" reads as a probability and is not one.
+For (2)/(3): the harness records this normalised value because it is what the route decides on.
+
+**The two failed clicks before it — CORS (Mike's finding).** One path exists, and only one: the browser `fetch()`es
+the cover from `img.slabworthy.com`, resizes it and posts it to the route. There is no backend proxy.
+- **R2 already HAS a CORS rule and does not need one:** a GET with `Origin: https://slabworthy.com` returns
+  `Access-Control-Allow-Origin: https://slabworthy.com` + `Vary: Origin`, three of three, edge HIT.
+- **The defect:** a GET with NO Origin header returns neither `Access-Control-Allow-Origin` nor `Vary: Origin`. The
+  collection row has already loaded the same URL as an `<img>` thumbnail — a no-CORS request, no Origin — so the
+  browser's HTTP cache can hand that header-less copy to the later CORS `fetch()`, which fails as "blocked by CORS
+  policy" / `net::ERR_FAILED` without a request leaving the machine. Success depended on cache state; the third
+  click most likely bypassed or revalidated the cache (DevTools was open). Likely, not proven — the header
+  asymmetry is measured, the browser-cache step is inferred from it.
+- **Fix, `js/utils.js` only:** `fetch(url, { mode: 'cors', cache: 'no-store' })` in `fetchImageAsBase64` (its one
+  caller is the ID Sigs handler). Every fetch now goes to the network with an Origin header; Cloudflare keys on
+  Origin, so it is still an edge hit. Frontend → `purge`. `node --check` clean. Not seen in a browser.
+- Log rows confirm the story: only ONE new row (18) — the two failed clicks never reached the backend. $0 for them.
+- Still true and still queued (TODO "Signatures v2" item 4): a server-side fetch by `comic_id` would remove CORS and
+  the download-resize-upload round trip altogether. Not this unit.
+
+**My Val placeholder (Mike's question): NOT shipped, and not browser caching.** `git status` shows `js/collection.js`
+modified and uncommitted; HEAD and the served file both still say `placeholder="$0.00"` (2 of 2). The "$" / "$l" /
+"$C" in the screenshot is "$0.00" clipped by a narrow My Val column — DevTools is docked and the list is squeezed.
+Item 6's change ("Add yours") is in the working tree and rides the next frontend commit. ⚠️ "Add yours" is nine
+characters and will clip the same way at that width; "Add" or "—" fits. Mike to choose.
+
+**Spend today:** row 18 ≈ **$0.66** (estimate; the route keeps no usage). (2) started at $0.66 on the day.
+
+### (2) cross-validation — RUNNING (`scripts/sig_cv_harness.py` → `scripts/sig_cv_results_2026-09-19.jsonl`)
+Harness imports the production `run_single_pass` / `aggregate_passes` / `fetch_reference_images` /
+`_fetch_and_encode_image` / `load_system_prompt`; it adds only the held-out candidate list and a client wrapper that
+sets a cache breakpoint after the last reference block and keeps `response.usage`. **Split:** creators with ≥ 3
+images; held out = each creator's LAST image in the route's own order; references = the rest (≤ 4); one query per
+creator, one pass; creators sorted by `career_start` into fixed pools of ~14 so the prefix caches; no comic context.
+Resumable: a recorded truth is never re-run. **First two calls, measured:** cache write 12,539 tokens then a read of
+12,539 on the next call (caching works); output 972 / 994 tokens against the assumed 1,000; $0.106 then $0.032.
+It measures discrimination with the signer guaranteed in the pool on a clean crop — an UPPER bound on the route.
+
+## 2026-09-19 — 🔧 **Mike's six decisions. BUILT today, each pending Mike's own commit / push / `deploy` / `purge`: (a) logging level — `wsgi.py`; (b) candidate pool Design A — `routes/signature_orchestrator.py`, `signature_priors.json`, `scripts/build_signature_priors.py`; (c) My Val placeholder — `js/collection.js`; (d) the capture list moved to `docs/EBAY_CAPTURE_WEEKLY.docx`. SHAPED, not built: the robots / sitemap / 404 / homepage-copy unit. Mike is OFFLINE from Wed 2026-09-23 for about five days; nothing deploys Tue or Wed; Tuesday is a close-out.**
+
+**MOST RECENT CHANGE (Rule 5): `robots.txt` flips TODAY — Mike, 2026-09-19: open the public pages to search, keep app /
+collection / admin / `/api/` closed; one frontend unit, one purge, to be watched two days before he goes offline.
+Supersedes `Disallow: /` (in place since 2026-02-02). `git log -1` = `ac31af1`, 0 ahead of origin; yesterday's
+records (this file, ROADMAP, the pool proposal) are still uncommitted and lead today's sequence.**
+
+**The six decisions (Mike, 2026-09-19):**
+1. **Accounts 25 and 26 are Mike's** (`…@slabworthy.test`, created in one transaction 2026-06-10, no Stripe ids; 25
+   last logged in 06-18, 26 never). So **no customer could have reached the broken match route** between 06-23 and
+   09-18 — only the admin account. The post-mortem is about DETECTION (three months unnoticed, no canary), not harm.
+2. **robots.txt flips today** — shape below.
+3. **Capture list:** `EBAY_CAPTURE_WEEKLY_2026-09-17.docx` moved over `docs/EBAY_CAPTURE_WEEKLY.docx` (the August
+   list stays in git history). Rides in the records commit. ⚰️ DEAD: the root-level docx.
+4. **Logging: apply; Mike deploys.** Applied — `wsgi.py`, `logging.basicConfig(level=logging.INFO, …)` after the
+   stdlib imports, with the reason in a comment. Parses. Backend → `deploy`.
+5. **Pool: build Design A; priors from rows OUTSIDE the (3) sample; cap stays 15 until (2); Design B held until (3).**
+   Built — below.
+6. **"$0.00" tile:** My Val placeholder is now "Add yours" (`js/collection.js`, both templates). Frontend → rides
+   today's purge. The My Val SORT fix rides with the item-21 follow-on, not here.
+
+**Sequence today (Mike's):** records commit → logging `deploy` → robots/homepage unit `purge` → pool fix `deploy` →
+ONE click on ASM #252 (the logging assert AND the first pool test) → (2) at $5.70. Spend today so far: **$0.00**.
+
+### Pool Design A — ⚰️ ~~BUILT, pending Mike's commit + push + `deploy`~~ **SHIPPED `c21810a`, deployed, proven by log row 18 — see the entry above**
+**File list: `routes/signature_orchestrator.py`, `signature_priors.json`, `scripts/build_signature_priors.py`.**
+Backend → `deploy` (the JSON must EXIST in the image — it is at the repo root, which `.dockerignore` keeps; L-SW-023).
+- **The split (stated):** a labelled row = a signed CGC/CBCS `ebay_sales` title naming exactly one in-set creator.
+  **TEST FOLD = `ebay_sales.id % 5 = 0`, held out; PRIOR FOLD = every other labelled row.** 6,421 signed-slab rows →
+  2,854 labelled → **2,293 in the prior fold, 561 held out**. The (3) sample is drawn from the test fold only
+  (439 of those have an R2 image and one named signer; 163 also have a year). The rule is on the row id, so a row
+  never changes sides on a rebuild. Accepted leak: a relisted copy can sit on both sides under two ids.
+- **Ordering**, replacing `ORDER BY reference_image_count DESC LIMIT 15`: title prior → global signing prior →
+  explicit publisher affiliation over NULL → era closeness → creator id (deterministic). The SQL now returns every
+  admitted creator; the route ranks and keeps 15. Image count is only the eligibility floor. A missing priors file
+  degrades to the last three keys and never fails a request.
+- **Two defects fixed on the way, both in the same function:** the page sends "2020s" for a 2020+ book, which was
+  not a key in the era map, so those books skipped the era filter entirely; and "Marvel Comics Group" / "DC Comics"
+  matched no affiliation, admitted only NULL-affiliation creators and tripped the fallback (June log row 14).
+- **Verified locally, read-only, $0:** ASM #252 → Todd McFarlane, **Stan Lee**, Mark Bagley, Greg Capullo, Frank
+  Miller, Neal Adams, Erik Larsen, John Romita Sr., Jim Lee, Chris Claremont, Rob Liefeld, Jim Starlin, Neil Gaiman,
+  Mike Zeck, Walt Simonson; same pool on a second call. **Held-out pool recall: 154 / 163 = 94.5%** on the test fold
+  with priors from the other fold (was ~34% expected under the arbitrary 15). Most-missed: Peach Momoko (2).
+  ⚠️ n = 163, labels are a proxy, and it is eBay's population — app users' books may differ.
+- **Post-deploy:** one click on ASM #252. Render (with the logging unit live) should print
+  `INFO routes.signature_orchestrator: Pre-filter: 43 admitted, 15 kept (title='The Amazing Spider-Man', …): Todd
+  McFarlane, Stan Lee, …`. That click is a real match: **$0.66 est., today's total would be $0.66.** A pass is Stan
+  Lee in the logged pool; whether he WINS is the matcher's discrimination, which is what (2) measures.
+- **Verification agent (read-only, three files + Dockerfile / `.dockerignore` / callers): no blocker, no should-fix.** Confirmed: placeholder counts in both queries; `admitted` and `era_window` defined on every path; `_rank_rows` keys match the SELECT aliases, NULL career dates and affiliations guarded, sort total and deterministic; `signature_priors.json` is NOT excluded by `.dockerignore` and `_PRIORS_PATH` resolves to `/app/` in the image; the two title-key functions are byte-identical (checked on three titles against real JSON keys); references are fetched only for the sliced 15; one caller, updated; the build script is read-only with the connection closed in `finally` and 2,293 + 561 = 2,854. One note TAKEN: the fallback's log line still described the old image-count behaviour — reworded. ⚠️ Its shipping note: `signature_priors.json` and the script are UNTRACKED — if the commit leaves the JSON out, the deploy succeeds and the pool silently runs without priors (L-SW-2026-023). The post-deploy log line prints `priors built <timestamp>`; `priors built none` means the file is not in the image.
+
+### Robots / sitemap / 404 / homepage-copy unit — SHAPE (not built; Mike ships with one purge)
+**File list:** `robots.txt`, `sitemap.xml` (new), `404.html` (new), `index.html`, `waitlist.html`,
++ `js/collection.js` (decision 6, same purge). Frontend only. No `_redirects` change is needed — see part 2.
+
+**Part 1 — robots + sitemap.** `robots.txt`: open by default, with `Disallow:` for `/api/`, `/app`, `/collection`,
+`/dashboard`, `/account`, `/admin`, `/signatures`, `/sightings`, `/login`, `/waitlist`, `/waitlist-confirmed`,
+`/offline`, `/collectioncalc`, `/modal-ebay-listing`, `/body`, `/mockup-results` — each in clean and `.html` form;
+the named AI-crawler blocks stay as they are; `Sitemap: https://slabworthy.com/sitemap.xml`. ⚠️ `/api/` lives on the
+Render host, not slabworthy.com, so that line is belt-and-braces; closing the Render host needs its own
+`/robots.txt` route (backend, NOT in this unit — logged). `/check` — public tool or not: Mike to say.
+`sitemap.xml`: the clean URLs `/`, `/about`, `/pricing`, `/faq`, `/privacy`, `/terms`, `/verify`, `/contact`.
+**"How it works" is not a page** — it is the `#how-it-works` section of the homepage, and a sitemap cannot list a
+fragment. Each public page also gets a `<link rel="canonical">` (none has one today).
+
+**Part 2 — unknown paths return 404.** There is no `404.html` in the repo, and Cloudflare Pages treats a site
+without a top-level `404.html` as a single-page app: every unknown path serves `index.html` with 200 (which is why
+`/sitemap.xml` answers 200 today). Adding `404.html` switches Pages to real 404s. No `_redirects` rule.
+Assert: `curl.exe -s -o NUL -w "%{http_code}" https://slabworthy.com/no-such-page` → 404.
+
+**Part 3 — homepage copy.**
+(a) Waitlist section ("Be the First to Know / Get notified when Slab Worthy launches. Early access for waitlist
+members." + the "N collectors on the waitlist" counter): the product launched 07-21 and signup is open from the
+hero. **Proposal: remove the section and the counter.** The 65 waitlist rows (38 verified; 30 already have
+accounts; 9 joined AFTER launch) are not deleted — they stay in the table. The 8 verified-without-account people
+are owed one "we're open" email; that is a send Mike decides, not this unit. `waitlist.html` carries the same
+sentence in its body and meta description; it is disallowed and left out of the sitemap, and gets the same fix.
+The confirmation EMAIL still says "first to know when we launch … Launching Summer 2026" (`routes/waitlist.py`,
+backend) — dead once the form is gone; logged, not in this unit.
+(b) Interest chips go with the section (6 of 65 people chose Sell Alerts, which is not built).
+(c) **"PDF — Export Reports" is false:** no PDF code exists anywhere in the repo and the collection page's Export
+button is a disabled "SOON" (ROADMAP item 11 had this). Replace the tile with something shipped, or drop to two.
+(d) Audit against the storefront rule (the page matches the product): "real-time fair market value" → FMV comes
+from captured sales, not a live feed → "fair market value from recent sales"; "know exactly what it's worth" →
+figures are estimates and some are withheld → "see what it's worth"; "Slab Guard™ — fingerprinting & monitoring" /
+"Protect Your Collection" — Guard cannot be bought today; Mike to say what a free user can actually do there
+before that copy is touched; the "+$47 Worth It" mock is illustrative and unlabelled. Add `og:` tags.
+**Opened by this unit but not in it:** `about`, `pricing`, `faq`, `contact`, `verify` become crawlable the same
+moment and only `index.html` is audited. A grep for stale launch / unbuilt-feature phrases on those pages found
+nothing — which is not an audit.
+
+## 2026-09-18 — 🌙 **SESSION CLOSE (Mike; lineage: the same Bilbo-side conversation `400d6215-43b0-422d-8e2d-0a113456906b` as the 09-17 close, now covering 09-18: the three 09-17 units verified, the privacy unit, the signature measurement prep and probe, the matcher fix, showToast, the result block). Mike stopped for the night. Overnight was REPORT ONLY: no matcher call, no commit, push, deploy, purge or database write.**
+
+**MOST RECENT CHANGE (Rule 5): the signature result-block unit is SHIPPED AND VERIFIED — `049ea95` (records `ac31af1`),
+purged; served `js/utils.js` contains "no confident match", served `js/collection.css` contains "sig-results", served
+`js/collection.js` saves on `result.matched === true`; Mike: the ASM #252 row renders clean on reload with no stored
+below-floor result, no further click made. The save threshold at the server's 0.50 is APPROVED by Mike. Supersedes
+"pending Mike's commit, push, Pages build, `purge`" in the entry below. `git log -1` = `ac31af1`, 0 ahead of origin.**
+
+**Shipped and verified today (all by Mike's commands, each asserted live):** the three 09-17 units (`b80a284`,
+`a2cf34a`, `4a70809`) + `ebay-collector` 1.5.0 reload; the privacy unit `70e8a88`; the matcher fix `547c6dc` (proven
+by log row 16); showToast `914a8f2`; the result block `049ea95`.
+
+**Mike's four decisions (2026-09-18 night):**
+1. **Harness: YES** — import the production functions, supply the candidate list with the held-out image removed,
+   same prompt and image handling as the route. ⚰️ DEAD: "the harness calls the fixed production route" (it would
+   cost $64 and match each query against itself).
+2. **Pool ordering: YES, fix the candidate pool BEFORE (2) and (3); report first.** The report is
+   `docs/technical/SIGNATURE_POOL_PROPOSAL_2026-09-18.md`. ⚰️ DEAD: "(2) today at $5.70" as the next step — the pool
+   fix now precedes it.
+3. **Accounts 25 and 26: UNANSWERED** — the message carried the placeholder "[mine / not mine]". Ask first thing.
+4. **Capture list: pull The Terminator 1, keep X-Men 1 (1963).** Done in `EBAY_CAPTURE_WEEKLY_2026-09-17.docx`
+   (also: intro count fifteen → fourteen; X-Men 1's "most looked-up book since launch" corrected). ⚠️ That file is
+   UNTRACKED at the repo root and the tracked `docs/EBAY_CAPTURE_WEEKLY.docx` is still the 08-17 list — the 09-17
+   entry's "committed with the records, `aa84391`" is not what git holds. Which path is the list's home: Mike.
+
+**Overnight report — `docs/technical/SIGNATURE_POOL_PROPOSAL_2026-09-18.md` (uncommitted, $0):**
+- **Logging unit:** `wsgi.py`, `logging.basicConfig(level=logging.INFO, …)` after the stdlib imports; only
+  `routes/signature_orchestrator.py` uses `logger.info` (8 lines); httpx/botocore INFO lines named. NOT applied —
+  Mike asked for the change, not the edit; apply on his word tomorrow, then `deploy`.
+- **Pool:** 43 creators pass the 1980s/MARVEL filter for 15 slots; Stan Lee passed and lost an arbitrary tie.
+  Measured on 852 labelled eBay rows: signer in the pool **34.2% today**, **85.1%** ordered by corpus signing
+  frequency, **93.0%** by title-then-global prior. Design A (signal-ordered 15, $0.66, no new spend) recommended
+  now; Design B (ask-first stage that only ADDS names, $0.69) held for (3)'s numbers; the 15 cap does not move yet.
+- **The "$0.00" tile:** the "My Val" input's placeholder, not a null renderer and not an item-21 miss; but the My
+  Val SORT (`js/collection.js:264`) still treats empty as $0 — that IS an item-21 miss. Both on item 21's follow-on.
+- **Homepage/sitemap:** the brief is NOT in this conversation or the records. Ground facts only: `robots.txt` is
+  `Disallow: /` for everyone (since 2026-02-02), no `sitemap.xml` in the repo, the live URL answers 200 anyway.
+
+**Tomorrow's sequence (Mike's):** logging `deploy` → pool fix → ONE click on ASM #252 (submission #237; a known Stan
+Lee; also the logging assert — do not spend a separate click) → (2) at $5.70 if the day's spend allows.
+**Open, ranked after that:** (3) at $8.10 on its own day; the item-20 marketplace/Whatnot halves; item 21 follow-on
+(dashboard sums, My Val sort and placeholder); item 23 (operator key → `is_internal`); item 24 (pass progress +
+`response.usage` capture); the canary-call lesson candidate (not yet in `LESSONS_CROSS_PROJECT.md`); the 08-30
+ledger rows 4–6 without actuals; homepage/sitemap once the brief is pasted.
+**Spend today:** ~$0.66 Claude-initiated (probe $0.0002 actual + proof call ~$0.66 by estimate; the route keeps no
+usage). Tomorrow starts at $0.00.
+
+## 2026-09-18 (night) — ✅ **showToast SHIPPED AND VERIFIED (`914a8f2`, records `87979c1`; served `js/collection.js` contains "function showToast"; Mike's next click rendered a result). 🔧 ⚰️ **[SHIPPED `049ea95`, purged, asserted — see the session close above]** SIGNATURE RESULT-BLOCK UNIT BUILT — `js/utils.js`, `js/collection.js`, `js/collection.css` — ~~pending Mike's commit, push, Pages build, `purge`~~. Frontend only.**
 
 **MOST RECENT CHANGE (Rule 5): below the server's floor the result block no longer names a creator or prints a
 percentage — the model's note is the headline (Mike, 2026-09-18). Supersedes the 0.25 / 0.40 client-side tiers in
