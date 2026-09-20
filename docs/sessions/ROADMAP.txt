@@ -345,6 +345,62 @@ provenance (a certified grade and an estimate are never printed as the same thin
 **First likely customer: Courtyard.io** — an undisclosed FMV model pricing its buybacks, expanding into comics
 (`docs/business/COMPETITORS.txt`, 2026-09-17 entry). **A pilot conversation precedes any build.**
 
+### SEO / discoverability (logged 2026-09-20, Mike). Decisions, NOT builds.
+
+**The site opened to search on 2026-09-20** (`0a35a6b`): `robots.txt` went from `Disallow: /` (in place since
+2026-02-02) to open-by-default with the app, `/check`, the waitlist pages and stray files disallowed; `sitemap.xml`
+(eight URLs); real 404s; canonicals; the homepage copy corrected before the first crawl.
+
+**Decision: the AI-crawler blocks stay** — `GPTBot`, `ChatGPT-User`, `CCBot`, `anthropic-ai`, `Claude-Web` are still
+`Disallow: /`. **Known cost, accepted for now:** assistants cannot read or cite slabworthy.com for the wedge queries
+("is my comic worth grading", "should I slab …") while competitors' pages can be cited. **Revisit after the surgery
+window** (Mike offline from 2026-09-23 for about five days). Not audited before opening, and crawlable now: about,
+pricing, faq, contact, verify. The Render API host has no robots route of its own.
+
+### Slab Guard copy-matching bar (logged 2026-09-20, Mike). Strategy item — NOT a build.
+
+**Decision (Mike, 2026-09-20): Slab Guard REGISTRATION IS CLOSED, and the reason is product, not copy.** The
+fingerprint has not reached a same-copy identification bar we trust from cover and back alone, so a registration
+today records an IMAGE, not a COPY. That is why it was pulled from the report flow. `/verify` keeps working for
+the 23 existing serials. Registration reopens when copy matching meets its bar.
+
+**Current same-copy accuracy — what has actually been measured (`docs/technical/FINGERPRINTING_PROJECT_SUMMARY.md`,
+`docs/technical/SLAB_GUARD_CV_OVERVIEW.md`, WWLO 2026-06-27):**
+- Same camera, same session: distinct copies give distinct fingerprints. This is the ONLY validated claim, and it
+  supports provenance and serial verification, not recovery.
+- Cross-camera (owner's photo vs a stranger's listing photo — the real scenario): false positives **0 of 12**
+  passed; the E3 boundary-following representation reached **true positives 6 of 6 but false positives 4 of 6** and
+  was REJECTED as too permissive (it matched the shared PRINT on low-wear copies). The ceiling was judged PHYSICAL,
+  triangulated three ways — not tunable. Single-image matching is PARKED as bounded to high-wear copies.
+- Sample size: 2 titles, 1 confirmed same-copy pair per title in the CV overview. **No same-copy accuracy figure
+  exists that would survive a licensing conversation.** Distance from a bar: unmeasurable until the bar is set.
+
+**THE BAR THAT REOPENS REGISTRATION — SET by Mike, 2026-09-20:** true-positive rate **≥ 99%** and false-positive
+rate **≤ 1%**, on **at least 100 cross-camera pairs** across **at least three photographers**, **low-wear copies
+included**. Registration reopens when a MEASURED run clears it, and not before. ⚰️ The "proposed shape, values his"
+paragraph that stood here is replaced by this. **Current distance from the bar: no cross-camera same-copy figure
+exists at all** — the only validated statement is that distinct copies give distinct fingerprints under
+same-camera conditions.
+
+**Proposed path: multi-angle VIDEO capture** — cover, interior pages and back in ONE recording — so a registration
+records the copy (page-level wear, staples, interior defects) rather than one printed image. Status: under
+evaluation, no result yet. It is also the subject of Patent 1 (multi-angle) and Patent 2 (fingerprinting).
+
+**The licensing white paper (`docs/SlabGuard_WhitePaper_DRAFT.docx`) and the licensing proposal
+(`docs/Slab_Guard_Licensing_Proposal.docx`) carry the SAME bar (99% / 1% / 100 pairs / 3 photographers / low-wear
+included) and the SAME current state (distinct fingerprints same-camera; no cross-camera same-copy figure)** — not audited today; any sentence there that reads as
+"recovery works" is the dead 2026-08-01 claim.
+
+### Signature ID release bar (set 2026-09-20, Mike). Decision — NOT a build.
+
+**The external test (3) must show top-1 accuracy ≥ 75% among NAMED matches, with the score line visible.** The
+feature re-enables in the grading flow only when a measured (3) clears it, and stays off below. ⚰️ Replaces the
+March "87%+ before advertising" figure (CLAUDE.md, TODO.md, a code comment — all updated). "Among named matches" is
+precision under the floor rule: of the books where the page names a creator, how often it is right; the share of
+books that get a name at all is reported beside it, because a floor can buy precision by naming almost no one.
+Floor today: score ≥ 0.75, margin ≥ 0.40, none-of-these < 0.50 — **FITTED, NOT ROBUST**: the two confidently-wrong
+absent-signer cases in validation scored 0.72 against a 0.75 floor. (3) re-sets it Monday 2026-09-21.
+
 ---
 
 ## 🚨 Immediate Priorities

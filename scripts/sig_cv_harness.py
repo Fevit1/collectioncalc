@@ -43,6 +43,9 @@ os.chdir(ROOT)
 from dotenv import load_dotenv
 load_dotenv(os.path.join(ROOT, '.env'))
 os.environ['DATABASE_URL'] = os.environ['DATABASE_URL_RO']   # this process only
+# The route reads SIG_PROMPT_VERSION at import, so it is set here, before the import.
+_pv = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--prompt-version=')), '2')
+os.environ['SIG_PROMPT_VERSION'] = _pv
 
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -116,13 +119,26 @@ def main():
     ap.add_argument('--out', required=True)
     ap.add_argument('--ceiling', type=float, default=7.00, help='stop if the projected total passes this')
     ap.add_argument('--limit', type=int, default=0, help='run only the first N queries (smoke test)')
+    ap.add_argument('--prompt-version', default='2', help='1 or 2 (read before the route import)')
+    ap.add_argument('--skip-every', type=int, default=0,
+                    help='PRESENT mode: skip every Nth creator in each pool unless listed in --keep')
+    ap.add_argument('--keep', default='', help='comma-separated creators never skipped')
+    ap.add_argument('--absent', type=int, default=0,
+                    help='ABSENT mode: per pool, query N held-out images of creators from the NEXT pool '
+                         '(the signer is NOT among the candidates; the cached prefix is unchanged)')
     args = ap.parse_args()
 
     rows = load_creators()
     pools = [rows[i:i + POOL_SIZE] for i in range(0, len(rows), POOL_SIZE)]
     if len(pools) > 1 and len(pools[-1]) < 8:            # no runt pool: fold it into the one before
         pools[-2].extend(pools.pop())
-    n_queries = sum(len(p) for p in pools)
+    keep = {k.strip() for k in args.keep.split(',') if k.strip()}
+    n_queries = args.absent * len(pools) + sum(
+        1 for p in pools for i, r in enumerate(p)
+        if not (args.skip_every and (i + 1) % args.skip_every == 0 and r['creator_name'] not in keep))
+    assert so.PROMPT_VERSION == args.prompt_version, (so.PROMPT_VERSION, args.prompt_version)
+    print(f"prompt version {so.PROMPT_VERSION}; floor {so.MATCH_FLOOR} margin {so.MATCH_MARGIN} "
+          f"none-ceiling {so.NONE_OF_THESE_CEILING}; present + {args.absent} absent per pool")
     print(f"{len(rows)} creators, {len(pools)} pools {[len(p) for p in pools]}, {n_queries} queries, 1 pass each")
 
     client = UsageClient(anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'], max_retries=4))
@@ -139,7 +155,7 @@ def main():
                 # a row without 'raw' predates raw-score recording (2026-09-19): it is kept
                 # as a second sample of the same query, and the query is run again WITH raw.
                 if 'error' not in r and 'raw' in r:
-                    already.add(r['truth'])
+                    already.add((r['truth'], r.get('mode', 'present')))
             except ValueError:
                 pass
     if already:
@@ -161,15 +177,24 @@ def main():
                 cands.append(c)
             cands = so.fetch_reference_images(cands)          # production fetch + drop-if-empty
             names = [c.name for c in cands]
-            if all(n in already for n in [r['creator_name'] for r in pool]):
-                continue
-            for truth in names:
+            queries = [(n, 'present') for i, n in enumerate(names)
+                       if not (args.skip_every and (i + 1) % args.skip_every == 0 and n not in keep)]
+            if args.absent:
+                # ABSENT: targets from the NEXT pool — a real signature whose owner is not a
+                # candidate. Same candidates, same order, so the cached prefix is unchanged.
+                other = pools[(pi + 1) % len(pools)]
+                step = max(1, len(other) // args.absent)
+                for r in other[::step][:args.absent]:
+                    held[r['creator_name']] = [u for u in r['urls'] if u][-1]
+                    queries.append((r['creator_name'], 'absent'))
+            for truth, mode in queries:
                 if args.limit and done >= args.limit:
                     break
-                if truth in already:
+                if (truth, mode) in already:
                     continue
                 target = so._fetch_and_encode_image(held[truth])
-                rec = {'pool': pi, 'truth': truth, 'pool_names': names}
+                rec = {'pool': pi, 'truth': truth, 'pool_names': names, 'prompt_version': so.PROMPT_VERSION,
+                       'mode': mode}
                 if not target:
                     rec['error'] = 'held-out image fetch failed'
                 else:
@@ -198,7 +223,10 @@ def main():
                             'top1': top and top['creator'], 'top1_conf': top and top['confidence'],
                             'top5': [(x['creator'], x['confidence']) for x in agg.top5],
                             'correct': bool(top and top['creator'] == truth),
-                            'matched': bool(top and top['confidence'] >= so.LOW_CONFIDENCE_THRESHOLD),
+                            'margin': agg.margin, 'none_of_these': agg.none_of_these,
+                            'suggested_outside_pool': agg.suggested_outside_pool,
+                            'matched': bool(top and so.passes_floor_rule(top['confidence'], agg.margin,
+                                                                         agg.none_of_these)),
                             'truth_rank': next((i + 1 for i, x in enumerate(agg.top5)
                                                 if x['creator'] == truth), None),
                         })

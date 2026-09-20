@@ -1,4 +1,233 @@
-# Where We Left Off - Sep 19, 2026
+# Where We Left Off - Sep 20, 2026
+
+## 2026-09-20 (last entry of the day) — 🔧 **REGISTRATION-GATE + COPY-AUDIT UNIT: PART 1 BUILT (the files the prompt unit does not touch); PART 2 HELD until Mike's prompt-unit commit lands, because `js/collection.js`, `app.html` and `verify.html` carry BOTH units' edits until then and cannot be committed apart.**
+
+**MOST RECENT CHANGE (Rule 5): the working tree now holds TWO units, 2026-09-20. Commit the PROMPT unit first, by its
+own file list; the registration unit's part 1 is a separate, later commit. Nothing is committed: `git log -1` =
+`0a35a6b`.**
+
+**Part 1 — BUILT, pending Mike's commit (after the prompt unit) + `deploy` + `purge`:**
+- `routes/registry.py` — `registration_open_for(user_id)` and a gate at the top of `/api/registry/register`: closed by
+  default → 403 `registration_closed` with a plain message. `SLAB_GUARD_REGISTRATION_OPEN=true` reopens for everyone
+  with no code deploy; `SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS="3,25"` lets named accounts register while closed —
+  how the measured run toward the bar gets its registrations. Verify, sightings, report-stolen and mark-recovered
+  are untouched, so the 23 existing serials keep working. Tested: default closed; allow-list; flag.
+- `routes/billing.py` — `/api/billing/my-plan` returns `usage.registration_open` (asks the registry's own function).
+  The `PLANS` limits are KEPT for the reopening; they are no longer shown as a benefit.
+- `account.html` — "N registered · new registrations closed", no quota and no bar while closed.
+- `pricing.html` — registration counts gone from both cards and the compare table; "4-photo grading" moved to FREE
+  (every plan has it — F1); "Personal adjustments" gone (F13); trial answer says a card IS required (F2); the Slab
+  Guard banner says registration is closed, serials keep verifying, the extension is not available (F3); downgrade
+  answer no longer promises "monitoring alerts" (F7); Dealer answer says Dealer is not available and verify is free
+  (F12); "Notify me" → "Contact us" (F14); "Try everything" gone (F18); meta description no longer says "theft
+  monitoring". **Pro now differs by gradings: 100 vs 25.**
+- `faq.html` — registration answers say closed and why; Rekognition fingerprint (F6), forensic screenshot detection
+  and the whole "photo gets flagged" item (F5) gone; FMV factor list matches the code (F10); the support address is a
+  real `mailto:` again, three places (F11); Report a Sighting matches the page (F16); "within a few days" (F17);
+  F19–F23, F25; a meta description added.
+- `about.html` — "Not hedging" (F9), "We don't sell your info. Ever." beside the Meta Pixel (F15), CollectionCalc
+  (F24). `contact.html` — "within a few days", twice (F17).
+**Part 2 — HELD (three files shared with the prompt unit):** `js/collection.js` and `app.html` — grey the Register
+button with "coming soon" (collection rows and the grade result); `verify.html` — drop "monitors marketplace
+listings" (F3), add the one sentence "registration reopens when copy matching meets its bar", add a meta
+description, stop showing "The owner has been notified" when `owner_notified` is false.
+**NOT in this unit, Mike's separate decision:** `terms.html:406` repeats "monitoring alerts will pause" and
+`terms.html:395` says all paid plans include a trial and lists Guard and Dealer — a LEGAL page.
+
+## 2026-09-20 (late night) — 🧭 **Mike: prompt v2 validation ACCEPTED; floor 0.75 / 0.40 / 0.50 APPROVED for this deploy on condition (3) re-sets it Monday; badge copy as built. Four decisions recorded. The prompt unit's verification findings, file list and ship block were delivered in the entry below and stand unchanged.**
+
+**MOST RECENT CHANGE (Rule 5): two BARS set by Mike, 2026-09-20 — Slab Guard registration reopens at TP ≥ 99% / FP ≤ 1%
+on ≥ 100 cross-camera pairs, ≥ 3 photographers, low-wear included; Signature ID re-enables in the grading flow at
+(3) top-1 ≥ 75% among named matches with the score line visible. Supersedes "the bar is not yet defined" (ROADMAP)
+and the March 87% signature target (CLAUDE.md, TODO.md, a code comment). `git log -1` = `0a35a6b`.**
+
+- **Floor — FITTED, NOT ROBUST (Mike's note for the record):** the two confident-wrong absent cases (Jim Lee read as
+  Jim Starlin, Leinil Yu as Bendis) sit at **0.72 against a 0.75 floor** — three hundredths of clearance on 14
+  queries. Approved for this deploy only because (3) re-sets it Monday.
+- **The number shown** is the result block's score line — "Match score 0.88 of 1 · next closest 0.04" and "not
+  authentication". There is no percentage on the badge.
+1. **Accounts 25 and 26 are Mike's TEST accounts.** The exposure question for the 06-23 → 09-18 match-route outage
+   is CLOSED as detection-only: no customer could have reached it. **The post-mortem is the detection kind** (three
+   months unnoticed; a dependency check that proves a model exists, not that a feature works; no canary) — still
+   to be written.
+2. **Stripe — checked by Mike in the dashboard:** the Render values of `STRIPE_PRO_MONTHLY_PRICE` and
+   `STRIPE_PRO_ANNUAL_PRICE` match **$4.99 monthly and $49.99 yearly**. **The customer portal allows switching only
+   between Pro monthly and Pro annual — so the Guard and Dealer purchase gate holds** (the bypass
+   `routes/billing.py:148-152` warns about is closed). ⚰️ DEAD: "Pro + Guard switchable" in `docs/LAUNCH_READINESS.md`
+   — stale; correct it when that file is next touched.
+3. **Slab Guard copy-matching bar — SET** (ROADMAP strategy item updated): TP ≥ 99%, FP ≤ 1%, ≥ 100 cross-camera
+   pairs, ≥ 3 photographers, low-wear included. The white paper and the licensing proposal carry the same bar and
+   the current state — distinct copies give distinct fingerprints under same-camera conditions; no cross-camera
+   same-copy figure exists. (Both are .docx files, not edited by me today.)
+4. **Signature release bar — SET:** (3) top-1 ≥ 75% among NAMED matches, score line visible; off in the grading flow
+   until a measured (3) clears it. (3) reports precision among named AND the share named.
+**Next, in order:** Mike ships the prompt unit → one click on ASM #252 → I build the registration-gate + copy-audit
+unit (one unit, `deploy` + `purge`) → Monday (3) at $8.10 on prompt v2 → Tuesday close-out → nothing Wednesday.
+
+## 2026-09-20 (night) — 🔧 **PROMPT UNIT READY FOR MIKE: verification pass done, its findings taken. Seven code files + the v2 prompt, backend AND frontend → `deploy` and `purge`. Pending Mike's commit, push, `deploy`, Pages build, `purge`, then ONE click on ASM #252.**
+
+**MOST RECENT CHANGE (Rule 5): the prompt unit is complete and verified, 2026-09-20. Supersedes "built, validation
+running" above. `git log -1` = `0a35a6b`, 0 ahead of origin; nothing from this unit is committed.**
+
+**File list:** `prompts/signature_identification_system_v2.md` (new), `routes/signature_orchestrator.py`,
+`js/utils.js`, `js/collection.js` (badge copy + My Val placeholder "Add"), `app.html`, `verify.html`.
+**Verification agent (read-only):** one blocker, three should-fix — ALL TAKEN.
+- *Blocker:* `app.html`'s own signature path decides and SAVES on a local `confidence < 0.40`, ignoring the server's
+  `matched`. It is dormant (`runSignatureCheck` has no caller) but a comment says it will be wired later, so it is a
+  trap: both gates now follow `result.matched === true`. Its percentage badge markup is left (dead code, item 9).
+- *Names:* the non-candidate filter compared exact strings, so "George Perez" would have been dropped as a
+  non-candidate and an all-dropped pass retried as a failure. Now a normalised key (case, accents, spacing,
+  punctuation), rewritten to the pool's spelling. v2 only — `SIG_PROMPT_VERSION=1` stays a true rollback.
+- *One noisy pass:* v1 averaged a creator's score over the passes that RANKED them; with no rescaling under v2, one
+  pass at 0.90 could clear the floor alone and report stability 1.0. Under v2 a pass that leaves a creator out counts
+  as zero, and stability is capped by appearances / passes. Offline: one-pass outlier → 0.30, not named, stability
+  0.33; three agreeing passes → 0.88, named. (The validation was single-pass, so its numbers are unaffected.)
+- *Public verify page:* printed "NN% high" for a saved signature — now "Signature match … (AI match, not
+  authentication)", no number. ⚠️ Security, fixed in the same edit: the creator name went into `innerHTML`
+  unescaped, and `signature_data` is written by the owner's browser (`PUT /api/collection/<id>`), so it was a
+  stored-XSS path onto a PUBLIC page. Escaped now; the server still accepts arbitrary `signature_data` — logged.
+- Logged, not fixed: the review-queue SQL views average `top_confidence` across v1 shares and v2 scores (the row's
+  `flags_json->>'prompt_version'` can split them); `displaySignatureIdentifyResults` in `js/utils.js` is unreachable.
+**Post-deploy / post-purge asserts:**
+`curl.exe -sL https://slabworthy.com/js/utils.js | Select-String "Match score"` → a line;
+`curl.exe -sL https://slabworthy.com/js/collection.js | Select-String "signature match"` → lines, and
+`Select-String 'placeholder="Add"'` → two; `curl.exe -sL https://slabworthy.com/verify | Select-String "not authentication"` → a line.
+Then ONE click on ASM #252 (~$0.66; today's total would be ~$4.78): Render should print `Pre-filter: … Stan Lee …`
+and `[SigID] match served … matched=True`; the block should read "Stan Lee — strong match — Match score 0.9x of 1 ·
+next closest 0.0x"; the log row's `flags_json` should carry `prompt_version: "2"`. If it reads `matched=False` on a
+known Stan Lee, the floor is the first suspect: `SIG_MATCH_FLOOR` / `SIG_MATCH_MARGIN` are env vars, no code deploy.
+
+## 2026-09-20 (evening) — 📊 **PROMPT v2 VALIDATED: present-signer 69/72 (v1 on the same creators: 70/72); absent-signer 14 queries — `none_of_these` median 0.86, the true signer NAMED in 5 of 14; FLOOR SET to 0.75 / margin 0.40 / none-of-these < 0.50 (0 wrong names in either set); $4.12 measured. 🧭 Mike's decision: REGISTRATION IS CLOSED — (b) — for a PRODUCT reason; today's homepage sentence STANDS.**
+
+**MOST RECENT CHANGE (Rule 5): Slab Guard registration is closed by decision (Mike, 2026-09-20): a registration today
+records an image, not a copy. Supersedes my F0 framing of the homepage sentence as "false" — it is the intended
+state, and the CODE, pricing, FAQ and billing-limits copy are what is wrong. `git log -1` = `0a35a6b`.**
+
+**The registration-closed + copy-audit unit (ONE unit, backend + frontend, `deploy` and `purge`; ships AFTER the
+prompt unit; SCOPED, not built):** gate `/api/registry/register` behind a flag; grey the Register button on
+collection rows (and the grade result) with "coming soon"; `/verify` keeps working for the 23 existing serials;
+drop the registration counts from pricing, FAQ and the billing-limits copy so Pro differs by gradings; the Slab
+Guard nav page keeps the verify-only preview with one sentence — registration reopens when copy matching meets its
+bar; plus the copy-audit findings (F1, F4, F5, F9 touch the same pages). Strategy item logged in ROADMAP
+("Slab Guard copy-matching bar"): measured state (cross-camera FP 0/12 passed; E3 TP 6/6 but FP 4/6, rejected;
+ceiling physical), the bar NOT yet defined (Mike sets it; shape proposed), multi-angle video as the proposed path,
+and the licensing white paper to carry the same bar.
+**Stripe (Mike's dashboard check):** the code reads the live price IDs from Render env vars
+`STRIPE_PRO_MONTHLY_PRICE` and `STRIPE_PRO_ANNUAL_PRICE` (`routes/billing.py:77-78`; expects $4.99 = 499 and
+$49.99 = 4999 cents). The IDs themselves are NOT in the repo and not in the local `.env`. Guard and Dealer read
+`STRIPE_GUARD_*` / `STRIPE_DEALER_*` the same way.
+
+**Prompt v2 validation — `docs/technical/SIGNATURE_PROMPT_V2_VALIDATION_2026-09-20.md`.** 72 present + 14 absent,
+one pass each, $4.12 (est. $4.55). Scores are independent now (the five sum to 1.15–2.27). One extra miss vs v1
+(John Byrne → Pérez 0.68 / margin 0.13) — inside single-pass noise. Absent: top score median 0.20; two confidently
+wrong at the 0.70 / 0.30 starting point — **Jim Lee read as Jim Starlin (0.72 / 0.37)**, Leinil Yu as Bendis
+(0.72 / 0.32) — which is why the floor moved. **SET: `MATCH_FLOOR` 0.75, `MATCH_MARGIN` 0.40,
+`NONE_OF_THESE_CEILING` 0.50** → names 56 of 72 present with 0 wrong, 0 of 14 absent. Re-set from (3) Monday.
+Found and fixed on the way: the model sometimes ranks a NON-candidate name it read off the cover; the route now
+drops those (an outside name belongs in `suggested_outside_pool`). **Spend today: $4.12.**
+
+## 2026-09-20 (late afternoon) — 📋 **COPY AUDIT of the five newly crawlable pages DONE — read-only, 25 findings, NO EDITS until Mike approves; ships as its own purge before Tuesday. ⚠️ F0: the homepage sentence shipped TODAY — "Registration isn't open to new accounts yet" — is FALSE against the deployed code. Report: `docs/technical/COPY_AUDIT_2026-09-20.md`.**
+
+**MOST RECENT CHANGE (Rule 5): the record "registration is closed to new accounts", confirmed by Mike and shipped in
+`0a35a6b`, is contradicted by the code, 2026-09-20. Supersedes that line in the two entries below as a statement of
+FACT — it stands only as Mike's stated position until he picks one. `git log -1` = `0a35a6b`.**
+- **What the code does:** `PLANS['free']['slab_guard_registrations'] = 3`, Pro 25 (`routes/billing.py:61,80`);
+  `/api/registry/register` checks only that count (`routes/registry.py:521-534`); Register buttons are live on every
+  collection row. `pricing.html` and `faq.html` say "Register 3 comics… included on every plan, including Free". The
+  **Guard tier** is closed; registration is not. Live data agrees: 23 registrations exist.
+- **How it happened:** I wrote the homepage sentence from Mike's answer and his confirmation without reading the
+  mechanism — copy checked against a statement, not against the code. The 09-17 lesson candidate, committed by me.
+- **Mike decides:** registration is open (fix the homepage; proposed copy in the report) or should be closed (then
+  the code, pricing and FAQ are wrong, and closing it is a backend unit). Also wrong in the 09-20 record: `/check`
+  "needs a serial" — it takes a PHOTO. It stays disallowed either way.
+- **Top of the ranking:** F1 pricing sells "Multi-photo grading (4 angles)" as PRO-ONLY — every plan has it; F2 "No
+  credit card required" for the trial — Checkout collects a card; F3 "our Chrome extension monitors eBay listings" on
+  pricing and verify — nothing monitors, and the FAQ says the extension is not available; F5/F6 FAQ describes
+  forensic screenshot detection and an Amazon Rekognition fingerprint — neither exists; F7 "monitoring alerts will
+  pause" (also in `terms.html` — a legal page, separate decision); F8 the PUBLIC verify page prints a signature
+  attribution with a bare percentage — belongs with the prompt unit's badge copy; F11 the FAQ's support email
+  renders as "[email protected]".
+- **Clean:** prices, caps, trial length, annual saving, Guard/Dealer shown unpurchasable; no Sell Alerts, PDF,
+  export, launch or "real-time" language on any of the five; no retention period stated; no "Patented".
+- **Not settled by the repo:** whether the Stripe PORTAL lets a subscriber switch to Guard (it would bypass the
+  purchase gate) and whether the live price IDs are $4.99 / $49.99 — both Stripe-dashboard checks.
+
+## 2026-09-20 (afternoon) — ✅ **THE SITE OPENED TO SEARCH ON 2026-09-20. Search-opening unit SHIPPED `0a35a6b` — THIRTEEN files (without `js/collection.js`), pushed, purged, asserted live. Prompt unit: built, validation running.**
+
+**MOST RECENT CHANGE (Rule 5): slabworthy.com is open to search engines as of 2026-09-20 — `robots.txt` no longer
+`Disallow: /`. Supersedes "BUILT, pending Mike's commit + push + Pages build + `purge`" in the entry below, and its
+"14 files": `js/collection.js` was held back on purpose because it now also carries the prompt unit's badge copy.
+`git log -1` = `0a35a6b`, 0 ahead of origin.**
+
+**Asserted live — Mike's checks, and mine against the served site:** an unknown path returns **404** (the Pages
+premise held: adding `404.html` was the whole fix, no `_redirects` rule); `robots.txt` served as built, `Sitemap:`
+line present; `sitemap.xml` has eight `<loc>`; the homepage's only "launches" is the tombstone comment; the Slab
+Guard sentence is confirmed by Mike as TRUE as written — **registration is closed to new accounts**; "Verify a
+Registered Comic" is served.
+**Decision logged (ROADMAP, SEO strategy):** the AI-crawler blocks stay; the cost — assistants cannot cite the site
+for the wedge queries while competitors' pages can be — is accepted; revisit after the surgery window.
+**Still pending Mike's commit + purge:** `js/collection.js` (My Val placeholder "Add" + the badge copy) — it rides the
+prompt unit's purge, below.
+
+## 2026-09-20 — 🔧 **SEARCH-OPENING UNIT BUILT (robots, sitemap, 404, homepage copy, canonicals, waitlist pages, My Val placeholder) — 14 files, frontend only, pending Mike's commit, push, Pages build, ONE `purge`. Mike's sequence change: the PROMPT FIX comes BEFORE (3); (3) runs Monday on the new prompt.**
+
+**MOST RECENT CHANGE (Rule 5): (3) moves to Monday 2026-09-21 and runs on the NEW prompt; today's spend is the prompt's
+before-and-after validation (~$4.50) — Mike, 2026-09-20. Supersedes "(3) one pass at $8.10 tomorrow" on the old
+prompt. `git log -1` = `1247fb5` (records, committed by Mike last night), 0 ahead of origin.**
+
+**Mike's decisions, 2026-09-20:**
+- **(2) accepted:** 95 of 97, an upper bound; discrimination is not the weak link.
+- **Prompt fix before (3):** a VERSIONED prompt with an independent 0-to-1 score per candidate, a "none of these"
+  score, and a suggested out-of-pool name. Validate with a before-and-after run today. **The floor rule (0.70 / 0.30
+  as the starting point, set from the new score after validation) and the badge copy change (no "high", no bare
+  percentage) ship in the SAME deploy and purge as the prompt.**
+- **Calendar:** Monday (3) at $8.10. **Tuesday 09-22 is the close-out. Nothing deploys Wednesday 09-23.** Mike is
+  offline from Wednesday for about five days.
+- **Robots/homepage answers:** `/check` is unlisted (needs a serial) → out of the sitemap, disallowed. A free user
+  in Slab Guard can **verify by serial only**. The PDF tile becomes a shipped feature — my call which: **"eBay — List
+  From Your Collection"** (it fits the slot's two-word-stat shape; the long true sentence is already the paragraph
+  directly above the tiles).
+
+### Search-opening unit — ⚰️ ~~BUILT, pending Mike's commit + push + Pages build + `purge`~~ **SHIPPED `0a35a6b` (13 files), purged, asserted — see the entry above**
+**File list (14):** `robots.txt`, `sitemap.xml` (new), `404.html` (new), `index.html`, `waitlist.html`,
+`waitlist-confirmed.html`, `about.html`, `pricing.html`, `faq.html`, `privacy.html`, `terms.html`, `verify.html`,
+`contact.html`, `js/collection.js`. Frontend only — no `deploy`.
+1. **`robots.txt`:** open by default; `Disallow` for `/api/` and, in three forms each (`/x$`, `/x.html`, `/x?`),
+   app, collection, dashboard, account, admin, signatures, sightings, login, waitlist, waitlist-confirmed, offline,
+   check, collectioncalc, modal-ebay-listing, body, mockup-results; `Sitemap:` line; the five AI-crawler blocks
+   unchanged. ⚠️ `/api/` is on the Render host — that line is belt-and-braces; the Render host has no robots route
+   (backend, logged, not this unit).
+2. **`sitemap.xml`:** `/`, `/about`, `/pricing`, `/faq`, `/privacy`, `/terms`, `/verify`, `/contact` (clean URLs —
+   Pages 308s `.html`). "How it works" is a homepage section, not a page. Each of the seven inner pages gains
+   `<link rel="canonical">`; the homepage gains canonical + four `og:` tags.
+3. **`404.html`:** its existence is the fix — Pages serves `index.html` with 200 for unknown paths on a site with no
+   top-level `404.html`. Self-contained (styles copied from `offline.html`), `noindex`, links home and to `/verify`.
+4. **`index.html` (1,200 → 909 lines):** the waitlist section, its counter, chips, CSS and script REMOVED, with a
+   comment saying why; "real-time fair market value … know exactly what it's worth" → "a fair market value from
+   recent sales … see what it's worth"; "PDF / Export Reports" → "eBay / List From Your Collection"; the Slab Guard
+   section rewritten to what a free user can do — "Verify a Registered Comic", "Registration isn't open to new
+   accounts yet; verifying is free for everyone", and the card now says anyone can check registration status by
+   serial, including whether a comic has been reported stolen (verify.html does show that). `</body></html>` added —
+   the page never closed them.
+5. **`waitlist.html` / `waitlist-confirmed.html`:** the "when Slab Worthy launches / early access" sentences replaced
+   with "Slab Worthy is open — create an account…"; the Sell Alerts CHIP removed; both `noindex`. ⚠️ NOT fixed:
+   `waitlist.html`'s feature grid still has a "Sell Alerts" card, and `waitlist-confirmed.html` has Sell Alerts
+   highlight cards (shown only to the six people who chose that interest). Both pages are closed to crawlers.
+   The confirmation EMAIL (`routes/waitlist.py`) still says "Launching Summer 2026" — backend, logged.
+6. **`js/collection.js`:** My Val placeholder "Add" (Mike's choice; "Add yours" is what `54b3dbf` shipped).
+**The 65 waitlist rows are untouched.** 8 verified people with no account are owed one "we're open" email — Mike's send.
+**Verified locally:** static preview — homepage renders with no console errors, tiles and the Slab Guard section
+read as intended, footer follows directly; 404 page renders; tag balance clean on both; `git diff --stat` shows one
+line per inner page (no line-ending churn).
+**Post-purge asserts (PowerShell):**
+`curl.exe -s https://slabworthy.com/robots.txt | Select-String "Sitemap:"` → one line;
+`curl.exe -s -o NUL -w "%{http_code}" https://slabworthy.com/no-such-page-xyz` → **404** (this is the one that proves
+the Pages behaviour; if it says 200 the premise was wrong and `_redirects` is the fallback);
+`curl.exe -s https://slabworthy.com/sitemap.xml | Select-String "<loc>"` → eight lines;
+`curl.exe -sL https://slabworthy.com/ | Select-String "launches|PDF|real-time"` → nothing;
+`curl.exe -sL https://slabworthy.com/js/collection.js | Select-String 'placeholder="Add"'` → two lines.
+**Watch for two days:** Search Console (if the property exists — it is how the first crawl is seen at all), and
+Render/Cloudflare for crawler load. Opened by this unit and NOT audited: about, pricing, faq, contact, verify.
 
 ## 2026-09-19 (late) — 📊 **(2) DONE: 95 / 97 = 97.9% top-1, same answer in 37 / 37 repeated queries, $5.96 measured. ⚠️ THERE IS NO RAW SCORE — the prompt orders the model to return exactly five scores summing to 1.0, so "raw" and "share" are the same number and Mike's scoring rule cannot be applied as written. Report: `docs/technical/SIGNATURE_CV_RESULTS_2026-09-19.md`. Nothing built from it.**
 

@@ -254,7 +254,7 @@
   - 🔜 Upload reference images for 57 new creators via /signatures.html admin UI
   - 🔜 A/B test v1 vs v2 (curl test — no in-app UI yet)
   - 🔜 Fix style_notes metadata (Mike) + source better Bendis/Claremont reference images
-  - 🔜 Target 87%+ accuracy before advertising signature feature
+  - ⚰️ ~~Target 87%+ accuracy before advertising signature feature~~ **REPLACED 2026-09-20 (Mike): release bar = (3) top-1 ≥ 75% among NAMED matches, score line visible; off in the grading flow until a measured (3) clears it.**
 
 - [ ] **Sell Now Alerts v1** ⏱ 2 sessions
   - When incoming eBay sale exceeds FMV by >25%, alert users who own that title

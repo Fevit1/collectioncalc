@@ -162,7 +162,7 @@ AI-powered comic book grading tool. Upload 4 photos, get CGC-equivalent grade + 
 
 1. eBay listing end-to-end test (draft + auction)
 2. Marketplace prep testing (Whatnot, Mercari, etc.)
-3. Signature v2 — upload refs for 57 new creators, target 87%+ accuracy
+3. Signature v2 — ⚰️ ~~upload refs for 57 new creators, target 87%+ accuracy~~ references loaded 2026-09-17 (389 images, 99 of 100 creators). **RELEASE BAR (Mike, 2026-09-20): the external test (3) must show top-1 accuracy ≥ 75% AMONG NAMED MATCHES, with the score line visible. The feature re-enables in the grading flow only when a measured (3) clears it, and stays off below.** Replaces the March 87% figure. State: `docs/sessions/WHERE_WE_LEFT_OFF.md`.
 4. Mobile testing on real devices
 5. ⚰️ ~~GalaxyCon sprint plan (25 weeks to Aug 21)~~ — **DEAD 2026-07-29, GalaxyCon dropped.** `docs/sessions/GALAXYCON_SPRINT.md` is superseded in its entirety; do not execute or re-date it (retirement decision pending Mike). Replacement sequence: ⚰️ ~~Aug 4 soft launch~~ **first cold traffic (unscheduled)** → quiet month → FB + email marketing.
 6. 🚦 **CP-1 valuation honesty — audited, NOT fixed.** Findings + the current fix order: `docs/technical/CP1_STATE_OF_PLAY.md`. Opens on canonical "of" fragmentation. ⚠️ *"confidence is displayed nowhere"* is **FALSE** — it renders in two live surfaces; do not re-scope CP-1 as "wire up the display."
