@@ -456,11 +456,15 @@ function displaySignatureV2Results(result, container) {
     if (result.matched !== true) {
         const f = result.flags || {};
         const note = String(f.notes || '').split(' | ')[0].trim();
+        // Prompt v2: the model may name a likely signer who was not among the creators
+        // compared. That is a resemblance, not an identification — it is worded as one.
+        const outside = String(result.suggested_outside_pool || '').trim();
         container.innerHTML = `
             <div style="margin-top: 12px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 6px; border-left: 3px solid var(--brand-indigo);">
                 <div style="font-weight: 600; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
                     Signature ID — no confident match
                 </div>
+                ${outside ? `<div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Closest resemblance: ${escapeHtml(outside)} &mdash; not among the creators we compared</div>` : ''}
                 <div style="font-size: 13px; line-height: 1.5; color: var(--text-primary);">
                     ${note ? escapeHtml(note) : 'Nothing on this cover matched a signature in our reference set closely enough to name.'}
                 </div>
@@ -476,37 +480,33 @@ function displaySignatureV2Results(result, container) {
     }
 
     const top = result.top5[0];
-    const confColor = getSignatureConfidenceColor(top.confidence);
     const flags = result.flags || {};
+    // NO percentage and no "high" (2026-09-20). The number is a match score against our
+    // reference signatures (prompt v2) — not a probability — so it is shown as a labelled
+    // score beside the next closest candidate, which is what makes it mean something.
+    const second = result.top5[1];
+    const scoreLine = `Match score ${Number(top.confidence).toFixed(2)} of 1`
+        + (second ? ` &middot; next closest ${Number(second.confidence).toFixed(2)}` : '');
 
     container.innerHTML = `
         <div style="margin-top: 12px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">
             <div style="font-weight: 600; font-size: 12px; color: var(--status-success); margin-bottom: 10px;">
-                Signature Identification (v2 — ${result.pass_count || 3} analysis passes)
+                Signature ID &mdash; matches our references
             </div>
             <div style="margin-bottom: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="font-size: 14px; font-weight: 600;">${top.creator}</div>
-                    <div style="padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; background: ${confColor};">
-                        ${Math.round(top.confidence * 100)}% ${top.confidence_label || ''}
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                    <div style="font-size: 14px; font-weight: 600;">${escapeHtml(top.creator)}</div>
+                    <div style="padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; background: var(--status-success);">
+                        ${escapeHtml(top.confidence_label || 'match')}
                     </div>
                 </div>
-                ${top.match_evidence ? `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">${top.match_evidence.slice(0, 3).join(' · ')}</div>` : ''}
-                ${flags.high_confusion_pair ? '<div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">Similar to another creator — verify carefully</div>' : ''}
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">${scoreLine}</div>
+                ${top.match_evidence ? `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">${top.match_evidence.slice(0, 3).map(escapeHtml).join(' &middot; ')}</div>` : ''}
+                ${flags.multiple_signatures_detected ? '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">More than one signature appears to be on this cover. Only the most prominent one was compared.</div>' : ''}
             </div>
-            ${result.top5.length > 1 ? `
-            <div style="font-size: 11px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div style="color: var(--text-muted); margin-bottom: 4px;">Other candidates:</div>
-                ${result.top5.slice(1, 4).map(c => `
-                    <div style="display: flex; justify-content: space-between; padding: 1px 0;">
-                        <span>${c.creator}</span>
-                        <span style="color: ${getSignatureConfidenceColor(c.confidence)}; font-weight: 500;">${Math.round(c.confidence * 100)}%</span>
-                    </div>
-                `).join('')}
-            </div>` : ''}
             <div style="font-size: 10px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">
-                For definitive authentication, submit to CGC Signature Series or CBCS Verified Signature
-                · ${result.latency_ms ? `${(result.latency_ms / 1000).toFixed(1)}s` : ''}
+                A match to our reference signatures, not authentication. For that, submit to CGC Signature Series or CBCS Verified Signature
+                ${result.latency_ms ? ` &middot; ${(result.latency_ms / 1000).toFixed(1)}s` : ''}
             </div>
         </div>`;
     container.style.display = 'block';

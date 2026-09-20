@@ -3550,7 +3550,9 @@
 
                 // Check if we got a meaningful result
                 const topMatch = result.top5 && result.top5[0];
-                if (!topMatch || topMatch.confidence < 0.40) {
+                // `matched` is the server's floor rule (score, margin, none-of-these). This page
+                // used its own 0.40, which would have shown and SAVED a name the server refused.
+                if (!topMatch || result.matched !== true) {
                     // No confident match — hide section
                     sigSection.style.display = 'none';
                     window.gradingState.signatureResult = null;
@@ -3765,7 +3767,7 @@
                     grading_id: gradingId,
                     signature_data: (() => {
                         const sr = window.gradingState.signatureResult;
-                        if (!sr || !sr.top5 || !sr.top5[0] || sr.top5[0].confidence < 0.40) return null;
+                        if (!sr || sr.matched !== true || !sr.top5 || !sr.top5[0]) return null;
                         const top = sr.top5[0];
                         return {
                             creator: top.creator,

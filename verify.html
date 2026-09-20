@@ -713,16 +713,19 @@
                 </div>
             `;
 
-            // Signature info
+            // Signature match. NO percentage and no "high" (2026-09-20): the stored number is a
+            // match score against our reference signatures (or, on older rows, a share of five
+            // candidates) — never a probability, and this page is public. The creator name is
+            // escaped: signature_data is written by the owner's browser, so it is user input.
             if (data.signature && data.signature.creator) {
-                const sigConf = data.signature.confidence ? Math.round(data.signature.confidence * 100) : '?';
-                const sigColor = data.signature.confidence >= 0.85 ? '#10b981' : data.signature.confidence >= 0.65 ? '#3b82f6' : '#f59e0b';
+                const sigName = String(data.signature.creator).replace(/[&<>"']/g,
+                    ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
                 detailsHTML += `
                     <div class="detail-row">
-                        <span class="detail-label">Signature</span>
-                        <span class="detail-value" style="color: ${sigColor}; font-weight: 600;">
-                            &#9997; ${data.signature.creator}
-                            <span style="font-size: 0.85em; opacity: 0.8;">(${sigConf}% ${data.signature.confidence_label || ''})</span>
+                        <span class="detail-label">Signature match</span>
+                        <span class="detail-value" style="font-weight: 600;" title="Matched by AI against reference signatures. Not authentication.">
+                            &#9997; ${sigName}
+                            <span style="font-size: 0.85em; opacity: 0.8;">(AI match, not authentication)</span>
                         </span>
                     </div>
                 `;

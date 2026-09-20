@@ -21,6 +21,7 @@ import logging
 import os
 import re
 import time
+import unicodedata
 # ThreadPoolExecutor removed — sequential passes needed due to Opus 4.6
 # rate limit (30K input tokens/min). Parallel calls trigger 429 errors.
 from dataclasses import dataclass, field
@@ -81,8 +82,35 @@ PASS_TEMPERATURES = [0.2, 0.5, 0.7]
 # Single source of truth: this one value defines BOTH the honest no-match floor
 # AND the Guard cap boundary (a match counts only if confidence >= this). Env
 # override lets us retune without a code change.
-# PROVISIONAL — calibrate at the signature-v2 accuracy re-measurement (87% target).
+# Prompt v1 only. (The March "87% target" is dead: the release bar set 2026-09-20 is
+# top-1 >= 75% among NAMED matches on the external test, score line visible.)
 LOW_CONFIDENCE_THRESHOLD = float(os.environ.get('SIG_LOW_CONFIDENCE_THRESHOLD', '0.50'))
+
+# PROMPT VERSION (2026-09-20). "1" = prompts/signature_identification_system.md, which
+# orders the model to return five scores SUMMING TO 1.0 — a share of belief, never a
+# confidence, with no way to say "none of these". "2" = ..._v2.md: an independent 0-to-1
+# match_score per candidate, a none_of_these score and a suggested out-of-pool name.
+# Everything below branches on this, so SIG_PROMPT_VERSION=1 is a rollback by env var.
+PROMPT_VERSION = os.environ.get('SIG_PROMPT_VERSION', '2').strip()
+PROMPT_FILES = {'1': 'signature_identification_system.md',
+                '2': 'signature_identification_system_v2.md'}
+
+# FLOOR RULE for prompt version 2 — a creator is NAMED only when all three hold. The
+# starting point (0.70 / 0.30) came from the version-1 cross-validation, where it named
+# 76 of 97 with no wrong answer; the values are set from the version-2 validation run
+# and are env-overridable so a retune is not a deploy of code.
+#   top match_score >= MATCH_FLOOR
+#   top minus second >= MATCH_MARGIN        (an even field cannot pass)
+#   none_of_these    <  NONE_OF_THESE_CEILING (the model itself doubts the pool)
+# SET FROM THE VERSION-2 VALIDATION, 2026-09-20 (72 present-signer + 14 absent-signer
+# queries, one pass each; docs/technical/SIGNATURE_PROMPT_V2_VALIDATION_2026-09-20.md):
+#   0.70 / 0.30  named 61 of 72 present with 1 WRONG, and named 2 of 14 ABSENT signers
+#                (Jim Lee read as Jim Starlin 0.72 / 0.37; Leinil Yu as Bendis 0.72 / 0.32)
+#   0.75 / 0.40  named 56 of 72 present with 0 wrong, and 0 of 14 absent   <- chosen
+# Small samples, clean crops: re-set from the external test (3), not from taste.
+MATCH_FLOOR = float(os.environ.get('SIG_MATCH_FLOOR', '0.75'))
+MATCH_MARGIN = float(os.environ.get('SIG_MATCH_MARGIN', '0.40'))
+NONE_OF_THESE_CEILING = float(os.environ.get('SIG_NONE_OF_THESE_CEILING', '0.50'))
 CONFUSION_PAIR_DELTA = 0.10  # rank1 vs rank2 within this → flag
 # MAX_WORKERS removed — passes run sequentially now (rate limit constraint)
 
@@ -112,6 +140,8 @@ class PassResult:
     analysis: dict
     flags: dict
     raw_response: str
+    none_of_these: Optional[float] = None
+    suggested_outside_pool: Optional[str] = None
 
 
 @dataclass
@@ -123,6 +153,11 @@ class AggregatedResult:
     pass_count: int
     passes_attempted: int
     latency_ms: int
+    margin: float = 0.0                           # top score minus second
+    none_of_these: Optional[float] = None         # prompt v2 only
+    suggested_outside_pool: Optional[str] = None  # prompt v2 only
+    prompt_version: str = '1'
+    score_kind: str = 'share_of_top5'             # v2: 'independent_match_score'
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +453,13 @@ def log_result_to_db(
 # R2 Image Retrieval (via public HTTP — matches v1 pattern)
 # ---------------------------------------------------------------------------
 
+def _name_key(name) -> str:
+    """Creator name reduced to letters and digits: case, accents, spacing, punctuation gone."""
+    s = unicodedata.normalize('NFKD', str(name or ''))
+    s = ''.join(ch for ch in s if not unicodedata.combining(ch))
+    return re.sub(r'[^a-z0-9]+', '', s.casefold())
+
+
 def _sniff_media_type(image_b64: str) -> str:
     """Media type from the image's own bytes, never from a name or an assumption.
 
@@ -584,12 +626,48 @@ def run_single_pass(
 
         parsed = json.loads(raw)
 
+        # Prompt v2 names the per-candidate number `match_score`; everything downstream
+        # reads `confidence`, so carry it there. v1 responses already use `confidence`.
+        rankings = parsed.get("rankings", []) or []
+        # Only candidates can be ranked. In validation the model sometimes wrote the name it
+        # READ on the cover into `rankings` at a token score even though that creator was
+        # not in the pool ("Ryan Ottley 0.05"); left in, an outside name could become top-1.
+        # An outside name belongs in suggested_outside_pool, which is kept below.
+        # Compared on a normalised key (case, accents, spacing, punctuation) so "George
+        # Perez" still counts as the candidate "George Pérez", and rewritten to the pool's own
+        # spelling so the passes aggregate under one name. Prompt v2 only: v1 never had this
+        # filter, and SIG_PROMPT_VERSION=1 must be a true rollback.
+        if PROMPT_VERSION != '1':
+            pool = {_name_key(c.name): c.name for c in candidates}
+            kept, dropped = [], []
+            for e in rankings:
+                canonical = pool.get(_name_key(e.get("creator")))
+                if canonical:
+                    e["creator"] = canonical
+                    kept.append(e)
+                else:
+                    dropped.append(e.get("creator"))
+            if dropped:
+                logger.warning("Dropped %d ranking entr(ies) naming a non-candidate: %s", len(dropped), dropped)
+            rankings = kept
+        for entry in rankings:
+            if "match_score" in entry:
+                entry["confidence"] = entry["match_score"]
+        sop = parsed.get("suggested_outside_pool")
+        sop_name = (sop.get("name") if isinstance(sop, dict) else sop) or None
+        try:
+            none_of_these = float(parsed["none_of_these"]) if parsed.get("none_of_these") is not None else None
+        except (TypeError, ValueError):
+            none_of_these = None
+
         return PassResult(
             temperature=temperature,
-            rankings=parsed.get("rankings", []),
+            rankings=rankings,
             analysis=parsed.get("analysis", {}),
             flags=parsed.get("flags", {}),
             raw_response=raw,
+            none_of_these=none_of_these,
+            suggested_outside_pool=(str(sop_name).strip() or None) if sop_name else None,
         )
 
     except json.JSONDecodeError as e:
@@ -641,7 +719,14 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
     # Average confidence scores
     averaged: list[dict] = []
     for name, scores in all_creators.items():
-        avg_confidence = sum(scores) / len(scores)
+        # v1 averaged over the passes that RANKED the creator, so a name one pass in three put
+        # at 0.80 kept 0.80. Its sum-to-one rescaling hid that; v2 has no rescaling, and one
+        # noisy pass could clear the floor alone. Under v2 a pass that left the creator out of
+        # its top five counts as a zero: three passes have to agree to reach the floor.
+        if PROMPT_VERSION != '1':
+            avg_confidence = sum(scores) / len(passes)
+        else:
+            avg_confidence = sum(scores) / len(scores)
         avg_rank = sum(creator_ranks[name]) / len(creator_ranks[name])
 
         # Stability: how much does rank vary across passes?
@@ -677,10 +762,15 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
         del entry["avg_rank"]
 
     # Normalize confidence scores to sum to 1.0
-    total = sum(e["confidence"] for e in top5)
-    if total > 0:
-        for entry in top5:
-            entry["confidence"] = round(entry["confidence"] / total, 3)
+    # Prompt v1 only: its five scores are a distribution, and averaging passes can leave
+    # them a hair off 1.0. Prompt v2 scores are INDEPENDENT — rescaling them to sum to 1
+    # would turn a field of five 0.15s into five 0.20s and a lone 0.90 into 1.00, which is
+    # exactly the number-that-is-not-a-confidence this version exists to remove.
+    if PROMPT_VERSION == '1':
+        total = sum(e["confidence"] for e in top5)
+        if total > 0:
+            for entry in top5:
+                entry["confidence"] = round(entry["confidence"] / total, 3)
 
     # Stability scores for top candidates
     stability_scores = {}
@@ -688,7 +778,11 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
         name = entry["creator"]
         if name in creator_ranks:
             rank_variance = max(creator_ranks[name]) - min(creator_ranks[name])
-            stability_scores[name] = round(max(0.0, 1.0 - (rank_variance / 4.0)), 2)
+            stability = max(0.0, 1.0 - (rank_variance / 4.0))
+            if PROMPT_VERSION != '1':
+                # Ranked by one pass of three is not "perfectly stable" (one rank has no variance).
+                stability = min(stability, len(creator_ranks[name]) / len(passes))
+            stability_scores[name] = round(stability, 2)
 
     # Merge flags across passes
     merged_flags: dict = {}
@@ -702,14 +796,31 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
             else:
                 merged_flags[k] = v
 
+    margin = round(top5[0]["confidence"] - (top5[1]["confidence"] if len(top5) > 1 else 0.0), 3) if top5 else 0.0
+    nots = [p.none_of_these for p in passes if p.none_of_these is not None]
+    none_of_these = round(sum(nots) / len(nots), 3) if nots else None
+    # The outside name most passes agree on; a name no two passes share is still reported
+    # (one pass reading "Stan Lee" is worth showing), first pass wins a tie.
+    names = [p.suggested_outside_pool for p in passes if p.suggested_outside_pool]
+    suggested = max(names, key=lambda n: (names.count(n), -names.index(n))) if names else None
+
     # Apply final flag rules
     if top5:
-        if top5[0]["confidence"] < LOW_CONFIDENCE_THRESHOLD:
+        if not passes_floor_rule(top5[0]["confidence"], margin, none_of_these):
             merged_flags["low_confidence_match"] = True
         if len(top5) >= 2:
             delta = top5[0]["confidence"] - top5[1]["confidence"]
             if delta < CONFUSION_PAIR_DELTA:
                 merged_flags["high_confusion_pair"] = True
+
+    # Carried in flags so the review-queue row (flags_json) records which prompt and which
+    # numbers produced the decision — no schema change needed.
+    merged_flags["prompt_version"] = PROMPT_VERSION
+    merged_flags["margin"] = margin
+    if none_of_these is not None:
+        merged_flags["none_of_these"] = none_of_these
+    if suggested:
+        merged_flags["suggested_outside_pool"] = suggested
 
     # Flag degraded results (fewer than expected passes succeeded)
     if len(passes) < passes_attempted:
@@ -730,17 +841,36 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
         pass_count=len(passes),
         passes_attempted=passes_attempted,
         latency_ms=0,  # set by caller
+        margin=margin,
+        none_of_these=none_of_these,
+        suggested_outside_pool=suggested,
+        prompt_version=PROMPT_VERSION,
+        score_kind='independent_match_score' if PROMPT_VERSION != '1' else 'share_of_top5',
     )
 
 
+def passes_floor_rule(top_score: float, margin: float, none_of_these: Optional[float]) -> bool:
+    """The ONE place that decides whether a creator is named. The route, the flags and the
+    measurement harness all call this, so the page, the cap and the numbers cannot disagree."""
+    if PROMPT_VERSION == '1':
+        return top_score >= LOW_CONFIDENCE_THRESHOLD
+    if top_score < MATCH_FLOOR or margin < MATCH_MARGIN:
+        return False
+    return none_of_these is None or none_of_these < NONE_OF_THESE_CEILING
+
+
 def _confidence_label(score: float) -> str:
+    """Words for MATCH STRENGTH, never for probability. Until 2026-09-20 this returned
+    "high" / "medium" / "low" / "speculative", was stored in collections.signature_data
+    and printed beside a percentage — on a number that was a share of five. The label now
+    describes the resemblance and nothing else."""
     if score >= 0.85:
-        return "high"
+        return "strong match"
     if score >= 0.65:
-        return "medium"
+        return "close match"
     if score >= 0.40:
-        return "low"
-    return "speculative"
+        return "partial match"
+    return "weak match"
 
 
 # ---------------------------------------------------------------------------
@@ -860,10 +990,11 @@ def run_orchestrated_identification(
 def load_system_prompt() -> str:
     """Load the system prompt from the prompts/ directory."""
     prompt_path = os.path.join(
-        os.path.dirname(__file__), "..", "prompts", "signature_identification_system.md"
+        os.path.dirname(__file__), "..", "prompts",
+        PROMPT_FILES.get(PROMPT_VERSION, PROMPT_FILES['2'])
     )
     try:
-        with open(prompt_path) as f:
+        with open(prompt_path, encoding='utf-8') as f:
             content = f.read()
         # Extract just the SYSTEM PROMPT section
         if "## SYSTEM PROMPT" in content:
@@ -1049,7 +1180,8 @@ def match_signature():
     # decrement the cap (per-account usage is still logged for monitoring).
     top_match = result.top5[0] if result.top5 else None
     top_confidence = float(top_match.get("confidence", 0.0)) if top_match else 0.0
-    is_confident_match = top_match is not None and top_confidence >= LOW_CONFIDENCE_THRESHOLD
+    is_confident_match = top_match is not None and passes_floor_rule(
+        top_confidence, result.margin, result.none_of_these)
 
     # --- Log to DB (non-blocking — don't fail the response) ---
     try:
@@ -1104,6 +1236,13 @@ def match_signature():
         "message": (None if is_confident_match
                     else "Signature not in our reference set (no confident match)"),
         "top_confidence": round(top_confidence, 3),
+        # What the number IS, so no client has to guess: prompt v2 = an independent 0-to-1
+        # match score per candidate; v1 = a share of the top five. Neither is a probability.
+        "score_kind": result.score_kind,
+        "prompt_version": result.prompt_version,
+        "margin": result.margin,
+        "none_of_these": result.none_of_these,
+        "suggested_outside_pool": result.suggested_outside_pool,
         "top5": result.top5,
         "flags": result.flags,
         "analysis": result.analysis,

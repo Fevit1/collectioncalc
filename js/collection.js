@@ -456,11 +456,14 @@ function createComicCard(comic) {
             ? `$${comic.my_valuation.toFixed(2)}`
             : '';
 
-        // Signature badge
+        // Signature badge. NO percentage and no "high" (2026-09-20): the number behind it
+        // was a share of five candidates under prompt v1 and is a match score under v2 —
+        // in neither case a probability that the book is signed by this person. The badge
+        // says what was found: the signature matches our references for this creator.
         const sigBadge = comic.signature_data && comic.signature_data.creator
             ? `<div style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(16,185,129,0.15); color: #10b981; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;">
-                 <span style="font-size: 10px;">&#9997;</span> ${comic.signature_data.creator}
-                 <span style="color: ${getSignatureConfidenceColor(comic.signature_data.confidence)}; font-weight: 600;">${Math.round(comic.signature_data.confidence * 100)}%</span>
+                 <span style="font-size: 10px;">&#9997;</span> ${escapeHtml(comic.signature_data.creator)}
+                 <span style="opacity: 0.8;">&middot; signature match</span>
                </div>`
             : '';
 
@@ -490,7 +493,7 @@ function createComicCard(comic) {
                     <input
                         type="text"
                         class="my-valuation-input"
-                        placeholder="Add yours"
+                        placeholder="Add"
                         value="${myValInput}"
                         data-comic-id="${comic.id}"
                         onblur="updateMyValuation(${comic.id}, this.value)"
@@ -539,10 +542,9 @@ function createComicCard(comic) {
         // Gallery signature badge
         const gallerySigBadge = comic.signature_data && comic.signature_data.creator
             ? `<div class="detail-row">
-                 <span class="detail-label">Signed</span>
-                 <span class="detail-value" style="color: #10b981; font-weight: 600;">
-                   &#9997; ${comic.signature_data.creator}
-                   <span style="color: ${getSignatureConfidenceColor(comic.signature_data.confidence)}; font-size: 11px;">(${Math.round(comic.signature_data.confidence * 100)}%)</span>
+                 <span class="detail-label">Signature match</span>
+                 <span class="detail-value" style="color: #10b981; font-weight: 600;" title="Matched against our reference signatures. Not authentication.">
+                   &#9997; ${escapeHtml(comic.signature_data.creator)}
                  </span>
                </div>`
             : '';
@@ -582,7 +584,7 @@ function createComicCard(comic) {
                         <input
                             type="text"
                             class="my-valuation-input"
-                            placeholder="Add yours"
+                            placeholder="Add"
                             value="${myValInput}"
                             data-comic-id="${comic.id}"
                             onclick="event.stopPropagation()"
@@ -1242,6 +1244,11 @@ async function handleCollectionIdentifySignatures(event, comicId) {
                 creator: topMatch.creator,
                 confidence: topMatch.confidence,
                 confidence_label: topMatch.confidence_label || 'unknown',
+                // What `confidence` IS, stored beside it so a later reader cannot mistake it
+                // for a probability: 'independent_match_score' (prompt v2) or 'share_of_top5'.
+                score_kind: result.score_kind || 'share_of_top5',
+                prompt_version: result.prompt_version || '1',
+                margin: (typeof result.margin === 'number') ? result.margin : null,
                 flags: result.flags || {},
                 stability: result.stability_scores && result.stability_scores[topMatch.creator] || null,
                 pass_count: result.pass_count || 0,
@@ -1260,7 +1267,7 @@ async function handleCollectionIdentifySignatures(event, comicId) {
 
                 // Update local collection array so badge appears without refresh
                 comic.signature_data = sigData;
-                showToast(`Identified: ${topMatch.creator} (${Math.round(topMatch.confidence * 100)}% confidence)`, 'success');
+                showToast(`Signature matches our ${topMatch.creator} references`, 'success');
             } catch (e) {
                 console.error('Failed to save signature data:', e);
             }
