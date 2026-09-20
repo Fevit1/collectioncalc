@@ -29,7 +29,19 @@ import os
 import time
 import json
 import hashlib
+import logging
 from functools import wraps
+
+# Production log level (2026-09-19). Nothing in the app configured logging, so the
+# root logger sat at WARNING and every logger.info was dropped on Render — including
+# "[SigID] match served", the usage signal for unlimited plans, which had never been
+# written in production. Most of the app logs with print(); this is for the modules
+# that use `logging`. It must run before the blueprints import, and gunicorn imports
+# wsgi:app in every worker, so once here covers all of them. httpx then logs one
+# "HTTP Request: POST …/v1/messages 200" line per Anthropic call (URL and status
+# only) — kept on purpose as a per-call record of model traffic.
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s: %(message)s')
+
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 
