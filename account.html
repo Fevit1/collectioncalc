@@ -569,7 +569,7 @@
                     <div class="usage-item" id="registrationUsage">
                         <div class="usage-label">
                             <span>Slab Guard Registrations</span>
-                            <span class="count" id="registrationCount">0 / 3</span>
+                            <span class="count" id="registrationCount">—</span>
                         </div>
                         <div class="usage-bar">
                             <div class="usage-fill fill-purple" id="registrationBar" style="width: 0%"></div>
@@ -729,10 +729,16 @@
             const rUsed = data.usage.registrations_used || 0;
             const rLimit = data.usage.registrations_limit;
             const rUnlimited = rLimit === -1;
-            document.getElementById('registrationCount').textContent =
-                rUnlimited ? `${rUsed} (Unlimited)` : `${rUsed} / ${rLimit}`;
+            // Registration is closed by decision (2026-09-20): show what exists, not a quota.
+            // `registration_open` comes from /api/billing/my-plan, so this page cannot disagree
+            // with the route that enforces it.
+            const rOpen = data.usage.registration_open === true;
+            document.getElementById('registrationCount').textContent = rOpen
+                ? (rUnlimited ? `${rUsed} (Unlimited)` : `${rUsed} / ${rLimit}`)
+                : `${rUsed} registered · new registrations closed`;
             const rPct = rUnlimited ? Math.min(rUsed, 100) : Math.min((rUsed / rLimit) * 100, 100);
             const rBar = document.getElementById('registrationBar');
+            if (!rOpen) rBar.parentElement.style.display = 'none';   // no quota bar while closed
             rBar.style.width = rPct + '%';
             rBar.className = 'usage-fill ' + (rPct > 90 ? 'fill-red' : rPct > 70 ? 'fill-orange' : 'fill-purple');
 

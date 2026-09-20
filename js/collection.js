@@ -5,6 +5,23 @@
 
 // Collection state
 let collection = [];
+// Closed until the server says otherwise; set once per page load by loadRegistrationState().
+let registrationOpen = false;
+
+async function loadRegistrationState() {
+    try {
+        const token = localStorage.getItem('cc_token') || (typeof authToken !== 'undefined' ? authToken : null);
+        if (!token) return;
+        const r = await fetch(`${API_URL}/api/billing/my-plan`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!r.ok) return;
+        const d = await r.json();
+        const open = !!(d && d.usage && d.usage.registration_open === true);
+        if (open !== registrationOpen) {
+            registrationOpen = open;
+            if (collection.length) displayCollection();
+        }
+    } catch (e) { /* stays closed */ }
+}
 let filteredCollection = [];
 let currentView = 'list';
 let columnSortField = 'title';
@@ -31,6 +48,7 @@ function columnSort(field) {
 // Load collection on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadCollection();
+    loadRegistrationState();
     setupEventListeners();
 
     // If returning from eBay OAuth, reopen the listing modal for the comic we were working on
@@ -855,7 +873,16 @@ function guardButton(comic, stopProp) {
     const id = comic.id;
 
     if (!comic.registry_serial) {
-        // Not registered — simple Register button
+        // Not registered. REGISTRATION IS CLOSED (2026-09-20, a product decision: a
+        // registration today records an image, not a copy). The button is greyed unless
+        // /api/billing/my-plan says it is open for THIS account (the server's flag, or its
+        // allow-list for the measured run) — the page asks, it never decides.
+        if (!registrationOpen) {
+            return `<button class="guard-btn" id="guardBtn-${id}" disabled aria-disabled="true"
+                        style="opacity: 0.55; cursor: not-allowed;"
+                        title="Registration is closed for now. It reopens when our copy-matching meets its accuracy bar."
+                        onclick="${sp}return false;">🛡️ Register <span class="soon-badge">SOON</span></button>`;
+        }
         return `<button class="guard-btn" id="guardBtn-${id}" onclick="${sp}registerComic(${id}, this)">🛡️ Register</button>`;
     }
 

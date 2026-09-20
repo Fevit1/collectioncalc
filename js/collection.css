@@ -380,7 +380,8 @@ select:focus {
     background: var(--bg-primary);
 }
 
-.action-btn.soon .soon-badge {
+.action-btn.soon .soon-badge,
+.guard-btn .soon-badge {
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.04em;

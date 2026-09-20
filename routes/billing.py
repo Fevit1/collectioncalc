@@ -500,6 +500,15 @@ def get_plans():
     return jsonify({'plans': public_plans})
 
 
+def _registration_open(user_id) -> bool:
+    """Registry owns the rule; imported lazily because registry imports this module."""
+    try:
+        from routes.registry import registration_open_for
+        return registration_open_for(user_id)
+    except Exception:
+        return False
+
+
 @billing_bp.route('/my-plan', methods=['GET'])
 @require_auth
 def get_my_plan():
@@ -540,6 +549,9 @@ def get_my_plan():
             'valuations_limit': plan_config['valuations_per_month'],
             'registrations_used': reg_count,
             'registrations_limit': plan_config['slab_guard_registrations'],
+            # Registration is closed by decision (2026-09-20); the limits above are kept for
+            # when it reopens and must not be shown as a benefit while it is closed.
+            'registration_open': _registration_open(g.user_id),
         },
         'features': {
             'marketplace_monitoring': plan_config['marketplace_monitoring'],

@@ -485,8 +485,11 @@ function displaySignatureV2Results(result, container) {
     // reference signatures (prompt v2) — not a probability — so it is shown as a labelled
     // score beside the next closest candidate, which is what makes it mean something.
     const second = result.top5[1];
-    const scoreLine = `Match score ${Number(top.confidence).toFixed(2)} of 1`
-        + (second ? ` &middot; next closest ${Number(second.confidence).toFixed(2)}` : '');
+    // Percentages, always under the "Match score" label (Mike, 2026-09-20) — never a bare
+    // percentage, never "confidence", never "high".
+    const pct = v => `${Math.round(Number(v) * 100)}%`;
+    const scoreLine = `Match score ${pct(top.confidence)}`
+        + (second ? ` &middot; next closest ${pct(second.confidence)}` : '');
 
     container.innerHTML = `
         <div style="margin-top: 12px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid var(--status-success);">

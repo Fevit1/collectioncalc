@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Comic - Slab Guard™</title>
+    <meta name="description" content="Check a Slab Guard serial number: see a registered comic's details, its registration date, and whether it has been reported stolen. Free, no account needed.">
     <link rel="canonical" href="https://slabworthy.com/verify">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
@@ -506,7 +507,7 @@
                     </div>
 
                     <div class="sighting-success" id="sightingSuccess">
-                        &#9989; The owner has been notified. Thank you for helping protect collectors.
+                        <span id="sightingSuccessText">&#9989; The owner has been notified. Thank you for helping protect collectors.</span>
                     </div>
                 </div>
             </div>
@@ -515,9 +516,10 @@
         <div class="card info-section">
             <h3>What is this?</h3>
             <p>
-                Slab Guard™ records each comic with a unique visual fingerprint and serial number,
-                monitors marketplace listings, and flags candidate sightings to review. To confirm a
-                specific copy, verify ownership by serial number — buyers can check any serial before purchase.
+                Slab Guard™ records each comic with a visual fingerprint and a serial number. To confirm a
+                specific copy, check its serial number here — buyers can check any serial before purchase.
+                New registrations are closed for now; they reopen when our copy-matching meets its accuracy bar.
+                Comics already registered keep their serials.
             </p>
             <p style="margin-top: 12px;">
                 <strong>For buyers:</strong> Always verify the serial number before purchasing a high-value comic.
@@ -821,6 +823,12 @@
                 // Success — hide form, show confirmation
                 document.getElementById('sightingForm').classList.remove('show');
                 document.getElementById('reportBtn').style.display = 'none';
+                // Say "notified" only when a notice actually went out. The API returns
+                // owner_notified; the page used to claim it regardless.
+                if (data.owner_notified === false) {
+                    document.getElementById('sightingSuccessText').innerHTML =
+                        '&#9989; Your report is recorded. We could not email the owner automatically. Thank you for helping protect collectors.';
+                }
                 successEl.classList.add('show');
 
             } catch (error) {

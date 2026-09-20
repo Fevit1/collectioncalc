@@ -519,11 +519,37 @@ def generate_all_fingerprints(photos_dict):
     return all_fingerprints if all_fingerprints else None
 
 
+def registration_open_for(user_id) -> bool:
+    """One place decides whether this account may register a comic today."""
+    if os.environ.get('SLAB_GUARD_REGISTRATION_OPEN', 'false').strip().lower() in ('1', 'true', 'yes'):
+        return True
+    allowed = {s.strip() for s in os.environ.get('SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS', '').split(',') if s.strip()}
+    return str(user_id) in allowed
+
+
 @registry_bp.route('/register', methods=['POST'])
 @require_auth
 @require_approved
 def register_comic():
     """Register a comic for theft protection"""
+    # REGISTRATION IS CLOSED (Mike, 2026-09-20) — a PRODUCT decision, not a copy one. The
+    # fingerprint has not reached a same-copy identification bar we trust from cover and
+    # back alone, so a registration today records an IMAGE, not a COPY. It reopens when a
+    # measured run clears the bar: true-positive rate >= 99% and false-positive rate <= 1%
+    # on >= 100 cross-camera pairs, >= 3 photographers, low-wear copies included.
+    # Existing registrations are untouched: /api/verify, sightings, report-stolen and
+    # mark-recovered all keep working for the serials that exist.
+    # SLAB_GUARD_REGISTRATION_OPEN=true reopens it for everyone without a code deploy;
+    # SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS="3,25" lets named accounts register while it is
+    # closed, which is how the measured run gets its registrations.
+    if not registration_open_for(g.user_id):
+        return jsonify({
+            'success': False,
+            'error': 'registration_closed',
+            'message': "Slab Guard registration is closed for now. It reopens when our "
+                       "copy-matching meets its accuracy bar. Verifying a serial still works.",
+        }), 403
+
     # Check plan registration limit
     try:
         from routes.billing import check_feature_access

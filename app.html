@@ -1378,8 +1378,13 @@
                                      sighting flow (verify.html) are the live capabilities. -->
                                 Record this comic in the Slab Guard registry with a unique fingerprint and serial number. Anyone who spots it listed can check the photo against the registry and report a sighting — you're alerted without your contact details being shared. <strong>Patent pending.</strong>
                             </p>
-                            <button type="button" class="btn-register" onclick="registerComic()" id="registerBtn">
-                                Register This Comic
+                            <!-- REGISTRATION CLOSED 2026-09-20 (product decision: a registration today
+                                 records an image, not a copy). The route refuses it server-side
+                                 (routes/registry.py registration_open_for); this button says so up front. -->
+                            <button type="button" class="btn-register" id="registerBtn" disabled aria-disabled="true"
+                                    style="opacity: 0.55; cursor: not-allowed;"
+                                    title="Registration is closed for now. It reopens when our copy-matching meets its accuracy bar.">
+                                Register This Comic &mdash; coming soon
                             </button>
                             <div id="registrationStatus" style="display: none; margin-top: 12px; padding: 12px; background: var(--success-bg, #d4edda); border: 1px solid var(--success-border, #c3e6cb); border-radius: 8px;">
                                 <!-- Shows registration confirmation with serial number -->
