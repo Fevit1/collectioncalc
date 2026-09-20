@@ -401,9 +401,36 @@ books that get a name at all is reported beside it, because a floor can buy prec
 Floor today: score ≥ 0.75, margin ≥ 0.40, none-of-these < 0.50 — **FITTED, NOT ROBUST**: the two confidently-wrong
 absent-signer cases in validation scored 0.72 against a 0.75 floor. (3) re-sets it Monday 2026-09-21.
 
+### The four-cell Slab Report (logged 2026-09-20, Mike). Product item — NOT a build.
+
+Today's report answers one question: raw or slabbed. The four-cell report prices the book four ways — **raw,
+slabbed, signed, slabbed and signed** — and adds a **SIGNING VERDICT**: is it worth getting this book signed? The
+verdict subtracts the signing fee and the witness fee, is weighted on the two SLABBED cells (that is where a
+signature's premium is realised and can be verified), and is **offered only for LIVING creators** — nobody can get a
+book signed by Stan Lee.
+**Dependencies, in order:** (1) the signed-versus-unsigned premium data from `ebay_sales` (report-only unit queued
+after (3); witnessed vs unwitnessed is the split that matters); (2) a signing-fee input — typed by the user at
+first, later a creator-fee table; (3) creator status (living / deceased) on `creator_signatures`, which has career
+dates but no status column.
+**Long-term data source: convention signing schedules** — who is signing where, and at what price — logged as the
+source for both the fee table and the "can this be signed at all" question.
+Bears on: the Signature ID release and pricing gates above (a signing verdict is a reason to pay for identification),
+and the valuation code, which today EXCLUDES signed rows from every pool.
+
 ---
 
 ## 🚨 Immediate Priorities
+
+**Pricing gate, added the same day (Mike, 2026-09-20): Signature ID is NOT offered on Pro at current cost.**
+Re-enabling is gated on TWO things: (3) clearing 75% among named matches, AND a pricing model — a per-use credit, or
+a lower unit cost. At ~$0.66 an identification (three uncached Opus passes, 15 × 4 reference images) one use costs
+13% of a $4.99 Pro month. **Queued, REPORT ONLY, after (3):** (a) one-pass accuracy against three-pass on the (2)
+set; (b) the production cache hit rate under title-and-era pools; (c) the resulting cost per identification — so the
+pricing decision has numbers. Known going in, all to be MEASURED not assumed: the route has no cache breakpoint
+today, so its hit rate is 0%; with one after the reference block, passes 2 and 3 of the same identification read
+the prefix at 0.1× (arithmetic from measured tokens: ~$0.66 → ~$0.37); hits ACROSS users need the same pool inside
+the cache TTL, which current traffic will rarely give; one pass alone is ~$0.22 uncached; the (2) set's 37 repeated
+queries gave the same top-1 in 37 of 37, which is the only evidence so far that passes 2 and 3 buy little.
 
 ### Pre-Beta MUST-HAVES (COMPLETE)
 - [x] **Privacy Policy** - Updated Feb 15 with Stripe, AWS Rekognition, data retention

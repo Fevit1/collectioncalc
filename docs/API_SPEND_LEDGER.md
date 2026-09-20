@@ -154,8 +154,11 @@ Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.
 
 ---
 
-## 2026-09-20 — running total: **$4.12** (measured) · Opus 4.8 at $5 / $25 / cache write $6.25 / cache read $0.50 per MTok
+## 2026-09-20 — running total: **~$4.78** ($4.12 measured + the ASM #252 proof click ~$0.66 by estimate, log row 19) · Opus 4.8 at $5 / $25 / cache write $6.25 / cache read $0.50 per MTok
 
 | # | run | est. | actual | notes |
 |---|-----|------|--------|-------|
 | 11 | Prompt VERSION 2 validation — the "after" of a before/after whose "before" is run 2 of 2026-09-19 (prompt v1, all 97, already paid). One pass per query, same pools, same held-out images, cached reference block. **~70 PRESENT queries** (every third creator skipped, but all 17 of v1's misses and soft-band creators kept) **+ 14 ABSENT queries** (2 per pool: a real held-out signature whose owner is NOT among the candidates — the case v1 could not express and (2) could not see) | **$4.55** (84 × ~$0.048 measured per cached call + 7 pool cache writes ≈ $0.55); harness stops itself above a **$4.80** projection | **$4.12 MEASURED** (−9.5%; 86 calls, 0 errors) | Approved by Mike 2026-09-20 ("validate it with the $4.50 before-and-after run today; that is today's spend"). Day's total after it: **$4.55**. v2 output may run longer than v1's 1,037 tokens (three new fields) — the re-base at five calls catches it. |
+| 12 | ASM #252 — ONE click after the prompt-v2 deploy (Mike, the unit's planned proof) | **$0.66** | **~$0.66, NOT MEASURED** | Log row 19, 2026-09-20 22:32:34Z: Stan Lee 0.937, matched, 3 passes, 66.8 s, `prompt_version: "2"`. The route still discards usage; the cache unit (deploys Monday after (3)) is what finally records it. |
+
+**Queued, approved by Mike, not yet run:** Monday 2026-09-21 — external test (3), one pass, **$8.10** est. / $9.40 worst case, then ONE ASM #252 proof click after the cache deploy (~$0.37 expected) → Monday ≈ **$8.47**, under $10 only if (3) holds its estimate; the harness stops itself at a $9.00 projection. Tuesday 2026-09-22 — one-pass vs three-pass on a 40-creator subset, **~$3.70**.

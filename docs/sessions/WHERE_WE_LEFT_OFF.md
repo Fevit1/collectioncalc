@@ -1,5 +1,143 @@
 # Where We Left Off - Sep 20, 2026
 
+## 2026-09-20 (close of the day's shipping) — ✅ **UNIT A SHIPPED AND VERIFIED — `2f40607`, deployed and purged: Slab Guard registration is closed behind a flag, and pricing / faq / about / contact / verify / terms match the product. Unit B (cache breakpoint) is verified and HELD: Mike commits and deploys it MONDAY AFTER (3).**
+
+**MOST RECENT CHANGE (Rule 5): unit A is live, 2026-09-20. Supersedes "BUILT, pending Mike's commit + push + `deploy` +
+Pages build + `purge`" in the entry below. `git log -1` = `2f40607`, 0 ahead of origin. In the working tree, not
+committed: `routes/signature_orchestrator.py` (unit B — Monday) and the records.**
+
+**Evidence.** Mike's checks: pricing, verify and terms return nothing on the removed phrases; pricing serves
+"Registration is closed for now"; on his collection, unregistered rows show "Register" greyed with the SOON badge and
+registered rows show their serials. Mine, against the served site: the five removed pricing phrases 0 hits; "monitors
+marketplace" 0; "monitoring alerts" 0; served `js/collection.js` has `loadRegistrationState`; served `js/utils.js`
+has the percentage score line; `POST /api/registry/register` with no token → 401 (route up).
+**My FAQ assert was WRONG, not the page:** I told Mike to expect three `mailto:support@slabworthy.com` lines from
+curl. Cloudflare's email obfuscation rewrites mailto links at the edge, so curl shows the `/cdn-cgi/l/email-protection`
+form — and now ALSO injects `email-decode.min.js` (present on the live FAQ, checked), so the address renders in a
+browser, as Mike saw. The defect that was fixed is real: the OLD source had the obfuscated residue saved into it with
+no decode script. The right assert is "the served page contains `email-decode.min.js`", or a look in a browser.
+**The prompt unit's evidence is log row 19** (Mike: record it that way) — Stan Lee 0.937, margin 0.66, none_of_these
+0.037, `prompt_version: "2"`, 3 passes, 66.8 s. The Render lines were never pasted and are not needed.
+
+**Follow-ups, each for the NEXT unit that touches the file (Mike):**
+- `terms.html` — "Last Updated" becomes **2026-09-20**.
+- Collection page copy list — the summary card "Profit on Rated Comics: −$438.48 · 0 worth slabbing" is honest
+  (`js/collection.js:189-209` explains why it can be negative) but reads as a headline LOSS. Goes with ROADMAP item
+  21's follow-on (dashboard sums, My Val sort).
+
+**Render allow-list (Mike sets `SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS`; his message carried the placeholder "[ids]").**
+I cannot confirm it from here: the value lives in Render's environment and `/api/billing/my-plan` needs each
+account's own login — no credential goes through chat. **How Mike confirms, per account:** open the collection page
+logged in as that account → DevTools → Network → `my-plan` → `usage.registration_open`. `true` for an allow-listed
+id (and the Register button is live, no SOON badge); `false` for any other (greyed). An env change needs a Render
+restart to take effect (L-SW-2026-004). The real proof is one registration from an allow-listed account succeeding
+and one from another account returning 403 `registration_closed`.
+
+**Unit B — HELD, verified.** Findings delivered (no blocker; one should-fix taken: every billed call is now counted,
+including unparseable passes and retries). Commit + `deploy` MONDAY AFTER (3); proof = one ASM #252 click with Render
+showing `cache_write≈38000` on pass 1 and `cache_read≈38000` on passes 2 and 3.
+
+**Queued AFTER (3), REPORT ONLY, no matcher calls, $0 — signed-versus-unsigned premium from `ebay_sales` (Mike):**
+for every title-issue pair with ≥ 10 signed AND ≥ 10 unsigned GRADED sales in the last 365 days, median price by
+grade band (4.5–7.9, 8.0–8.9, 9.0–9.6, 9.8+) for four groups — raw unsigned, raw signed, slabbed unsigned, slabbed
+signed — with slabbed signed split into WITNESSED (Signature Series, Verified Signature, yellow label) and
+unwitnessed; the signer named where the listing gives one; top 20 pairs by total sample; counts in every cell; and a
+statement of how "signed" was detected from listing text and its false-positive risk. ⚠️ To settle when it is
+scoped, not now: "raw" rows with a GRADE are seller-stated grades, and the valuation code deliberately EXCLUDES
+signed rows from its pools — this report reads them on purpose.
+
+**Roadmap product item logged (NOT a build): the four-cell Slab Report** — see ROADMAP "Strategy items".
+
+**Calendar (Mike):** Monday 09-21 — (3) at $8.10, then unit B deploy and its proof click. Tuesday 09-22 — the one-pass
+vs three-pass 40-creator subset (~$3.70) and the close-out. Wednesday 09-23 — nothing; Mike offline ~5 days.
+**Spend today: ~$4.78** ($4.12 measured + the ASM #252 proof click ~$0.66 by estimate).
+
+## 2026-09-20 (final) — ✅ **PROMPT UNIT SHIPPED AND PROVEN (`8413efb`, records `bdbaf07`): ASM #252 → Stan Lee, match score 0.94, next closest 0.28, "strong match", log row 19 carries `prompt_version: "2"`. 🔧 TWO UNITS NOW IN THE WORKING TREE, to be committed SEPARATELY: (A) the registration-gate + copy-audit unit, parts 1 and 2 — `deploy` and `purge`, ships next; (B) the cache-breakpoint unit — `routes/signature_orchestrator.py` ONLY — which Mike deploys MONDAY AFTER (3).**
+
+**MOST RECENT CHANGE (Rule 5): Mike's cost decisions, 2026-09-20 — build the cache breakpoint now, deploy it Monday
+AFTER (3) so (3) measures the route as deployed today; one-pass vs three-pass on a 40-creator subset (~$3.70)
+TUESDAY, local, no deploy; cross-user caching recorded as not expected at current traffic. Supersedes "spend not
+approved" for the subset. `git log -1` = `bdbaf07`, 0 ahead of origin.**
+
+**Prompt unit — evidence.** Served `js/utils.js` has "Match score", served `/verify` has "not authentication", served
+`js/collection.js` has `placeholder="Add"` ×2. Row 19 (22:32:34Z, 3 passes, 66.8 s): Stan Lee 0.937 "strong match",
+Mike Zeck 0.277, Mark Bagley 0.107; margin 0.66; none_of_these 0.037; stability 1.0; `multiple_signatures_detected`.
+Mike saw the multi-signature note and the badge "Stan Lee · signature match". The Render lines were not pasted (a
+placeholder again); the row proves the deploy. ~$0.66 by estimate → **today ≈ $4.78**.
+
+**Mike's decisions this round:**
+- **Signature ID is not offered on Pro at current cost**; re-enabling needs (3) ≥ 75% among named AND a pricing model.
+- **Score line as PERCENTAGES under its label** — "Match score 94% · next closest 28%" — keeping the "strong match"
+  chip and the not-authentication line. No bare percentage on the badge; no "high", no "confidence" anywhere. The
+  saved badge stays as is. Done in `js/utils.js`.
+- **terms.html** (a legal page, his call): line 406 loses the monitoring-alerts sentence; line 395 now says "The Pro
+  plan includes a 14-day free trial" and no longer names Guard and Dealer. ⚠️ `terms.html` still says "Last Updated:
+  February 16, 2026" though it changed on 09-18 and again now — Mike's call whether the date moves.
+- **Monday:** (3) at $8.10 on the deployed route → cache deploy → ONE ASM #252 proof click. **Tuesday:** the 40-creator
+  subset run and the close-out. **Nothing deploys Wednesday.**
+
+### UNIT A — registration gate + copy audit — ⚰️ ~~BUILT, pending Mike's commit + push + `deploy` + Pages build + `purge`~~ **SHIPPED `2f40607`, deployed, purged, asserted — see the entry above**
+**File list (13):** `routes/registry.py`, `routes/billing.py`, `account.html`, `pricing.html`, `faq.html`,
+`about.html`, `contact.html`, `js/collection.js`, `js/collection.css`, `js/utils.js`, `app.html`, `verify.html`,
+`terms.html`. ⚠️ NOT `routes/signature_orchestrator.py` — that file now holds ONLY unit B.
+Part 1 is described in the entry below. Part 2, built today:
+- `js/collection.js` — the Register button is greyed with a SOON badge and a tooltip unless `/api/billing/my-plan`
+  says `registration_open` for THIS account (so an allow-listed account still gets a live button); the page asks
+  the server once per load, it never decides. `js/collection.css` — the SOON badge style extended to that button.
+- `app.html` — the grade-result "Register This Comic" button is disabled: "— coming soon".
+- `verify.html` — "monitors marketplace listings" gone; one sentence says new registrations are closed and reopen
+  when copy-matching meets its accuracy bar, existing serials keep working; a meta description; the sighting
+  confirmation says "notified" only when `owner_notified` is true (the API always returned the flag; the page
+  ignored it).
+- `js/utils.js` — the score line as labelled percentages.
+**Verified locally:** `registration_open_for` — default closed, allow-list, flag; both Python files parse;
+`node --check` on both scripts. NOT seen in a browser.
+**Post-deploy / post-purge asserts (PowerShell):**
+`curl.exe -s -X POST https://collectioncalc-docker.onrender.com/api/registry/register` → **401** (no token; proves
+the route is up). With a logged-in NON-allow-listed account the app's own call returns **403 `registration_closed`**
+— that is the real proof and needs a browser session, not a pasted token.
+`curl.exe -sL https://slabworthy.com/pricing | Select-String "Register 3|Register 25|Multi-photo|No credit card required|theft monitoring"` → nothing;
+`curl.exe -sL https://slabworthy.com/pricing | Select-String "Registration is closed"` → a line;
+`curl.exe -sL https://slabworthy.com/faq | Select-String "Rekognition|forensic|email-protection|24 hours"` → nothing;
+`curl.exe -sL https://slabworthy.com/faq | Select-String "mailto:support@slabworthy.com"` → three lines;
+`curl.exe -sL https://slabworthy.com/verify | Select-String "monitors marketplace"` → nothing;
+`curl.exe -sL https://slabworthy.com/terms | Select-String "monitoring alerts|Collector \+ Guard, Dealer\)"` → nothing;
+`curl.exe -sL https://slabworthy.com/js/utils.js | Select-String "next closest"` → a line containing `pct(`;
+`curl.exe -sL https://slabworthy.com/js/collection.js | Select-String "loadRegistrationState"` → lines.
+Then look at one collection row: Register greyed with SOON; an already-registered comic's shield menu unchanged.
+
+### UNIT B — prompt-cache breakpoint + token usage — BUILT, Mike commits and deploys MONDAY AFTER (3)
+**File list: `routes/signature_orchestrator.py`.** Backend → `deploy`, no purge. (1) `cache_control` on the last
+reference image in `build_identification_messages`, so passes 2 and 3 read the ~38k-token prefix at 0.1×; (2)
+`run_single_pass` keeps `response.usage` and logs `Pass label=… tokens: input= cache_write= cache_read= output=`;
+(3) totals go into `flags.usage`, so each log row carries its own cost basis — closing half of ROADMAP item 24.
+Nothing the model sees changes. Offline test: exactly one breakpoint, on the last reference image; usage captured and
+summed. **Verification agent (read-only): no blocker; one should-fix, TAKEN** — a call that got a response but then
+failed to parse, and any retry, was billed yet dropped from the total, so `flags.usage` was a lower bound. Usage now
+survives the parse-error and API-error paths, and the orchestrator sums EVERY billed call (`flags.usage` +
+`flags.billed_calls`). Confirmed by the agent: the cached prefix is byte-identical across the three passes (nothing
+per-pass is rendered before the breakpoint; a message-level breakpoint also caches the system prompt); `cache_control`
+on an image block is valid, one of four breakpoints, ~38k tokens is far above the minimum, the five-minute TTL covers
+three 20–30 s passes, no beta header needed on the pinned SDK; the usage dict is JSON-safe and inert to both pages;
+the harness's own breakpoint on the same block is a harmless duplicate; the request the model sees is unchanged.
+**Proof after Monday's deploy:** one ASM #252 click (~$0.37 expected instead of ~$0.66) → Render shows three token
+lines: pass 1 `cache_write≈38000 cache_read=0`; passes 2 and 3 `cache_read≈38000`.
+**Cross-user caching: NOT expected at current traffic** (the same pool would have to recur inside the five-minute
+TTL); the saving is within one identification. Recorded per Mike.
+⚠️ **(3) runs LOCALLY against the working tree**, which will contain unit B. That does not change what (3) measures:
+the breakpoint alters cost, never the request the model sees, and the harness already sets the same breakpoint.
+"The route as deployed" for (3) means prompt v2 + Design A pools + the floor rule — all live in `8413efb`.
+
+## 2026-09-20 (decision, logged on receipt) — 🧭 **Signature ID is NOT offered on Pro at current cost (Mike). Re-enabling needs BOTH (3) ≥ 75% among named matches AND a pricing model (per-use credit, or a lower unit cost). A report-only cost unit is queued AFTER (3).**
+
+**MOST RECENT CHANGE (Rule 5): a second gate on Signature ID — pricing — added 2026-09-20. Supersedes any reading of the
+75% release bar as sufficient on its own. `git log -1` = `0a35a6b`.**
+**Queued after (3), REPORT ONLY:** one-pass vs three-pass accuracy on the (2) set; the production cache hit rate under
+title-and-era pools; the resulting cost per identification. Spend for it is NOT approved yet and gets its own
+estimate first: the full version (two more passes on all 97 under prompt v2, plus the 25 v2 first passes not yet
+run) is ~$10 by the measured $0.046 a call — a whole day's ceiling; a 40-creator subset is ~$3.70. It cannot share a
+day with (3) at $8.10. Detail and the numbers known going in: ROADMAP, "Signature ID release bar".
+
 ## 2026-09-20 (last entry of the day) — 🔧 **REGISTRATION-GATE + COPY-AUDIT UNIT: PART 1 BUILT (the files the prompt unit does not touch); PART 2 HELD until Mike's prompt-unit commit lands, because `js/collection.js`, `app.html` and `verify.html` carry BOTH units' edits until then and cannot be committed apart.**
 
 **MOST RECENT CHANGE (Rule 5): the working tree now holds TWO units, 2026-09-20. Commit the PROMPT unit first, by its
