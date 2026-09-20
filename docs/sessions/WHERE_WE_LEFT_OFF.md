@@ -1,5 +1,33 @@
 # Where We Left Off - Sep 20, 2026
 
+## 2026-09-20 (last) — 🧾 **Render env recorded; premium-report scoping recorded; Monday / Tuesday / Wednesday plan fixed. Nothing built. Working tree: ONLY `routes/signature_orchestrator.py` (unit B, held for Monday after (3)).**
+
+**MOST RECENT CHANGE (Rule 5): `SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS=3,25,26` set on Render by Mike and the service
+restarted, 2026-09-20. Supersedes "the allow-list carried a placeholder". `git log -1` = `dcf6af0` (records), 0 ahead
+of origin.**
+
+**Render environment, as set by Mike (not readable from here — recorded on his word):**
+`SLAB_GUARD_REGISTRATION_ALLOW_USER_IDS = 3,25,26` — user 3 is the admin account; 25 and 26 are Mike's test accounts
+(`…@slabworthy.test`, Guard and Dealer). `SLAB_GUARD_REGISTRATION_OPEN` is unset → registration stays CLOSED for
+every other account. **Observed by Mike after the restart:** his collection (user 3) shows a LIVE Register button on
+unregistered rows. **NOT yet proven, and deliberately waiting for the measured run:** (a) one registration from an
+allow-listed account succeeds; (b) one attempt from a non-listed account returns 403 `registration_closed`. Until
+(b) is seen, the server-side gate is verified by code reading and a unit test of `registration_open_for`, not live.
+
+**Premium report — scoping decisions (Mike), recorded, no build:** (1) a RAW row that carries a grade uses the
+SELLER-STATED grade for its band, and the report labels those cells "listing-stated grade"; (2) the report reads
+SIGNED rows on purpose, and its method note says why the valuation excludes them (a signature is a second price
+driver the valuation cannot attribute, so signed sales would contaminate the unsigned comps a user is priced
+against). Still queued after (3): report only, no matcher calls, $0.
+
+**Plan (Mike):**
+- **Monday 2026-09-21:** (3) at $8.10 on the deployed route → THEN unit B: commit `routes/signature_orchestrator.py`,
+  push, `deploy` → one ASM #252 proof click (pass 1 `cache_write`, passes 2–3 `cache_read`; ~$0.37).
+- **Tuesday 2026-09-22:** the 40-creator one-pass vs three-pass subset (~$3.70, local, no deploy) and the CLOSE-OUT —
+  which puts a note at the TOP of this file: Mike is offline from Wednesday for about five days, NO commits in that
+  window, and what to do if production breaks meanwhile.
+- **Wednesday 2026-09-23:** nothing.
+
 ## 2026-09-20 (close of the day's shipping) — ✅ **UNIT A SHIPPED AND VERIFIED — `2f40607`, deployed and purged: Slab Guard registration is closed behind a flag, and pricing / faq / about / contact / verify / terms match the product. Unit B (cache breakpoint) is verified and HELD: Mike commits and deploys it MONDAY AFTER (3).**
 
 **MOST RECENT CHANGE (Rule 5): unit A is live, 2026-09-20. Supersedes "BUILT, pending Mike's commit + push + `deploy` +
