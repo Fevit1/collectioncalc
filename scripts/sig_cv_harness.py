@@ -136,7 +136,9 @@ def main():
         for line in open(args.out, encoding='utf-8'):
             try:
                 r = json.loads(line)
-                if 'error' not in r:
+                # a row without 'raw' predates raw-score recording (2026-09-19): it is kept
+                # as a second sample of the same query, and the query is run again WITH raw.
+                if 'error' not in r and 'raw' in r:
                     already.add(r['truth'])
             except ValueError:
                 pass
@@ -177,6 +179,19 @@ def main():
                     rec['seconds'] = round(time.time() - t0, 1)
                     rec['usage'] = client.usage[before:] or None
                     if p.rankings:
+                        # RAW per-candidate scores, exactly as the model returned them. The
+                        # route's top5 'confidence' is renormalised to sum to 1 across the
+                        # top five (aggregate_passes), so it is a SHARE — display only.
+                        # (2) and (3) are scored on raw: top-1 raw score and its margin over #2.
+                        raw = sorted(((e.get('creator', ''), float(e.get('confidence', 0) or 0))
+                                      for e in p.rankings if e.get('creator')),
+                                     key=lambda x: -x[1])
+                        rec['raw'] = raw
+                        rec['raw_top1'] = raw[0][0] if raw else None
+                        rec['raw_top1_score'] = raw[0][1] if raw else None
+                        rec['raw_margin'] = round(raw[0][1] - (raw[1][1] if len(raw) > 1 else 0.0), 3) if raw else None
+                        rec['raw_truth_score'] = next((s for n, s in raw if n == truth), None)
+                        rec['raw_correct'] = bool(raw and raw[0][0] == truth)
                         agg = so.aggregate_passes([p], passes_attempted=1)
                         top = agg.top5[0] if agg.top5 else None
                         rec.update({

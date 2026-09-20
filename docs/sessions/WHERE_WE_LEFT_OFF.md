@@ -1,6 +1,78 @@
 # Where We Left Off - Sep 19, 2026
 
-## 2026-09-19 (evening) — ✅ **POOL FIX SHIPPED AND PROVEN: ASM #252 → Stan Lee, matched, badge saved (log row 18, 01:31:09Z, 3 passes, 75.7 s) — commits `7928a53` (logging) and `c21810a` (pool), 0 ahead of origin. (2) IS RUNNING. 🔧 CORS unit BUILT — `js/utils.js` — pending Mike's commit, push, Pages build, `purge`. ⚠️ The My Val placeholder has NOT shipped: `js/collection.js` is still uncommitted; what Mike sees is the old "$0.00" clipped.**
+## 2026-09-19 (late) — 📊 **(2) DONE: 95 / 97 = 97.9% top-1, same answer in 37 / 37 repeated queries, $5.96 measured. ⚠️ THERE IS NO RAW SCORE — the prompt orders the model to return exactly five scores summing to 1.0, so "raw" and "share" are the same number and Mike's scoring rule cannot be applied as written. Report: `docs/technical/SIGNATURE_CV_RESULTS_2026-09-19.md`. Nothing built from it.**
+
+**MOST RECENT CHANGE (Rule 5): (2) measured, 2026-09-19. Supersedes "score (2) and (3) on the raw per-candidate
+score" as an executable rule — the raw score does not exist until the prompt changes (`prompts/
+signature_identification_system.md:85`). Mike decides: the prompt change, or the share-plus-margin floor on the
+score as it is. `git log -1` = `54b3dbf`.**
+
+- **Accuracy:** 95/97. Misses: Rob Liefeld → Jim Lee (0.60), Garth Ennis → Alex Ross (0.55). No "top ten confusion
+  pairs" exists — two confusions, once each. Soft band: 15 correct answers under 0.60, writers over-represented.
+- **Stability:** 37 queries ran twice (run 1 was stopped at 37): same top-1 in all 37, score moved ≤ 0.11.
+- **What it is:** an upper bound — signer guaranteed in a pool of 14, clean crop, no cover, no second signature.
+  Discrimination is NOT the problem. Pool recall 94.5% × 97.9% ≈ 92% on paper against the 87% bar; (3) measures
+  the distance from paper to real covers, and the signer-absent case (2) cannot see.
+- **No "none of these":** the prompt forces all mass onto five names. Rows 16/17's 0.24 was the accidental signal
+  of an absent signer. The badge's "88% high" is a share, never a confidence.
+- **Floor rule proposed (not built):** name a creator only at top-1 ≥ 0.70 AND margin ≥ 0.30 → 76/97 named, 0 wrong
+  (today's 0.50: 92 named, 2 wrong). Hold the numbers until (3). The real fix is a versioned prompt change:
+  independent 0–1 score per candidate + `none_of_these` + `suggested_outside_pool` (which is also Design B's
+  trigger), with its own before/after run (~$4.50). Badge copy scoped with it: drop "high" and the bare percentage.
+- **Spend today: ~$6.62** (row 18 ~$0.66 by estimate; (2) $5.96 measured vs $5.70 estimated). **(3) is NOT for
+  today** — $8.10 would cross $10. It is tomorrow's, per Mike's plan; note Tue/Wed are no-deploy days, and (3) is a
+  local run that deploys nothing.
+- Uncommitted: this file, the ledger, `docs/technical/SIGNATURE_CV_RESULTS_2026-09-19.md`,
+  `scripts/sig_cv_harness.py` (changed since `929e231`: raw recording + resume),
+  `scripts/sig_cv_results_2026-09-19.jsonl`, `js/collection.js` (placeholder "Add").
+
+## 2026-09-19 (night) — ✅ **LOGGING UNIT VERIFIED (Render prints the route's INFO lines). ✅ CORS unit SHIPPED `54b3dbf`, purged, served `js/utils.js` carries `cache: 'no-store'`. ⚠️ Placeholder: what shipped says "Add yours"; Mike's choice is "Add" — changed in the working tree, pending his commit + purge. Mike's ruling: (2) and (3) are scored on the model's RAW per-candidate score; the normalised share is display only. (2) restarted to record raw.**
+
+**MOST RECENT CHANGE (Rule 5): scoring rule for the signature measurement — raw score, top-1 and its margin over
+second place; normalised share is display only (Mike, 2026-09-19). Supersedes scoring on the route's `top5`
+confidence, which run 1 of (2) recorded. `git log -1` = `54b3dbf`, 0 ahead of origin.**
+
+**Logging — verified, as pasted by Mike from Render, 01:31:09Z:**
+`INFO routes.signature_orchestrator: Orchestration complete — top: Stan Lee (0.88), latency: 75661ms, passes: 3/3`
+`INFO routes.signature_orchestrator: [SigID] match served: user=3 plan=free matched=True confidence=0.88
+cap_counted=False cap_count=n/a limit=unlimited`
+`logger.info` reaches Render. ⚰️ DEAD: "logging deploy NOT yet asserted". The `Pre-filter: N admitted, 15 kept …`
+line was not among the lines pasted (the message carried a placeholder for it); it is emitted ~75 s BEFORE those
+two, at about 01:29:53Z. Not needed for the flip; worth one look because it is the line that names the pool.
+
+**Mike's check — what a real Dealer account prints (read from `routes/billing.py:get_signature_id_entitlement` and
+the route; NOT run live — a live check is a $0.66 match on account 26):**
+- Admin (user 3): the admin short-circuit returns `plan` = the account's own plan (`free`) with `limit = -1`. So
+  `plan=free … limit=unlimited` is correct and slightly opaque: the line does not say WHY a free plan is unlimited.
+  Proposed, not built: add `admin=%s` to the line.
+- **Dealer:** `plan=dealer`, `limit=-1` → `limit=unlimited`, `cap_counted=False`, `cap_count=n/a`. **A Dealer has
+  no cap to count against** — `signature_id_per_month: -1`, by design ("uncapped, usage logged for visibility"); the
+  route never touches `sig_checks_this_month` for it. Until 7928a53 that "visibility" did not exist — the line was
+  never printed. It does now. A paid plan also needs `subscription_status` in (`active`, `trialing`) or it is 403.
+- **Guard:** `plan=guard`, `limit=10`; `cap_counted=True` only when `matched=True`, and `cap_count` is the new
+  monthly total; a no-match does not count. 429 at 10.
+The eBay deletion-notification lines in the same paste are healthy: every notice verified, none matched a user.
+
+**CORS unit — shipped.** `54b3dbf` (the first attempt pushed records only, `929e231`; Mike caught it, committed the
+code and re-purged). Served `js/utils.js`: `cache: 'no-store'` present. Served `js/collection.js`:
+`placeholder="Add yours"` ×2 — that is what `54b3dbf` contains. **Mike's choice is "Add"**: changed in the working
+tree (`js/collection.js`, both templates, `node --check` clean), pending his commit + push + Pages build + `purge` —
+it can ride the robots/homepage purge.
+
+**Scoring rule for (2) and (3) (Mike):** score on the model's raw per-candidate score; report top-1 raw score and the
+margin over second place; the normalised share is display only. **After (2): propose the floor rule** — a share floor
+plus a minimum margin is the likely shape. **Until the score means confidence, the badge must not say "high" or read
+as a probability** — that copy change is scoped WITH the floor rule, not before. (Today a saved badge carries
+`confidence` = the share and `confidence_label` = "high".)
+
+**(2) — run 1 stopped by me at 37 of 97; run 2 restarted from zero with raw scores.** Run 1: **37 / 37 top-1 correct**
+(on the normalised share), $1.52 measured, ~980 output tokens per call, cache reads on every call after a pool's
+first. It kept only the route's `top5`, from which raw cannot be recovered, so it cannot be scored under Mike's
+rule. Run 2 records `raw` (every candidate's score as returned), `raw_top1_score`, `raw_margin`,
+`raw_truth_score`; est. $4.20, (2) total ≈ $5.72, day ≈ $6.38. The 37 repeated queries are the run-to-run variance
+read. Results: `scripts/sig_cv_results_2026-09-19.jsonl` (rows without `raw` are run 1).
+
+## 2026-09-19 (evening) — ✅ **POOL FIX SHIPPED AND PROVEN: ASM #252 → Stan Lee, matched, badge saved (log row 18, 01:31:09Z, 3 passes, 75.7 s) — commits `7928a53` (logging) and `c21810a` (pool), 0 ahead of origin. (2) IS RUNNING. 🔧 ⚰️ ~~CORS unit BUILT — `js/utils.js` — pending Mike's commit, push, Pages build, `purge`~~ **SHIPPED `54b3dbf`, see above.** ⚠️ The My Val placeholder has NOT shipped: `js/collection.js` is still uncommitted; what Mike sees is the old "$0.00" clipped.**
 
 **MOST RECENT CHANGE (Rule 5): Design A is live and the first run on it is the known Stan Lee, identified — 2026-09-19.
 Supersedes "BUILT, pending Mike's commit + push + `deploy`" for the pool and logging units in the entry below.**
