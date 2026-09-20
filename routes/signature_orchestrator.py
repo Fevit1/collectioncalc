@@ -145,17 +145,107 @@ def _make_slug(name: str) -> str:
     return slug
 
 
+# ---------------------------------------------------------------------------
+# Candidate ordering — Design A (2026-09-19)
+# ---------------------------------------------------------------------------
+# The pool used to be `ORDER BY reference_image_count DESC LIMIT 15`. 94 of the 97
+# eligible creators have exactly four images, so that was an arbitrary tie: for a
+# 1980s Marvel book 43 creators pass the filter and 28 were dropped by row order.
+# Stan Lee passed the filter on ASM #252 and lost the tie; both live runs said
+# "resembles Stan Lee, who is not in the candidate pool". Measured on labelled eBay
+# rows, the true signer reached the 15 about 34% of the time — a ceiling no matcher
+# can beat. Image count is NOT a signal and is now only the eligibility floor.
+#
+# Order, most significant first:
+#   1. title prior    — who is named as signer on signed slabs of THIS title
+#   2. global prior   — how often the creator is the named signer at all
+#   3. publisher      — an explicit affiliation beats a NULL (NULL matches anything)
+#   4. era closeness  — career midpoint vs the book's decade
+#   5. creator id     — deterministic: the same book always gets the same pool
+# Priors come from signature_priors.json (scripts/build_signature_priors.py), which
+# counts ONLY rows outside the held-out test fold (ebay_sales.id % 5 == 0), so the
+# external accuracy test never scores the prior on its own data. A missing or
+# unreadable file degrades to steps 3-5; it never fails a request.
+
+_PRIORS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            'signature_priors.json')
+
+
+def _load_priors() -> dict:
+    try:
+        with open(_PRIORS_PATH, encoding='utf-8') as f:
+            data = json.load(f)
+        return {'global': data.get('global') or {}, 'by_title': data.get('by_title') or {},
+                'meta': data.get('meta') or {}}
+    except Exception as e:
+        logger.warning("signature_priors.json unavailable (%s) — pool ordered without priors", e)
+        return {'global': {}, 'by_title': {}, 'meta': {}}
+
+
+_PRIORS = _load_priors()
+
+
+def _prior_title_key(title: Optional[str]) -> str:
+    """Same normalisation as scripts/build_signature_priors.title_key."""
+    t = (title or '').lower().strip()
+    t = re.sub(r'^the\s+', '', t)
+    t = re.sub(r'[^a-z0-9]+', ' ', t)
+    return t.strip()
+
+
+_KNOWN_PUBLISHERS = ("DARK HORSE", "TOP COW", "WILDSTORM", "CROSSGEN", "CHARLTON", "DYNAMITE",
+                     "SKYBOUND", "MIRAGE", "MARVEL", "IMAGE", "ASPEN", "BOOM", "IDW", "DC")
+
+
+def _normalise_publisher(publisher: Optional[str]) -> Optional[str]:
+    """Map a free-text publisher onto the affiliation vocabulary, or return it unchanged."""
+    if not publisher:
+        return publisher
+    up = publisher.upper()
+    for known in _KNOWN_PUBLISHERS:
+        if re.search(r'\b' + re.escape(known) + r'\b', up):
+            return known
+    return publisher
+
+
+def _rank_rows(rows: list, title: Optional[str], publisher: Optional[str],
+               era_window: Optional[tuple]) -> list:
+    """Order pre-filter rows by the Design A key (see the block comment above)."""
+    title_prior = _PRIORS['by_title'].get(_prior_title_key(title), {}) if title else {}
+    global_prior = _PRIORS['global']
+    pub = (_normalise_publisher(publisher) or '').upper()
+    era_mid = (era_window[0] + era_window[1]) / 2 if era_window else None
+
+    def key(row):
+        name = row["creator_name"]
+        affiliations = row.get("publisher_affiliations") or []
+        pub_exact = 1 if (pub and pub in affiliations) else 0
+        if era_mid is not None and row.get("era_start") is not None:
+            career_mid = (row["era_start"] + (row.get("era_end") or 2026)) / 2
+            era_gap = abs(career_mid - era_mid)
+        else:
+            era_gap = 0
+        return (-title_prior.get(name, 0), -global_prior.get(name, 0),
+                -pub_exact, era_gap, row["creator_id"])
+
+    return sorted(rows, key=key)
+
+
 def prefilter_candidates(
     era_decade: Optional[str],
     publisher: Optional[str],
     signature_location: Optional[str],
-    limit: int = MAX_CANDIDATES
+    limit: int = MAX_CANDIDATES,
+    title: Optional[str] = None,
 ) -> list[CreatorCandidate]:
     """
-    Query PostgreSQL to narrow candidate pool before any vision calls.
-    Uses metadata (era, publisher, style) to cut from ~100 → ~15 creators.
-    Falls back to full pool if filters return too few results.
+    Query PostgreSQL for every creator the era/publisher filter admits, then keep
+    the `limit` most likely signers (Design A ordering, above). Falls back to all
+    active creators, same ordering, when the filter admits fewer than five.
+    `signature_location` is accepted and unused: no creator-level column describes
+    where someone signs, so it cannot narrow anything.
     """
+    era_window = None
     conn = _get_db()
     try:
         with conn.cursor() as cur:
@@ -172,13 +262,23 @@ def prefilter_candidates(
                     "2000s": (1998, 2012),
                     "2010s+": (2008, 2099),
                 }
+                # The page sends "2020s" for a 2020+ book; that is not a key, so such
+                # books used to skip the era filter entirely. Fold 2010+ together.
+                m = re.match(r'^(\d{4})s', era_decade)
+                if era_decade not in decade_map and m and int(m.group(1)) >= 2010:
+                    era_decade = "2010s+"
                 if era_decade in decade_map:
                     lo, hi = decade_map[era_decade]
+                    era_window = (lo, hi)
                     filters.append(
                         "(cs.career_start <= %s AND (cs.career_end IS NULL OR cs.career_end >= %s))"
                     )
                     params.extend([hi, lo])
 
+            # "Marvel Comics Group" / "DC Comics" arrive from extraction; the
+            # affiliations column holds "MARVEL" / "DC". An unmatched string admitted
+            # only NULL-affiliation creators and tripped the fallback.
+            publisher = _normalise_publisher(publisher)
             if publisher and publisher not in ("unknown", ""):
                 filters.append(
                     "(%s = ANY(cs.publisher_affiliations) OR cs.publisher_affiliations IS NULL)"
@@ -206,16 +306,15 @@ def prefilter_candidates(
                          cs.career_end, cs.publisher_affiliations, cs.signature_style,
                          cs.style_confidence, cs.style_source
                 HAVING COUNT(si.id) >= 2
-                ORDER BY cs.reference_image_count DESC
-                LIMIT %s
-            """, params + [limit])
+            """, params)
 
             rows = cur.fetchall()
+            admitted = len(rows)
 
-            # If filters are too aggressive, fall back to top creators by image count
+            # If filters are too aggressive, fall back to every active creator (same ranking)
             if len(rows) < 5:
                 logger.warning(
-                    "Pre-filter returned only %d candidates — falling back to top %d",
+                    "Pre-filter admitted only %d creators — falling back to every active creator, ranked, top %d kept",
                     len(rows), limit
                 )
                 cur.execute("""
@@ -236,10 +335,12 @@ def prefilter_candidates(
                     GROUP BY cs.id, cs.creator_name, cs.career_start,
                              cs.career_end, cs.publisher_affiliations, cs.signature_style,
                              cs.style_confidence, cs.style_source
-                    ORDER BY cs.reference_image_count DESC
-                    LIMIT %s
-                """, [limit])
+                    HAVING COUNT(si.id) >= 2
+                """)
                 rows = cur.fetchall()
+                admitted = len(rows)
+
+            rows = _rank_rows(rows, title, publisher, era_window)[:limit]
 
             candidates = []
             for row in rows:
@@ -257,7 +358,10 @@ def prefilter_candidates(
                     image_urls=urls,
                 ))
 
-            logger.info("Pre-filter selected %d candidates", len(candidates))
+            logger.info("Pre-filter: %d admitted, %d kept (title=%r, priors built %s): %s",
+                        admitted, len(candidates), title,
+                        _PRIORS['meta'].get('built_utc', 'none'),
+                        ", ".join(c.name for c in candidates))
             return candidates
 
     finally:
@@ -667,6 +771,7 @@ def run_orchestrated_identification(
         era_decade=comic_context.get("era_decade"),
         publisher=comic_context.get("publisher"),
         signature_location=comic_context.get("signature_location"),
+        title=comic_context.get("title"),
     )
     logger.info("Candidates after pre-filter: %d", len(candidates))
 

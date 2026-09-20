@@ -1,0 +1,1269 @@
+{
+ "meta": {
+  "built_utc": "2026-09-20T01:03:49Z",
+  "source": "ebay_sales: CGC/CBCS + signed marker + exactly one in-set creator named",
+  "split": "test fold = id % 5 == 0 (held out of these counts); prior fold = the rest",
+  "signed_slab_rows": 6421,
+  "labelled_rows": 2854,
+  "prior_fold_rows": 2293,
+  "test_fold_rows": 561,
+  "creators_with_prior": 73,
+  "titles_with_prior": 328
+ },
+ "global": {
+  "Todd McFarlane": 488,
+  "Scott Snyder": 388,
+  "Stan Lee": 270,
+  "Jim Lee": 154,
+  "Chris Claremont": 113,
+  "Rob Liefeld": 81,
+  "Frank Miller": 79,
+  "Kevin Eastman": 60,
+  "Clayton Crain": 47,
+  "Skottie Young": 40,
+  "Mark Bagley": 37,
+  "Jason Aaron": 34,
+  "Neal Adams": 34,
+  "Jim Starlin": 33,
+  "Daniel Warren Johnson": 25,
+  "Alex Ross": 22,
+  "Neil Gaiman": 22,
+  "Mike Zeck": 20,
+  "Marv Wolfman": 20,
+  "Mark Brooks": 16,
+  "J. Scott Campbell": 16,
+  "Ryan Ottley": 16,
+  "Donny Cates": 16,
+  "Peach Momoko": 15,
+  "Walt Simonson": 14,
+  "Derrick Chew": 13,
+  "James Tynion IV": 12,
+  "Jenny Frison": 11,
+  "Garth Ennis": 11,
+  "Ryan Stegman": 10,
+  "Jae Lee": 10,
+  "Andy Kubert": 10,
+  "Dan Mora": 9,
+  "Humberto Ramos": 9,
+  "Bill Sienkiewicz": 8,
+  "Erik Larsen": 8,
+  "Matt Fraction": 7,
+  "Robert Kirkman": 7,
+  "Ed McGuinness": 6,
+  "Joshua Williamson": 6,
+  "Greg Capullo": 6,
+  "Lee Bermejo": 5,
+  "Bernie Wrightson": 5,
+  "Alan Moore": 5,
+  "Tom King": 5,
+  "Adam Hughes": 5,
+  "Jonathan Hickman": 5,
+  "Marc Silvestri": 4,
+  "John Byrne": 4,
+  "Art Adams": 4,
+  "Adam Kubert": 4,
+  "Jack Kirby": 4,
+  "Mike Mignola": 4,
+  "Mark Waid": 3,
+  "Peter David": 3,
+  "Kieron Gillen": 3,
+  "Gabriele Dell'Otto": 3,
+  "Frank Cho": 3,
+  "Michael Turner": 3,
+  "Brian Michael Bendis": 2,
+  "Herb Trimpe": 2,
+  "George Pérez": 2,
+  "Jerry Siegel": 2,
+  "David Finch": 1,
+  "Larry Hama": 1,
+  "Grant Morrison": 1,
+  "Patrick Gleason": 1,
+  "Jim Steranko": 1,
+  "Joe Shuster": 1,
+  "Joe Quesada": 1,
+  "Bob Kane": 1,
+  "Terry Dodson": 1,
+  "John Romita Sr.": 1
+ },
+ "by_title": {
+  "1 2 pop hawkman origin absolute superman": {
+   "Jason Aaron": 1
+  },
+  "1 3 pop absolute superman": {
+   "Jason Aaron": 1
+  },
+  "1st gotham city sirens harley quinn": {
+   "Terry Dodson": 1
+  },
+  "30th anniversary spawn": {
+   "Todd McFarlane": 1
+  },
+  "9 8 cgc kfc": {
+   "Neal Adams": 1
+  },
+  "9 8 cgc ss batman": {
+   "Daniel Warren Johnson": 1
+  },
+  "9 8 cgc tmnt last ronin lost years": {
+   "Clayton Crain": 1
+  },
+  "9 8 spawn": {
+   "Todd McFarlane": 1
+  },
+  "absolute batman": {
+   "Scott Snyder": 352,
+   "Jim Lee": 14,
+   "Daniel Warren Johnson": 14,
+   "Mark Brooks": 13,
+   "Skottie Young": 8,
+   "Ryan Ottley": 3,
+   "Jae Lee": 3,
+   "Dan Mora": 1,
+   "Jenny Frison": 1,
+   "Bill Sienkiewicz": 1,
+   "Frank Miller": 1,
+   "Gabriele Dell'Otto": 1
+  },
+  "absolute batman annual": {
+   "Daniel Warren Johnson": 7,
+   "Scott Snyder": 2
+  },
+  "absolute batman ark m": {
+   "Scott Snyder": 3
+  },
+  "absolute batman ashcan ashcan": {
+   "Scott Snyder": 1
+  },
+  "absolute carnage": {
+   "Donny Cates": 1
+  },
+  "absolute superman": {
+   "Jason Aaron": 25,
+   "Skottie Young": 5,
+   "Jim Lee": 3,
+   "Dan Mora": 1,
+   "Clayton Crain": 1
+  },
+  "absolute superman noir": {
+   "Jason Aaron": 1
+  },
+  "absolute wonder woman": {
+   "Skottie Young": 3,
+   "Jim Lee": 2,
+   "Ryan Ottley": 2,
+   "Jae Lee": 1,
+   "Dan Mora": 1
+  },
+  "absolute wonder woman 1c ss 4668724001": {
+   "Jim Lee": 1
+  },
+  "action comics": {
+   "Jim Lee": 4,
+   "Neal Adams": 1,
+   "Joe Shuster": 1,
+   "Jerry Siegel": 1,
+   "Mike Zeck": 1
+  },
+  "action comics ss t 1": {
+   "Alex Ross": 1
+  },
+  "adventure comics": {
+   "Lee Bermejo": 1
+  },
+  "age annual": {
+   "Art Adams": 1
+  },
+  "all in special": {
+   "Scott Snyder": 10
+  },
+  "alpha flight": {
+   "Jim Lee": 2,
+   "John Byrne": 1,
+   "Mike Mignola": 1
+  },
+  "amazing fantasy": {
+   "Stan Lee": 5
+  },
+  "amazing mary jane": {
+   "J. Scott Campbell": 1
+  },
+  "amazing spider man": {
+   "Todd McFarlane": 74,
+   "Stan Lee": 70,
+   "Mark Bagley": 15,
+   "J. Scott Campbell": 6,
+   "Humberto Ramos": 5,
+   "Derrick Chew": 3,
+   "Alex Ross": 2,
+   "Greg Capullo": 2,
+   "Clayton Crain": 1,
+   "Patrick Gleason": 1,
+   "Skottie Young": 1,
+   "Marv Wolfman": 1,
+   "Erik Larsen": 1,
+   "Ed McGuinness": 1,
+   "Lee Bermejo": 1,
+   "John Romita Sr.": 1,
+   "Neal Adams": 1,
+   "Frank Miller": 1
+  },
+  "amazing spider man 375 ss holo": {
+   "Mark Bagley": 1
+  },
+  "amazing spider man renew your vows": {
+   "Stan Lee": 1
+  },
+  "amazing spider man vs venom": {
+   "Todd McFarlane": 1
+  },
+  "an": {
+   "Jason Aaron": 1,
+   "Scott Snyder": 1
+  },
+  "aquaman": {
+   "Peter David": 1
+  },
+  "asm": {
+   "Todd McFarlane": 2
+  },
+  "astonishing thor": {
+   "Stan Lee": 1
+  },
+  "avengers": {
+   "Stan Lee": 8,
+   "Jack Kirby": 2,
+   "Mark Brooks": 2
+  },
+  "balder the brave": {
+   "Walt Simonson": 2
+  },
+  "batgirl": {
+   "Adam Hughes": 1
+  },
+  "batman": {
+   "Todd McFarlane": 39,
+   "Jim Lee": 25,
+   "Frank Miller": 14,
+   "Neal Adams": 11,
+   "Matt Fraction": 4,
+   "Scott Snyder": 3,
+   "Jim Starlin": 3,
+   "Tom King": 2,
+   "James Tynion IV": 2,
+   "Dan Mora": 1,
+   "Joshua Williamson": 1,
+   "Andy Kubert": 1,
+   "Frank Cho": 1,
+   "Walt Simonson": 1,
+   "Mike Mignola": 1,
+   "Bob Kane": 1,
+   "Derrick Chew": 1
+  },
+  "batman 497 dark knight iii": {
+   "Greg Capullo": 1
+  },
+  "batman deadpool": {
+   "Dan Mora": 2
+  },
+  "batman detective": {
+   "Scott Snyder": 3
+  },
+  "batman hush": {
+   "Jim Lee": 1
+  },
+  "batman hush complete": {
+   "Jim Lee": 1
+  },
+  "batman killing joke": {
+   "Alan Moore": 1
+  },
+  "batman original art batman": {
+   "Jim Lee": 1
+  },
+  "batman spawn": {
+   "Todd McFarlane": 1
+  },
+  "batman superman": {
+   "Joshua Williamson": 1
+  },
+  "batman the killing joke e brian bolland": {
+   "Alan Moore": 1
+  },
+  "batman year one": {
+   "Frank Miller": 1
+  },
+  "before watchmen dr manhattan": {
+   "Adam Hughes": 1
+  },
+  "before watchmen nite owl": {
+   "Andy Kubert": 1
+  },
+  "blade": {
+   "Frank Miller": 1
+  },
+  "boys": {
+   "Garth Ennis": 7
+  },
+  "captain": {
+   "Jim Starlin": 1
+  },
+  "captain america": {
+   "Stan Lee": 7
+  },
+  "captain britain": {
+   "Chris Claremont": 1
+  },
+  "carnage": {
+   "Clayton Crain": 1
+  },
+  "catwoman": {
+   "Jenny Frison": 1,
+   "Adam Hughes": 1
+  },
+  "cbcs graded": {
+   "Jim Lee": 1
+  },
+  "cbcs not swamp thing": {
+   "Bernie Wrightson": 1
+  },
+  "cgc graded secret avengers": {
+   "Stan Lee": 1
+  },
+  "cgc incredible hulk": {
+   "Stan Lee": 1
+  },
+  "cgc jsa swamp thing": {
+   "Alan Moore": 1
+  },
+  "cgc series 9 0 spider man": {
+   "Todd McFarlane": 1
+  },
+  "cgc ss series 9 2 moon knight": {
+   "Bill Sienkiewicz": 1
+  },
+  "cgc ss web spider man annual": {
+   "Todd McFarlane": 1
+  },
+  "cgc ss yellow custom": {
+   "Alex Ross": 1
+  },
+  "civil war": {
+   "Stan Lee": 1
+  },
+  "claremont williams x men": {
+   "Jim Lee": 1
+  },
+  "collectors item classics": {
+   "Stan Lee": 1
+  },
+  "comics the magazine absolute batman dragotta art r": {
+   "Scott Snyder": 1
+  },
+  "conan the barbarian": {
+   "Stan Lee": 2,
+   "Jim Lee": 1
+  },
+  "crain n": {
+   "Clayton Crain": 1
+  },
+  "crisis on infinite earths": {
+   "Marv Wolfman": 2
+  },
+  "crossover": {
+   "Donny Cates": 2
+  },
+  "cyberforce limited": {
+   "Marc Silvestri": 1
+  },
+  "cyberforce limited series": {
+   "Marc Silvestri": 1
+  },
+  "d c comics batman": {
+   "Neal Adams": 1
+  },
+  "d orc": {
+   "Skottie Young": 1,
+   "Ryan Ottley": 1
+  },
+  "damaged spawn": {
+   "Todd McFarlane": 1
+  },
+  "daredevil": {
+   "Frank Miller": 17,
+   "Stan Lee": 6,
+   "Ryan Stegman": 2,
+   "Peach Momoko": 2,
+   "Marv Wolfman": 1,
+   "Joe Quesada": 1
+  },
+  "daredevil annual": {
+   "Stan Lee": 1
+  },
+  "daredevil man without fear": {
+   "Frank Miller": 2
+  },
+  "dark crisis": {
+   "Joshua Williamson": 1
+  },
+  "dark knight": {
+   "Frank Miller": 1
+  },
+  "dark knight returns": {
+   "Frank Miller": 21,
+   "Jim Lee": 2
+  },
+  "darth vader": {
+   "Kieron Gillen": 1
+  },
+  "dc comics presents": {
+   "Marv Wolfman": 1,
+   "Jim Starlin": 1
+  },
+  "dcs batman": {
+   "Neal Adams": 1
+  },
+  "deadpool": {
+   "Rob Liefeld": 2,
+   "Stan Lee": 1,
+   "Ed McGuinness": 1
+  },
+  "deadpool badder blood": {
+   "Rob Liefeld": 1
+  },
+  "deadpool batman": {
+   "Greg Capullo": 1
+  },
+  "deadpool vs x force": {
+   "Stan Lee": 1
+  },
+  "deadpool wolverine": {
+   "Lee Bermejo": 3
+  },
+  "deadpool wolverine wwiii": {
+   "Clayton Crain": 1
+  },
+  "department of truth": {
+   "James Tynion IV": 2,
+   "Peach Momoko": 1,
+   "Todd McFarlane": 1,
+   "Jenny Frison": 1
+  },
+  "department truth": {
+   "Todd McFarlane": 1
+  },
+  "detective comics": {
+   "Scott Snyder": 9,
+   "Neal Adams": 5,
+   "Neil Gaiman": 1
+  },
+  "detective comics ss 1st arkham knight": {
+   "Alex Ross": 1
+  },
+  "doctor strange": {
+   "Stan Lee": 3
+  },
+  "domino": {
+   "Rob Liefeld": 1
+  },
+  "e x men": {
+   "Stan Lee": 1
+  },
+  "entertainment the boys": {
+   "Garth Ennis": 1
+  },
+  "eric canete absolute batman": {
+   "Scott Snyder": 1
+  },
+  "excalibur": {
+   "Chris Claremont": 2
+  },
+  "exquisite corpses": {
+   "Jae Lee": 1,
+   "James Tynion IV": 1
+  },
+  "extreme carnage alpha": {
+   "Clayton Crain": 1
+  },
+  "fantastic four": {
+   "Stan Lee": 19,
+   "Alex Ross": 2,
+   "Skottie Young": 1,
+   "Jack Kirby": 1,
+   "Peach Momoko": 1
+  },
+  "fantastic four 4th series": {
+   "Matt Fraction": 1
+  },
+  "fire power": {
+   "Robert Kirkman": 1
+  },
+  "firestar": {
+   "Art Adams": 1
+  },
+  "firsts invincible": {
+   "Ryan Ottley": 1
+  },
+  "firsts spawn": {
+   "Todd McFarlane": 1
+  },
+  "flash": {
+   "Joshua Williamson": 1,
+   "Mark Waid": 1
+  },
+  "full r man": {
+   "Todd McFarlane": 16
+  },
+  "future state suicide squad": {
+   "Derrick Chew": 1
+  },
+  "gen": {
+   "J. Scott Campbell": 1
+  },
+  "gen 13": {
+   "J. Scott Campbell": 3,
+   "Jim Lee": 1
+  },
+  "ghost rider": {
+   "Stan Lee": 1
+  },
+  "ghost rider final vengeance": {
+   "Greg Capullo": 1
+  },
+  "ghost rider wolverine omega": {
+   "Clayton Crain": 1
+  },
+  "gi joe": {
+   "Joshua Williamson": 1
+  },
+  "gi joe special": {
+   "Todd McFarlane": 1
+  },
+  "giant size x men": {
+   "Chris Claremont": 7,
+   "Stan Lee": 4,
+   "Andy Kubert": 1,
+   "Jim Lee": 1
+  },
+  "gobbledygook": {
+   "Kevin Eastman": 1
+  },
+  "grab golden modern age including keys": {
+   "Stan Lee": 1
+  },
+  "grade the dark knight": {
+   "David Finch": 1
+  },
+  "green lantern": {
+   "Neal Adams": 4
+  },
+  "gunslinger": {
+   "Todd McFarlane": 1
+  },
+  "gunslinger spawn": {
+   "Todd McFarlane": 1
+  },
+  "harley quinn": {
+   "Frank Cho": 1,
+   "Jae Lee": 1,
+   "Adam Hughes": 1,
+   "Derrick Chew": 1
+  },
+  "hellboy seed destruction": {
+   "Mike Mignola": 1
+  },
+  "hero for hire": {
+   "Stan Lee": 1
+  },
+  "house of secrets": {
+   "Bernie Wrightson": 3
+  },
+  "hulk": {
+   "Stan Lee": 1,
+   "Todd McFarlane": 1
+  },
+  "i hate fairyland": {
+   "Skottie Young": 10,
+   "Clayton Crain": 1
+  },
+  "illustrated swimsuit": {
+   "Mike Zeck": 1
+  },
+  "immortal hulk": {
+   "Alex Ross": 5,
+   "Gabriele Dell'Otto": 1
+  },
+  "immortal she hulk": {
+   "Alex Ross": 1
+  },
+  "incredible hulk": {
+   "Todd McFarlane": 19,
+   "Stan Lee": 11,
+   "Peter David": 2,
+   "Herb Trimpe": 1
+  },
+  "incredible hulk and wolverine": {
+   "Herb Trimpe": 1
+  },
+  "infinite crisis": {
+   "Jim Lee": 1
+  },
+  "infinity": {
+   "Stan Lee": 1
+  },
+  "infinity gauntlet": {
+   "Jim Starlin": 11,
+   "Ed McGuinness": 1,
+   "Stan Lee": 1
+  },
+  "infinity war": {
+   "Jim Starlin": 3
+  },
+  "inhumans": {
+   "Stan Lee": 1
+  },
+  "invincible": {
+   "Ryan Ottley": 7,
+   "Robert Kirkman": 1
+  },
+  "invincible card lot": {
+   "Ryan Ottley": 1
+  },
+  "invincible iron man": {
+   "Brian Michael Bendis": 1
+  },
+  "invincible red sonja": {
+   "Frank Cho": 1
+  },
+  "iron fist": {
+   "Chris Claremont": 4,
+   "Stan Lee": 1
+  },
+  "iron man": {
+   "Stan Lee": 6,
+   "Jim Starlin": 3
+  },
+  "joker": {
+   "Gabriele Dell'Otto": 1,
+   "Neal Adams": 1,
+   "Clayton Crain": 1
+  },
+  "journey into mystery": {
+   "Stan Lee": 3
+  },
+  "jsa s": {
+   "Stan Lee": 1
+  },
+  "justice league": {
+   "Jim Lee": 2,
+   "Todd McFarlane": 1,
+   "Adam Kubert": 1
+  },
+  "key vintage daredevil": {
+   "Frank Miller": 1
+  },
+  "king in black": {
+   "Ryan Stegman": 4,
+   "Donny Cates": 1
+  },
+  "king in black spider man": {
+   "Rob Liefeld": 2
+  },
+  "king spawn": {
+   "Todd McFarlane": 1
+  },
+  "kingdom come": {
+   "Alex Ross": 3,
+   "Mark Waid": 1
+  },
+  "l the": {
+   "Alan Moore": 1
+  },
+  "malibu sun": {
+   "Jim Lee": 2
+  },
+  "malibu sun 13 white pgs ss 1st app spawn": {
+   "Todd McFarlane": 1
+  },
+  "marv wolfman": {
+   "Marv Wolfman": 1
+  },
+  "marv wolfman s": {
+   "Marv Wolfman": 1
+  },
+  "marvel comics presents": {
+   "Stan Lee": 2
+  },
+  "marvel team up": {
+   "Frank Miller": 1
+  },
+  "marvel two in one": {
+   "Jim Starlin": 1
+  },
+  "mighty thor": {
+   "Walt Simonson": 2,
+   "Stan Lee": 1
+  },
+  "miles morales spider man": {
+   "Peach Momoko": 2,
+   "Clayton Crain": 1
+  },
+  "milestone fantastic four": {
+   "Stan Lee": 1
+  },
+  "milestone x men": {
+   "Stan Lee": 3
+  },
+  "moon knight": {
+   "Bill Sienkiewicz": 4,
+   "Frank Miller": 1,
+   "Ryan Stegman": 1,
+   "Stan Lee": 1
+  },
+  "negan lives": {
+   "Robert Kirkman": 2
+  },
+  "new history the universe": {
+   "Adam Hughes": 1
+  },
+  "new mutants": {
+   "Rob Liefeld": 48,
+   "Stan Lee": 4,
+   "Todd McFarlane": 3,
+   "Walt Simonson": 1
+  },
+  "new teen titans": {
+   "Marv Wolfman": 5,
+   "George Pérez": 2,
+   "Clayton Crain": 1
+  },
+  "new teen titans annual": {
+   "Marv Wolfman": 1
+  },
+  "new warriors": {
+   "Mark Bagley": 1
+  },
+  "new x men": {
+   "Grant Morrison": 1,
+   "Stan Lee": 1
+  },
+  "nick dragotta t": {
+   "Jonathan Hickman": 3
+  },
+  "night thrasher": {
+   "Stan Lee": 1
+  },
+  "nightwing": {
+   "Dan Mora": 1
+  },
+  "nova": {
+   "Stan Lee": 1,
+   "Marv Wolfman": 1
+  },
+  "nyx": {
+   "Derrick Chew": 1
+  },
+  "oa cgc ss 9 4 detective comics": {
+   "Neal Adams": 1
+  },
+  "one world under doom": {
+   "Alex Ross": 1
+  },
+  "original art cgc y": {
+   "Bill Sienkiewicz": 1
+  },
+  "outcast": {
+   "Robert Kirkman": 1
+  },
+  "peacemaker disturbing the peace": {
+   "Garth Ennis": 1
+  },
+  "peter laird s": {
+   "Kevin Eastman": 1
+  },
+  "peter parker the spectacular spider man": {
+   "Mike Zeck": 1
+  },
+  "pop": {
+   "Jae Lee": 1
+  },
+  "preacher": {
+   "Garth Ennis": 1
+  },
+  "premiere": {
+   "Stan Lee": 1,
+   "John Byrne": 1
+  },
+  "punisher limited series": {
+   "Mike Zeck": 5
+  },
+  "punisher the origin micro chip": {
+   "Stan Lee": 1
+  },
+  "punisher war journal": {
+   "Jim Lee": 10,
+   "Stan Lee": 1
+  },
+  "r gwen": {
+   "Skottie Young": 1
+  },
+  "r man": {
+   "Stan Lee": 4,
+   "Ed McGuinness": 2,
+   "Todd McFarlane": 2
+  },
+  "raphael": {
+   "Kevin Eastman": 4
+  },
+  "red sonja": {
+   "Walt Simonson": 1,
+   "Alex Ross": 1
+  },
+  "sandman": {
+   "Neil Gaiman": 20
+  },
+  "savage dragon": {
+   "Erik Larsen": 6
+  },
+  "savage dragon limited series": {
+   "Erik Larsen": 1
+  },
+  "savage she hulk": {
+   "Stan Lee": 1
+  },
+  "scalped": {
+   "Jason Aaron": 1
+  },
+  "secret wars": {
+   "Stan Lee": 16,
+   "Mike Zeck": 12,
+   "Skottie Young": 2,
+   "Neal Adams": 1,
+   "Jonathan Hickman": 1,
+   "Mark Brooks": 1,
+   "Art Adams": 1
+  },
+  "series absolute wonder woman": {
+   "Ryan Ottley": 1
+  },
+  "series age": {
+   "Stan Lee": 1
+  },
+  "sex criminals": {
+   "Matt Fraction": 2
+  },
+  "sgt rock": {
+   "Andy Kubert": 1
+  },
+  "silver surfer": {
+   "Stan Lee": 3,
+   "Donny Cates": 1,
+   "Jim Starlin": 1
+  },
+  "snake eyes deadgame": {
+   "Rob Liefeld": 1
+  },
+  "snyder canete absolute batman": {
+   "Clayton Crain": 1
+  },
+  "something is killing the children": {
+   "Jenny Frison": 5,
+   "James Tynion IV": 4,
+   "Jae Lee": 3,
+   "Peach Momoko": 2
+  },
+  "southern bastards": {
+   "Jason Aaron": 3
+  },
+  "spawn": {
+   "Todd McFarlane": 128,
+   "Ryan Stegman": 1
+  },
+  "spawn batman nn cgc ss": {
+   "Todd McFarlane": 1
+  },
+  "spawn batman nn sig": {
+   "Todd McFarlane": 1
+  },
+  "spawn capital collection nn cgc jsa": {
+   "Todd McFarlane": 1
+  },
+  "spawn directors cut": {
+   "Todd McFarlane": 1
+  },
+  "spawn scorched": {
+   "Todd McFarlane": 1
+  },
+  "spawn ss both e": {
+   "Todd McFarlane": 1
+  },
+  "special": {
+   "Jim Starlin": 2
+  },
+  "spectacular spider man": {
+   "Frank Miller": 2,
+   "Stan Lee": 2,
+   "Mark Bagley": 1,
+   "Adam Kubert": 1,
+   "Humberto Ramos": 1
+  },
+  "spectacular spider men": {
+   "Humberto Ramos": 1
+  },
+  "spider gwen": {
+   "J. Scott Campbell": 1
+  },
+  "spider gwen ghost spider": {
+   "Jenny Frison": 1
+  },
+  "spider gwen gwenverse": {
+   "Derrick Chew": 1
+  },
+  "spider man": {
+   "Todd McFarlane": 162,
+   "Stan Lee": 10
+  },
+  "spider man ss": {
+   "Todd McFarlane": 2
+  },
+  "spider man superman": {
+   "Daniel Warren Johnson": 1
+  },
+  "spider man torment diamond ss": {
+   "Todd McFarlane": 1
+  },
+  "spider man torment diamond ss nm e": {
+   "Todd McFarlane": 1
+  },
+  "spider man wolverine": {
+   "Clayton Crain": 2
+  },
+  "spider punk arms race 1 t": {
+   "Clayton Crain": 1
+  },
+  "spider woman": {
+   "Stan Lee": 1
+  },
+  "spiderman": {
+   "Todd McFarlane": 2
+  },
+  "ss batman spawn": {
+   "Jim Lee": 1
+  },
+  "ss batman the dark knight returns": {
+   "Frank Miller": 1
+  },
+  "star lord": {
+   "Jim Starlin": 1
+  },
+  "star wars": {
+   "Stan Lee": 1
+  },
+  "star wars doctor aphra annual": {
+   "Kieron Gillen": 1
+  },
+  "strange academy": {
+   "Humberto Ramos": 1
+  },
+  "strange tales": {
+   "Stan Lee": 6,
+   "Jim Starlin": 4,
+   "Jim Steranko": 1
+  },
+  "street fighter swimsuit special": {
+   "Derrick Chew": 1
+  },
+  "sub mariner": {
+   "Stan Lee": 1
+  },
+  "supergirl": {
+   "Michael Turner": 2
+  },
+  "supergirl woman tomorrow": {
+   "Tom King": 2
+  },
+  "superior carnage": {
+   "Clayton Crain": 1
+  },
+  "superior spider man": {
+   "Stan Lee": 1
+  },
+  "superman": {
+   "Neal Adams": 2,
+   "Joshua Williamson": 1,
+   "Jerry Siegel": 1
+  },
+  "superman batman": {
+   "Ed McGuinness": 1
+  },
+  "superman batman worlds finest": {
+   "Neal Adams": 1
+  },
+  "superman gen 13": {
+   "J. Scott Campbell": 2
+  },
+  "swamp thing": {
+   "Bernie Wrightson": 1
+  },
+  "tales": {
+   "Stan Lee": 1
+  },
+  "tales of suspense": {
+   "Stan Lee": 5
+  },
+  "tales the new teen titans": {
+   "Marv Wolfman": 1
+  },
+  "tales to astonish": {
+   "Stan Lee": 4
+  },
+  "teen titans": {
+   "Michael Turner": 1
+  },
+  "teenage mutant ninja turtles": {
+   "Kevin Eastman": 18,
+   "Skottie Young": 3,
+   "Peach Momoko": 1
+  },
+  "teenage mutant ninja turtles 40th anniversary blk n": {
+   "Kevin Eastman": 1
+  },
+  "teenage mutant ninja turtles adventures": {
+   "Kevin Eastman": 1
+  },
+  "teenage mutant ninja turtles the movie special": {
+   "Kevin Eastman": 1
+  },
+  "thanos": {
+   "Donny Cates": 1
+  },
+  "the closet": {
+   "James Tynion IV": 1
+  },
+  "thor": {
+   "Walt Simonson": 6,
+   "Stan Lee": 1,
+   "Donny Cates": 1
+  },
+  "thor god thunder halloween comicfest": {
+   "Jason Aaron": 1
+  },
+  "thor june brigman captain ginger the last feeder": {
+   "Walt Simonson": 1
+  },
+  "titans vol": {
+   "Dan Mora": 1
+  },
+  "tmnt": {
+   "Kevin Eastman": 6,
+   "Peach Momoko": 1,
+   "Skottie Young": 1
+  },
+  "tmnt jennika ii": {
+   "Kevin Eastman": 1
+  },
+  "tmnt last ronin": {
+   "Kevin Eastman": 1
+  },
+  "tmnt last ronin ii": {
+   "Kevin Eastman": 1
+  },
+  "tmnt last ronin lost years": {
+   "Clayton Crain": 7,
+   "Kevin Eastman": 1
+  },
+  "tmnt stranger things": {
+   "Kevin Eastman": 1
+  },
+  "tmnt the last robin": {
+   "Peach Momoko": 1
+  },
+  "tmnt the last ronin": {
+   "Kevin Eastman": 19
+  },
+  "tmnt the last ronin ii re evolution": {
+   "Kevin Eastman": 1
+  },
+  "tmnt the last ronin lost years": {
+   "Kevin Eastman": 1
+  },
+  "tom defalco signed wolverine": {
+   "Stan Lee": 1
+  },
+  "tomb of dracula": {
+   "Marv Wolfman": 5
+  },
+  "transformers": {
+   "Daniel Warren Johnson": 1
+  },
+  "true believers": {
+   "Stan Lee": 1
+  },
+  "true believers venom vs spider man": {
+   "Todd McFarlane": 3
+  },
+  "turtle soup": {
+   "Kevin Eastman": 1
+  },
+  "ultimate fallout": {
+   "Mark Bagley": 3,
+   "Clayton Crain": 3,
+   "Brian Michael Bendis": 1
+  },
+  "ultimate fallout spider man no more": {
+   "Clayton Crain": 1
+  },
+  "ultimate spider man": {
+   "Mark Bagley": 3,
+   "J. Scott Campbell": 2,
+   "Jonathan Hickman": 1,
+   "Peach Momoko": 1,
+   "Skottie Young": 1
+  },
+  "ultimate wolverine": {
+   "Clayton Crain": 2
+  },
+  "uncanny x men": {
+   "Chris Claremont": 33,
+   "Jim Lee": 7,
+   "Stan Lee": 7,
+   "Marc Silvestri": 2,
+   "Andy Kubert": 2,
+   "John Byrne": 1
+  },
+  "updated spawn": {
+   "Todd McFarlane": 1
+  },
+  "venom": {
+   "Donny Cates": 9,
+   "Ryan Stegman": 2,
+   "Clayton Crain": 2,
+   "Mark Bagley": 1
+  },
+  "venom lethal protector": {
+   "Mark Bagley": 12,
+   "Todd McFarlane": 5,
+   "Alex Ross": 3,
+   "Stan Lee": 1
+  },
+  "vision": {
+   "Tom King": 1
+  },
+  "w batman deadpool": {
+   "Dan Mora": 1
+  },
+  "w0rldtr33": {
+   "James Tynion IV": 1
+  },
+  "walking dead": {
+   "Robert Kirkman": 2
+  },
+  "warlock rebirth": {
+   "Alex Ross": 1
+  },
+  "watchmen": {
+   "Alan Moore": 1
+  },
+  "web of spider man": {
+   "Stan Lee": 1
+  },
+  "what if iron man demon in an armor": {
+   "Stan Lee": 1
+  },
+  "wicked the divine": {
+   "Kieron Gillen": 1
+  },
+  "wildc a t s": {
+   "Jim Lee": 7
+  },
+  "wildcats": {
+   "Jim Lee": 5
+  },
+  "wizard ace ed amazing spider man": {
+   "Humberto Ramos": 1
+  },
+  "wolverine": {
+   "Chris Claremont": 16,
+   "Clayton Crain": 8,
+   "Jim Lee": 3,
+   "Frank Miller": 2,
+   "Stan Lee": 2,
+   "Rob Liefeld": 1,
+   "Bill Sienkiewicz": 1,
+   "Larry Hama": 1,
+   "Adam Kubert": 1,
+   "Daniel Warren Johnson": 1
+  },
+  "wolverine alpha flight": {
+   "Jim Lee": 1
+  },
+  "wolverine limited series": {
+   "Frank Miller": 12,
+   "Chris Claremont": 10,
+   "Stan Lee": 3
+  },
+  "wonder woman": {
+   "Neal Adams": 1
+  },
+  "wp label infinity gauntlet": {
+   "Jim Starlin": 1
+  },
+  "wynd": {
+   "James Tynion IV": 1
+  },
+  "x factor": {
+   "Stan Lee": 2,
+   "Jenny Frison": 2,
+   "Mike Mignola": 1
+  },
+  "x force": {
+   "Rob Liefeld": 13,
+   "Clayton Crain": 6,
+   "Skottie Young": 1,
+   "Greg Capullo": 1
+  },
+  "x men": {
+   "Jim Lee": 52,
+   "Chris Claremont": 38,
+   "Stan Lee": 9,
+   "Derrick Chew": 4,
+   "Andy Kubert": 4,
+   "Clayton Crain": 1,
+   "John Byrne": 1,
+   "Adam Kubert": 1,
+   "Jack Kirby": 1
+  },
+  "x men 1 wizard authentic addition": {
+   "Stan Lee": 1
+  },
+  "x men 1a d ss 4487473006": {
+   "Jim Lee": 1
+  },
+  "x men 1a d ss 4487483008": {
+   "Jim Lee": 1
+  },
+  "x men annual": {
+   "Art Adams": 1
+  },
+  "x men blood hunt magic": {
+   "Peach Momoko": 1
+  },
+  "x men legacy": {
+   "Stan Lee": 1
+  },
+  "x men omega": {
+   "Mark Waid": 1
+  },
+  "x men tales": {
+   "Todd McFarlane": 1
+  },
+  "x men volume": {
+   "Skottie Young": 1
+  },
+  "yellow slab absolute batman": {
+   "Scott Snyder": 1
+  },
+  "youngblood": {
+   "Rob Liefeld": 9
+  }
+ }
+}
