@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join the Waitlist — Slab Worthy™</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <meta name="description" content="Be the first to know when Slab Worthy launches. AI-powered grading, a collection registry, and collection tracking for comic collectors.">
+    <meta name="description" content="Get Slab Worthy product updates by email. AI-powered grading and collection tracking for comic collectors.">
+    <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -356,8 +357,8 @@
                 <span class="counter-number" id="counter-number">0</span> collectors on the waitlist
             </div>
 
-            <h2 class="waitlist-title">Be the First to Know</h2>
-            <p class="waitlist-subtitle">Get notified when Slab Worthy launches. Waitlist members get early access before anyone else.</p>
+            <h2 class="waitlist-title">Get Product Updates</h2>
+            <p class="waitlist-subtitle">Slab Worthy is open — <a href="/login.html?mode=signup" style="color:inherit;text-decoration:underline;">create an account</a> and grade a comic today. Leave your email if you'd rather just hear about new features.</p>
 
             <form class="waitlist-form" id="waitlist-form" onsubmit="return submitWaitlist(event)">
                 <div class="waitlist-email-row">
@@ -368,7 +369,6 @@
                     <span class="interests-label">I'm interested in:</span>
                     <label class="interest-chip"><input type="checkbox" name="interests" value="grading" checked> AI Grading</label>
                     <label class="interest-chip"><input type="checkbox" name="interests" value="slab_guard"> Slab Guard</label>
-                    <label class="interest-chip"><input type="checkbox" name="interests" value="sell_alerts"> Sell Alerts</label>
                     <label class="interest-chip"><input type="checkbox" name="interests" value="collection"> Collection Tracking</label>
                 </div>
                 <div class="waitlist-message" id="waitlist-message" style="display:none;"></div>

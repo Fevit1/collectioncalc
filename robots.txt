@@ -1,7 +1,62 @@
-User-agent: *
-Disallow: /
+# slabworthy.com — opened to search 2026-09-20. Before this the whole site was
+# `Disallow: /` (since 2026-02-02). Public pages are open; the signed-in app, the
+# unlisted tools and stray files are closed. Pages serves both /page and /page.html,
+# so each closed path is listed in both forms.
 
-# Block AI crawlers specifically
+User-agent: *
+Disallow: /api/
+Disallow: /app$
+Disallow: /app.html
+Disallow: /app?
+Disallow: /collection$
+Disallow: /collection.html
+Disallow: /collection?
+Disallow: /dashboard$
+Disallow: /dashboard.html
+Disallow: /dashboard?
+Disallow: /account$
+Disallow: /account.html
+Disallow: /account?
+Disallow: /admin$
+Disallow: /admin.html
+Disallow: /admin?
+Disallow: /signatures$
+Disallow: /signatures.html
+Disallow: /signatures?
+Disallow: /sightings$
+Disallow: /sightings.html
+Disallow: /sightings?
+Disallow: /login$
+Disallow: /login.html
+Disallow: /login?
+Disallow: /waitlist$
+Disallow: /waitlist.html
+Disallow: /waitlist?
+Disallow: /waitlist-confirmed$
+Disallow: /waitlist-confirmed.html
+Disallow: /waitlist-confirmed?
+Disallow: /offline$
+Disallow: /offline.html
+Disallow: /offline?
+Disallow: /check$
+Disallow: /check.html
+Disallow: /check?
+Disallow: /collectioncalc$
+Disallow: /collectioncalc.html
+Disallow: /collectioncalc?
+Disallow: /modal-ebay-listing$
+Disallow: /modal-ebay-listing.html
+Disallow: /modal-ebay-listing?
+Disallow: /body$
+Disallow: /body.html
+Disallow: /body?
+Disallow: /mockup-results$
+Disallow: /mockup-results.html
+Disallow: /mockup-results?
+
+Sitemap: https://slabworthy.com/sitemap.xml
+
+# AI crawlers stay blocked from everything, as before.
 User-agent: GPTBot
 Disallow: /
 
