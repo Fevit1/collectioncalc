@@ -576,7 +576,18 @@ function displaySignatureIdentifyResults(result, container) {
 async function fetchImageAsBase64(url) {
     let response;
     try {
-        response = await fetch(url);
+        // cache: 'no-store' is the fix, not a tuning knob (2026-09-19). The page has
+        // already loaded this same URL as an <img> thumbnail — a no-CORS request with
+        // no Origin header. R2 answers that one WITHOUT Access-Control-Allow-Origin and
+        // WITHOUT `Vary: Origin` (it sends both only when an Origin header arrives), so
+        // the browser's HTTP cache may hand that header-less copy to this CORS fetch,
+        // which then fails as "blocked by CORS policy" with no request ever leaving the
+        // machine. Whether it did depended on cache state — hence two failures and a
+        // success on the same comic. Going to the network every time sends the Origin
+        // header, and R2's CORS rule (it has one: it returns
+        // `Access-Control-Allow-Origin: https://slabworthy.com`) answers it; the
+        // Cloudflare edge keys on Origin, so this is still an edge cache HIT.
+        response = await fetch(url, { mode: 'cors', cache: 'no-store' });
     } catch (e) {
         // Network/CORS failure — fetch rejects before any response.
         throw new Error("Couldn't load image (network error)");

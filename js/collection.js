@@ -490,7 +490,7 @@ function createComicCard(comic) {
                     <input
                         type="text"
                         class="my-valuation-input"
-                        placeholder="$0.00"
+                        placeholder="Add yours"
                         value="${myValInput}"
                         data-comic-id="${comic.id}"
                         onblur="updateMyValuation(${comic.id}, this.value)"
@@ -582,7 +582,7 @@ function createComicCard(comic) {
                         <input
                             type="text"
                             class="my-valuation-input"
-                            placeholder="$0.00"
+                            placeholder="Add yours"
                             value="${myValInput}"
                             data-comic-id="${comic.id}"
                             onclick="event.stopPropagation()"
