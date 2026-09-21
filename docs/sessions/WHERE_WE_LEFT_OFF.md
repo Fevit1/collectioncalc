@@ -1,5 +1,53 @@
 # Where We Left Off - Sep 21, 2026
 
+## 2026-09-21 (afternoon) — ✅ **UNIT B SHIPPED AND PROVEN (`d21fdc9`, deployed 16:02Z): the FIRST MEASURED identification cost is $0.263 — ASM #252, log row 20, Stan Lee 0.937, three passes, 60.2 s. Mike: (3) ACCEPTED, precision gate CLEARED, pricing gate STANDS, floor STAYS at 0.75 / 0.40 / 0.50.**
+
+**MOST RECENT CHANGE (Rule 5): the floor is settled by decision — 0.75 / 0.40 / 0.50 (Mike, 2026-09-21): "two independent
+sets put the wrong answers at 0.72 and that settles it." Supersedes "fitted, not robust — re-set from (3)". `git log
+-1` = `d55a8be` (records), 0 ahead of origin. Uncommitted: `docs/sessions/ROADMAP.txt` (the two roadmap items) and
+this entry.**
+
+**Unit B proof — Render, 2026-09-21 16:06–16:07Z, as pasted by Mike, and log row 20's own `flags.usage`:**
+| pass | input | cache_write | cache_read | output | cost |
+|---|---|---|---|---|---|
+| 0.2 | 791 | 22,678 | 0 | 1,123 | $0.1738 |
+| 0.5 | 791 | 0 | 22,678 | 1,185 | $0.0449 |
+| 0.7 | 791 | 0 | 22,678 | 1,175 | $0.0447 |
+| **total** | 2,373 | 22,678 | 45,356 | 3,483 | **$0.2634** |
+Row 20: `usage` {input 2373, cache_write 22678, cache_read 45356, output 3483}, `billed_calls` 3, `prompt_version` "2",
+margin 0.637, none_of_these 0.037 — the row carries its own cost basis, as designed. The same three passes WITHOUT
+the breakpoint would have cost **$0.439**; the cache saves **40%**. ⚰️ DEAD: "~$0.66 an identification" as the
+current figure — that was measured on a random 15-creator pool (38.9k tokens); Design A pools are the popular
+creators, whose references are smaller (22.7k here, 23.0k average across (3)'s 87 pools). **The numbers for the
+pricing decision: ~$0.26 three-pass cached, ~$0.44 three-pass uncached, ~$0.15 one pass.** Also visible in the paste:
+`Pre-filter: 43 admitted, 15 kept … Todd McFarlane, Stan Lee, …` — the first time that line has been seen in
+production — and `[SigID] match served … matched=True`. The page showed "Match score 94% · next closest 30%",
+"strong match", the multi-signature note, and the badge "Stan Lee · signature match".
+(Same paste, unrelated: `[R2Backup] shed batch of 20 — 2 batches already in flight` — the image-backup queue shedding
+under load by design, `image_url` retained; noted, not investigated.)
+**Spend today: $6.24 (3) + $0.26 (this click, MEASURED) = $6.50.**
+
+**Tomorrow, Tuesday 09-22 (Mike): the IMAGE LEVER FIRST, then one-pass vs three-pass if the budget holds both;
+estimate each before starting; stop at the ceiling. Then the close-out.** Design, to be estimated in the ledger
+before it runs: 40 creators from three of (2)'s fixed pools (so three cache writes, not seven); each creator's
+held-out signature at FULL resolution and again downscaled to the size a signature has on a 375 × 500 listing
+thumbnail (~80 px long edge); one pass each → 80 calls ≈ **$3.00**. Then two more passes at full resolution on the
+same 40 (pass 1 is reused from the first arm) → 80 calls ≈ **$2.80**; report top-1 agreement between one pass and
+three, and the floor-rule outcome under each. Both ≈ **$5.80**, under the ceiling.
+
+**Logged, NOT built — for after the offline window (Mike):**
+1. **Label-reading leak.** 3 of (3)'s 26 named rows read the SLAB LABEL (two more, a printed cover credit). Exclude
+   label and printed text by prompt ("identify from the handwriting only; ignore any printed or label text") or by
+   crop. Raw books have no label, so the product case is unaffected — the MEASUREMENT is.
+2. **Design B** (add the model's `suggested_outside_pool` name and run again): triggered by (3) — 11 of 79 signers
+   were not among the 15, and the model volunteered the true name in 6 of those 11.
+3. **`title_year` backfill for signed rows:** 40% of (3)'s sample had no year, so no era filter, so a wider field
+   competed for the 15 slots (pool recall 86% there vs 94.5% on rows with a year).
+
+**Roadmap items from this morning — "Before you slab" and the SEO and GEO content plan with its twelve titles — are in
+`docs/sessions/ROADMAP.txt` as Mike wrote them (plus the defect-sorting read and the source report beside each
+title). That file is the one thing not yet committed.** The signed-premium report was re-sent to Mike as a file.
+
 ## 2026-09-21 (logged on receipt) — 🧭 **Two ROADMAP items from Mike, neither a build: (1) "Before you slab" — pressing and cleaning on the Slab Report, the second product item in the family beside the four-cell signed report; (2) the SEO and GEO content plan — twelve pages, one wedge query each, every number traced to a report.**
 
 **MOST RECENT CHANGE (Rule 5): both logged in ROADMAP "Strategy items", 2026-09-21. Supersedes the old roadmap line "SEO

@@ -417,6 +417,63 @@ source for both the fee table and the "can this be signed at all" question.
 Bears on: the Signature ID release and pricing gates above (a signing verdict is a reason to pay for identification),
 and the valuation code, which today EXCLUDES signed rows from every pool.
 
+### "Before you slab" — pressing and cleaning on the Slab Report (logged 2026-09-21, Mike). Product item — NOT a build.
+**The SECOND product item in the Slab Report family, beside the four-cell signed report above.**
+
+**Shape:** a RULE LAYER over the existing defect report that sorts each named defect into three groups —
+- **pressable:** non-colour-breaking creases and bends, spine roll, dents, waviness, subscription creases, corner
+  blunting;
+- **dry-cleanable:** surface dirt, pencil, light soiling;
+- **permanent:** colour-breaking creases, tears, stains, foxing, colour-breaking spine ticks, staple rust, splits,
+  missing pieces, tanning.
+The report lists which of THIS book's defects fall in each group and gives one verdict: **"pressing likely helps" /
+"unlikely to help" / "can't tell from these photos."** A pressing-cost input (roughly $20–$50 a book, plus
+turnaround) feeds the slab verdict the way the grading fee does.
+**Two constraints in the copy, both firm:**
+1. **NO GRADE NUMBER.** A press gain of half to one and a half grades sits inside the model's own run-to-run variance
+   (noise floor 0.5), and colour-break is unreliable from phone photos.
+2. **"Cleaning" means DRY cleaning only, stated explicitly** — solvent cleaning is restoration and earns a purple label.
+**Dependencies:** (1) the defect vocabulary the grading prompt already emits, mapped to the three groups — *report
+first on how cleanly the current output sorts* — **first read done 2026-09-21, read-only, below**; (2) later, a
+PRE-AND-POST PRESSING DATASET — listings advertising "pressed" or CPR results, and census regrades — collected with
+the eBay machinery (human-paced capture, as always). That dataset is what would license a number; nothing else does.
+**How cleanly today's output sorts (5,010 defect statements from 237 retained grades, crude keyword rule, $0):**
+the output is FREE TEXT per photo ("Multiple creases visible — diagonal crease upper left quadrant"), not a
+vocabulary. 32% sort as permanent, 13% pressable, 6% dry-cleanable, 6% are praise rather than defects, **9% name a
+pressable AND a permanent defect in one sentence, and 34% match no group** (the rule is rough — it misses "creasing",
+"roll/lean", "stress ticks" — so that share would fall with a better list). **The finding that matters: of 447
+statements naming a crease or bend, only 3 (1%) say anything about colour or a break.** The pressable / permanent
+line runs exactly through the one property the grader does not report. So the rule layer cannot be built on today's
+output: the grading prompt would first have to emit, per defect, a type from a fixed list and a colour-break call of
+yes / no / can't tell — a versioned prompt change with its own before/after run — and on phone photos the honest
+answer will often be "can't tell", which is why the third verdict exists.
+
+### SEO and GEO content plan (logged 2026-09-21, Mike). Strategy item — NOT a build yet.
+
+**Twelve pages, one wedge query each, EVERY number traced to a report in `docs/technical/`.** Bilbo drafts, Mike
+approves, Frodo publishes as a pages unit with FAQ and Article schema and a sitemap update. **No volume pages. No
+page without a number behind it.**
+Working titles, with the report each would stand on (⚠️ = the source does not exist yet or is thin):
+1. How our numbers are made — sources, sample sizes, exclusions, provenance; the AUTHORITY page.
+   (`CP1_STATE_OF_PLAY.md` and the valuation method; the corpus counts need a dated snapshot.)
+2. Why Amazing Spider-Man #1 is three books to a price guide. (multi-edition unit, WWLO 09-17; ⚠️ no standalone report.)
+3. What a seller-stated grade is worth. (item 17, source-aware tiers; ⚠️ needs its own measurement write-up.)
+4. Is my comic worth slabbing — the raw-versus-slab gap for five real books, with the condition-unknown caveat.
+5. What pressing can and cannot fix. (the "before you slab" item above; ⚠️ no dataset — the page can state the three
+   groups, not a gain.)
+6. What a signature adds. (`SIGNED_PREMIUM_2026-09-21.md` — landed today; carries three stated limits.)
+7. What our grader gets wrong. (the calibration record: 9.0 ceiling, noise floor 0.5, no CGC ground truth yet.)
+8. The single-page and lot problem in sold-listing data. (page unit and slab-lot findings, WWLO 09-17.)
+9. Newsstand versus direct. (newsstand entry, WWLO 09-11; ⚠️ thin.)
+10. The multi-edition #1 problem across X-Men, Spider-Man and ASM #14.
+11. Which comics do not trade graded. (⚠️ no report yet — a corpus query.)
+12. How to photograph a book for a grade. (⚠️ today's external test is the first number: on 375 × 500 thumbnails the
+    signature matcher was right-but-unsure in 33 of 37 poor-image cases — signature-side evidence, not grading-side.)
+**Precondition, recorded beside it:** the AI-crawler blocks in `robots.txt` (GPTBot, ChatGPT-User, CCBot, anthropic-ai,
+Claude-Web) STAY until after the offline window, and they are the FIRST lever for generative engines — GEO content
+behind a `Disallow` cannot be cited. Related: the SEO / discoverability item above (site opened 2026-09-20).
+⚠️ Supersedes the old roadmap line "SEO / content marketing — blog posts… Start 2-3 months before launch".
+
 ---
 
 ## 🚨 Immediate Priorities

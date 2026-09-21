@@ -165,8 +165,11 @@ Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.
 
 ---
 
-## 2026-09-21 — running total: **$6.24** (measured) · Opus 4.8 BATCH rate $2.50 / $12.50 per MTok (50%)
+## 2026-09-21 — running total: **$6.50** (measured: $6.24 external test + $0.26 unit B proof click) · Opus 4.8 BATCH rate $2.50 / $12.50 per MTok (50%)
 
 | # | run | est. | actual | notes |
 |---|-----|------|--------|-------|
 | 13 | External test (3) — 87 signed CGC/CBCS eBay rows from the HELD-OUT fold (`id % 5 = 0`), R2 images only, one pass each, the deployed route's own request (Design A pool, prompt v2, floor rule), sent through the Message Batches API | **$6.62** (87 × ~25,090 measured input tokens + ~1,067 output, at the batch rate); **worst case $7.52** (every request at the largest measured input and the 1,500-token output cap) | **$6.24 MEASURED** (−5.7%; 87 calls, avg 23,014 in / 1,134 out; 1 unparseable response, billed) | Approved by Mike at $8.10 with a $9.00 stop. **Why batch:** Design A pools depend on the title, so 87 rows make 56 distinct pools — prompt caching saves little and a synchronous run would be ~$19. A batch cannot be stopped mid-run, so the stop is enforced BEFORE submit: the worst case is computed from `count_tokens` on four real requests (free) and sits under $9.00. Day's total after it: **$6.62** est. The unit B proof click later today (~$0.37) would make it ~$6.99. |
+| 14 | Unit B proof — ONE ASM #252 click after the cache-breakpoint deploy (`d21fdc9`) | ~$0.37 | **$0.2634 MEASURED — the first identification with a measured cost** | Log row 20, 16:07:36Z: input 2,373 · cache_write 22,678 · cache_read 45,356 · output 3,483; pass 1 $0.174, passes 2 and 3 $0.045 each. Uncached the same three passes = $0.439 → the cache saves 40%. The estimate was high because it assumed a 38.9k-token pool; Design A pools average ~23k. |
+
+**Queued for Tuesday 2026-09-22, approved in principle by Mike, estimate to be restated before each starts:** image lever — 40 creators × {full resolution, thumbnail-size}, one pass, three cached pools ≈ **$3.00**; then one-pass vs three-pass — two more passes on the same 40 ≈ **$2.80**. Both ≈ **$5.80**; stop at the $10 ceiling.
