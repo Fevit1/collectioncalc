@@ -1,5 +1,21 @@
 # Where We Left Off - Sep 21, 2026
 
+## 2026-09-21 (close) — 🧾 **Mike: unit B ACCEPTED at $0.263 measured; the $0.66 figure is DEAD in the records; premium report ACCEPTED. Pricing decision logged as two shapes and WAITING on Tuesday's one-pass number. Nothing built. Nothing deploys Tuesday or Wednesday.**
+
+**MOST RECENT CHANGE (Rule 5): the pricing decision for Signature ID is framed as (a) a per-use credit or (b) a small Pro
+cap, priced against $0.15–$0.26 per identification — Mike, 2026-09-21; it waits on Tuesday's one-pass vs three-pass
+result. Supersedes nothing. `git log -1` = `00aa643` (records), 0 ahead of origin.**
+- **$0.66 is dead:** tombstoned at both places it still stood in ROADMAP (the pricing-gate paragraph and the cache
+  arithmetic), replaced by the measured $0.263 / $0.439 uncached / ~$0.15 one pass. Older WWLO entries that quote
+  $0.66 are history and are superseded by this line.
+- **Premium report accepted;** the Absolute Batman #1 anomaly is logged inside the report as a one-line look (split
+  the stated-SS rows by printing) for when it is next touched.
+- **TUESDAY 2026-09-22, in order:** (1) the image lever, ~$3.00 — estimate in the ledger BEFORE it starts; (2) one-pass
+  against three-pass, ~$2.80 — its own estimate before it starts; stop at the $10 ceiling; (3) THE CLOSE-OUT: the
+  offline note at the TOP of this file — Mike offline from Wednesday 09-23 for about five days, NO commits in that
+  window, and what to do if production breaks meanwhile — then the records commit. **Nothing deploys Tuesday or
+  Wednesday.**
+
 ## 2026-09-21 (afternoon) — ✅ **UNIT B SHIPPED AND PROVEN (`d21fdc9`, deployed 16:02Z): the FIRST MEASURED identification cost is $0.263 — ASM #252, log row 20, Stan Lee 0.937, three passes, 60.2 s. Mike: (3) ACCEPTED, precision gate CLEARED, pricing gate STANDS, floor STAYS at 0.75 / 0.40 / 0.50.**
 
 **MOST RECENT CHANGE (Rule 5): the floor is settled by decision — 0.75 / 0.40 / 0.50 (Mike, 2026-09-21): "two independent

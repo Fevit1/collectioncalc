@@ -41,6 +41,8 @@ something closer to a flat dollar amount than a percentage — which is what a s
 **One anomaly, unexplained:** Absolute Batman #1's title-stated Signature Series cells sit BELOW unsigned (0.65× at
 9.0–9.6 on n=11, 0.96× at 9.8+ on n=45) while its label-not-stated signed cells sit well above (1.5×). Later
 printings are not separated from first printings in this table and are the first suspect; not investigated.
+**TO DO when this report is next touched (Mike, 2026-09-21): a ONE-LINE look** — split Absolute Batman #1's
+stated-SS rows by printing (title text: "2nd print", "3rd printing", …) and re-read the two cells. Accepted as is until then.
 Raw signed books carry a premium too, on seller-stated grades: Absolute Batman #1 at 9.8+ raw, $600 signed (n=95).
 
 ## Top 20 pairs by total sample
