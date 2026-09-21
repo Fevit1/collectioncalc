@@ -1,4 +1,64 @@
-# Where We Left Off - Sep 20, 2026
+# Where We Left Off - Sep 21, 2026
+
+## 2026-09-21 (logged on receipt) — 🧭 **Two ROADMAP items from Mike, neither a build: (1) "Before you slab" — pressing and cleaning on the Slab Report, the second product item in the family beside the four-cell signed report; (2) the SEO and GEO content plan — twelve pages, one wedge query each, every number traced to a report.**
+
+**MOST RECENT CHANGE (Rule 5): both logged in ROADMAP "Strategy items", 2026-09-21. Supersedes the old roadmap line "SEO
+/ content marketing — blog posts". `git log -1` = `c0a5d1f`.**
+- **Pressing item — the "report first" dependency has a first answer (read-only, $0):** the grader's defects are free
+  text, not a vocabulary; a crude keyword rule sorts 32% permanent / 13% pressable / 6% dry-cleanable, leaves 34%
+  unsorted and 9% naming a pressable AND a permanent defect in one sentence. **Of 447 crease-or-bend statements only
+  3 (1%) say anything about colour-break** — the pressable / permanent line runs through the one property the grader
+  does not report. The rule layer needs a versioned grading-prompt change first (a fixed defect type + a colour-break
+  yes / no / can't-tell per defect). Mike's two copy constraints recorded as firm: NO grade number; "cleaning" means
+  DRY cleaning only, said explicitly.
+- **Content plan:** each of the twelve titles is recorded with the report it would stand on; five are marked ⚠️
+  because that report does not exist yet or is thin (seller-stated grade, pressing gain, newsstand, which comics do
+  not trade graded, photographing a book). Precondition recorded: the AI-crawler blocks stay until after the offline
+  window and are the first lever for generative engines. Roles: Bilbo drafts, Mike approves, Frodo publishes as a
+  pages unit with FAQ and Article schema and a sitemap update.
+
+## 2026-09-21 — 📊 **(3) DONE: at the current floor 26 of 86 rows get a name (30%) and 26 of 26 are RIGHT (100%; lower bound ≈ 89%) — the 75%-among-named release bar is CLEARED on precision. The share named is low because the INPUT is a 375 × 500 listing thumbnail: in 33 of the 37 poor-image no-matches the right creator was on top. $6.24 measured. Report: `docs/technical/SIGNATURE_EXTERNAL_TEST_2026-09-21.md`. Nothing built.**
+
+**MOST RECENT CHANGE (Rule 5): the signature release bar's PRECISION gate is cleared by a measured (3), 2026-09-21.
+Supersedes "off until a measured (3) clears it" ONLY for that gate — the PRICING gate (a per-use credit or a lower
+unit cost) still stands, so the feature stays off in the grading flow. `git log -1` = `c0a5d1f`.**
+- **Floor: recommend KEEP 0.75 / 0.40 / 0.50** (Mike's call; (3) was to re-set it). The two wrong names that 0.70 /
+  0.30 would admit both scored **0.72** (Andy Kubert → Claremont; a Ryan Stegman book → Donny Cates) — the same
+  0.70–0.72 cluster as Saturday's two confident-wrong absent cases. Two independent sets now agree, so the value is
+  no longer fitted to one. Every setting tested clears 75% (0.50: 91%, 0.60/0.20: 93%, 0.70/0.30: 95%).
+- **Caveats in the report:** 3 of the 26 named rows READ THE SLAB LABEL despite the 15% top crop, 2 more leaned on a
+  printed cover credit — 21 of 21 without them; one pass, not three; eBay signed-slab population, not raw books; 1 of
+  87 responses was unparseable JSON; 3 of my 7 "out-of-set" labels were sampler misreads (4 true out-of-set signers,
+  none named).
+- **Levers on the share named, in order:** the input image (crop to the signature / use the user's full-resolution
+  photo) — 33 rows are right-but-unsure on a thumbnail; then the pool — 11 of 79 signers were not among the 15, and
+  the model volunteered the true name in 6 of those 11 (Design B's trigger). Second signatures: 11 rows flagged,
+  detected not resolved.
+- **Spend today: $6.24.** Unit B's proof click (~$0.37) would make it ~$6.61.
+
+## 2026-09-21 — 📤 **(3) SUBMITTED: 87 held-out eBay rows, six message batches, est. $6.62 (worst case $7.52), results pending. 📊 Signed-premium report DONE ($0): `docs/technical/SIGNED_PREMIUM_2026-09-21.md`. Unit B is still uncommitted in `routes/signature_orchestrator.py`; Mike may commit and deploy it now — the batch does not depend on the deployed route.**
+
+**MOST RECENT CHANGE (Rule 5): (3) runs through the Message Batches API, not synchronously — 2026-09-21. Supersedes
+"(3) one pass, grouped so references cache, $8.10": Design A pools depend on the TITLE, so 87 rows make 56 distinct
+pools, caching saves little, and synchronous would be ~$19. Same request as the deployed route, asynchronous, half
+price. `git log -1` = `c0a5d1f`.**
+
+- **Sample** (`scripts/sig_t3_sample_2026-09-21.json`): fold `id % 5 = 0`, R2 images only, no eBay request. 80 rows name
+  exactly one in-set creator beside a signing cue, capped at six a signer, 39 signers; **only 7** rows in the fold
+  say "signed by <Name>" for a name outside the set (20 were wanted) — "signer not in set" is measured on 7.
+- **Pool recall, known before any call:** the signer is in the 15 for **69 of 80 (86%)** — lower than the 94.5%
+  measured on rows with a year, because 40% of this sample has no `title_year` and gets no era filter.
+- **Label confound, handled by cropping:** a CGC Signature Series label PRINTS the signer's name. The top 15% of each
+  image is cropped; rows where the model still cites a label are flagged in the results.
+- **Stop:** a batch cannot be stopped mid-run, so the $9.00 stop was enforced before submit — worst case computed from
+  `count_tokens` on four real requests. Batches: six, ids in `scripts/sig_t3_state_2026-09-21.json`. Harness:
+  `scripts/sig_t3_harness.py` (production pool, reference fetch, message builder, prompt v2; responses parsed by
+  production `run_single_pass` through a stub client; decided by `passes_floor_rule`; any `cache_control` stripped
+  so the request is the deployed one).
+- **Signed premium (82 qualifying pairs; top 20 shown):** witnessed signed slabs sell at a median **2.2×** unsigned
+  where both cells have n ≥ 5; the premium behaves like a flat dollar amount, largest on cheap modern books signed by
+  their creator. Limits: "unwitnessed" = witness NOT STATED in the title (a mix); pairs are edition-blind; "SS" /
+  "auto" / "sig" are loose. Anomaly unexplained: Absolute Batman #1's stated-SS cells sit BELOW unsigned.
 
 ## 2026-09-20 (last) — 🧾 **Render env recorded; premium-report scoping recorded; Monday / Tuesday / Wednesday plan fixed. Nothing built. Working tree: ONLY `routes/signature_orchestrator.py` (unit B, held for Monday after (3)).**
 

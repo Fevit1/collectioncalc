@@ -1,0 +1,2621 @@
+{
+ "batches": [
+  "msgbatch_01LMxi8DDUaENn6qRnwaSd19",
+  "msgbatch_01UUHKddrxQCEh6uYGGV2pmZ",
+  "msgbatch_01PxyjqzVeuwsGiQPnnKNiKF",
+  "msgbatch_01QS1FkJVfQHyNBY36RYVzcH",
+  "msgbatch_01W4nC5UsduDsL6RZCukS37p",
+  "msgbatch_019FkVbX6NBdK2pSy3bjdpyM"
+ ],
+ "rows": {
+  "row65665": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2020s",
+    "title": "Superman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neal Adams",
+    "Joshua Williamson",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    339,
+    425
+   ]
+  },
+  "row499725": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Dark Knight Returns",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Jim Lee",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    1199,
+    1360
+   ]
+  },
+  "row285735": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Sandman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neil Gaiman",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row58145": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Youngblood",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Rob Liefeld",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row515265": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1970s",
+    "title": "🐈‍⬛ Black Panther",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Chris Claremont",
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Mike Mignola",
+    "Jerry Siegel",
+    "Herb Trimpe"
+   ],
+   "target_size": [
+    1013,
+    1360
+   ]
+  },
+  "row412615": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "1980s",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "Greg Capullo",
+    "Frank Miller",
+    "Neal Adams",
+    "Erik Larsen",
+    "John Romita Sr.",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck",
+    "Walt Simonson"
+   ],
+   "target_size": [
+    430,
+    425
+   ]
+  },
+  "row339345": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Teenage Mutant Ninja Turtles",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Kevin Eastman",
+    "Skottie Young",
+    "Peach Momoko",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row111870": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Hellblazer",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    366,
+    425
+   ]
+  },
+  "row443935": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "unknown",
+    "title": "Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Alex Ross",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    999,
+    1360
+   ]
+  },
+  "row250485": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Secret Wars",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Mike Zeck",
+    "Skottie Young",
+    "Neal Adams",
+    "Mark Brooks",
+    "Jonathan Hickman",
+    "Art Adams",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain"
+   ],
+   "target_size": [
+    376,
+    425
+   ]
+  },
+  "row194950": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "unknown",
+    "title": "Defenders",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Alex Ross",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row344935": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2010s",
+    "title": "Teenage Mutant Ninja Turtles",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Kevin Eastman",
+    "Skottie Young",
+    "Peach Momoko",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    379,
+    425
+   ]
+  },
+  "row177570": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Uncanny X-Men",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Chris Claremont",
+    "Stan Lee",
+    "Jim Lee",
+    "Andy Kubert",
+    "Marc Silvestri",
+    "John Byrne",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams"
+   ],
+   "target_size": [
+    330,
+    425
+   ]
+  },
+  "row455105": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "1990s",
+    "title": "Venom: Lethal Protector",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Mark Bagley",
+    "Todd McFarlane",
+    "Alex Ross",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck",
+    "J. Scott Campbell",
+    "Mark Brooks",
+    "Walt Simonson"
+   ],
+   "target_size": [
+    1009,
+    1360
+   ]
+  },
+  "row357235": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "1980s",
+    "title": "Preview: Moon Knight",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Garth Ennis",
+    "Andy Kubert",
+    "Jae Lee"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row176200": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "New Mutants",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Rob Liefeld",
+    "Stan Lee",
+    "Todd McFarlane",
+    "Walt Simonson",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row45170": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Savage Dragon Limited Series",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Erik Larsen",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row71290": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1980s",
+    "title": "Watchmen",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Alan Moore",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Garth Ennis"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row172930": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "D.c. Comics - Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neal Adams",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    293,
+    425
+   ]
+  },
+  "row94410": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1970s",
+    "title": "Incredible Hulk",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Herb Trimpe",
+    "Chris Claremont",
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Mike Mignola",
+    "Jerry Siegel"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row439785": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1980s",
+    "title": "Wolverine",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Chris Claremont",
+    "Jim Lee",
+    "Stan Lee",
+    "Frank Miller",
+    "Rob Liefeld",
+    "Bill Sienkiewicz",
+    "Adam Kubert",
+    "Larry Hama",
+    "Todd McFarlane",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    1200,
+    1360
+   ]
+  },
+  "row331500": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1990s",
+    "title": "Amazing Heroes",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Alex Ross",
+    "Mike Zeck",
+    "J. Scott Campbell",
+    "Mark Brooks"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row497540": {
+   "ctx": {
+    "publisher": "Image",
+    "era_decade": "unknown",
+    "title": "United",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Rob Liefeld",
+    "Skottie Young",
+    "Jason Aaron",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "J. Scott Campbell",
+    "Ryan Ottley",
+    "Donny Cates",
+    "Garth Ennis",
+    "Jenny Frison",
+    "Jae Lee",
+    "Erik Larsen"
+   ],
+   "target_size": [
+    960,
+    1340
+   ]
+  },
+  "row121080": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Jim Lee",
+    "Frank Miller",
+    "Neal Adams",
+    "Matt Fraction",
+    "Scott Snyder",
+    "Jim Starlin",
+    "James Tynion IV",
+    "Tom King",
+    "Walt Simonson",
+    "Derrick Chew",
+    "Andy Kubert",
+    "Dan Mora",
+    "Joshua Williamson",
+    "Mike Mignola"
+   ],
+   "target_size": [
+    315,
+    425
+   ]
+  },
+  "row473550": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Mark Brooks",
+    "Skottie Young",
+    "Ryan Ottley",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Chris Claremont"
+   ],
+   "target_size": [
+    1200,
+    1360
+   ]
+  },
+  "row212110": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "unknown",
+    "title": "Gwen Stacy",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Alex Ross",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    390,
+    425
+   ]
+  },
+  "row169200": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Wolverine",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Chris Claremont",
+    "Clayton Crain",
+    "Jim Lee",
+    "Stan Lee",
+    "Frank Miller",
+    "Rob Liefeld",
+    "Daniel Warren Johnson",
+    "Bill Sienkiewicz",
+    "Adam Kubert",
+    "Larry Hama",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Kevin Eastman",
+    "Skottie Young",
+    "Mark Bagley"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row169795": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Derrick Chew",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Neal Adams",
+    "Marv Wolfman",
+    "Erik Larsen",
+    "Ed McGuinness"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row426780": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Wolverine Limited Series",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Chris Claremont",
+    "Stan Lee",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Rob Liefeld",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    1022,
+    1360
+   ]
+  },
+  "row345190": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "TMNT X Stranger Things",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    341,
+    425
+   ]
+  },
+  "row596930": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "2020s",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams"
+   ],
+   "target_size": [
+    1190,
+    1360
+   ]
+  },
+  "row287810": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "Watchmen",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Alan Moore",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "Neil Gaiman",
+    "J. Scott Campbell"
+   ],
+   "target_size": [
+    385,
+    425
+   ]
+  },
+  "row294150": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "New History the Universe",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Adam Hughes",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "Neil Gaiman",
+    "J. Scott Campbell"
+   ],
+   "target_size": [
+    314,
+    425
+   ]
+  },
+  "row193370": {
+   "ctx": {
+    "publisher": "Image",
+    "era_decade": "unknown",
+    "title": "Venomized",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Rob Liefeld",
+    "Skottie Young",
+    "Jason Aaron",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "J. Scott Campbell",
+    "Ryan Ottley",
+    "Donny Cates",
+    "Garth Ennis",
+    "Jenny Frison",
+    "Jae Lee",
+    "Erik Larsen"
+   ],
+   "target_size": [
+    322,
+    425
+   ]
+  },
+  "row100635": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Derrick Chew",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Neal Adams",
+    "Marv Wolfman",
+    "Erik Larsen",
+    "Ed McGuinness"
+   ],
+   "target_size": [
+    500,
+    425
+   ]
+  },
+  "row28180": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Superman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jason Aaron",
+    "Skottie Young",
+    "Jim Lee",
+    "Clayton Crain",
+    "Dan Mora",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    313,
+    425
+   ]
+  },
+  "row289840": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "1980s",
+    "title": "Batman: the Dark Knight Returns",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Walt Simonson",
+    "Garth Ennis",
+    "Andy Kubert",
+    "Jae Lee",
+    "Bill Sienkiewicz",
+    "Greg Capullo"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row215320": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Derrick Chew",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Neal Adams",
+    "Marv Wolfman",
+    "Erik Larsen",
+    "Ed McGuinness"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row531885": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Cgc Jsa 9.6 Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    1200,
+    1360
+   ]
+  },
+  "row415015": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1990s",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Neal Adams",
+    "Erik Larsen",
+    "Ed McGuinness",
+    "John Romita Sr.",
+    "Patrick Gleason",
+    "Jim Lee",
+    "Chris Claremont"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row64110": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Thor",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Walt Simonson",
+    "Stan Lee",
+    "Donny Cates",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron"
+   ],
+   "target_size": [
+    311,
+    425
+   ]
+  },
+  "row155145": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1980s",
+    "title": "Wolverine Limited Series",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Chris Claremont",
+    "Stan Lee",
+    "Todd McFarlane",
+    "Jim Lee",
+    "Rob Liefeld",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Garth Ennis",
+    "Andy Kubert"
+   ],
+   "target_size": [
+    320,
+    425
+   ]
+  },
+  "row487845": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "2020s",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams"
+   ],
+   "target_size": [
+    1010,
+    1360
+   ]
+  },
+  "row367230": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Venom",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Donny Cates",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Skottie Young",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    315,
+    425
+   ]
+  },
+  "row57910": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Department of Truth",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "James Tynion IV",
+    "Todd McFarlane",
+    "Peach Momoko",
+    "Jenny Frison",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams"
+   ],
+   "target_size": [
+    368,
+    425
+   ]
+  },
+  "row597220": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "pre-1970",
+    "title": "Tales of Suspense",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Chris Claremont",
+    "Neal Adams",
+    "Bernie Wrightson",
+    "Jack Kirby",
+    "Jerry Siegel",
+    "Herb Trimpe",
+    "Joe Shuster",
+    "Bob Kane",
+    "John Romita Sr.",
+    "Jim Steranko",
+    "Larry Hama",
+    "Bill Finger",
+    "Steve Ditko"
+   ],
+   "target_size": [
+    991,
+    1360
+   ]
+  },
+  "row170315": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Derrick Chew",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Neal Adams",
+    "Marv Wolfman",
+    "Erik Larsen",
+    "Ed McGuinness"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row26190": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "X-Men",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jim Lee",
+    "Chris Claremont",
+    "Stan Lee",
+    "Derrick Chew",
+    "Andy Kubert",
+    "Clayton Crain",
+    "Jack Kirby",
+    "John Byrne",
+    "Adam Kubert",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Skottie Young"
+   ],
+   "target_size": [
+    103,
+    119
+   ]
+  },
+  "row61305": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Teenage Mutant Ninja Turtles",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Kevin Eastman",
+    "Skottie Young",
+    "Peach Momoko",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row342780": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Mighty Morphin Power Rangers/tmnt",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    312,
+    425
+   ]
+  },
+  "row374330": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Jim Lee",
+    "Frank Miller",
+    "Neal Adams",
+    "Matt Fraction",
+    "Scott Snyder",
+    "Jim Starlin",
+    "James Tynion IV",
+    "Tom King",
+    "Walt Simonson",
+    "Derrick Chew",
+    "Andy Kubert",
+    "Dan Mora",
+    "Joshua Williamson",
+    "Mike Mignola"
+   ],
+   "target_size": [
+    366,
+    425
+   ]
+  },
+  "row143160": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron"
+   ],
+   "target_size": [
+    353,
+    425
+   ]
+  },
+  "row186705": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "X-Men",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jim Lee",
+    "Chris Claremont",
+    "Stan Lee",
+    "Derrick Chew",
+    "Andy Kubert",
+    "Clayton Crain",
+    "Jack Kirby",
+    "John Byrne",
+    "Adam Kubert",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Skottie Young"
+   ],
+   "target_size": [
+    315,
+    425
+   ]
+  },
+  "row230015": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1990s",
+    "title": "X-Men",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jim Lee",
+    "Chris Claremont",
+    "Stan Lee",
+    "Andy Kubert",
+    "John Byrne",
+    "Adam Kubert",
+    "Jack Kirby",
+    "Todd McFarlane",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman"
+   ],
+   "target_size": [
+    394,
+    425
+   ]
+  },
+  "row331240": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2000s",
+    "title": "Walking Dead",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Robert Kirkman",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    396,
+    425
+   ]
+  },
+  "row496835": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1990s",
+    "title": "Savage Dragon",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Erik Larsen",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Alex Ross",
+    "Mike Zeck",
+    "J. Scott Campbell"
+   ],
+   "target_size": [
+    1020,
+    1360
+   ]
+  },
+  "row397305": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Mark Brooks",
+    "Skottie Young",
+    "Ryan Ottley",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Chris Claremont"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row442525": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Amazing Spider-Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Mark Bagley",
+    "J. Scott Campbell",
+    "Humberto Ramos",
+    "Derrick Chew",
+    "Alex Ross",
+    "Greg Capullo",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Neal Adams",
+    "Marv Wolfman",
+    "Erik Larsen",
+    "Ed McGuinness"
+   ],
+   "target_size": [
+    1200,
+    1360
+   ]
+  },
+  "row86855": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2020s",
+    "title": "Strange Academy",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Humberto Ramos",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    500,
+    319
+   ]
+  },
+  "row472260": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron"
+   ],
+   "target_size": [
+    410,
+    553
+   ]
+  },
+  "row118600": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Superman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jason Aaron",
+    "Skottie Young",
+    "Jim Lee",
+    "Clayton Crain",
+    "Dan Mora",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row57955": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Savage Dragon",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Erik Larsen",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row97295": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Dark Knight Returns",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Jim Lee",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row127980": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "unknown",
+    "title": "Special",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Jim Starlin",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Alex Ross",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    336,
+    425
+   ]
+  },
+  "row126490": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1970s",
+    "title": "Iron Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Jim Starlin",
+    "Chris Claremont",
+    "Frank Miller",
+    "Neal Adams",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Mike Mignola",
+    "Jerry Siegel",
+    "Herb Trimpe"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row255635": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Ultimate Fallout",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Clayton Crain",
+    "Mark Bagley",
+    "Brian Michael Bendis",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Skottie Young",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    377,
+    425
+   ]
+  },
+  "row487495": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Wonder Woman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Skottie Young",
+    "Jim Lee",
+    "Ryan Ottley",
+    "Jae Lee",
+    "Dan Mora",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Neal Adams"
+   ],
+   "target_size": [
+    1018,
+    1360
+   ]
+  },
+  "row60715": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Green Lantern",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neal Adams",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row277275": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "New Teen Titans",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "George Pérez",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "Neil Gaiman",
+    "J. Scott Campbell"
+   ],
+   "target_size": [
+    353,
+    425
+   ]
+  },
+  "row350955": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2000s",
+    "title": "The Boys",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Garth Ennis",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    331,
+    425
+   ]
+  },
+  "row176695": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "New Mutants",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Rob Liefeld",
+    "Stan Lee",
+    "Todd McFarlane",
+    "Walt Simonson",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    500,
+    425
+   ]
+  },
+  "row363795": {
+   "ctx": {
+    "publisher": "Marvel",
+    "era_decade": "unknown",
+    "title": "/ Batman / Deadpool",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Alex Ross",
+    "Neil Gaiman",
+    "Mike Zeck"
+   ],
+   "target_size": [
+    319,
+    425
+   ]
+  },
+  "row89220": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "unknown",
+    "title": "Preacher",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Garth Ennis",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin",
+    "Daniel Warren Johnson",
+    "Alex Ross",
+    "Neil Gaiman",
+    "J. Scott Campbell"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row374210": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "1970s",
+    "title": "Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Walt Simonson",
+    "Mike Mignola",
+    "Bob Kane",
+    "Chris Claremont",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Jerry Siegel",
+    "George Pérez",
+    "Joe Shuster"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row95555": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "1970s",
+    "title": "Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Walt Simonson",
+    "Mike Mignola",
+    "Bob Kane",
+    "Chris Claremont",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Jerry Siegel",
+    "George Pérez",
+    "Joe Shuster"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row395190": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "2020s",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams"
+   ],
+   "target_size": [
+    461,
+    425
+   ]
+  },
+  "row309385": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Fantastic Four",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Alex Ross",
+    "Skottie Young",
+    "Peach Momoko",
+    "Jack Kirby",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Neal Adams"
+   ],
+   "target_size": [
+    500,
+    425
+   ]
+  },
+  "row367175": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Venom",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Donny Cates",
+    "Clayton Crain",
+    "Mark Bagley",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Skottie Young",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    315,
+    425
+   ]
+  },
+  "row590505": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "2010s",
+    "title": "Invincible Iron Man",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Brian Michael Bendis",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Jason Aaron",
+    "Neal Adams",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    1200,
+    1360
+   ]
+  },
+  "row285675": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Sandman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neil Gaiman",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron",
+    "Jim Starlin"
+   ],
+   "target_size": [
+    387,
+    425
+   ]
+  },
+  "row210840": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1970s",
+    "title": "Star Wars",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Stan Lee",
+    "Chris Claremont",
+    "Frank Miller",
+    "Neal Adams",
+    "Jim Starlin",
+    "Mike Zeck",
+    "Walt Simonson",
+    "Bill Sienkiewicz",
+    "Bernie Wrightson",
+    "Alan Moore",
+    "Jack Kirby",
+    "John Byrne",
+    "Mike Mignola",
+    "Jerry Siegel",
+    "Herb Trimpe"
+   ],
+   "target_size": [
+    500,
+    319
+   ]
+  },
+  "row168125": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Wolverine",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Chris Claremont",
+    "Clayton Crain",
+    "Jim Lee",
+    "Stan Lee",
+    "Frank Miller",
+    "Rob Liefeld",
+    "Daniel Warren Johnson",
+    "Bill Sienkiewicz",
+    "Adam Kubert",
+    "Larry Hama",
+    "Todd McFarlane",
+    "Scott Snyder",
+    "Kevin Eastman",
+    "Skottie Young",
+    "Mark Bagley"
+   ],
+   "target_size": [
+    330,
+    425
+   ]
+  },
+  "row4080": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Incredible Hulk",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Peter David",
+    "Herb Trimpe",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron"
+   ],
+   "target_size": [
+    347,
+    425
+   ]
+  },
+  "row88765": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Incredible Hulk",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Peter David",
+    "Herb Trimpe",
+    "Scott Snyder",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Clayton Crain",
+    "Skottie Young",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jason Aaron"
+   ],
+   "target_size": [
+    318,
+    425
+   ]
+  },
+  "row167690": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "1990s",
+    "title": "Generation X",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Todd McFarlane",
+    "Stan Lee",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Kevin Eastman",
+    "Mark Bagley",
+    "Neal Adams",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Alex Ross",
+    "Mike Zeck",
+    "J. Scott Campbell",
+    "Mark Brooks"
+   ],
+   "target_size": [
+    314,
+    425
+   ]
+  },
+  "row275315": {
+   "ctx": {
+    "publisher": "DC",
+    "era_decade": "1980s",
+    "title": "Wonder Woman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Neal Adams",
+    "Todd McFarlane",
+    "Jim Lee",
+    "Chris Claremont",
+    "Rob Liefeld",
+    "Frank Miller",
+    "Mark Bagley",
+    "Jim Starlin",
+    "Neil Gaiman",
+    "Walt Simonson",
+    "Garth Ennis",
+    "Andy Kubert",
+    "Jae Lee",
+    "Bill Sienkiewicz",
+    "Greg Capullo"
+   ],
+   "target_size": [
+    375,
+    425
+   ]
+  },
+  "row393945": {
+   "ctx": {
+    "publisher": "unknown",
+    "era_decade": "unknown",
+    "title": "Absolute Batman",
+    "signature_location": "cover",
+    "slab_label": "unknown"
+   },
+   "pool": [
+    "Scott Snyder",
+    "Jim Lee",
+    "Daniel Warren Johnson",
+    "Mark Brooks",
+    "Skottie Young",
+    "Ryan Ottley",
+    "Jae Lee",
+    "Frank Miller",
+    "Jenny Frison",
+    "Dan Mora",
+    "Bill Sienkiewicz",
+    "Gabriele Dell'Otto",
+    "Todd McFarlane",
+    "Stan Lee",
+    "Chris Claremont"
+   ],
+   "target_size": [
+    337,
+    425
+   ]
+  }
+ }
+}

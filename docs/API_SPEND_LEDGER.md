@@ -162,3 +162,11 @@ Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.
 | 12 | ASM #252 — ONE click after the prompt-v2 deploy (Mike, the unit's planned proof) | **$0.66** | **~$0.66, NOT MEASURED** | Log row 19, 2026-09-20 22:32:34Z: Stan Lee 0.937, matched, 3 passes, 66.8 s, `prompt_version: "2"`. The route still discards usage; the cache unit (deploys Monday after (3)) is what finally records it. |
 
 **Queued, approved by Mike, not yet run:** Monday 2026-09-21 — external test (3), one pass, **$8.10** est. / $9.40 worst case, then ONE ASM #252 proof click after the cache deploy (~$0.37 expected) → Monday ≈ **$8.47**, under $10 only if (3) holds its estimate; the harness stops itself at a $9.00 projection. Tuesday 2026-09-22 — one-pass vs three-pass on a 40-creator subset, **~$3.70**.
+
+---
+
+## 2026-09-21 — running total: **$6.24** (measured) · Opus 4.8 BATCH rate $2.50 / $12.50 per MTok (50%)
+
+| # | run | est. | actual | notes |
+|---|-----|------|--------|-------|
+| 13 | External test (3) — 87 signed CGC/CBCS eBay rows from the HELD-OUT fold (`id % 5 = 0`), R2 images only, one pass each, the deployed route's own request (Design A pool, prompt v2, floor rule), sent through the Message Batches API | **$6.62** (87 × ~25,090 measured input tokens + ~1,067 output, at the batch rate); **worst case $7.52** (every request at the largest measured input and the 1,500-token output cap) | **$6.24 MEASURED** (−5.7%; 87 calls, avg 23,014 in / 1,134 out; 1 unparseable response, billed) | Approved by Mike at $8.10 with a $9.00 stop. **Why batch:** Design A pools depend on the title, so 87 rows make 56 distinct pools — prompt caching saves little and a synchronous run would be ~$19. A batch cannot be stopped mid-run, so the stop is enforced BEFORE submit: the worst case is computed from `count_tokens` on four real requests (free) and sits under $9.00. Day's total after it: **$6.62** est. The unit B proof click later today (~$0.37) would make it ~$6.99. |
