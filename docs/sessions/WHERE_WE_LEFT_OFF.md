@@ -1,5 +1,25 @@
 # Where We Left Off - Sep 21, 2026
 
+## 2026-09-21 (decision, logged on receipt) — 🛑 **The offline window's breakage policy is: NOBODY ACTS. Mike runs every deploy and rollback and will not be reachable, so a production problem in the window stays broken until he is back. The offline note is DRAFTED — `docs/sessions/OFFLINE_NOTE_DRAFT_2026-09-23.md` — and moves to the TOP of this file at Tuesday's close-out.**
+
+**MOST RECENT CHANGE (Rule 5): breakage handling for 2026-09-23 → ~09-28 decided by Mike, 2026-09-21 — nobody acts.
+Supersedes my question "who, if anyone, acts on an alert". `git log -1` = `ddebd0a` (records), 0 ahead of origin.**
+The note carries, as Mike specified: (1) the policy, stated flat; (2) state at close (three fields filled at the
+close-out: HEAD, tree, spend); (3) what Claude will and will not do in the window — **report-only work if Mike
+messages; NOTHING that writes to the repo, the database or production** (so no records either: anything worth
+recording is held in chat and written on his return; no git, no API spend); (4) the RETURN CHECKLIST for his first
+hour back, in his order — dependency-monitor email alerts in date order → `/health` and the dependency-status page →
+the Render events feed → the extensions errors page in Chrome → the API spend ledger against the Anthropic console →
+the `[R2Backup] shed` count over the window → `git status`; (5) the ROLLBACK LEVERS with the exact action for each —
+Render rollback to the prior deploy; `SIG_PROMPT_VERSION=1`; the floor env vars; `SLAB_GUARD_REGISTRATION_OPEN` and
+the allow-list; reload `ebay-collector` 1.5.0 and `whatnot-valuator` 2.47.0 (with the refresh-every-tab step and the
+banner check); the Cloudflare revert-push-wait-purge path.
+Two facts I added because the checklist would mislead without them: the `[R2Backup]` "shed total" is a PER-WORKER
+counter that resets on restart, so the window's count is the number of log LINES; and the recovery that line names
+("recoverable by backfill") is a CDN fetch outside the capture path, which is NOT authorized — count it, do not fix
+it from the log.
+**Tomorrow's order stands:** image lever (~$3.00) → one-pass against three-pass (~$2.80) → the close-out with the note.
+
 ## 2026-09-21 (close) — 🧾 **Mike: unit B ACCEPTED at $0.263 measured; the $0.66 figure is DEAD in the records; premium report ACCEPTED. Pricing decision logged as two shapes and WAITING on Tuesday's one-pass number. Nothing built. Nothing deploys Tuesday or Wednesday.**
 
 **MOST RECENT CHANGE (Rule 5): the pricing decision for Signature ID is framed as (a) a per-use credit or (b) a small Pro
