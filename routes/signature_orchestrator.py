@@ -142,6 +142,7 @@ class PassResult:
     raw_response: str
     none_of_these: Optional[float] = None
     suggested_outside_pool: Optional[str] = None
+    usage: Optional[dict] = None   # input / cache_write / cache_read / output tokens for this pass
 
 
 @dataclass
@@ -569,6 +570,17 @@ REFERENCE IMAGES FOLLOW (grouped by creator, {REFERENCE_IMAGES_PER_CREATOR} per 
                 },
             })
 
+    # PROMPT-CACHE BREAKPOINT (2026-09-21) on the last reference image. Everything up to
+    # here — the system prompt, the comic context and every reference image — is identical
+    # across the three passes of one identification; only what follows (the target) would
+    # differ between identifications. Passes 2 and 3 read ~38k tokens at 0.1x instead of
+    # paying for them again: measured in the harness, ~$0.66 -> ~$0.37 an identification.
+    # The first pass pays a 1.25x write. Hits ACROSS users need the same pool inside the
+    # five-minute TTL and are not expected at current traffic; the saving is within one
+    # identification. It changes nothing the model sees.
+    if content and content[-1].get("type") == "image":
+        content[-1] = dict(content[-1], cache_control={"type": "ephemeral"})
+
     content.append({
         "type": "text",
         "text": "\n--- TARGET SIGNATURE (unknown) ---\nIdentify this signature:"
@@ -607,6 +619,7 @@ def run_single_pass(
         unknown_image_b64, candidates, comic_context, system_prompt
     )
 
+    usage = None   # set as soon as a response exists, so a billed call that then fails to parse still reports it
     try:
         response = client.messages.create(
             model=OPUS_MODEL,
@@ -615,6 +628,18 @@ def run_single_pass(
             system=system_prompt,
             messages=messages,
         )
+        # Token usage, kept and logged (it was discarded until 2026-09-21, so no match had a
+        # measured cost). cache_read > 0 on passes 2 and 3 is the proof the breakpoint works.
+        u = getattr(response, "usage", None)
+        usage = {
+            "input": getattr(u, "input_tokens", 0) or 0,
+            "cache_write": getattr(u, "cache_creation_input_tokens", 0) or 0,
+            "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0,
+            "output": getattr(u, "output_tokens", 0) or 0,
+        } if u is not None else None
+        if usage:
+            logger.info("Pass label=%.1f tokens: input=%d cache_write=%d cache_read=%d output=%d",
+                        temperature, usage["input"], usage["cache_write"], usage["cache_read"], usage["output"])
         raw = response.content[0].text.strip()
 
         # Strip markdown fences if model adds them despite instructions
@@ -668,6 +693,7 @@ def run_single_pass(
             raw_response=raw,
             none_of_these=none_of_these,
             suggested_outside_pool=(str(sop_name).strip() or None) if sop_name else None,
+            usage=usage,
         )
 
     except json.JSONDecodeError as e:
@@ -678,6 +704,7 @@ def run_single_pass(
             analysis={},
             flags={"parse_error": True},
             raw_response="",
+            usage=usage,
         )
     except Exception as e:
         logger.error("Opus call failed on pass label=%.1f: %s", temperature, e)
@@ -687,6 +714,7 @@ def run_single_pass(
             analysis={},
             flags={"api_error": True, "error": str(e)},
             raw_response="",
+            usage=usage,
         )
 
 
@@ -816,6 +844,10 @@ def aggregate_passes(passes: list[PassResult], passes_attempted: int = 3) -> Agg
     # Carried in flags so the review-queue row (flags_json) records which prompt and which
     # numbers produced the decision — no schema change needed.
     merged_flags["prompt_version"] = PROMPT_VERSION
+    totals = {k: sum((p.usage or {}).get(k, 0) for p in passes)
+              for k in ("input", "cache_write", "cache_read", "output")}
+    if any(totals.values()):
+        merged_flags["usage"] = totals
     merged_flags["margin"] = margin
     if none_of_these is not None:
         merged_flags["none_of_these"] = none_of_these
@@ -917,11 +949,14 @@ def run_orchestrated_identification(
     # so sequential execution naturally spaces requests within the rate limit window.
     pass_results: list[PassResult] = []
     failed_temps: list[float] = []
+    billed: list[dict] = []   # usage of EVERY call that got a response, ranked or not
 
     for temp in PASS_TEMPERATURES:
         result = run_single_pass(
             temp, unknown_image_b64, candidates, comic_context, system_prompt, client,
         )
+        if result.usage:
+            billed.append(result.usage)
         if result.rankings:
             pass_results.append(result)
             logger.info(
@@ -944,6 +979,8 @@ def run_orchestrated_identification(
             result = run_single_pass(
                 temp, unknown_image_b64, candidates, comic_context, system_prompt, client,
             )
+            if result.usage:
+                billed.append(result.usage)
             if result.rankings:
                 pass_results.append(result)
                 logger.info(
@@ -970,6 +1007,12 @@ def run_orchestrated_identification(
     # Step 4: Aggregate
     result = aggregate_passes(pass_results, passes_attempted=len(PASS_TEMPERATURES))
     result.latency_ms = int(time.time() * 1000) - start_ms
+    # The cost of the identification is every call that was billed — a pass that returned
+    # unparseable JSON, or a retry, was paid for too. aggregate_passes only sees ranked passes.
+    if billed:
+        result.flags["usage"] = {k: sum(u.get(k, 0) for u in billed)
+                                 for k in ("input", "cache_write", "cache_read", "output")}
+        result.flags["billed_calls"] = len(billed)
 
     logger.info(
         "Orchestration complete — top: %s (%.2f), latency: %dms, passes: %d/%d",
