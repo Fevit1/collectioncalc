@@ -1,5 +1,46 @@
 # Where We Left Off - Sep 22, 2026
 
+## 2026-09-22 (after the close-out commit `39df62f`) — 🧭 **Signature ID re-enable unit: DECIDED by Mike ("the first branch is the decision"). Scoped below for his return; not built. The ID Sigs resize question is answered from the code. Render rollback label: unchecked, Mike confirms on return.**
+
+**MOST RECENT CHANGE (Rule 5): the Signature ID pricing and re-enable shape is DECIDED — Mike, 2026-09-22, last message
+before the window. Supersedes "both shapes stand" and the per-use-credit-OR-Pro-cap framing (ROADMAP, pricing gate):
+it is BOTH — a Pro cap AND a credit above it. The Render rollback label is still unconfirmed. This entry is the ONE uncommitted change in the tree during the
+window unless Mike runs the commit line at its foot; the return checklist's step 7 will show it as `M`.**
+
+1. **Render rollback label — NOT confirmed.** The message read "[confirmed as "Rollback to this deploy" / actual label
+   is ...]". The lever in the note above stands as written; Mike checks the label on return.
+2. **Pricing and re-enable — DECIDED.** ⚰️ ~~NOT decided~~ Mike's first message read "[one pass at about $0.15, three-pass re-run only in the
+   0.65 to 0.80 band; input gate as a precondition …; Pro includes 5 identifications a month, $0.99 per additional as
+   a credit, Dealer includes 25 / OR: not decided, both shapes stand]". His next message: **"the first branch is the decision"** — and the credit is PART OF THE BUILD.
+
+### Signature ID re-enable unit — DECIDED 2026-09-22, scoped for Mike's return (not built)
+**The decision (Mike):**
+- **One pass** (~$0.15, cache breakpoint OFF for a single pass — the write is wasted with nothing to read it), with a
+  **three-pass re-run only when the single pass lands in the 0.65–0.80 band** (breakpoint ON for that re-run).
+  Evidence: one pass = three on 42 / 42 (`SIGNATURE_IMAGE_AND_PASSES_2026-09-22.md`).
+- **Input gate as a PRECONDITION:** a target under **150 px on its long edge**, or one the model flags
+  `poor_image_quality`, returns **no name and no charge** — "can't tell from this photo". Evidence: at 80 px the
+  matcher named 69% with the programme's first wrong name at 0.88; at full resolution 83% with none.
+- **Entitlement:** Pro includes **5** identifications a month; **$0.99 per additional** as a credit; Dealer includes
+  **25**. Cost basis: $0.15 × 5 = $0.75 against $4.99; a credit clears cost ~6×. (Today `PLANS` has Pro at 0 and
+  Dealer at −1 = unlimited; Guard at 10 — Guard is not in the bracket.)
+- **To build, the credit INCLUDED (Mike: "the credit is part of the build"):** the credit itself (Stripe product + a balance column; nothing exists), the cap change in
+  `PLANS`, the band re-run in `run_orchestrated_identification`, the input gate BEFORE the model call, the
+  no-charge rule (today only a confident match counts against a cap — keep that), and the grading-flow re-enable
+  (`app.html`'s dormant `runSignatureCheck` path, now gated on `matched`). Release bar (75% among named) is CLEARED;
+  the pricing gate is CLOSED by this decision. Both gates open; the feature re-enables when this unit ships.
+**The ID Sigs RESIZE QUESTION (answered from the code, `js/utils.js:337`):** the browser downsizes the cover to a
+**1,568 px long edge** (JPEG q0.85) before posting — `resizeBase64ToJpegBlob(base64, maxEdge = 1568)`, chosen as the
+Anthropic vision cap. A typical cover photo is taller than wide, so 1,568 px is the HEIGHT; a comic cover is
+~10.1 in tall, so that is ~155 px per inch of cover. A cover signature is typically 2–3.5 in wide, so it arrives
+**~300–550 px wide** — above the 150-px gate, but with the whole cover in frame the matcher is reading a strip
+that is 20–35% of the image width. **Two consequences:** (a) a full-cover post is NOT the thumbnail case — the
+signature is 4–7× larger than (3)'s 80-px strips, so the 83%-named result is the nearer estimate; (b) a crop-to-
+signature step (client-side, before posting) would send the same strip at full camera resolution, several times
+larger again, and is the cheapest lever left. Row 20's ASM #252 target went up at 1,568 px and scored 0.94.
+
+Committed by Mike before leaving (the commit line was given in chat).
+
 ## 🛑 MIKE IS OFFLINE from Wednesday 2026-09-23 for about five days. NO COMMITS in that window. Read this first.
 
 **If production breaks during the window: NOBODY ACTS.** Mike runs every deploy and every rollback, and he will not

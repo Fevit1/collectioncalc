@@ -401,7 +401,7 @@ books that get a name at all is reported beside it, because a floor can buy prec
 Floor today: score ≥ 0.75, margin ≥ 0.40, none-of-these < 0.50 — **FITTED, NOT ROBUST**: the two confidently-wrong
 absent-signer cases in validation scored 0.72 against a 0.75 floor. (3) re-sets it Monday 2026-09-21.
 
-**THE PRICING DECISION — two shapes to decide between (Mike, 2026-09-21); it WAITS on Tuesday's one-pass number:**
+**THE PRICING DECISION — DECIDED 2026-09-22 (Mike): one pass (~$0.15) with a three-pass re-run only in the 0.65–0.80 band; an input gate before the model call (under 150 px long edge or the poor-image flag → no name, no charge); Pro includes 5 a month, $0.99 per additional as a credit, Dealer includes 25; the credit is part of the build. Scope: WWLO 2026-09-22. ⚰️ The two-shapes framing below is history:**
 (a) **a per-use credit** — Signature ID sold by the identification, outside the plan; or (b) **a small Pro cap** —
 N identifications a month inside Pro — **priced against $0.15 to $0.26 per identification** (one pass to three
 passes cached, both measured or about to be). What Tuesday settles: whether one pass agrees with three closely
