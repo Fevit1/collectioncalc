@@ -173,3 +173,14 @@ Detail: `docs/technical/SIGNATURE_MEASUREMENT_PREP_2026-09-18.md`.
 | 14 | Unit B proof — ONE ASM #252 click after the cache-breakpoint deploy (`d21fdc9`) | ~$0.37 | **$0.2634 MEASURED — the first identification with a measured cost** | Log row 20, 16:07:36Z: input 2,373 · cache_write 22,678 · cache_read 45,356 · output 3,483; pass 1 $0.174, passes 2 and 3 $0.045 each. Uncached the same three passes = $0.439 → the cache saves 40%. The estimate was high because it assumed a 38.9k-token pool; Design A pools average ~23k. |
 
 **Queued for Tuesday 2026-09-22, approved in principle by Mike, estimate to be restated before each starts:** image lever — 40 creators × {full resolution, thumbnail-size}, one pass, three cached pools ≈ **$3.00**; then one-pass vs three-pass — two more passes on the same 40 ≈ **$2.80**. Both ≈ **$5.80**; stop at the $10 ceiling.
+
+---
+
+## 2026-09-22 — running total: **$6.37** (measured; final for the day) · Opus 4.8 $5 / $25, cache write $6.25, cache read $0.50 per MTok
+
+| # | run | est. | actual | notes |
+|---|-----|------|--------|-------|
+| 15 | IMAGE LEVER — 42 creators from (2)'s pools 0–2, each held-out signature sent at full resolution and again downscaled to an 80 px long edge (a listing-thumbnail signature), one pass each = 84 calls, three cached pools | **$3.05** (84 × $0.0322 measured per cached call on these pools + 3 cache writes ≈ $0.35); worst case $3.60 | | Approved by Mike 2026-09-21 ("the image lever first, about $3.00"). Harness stops above a $3.60 projection at the sixth call. Day's total after it: $3.05. **$3.14 MEASURED** (+3%; 84 calls, 0 errors). |
+| 16 | ONE PASS vs THREE — two more full-resolution passes on the same 42 creators (labels 0.5 and 0.7; with arm 1's full pass that is three, aggregated by production `aggregate_passes`) = 84 calls, three cached pools | **$2.80** (84 × $0.0315 measured on these pools + 3 cache writes); worst case $3.30 | | Approved by Mike 2026-09-21 ("then one-pass against three-pass, about $2.80"). Stop above a $3.30 projection. Day's total after it: **$5.94** est. **$3.23 MEASURED** (+15%: output ran ~1,250 tokens a call, not 1,067; 84 calls, 0 errors). |
+
+**OFFLINE WINDOW 2026-09-23 → ~09-28: Claude-initiated spend is $0 by rule — no run of any kind. Any console spend in the window is user-driven grading or nobody's.**
