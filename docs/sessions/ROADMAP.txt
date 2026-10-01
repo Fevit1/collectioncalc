@@ -279,7 +279,11 @@ rediscovered.
 
 26. **sw.js offline fallback serves a redirected response (logged 2026-10-01, Mike).** ⚰️ ~~NOT built~~ **BUILT 2026-10-01
     in `sw.js` (`OFFLINE_URL = '/offline'`, `CACHE_VERSION` v5-20261001, `precache()` rewraps a redirected response
-    with a console.warn) — pending Mike's commit, push, Pages build, purge. Proven in headless Chrome over CDP with
+    with a console.warn) — ⚰️ ~~pending Mike's commit, push, Pages build, purge~~ **SHIPPED `4fe2301` 2026-10-01 11:06
+    -0700, pushed and purged by Mike; live assert the same day: slabworthy.com/sw.js serves v5-20261001 with
+    `OFFLINE_URL = '/offline'`; a browser holding the v4 worker upgraded on reload to `slabworthy-v5-20261001` ONLY
+    (v4 cache evicted, old `/offline.html` entry gone), `/offline` cached with `redirected: false`. Still untested on
+    a phone.** Proven in headless Chrome over CDP with
     Network offline against a local server that 308s `.html` like Pages: OLD code → net::ERR_FAILED + "a redirected
     response was used for a request whose redirect mode is not 'follow'" (the mechanism, now observed); NEW code →
     the offline page renders; new code with the path forced back to `.html` → offline page renders + the warn fires.**
