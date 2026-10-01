@@ -264,6 +264,38 @@ rediscovered.
     plans — is dropped in production; and the route does not keep `response.usage`, so a match has no measured
     cost. Evidence: WWLO 09-18 (late).
 
+25. **Web-filter blocking (logged 2026-10-01, Mike; not started).** On 2026-09-23 slabworthy.com failed with
+    ERR_FAILED on a hospital Wi-Fi network behind a Barracuda filter; the same phone loaded it on cellular, so
+    the block is network-side. WHY Barracuda blocks it is UNVERIFIED — and the ERR_FAILED does not say, because
+    on a phone with the service worker installed a failed navigation goes through the item-26 fallback, which
+    itself produces ERR_FAILED (see item 26). Task: look up the domain's categorization with Barracuda (and
+    optionally other major vendors — Fortinet, Cisco Talos/Umbrella, Zscaler, Palo Alto, Forcepoint) and request
+    recategorization where it is wrong. Schools, libraries and corporate networks carry the same risk. No code.
+    **RANK: above item 10, below the corruption items (2, 16) and item 3.** Consequence: the whole site is
+    unreachable for that visitor, and invisible to us — the request never reaches Cloudflare or Render, so no
+    log, no alert, no count. Reachability: unmeasured; cold traffic is mostly FB mobile, often on cellular,
+    which caps it, but it is the growth phase and every blocked visit is a lost first impression. Effort is an
+    hour of form-filling, which does not move the rank but makes it cheap to do early.
+
+26. **sw.js offline fallback serves a redirected response (logged 2026-10-01, Mike; NOT built).**
+    `OFFLINE_URL = '/offline.html'`; Cloudflare Pages answers that with 308 → `/offline` (re-verified
+    2026-10-01; the other 12 `STATIC_ASSETS` paths all return 200, checked the same day). `precache()` follows
+    the redirect, gets a 200 with `redirected: true`, passes the `response.ok` check and stores it.
+    **VERIFIED 2026-10-01 in Chromium 152 (the app's built-in browser) on live slabworthy.com:** `caches.match
+    ('/offline.html')` in `slabworthy-v4-20260808` returns `redirected: true`, `url: …/offline`. Still
+    UNVERIFIED on a device: the rejection. Per the Service Worker spec, a redirected response used to answer a
+    request whose redirect mode is not "follow" is a network error, and navigations use "manual" — so every
+    offline fallback since the 2026-07-29 policy rewrite has very likely rendered ERR_FAILED, and the inline
+    503 below it never runs because `caches.match` DID find something. The hospital ERR_FAILED (item 25) fits.
+    Proposed fix: `OFFLINE_URL = '/offline'`, bump `CACHE_VERSION`, re-curl every `STATIC_ASSETS` path for 3xx;
+    agent suggestion beside it, Mike's call: in `precache()`, if `response.redirected`, store
+    `new Response(response.body, response)` so a future Pages redirect cannot silently re-break it. Verify:
+    DevTools → Network offline → navigate → the offline page renders, and no "redirected response" console
+    error. Frontend only: push → wait for the Pages build → purge.
+    **RANK: below item 25, above item 11.** Consequence: a broken error page, nothing corrupted, but it is the
+    page shown exactly when something else has gone wrong, and it hides what that was. Reachability: returning
+    visitors with the worker installed whose navigation fails. Cheap — one constant and a version bump.
+
 **⚑ Pending a browser check, NOT ranked (Amendment 2):** the Manual mode toggle on the grading page
 (`js/app.js` `setMode` looks up `#modePhoto`, which exists in no page, before it can show `#manualMode`).
 The sweep's static reading says the control throws and the manual valuation path is unreachable; the
